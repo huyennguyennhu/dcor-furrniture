@@ -10,7 +10,7 @@ export async function GET() {
     });
 
     // Map database fields to the frontend CatalogProduct format
-    const formattedProducts = products.map((p) => ({
+    const formattedProducts = products.map((p: any) => ({
       productId: p.id,
       shortDescription: p.name, // mapped to short_description
       shortDescription_vi: p.description, // mapped to short_description_vi
