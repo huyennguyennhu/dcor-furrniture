@@ -57,32 +57,19 @@ async function main() {
     const product = await prisma.product.upsert({
       where: { id: pid },
       update: {
-        name: p.shortDescription,
-        description: p.shortDescription_vi || p.shortDescription,
-        category: p.category || 'Sofas',
-        images: p.images,
-        refinementColors: p.refinementColors,
-        refinementColorsVi: p.refinementColors_vi || null,
-        refinementMaterials: p.refinementMaterials,
-        refinementMaterialsVi: p.refinementMaterials_vi || null,
-        prices: p.prices,
-        config: configData,
-        variantPrices: matchingPrices
+        name: p.shortDescription || 'Sản phẩm',
+        description: [p.shortDescription_vi || p.shortDescription],
+        configOptions: configData || [],
+        variants: matchingPrices || []
       },
       create: {
         id: pid,
-        name: p.shortDescription,
-        description: p.shortDescription_vi || p.shortDescription,
-        category: p.category || 'Sofas',
-        variantUrl: p.variantUrl,
-        images: p.images,
-        refinementColors: p.refinementColors,
-        refinementColorsVi: p.refinementColors_vi || null,
-        refinementMaterials: p.refinementMaterials,
-        refinementMaterialsVi: p.refinementMaterials_vi || null,
-        prices: p.prices,
-        config: configData,
-        variantPrices: matchingPrices
+        slug: pid.toLowerCase(),
+        name: p.shortDescription || 'Sản phẩm',
+        description: [p.shortDescription_vi || p.shortDescription],
+        basePrice: p.prices?.[0]?.price || 0,
+        configOptions: configData || [],
+        variants: matchingPrices || []
       }
     });
 
