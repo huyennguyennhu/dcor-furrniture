@@ -28,9 +28,9 @@ export default function ProductTabs({ product }: { product: CatalogProduct }) {
             <li style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
               <span>Mã sản phẩm:</span> <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{product.productId}</span>
             </li>
-            {product.variantPrices && product.variantPrices.length > 0 && (
+            {(product as any).variantPrices && (product as any).variantPrices.length > 0 && (
               <li style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
-                <span>Số phiên bản:</span> <span style={{ color: 'var(--text-primary)' }}>{product.variantPrices.length}</span>
+                <span>Số phiên bản:</span> <span style={{ color: 'var(--text-primary)' }}>{(product as any).variantPrices.length} lựa chọn</span>
               </li>
             )}
             <li style={{ padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>

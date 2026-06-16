@@ -110,13 +110,13 @@ export default function ProductDetailPage() {
         <ProductTabs product={product} />
 
         {/* 5. Không gian thực tế (Community) */}
-        <ProductCommunity productName={title} />
+        <ProductCommunity productId={product.productId} productName={title} />
 
         {/* 6. Tương thích Room Planner */}
         <RoomPlannerCTA productId={product.productId} />
 
         {/* 7. Đánh giá (Reviews) */}
-        <ProductReviews />
+        <ProductReviews productId={product.productId} />
 
         {/* 8. Sản phẩm liên quan */}
         <RelatedProducts currentProductId={product.productId} category={product.category} />

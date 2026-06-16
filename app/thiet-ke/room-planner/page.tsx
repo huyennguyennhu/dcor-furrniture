@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BOCONCEPT_CATALOG as products, CatalogProduct } from '@/lib/data';
@@ -59,7 +59,7 @@ const EMPTY_ROOMS = [
 const SIDEBAR_HERO = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80';
 const CATEGORIES = ['Tất cả', 'Sofa', 'Bàn', 'Ghế', 'Tủ', 'Giường', 'Đèn', 'Trang trí'];
 
-export default function RoomPlannerApp() {
+function RoomPlannerContent() {
   const searchParams = useSearchParams();
   const roomType = searchParams.get('room') || 'living';
   const addToCart = useStore(state => state.addToCart);
@@ -629,9 +629,9 @@ export default function RoomPlannerApp() {
                 </div>
 
                 {/* Variant Groups */}
-                {fullProduct && (fullProduct.refinementColors_vi?.length > 0 || fullProduct.refinementMaterials_vi?.length > 0) && (
+                {fullProduct && ((fullProduct.refinementColors_vi?.length ?? 0) > 0 || (fullProduct.refinementMaterials_vi?.length ?? 0) > 0) && (
                   <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {fullProduct.refinementColors_vi?.length > 0 && (
+                    {(fullProduct.refinementColors_vi?.length ?? 0) > 0 && (
                       <div style={{ position: 'relative' }}>
                         <button 
                           className="cat-tab"
@@ -653,7 +653,7 @@ export default function RoomPlannerApp() {
                         )}
                       </div>
                     )}
-                    {fullProduct.refinementMaterials_vi?.length > 0 && (
+                    {(fullProduct.refinementMaterials_vi?.length ?? 0) > 0 && (
                       <div style={{ position: 'relative' }}>
                         <button 
                           className="cat-tab"
@@ -717,7 +717,7 @@ export default function RoomPlannerApp() {
                 className="planner-cart-btn"
                 title="Thêm vào giỏ hàng"
                 style={{ flex: 1, marginBottom: 0, padding: '12px 0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                onClick={() => addToCart({ id: selectedItem.productId, quantity: 1, name: selectedItem.name, price: selectedItem.price, image: selectedItem.image })}
+                onClick={() => addToCart({ productId: selectedItem.productId, name: selectedItem.name, price: selectedItem.price, image: selectedItem.image })}
               >
                 <ShoppingCart size={20} />
               </button>
@@ -744,5 +744,13 @@ export default function RoomPlannerApp() {
         )})()}
       </div>
     </div>
+  );
+}
+
+export default function RoomPlannerApp() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>Đang tải công cụ thiết kế...</div>}>
+      <RoomPlannerContent />
+    </Suspense>
   );
 }

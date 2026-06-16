@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CatalogProduct } from '@/lib/data';
@@ -22,7 +22,7 @@ const isOnSale = (prod: CatalogProduct) => {
 
 const QUICK_CATEGORIES = ['Tất cả', 'Sofa', 'Bàn', 'Ghế', 'Tủ', 'Giường', 'Đèn', 'Trang trí'];
 
-export default function KhamPhaPage() {
+function KhamPhaContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const addToCart = useStore(state => state.addToCart);
@@ -428,5 +428,13 @@ export default function KhamPhaPage() {
         .skeleton-text{background:rgba(255,255,255,.05);animation:skeleton-pulse 1.5s infinite ease-in-out; border-radius:4px;}
       `}} />
     </div>
+  );
+}
+
+export default function KhamPhaPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>Đang tải dữ liệu...</div>}>
+      <KhamPhaContent />
+    </Suspense>
   );
 }

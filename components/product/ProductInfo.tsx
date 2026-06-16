@@ -6,10 +6,11 @@ import { useStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 
 function buildDynamicOptions(product: CatalogProduct) {
-  const variantPrices = (product.variantPrices || []).filter((v: any) => v.images && v.images.length > 0);
+  const p = product as any;
+  const variantPrices = (p.variantPrices || []).filter((v: any) => v.images && v.images.length > 0);
   if (!variantPrices || variantPrices.length === 0) return null;
 
-  const config: any = product.config || {};
+  const config: any = p.config || {};
   const legStyles = config.legStyles || [];
   const upholsterySwatches = config.upholsterySwatches || [];
 
@@ -89,8 +90,9 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   const filteredVariantPrices = useMemo(() => {
-    return (product.variantPrices || []).filter((v: any) => v.images && v.images.length > 0);
-  }, [product.variantPrices]);
+    const p = product as any;
+    return (p.variantPrices || []).filter((v: any) => v.images && v.images.length > 0);
+  }, [(product as any).variantPrices]);
 
   useEffect(() => {
     if (hasDynamicVariants && filteredVariantPrices.length > 0) {

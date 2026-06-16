@@ -16,21 +16,22 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
+    const p = product as any;
     const formattedProduct = {
       productId: product.id,
       shortDescription: product.name,
       shortDescription_vi: product.description,
-      category: product.category || 'Sofas',
-      variantUrl: product.variantUrl || '',
-      images: product.images || [],
-      refinementColors: product.refinementColors || [],
-      refinementColors_vi: product.refinementColorsVi || [],
-      refinementMaterials: product.refinementMaterials || [],
-      refinementMaterials_vi: product.refinementMaterialsVi || [],
-      prices: product.prices || [],
-      lowestPrices: product.lowestPrices || [],
-      config: product.config || null,
-      variantPrices: product.variantPrices || []
+      category: p.category || 'Sofas',
+      variantUrl: p.variantUrl || '',
+      images: p.images || [],
+      refinementColors: p.refinementColors || [],
+      refinementColors_vi: p.refinementColorsVi || [],
+      refinementMaterials: p.refinementMaterials || [],
+      refinementMaterials_vi: p.refinementMaterialsVi || [],
+      prices: p.prices || [],
+      lowestPrices: p.lowestPrices || [],
+      config: p.config || null,
+      variantPrices: p.variantPrices || []
     };
 
     return NextResponse.json(formattedProduct);
