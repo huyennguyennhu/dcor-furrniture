@@ -1,0 +1,62 @@
+[
+  {
+    "superMasterKey": "SM42250020",
+    "selections": {
+      "vaMaterialLegStyle": "422_Sofaleg_high_0075",
+      "vaMaterialUpholstery": "3334"
+    },
+    "variantKey": "4225075AF303334",
+    "variantUrl": "indivi/422af30-10:422_sofaleg_high_0075-14:3334",
+    "price": {
+      "value": 69390000,
+      "currency": "VND",
+      "formattedPrice": "69,390,000 ₫"
+    },
+    "attributes": {
+      "designedBy": "Anders Nørgaard",
+      "dimensions": "222 cm x 91 cm x 83 cm",
+      "upholsteryComposition": "65% polyester & 35% linen. STANDARD 100 by OEKO-TEX®",
+      "finish": "Leg: lacquered"
+    }
+  },
+  {
+    "superMasterKey": "SM42250020",
+    "selections": {
+      "vaMaterialLegStyle": "422_Sofaleg_high_0075",
+      "vaMaterialUpholstery": "3311"
+    },
+    "variantKey": "4225075AF303311",
+    "variantUrl": "indivi/422af30-10:422_sofaleg_high_0075-14:3311",
+    "price": {
+      "value": 51290000,
+      "currency": "VND",
+      "formattedPrice": "51,290,000 ₫"
+    },
+    "attributes": {
+      "designedBy": "Anders Nørgaard",
+      "dimensions": "222 cm x 91 cm x 83 cm",
+      "upholsteryComposition": "Front: 96% recycled polyester & 4% nylon. Back: 100% recycled polyester. STANDARD 100 by OEKO-TEX®",
+      "finish": "Leg: lacquered"
+    }
+  },
+  {
+    "superMasterKey": "SM42250020",
+    "selections": {
+      "vaMaterialLegStyle": "422_Sofaleg_high_0708",
+      "vaMaterialUpholstery": "3311"
+    },
+    "variantKey": "4225708AF003311",
+    "variantUrl": "indivi/422af00-10:422_sofaleg_high_0708-14:3311",
+    "price": {
+      "value": 51290000,
+      "currency": "VND",
+      "formattedPrice": "51,290,000 ₫"
+    },
+    "attributes": {
+      "designedBy": "Anders Nørgaard",
+      "dimensions": "222 cm x 91 cm x 83 cm",
+      "upholsteryComposition": "Front: 96% recycled polyester & 4% nylon. Back: 100% recycled polyester. STANDARD 100 by OEKO-TEX®",
+      "finish": "Leg: lacquered"
+    }
+  }
+]

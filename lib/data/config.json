@@ -1,0 +1,2176 @@
+{
+  "productMeta": {
+    "id": null,
+    "name": "Indivi",
+    "designer": null,
+    "specification": null,
+    "dimensions": {
+      "width": null,
+      "height": null,
+      "depth": null,
+      "seatingHeight": null
+    }
+  },
+  "legStyles": [
+    {
+      "id": "422_Sofaleg_high_0708",
+      "name": "oak, 15cm",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/legs/422_Sofaleg_high_0708_2766056_PNG-Web2072dpi.png",
+      "groupName": "Indivi_4300",
+      "description": "Enhance your Indivi sofa with legs crafted from natural Oak for a Scandinavian-inspired look. At 12cm, these legs offer a grounded feel that complements the Indivi sofaâ€™s clean lines.",
+      "name_vi": "gỗ sồi, 15cm",
+      "description_vi": "Nâng tầm chiếc ghế sofa Indivi của bạn với những chiếc chân được chế tác từ gỗ sồi tự nhiên để mang lại vẻ ngoài lấy cảm hứng từ Scandinavia. Với chiều cao 12 cm, những chiếc chân này mang lại cảm giác vững chắc, tôn lên những đường nét gọn gàng của ghế sofa Indivi."
+    },
+    {
+      "id": "422_Sofaleg_low_0708",
+      "name": "oak, 12cm",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/legs/422_Sofaleg_low_0708_2766055_PNG-Web2072dpi.png",
+      "groupName": "Indivi_4310",
+      "description": "Enhance your Indivi sofa with legs crafted from natural Oak for a Scandinavian-inspired look. These 15cm high legs lift your sofa to create a lighter, airier feel, while also offering a more upright seating position.",
+      "name_vi": "gỗ sồi, 12cm",
+      "description_vi": "Nâng tầm chiếc ghế sofa Indivi của bạn với những chiếc chân được chế tác từ gỗ sồi tự nhiên để mang lại vẻ ngoài lấy cảm hứng từ Scandinavia. Những chiếc chân cao 15 cm này nâng ghế sofa của bạn lên để tạo cảm giác nhẹ hơn, thoáng hơn, đồng thời mang lại tư thế ngồi thẳng hơn."
+    },
+    {
+      "id": "422_Sofaleg_low_0075",
+      "name": "matt black, 12cm",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/legs/422_Sofaleg_low_0075_2766058_PNG-Web2072dpi.png",
+      "groupName": "Indivi_4320",
+      "description": "For a modern, streamlined look, opt for the legs in Matt Black. At 15cm, these sleek metal legs lend an industrial edge to the Indivi sofa, slightly lifting it for a lighter feel, while maintaining a clean, understated profile.",
+      "name_vi": "đen mờ, 12cm",
+      "description_vi": "Để có vẻ ngoài hiện đại, tinh gọn, hãy chọn phần chân màu Matt Black. Với chiều cao 15cm, những chiếc chân kim loại bóng bẩy này mang lại nét công nghiệp cho ghế sofa Indivi, nâng nhẹ ghế để tạo cảm giác nhẹ hơn trong khi vẫn duy trì hình dáng gọn gàng, tinh tế."
+    },
+    {
+      "id": "422_Sofaleg_high_0075",
+      "name": "matt black, 15cm",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/legs/422_Sofaleg_high_0075_2766057_PNG-Web2072dpi.png",
+      "groupName": "Indivi_4330",
+      "description": "For a modern, streamlined look, opt for the legs in Matt Black. At 12cm, these sleek metal legs lend an urban, industrial edge to the Indivi sofa while maintaining a clean, grounded profile.",
+      "name_vi": "đen mờ, 15cm",
+      "description_vi": "Để có vẻ ngoài hiện đại, tinh gọn, hãy chọn phần chân màu Matt Black. Với chiều cao 12cm, những chiếc chân kim loại bóng bẩy này mang lại nét công nghiệp, đô thị cho ghế sofa Indivi trong khi vẫn duy trì được hình dáng gọn gàng, chắc chắn."
+    }
+  ],
+  "upholsterySwatches": [
+    {
+      "id": "3331",
+      "name": "beige Arezzo fabric 3331",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3331_Arezzo3331Beigecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Arezzo",
+      "groupSortOrder": 0,
+      "name_vi": "vải Arezzo màu be 3331"
+    },
+    {
+      "id": "3333",
+      "name": "ochre Arezzo fabric 3333",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3333_Arezzo3333Ochrecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Arezzo",
+      "groupSortOrder": 0,
+      "name_vi": "vải màu đất son Arezzo 3333"
+    },
+    {
+      "id": "3332",
+      "name": "light brown Arezzo fabric 3332",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3332_Arezzo3332ightbrowncreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Arezzo",
+      "groupSortOrder": 0,
+      "name_vi": "vải Arezzo màu nâu nhạt 3332"
+    },
+    {
+      "id": "3334",
+      "name": "green Arezzo fabric 3334",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3334_Arezzo3334Greencreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Arezzo",
+      "groupSortOrder": 0,
+      "name_vi": "vải Arezzo xanh 3334"
+    },
+    {
+      "id": "3312",
+      "name": "ochre Copenhagen fabric 3312",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3312_Copenhagen3312Ochrecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Copenhagen",
+      "groupSortOrder": 0,
+      "name_vi": "vải màu đất son Copenhagen 3312"
+    },
+    {
+      "id": "3311",
+      "name": "brown Copenhagen fabric 3311",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3311_Copenhagen3311Browncreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Copenhagen",
+      "groupSortOrder": 0,
+      "name_vi": "vải Copenhagen màu nâu 3311"
+    },
+    {
+      "id": "3310",
+      "name": "white Copenhagen fabric 3310",
+      "refinementColor": "white",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3310_Copenhagen3310Whitecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Copenhagen",
+      "groupSortOrder": 0,
+      "name_vi": "vải Copenhagen trắng 3310"
+    },
+    {
+      "id": "3322",
+      "name": "green Lucca fabric 3322",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3322_Lucca3322Greencreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Lucca",
+      "groupSortOrder": 0,
+      "name_vi": "vải Lucca xanh 3322"
+    },
+    {
+      "id": "3323",
+      "name": "red Lucca fabric 3323",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3323_Lucca3323Redcreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Lucca",
+      "groupSortOrder": 0,
+      "name_vi": "vải Lucca đỏ 3323"
+    },
+    {
+      "id": "3320",
+      "name": "beige Lucca fabric 3320",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3320_Lucca3320Beigecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Lucca",
+      "groupSortOrder": 0,
+      "name_vi": "vải Lucca màu be 3320"
+    },
+    {
+      "id": "3321",
+      "name": "white Lucca fabric 3321",
+      "refinementColor": "white",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3321_Lucca3321Whitecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Lucca",
+      "groupSortOrder": 0,
+      "name_vi": "vải Lucca trắng 3321"
+    },
+    {
+      "id": "3086",
+      "name": "green Rimini fabric 3086",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3086_Rimini3086Greencreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Rimini",
+      "groupSortOrder": 4,
+      "name_vi": "vải Rimini xanh 3086"
+    },
+    {
+      "id": "3088",
+      "name": "brick red Rimini fabric 3088",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3088_Rimini3088BrickRedcreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Rimini",
+      "groupSortOrder": 4,
+      "name_vi": "vải Rimini đỏ gạch 3088"
+    },
+    {
+      "id": "3083",
+      "name": "White Rimini fabric 3083",
+      "refinementColor": "white",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3083_RiminiWhite3083creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Rimini",
+      "groupSortOrder": 4,
+      "name_vi": "Vải Rimini trắng 3083"
+    },
+    {
+      "id": "3087",
+      "name": "beige Rimini fabric 3087",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3087_Rimini3087Beigecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Rimini",
+      "groupSortOrder": 4,
+      "name_vi": "vải Rimini màu be 3087"
+    },
+    {
+      "id": "3085",
+      "name": "camel Rimini fabric 3085",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3085_Rimini3085Camelcreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Rimini",
+      "groupSortOrder": 4,
+      "name_vi": "vải lạc đà Rimini 3085"
+    },
+    {
+      "id": "3230",
+      "name": "beige Capri fabric 3230",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3230_Capri3230Beigecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Capri",
+      "groupSortOrder": 8,
+      "name_vi": "vải Capri màu be 3230"
+    },
+    {
+      "id": "3233",
+      "name": "blue Capri fabric 3233",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3233_Capri3233Bluecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Capri",
+      "groupSortOrder": 8,
+      "name_vi": "vải Capri xanh 3233"
+    },
+    {
+      "id": "3234",
+      "name": "mustard Capri fabric 3234",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3234_Capri3234Mustardcreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Capri",
+      "groupSortOrder": 8,
+      "name_vi": "vải Capri mù tạt 3234"
+    },
+    {
+      "id": "3232",
+      "name": "green Capri fabric 3232",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3232_CapriGreen3232creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Capri",
+      "groupSortOrder": 8,
+      "name_vi": "vải Capri xanh 3232"
+    },
+    {
+      "id": "3231",
+      "name": "sand Capri fabric 3231",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3231_Capri3231Sandcreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Capri",
+      "groupSortOrder": 8,
+      "name_vi": "vải cát Capri 3231"
+    },
+    {
+      "id": "2110",
+      "name": "sand-coloured Nani fabric 2110",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2110_1685832__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 1,
+      "groupName": "Nani",
+      "groupSortOrder": 40,
+      "name_vi": "vải Nani màu cát 2110"
+    },
+    {
+      "id": "2111",
+      "name": "dark grey Nani fabric 2111",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2111_1685833__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 2,
+      "groupName": "Nani",
+      "groupSortOrder": 40,
+      "name_vi": "vải Nani xám đậm 2111"
+    },
+    {
+      "id": "3063",
+      "name": "beige Bristol fabric 3063",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3063_1685771_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 1,
+      "groupName": "Bristol",
+      "groupSortOrder": 44,
+      "name_vi": "vải Bristol màu be 3063"
+    },
+    {
+      "id": "3060",
+      "name": "light grey Bristol fabric 3060",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3060_1685770_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 2,
+      "groupName": "Bristol",
+      "groupSortOrder": 44,
+      "name_vi": "vải Bristol màu xám nhạt 3060"
+    },
+    {
+      "id": "3066",
+      "name": "mustard Bristol fabric 3066",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3066_1685774_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 4,
+      "groupName": "Bristol",
+      "groupSortOrder": 44,
+      "name_vi": "vải mù tạt Bristol 3066"
+    },
+    {
+      "id": "3068",
+      "name": "dark green Bristol fabric 3068",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3068_1685778_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 6,
+      "groupName": "Bristol",
+      "groupSortOrder": 44,
+      "name_vi": "vải Bristol xanh đậm 3068"
+    },
+    {
+      "id": "3065",
+      "name": "blue Bristol fabric 3065",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3065_1685773_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 7,
+      "groupName": "Bristol",
+      "groupSortOrder": 44,
+      "name_vi": "vải Bristol xanh 3065"
+    },
+    {
+      "id": "3221",
+      "name": "beige Ravello fabric 3221",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3221_Ravello3221Beige_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Ravello",
+      "groupSortOrder": 48,
+      "name_vi": "vải Ravello màu be 3221"
+    },
+    {
+      "id": "3220",
+      "name": "sand Ravello fabric 3220",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3220_Ravello3220Sand_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Ravello",
+      "groupSortOrder": 48,
+      "name_vi": "vải cát Ravello 3220"
+    },
+    {
+      "id": "3224",
+      "name": "dusty rose Ravello fabric 3224",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3224_Ravello3224Dustyrose_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Ravello",
+      "groupSortOrder": 48,
+      "name_vi": "vải hoa hồng bụi Ravello 3224"
+    },
+    {
+      "id": "3222",
+      "name": "grey Ravello fabric 3222",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3222_Ravello3222Grey_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Ravello",
+      "groupSortOrder": 48,
+      "name_vi": "vải Ravello xám 3222"
+    },
+    {
+      "id": "3223",
+      "name": "dusty green Ravello fabric 3223",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3223_Ravello3223Dustygreen_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Ravello",
+      "groupSortOrder": 48,
+      "name_vi": "Vải Ravello xanh bụi 3223"
+    },
+    {
+      "id": "3225",
+      "name": "dark blue Ravello fabric 3225",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3225_Ravello3225Darkblue_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Ravello",
+      "groupSortOrder": 48,
+      "name_vi": "Vải Ravello xanh đậm 3225"
+    },
+    {
+      "id": "3258",
+      "name": "Cherry red Bologna fabric 3258",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3258_BolognaCherryRed3258creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Bologna",
+      "groupSortOrder": 55,
+      "name_vi": "Vải Bologna màu đỏ anh đào 3258"
+    },
+    {
+      "id": "3256",
+      "name": "dark green Bologna fabric 3256",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3256_BolognaDarkGreen3256creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Bologna",
+      "groupSortOrder": 55,
+      "name_vi": "vải Bologna xanh đậm 3256"
+    },
+    {
+      "id": "3255",
+      "name": "mustard Bologna fabric 3255",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3255_BolognaMustard3255creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Bologna",
+      "groupSortOrder": 55,
+      "name_vi": "vải mù tạt Bologna 3255"
+    },
+    {
+      "id": "3262",
+      "name": "Mouse belly Bologna fabric 3262",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3262_Bologna3262creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Bologna",
+      "groupSortOrder": 55,
+      "name_vi": "Bụng chuột vải Bologna 3262"
+    },
+    {
+      "id": "3257",
+      "name": "olive green Bologna Fabric 3257",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3257_BolognaOliveGreen3257creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Bologna",
+      "groupSortOrder": 55,
+      "name_vi": "Vải Bologna màu xanh ô liu 3257"
+    },
+    {
+      "id": "3254",
+      "name": "sand Bologna fabric 3254",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3254_BolognaSand3254creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Bologna",
+      "groupSortOrder": 55,
+      "name_vi": "cát vải Bologna 3254"
+    },
+    {
+      "id": "3261",
+      "name": "Sky blue Bologna fabric 3261",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3261_Bologna3261creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Bologna",
+      "groupSortOrder": 55,
+      "name_vi": "Vải Bologna xanh da trời 3261"
+    },
+    {
+      "id": "3163",
+      "name": "dark blue Skagen fabric 3163",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3163_1685854__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Skagen",
+      "groupSortOrder": 70,
+      "name_vi": "Vải Skagen xanh đậm 3163"
+    },
+    {
+      "id": "3165",
+      "name": "green Skagen fabric 3165",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3165_Skagen3165Green_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Skagen",
+      "groupSortOrder": 70,
+      "name_vi": "vải Skagen xanh 3165"
+    },
+    {
+      "id": "3164",
+      "name": "steel Skagen fabric 3164",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3164_1685855__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Skagen",
+      "groupSortOrder": 70,
+      "name_vi": "vải Skagen thép 3164"
+    },
+    {
+      "id": "3161",
+      "name": "sand Skagen fabric 3161",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3161_1685852__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Skagen",
+      "groupSortOrder": 70,
+      "name_vi": "vải cát Skagen 3161"
+    },
+    {
+      "id": "3160",
+      "name": "beige Skagen fabric 3160",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3160_1685851__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Skagen",
+      "groupSortOrder": 70,
+      "name_vi": "vải Skagen màu be 3160"
+    },
+    {
+      "id": "3208",
+      "name": "forest green Tuscany fabric 3208",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3208_Tuscany3208ForestGreencreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "Vải Tuscany xanh rừng 3208"
+    },
+    {
+      "id": "3206",
+      "name": "blue Tuscany fabric 3206",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3206_Tuscany3206Blue_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany xanh 3206"
+    },
+    {
+      "id": "3205",
+      "name": "mustard Tuscany fabric 3205",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3205_Tuscany3205Mustard_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany mù tạt 3205"
+    },
+    {
+      "id": "3200",
+      "name": "white Tuscany fabric 3200",
+      "refinementColor": "white",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3200_Tuscany3200White_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany trắng 3200"
+    },
+    {
+      "id": "3204",
+      "name": "green Tuscany fabric 3204",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3204_Tuscany3204Green_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany xanh 3204"
+    },
+    {
+      "id": "3207",
+      "name": "burgundy Tuscany fabric 3207",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3207_Tuscany3207Burgundycreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany đỏ tía 3207"
+    },
+    {
+      "id": "3202",
+      "name": "brown Tuscany fabric 3202",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3202_Tuscany3202Bown_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany nâu 3202"
+    },
+    {
+      "id": "3201",
+      "name": "beige Tuscany fabric 3201",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3201_Tuscany3201Beige_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany màu be 3201"
+    },
+    {
+      "id": "3203",
+      "name": "grey Tuscany fabric 3203",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3203_Tuscany3203Grey_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tuscany",
+      "groupSortOrder": 87,
+      "name_vi": "vải Tuscany màu xám 3203"
+    },
+    {
+      "id": "2278",
+      "name": "burgundy Frisco fabric 2278",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2278_FriscoBurgondy2278creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco đỏ tía 2278"
+    },
+    {
+      "id": "2277",
+      "name": "forest green Frisco fabric 2277",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2277_FriscoForrestGreen2277creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco xanh rừng 2277"
+    },
+    {
+      "id": "2070",
+      "name": "beige Frisco fabric 2070",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2070_1685813__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco màu be 2070"
+    },
+    {
+      "id": "2275",
+      "name": "Dusty blue Frisco fabric 2275",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2275_FriscoBlue2275creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "Vải Frisco xanh bụi 2275"
+    },
+    {
+      "id": "2274",
+      "name": "sand Frisco fabric 2274",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2274_FriscoSand2274creased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải cát Frisco 2274"
+    },
+    {
+      "id": "2063",
+      "name": "light grey Frisco fabric with aquaclean 2063",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2063_1685809__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 1,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco màu xám nhạt có aquaclean 2063"
+    },
+    {
+      "id": "2067",
+      "name": "stone grey Frisco fabric with aquaclean 2067",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2067_1685812__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 2,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco màu xám đá với aquaclean 2067"
+    },
+    {
+      "id": "2056",
+      "name": "light blue Frisco fabric with aquaclean 2056",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2056_1685805__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 3,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco xanh nhạt có aquaclean 2056"
+    },
+    {
+      "id": "2065",
+      "name": "dark blue Frisco fabric with aquaclean 2065",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2065_1685811__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 6,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco xanh đậm có aquaclean 2065"
+    },
+    {
+      "id": "2058",
+      "name": "dark green Frisco fabric with Aquaclean 2058",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2058_1685807__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 7,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco xanh đậm có Aquaclean 2058"
+    },
+    {
+      "id": "2057",
+      "name": "camel Frisco fabric with aquaclean 2057",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2057_1685806__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 8,
+      "groupName": "Frisco",
+      "groupSortOrder": 100,
+      "name_vi": "vải Frisco lạc đà với aquaclean 2057"
+    },
+    {
+      "id": "3096",
+      "name": "brown Lazio fabric 3096",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3096_Lazio3096Brown_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Lazio",
+      "groupSortOrder": 110,
+      "name_vi": "vải Lazio nâu 3096"
+    },
+    {
+      "id": "3097",
+      "name": "grey Lazio fabric 3097",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3097_Lazio3097Grey_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Lazio",
+      "groupSortOrder": 110,
+      "name_vi": "vải Lazio màu xám 3097"
+    },
+    {
+      "id": "3090",
+      "name": "white Lazio fabric 3090",
+      "refinementColor": "white",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3090_1685814__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 1,
+      "groupName": "Lazio",
+      "groupSortOrder": 110,
+      "name_vi": "vải Lazio trắng 3090"
+    },
+    {
+      "id": "3091",
+      "name": "beige Lazio fabric 3091",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3091_1685815__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 2,
+      "groupName": "Lazio",
+      "groupSortOrder": 110,
+      "name_vi": "vải Lazio màu be 3091"
+    },
+    {
+      "id": "3092",
+      "name": "light green Lazio fabric 3092",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3092_1685816__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 3,
+      "groupName": "Lazio",
+      "groupSortOrder": 110,
+      "name_vi": "vải Lazio xanh nhạt 3092"
+    },
+    {
+      "id": "3094",
+      "name": "dark green Lazio fabric 3094",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3094_1685818__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 4,
+      "groupName": "Lazio",
+      "groupSortOrder": 110,
+      "name_vi": "vải Lazio xanh đậm 3094"
+    },
+    {
+      "id": "3145",
+      "name": "beige Tomelilla fabric 3145",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3145_Tomelilla3145Beige_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Tomelilla",
+      "groupSortOrder": 127,
+      "name_vi": "vải Tomelilla màu be 3145"
+    },
+    {
+      "id": "3143",
+      "name": "mustard Tomelilla fabric 3143",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3143_1685858__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 1,
+      "groupName": "Tomelilla",
+      "groupSortOrder": 127,
+      "name_vi": "vải Tomelilla mù tạt 3143"
+    },
+    {
+      "id": "3142",
+      "name": "grey Tomelilla fabric 3142",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3142_1685857__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 2,
+      "groupName": "Tomelilla",
+      "groupSortOrder": 127,
+      "name_vi": "vải Tomelilla xám 3142"
+    },
+    {
+      "id": "3144",
+      "name": "blue Tomelilla fabric 3144",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3144_1685859__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 3,
+      "groupName": "Tomelilla",
+      "groupSortOrder": 127,
+      "name_vi": "vải Tomelilla xanh 3144"
+    },
+    {
+      "id": "3253",
+      "name": "dusty blue Avellino fabric 3253",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3253_Avellino3253Dustybluecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Avellino",
+      "groupSortOrder": 129,
+      "name_vi": "vải Avellino xanh bụi 3253"
+    },
+    {
+      "id": "3251",
+      "name": "golden beige Avellino fabric 3251",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3251_Avellino3251Goldenbeigecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Avellino",
+      "groupSortOrder": 129,
+      "name_vi": "vải Avellino màu be vàng 3251"
+    },
+    {
+      "id": "3250",
+      "name": "red Avellino fabric 3250",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3250_Avellino3250Redcreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Avellino",
+      "groupSortOrder": 129,
+      "name_vi": "vải Avellino đỏ 3250"
+    },
+    {
+      "id": "3252",
+      "name": "green Avellino fabric 3252",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/3252_Avellino3252Greencreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Avellino",
+      "groupSortOrder": 129,
+      "name_vi": "vải Avellino xanh 3252"
+    },
+    {
+      "id": "2268",
+      "name": "dusty green Napoli fabric 2268",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2268_Napoli2268DustyGreen_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "vải Napoli xanh bụi 2268"
+    },
+    {
+      "id": "2267",
+      "name": "sand Napoli fabric 2267",
+      "refinementColor": "beige",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2267_Napoli2267Sand_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "vải cát Napoli 2267"
+    },
+    {
+      "id": "2250",
+      "name": "silver grey Napoli 2250",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2250_1685835__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 1,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "Napoli xám bạc 2250"
+    },
+    {
+      "id": "2252",
+      "name": "golden beige Napoli fabric 2252",
+      "refinementColor": "yellow",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2252_1685837__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 2,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "vải Napoli màu be vàng 2252"
+    },
+    {
+      "id": "2253",
+      "name": "turquoise Napoli fabric 2253",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2253_1685838__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 5,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "vải Napoli màu ngọc lam 2253"
+    },
+    {
+      "id": "2257",
+      "name": "dark blue Napoli fabric 2257",
+      "refinementColor": "blue",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2257_1685840__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 7,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "vải Napoli xanh đậm 2257"
+    },
+    {
+      "id": "2251",
+      "name": "taupe Napoli fabric 2251",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2251_1685836__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 9,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "vải Napoli màu nâu sẫm 2251"
+    },
+    {
+      "id": "2255",
+      "name": "stone grey Napoli fabric 2255",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/2255_1685839__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 10,
+      "groupName": "Napoli",
+      "groupSortOrder": 140,
+      "name_vi": "vải Napoli xám đá 2255"
+    },
+    {
+      "id": "5131",
+      "name": "stone Nordic Grain leather 5131",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5131_NordicGrain5131Stone_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "đá Da hạt Bắc Âu 5131"
+    },
+    {
+      "id": "5134",
+      "name": "caramel Nordic Grain leather 5134",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5134_NordicGrain5134Caramel_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "caramel Da hạt Bắc Âu 5134"
+    },
+    {
+      "id": "5133",
+      "name": "olive green Nordic Grain leather 5133",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5133_NordicGrain5133Olivegreen_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "Da hạt Bắc Âu màu xanh ô liu 5133"
+    },
+    {
+      "id": "5135",
+      "name": "light grey Nordic Grain leather 5135",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5135_NordicGrain5135Lightgreycreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "Da hạt Bắc Âu màu xám nhạt 5135"
+    },
+    {
+      "id": "5136",
+      "name": "vanilla Nordic Grain leather 5136",
+      "refinementColor": "white",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5136_NordicGrain5136Vanillecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "vani Da hạt Bắc Âu 5136"
+    },
+    {
+      "id": "5137",
+      "name": "mole Nordic Grain leather 5137",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5137_NordicGrainMole5137_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "nốt ruồi Da hạt Bắc Âu 5137"
+    },
+    {
+      "id": "5132",
+      "name": "taupe Nordic Grain leather 5132",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5132_NordicGrain5132Taupe_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "màu nâu sẫm Da hạt Bắc Âu 5132"
+    },
+    {
+      "id": "5130",
+      "name": "black Nordic Grain leather 5130",
+      "refinementColor": "black",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5130_NordicGrain5130Black_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Grain",
+      "groupSortOrder": 185,
+      "name_vi": "Da hạt Bắc Âu màu đen 5130"
+    },
+    {
+      "id": "5120",
+      "name": "cognac York leather 5120",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5120_1685871__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 1,
+      "groupName": "York",
+      "groupSortOrder": 215,
+      "name_vi": "da cognac York 5120"
+    },
+    {
+      "id": "5122",
+      "name": "light brown York leather 5122",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5122_1685873__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 2,
+      "groupName": "York",
+      "groupSortOrder": 215,
+      "name_vi": "Da York màu nâu nhạt 5122"
+    },
+    {
+      "id": "5121",
+      "name": "olive green York leather 5121",
+      "refinementColor": "green",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5121_1685872__WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 3,
+      "groupName": "York",
+      "groupSortOrder": 215,
+      "name_vi": "da York màu xanh ô liu 5121"
+    },
+    {
+      "id": "5151",
+      "name": "stone Nordic Vintage leather 5151",
+      "refinementColor": "grey",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5151_Nordicvintage5151Stonecreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Vintage",
+      "groupSortOrder": 218,
+      "name_vi": "đá Bắc Âu Da cổ điển 5151"
+    },
+    {
+      "id": "5150",
+      "name": "caramel Nordic Vintage leather 5150",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5150_Nordicvintage5150Caramelcreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Vintage",
+      "groupSortOrder": 218,
+      "name_vi": "caramel Bắc Âu Da cổ điển 5150"
+    },
+    {
+      "id": "5152",
+      "name": "dark brown Nordic Vintage leather 5152",
+      "refinementColor": "brown",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5152_Nordicvintage5152Darkbrowncreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Vintage",
+      "groupSortOrder": 218,
+      "name_vi": "Da cổ điển Bắc Âu màu nâu sẫm 5152"
+    },
+    {
+      "id": "5145",
+      "name": "burgundy Nordic Vintage leather 5145",
+      "refinementColor": "red",
+      "imageLink": "https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/swatches/5145_Nordicvintage5145Burgundycreased_WEB-Global163a9-2500x1400.jpg",
+      "sortOrder": 0,
+      "groupName": "Nordic Vintage",
+      "groupSortOrder": 218,
+      "name_vi": "màu đỏ tía Bắc Âu Da cổ điển 5145"
+    }
+  ],
+  "configurationOptions": [
+    {
+      "valuesCount": 4,
+      "values": [
+        {
+          "id": "422_Sofaleg_high_0708",
+          "name": "oak, 15cm",
+          "sortOrder": 0
+        },
+        {
+          "id": "422_Sofaleg_low_0708",
+          "name": "oak, 12cm",
+          "sortOrder": 0
+        },
+        {
+          "id": "422_Sofaleg_low_0075",
+          "name": "matt black, 12cm",
+          "sortOrder": 0
+        },
+        {
+          "id": "422_Sofaleg_high_0075",
+          "name": "matt black, 15cm",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "valuesCount": 103,
+      "values": [
+        {
+          "id": "2063",
+          "name": "light grey Frisco fabric with aquaclean 2063",
+          "sortOrder": 1
+        },
+        {
+          "id": "2065",
+          "name": "dark blue Frisco fabric with aquaclean 2065",
+          "sortOrder": 6
+        },
+        {
+          "id": "2110",
+          "name": "sand-coloured Nani fabric 2110",
+          "sortOrder": 1
+        },
+        {
+          "id": "2111",
+          "name": "dark grey Nani fabric 2111",
+          "sortOrder": 2
+        },
+        {
+          "id": "2067",
+          "name": "stone grey Frisco fabric with aquaclean 2067",
+          "sortOrder": 2
+        },
+        {
+          "id": "2250",
+          "name": "silver grey Napoli 2250",
+          "sortOrder": 1
+        },
+        {
+          "id": "2251",
+          "name": "taupe Napoli fabric 2251",
+          "sortOrder": 9
+        },
+        {
+          "id": "2252",
+          "name": "golden beige Napoli fabric 2252",
+          "sortOrder": 2
+        },
+        {
+          "id": "2253",
+          "name": "turquoise Napoli fabric 2253",
+          "sortOrder": 5
+        },
+        {
+          "id": "2255",
+          "name": "stone grey Napoli fabric 2255",
+          "sortOrder": 10
+        },
+        {
+          "id": "2257",
+          "name": "dark blue Napoli fabric 2257",
+          "sortOrder": 7
+        },
+        {
+          "id": "3060",
+          "name": "light grey Bristol fabric 3060",
+          "sortOrder": 2
+        },
+        {
+          "id": "3063",
+          "name": "beige Bristol fabric 3063",
+          "sortOrder": 1
+        },
+        {
+          "id": "2058",
+          "name": "dark green Frisco fabric with Aquaclean 2058",
+          "sortOrder": 7
+        },
+        {
+          "id": "3092",
+          "name": "light green Lazio fabric 3092",
+          "sortOrder": 3
+        },
+        {
+          "id": "2056",
+          "name": "light blue Frisco fabric with aquaclean 2056",
+          "sortOrder": 3
+        },
+        {
+          "id": "3090",
+          "name": "white Lazio fabric 3090",
+          "sortOrder": 1
+        },
+        {
+          "id": "3091",
+          "name": "beige Lazio fabric 3091",
+          "sortOrder": 2
+        },
+        {
+          "id": "3094",
+          "name": "dark green Lazio fabric 3094",
+          "sortOrder": 4
+        },
+        {
+          "id": "2057",
+          "name": "camel Frisco fabric with aquaclean 2057",
+          "sortOrder": 8
+        },
+        {
+          "id": "3065",
+          "name": "blue Bristol fabric 3065",
+          "sortOrder": 7
+        },
+        {
+          "id": "3066",
+          "name": "mustard Bristol fabric 3066",
+          "sortOrder": 4
+        },
+        {
+          "id": "3068",
+          "name": "dark green Bristol fabric 3068",
+          "sortOrder": 6
+        },
+        {
+          "id": "3142",
+          "name": "grey Tomelilla fabric 3142",
+          "sortOrder": 2
+        },
+        {
+          "id": "3143",
+          "name": "mustard Tomelilla fabric 3143",
+          "sortOrder": 1
+        },
+        {
+          "id": "3144",
+          "name": "blue Tomelilla fabric 3144",
+          "sortOrder": 3
+        },
+        {
+          "id": "3160",
+          "name": "beige Skagen fabric 3160",
+          "sortOrder": 0
+        },
+        {
+          "id": "3161",
+          "name": "sand Skagen fabric 3161",
+          "sortOrder": 0
+        },
+        {
+          "id": "3163",
+          "name": "dark blue Skagen fabric 3163",
+          "sortOrder": 0
+        },
+        {
+          "id": "3164",
+          "name": "steel Skagen fabric 3164",
+          "sortOrder": 0
+        },
+        {
+          "id": "2070",
+          "name": "beige Frisco fabric 2070",
+          "sortOrder": 0
+        },
+        {
+          "id": "3165",
+          "name": "green Skagen fabric 3165",
+          "sortOrder": 0
+        },
+        {
+          "id": "3145",
+          "name": "beige Tomelilla fabric 3145",
+          "sortOrder": 0
+        },
+        {
+          "id": "3096",
+          "name": "brown Lazio fabric 3096",
+          "sortOrder": 0
+        },
+        {
+          "id": "3200",
+          "name": "white Tuscany fabric 3200",
+          "sortOrder": 0
+        },
+        {
+          "id": "3201",
+          "name": "beige Tuscany fabric 3201",
+          "sortOrder": 0
+        },
+        {
+          "id": "3202",
+          "name": "brown Tuscany fabric 3202",
+          "sortOrder": 0
+        },
+        {
+          "id": "3203",
+          "name": "grey Tuscany fabric 3203",
+          "sortOrder": 0
+        },
+        {
+          "id": "3204",
+          "name": "green Tuscany fabric 3204",
+          "sortOrder": 0
+        },
+        {
+          "id": "3205",
+          "name": "mustard Tuscany fabric 3205",
+          "sortOrder": 0
+        },
+        {
+          "id": "3206",
+          "name": "blue Tuscany fabric 3206",
+          "sortOrder": 0
+        },
+        {
+          "id": "3097",
+          "name": "grey Lazio fabric 3097",
+          "sortOrder": 0
+        },
+        {
+          "id": "2267",
+          "name": "sand Napoli fabric 2267",
+          "sortOrder": 0
+        },
+        {
+          "id": "2268",
+          "name": "dusty green Napoli fabric 2268",
+          "sortOrder": 0
+        },
+        {
+          "id": "3220",
+          "name": "sand Ravello fabric 3220",
+          "sortOrder": 0
+        },
+        {
+          "id": "3221",
+          "name": "beige Ravello fabric 3221",
+          "sortOrder": 0
+        },
+        {
+          "id": "3222",
+          "name": "grey Ravello fabric 3222",
+          "sortOrder": 0
+        },
+        {
+          "id": "3223",
+          "name": "dusty green Ravello fabric 3223",
+          "sortOrder": 0
+        },
+        {
+          "id": "3224",
+          "name": "dusty rose Ravello fabric 3224",
+          "sortOrder": 0
+        },
+        {
+          "id": "3225",
+          "name": "dark blue Ravello fabric 3225",
+          "sortOrder": 0
+        },
+        {
+          "id": "5130",
+          "name": "black Nordic Grain leather 5130",
+          "sortOrder": 0
+        },
+        {
+          "id": "5131",
+          "name": "stone Nordic Grain leather 5131",
+          "sortOrder": 0
+        },
+        {
+          "id": "5132",
+          "name": "taupe Nordic Grain leather 5132",
+          "sortOrder": 0
+        },
+        {
+          "id": "5133",
+          "name": "olive green Nordic Grain leather 5133",
+          "sortOrder": 0
+        },
+        {
+          "id": "5134",
+          "name": "caramel Nordic Grain leather 5134",
+          "sortOrder": 0
+        },
+        {
+          "id": "5145",
+          "name": "burgundy Nordic Vintage leather 5145",
+          "sortOrder": 0
+        },
+        {
+          "id": "5150",
+          "name": "caramel Nordic Vintage leather 5150",
+          "sortOrder": 0
+        },
+        {
+          "id": "5151",
+          "name": "stone Nordic Vintage leather 5151",
+          "sortOrder": 0
+        },
+        {
+          "id": "5152",
+          "name": "dark brown Nordic Vintage leather 5152",
+          "sortOrder": 0
+        },
+        {
+          "id": "3230",
+          "name": "beige Capri fabric 3230",
+          "sortOrder": 0
+        },
+        {
+          "id": "3207",
+          "name": "burgundy Tuscany fabric 3207",
+          "sortOrder": 0
+        },
+        {
+          "id": "3250",
+          "name": "red Avellino fabric 3250",
+          "sortOrder": 0
+        },
+        {
+          "id": "3251",
+          "name": "golden beige Avellino fabric 3251",
+          "sortOrder": 0
+        },
+        {
+          "id": "3252",
+          "name": "green Avellino fabric 3252",
+          "sortOrder": 0
+        },
+        {
+          "id": "3253",
+          "name": "dusty blue Avellino fabric 3253",
+          "sortOrder": 0
+        },
+        {
+          "id": "3231",
+          "name": "sand Capri fabric 3231",
+          "sortOrder": 0
+        },
+        {
+          "id": "3233",
+          "name": "blue Capri fabric 3233",
+          "sortOrder": 0
+        },
+        {
+          "id": "3234",
+          "name": "mustard Capri fabric 3234",
+          "sortOrder": 0
+        },
+        {
+          "id": "3232",
+          "name": "green Capri fabric 3232",
+          "sortOrder": 0
+        },
+        {
+          "id": "3208",
+          "name": "forest green Tuscany fabric 3208",
+          "sortOrder": 0
+        },
+        {
+          "id": "3254",
+          "name": "sand Bologna fabric 3254",
+          "sortOrder": 0
+        },
+        {
+          "id": "3255",
+          "name": "mustard Bologna fabric 3255",
+          "sortOrder": 0
+        },
+        {
+          "id": "3256",
+          "name": "dark green Bologna fabric 3256",
+          "sortOrder": 0
+        },
+        {
+          "id": "3257",
+          "name": "olive green Bologna Fabric 3257",
+          "sortOrder": 0
+        },
+        {
+          "id": "3258",
+          "name": "Cherry red Bologna fabric 3258",
+          "sortOrder": 0
+        },
+        {
+          "id": "2274",
+          "name": "sand Frisco fabric 2274",
+          "sortOrder": 0
+        },
+        {
+          "id": "2275",
+          "name": "Dusty blue Frisco fabric 2275",
+          "sortOrder": 0
+        },
+        {
+          "id": "2277",
+          "name": "forest green Frisco fabric 2277",
+          "sortOrder": 0
+        },
+        {
+          "id": "2278",
+          "name": "burgundy Frisco fabric 2278",
+          "sortOrder": 0
+        },
+        {
+          "id": "5135",
+          "name": "light grey Nordic Grain leather 5135",
+          "sortOrder": 0
+        },
+        {
+          "id": "5136",
+          "name": "vanilla Nordic Grain leather 5136",
+          "sortOrder": 0
+        },
+        {
+          "id": "3083",
+          "name": "White Rimini fabric 3083",
+          "sortOrder": 0
+        },
+        {
+          "id": "3085",
+          "name": "camel Rimini fabric 3085",
+          "sortOrder": 0
+        },
+        {
+          "id": "3086",
+          "name": "green Rimini fabric 3086",
+          "sortOrder": 0
+        },
+        {
+          "id": "3087",
+          "name": "beige Rimini fabric 3087",
+          "sortOrder": 0
+        },
+        {
+          "id": "3088",
+          "name": "brick red Rimini fabric 3088",
+          "sortOrder": 0
+        },
+        {
+          "id": "3310",
+          "name": "white Copenhagen fabric 3310",
+          "sortOrder": 0
+        },
+        {
+          "id": "3311",
+          "name": "brown Copenhagen fabric 3311",
+          "sortOrder": 0
+        },
+        {
+          "id": "3312",
+          "name": "ochre Copenhagen fabric 3312",
+          "sortOrder": 0
+        },
+        {
+          "id": "3320",
+          "name": "beige Lucca fabric 3320",
+          "sortOrder": 0
+        },
+        {
+          "id": "3321",
+          "name": "white Lucca fabric 3321",
+          "sortOrder": 0
+        },
+        {
+          "id": "3322",
+          "name": "green Lucca fabric 3322",
+          "sortOrder": 0
+        },
+        {
+          "id": "3323",
+          "name": "red Lucca fabric 3323",
+          "sortOrder": 0
+        },
+        {
+          "id": "3331",
+          "name": "beige Arezzo fabric 3331",
+          "sortOrder": 0
+        },
+        {
+          "id": "3332",
+          "name": "light brown Arezzo fabric 3332",
+          "sortOrder": 0
+        },
+        {
+          "id": "3333",
+          "name": "ochre Arezzo fabric 3333",
+          "sortOrder": 0
+        },
+        {
+          "id": "3334",
+          "name": "green Arezzo fabric 3334",
+          "sortOrder": 0
+        },
+        {
+          "id": "5137",
+          "name": "mole Nordic Grain leather 5137",
+          "sortOrder": 0
+        },
+        {
+          "id": "5120",
+          "name": "cognac York leather 5120",
+          "sortOrder": 1
+        },
+        {
+          "id": "5122",
+          "name": "light brown York leather 5122",
+          "sortOrder": 2
+        },
+        {
+          "id": "5121",
+          "name": "olive green York leather 5121",
+          "sortOrder": 3
+        },
+        {
+          "id": "3261",
+          "name": "Sky blue Bologna fabric 3261",
+          "sortOrder": 0
+        },
+        {
+          "id": "3262",
+          "name": "Mouse belly Bologna fabric 3262",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "valuesCount": 4,
+      "values": [
+        {
+          "id": "422_Sofaleg_high_0708",
+          "name": "oak, 15cm",
+          "sortOrder": 0
+        },
+        {
+          "id": "422_Sofaleg_low_0708",
+          "name": "oak, 12cm",
+          "sortOrder": 0
+        },
+        {
+          "id": "422_Sofaleg_low_0075",
+          "name": "matt black, 12cm",
+          "sortOrder": 0
+        },
+        {
+          "id": "422_Sofaleg_high_0075",
+          "name": "matt black, 15cm",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "valuesCount": 103,
+      "values": [
+        {
+          "id": "2063",
+          "name": "light grey Frisco fabric with aquaclean 2063",
+          "sortOrder": 1
+        },
+        {
+          "id": "2065",
+          "name": "dark blue Frisco fabric with aquaclean 2065",
+          "sortOrder": 6
+        },
+        {
+          "id": "2110",
+          "name": "sand-coloured Nani fabric 2110",
+          "sortOrder": 1
+        },
+        {
+          "id": "2111",
+          "name": "dark grey Nani fabric 2111",
+          "sortOrder": 2
+        },
+        {
+          "id": "2067",
+          "name": "stone grey Frisco fabric with aquaclean 2067",
+          "sortOrder": 2
+        },
+        {
+          "id": "2250",
+          "name": "silver grey Napoli 2250",
+          "sortOrder": 1
+        },
+        {
+          "id": "2251",
+          "name": "taupe Napoli fabric 2251",
+          "sortOrder": 9
+        },
+        {
+          "id": "2252",
+          "name": "golden beige Napoli fabric 2252",
+          "sortOrder": 2
+        },
+        {
+          "id": "2253",
+          "name": "turquoise Napoli fabric 2253",
+          "sortOrder": 5
+        },
+        {
+          "id": "2255",
+          "name": "stone grey Napoli fabric 2255",
+          "sortOrder": 10
+        },
+        {
+          "id": "2257",
+          "name": "dark blue Napoli fabric 2257",
+          "sortOrder": 7
+        },
+        {
+          "id": "3060",
+          "name": "light grey Bristol fabric 3060",
+          "sortOrder": 2
+        },
+        {
+          "id": "3063",
+          "name": "beige Bristol fabric 3063",
+          "sortOrder": 1
+        },
+        {
+          "id": "2058",
+          "name": "dark green Frisco fabric with Aquaclean 2058",
+          "sortOrder": 7
+        },
+        {
+          "id": "3092",
+          "name": "light green Lazio fabric 3092",
+          "sortOrder": 3
+        },
+        {
+          "id": "2056",
+          "name": "light blue Frisco fabric with aquaclean 2056",
+          "sortOrder": 3
+        },
+        {
+          "id": "3090",
+          "name": "white Lazio fabric 3090",
+          "sortOrder": 1
+        },
+        {
+          "id": "3091",
+          "name": "beige Lazio fabric 3091",
+          "sortOrder": 2
+        },
+        {
+          "id": "3094",
+          "name": "dark green Lazio fabric 3094",
+          "sortOrder": 4
+        },
+        {
+          "id": "2057",
+          "name": "camel Frisco fabric with aquaclean 2057",
+          "sortOrder": 8
+        },
+        {
+          "id": "3065",
+          "name": "blue Bristol fabric 3065",
+          "sortOrder": 7
+        },
+        {
+          "id": "3066",
+          "name": "mustard Bristol fabric 3066",
+          "sortOrder": 4
+        },
+        {
+          "id": "3068",
+          "name": "dark green Bristol fabric 3068",
+          "sortOrder": 6
+        },
+        {
+          "id": "3142",
+          "name": "grey Tomelilla fabric 3142",
+          "sortOrder": 2
+        },
+        {
+          "id": "3143",
+          "name": "mustard Tomelilla fabric 3143",
+          "sortOrder": 1
+        },
+        {
+          "id": "3144",
+          "name": "blue Tomelilla fabric 3144",
+          "sortOrder": 3
+        },
+        {
+          "id": "3160",
+          "name": "beige Skagen fabric 3160",
+          "sortOrder": 0
+        },
+        {
+          "id": "3161",
+          "name": "sand Skagen fabric 3161",
+          "sortOrder": 0
+        },
+        {
+          "id": "3163",
+          "name": "dark blue Skagen fabric 3163",
+          "sortOrder": 0
+        },
+        {
+          "id": "3164",
+          "name": "steel Skagen fabric 3164",
+          "sortOrder": 0
+        },
+        {
+          "id": "2070",
+          "name": "beige Frisco fabric 2070",
+          "sortOrder": 0
+        },
+        {
+          "id": "3165",
+          "name": "green Skagen fabric 3165",
+          "sortOrder": 0
+        },
+        {
+          "id": "3145",
+          "name": "beige Tomelilla fabric 3145",
+          "sortOrder": 0
+        },
+        {
+          "id": "3096",
+          "name": "brown Lazio fabric 3096",
+          "sortOrder": 0
+        },
+        {
+          "id": "3200",
+          "name": "white Tuscany fabric 3200",
+          "sortOrder": 0
+        },
+        {
+          "id": "3201",
+          "name": "beige Tuscany fabric 3201",
+          "sortOrder": 0
+        },
+        {
+          "id": "3202",
+          "name": "brown Tuscany fabric 3202",
+          "sortOrder": 0
+        },
+        {
+          "id": "3203",
+          "name": "grey Tuscany fabric 3203",
+          "sortOrder": 0
+        },
+        {
+          "id": "3204",
+          "name": "green Tuscany fabric 3204",
+          "sortOrder": 0
+        },
+        {
+          "id": "3205",
+          "name": "mustard Tuscany fabric 3205",
+          "sortOrder": 0
+        },
+        {
+          "id": "3206",
+          "name": "blue Tuscany fabric 3206",
+          "sortOrder": 0
+        },
+        {
+          "id": "3097",
+          "name": "grey Lazio fabric 3097",
+          "sortOrder": 0
+        },
+        {
+          "id": "2267",
+          "name": "sand Napoli fabric 2267",
+          "sortOrder": 0
+        },
+        {
+          "id": "2268",
+          "name": "dusty green Napoli fabric 2268",
+          "sortOrder": 0
+        },
+        {
+          "id": "3220",
+          "name": "sand Ravello fabric 3220",
+          "sortOrder": 0
+        },
+        {
+          "id": "3221",
+          "name": "beige Ravello fabric 3221",
+          "sortOrder": 0
+        },
+        {
+          "id": "3222",
+          "name": "grey Ravello fabric 3222",
+          "sortOrder": 0
+        },
+        {
+          "id": "3223",
+          "name": "dusty green Ravello fabric 3223",
+          "sortOrder": 0
+        },
+        {
+          "id": "3224",
+          "name": "dusty rose Ravello fabric 3224",
+          "sortOrder": 0
+        },
+        {
+          "id": "3225",
+          "name": "dark blue Ravello fabric 3225",
+          "sortOrder": 0
+        },
+        {
+          "id": "5130",
+          "name": "black Nordic Grain leather 5130",
+          "sortOrder": 0
+        },
+        {
+          "id": "5131",
+          "name": "stone Nordic Grain leather 5131",
+          "sortOrder": 0
+        },
+        {
+          "id": "5132",
+          "name": "taupe Nordic Grain leather 5132",
+          "sortOrder": 0
+        },
+        {
+          "id": "5133",
+          "name": "olive green Nordic Grain leather 5133",
+          "sortOrder": 0
+        },
+        {
+          "id": "5134",
+          "name": "caramel Nordic Grain leather 5134",
+          "sortOrder": 0
+        },
+        {
+          "id": "5145",
+          "name": "burgundy Nordic Vintage leather 5145",
+          "sortOrder": 0
+        },
+        {
+          "id": "5150",
+          "name": "caramel Nordic Vintage leather 5150",
+          "sortOrder": 0
+        },
+        {
+          "id": "5151",
+          "name": "stone Nordic Vintage leather 5151",
+          "sortOrder": 0
+        },
+        {
+          "id": "5152",
+          "name": "dark brown Nordic Vintage leather 5152",
+          "sortOrder": 0
+        },
+        {
+          "id": "3230",
+          "name": "beige Capri fabric 3230",
+          "sortOrder": 0
+        },
+        {
+          "id": "3207",
+          "name": "burgundy Tuscany fabric 3207",
+          "sortOrder": 0
+        },
+        {
+          "id": "3250",
+          "name": "red Avellino fabric 3250",
+          "sortOrder": 0
+        },
+        {
+          "id": "3251",
+          "name": "golden beige Avellino fabric 3251",
+          "sortOrder": 0
+        },
+        {
+          "id": "3252",
+          "name": "green Avellino fabric 3252",
+          "sortOrder": 0
+        },
+        {
+          "id": "3253",
+          "name": "dusty blue Avellino fabric 3253",
+          "sortOrder": 0
+        },
+        {
+          "id": "3231",
+          "name": "sand Capri fabric 3231",
+          "sortOrder": 0
+        },
+        {
+          "id": "3233",
+          "name": "blue Capri fabric 3233",
+          "sortOrder": 0
+        },
+        {
+          "id": "3234",
+          "name": "mustard Capri fabric 3234",
+          "sortOrder": 0
+        },
+        {
+          "id": "3232",
+          "name": "green Capri fabric 3232",
+          "sortOrder": 0
+        },
+        {
+          "id": "3208",
+          "name": "forest green Tuscany fabric 3208",
+          "sortOrder": 0
+        },
+        {
+          "id": "3254",
+          "name": "sand Bologna fabric 3254",
+          "sortOrder": 0
+        },
+        {
+          "id": "3255",
+          "name": "mustard Bologna fabric 3255",
+          "sortOrder": 0
+        },
+        {
+          "id": "3256",
+          "name": "dark green Bologna fabric 3256",
+          "sortOrder": 0
+        },
+        {
+          "id": "3257",
+          "name": "olive green Bologna Fabric 3257",
+          "sortOrder": 0
+        },
+        {
+          "id": "3258",
+          "name": "Cherry red Bologna fabric 3258",
+          "sortOrder": 0
+        },
+        {
+          "id": "2274",
+          "name": "sand Frisco fabric 2274",
+          "sortOrder": 0
+        },
+        {
+          "id": "2275",
+          "name": "Dusty blue Frisco fabric 2275",
+          "sortOrder": 0
+        },
+        {
+          "id": "2277",
+          "name": "forest green Frisco fabric 2277",
+          "sortOrder": 0
+        },
+        {
+          "id": "2278",
+          "name": "burgundy Frisco fabric 2278",
+          "sortOrder": 0
+        },
+        {
+          "id": "5135",
+          "name": "light grey Nordic Grain leather 5135",
+          "sortOrder": 0
+        },
+        {
+          "id": "5136",
+          "name": "vanilla Nordic Grain leather 5136",
+          "sortOrder": 0
+        },
+        {
+          "id": "3083",
+          "name": "White Rimini fabric 3083",
+          "sortOrder": 0
+        },
+        {
+          "id": "3085",
+          "name": "camel Rimini fabric 3085",
+          "sortOrder": 0
+        },
+        {
+          "id": "3086",
+          "name": "green Rimini fabric 3086",
+          "sortOrder": 0
+        },
+        {
+          "id": "3087",
+          "name": "beige Rimini fabric 3087",
+          "sortOrder": 0
+        },
+        {
+          "id": "3088",
+          "name": "brick red Rimini fabric 3088",
+          "sortOrder": 0
+        },
+        {
+          "id": "3310",
+          "name": "white Copenhagen fabric 3310",
+          "sortOrder": 0
+        },
+        {
+          "id": "3311",
+          "name": "brown Copenhagen fabric 3311",
+          "sortOrder": 0
+        },
+        {
+          "id": "3312",
+          "name": "ochre Copenhagen fabric 3312",
+          "sortOrder": 0
+        },
+        {
+          "id": "3320",
+          "name": "beige Lucca fabric 3320",
+          "sortOrder": 0
+        },
+        {
+          "id": "3321",
+          "name": "white Lucca fabric 3321",
+          "sortOrder": 0
+        },
+        {
+          "id": "3322",
+          "name": "green Lucca fabric 3322",
+          "sortOrder": 0
+        },
+        {
+          "id": "3323",
+          "name": "red Lucca fabric 3323",
+          "sortOrder": 0
+        },
+        {
+          "id": "3331",
+          "name": "beige Arezzo fabric 3331",
+          "sortOrder": 0
+        },
+        {
+          "id": "3332",
+          "name": "light brown Arezzo fabric 3332",
+          "sortOrder": 0
+        },
+        {
+          "id": "3333",
+          "name": "ochre Arezzo fabric 3333",
+          "sortOrder": 0
+        },
+        {
+          "id": "3334",
+          "name": "green Arezzo fabric 3334",
+          "sortOrder": 0
+        },
+        {
+          "id": "5137",
+          "name": "mole Nordic Grain leather 5137",
+          "sortOrder": 0
+        },
+        {
+          "id": "5120",
+          "name": "cognac York leather 5120",
+          "sortOrder": 1
+        },
+        {
+          "id": "5122",
+          "name": "light brown York leather 5122",
+          "sortOrder": 2
+        },
+        {
+          "id": "5121",
+          "name": "olive green York leather 5121",
+          "sortOrder": 3
+        },
+        {
+          "id": "3261",
+          "name": "Sky blue Bologna fabric 3261",
+          "sortOrder": 0
+        },
+        {
+          "id": "3262",
+          "name": "Mouse belly Bologna fabric 3262",
+          "sortOrder": 0
+        }
+      ]
+    }
+  ]
+}
