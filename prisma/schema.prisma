@@ -42,8 +42,8 @@ model User {
   fullName     String   @map("full_name")
   avatarUrl    String?  @map("avatar_url")
   role         Role     @default(CUSTOMER)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   addresses      Address[]
   orders         Order[]
@@ -67,20 +67,31 @@ model Address {
   ward         String
   detail       String
   isDefault    Boolean  @default(false) @map("is_default")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("addresses")
 }
 
-// 3. Sản phẩm
+// 3. Danh mục (Thực thể độc lập)
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique // Lưu dưới dạng lowercase
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("categories")
+}
+
+// 4. Sản phẩm
 model Product {
   id          String @id @map("product_id")
   slug        String @unique
   name        String
-  category    String @default("Uncategorized")
+  category    String @default("Uncategorized") // Chuỗi lowercase, không dùng khoá ngoại
   description Json? // Chứa mảng các đoạn văn PR Marketing dài
   basePrice   Float  @default(0) @map("base_price")
 
@@ -96,8 +107,8 @@ model Product {
   isBestSeller Boolean @default(false) @map("is_best_seller")
   isNew        Boolean @default(false) @map("is_new")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   wishlistedBy Wishlist[]
   reviews      Review[]
@@ -111,7 +122,7 @@ model Wishlist {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   productId String   @map("product_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -147,8 +158,8 @@ model Order {
   paymentStatus String      @default("UNPAID") @map("payment_status")
   notes         String?
   internalNotes String?     @map("internal_notes")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   items OrderItem[]
@@ -183,8 +194,8 @@ model PriceProposal {
   status        ProposalStatus @default(PENDING)
   counterPrice  Decimal?       @map("counter_price") @db.Decimal(15, 2)
   promoCodeId   String?        @map("promo_code_id")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -203,8 +214,8 @@ model CommunityPost {
   roomType    String?  @map("room_type")
   likesCount  Int      @default(0) @map("likes_count")
   isApproved  Boolean  @default(false) @map("is_approved")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -220,7 +231,7 @@ model Review {
   comment    String
   images     Json? // Ảnh thực tế của khách hàng khi review
   isApproved Boolean  @default(true) @map("is_approved")
-  createdAt  DateTime @default(now()) @map("created_at")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -235,8 +246,8 @@ model RoomDesign {
   name            String
   backgroundImage String?  @map("background_image")
   canvasState     Json     @map("canvas_state") // Dữ liệu JSON lưu tọa độ, góc xoay, màu sắc của các sản phẩm được xếp
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

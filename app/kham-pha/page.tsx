@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { flyToCart } from '@/lib/flyToCart';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CatalogProduct } from '@/lib/data';
 import { useStore } from '@/lib/store';
@@ -20,18 +21,19 @@ const isOnSale = (prod: CatalogProduct) => {
   return low > 0 && low < base;
 };
 
-const QUICK_CATEGORIES = ['Tất cả', 'Sofa', 'Bàn', 'Ghế', 'Tủ', 'Giường', 'Đèn', 'Trang trí'];
+const QUICK_CATEGORIES = ['Tất cả', 'Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Trang trí', 'Phụ Kiện'];
 
 function KhamPhaContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const addToCart = useStore(state => state.addToCart);
+  const { addToCart, wishlist, toggleWishlist } = useStore();
   
   const initialCategory = searchParams.get('category') || '';
   const initialQuery = searchParams.get('q') || '';
 
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dynamicFilters, setDynamicFilters] = useState({ categories: [], materials: [], colors: [] });
   
   // Filter States
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -47,21 +49,36 @@ function KhamPhaContent() {
   const [quickViewProduct, setQuickViewProduct] = useState<CatalogProduct | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
+  const catDep = filters.categories.join(',');
+  const matDep = filters.materials.join(',');
+  const colDep = filters.colors.join(',');
+
   useEffect(() => {
-    async function loadProducts() {
+    async function loadData() {
       try {
-        const res = await fetch('/api/products');
+        const [res, filterRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/products/filters')
+        ]);
         if (res.ok) {
           const data = await res.json();
           setProducts(data);
         }
+        if (filterRes.ok) {
+          const filterData = await filterRes.json();
+          setDynamicFilters({
+            categories: filterData.categories || [],
+            materials: filterData.materials || [],
+            colors: filterData.colors || []
+          });
+        }
       } catch (err) {
-        console.error('Failed to fetch products:', err);
+        console.error('Failed to fetch data:', err);
       } finally {
         setIsLoading(false);
       }
     }
-    loadProducts();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -73,7 +90,11 @@ function KhamPhaContent() {
       } else {
         try {
           const savedState = JSON.parse(savedStateStr);
-          setFilters(savedState.filters);
+          // Always reset price slider to max when restoring session, per user request
+          if (savedState.filters) {
+            savedState.filters.priceRange = [0, 999999999];
+            setFilters(savedState.filters);
+          }
           setCurrentPage(savedState.currentPage);
           setSortBy(savedState.sortBy);
           setSearchQuery(savedState.searchQuery);
@@ -121,10 +142,13 @@ function KhamPhaContent() {
     router.push(`/kham-pha/${productId}`);
   };
 
-  const filtered = products.filter(prod => {
+  const filteredExceptPrice = products.filter(prod => {
     // 1. Categories
     if (filters.categories.length > 0) {
-      if (!filters.categories.some(c => prod.category?.includes(c) || prod.shortDescription?.includes(c))) return false;
+      if (!filters.categories.some(c => 
+        prod.category?.toLowerCase().includes(c.toLowerCase()) || 
+        prod.shortDescription?.toLowerCase().includes(c.toLowerCase())
+      )) return false;
     }
     // 2. Materials
     if (filters.materials.length > 0) {
@@ -133,16 +157,9 @@ function KhamPhaContent() {
     }
     // 3. Colors
     if (filters.colors.length > 0) {
-      const colorMap: Record<string, string> = { 'Trắng': 'White', 'Đen': 'Black', 'Nâu': 'Brown', 'Xanh lá': 'Green', 'Xanh dương': 'Blue', 'Vàng': 'Yellow', 'Xám': 'Grey' };
-      const engColors = filters.colors.map(c => colorMap[c] || c);
-      if (!prod.refinementColors?.some(c => engColors.includes(c)) &&
+      if (!prod.refinementColors?.some(c => filters.colors.includes(c)) &&
           !prod.refinementColors_vi?.some(c => filters.colors.includes(c))) return false;
     }
-    // 4. Price
-    const price = getProductPriceVal(prod);
-    if (price > filters.priceRange[1]) return false;
-
-    // (Các bộ lọc mock khác như Spaces, Styles, Dcor tạm thời chưa chặn nếu ko có data để không làm rỗng kết quả khi click)
 
     // Search query
     const titleVi = prod.shortDescription_vi || prod.shortDescription;
@@ -153,8 +170,80 @@ function KhamPhaContent() {
     return true;
   });
 
+  // Faceted Search Validation: Tính toán các bộ lọc khả dụng
+  const validCategories = new Set<string>();
+  const validMaterials = new Set<string>();
+  const validColors = new Set<string>();
+
+  products.forEach(prod => {
+    const passCat = filters.categories.length === 0 || filters.categories.some(c => 
+      prod.category?.toLowerCase().includes(c.toLowerCase()) || 
+      prod.shortDescription?.toLowerCase().includes(c.toLowerCase())
+    );
+    const passMat = filters.materials.length === 0 || (prod.refinementMaterials?.some(m => filters.materials.includes(m)) || prod.refinementMaterials_vi?.some(m => filters.materials.includes(m)));
+    const passCol = filters.colors.length === 0 || (prod.refinementColors?.some(c => filters.colors.includes(c)) || prod.refinementColors_vi?.some(c => filters.colors.includes(c)));
+    const passPrice = getProductPriceVal(prod) <= filters.priceRange[1];
+    
+    const titleVi = prod.shortDescription_vi || prod.shortDescription;
+    const passSearch = !searchQuery || titleVi.toLowerCase().includes(searchQuery.toLowerCase()) || prod.shortDescription.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Valid Categories ignoring category filter
+    if (passMat && passCol && passPrice && passSearch) {
+      if (prod.category) {
+        // Chuẩn hóa lại tên category cho khớp với mảng tĩnh CATEGORIES
+        const capitalizedCat = prod.category.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        // Ghi đè Tủ kệ thành Tủ Kệ cho đồng bộ mảng
+        if (capitalizedCat === 'Tủ Kệ' || capitalizedCat === 'Tủ kệ') validCategories.add('Tủ Kệ');
+        else validCategories.add(capitalizedCat);
+      }
+    }
+    if (passCat && passCol && passPrice && passSearch) {
+      prod.refinementMaterials?.forEach(m => validMaterials.add(m));
+      prod.refinementMaterials_vi?.forEach(m => validMaterials.add(m));
+    }
+    if (passCat && passMat && passPrice && passSearch) {
+      prod.refinementColors?.forEach(c => validColors.add(c));
+      prod.refinementColors_vi?.forEach(c => validColors.add(c));
+    }
+  });
+
+  const validFiltersObj = {
+    categories: Array.from(validCategories),
+    materials: Array.from(validMaterials),
+    colors: Array.from(validColors)
+  };
+
+  // Tìm giá cao nhất trong các sản phẩm đã lọc (không tính điều kiện giá)
+  const maxPriceInFiltered = filteredExceptPrice.length > 0 
+    ? Math.max(...filteredExceptPrice.map(p => getProductPriceVal(p)))
+    : 100000000;
+  
+  // Dùng mốc giá cao nhất này làm max bound cho slider (nhưng ít nhất là 10,000,000 để slider không bị lỗi nếu max=0)
+  const dynamicMaxPrice = Math.max(10000000, Math.ceil(maxPriceInFiltered / 1000000) * 1000000);
+
+  const filtered = filteredExceptPrice.filter(prod => {
+    // 4. Price
+    const price = getProductPriceVal(prod);
+    if (price > filters.priceRange[1]) return false;
+    return true;
+  });
+
   const sorted = [...filtered];
-  if (sortBy === 'price-asc') sorted.sort((a, b) => getProductPriceVal(a) - getProductPriceVal(b));
+  if (sortBy === 'featured') {
+    sorted.sort((a, b) => {
+      if (a.isBestSeller && !b.isBestSeller) return -1;
+      if (!a.isBestSeller && b.isBestSeller) return 1;
+      return 0;
+    });
+  }
+  else if (sortBy === 'newest') {
+    sorted.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }
+  else if (sortBy === 'price-asc') sorted.sort((a, b) => getProductPriceVal(a) - getProductPriceVal(b));
   else if (sortBy === 'price-desc') sorted.sort((a, b) => getProductPriceVal(b) - getProductPriceVal(a));
 
   const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
@@ -171,7 +260,13 @@ function KhamPhaContent() {
     if (cat === 'Tất cả') {
       setFilters(prev => ({ ...prev, categories: [] }));
     } else {
-      setFilters(prev => ({ ...prev, categories: [cat] }));
+      setFilters(prev => {
+        const currentList = prev.categories;
+        const newList = currentList.includes(cat) 
+          ? currentList.filter(item => item !== cat) 
+          : [...currentList, cat];
+        return { ...prev, categories: newList };
+      });
     }
     setCurrentPage(1);
   };
@@ -209,20 +304,30 @@ function KhamPhaContent() {
             <p className="explore-hero-subtitle">Tìm kiếm nội thất phù hợp với không gian và phong cách của bạn</p>
           </div>
           
-          <div className="quick-pill-list">
-            {QUICK_CATEGORIES.map(cat => {
-              const isActive = filters.categories.includes(cat) || (cat === 'Tất cả' && filters.categories.length === 0);
-              return (
-                <button 
-                  key={cat} 
-                  className={`quick-pill ${isActive ? 'active' : ''}`}
-                  onClick={() => handleQuickCatClick(cat)}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+          {isLoading ? (
+            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '5px' }}>
+              <div style={{ width: '80px', height: '36px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+              <div style={{ width: '100px', height: '36px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+              <div style={{ width: '90px', height: '36px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+              <div style={{ width: '110px', height: '36px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+              <div style={{ width: '85px', height: '36px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+            </div>
+          ) : (
+            <div className="quick-pill-list">
+              {['Tất cả', ...(dynamicFilters?.categories?.length > 0 ? dynamicFilters.categories : QUICK_CATEGORIES.slice(1))].map(cat => {
+                const isActive = filters.categories.includes(cat) || (cat === 'Tất cả' && filters.categories.length === 0);
+                return (
+                  <button 
+                    key={cat} 
+                    className={`quick-pill ${isActive ? 'active' : ''}`}
+                    onClick={() => handleQuickCatClick(cat)}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -241,15 +346,6 @@ function KhamPhaContent() {
               ))}
               {filters.colors.map(c => (
                 <span key={c} className="active-tag">{c} <button onClick={() => removeFilterTag('colors', c)}>&times;</button></span>
-              ))}
-              {filters.spaces.map(s => (
-                <span key={s} className="active-tag">{s} <button onClick={() => removeFilterTag('spaces', s)}>&times;</button></span>
-              ))}
-              {filters.styles.map(s => (
-                <span key={s} className="active-tag">{s} <button onClick={() => removeFilterTag('styles', s)}>&times;</button></span>
-              ))}
-              {filters.dcor.map(d => (
-                <span key={d} className="active-tag">{d} <button onClick={() => removeFilterTag('dcor', d)}>&times;</button></span>
               ))}
               {filters.priceRange[1] < 100000000 && (
                 <span className="active-tag">Dưới {(filters.priceRange[1]/1000000).toFixed(0)}tr <button onClick={() => removeFilterTag('priceRange', null)}>&times;</button></span>
@@ -281,7 +377,40 @@ function KhamPhaContent() {
       <div className="container explore-main-layout">
         {/* 5. Sidebar Filter */}
         <div className="explore-sidebar">
-           <SidebarFilter filters={filters} onFilterChange={(newFilters) => { setFilters(newFilters); setCurrentPage(1); }} />
+          {isLoading ? (
+            <div style={{ padding: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}>
+              <style>{`
+                @keyframes pulse {
+                  0% { opacity: 0.6; }
+                  50% { opacity: 0.2; }
+                  100% { opacity: 0.6; }
+                }
+              `}</style>
+              <div style={{ width: '60%', height: '24px', background: '#eaeaea', marginBottom: '20px', borderRadius: '4px' }}></div>
+              <div style={{ width: '100%', height: '30px', background: '#f5f5f5', marginBottom: '10px', borderRadius: '4px' }}></div>
+              <div style={{ width: '100%', height: '30px', background: '#f5f5f5', marginBottom: '10px', borderRadius: '4px' }}></div>
+              <div style={{ width: '100%', height: '30px', background: '#f5f5f5', marginBottom: '30px', borderRadius: '4px' }}></div>
+              
+              <div style={{ width: '60%', height: '24px', background: '#eaeaea', marginBottom: '20px', borderRadius: '4px' }}></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '30px' }}>
+                <div style={{ width: '100%', height: '30px', background: '#f5f5f5', borderRadius: '4px' }}></div>
+                <div style={{ width: '100%', height: '30px', background: '#f5f5f5', borderRadius: '4px' }}></div>
+                <div style={{ width: '100%', height: '30px', background: '#f5f5f5', borderRadius: '4px' }}></div>
+                <div style={{ width: '100%', height: '30px', background: '#f5f5f5', borderRadius: '4px' }}></div>
+              </div>
+
+              <div style={{ width: '60%', height: '24px', background: '#eaeaea', marginBottom: '20px', borderRadius: '4px' }}></div>
+              <div style={{ width: '100%', height: '4px', background: '#eaeaea', marginBottom: '30px', borderRadius: '2px' }}></div>
+            </div>
+          ) : (
+            <SidebarFilter 
+              filters={filters} 
+              onFilterChange={(newFilters) => { setFilters(newFilters); setCurrentPage(1); }} 
+              dynamicFilters={dynamicFilters} 
+              validFilters={validFiltersObj}
+              dynamicMaxPrice={dynamicMaxPrice}
+            />
+          )}
         </div>
 
         {/* 7. Product Grid */}
@@ -309,9 +438,9 @@ function KhamPhaContent() {
                 const img1 = prod.images?.[0] || '';
                 const img2 = prod.images?.[1] || img1;
                 const titleVi = prod.shortDescription_vi || prod.shortDescription;
-                const materialLabel = prod.refinementMaterials_vi?.[0] || prod.refinementMaterials?.[0] || 'Sản phẩm';
                 const onSale = isOnSale(prod);
                 const lowestFmt = getLowestPriceFormatted(prod);
+                const isFavorite = wishlist.includes(prod.productId);
 
                 return (
                   <div 
@@ -325,11 +454,15 @@ function KhamPhaContent() {
                       <img className="img-secondary" src={img2} alt={titleVi} loading="lazy" />
                       
                       <div className="product-badges">
-                        {onSale ? (
-                          <span className="badge-tag badge-sale">Sale</span>
-                        ) : (
-                          <span className="badge-tag">{materialLabel}</span>
-                        )}
+                        {onSale && (prod.discountValue || 0) > 0 ? (
+                          <span className="badge-tag badge-sale">
+                            {prod.discountType === 'PERCENTAGE' ? `Giảm ${prod.discountValue}%` : `Giảm ${new Intl.NumberFormat('vi-VN').format(prod.discountValue || 0)}đ`}
+                          </span>
+                        ) : prod.isBestSeller ? (
+                          <span className="badge-tag badge-bestseller">Bán chạy</span>
+                        ) : prod.isNew ? (
+                          <span className="badge-tag badge-new">Mới</span>
+                        ) : null}
                       </div>
                     </div>
                     
@@ -337,8 +470,8 @@ function KhamPhaContent() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <span className="card-category">{prod.category || 'D\'Cor'}</span>
                         <div className="card-mini-actions">
-                          <button className="mini-action-btn" title="Yêu thích" onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                          <button className={`mini-action-btn ${isFavorite ? 'favorite-active' : ''}`} title="Yêu thích" onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleWishlist(prod.productId); }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill={isFavorite ? 'var(--accent)' : 'none'} stroke={isFavorite ? 'var(--accent)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                           </button>
                           <button className="mini-action-btn" title="So sánh" onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
@@ -375,6 +508,7 @@ function KhamPhaContent() {
                               image: img1,
                               price: getProductPriceVal(prod),
                             });
+                            flyToCart(e, img1);
                           }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

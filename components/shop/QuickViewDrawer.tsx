@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { CatalogProduct } from '@/lib/data';
+import ProductGallery from '@/components/product/ProductGallery';
 import { useStore } from '@/lib/store';
 
 interface QuickViewDrawerProps {
@@ -12,32 +13,47 @@ interface QuickViewDrawerProps {
 
 export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewDrawerProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [showAnim, setShowAnim] = useState(false);
   const addToCart = useStore(state => state.addToCart);
 
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setShowAnim(true));
+      });
+      // Prevent layout shift from scrollbar disappearing
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
     } else {
-      setTimeout(() => setIsVisible(false), 300);
-      document.body.style.overflow = '';
+      setShowAnim(false);
+      setTimeout(() => {
+        setIsVisible(false);
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+      }, 400);
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => { 
+      document.body.style.overflow = ''; 
+      document.body.style.paddingRight = '';
+    };
   }, [isOpen]);
 
   if (!isOpen && !isVisible) return null;
 
   const titleVi = product?.shortDescription_vi || product?.shortDescription;
-  const price = product?.prices?.[0]?.formattedPrice || 'Liên hệ';
+  const originalPrice = product?.prices?.[0]?.price || 0;
+  const currentPrice = product?.lowestPrices?.[0]?.price || originalPrice;
   const img = product?.images?.[0] || '';
 
   return (
     <>
       <div 
-        className={`drawer-backdrop ${isOpen ? 'open' : ''}`} 
+        className={`drawer-backdrop ${showAnim ? 'open' : ''}`} 
         onClick={onClose}
       />
-      <div className={`quick-view-drawer ${isOpen ? 'open' : ''}`}>
+      <div className={`quick-view-drawer ${showAnim ? 'open' : ''}`}>
         <div className="drawer-header">
           <h3>Xem nhanh</h3>
           <button className="close-btn" onClick={onClose}>
@@ -47,31 +63,41 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
         
         {product && (
           <div className="drawer-content quick-view-content">
-            <div className="qv-image">
-              <img src={img} alt={titleVi} />
+            <div className="qv-image" style={{ width: '75%', margin: '0 auto 24px', background: 'transparent' }}>
+              <ProductGallery images={product.images || [img]} name={titleVi} product={product} />
             </div>
             
             <div className="qv-info">
               <span className="qv-category">{product.category}</span>
               <h2 className="qv-title">{titleVi}</h2>
-              <div className="qv-price">{price}</div>
+              <div className="qv-price" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '32px' }}>
+                <span style={{ color: 'var(--text-primary)', fontSize: '24px', fontWeight: 800 }}>
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(currentPrice)}
+                </span>
+                {product.discountValue && product.discountValue > 0 && (
+                  <span style={{ fontSize: '16px', color: 'var(--text-muted)', textDecoration: 'line-through', fontWeight: 300 }}>
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(originalPrice)}
+                  </span>
+                )}
+                {product.discountValue && product.discountValue > 0 && (
+                  <span style={{ background: 'var(--accent)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700 }}>
+                    {product.discountType === 'PERCENTAGE' ? `Giảm ${product.discountValue}%` : `Giảm ${new Intl.NumberFormat('vi-VN').format(product.discountValue)}đ`}
+                  </span>
+                )}
+              </div>
               
               <div className="qv-attributes">
                 <div className="qv-attr">
-                  <span className="qv-attr-label">Màu sắc:</span>
-                  <div className="qv-colors">
-                    {product.refinementColors?.slice(0,4).map((c, i) => (
-                      <span key={i} className="qv-color-dot" title={c}></span>
-                    )) || <span>Đa dạng</span>}
-                  </div>
+                  <span className="qv-attr-label">Danh mục:</span>
+                  <span style={{ fontWeight: 500 }}>{product.category || 'Sản phẩm'}</span>
                 </div>
                 <div className="qv-attr">
-                  <span className="qv-attr-label">Chất liệu:</span>
-                  <span>{product.refinementMaterials_vi?.[0] || product.refinementMaterials?.[0] || 'Tùy chỉnh'}</span>
+                  <span className="qv-attr-label">Mã sản phẩm:</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 500 }}>{product.id}</span>
                 </div>
                 <div className="qv-attr">
-                  <span className="qv-attr-label">Tình trạng:</span>
-                  <span style={{ color: 'var(--success, #38A169)' }}>Còn hàng</span>
+                  <span className="qv-attr-label">Phiên bản:</span>
+                  <span style={{ fontWeight: 500 }}>{product.variants?.length ? `${product.variants.length} lựa chọn` : 'Tiêu chuẩn'}</span>
                 </div>
               </div>
 
@@ -90,8 +116,8 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
                 >
                   Thêm vào giỏ hàng
                 </button>
-                <a href={`/products/${product.productId}`} className="qv-detail-link">
-                  Xem chi tiết đầy đủ
+                <a href={`/kham-pha/${product.productId}`} className="qv-detail-link">
+                  Khám phá chi tiết
                 </a>
               </div>
             </div>

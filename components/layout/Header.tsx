@@ -239,7 +239,7 @@ export default function Header({ onOpenCart }: HeaderProps) {
             )}
           </div>
 
-          <button className="icon-btn" onClick={onOpenCart} title="Giỏ hàng" style={{ position: 'relative' }}>
+          <button id="header-cart-icon" className="icon-btn" onClick={onOpenCart} title="Giỏ hàng" style={{ position: 'relative' }}>
             <ShoppingBag size={22} strokeWidth={1.5} />
             {cartCount > 0 && <span className="badge" id="cart-count">{cartCount}</span>}
           </button>

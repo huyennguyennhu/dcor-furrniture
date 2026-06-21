@@ -9,6 +9,7 @@ export interface ProductPrice {
 }
 
 export interface CatalogProduct {
+  id?: string;
   productId: string;
   shortDescription: string;
   shortDescription_vi?: string;
@@ -21,6 +22,9 @@ export interface CatalogProduct {
   refinementMaterials_vi?: string[];
   prices: ProductPrice[];
   lowestPrices: ProductPrice[];
+  isBestSeller?: boolean;
+  isNew?: boolean;
+  createdAt?: string | Date;
 }
 
 export interface LegStyle {

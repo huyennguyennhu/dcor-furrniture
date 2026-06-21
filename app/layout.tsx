@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/shop/CartDrawer';
 import Modals from '@/components/layout/Modals';
+import ScrollToTop from '@/components/layout/ScrollToTop';
 
 export default function RootLayout({
   children,
@@ -28,6 +29,8 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <Modals />
         </Suspense>
+
+        <ScrollToTop />
       </body>
     </html>
   );

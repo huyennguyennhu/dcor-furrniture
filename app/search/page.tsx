@@ -2,20 +2,31 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BOCONCEPT_CATALOG, CatalogProduct } from '@/lib/data';
+import { CatalogProduct } from '@/lib/data';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<CatalogProduct[]>([]);
   const [activeCategory, setActiveCategory] = useState('');
+  const [allProducts, setAllProducts] = useState<CatalogProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!query.trim()) {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        setAllProducts(data);
+        setIsLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!query.trim() || isLoading) {
       setResults([]);
       return;
     }
 
-    const filtered = BOCONCEPT_CATALOG.filter(prod => {
+    const filtered = allProducts.filter(prod => {
       const titleVi = prod.shortDescription_vi || prod.shortDescription;
       const matchesQuery = 
         titleVi.toLowerCase().includes(query.toLowerCase()) ||
@@ -28,9 +39,9 @@ export default function SearchPage() {
     });
 
     setResults(filtered);
-  }, [query, activeCategory]);
+  }, [query, activeCategory, allProducts, isLoading]);
 
-  const categories = Array.from(new Set(BOCONCEPT_CATALOG.map(p => p.category))).filter(Boolean);
+  const categories = Array.from(new Set(allProducts.map(p => p.category))).filter(Boolean);
 
   return (
     <div style={{ padding: '60px 0', minHeight: '80vh', backgroundColor: 'var(--bg-primary)' }}>

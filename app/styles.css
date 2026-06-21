@@ -608,8 +608,8 @@ nav ul a:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 10px;
-  border-radius: 25px;
+  padding: 8px 16px;
+  border-radius: 30px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
 }
@@ -628,6 +628,7 @@ nav ul a:hover {
   border-radius: 50%;
   border: 2px solid transparent;
   transition: all var(--transition-fast);
+  margin: 4px;
 }
 
 .color-badge-btn:hover {
@@ -642,13 +643,14 @@ nav ul a:hover {
 .products-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 0px; /* Gap replaced by product-card margin */
+  margin: 0 -16px; /* Offset the 16px child margins to align with parent */
 }
 @media (max-width: 1024px) {
   .products-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 768px) {
-  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0px; }
 }
 
 .product-card {
@@ -661,6 +663,7 @@ nav ul a:hover {
   display: flex;
   flex-direction: column;
   cursor: pointer;
+  margin: 16px;
 }
 
 .product-card:hover {
@@ -681,6 +684,8 @@ nav ul a:hover {
   left: 0;
   width: 100%;
   height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
   object-fit: contain;
   transition: transform var(--transition-slow), opacity var(--transition-normal);
 }
@@ -721,11 +726,26 @@ nav ul a:hover {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  border-radius: 4px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(5px);
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid currentColor;
+  background: rgba(0, 0, 0, 0.05); /* Default fallback */
+}
+
+.badge-tag.badge-sale {
+  color: #FF3B30; /* Vibrant Red */
+  background: rgba(255, 59, 48, 0.2);
+}
+
+.badge-tag.badge-bestseller {
+  color: #E67E22; /* Strong Orange */
+  background: rgba(230, 126, 34, 0.15);
+}
+
+.badge-tag.badge-new {
+  color: #059669; /* Strong Green */
+  background: rgba(5, 150, 105, 0.15);
 }
 
 .badge-tag.badge-custom {
@@ -1102,7 +1122,7 @@ nav ul a:hover {
   width: 100vw;
   height: 100vh;
   background: var(--modal-overlay);
-  z-index: 200;
+  z-index: 10000;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-normal);
@@ -1122,7 +1142,7 @@ nav ul a:hover {
   height: 100%;
   background: var(--bg-secondary);
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.4);
-  padding: 30px;
+  padding: 30px 15px;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -1943,7 +1963,7 @@ nav ul a:hover {
 .review-dots { display: flex; justify-content: center; gap: 8px; margin-top: 24px; }
 .review-dot { width: 8px; height: 8px; border-radius: 50%; border: none; background: rgba(255,255,255,.15); cursor: pointer; transition: background .25s, transform .25s; }
 .review-dot.active { background: var(--accent); transform: scale(1.25); }
-.badge-sale { background: rgba(229,62,62,.15) !important; color: #fc8181 !important; border-color: rgba(229,62,62,.3) !important; }
+/* Removed conflicting badge-sale !important rule */
 
 /* ══════════════════════════════════════════════════════
    PRE-FOOTER CTA SECTION
@@ -2598,7 +2618,7 @@ nav ul a:hover {
   border-color: var(--accent);
 }
 .filter-checkbox:checked + .filter-checkbox-custom::after {
-  content: ''; position: absolute; left: 5px; top: 1px;
+  content: ''; position: absolute; left: 6px; top: 2px;
   width: 5px; height: 10px;
   border: solid white; border-width: 0 2px 2px 0;
   transform: rotate(45deg);
@@ -2621,11 +2641,17 @@ nav ul a:hover {
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  border: 1px solid transparent;
 }
 .card-mini-actions .mini-action-btn:hover {
   background: var(--accent);
   color: white;
   transform: translateY(-2px);
+}
+.card-mini-actions .mini-action-btn.favorite-active:hover {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .price-slider-wrapper { padding: 10px 0; }
@@ -2633,8 +2659,9 @@ nav ul a:hover {
 .price-range-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
 
 .color-swatch-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-.color-swatch-item { width: 32px; height: 32px; border-radius: 50%; padding: 2px; border: 1px solid transparent; cursor: pointer; transition: all 0.2s;}
-.color-swatch-item:hover { border-color: var(--text-muted); transform: scale(1.1); }
+.color-swatch-item { width: 44px; height: 44px; border-radius: 50%; padding: 3px; border: 1px solid transparent; cursor: pointer; transition: all 0.2s;}
+.color-swatch-item:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transform: scale(1.05); }
+.color-swatch-item.active { border-color: var(--text-primary); }
 .color-swatch { display: block; width: 100%; height: 100%; border-radius: 50%; border: 1px solid rgba(255,255,255,0.1); }
 
 /* Card Hover Actions */
@@ -2710,7 +2737,7 @@ nav ul a:hover {
 .close-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
 .quick-view-content { padding: 24px; overflow-y: auto; flex: 1; }
-.qv-image { width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: var(--bg-tertiary); margin-bottom: 24px; }
+.qv-image { width: 100%; margin-bottom: 24px; }
 .qv-image img { width: 100%; height: 100%; object-fit: cover; }
 .qv-category { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; display: block; margin-bottom: 8px; }
 .qv-title { font-size: 28px; margin-bottom: 16px; font-family: var(--font-title); }
@@ -3984,3 +4011,37 @@ body:has(.planner-app) {
   .room-planner-cta-section > div { width: 100% !important; }
 }
 
+
+/* Filter UI Enhancements */
+.filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--accent);
+  color: var(--bg-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 8px;
+}
+
+.view-more-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 8px;
+  margin-left: 32px;
+  transition: color var(--transition-fast);
+}
+
+.view-more-btn:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}

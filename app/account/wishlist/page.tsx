@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { flyToCart } from '@/lib/flyToCart';
 
 interface WishlistItem {
   id: string;
@@ -35,8 +36,10 @@ export default function WishlistPage() {
     setItems(items.filter(item => item.id !== id));
   };
 
-  const handleAddToCart = (name: string) => {
-    alert('Đã thêm sản phẩm ' + name + ' vào giỏ hàng thành công!');
+  const handleAddToCart = (e: React.MouseEvent, item: WishlistItem) => {
+    // NOTE: This currently doesn't add to global cart state as it lacks integration,
+    // but we can still trigger the visual animation.
+    flyToCart(e, item.image);
   };
 
   return (
@@ -104,7 +107,7 @@ export default function WishlistPage() {
 
               <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px' }}>
                 <button 
-                  onClick={() => handleAddToCart(item.name)}
+                  onClick={(e) => handleAddToCart(e, item)}
                   style={{
                     background: 'var(--accent)',
                     color: '#fff',

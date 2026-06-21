@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-export default function ProductGallery({ images, name }: { images: string[], name: string }) {
+export default function ProductGallery({ images, name, product }: { images: string[], name: string, product?: any }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -16,17 +16,26 @@ export default function ProductGallery({ images, name }: { images: string[], nam
 
   return (
     <div className="product-gallery">
-      <div className="main-image-wrapper" style={{ position: 'relative' }}>
-        <img 
+      <div style={{ position: 'relative' }}>
+        <div className="main-image-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', borderRadius: '16px', overflow: 'hidden', aspectRatio: '1', width: '100%', height: '100%', padding: 0 }}>
+          <img 
           src={images[activeIndex] || images[0]} 
           alt={`${name} - Ảnh ${activeIndex + 1}`} 
           className="main-image"
-          style={{ width: '100%', height: 'auto', aspectRatio: '4/3', objectFit: 'contain', borderRadius: '16px', background: 'var(--bg-secondary)' }}
+          style={{ width: '100%', height: '100%', padding: '24px', boxSizing: 'border-box', objectFit: 'contain' }}
         />
-        {/* Mock Badge */}
-        <div className="gallery-badges" style={{ position: 'absolute', top: '16px', left: '16px', display: 'flex', gap: '8px' }}>
-          <span className="badge-tag badge-sale">Bán chạy</span>
-          <span className="badge-tag">Mới</span>
+        {/* Badges */}
+        <div className="gallery-badges" style={{ position: 'absolute', top: '16px', left: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {product?.discountValue > 0 ? (
+            <span className="badge-tag badge-sale">
+              {product.discountType === 'PERCENTAGE' ? `Giảm ${product.discountValue}%` : `Giảm ${new Intl.NumberFormat('vi-VN').format(product.discountValue)}đ`}
+            </span>
+          ) : product?.isBestSeller ? (
+            <span className="badge-tag badge-bestseller">Bán chạy</span>
+          ) : product?.isNew ? (
+            <span className="badge-tag badge-new">Mới</span>
+          ) : null}
+        </div>
         </div>
 
         {/* Navigation Buttons */}
@@ -34,13 +43,13 @@ export default function ProductGallery({ images, name }: { images: string[], nam
           <>
             <button 
               onClick={handlePrev}
-              style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: '#000', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              style={{ position: 'absolute', top: '50%', left: '-20px', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: 'var(--accent)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10 }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <button 
               onClick={handleNext}
-              style={{ position: 'absolute', top: '50%', right: '16px', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: '#000', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              style={{ position: 'absolute', top: '50%', right: '-20px', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: 'var(--accent)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10 }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </button>
@@ -53,11 +62,13 @@ export default function ProductGallery({ images, name }: { images: string[], nam
           {images.map((img, idx) => (
             <div 
               key={idx}
-              className={`thumbnail-item ${idx === activeIndex ? 'active' : ''}`}
               onClick={() => setActiveIndex(idx)}
-              style={{
-                width: '80px', height: '80px', flexShrink: 0,
-                borderRadius: '8px', overflow: 'hidden', cursor: 'pointer',
+              style={{ 
+                width: '64px', 
+                height: '64px', 
+                borderRadius: '8px', 
+                overflow: 'hidden', 
+                cursor: 'pointer', 
                 border: idx === activeIndex ? '2px solid var(--accent)' : '2px solid transparent',
                 background: 'var(--bg-secondary)',
                 opacity: idx === activeIndex ? 1 : 0.6,

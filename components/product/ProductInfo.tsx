@@ -4,80 +4,52 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CatalogProduct } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
+import { flyToCart } from '@/lib/flyToCart';
 
-function buildDynamicOptions(product: CatalogProduct) {
-  const p = product as any;
-  const variantPrices = (p.variantPrices || []).filter((v: any) => v.images && v.images.length > 0);
-  if (!variantPrices || variantPrices.length === 0) return null;
-
-  const config: any = p.config || {};
-  const legStyles = config.legStyles || [];
-  const upholsterySwatches = config.upholsterySwatches || [];
-
-  const selectionKeys = new Set<string>();
-  variantPrices.forEach((v: any) => {
-    Object.keys(v.selections || {}).forEach(k => selectionKeys.add(k));
-  });
-
-  if (selectionKeys.size === 0) return null;
+function buildDynamicOptions(product: any) {
+  const configOptions = product.configOptions || [];
+  if (!configOptions || configOptions.length === 0) return null;
 
   const groups: Record<string, { id: string, label: string, image?: string }[]> = {};
   
   const keyNames: Record<string, string> = {
-    'vaMaterialLegStyle': 'Chân',
-    'vaMaterialUpholstery': 'Bọc ghế',
+    'vaMaterialLegStyle': 'Chân ghế',
+    'vaMaterialUpholstery': 'Bọc ghế / Chất liệu',
     'vaSofaDirection': 'Hướng góc',
     'vaSize': 'Kích thước',
-    'vaColor': 'Màu sắc'
+    'vaColor': 'Màu sắc',
+    'vaColour': 'Màu sắc',
+    'vaConfigurationSize': 'Cấu hình / Kích thước',
+    'vaMaterialTabletop': 'Mặt bàn',
+    'vaMaterialLeg': 'Chân',
+    'vaMattressSize': 'Kích thước nệm',
+    'vaMaterial': 'Chất liệu',
+    'vaFunction': 'Chức năng',
+    'vaMaterialSeat': 'Chất liệu ghế',
+    'vaMotionOption': 'Tùy chọn chuyển động',
+    'vaRugShape': 'Hình dáng thảm',
+    'vaMaterialLamp': 'Chất liệu đèn',
+    'vaMaterialShell': 'Vỏ bọc ngoài',
+    'vaMaterialCabinet': 'Chất liệu tủ kệ',
+    'vaSlatsIncluded': 'Bao gồm rạt giường'
   };
 
-  selectionKeys.forEach(k => {
-    const uniqueValues = new Map<string, any>();
-    variantPrices.forEach((v: any) => {
-      const val = v.selections?.[k];
-      if (val && !uniqueValues.has(val)) {
-        let label = val;
-        let image = '';
-
-        if (k === 'vaMaterialLegStyle') {
-          const leg = legStyles.find((l: any) => l.id === val);
-          if (leg) {
-            label = leg.name_vi || leg.name || val;
-            image = leg.imageLink || '';
-          } else {
-            label = v.attributes?.finish_vi || v.attributes?.finish || val;
-            label = label?.replace(/^Chân:\s*/i, '')?.replace(/^Leg:\s*/i, '')?.trim() || val;
-          }
-        } else if (k === 'vaMaterialUpholstery') {
-          const swatch = upholsterySwatches.find((s: any) => s.id === val);
-          if (swatch) {
-            label = swatch.name_vi || swatch.name || val;
-            image = swatch.imageLink || '';
-          } else {
-            label = v.attributes?.upholsteryComposition_vi || v.attributes?.upholsteryComposition || val;
-            label = label?.replace(/^Bọc ghế:\s*/i, '')?.trim() || val;
-          }
-        }
-
-        if (!image) {
-           image = v.images?.[0] || '';
-        }
-
-        uniqueValues.set(val, {
-          id: val,
-          label: label.charAt(0).toUpperCase() + label.slice(1),
-          image: image
-        });
-      }
-    });
-    if (uniqueValues.size > 0) groups[k] = Array.from(uniqueValues.values());
+  configOptions.forEach((group: any) => {
+    const k = group.groupId;
+    const options = group.options || [];
+    groups[k] = options.map((opt: any) => ({
+      id: opt.id,
+      label: opt.name || opt.id,
+      image: opt.image || ''
+    }));
   });
 
-  return { keys: Array.from(Object.keys(groups)), names: keyNames, groups };
+  return { keys: Object.keys(groups), names: keyNames, groups };
 }
 
-export default function ProductInfo({ product, onImagesChange }: { product: CatalogProduct, onImagesChange?: (images: string[]) => void }) {
-  const { addToCart } = useStore();
+export default function ProductInfo({ product, onImagesChange }: { product: any, onImagesChange?: (images: string[]) => void }) {
+  const { addToCart, wishlist, toggleWishlist } = useStore();
+  const isFavorite = wishlist.includes(product.productId);
   const router = useRouter();
 
   const title = product.shortDescription_vi || product.shortDescription;
@@ -90,13 +62,12 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   const filteredVariantPrices = useMemo(() => {
-    const p = product as any;
-    return (p.variantPrices || []).filter((v: any) => v.images && v.images.length > 0);
-  }, [(product as any).variantPrices]);
+    return (product.variants || []).filter((v: any) => v.images && v.images.length > 0);
+  }, [product.variants]);
 
   useEffect(() => {
     if (hasDynamicVariants && filteredVariantPrices.length > 0) {
-      const cheapestVariant = [...filteredVariantPrices].sort((a, b) => (a.price?.value || 0) - (b.price?.value || 0))[0];
+      const cheapestVariant = [...filteredVariantPrices].sort((a, b) => (a.price || 0) - (b.price || 0))[0];
       setSelectedOptions(cheapestVariant.selections || {});
     }
   }, [hasDynamicVariants, filteredVariantPrices]);
@@ -134,16 +105,16 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
     }
   };
 
-  const currentPrice = matchedVariant?.price?.value || Math.max(lowestPrice, basePrice);
+  const currentPrice = matchedVariant?.price || Math.max(lowestPrice, basePrice);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
     addToCart({
       productId: product.productId,
       name: title,
       image: product.images?.[0] || '',
       price: currentPrice
     });
-    alert('Đã thêm vào giỏ hàng!');
+    flyToCart(e, product.images?.[0] || '');
   };
 
   const COLOR_MAP: Record<string, string> = {
@@ -158,8 +129,9 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
 
   return (
     <div className="product-info-panel">
-      {/* 1. Tiêu đề & Rating */}
-      <h1 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '8px', letterSpacing: '-1px' }}>{title}</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+        <h1 style={{ fontSize: '36px', fontWeight: 700, letterSpacing: '-1px', margin: 0 }}>{title}</h1>
+      </div>
       <div className="product-rating" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '14px' }}>
         <span style={{ color: '#FFD700', fontSize: '16px' }}>★★★★★</span>
         <span style={{ fontWeight: 600 }}>4.8</span>
@@ -167,8 +139,16 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
 
       {/* 2. Giá */}
       <div className="product-price-section" style={{ marginBottom: '32px' }}>
-        <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--accent)' }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '4px' }}>
+          Giá
+        </div>
+        <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'baseline', gap: '16px' }}>
           {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(currentPrice)}
+          {product.discountValue && product.discountValue > 0 && (
+            <span style={{ fontSize: '16px', color: 'var(--text-muted)', textDecoration: 'line-through', fontWeight: 300 }}>
+              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discountType === 'PERCENTAGE' ? currentPrice / (1 - product.discountValue / 100) : currentPrice + product.discountValue)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -199,7 +179,7 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
                           onClick={() => handleSelectOption(groupKey, opt.id)}
                           title={opt.label}
                           style={{
-                            width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', padding: 0,
+                            width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', padding: 0, margin: '4px',
                             border: isSelected ? '3px solid var(--accent)' : '2px solid rgba(255,255,255,0.2)',
                             boxShadow: isSelected ? '0 0 12px rgba(224,86,36,0.4)' : 'none',
                             cursor: 'pointer', transition: 'all 0.2s', transform: isSelected ? 'scale(1.1)' : 'scale(1)'
@@ -214,7 +194,7 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
                         key={opt.id}
                         onClick={() => handleSelectOption(groupKey, opt.id)}
                         style={{
-                          padding: '12px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)',
+                          padding: isSelected ? '11px 19px' : '12px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)',
                           border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border-color)',
                           color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
                           cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
@@ -260,7 +240,7 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
         )
       )}
 
-      {/* 5. CTAs */}
+      {/* 6. CTAs */}
       <div className="product-actions" style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
         <button 
           onClick={handleAddToCart}
@@ -269,11 +249,22 @@ export default function ProductInfo({ product, onImagesChange }: { product: Cata
           Thêm vào giỏ hàng
         </button>
         <button 
+          title="Yêu thích"
+          onClick={() => toggleWishlist(product.productId)}
+          style={{ width: '56px', height: '56px', flexShrink: 0, background: 'rgba(255,255,255,0.03)', color: isFavorite ? 'var(--accent)' : 'var(--text-primary)', border: isFavorite ? '1.5px solid var(--accent)' : '1.5px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = isFavorite ? 'var(--accent)' : 'var(--text-primary)'; e.currentTarget.style.borderColor = isFavorite ? 'var(--accent)' : 'var(--border-color)'; }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={isFavorite ? 'var(--accent)' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+          </svg>
+        </button>
+        <button 
           title="Thử đặt sản phẩm này vào phòng của bạn (Room Planner)"
           onClick={() => router.push(`/thiet-ke/room-planner?product=${product.productId}`)}
-          style={{ width: '56px', height: '56px', flexShrink: 0, background: 'rgba(255,255,255,0.03)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'var(--text-secondary)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+          style={{ width: '56px', height: '56px', flexShrink: 0, background: 'rgba(255,255,255,0.03)', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/>

@@ -3,10 +3,28 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { CatalogProduct } from '@/lib/data';
 import Link from 'next/link';
+import { useStore } from '@/lib/store';
+import { flyToCart } from '@/lib/flyToCart';
+import QuickViewDrawer from '@/components/shop/QuickViewDrawer';
+
+const isOnSale = (p: CatalogProduct) => p.lowestPrices && p.lowestPrices.length > 0 && p.lowestPrices[0].price < (p.prices?.[0]?.price || 0);
+const getProductPriceFormatted = (p: CatalogProduct) => p.prices?.[0]?.formattedPrice || 'Liên hệ';
+const getLowestPriceFormatted = (p: CatalogProduct) => p.lowestPrices?.[0]?.formattedPrice || '';
 
 export default function RelatedProducts({ currentProductId, category }: { currentProductId: string, category: string }) {
+  const { addToCart, wishlist, toggleWishlist } = useStore();
   const [related, setRelated] = useState<CatalogProduct[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<CatalogProduct | null>(null);
+
+  const openQuickView = (e: React.MouseEvent, prod: CatalogProduct) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setQuickViewProduct(prod);
+    setIsQuickViewOpen(true);
+  };
 
   useEffect(() => {
     async function load() {
@@ -58,7 +76,7 @@ export default function RelatedProducts({ currentProductId, category }: { curren
         ref={scrollRef}
         style={{ 
           display: 'flex', 
-          gap: '20px', 
+          gap: '0px', 
           overflowX: 'auto', 
           scrollSnapType: 'x mandatory', 
           paddingBottom: '16px',
@@ -71,31 +89,97 @@ export default function RelatedProducts({ currentProductId, category }: { curren
         `}} />
         
         {related.map(prod => {
-          const price = prod.prices?.[0]?.formattedPrice || 'Liên hệ';
-          const title = prod.shortDescription_vi || prod.shortDescription;
-          const img = prod.images?.[0] || '';
+          const img1 = prod.images?.[0] || '';
+          const img2 = prod.images?.[1] || img1;
+          const titleVi = prod.shortDescription_vi || prod.shortDescription;
+          const onSale = isOnSale(prod);
+          const lowestFmt = getLowestPriceFormatted(prod);
+          const isFavorite = wishlist.includes(prod.productId);
           
           return (
             <Link 
               href={`/kham-pha/${prod.productId}`} 
               key={prod.productId} 
-              style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 'calc((100% - 80px) / 5)', scrollSnapAlign: 'start', minWidth: '200px' }} 
-              className="product-card"
+              style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0, width: 'calc((100% - 80px) / 5)', scrollSnapAlign: 'start', minWidth: '240px' }} 
             >
-              <div style={{ background: 'var(--bg-secondary)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', transition: 'transform 0.3s' }}>
-                <div style={{ aspectRatio: '1', padding: '20px', background: 'rgba(255,255,255,0.02)' }}>
-                  <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <div className="product-card">
+                <div className="card-image-area">
+                  <img className="img-primary" src={img1} alt={titleVi} loading="lazy" />
+                  <img className="img-secondary" src={img2} alt={titleVi} loading="lazy" />
+                  
+                  <div className="product-badges">
+                    {onSale ? (
+                      <span className="badge-tag badge-sale">
+                        {prod.discountType === 'PERCENTAGE' ? `Giảm ${prod.discountValue}%` : `Giảm ${new Intl.NumberFormat('vi-VN').format(prod.discountValue || 0)}đ`}
+                      </span>
+                    ) : prod.isBestSeller ? (
+                      <span className="badge-tag badge-bestseller">Bán chạy</span>
+                    ) : prod.isNew ? (
+                      <span className="badge-tag badge-new">Mới</span>
+                    ) : null}
+                  </div>
                 </div>
-                <div style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>{prod.category}</div>
-                  <div style={{ fontWeight: 600, marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '14px' }}>{title}</div>
-                  <div style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '14px' }}>{price}</div>
+                
+                <div className="card-details">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span className="card-category">{prod.category || 'D\'Cor'}</span>
+                    <div className="card-mini-actions">
+                      <button className={`mini-action-btn ${isFavorite ? 'favorite-active' : ''}`} title="Yêu thích" onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleWishlist(prod.productId); }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill={isFavorite ? 'var(--accent)' : 'none'} stroke={isFavorite ? 'var(--accent)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                      </button>
+                      <button className="mini-action-btn" title="So sánh" onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                      </button>
+                      <button className="mini-action-btn" title="Xem nhanh" onClick={(e) => openQuickView(e, prod)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <h3 className="card-title">{titleVi}</h3>
+                  <div className="card-price-row">
+                    <div>
+                      {onSale && lowestFmt ? (
+                        <>
+                          <span className="card-price-label">Sale:</span>
+                          <div className="card-price" style={{ color: 'var(--accent)' }}>{lowestFmt}</div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="card-price-label">Giá từ:</span>
+                          <div className="card-price">{getProductPriceFormatted(prod)}</div>
+                        </>
+                      )}
+                    </div>
+                    <button 
+                      className="add-to-cart-btn-icon"
+                      title="Thêm vào giỏ"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        addToCart({
+                          productId: prod.productId,
+                          name: titleVi,
+                          image: img1,
+                          price: prod.lowestPrices?.[0]?.price || prod.prices?.[0]?.price || 0
+                        });
+                        flyToCart(e, img1);
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </Link>
           );
         })}
       </div>
+
+      <QuickViewDrawer 
+        product={quickViewProduct} 
+        isOpen={isQuickViewOpen} 
+        onClose={() => setIsQuickViewOpen(false)} 
+      />
     </div>
   );
 }

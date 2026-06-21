@@ -166,7 +166,13 @@ export default function CatalogSection({ products, initialCategory, categories }
                     <img className="img-secondary" src={img2} alt={titleVi} loading="lazy" />
                     <div className="product-badges">
                       <span className="badge-tag">{materialLabel}</span>
-                      {onSale && <span className="badge-tag badge-sale">Sale</span>}
+                      {onSale ? (
+                        <span className="badge-tag badge-sale">Sale</span>
+                      ) : prod.isBestSeller ? (
+                        <span className="badge-tag badge-bestseller">Bán chạy</span>
+                      ) : prod.isNew ? (
+                        <span className="badge-tag badge-new">Mới</span>
+                      ) : null}
                       <span className="badge-tag badge-custom">Tự thiết kế</span>
                     </div>
                   </div>
