@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CatalogProduct } from '@/lib/data';
