@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# custom ignore for scratchpads
+/process_data_4_supabase/
+/rule.md
+/bug.md
+/crawl_new_data.md
+/sample_*.txt
+
