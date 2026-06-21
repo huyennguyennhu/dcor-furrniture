@@ -1159,7 +1159,7 @@ nav ul a:hover {
   align-items: center;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 20px;
-  margin-bottom: 20px;
+  /* margin-bottom: 20px; */
 }
 
 .cart-items-wrapper {

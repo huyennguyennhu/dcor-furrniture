@@ -71,7 +71,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   }, [isOpen]);
 
   const cartItems = mounted ? cart : [];
-  const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalPrice = cartItems.reduce((sum, item, index) => {
+    return selectedIndices.has(index) ? sum + (item.price * item.quantity) : sum;
+  }, 0);
 
   const formatVND = (value: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -157,7 +159,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       }
     }}>
       <div className="cart-drawer">
-        <div className="cart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="cart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {cartItems.length > 0 && (
               <CustomCheckbox 
@@ -166,7 +168,24 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 onChange={handleSelectAll}
               />
             )}
-            <h3 style={{ fontSize: '20px', fontWeight: 600 }}>Giỏ hàng của bạn ({cartItems.length})</h3>
+            <h3 style={{ fontSize: '20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              Giỏ hàng của bạn
+              <span style={{ 
+                background: 'var(--accent)', 
+                color: '#fff', 
+                fontSize: '14px', 
+                fontWeight: 700, 
+                width: '25px', 
+                height: '25px', 
+                borderRadius: '50%', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                lineHeight: 1
+              }}>
+                {cartItems.length}
+              </span>
+            </h3>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -205,7 +224,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <div className="cart-item" key={index} style={{ display: 'flex', gap: '16px', padding: '20px 0', borderBottom: '1px solid var(--border-color)', position: 'relative', alignItems: 'flex-start' }}>
                   
                   {/* Item Checkbox */}
-                  <div style={{ paddingTop: '35px' }}>
+                  <div style={{ paddingTop: '22px' }}>
                     <CustomCheckbox 
                       checked={selectedIndices.has(index)}
                       onChange={() => handleSelectItem(index)}
@@ -216,7 +235,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <div 
                     className="cart-item-image" 
                     onClick={() => navigateToProduct(item.productId)}
-                    style={{ width: '90px', height: '90px', flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: '64.8px', height: '64.8px', flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Xem chi tiết sản phẩm"
                   >
                     <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.3s' }} onMouseEnter={e => e.currentTarget.style.transform='scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform='scale(1)'} />
@@ -237,10 +256,20 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </h4>
                       
                       {/* Variant Tags */}
-                      {(item.leg || item.upholstery) && (
+                      {(item.variantTags?.length ? true : (item.leg || item.upholstery)) && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
-                          {item.leg && <span style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>Chân: {item.leg.name}</span>}
-                          {item.upholstery && <span style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>Vải: {item.upholstery.name}</span>}
+                          {item.variantTags ? (
+                            item.variantTags.map((tag, idx) => (
+                              <span key={idx} style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>
+                                {tag.label}: {tag.value}
+                              </span>
+                            ))
+                          ) : (
+                            <>
+                              {item.leg && <span style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>Chân: {item.leg.name}</span>}
+                              {item.upholstery && <span style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>Vải: {item.upholstery.name}</span>}
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -259,7 +288,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </div>
 
                       {/* Quantity Selector */}
-                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--accent)', borderRadius: '6px', overflow: 'hidden', background: 'transparent' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--accent)', borderRadius: '12px', overflow: 'hidden', background: 'transparent' }}>
                         <button 
                           onClick={() => updateQuantity(index, item.quantity - 1)}
                           disabled={item.quantity <= 1}
@@ -297,7 +326,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         {cartItems.length > 0 && (
           <div className="cart-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '24px', marginTop: '24px' }}>
             <div className="cart-summary-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', fontSize: '18px', fontWeight: 600 }}>
-              <span>Tổng cộng:</span>
+              <span>Tổng cộng</span>
               <span className="cart-summary-total" style={{ color: 'var(--accent)', fontSize: '22px' }}>{formatVND(totalPrice)}</span>
             </div>
             <button className="checkout-btn" onClick={handleCheckout} style={{ width: '100%', padding: '16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
@@ -345,7 +374,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 onClick={executeDelete}
                 style={{ flex: 1, padding: '14px', background: '#e74c3c', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
               >
-                Đồng ý xóa
+                XÓA
               </button>
             </div>
           </div>

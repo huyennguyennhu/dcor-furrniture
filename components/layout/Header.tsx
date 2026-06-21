@@ -91,8 +91,8 @@ export default function Header({ onOpenCart }: HeaderProps) {
     <header className={headerClass}>
       <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
         <Link href="/" className="logo">
-          <div className="logo-circle">
-            <span className="logo-circle-text">DCOR.</span>
+          <div className="logo-circle" style={{ overflow: 'hidden', padding: 0, background: 'transparent' }}>
+            <img src="/assets/favicon.png" alt="D'Cor Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
           </div>
         </Link>
 

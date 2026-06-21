@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -159,8 +159,8 @@ export default function Footer() {
               {/* Brand column */}
               <div className="footer-brand">
                 <Link href="/" className="footer-logo">
-                  <div className="footer-logo-circle">
-                    <span>DCOR.</span>
+                  <div className="footer-logo-circle" style={{ overflow: 'hidden', padding: 0, background: 'transparent' }}>
+                    <img src="/assets/favicon.png" alt="D'Cor Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                   </div>
                   <span className="footer-logo-name">D'Cor</span>
                 </Link>

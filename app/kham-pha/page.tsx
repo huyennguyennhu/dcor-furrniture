@@ -502,11 +502,20 @@ function KhamPhaContent() {
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
+                            const defaultTags: {label: string, value: string}[] = [];
+                            if (prod.refinementColors_vi?.length || prod.refinementColors?.length) {
+                              defaultTags.push({ label: 'Màu sắc', value: prod.refinementColors_vi?.[0] || prod.refinementColors?.[0] || '' });
+                            }
+                            if (prod.refinementMaterials_vi?.length || prod.refinementMaterials?.length) {
+                              defaultTags.push({ label: 'Chất liệu', value: prod.refinementMaterials_vi?.[0] || prod.refinementMaterials?.[0] || '' });
+                            }
+
                             addToCart({
                               productId: prod.productId,
                               name: titleVi,
                               image: img1,
                               price: getProductPriceVal(prod),
+                              variantTags: defaultTags.length > 0 ? defaultTags : undefined
                             });
                             flyToCart(e, img1);
                           }}

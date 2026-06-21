@@ -9,6 +9,7 @@ export interface CartItem {
   image: string;
   leg?: LegStyle | null;
   upholstery?: Swatch | null;
+  variantTags?: { label: string; value: string }[];
   price: number;
   originalPrice?: number;
   quantity: number;

@@ -105,11 +105,20 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
                 <button 
                   className="qv-add-btn"
                   onClick={() => {
+                    const defaultTags: {label: string, value: string}[] = [];
+                    if (product.refinementColors_vi?.length || product.refinementColors?.length) {
+                      defaultTags.push({ label: 'Màu sắc', value: product.refinementColors_vi?.[0] || product.refinementColors?.[0] || '' });
+                    }
+                    if (product.refinementMaterials_vi?.length || product.refinementMaterials?.length) {
+                      defaultTags.push({ label: 'Chất liệu', value: product.refinementMaterials_vi?.[0] || product.refinementMaterials?.[0] || '' });
+                    }
+
                     addToCart({
                       productId: product.productId,
                       name: titleVi || '',
                       image: img,
                       price: product.prices?.[0]?.price || 0,
+                      variantTags: defaultTags.length > 0 ? defaultTags : undefined
                     });
                     onClose();
                   }}

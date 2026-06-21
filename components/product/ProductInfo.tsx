@@ -108,13 +108,32 @@ export default function ProductInfo({ product, onImagesChange }: { product: any,
   const currentPrice = matchedVariant?.price || Math.max(lowestPrice, basePrice);
 
   const handleAddToCart = (e: React.MouseEvent) => {
+    const variantTags: { label: string; value: string }[] = [];
+    
+    if (hasDynamicVariants) {
+      dynamicConfig.keys.forEach(groupKey => {
+        const groupName = dynamicConfig.names[groupKey] || groupKey;
+        const options = dynamicConfig.groups[groupKey] || [];
+        const selectedId = selectedOptions[groupKey];
+        if (selectedId) {
+          const opt = options.find((o: any) => o.id === selectedId);
+          if (opt) variantTags.push({ label: groupName, value: opt.label || (opt as any).name || selectedId });
+        }
+      });
+    } else if (selectedColor) {
+      variantTags.push({ label: 'Màu sắc', value: colors[rawColors.indexOf(selectedColor)] || selectedColor });
+    }
+
+    const productImage = (matchedVariant && matchedVariant.images && matchedVariant.images[0]) || product.images?.[0] || '';
+
     addToCart({
       productId: product.productId,
       name: title,
-      image: product.images?.[0] || '',
-      price: currentPrice
+      image: productImage,
+      price: currentPrice,
+      variantTags
     });
-    flyToCart(e, product.images?.[0] || '');
+    flyToCart(e, productImage);
   };
 
   const COLOR_MAP: Record<string, string> = {
