@@ -64,7 +64,7 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
         {product && (
           <div className="drawer-content quick-view-content">
             <div className="qv-image" style={{ width: '75%', margin: '0 auto 24px', background: 'transparent' }}>
-              <ProductGallery images={product.images || [img]} name={titleVi} product={product} />
+              <ProductGallery images={product.images || [img]} name={titleVi || ''} product={product} />
             </div>
             
             <div className="qv-info">

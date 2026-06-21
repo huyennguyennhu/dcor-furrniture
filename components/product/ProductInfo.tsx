@@ -218,7 +218,7 @@ export default function ProductInfo({ product, onImagesChange }: { product: any,
               <span style={{ color: 'var(--text-secondary)' }}>{colors[rawColors.indexOf(selectedColor)] || selectedColor}</span>
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {rawColors.map((color, idx) => {
+              {rawColors.map((color: string, idx: number) => {
                 const hex = COLOR_MAP[color.toLowerCase()] || '#888';
                 const isSelected = selectedColor === color;
                 return (

@@ -25,6 +25,10 @@ export interface CatalogProduct {
   isBestSeller?: boolean;
   isNew?: boolean;
   createdAt?: string | Date;
+  variants?: any[];
+  discountValue?: number;
+  discountType?: string;
+  isSale?: boolean;
 }
 
 export interface LegStyle {
