@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { BOCONCEPT_CATALOG as products, CatalogProduct } from '@/lib/data';
+import { CatalogProduct } from '@/lib/data';
 import { Save, Undo, Redo, Share2, Download, Search, ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Maximize, Trash2, Upload, LayoutTemplate, AlertTriangle, ShoppingCart, Info } from 'lucide-react';
 import { useStore } from '@/lib/store';
 
@@ -63,6 +63,15 @@ function RoomPlannerContent() {
   const searchParams = useSearchParams();
   const roomType = searchParams.get('room') || 'living';
   const addToCart = useStore(state => state.addToCart);
+
+  // --- Fetch products from Supabase API ---
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => setProducts(data))
+      .catch(err => console.error('Failed to load products for planner', err));
+  }, []);
 
   // --- Room state ---
   const [selectedBg, setSelectedBg] = useState('');

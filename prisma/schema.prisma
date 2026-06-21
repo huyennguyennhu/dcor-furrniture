@@ -38,12 +38,12 @@ model User {
   id           String   @id @default(uuid())
   email        String?  @unique
   phone        String   @unique // SĐT là phương thức đăng nhập chính (OTP)
-  passwordHash String? // Có thể null nếu đăng nhập hoàn toàn qua OTP/Social
-  fullName     String
-  avatarUrl    String?
+  passwordHash String?  @map("password_hash")
+  fullName     String   @map("full_name")
+  avatarUrl    String?  @map("avatar_url")
   role         Role     @default(CUSTOMER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   addresses      Address[]
   orders         Order[]
@@ -52,41 +52,52 @@ model User {
   reviews        Review[]
   roomDesigns    RoomDesign[]
   proposals      PriceProposal[]
+
+  @@map("users")
 }
 
 // 2. Sổ địa chỉ giao hàng
 model Address {
   id           String   @id @default(uuid())
-  userId       String
-  receiverName String
+  userId       String   @map("user_id")
+  receiverName String   @map("receiver_name")
   phone        String
   province     String
   district     String
   ward         String
   detail       String
-  isDefault    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
 }
 
+// 3. Sản phẩm
 model Product {
-  id            String   @id @map("product_id")
-  slug          String   @unique
-  name          String
-  description   Json?    // Chứa mảng các đoạn văn PR Marketing dài
-  basePrice     Float    @default(0)
+  id          String @id @map("product_id")
+  slug        String @unique
+  name        String
+  category    String @default("Uncategorized")
+  description Json? // Chứa mảng các đoạn văn PR Marketing dài
+  basePrice   Float  @default(0) @map("base_price")
 
-  configOptions Json     @default("[]") // Cấu hình các bộ chọn động (chân sofa, vải bọc, v.v.)
-  variants      Json     @default("[]") // Chi tiết biến thể gồm giá, ảnh, kích thước, chi tiết thiết kế
-  videos        Json?    // Mảng chứa các URL video minh hoạ tính năng
+  // Logic Giảm Giá
+  discountValue Float?  @map("discount_value")
+  discountType  String? @map("discount_type")
 
-  isBestSeller Boolean @default(false)
-  isNew        Boolean @default(false)
+  images        Json  @default("[]")
+  configOptions Json  @default("[]") @map("config_options")
+  variants      Json  @default("[]")
+  videos        Json?
+
+  isBestSeller Boolean @default(false) @map("is_best_seller")
+  isNew        Boolean @default(false) @map("is_new")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   wishlistedBy Wishlist[]
   reviews      Review[]
@@ -98,123 +109,136 @@ model Product {
 // 4. Giỏ hàng & Wishlist
 model Wishlist {
   id        String   @id @default(uuid())
-  userId    String
-  productId String
-  createdAt DateTime @default(now())
+  userId    String   @map("user_id")
+  productId String   @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
+  @@map("wishlists")
 }
 
 // 5. Đơn hàng (Hỗ trợ cả Guest Checkout & Gift Order)
 model Order {
   id           String  @id @default(uuid())
-  userId       String? // Null nếu là Guest Checkout
-  email        String? // Để gửi email xác nhận cho Guest
-  phone        String // Số điện thoại nhận hàng chính
-  receiverName String
-  address      String // Địa chỉ giao hàng đầy đủ dạng String
+  userId       String? @map("user_id")
+  email        String?
+  phone        String
+  receiverName String  @map("receiver_name")
+  address      String
 
   // Tính năng Gift Order (Giao cho người khác)
-  isGift           Boolean @default(false)
-  giftMessage      String?
-  hideInvoicePrice Boolean @default(false)
+  isGift           Boolean @default(false) @map("is_gift")
+  giftMessage      String? @map("gift_message")
+  hideInvoicePrice Boolean @default(false) @map("hide_invoice_price")
 
   // Tài chính
-  subTotal       Decimal @db.Decimal(15, 2)
-  shippingFee    Decimal @db.Decimal(15, 2)
-  discountAmount Decimal @db.Decimal(15, 2)
-  totalAmount    Decimal @db.Decimal(15, 2)
-  promoCode      String?
+  subTotal       Decimal @map("sub_total") @db.Decimal(15, 2)
+  shippingFee    Decimal @map("shipping_fee") @db.Decimal(15, 2)
+  discountAmount Decimal @map("discount_amount") @db.Decimal(15, 2)
+  totalAmount    Decimal @map("total_amount") @db.Decimal(15, 2)
+  promoCode      String? @map("promo_code")
 
   // Trạng thái & Thanh toán
   status        OrderStatus @default(PENDING)
-  paymentMethod String // COD, STRIPE, MOMO
-  paymentStatus String      @default("UNPAID") // UNPAID, PAID
+  paymentMethod String      @map("payment_method")
+  paymentStatus String      @default("UNPAID") @map("payment_status")
   notes         String?
-  internalNotes String? // Ghi chú nội bộ cho CSKH
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  internalNotes String?     @map("internal_notes")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   items OrderItem[]
+
+  @@map("orders")
 }
 
 model OrderItem {
   id                 String  @id @default(uuid())
-  orderId            String
-  productId          String
-  productName        String
-  variantKey         String // SKU/Variant key xác định cấu hình (ví dụ: chân sofa + màu bọc)
-  variantDescription String // Mô tả cấu hình chi tiết bằng chữ
-  imageUrl           String
+  orderId            String  @map("order_id")
+  productId          String  @map("product_id")
+  productName        String  @map("product_name")
+  variantKey         String  @map("variant_key") // SKU/Variant key xác định cấu hình (ví dụ: chân sofa + màu bọc)
+  variantDescription String  @map("variant_description")
+  imageUrl           String  @map("image_url")
   quantity           Int
   price              Decimal @db.Decimal(15, 2) // Giá chốt mua tại thời điểm đặt
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
 }
 
 // 6. Tính năng Trả giá (Price Negotiation)
 model PriceProposal {
   id            String         @id @default(uuid())
-  userId        String
-  productId     String
-  proposedPrice Decimal        @db.Decimal(15, 2)
+  userId        String         @map("user_id")
+  productId     String         @map("product_id")
+  proposedPrice Decimal        @map("proposed_price") @db.Decimal(15, 2)
   reason        String
   phone         String
   status        ProposalStatus @default(PENDING)
-  counterPrice  Decimal?       @db.Decimal(15, 2) // Giá CSKH phản hồi lại
-  promoCodeId   String? // Mã giảm giá được tạo tự động khi duyệt thành công
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  counterPrice  Decimal?       @map("counter_price") @db.Decimal(15, 2)
+  promoCodeId   String?        @map("promo_code_id")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("price_proposals")
 }
 
 // 7. Community (Chia sẻ ảnh phòng tag sản phẩm)
 model CommunityPost {
   id          String   @id @default(uuid())
-  userId      String
+  userId      String   @map("user_id")
   description String
   images      Json // Mảng String chứa tối đa 5 ảnh không gian thực tế
   tags        Json // Chứa tọa độ tag sản phẩm: [{productId, x, y}]
   style       String? // Phong cách: Minimalist, Scandinavian, Modern...
-  roomType    String? // Loại phòng: Living room, Bedroom...
-  likesCount  Int      @default(0)
-  isApproved  Boolean  @default(false) // Phê duyệt bài đăng bởi Admin
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  roomType    String?  @map("room_type")
+  likesCount  Int      @default(0) @map("likes_count")
+  isApproved  Boolean  @default(false) @map("is_approved")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("community_posts")
 }
 
 // 8. Đánh giá & Phản hồi
 model Review {
   id         String   @id @default(uuid())
-  userId     String
-  productId  String
+  userId     String   @map("user_id")
+  productId  String   @map("product_id")
   rating     Int      @default(5)
   comment    String
   images     Json? // Ảnh thực tế của khách hàng khi review
-  isApproved Boolean  @default(true) // Cho phép ẩn review spam
-  createdAt  DateTime @default(now())
+  isApproved Boolean  @default(true) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
 }
 
 // 9. Room Planner (Lưu trữ các bản vẽ thiết kế)
 model RoomDesign {
   id              String   @id @default(uuid())
-  userId          String
+  userId          String   @map("user_id")
   name            String
-  backgroundImage String? // URL ảnh không gian thực tế upload lên hoặc ID mẫu có sẵn
-  canvasState     Json // Dữ liệu JSON lưu tọa độ, góc xoay, màu sắc của các sản phẩm được xếp
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  backgroundImage String?  @map("background_image")
+  canvasState     Json     @map("canvas_state") // Dữ liệu JSON lưu tọa độ, góc xoay, màu sắc của các sản phẩm được xếp
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("room_designs")
 }

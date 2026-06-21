@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CatalogProduct } from '@/lib/data';
 import { getProductPriceVal, getProductPriceFormatted, getLowestPriceFormatted, isOnSale } from '@/lib/helpers';
 
@@ -151,7 +152,7 @@ export default function CatalogSection({ products, initialCategory, categories }
               Không tìm thấy sản phẩm nào phù hợp với bộ lọc đã chọn.
             </div>
           ) : (
-            paginated.map(prod => {
+            paginated.map((prod, index) => {
               const img1 = prod.images?.[0] || '';
               const img2 = prod.images?.[1] || img1;
               const titleVi = prod.shortDescription_vi || prod.shortDescription;
@@ -162,8 +163,8 @@ export default function CatalogSection({ products, initialCategory, categories }
               return (
                 <div className="product-card" key={prod.productId}>
                   <div className="card-image-area">
-                    <img className="img-primary" src={img1} alt={titleVi} loading="lazy" />
-                    <img className="img-secondary" src={img2} alt={titleVi} loading="lazy" />
+                    {img1 && <Image className="img-primary" src={img1} alt={titleVi} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" priority={index < 4} />}
+                    {img2 && <Image className="img-secondary" src={img2} alt={titleVi} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" />}
                     <div className="product-badges">
                       <span className="badge-tag">{materialLabel}</span>
                       {onSale && <span className="badge-tag badge-sale">Sale</span>}

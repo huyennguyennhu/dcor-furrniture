@@ -1,10 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
-import { BOCONCEPT_CATALOG, CatalogProduct } from '@/lib/data';
+import React, { useState, useEffect } from 'react';
+import { CatalogProduct } from '@/lib/data';
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState<CatalogProduct[]>(BOCONCEPT_CATALOG);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        setProducts(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch products', err);
+        setIsLoading(false);
+      });
+  }, []);
 
   const formatVND = (value: number) => {
     return new Intl.NumberFormat('vi-VN', {
