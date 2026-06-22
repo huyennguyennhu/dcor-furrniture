@@ -188,7 +188,8 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
       quantity: quantity
     });
 
-    flyToCart(e);
+    const flightImage = (matchedVariant?.images?.[0]) || product.images?.[0] || '';
+    flyToCart(e, flightImage);
     setTimeout(() => {
       onClose();
     }, 300);
