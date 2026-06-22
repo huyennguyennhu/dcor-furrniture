@@ -13,7 +13,9 @@ export async function GET() {
     const categoriesDB = await prisma.category.findMany({
       orderBy: { name: 'asc' }
     });
-    const categories = categoriesDB.map(c => capitalizeWords(c.name));
+    const categories = categoriesDB
+      .map(c => capitalizeWords(c.name))
+      .filter(c => c.toLowerCase() !== 'trang trí');
 
     // 2. Fetch all products to extract unique colors and materials
     const products = await prisma.product.findMany({
@@ -64,7 +66,7 @@ export async function GET() {
       });
     });
 
-    const CATEGORY_ORDER = ['Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Trang trí', 'Phụ Kiện'];
+    const CATEGORY_ORDER = ['Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Phụ Kiện'];
     
     const sortedCategories = categories.sort((a, b) => {
       const idxA = CATEGORY_ORDER.indexOf(capitalizeWords(a as string));

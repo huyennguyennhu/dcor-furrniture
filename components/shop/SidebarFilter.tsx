@@ -38,7 +38,7 @@ const FALLBACK_COLORS: Record<string, string> = {
 };
 
 export default function SidebarFilter({ filters, onFilterChange, dynamicFilters, validFilters, dynamicMaxPrice = 100000000 }: SidebarFilterProps) {
-  const CATEGORIES = dynamicFilters?.categories && dynamicFilters.categories.length > 0 ? dynamicFilters.categories : ['Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Trang trí', 'Phụ Kiện'];
+  const CATEGORIES = dynamicFilters?.categories && dynamicFilters.categories.length > 0 ? dynamicFilters.categories : ['Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Phụ Kiện'];
   const MATERIALS = dynamicFilters?.materials && dynamicFilters.materials.length > 0 ? dynamicFilters.materials : ['Gỗ tự nhiên', 'Gỗ công nghiệp', 'Kim loại', 'Kính', 'Da', 'Vải'];
   const COLORS = dynamicFilters?.colors && dynamicFilters.colors.length > 0 
     ? dynamicFilters.colors
