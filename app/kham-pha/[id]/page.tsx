@@ -45,11 +45,40 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', color: 'var(--text-secondary)' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: '40px', height: '40px', border: '3px solid var(--border-color)', borderTop: '3px solid var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-          <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
-          <p>Đang tải thông tin sản phẩm...</p>
+      <div className="pdp-wrapper" style={{ padding: '24px 0 80px 0', background: 'var(--bg-primary)', minHeight: '100vh' }}>
+        <div className="container">
+          <div className="breadcrumb" style={{ display: 'flex', gap: '8px', marginBottom: '32px' }}>
+            <div className="skeleton-box" style={{ width: '200px', height: '20px', borderRadius: '4px' }}></div>
+          </div>
+          <div className="pdp-hero-layout">
+            <div style={{ flex: '1 1 50%' }}>
+              <div className="skeleton-box" style={{ width: '100%', aspectRatio: '1', borderRadius: '16px' }}></div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'center' }}>
+                <div className="skeleton-box" style={{ width: '64px', height: '64px', borderRadius: '8px' }}></div>
+                <div className="skeleton-box" style={{ width: '64px', height: '64px', borderRadius: '8px' }}></div>
+                <div className="skeleton-box" style={{ width: '64px', height: '64px', borderRadius: '8px' }}></div>
+              </div>
+            </div>
+            <div className="pdp-hero-info" style={{ flex: '1 1 50%', paddingTop: '12px' }}>
+              <div className="skeleton-box" style={{ width: '30%', height: '20px', marginBottom: '16px', borderRadius: '4px' }}></div>
+              <div className="skeleton-box" style={{ width: '85%', height: '40px', marginBottom: '32px', borderRadius: '8px' }}></div>
+              
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '40px' }}>
+                <div className="skeleton-box" style={{ width: '120px', height: '32px', borderRadius: '6px' }}></div>
+                <div className="skeleton-box" style={{ width: '100px', height: '32px', borderRadius: '6px' }}></div>
+              </div>
+              
+              <div style={{ width: '100%', height: '1px', background: 'var(--border-color)', marginBottom: '32px' }}></div>
+              <div className="skeleton-box" style={{ width: '40%', height: '24px', marginBottom: '24px', borderRadius: '4px' }}></div>
+              <div className="skeleton-box" style={{ width: '100%', height: '56px', marginBottom: '24px', borderRadius: '12px' }}></div>
+              <div className="skeleton-box" style={{ width: '100%', height: '56px', marginBottom: '48px', borderRadius: '12px' }}></div>
+              
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div className="skeleton-box" style={{ width: '140px', height: '56px', borderRadius: '30px' }}></div>
+                <div className="skeleton-box" style={{ flexGrow: 1, height: '56px', borderRadius: '30px' }}></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -58,6 +87,7 @@ export default function ProductDetailPage() {
   if (!product) return null;
 
   const title = product.shortDescription_vi || product.shortDescription;
+  const displayCategory = product.category ? (product.category.charAt(0).toUpperCase() + product.category.slice(1)) : 'Sản phẩm';
 
   return (
     <div className="pdp-wrapper" style={{ padding: '24px 0 80px 0', background: 'var(--bg-primary)' }}>
@@ -68,14 +98,14 @@ export default function ProductDetailPage() {
           <span style={{ color: 'var(--text-muted)' }}>/</span>
           <Link href="/kham-pha" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Khám phá</Link>
           <span style={{ color: 'var(--text-muted)' }}>/</span>
-          <Link href={`/kham-pha?category=${encodeURIComponent(product.category || 'Sản phẩm')}`} style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>{product.category || 'Sản phẩm'}</Link>
+          <Link href={`/kham-pha?category=${encodeURIComponent(product.category || 'Sản phẩm')}`} style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>{displayCategory}</Link>
           <span style={{ color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{title}</span>
         </div>
 
-        {/* 2. Hero Section */}
-        <div className="pdp-hero-grid" style={{ display: 'grid', gridTemplateColumns: '6fr 5fr', gap: '48px', marginBottom: '40px' }}>
-          {/* Trái: Gallery */}
+        {/* 2. Hero Layout (Ảnh & Info) */}
+        <div className="pdp-hero-layout">
+          {/* Trái: Hình ảnh */}
           <ProductGallery images={displayImages.length > 0 ? displayImages : (product.images || [])} name={title} product={product} />
           
           {/* Phải: Thông tin & Thuộc tính & CTA */}

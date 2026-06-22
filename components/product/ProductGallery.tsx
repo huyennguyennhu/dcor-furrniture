@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-export default function ProductGallery({ images, name, product }: { images: string[], name: string, product?: any }) {
+export default function ProductGallery({ images, name, product, imageMaxWidth }: { images: string[], name: string, product?: any, imageMaxWidth?: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -16,13 +16,14 @@ export default function ProductGallery({ images, name, product }: { images: stri
 
   return (
     <div className="product-gallery">
-      <div style={{ position: 'relative' }}>
-        <div className="main-image-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', borderRadius: '16px', overflow: 'hidden', aspectRatio: '1', width: '100%', height: '100%', padding: 0 }}>
+      <div style={{ position: 'relative', maxWidth: imageMaxWidth || '100%', margin: '0 auto' }}>
+        <div className="main-image-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', borderRadius: '16px', overflow: 'hidden', aspectRatio: '1', width: '100%', height: 'auto', padding: 0 }}>
           <img 
+          key={activeIndex}
           src={images[activeIndex] || images[0]} 
           alt={`${name} - Ảnh ${activeIndex + 1}`} 
           className="main-image"
-          style={{ width: '100%', height: '100%', padding: '24px', boxSizing: 'border-box', objectFit: 'contain' }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '24px', boxSizing: 'border-box', objectFit: 'contain' }}
         />
         {/* Badges */}
         <div className="gallery-badges" style={{ position: 'absolute', top: '16px', left: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -75,7 +76,7 @@ export default function ProductGallery({ images, name, product }: { images: stri
                 transition: 'all 0.2s'
               }}
             >
-              <img src={img} alt={`Thumbnail ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={img} alt={`Thumbnail ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px', boxSizing: 'border-box' }} />
             </div>
           ))}
         </div>

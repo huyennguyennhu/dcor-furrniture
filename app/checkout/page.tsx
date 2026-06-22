@@ -1,10 +1,37 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useStore, CartItem } from '@/lib/store';
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const cartItems = useStore(state => state.cart);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const groupedCart = useMemo(() => {
+    const groups: { productId: string; name: string; items: { item: CartItem, originalIndex: number }[] }[] = [];
+    for (let i = cartItems.length - 1; i >= 0; i--) {
+      const item = cartItems[i];
+      let group = groups.find(g => g.productId === item.productId);
+      if (!group) {
+        group = { productId: item.productId, name: item.name, items: [] };
+        groups.push(group);
+      }
+      group.items.push({ item, originalIndex: i });
+    }
+    return groups;
+  }, [cartItems]);
+
+  const subTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shippingFee = subTotal > 50000000 ? 0 : 250000;
+  const totalAmount = subTotal + shippingFee;
+
+  const formatCurrency = (val: number) => val.toLocaleString('vi-VN') + ' ₫';
   
   // Trạng thái Form giao hàng
   const [fullName, setFullName] = useState('');
@@ -259,31 +286,48 @@ export default function CheckoutPage() {
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '24px', boxShadow: 'var(--card-shadow)', position: 'sticky', top: '100px' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>Đơn hàng của bạn</h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Sofa Indivi 3 chỗ (x1)</span>
-                <span style={{ fontWeight: 600 }}>42,250,000 ₫</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Bàn console Bordeaux (x2)</span>
-                <span style={{ fontWeight: 600 }}>35,980,000 ₫</span>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+              {groupedCart.map((group) => (
+                <div key={group.productId} style={{ paddingBottom: '12px', borderBottom: '1px dashed rgba(255,255,255,0.05)' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>{group.name}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '8px' }}>
+                    {group.items.map(({ item, originalIndex }) => {
+                      const variantStr = item.variantTags?.length 
+                        ? item.variantTags.map(t => t.value).join(' | ')
+                        : item.leg || item.upholstery 
+                          ? [item.leg?.name, item.upholstery?.name].filter(Boolean).join(' | ')
+                          : '';
+                      return (
+                        <div key={originalIndex} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                          <span style={{ color: 'var(--text-secondary)', maxWidth: '70%' }}>{variantStr ? `- ${variantStr} ` : ''}<strong style={{color: 'var(--accent)'}}>(x{item.quantity})</strong></span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(item.price * item.quantity)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {cartItems.length === 0 && (
+                <div style={{ fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Giỏ hàng rỗng</div>
+              )}
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                <span>Tạm tính</span>
-                <span>78,230,000 ₫</span>
+                <span>Tạm tính ({cartItems.reduce((a, b) => a + b.quantity, 0)} sản phẩm)</span>
+                <span>{formatCurrency(subTotal)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                <span>Giao hàng</span>
-                <span style={{ color: '#2ECC71', fontWeight: 600 }}>Miễn phí</span>
+                <span>Phí giao hàng</span>
+                <span style={{ color: shippingFee === 0 ? '#2ECC71' : 'var(--text-primary)', fontWeight: shippingFee === 0 ? 600 : 400 }}>
+                  {shippingFee === 0 ? 'Miễn phí' : formatCurrency(shippingFee)}
+                </span>
               </div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
               <span style={{ fontSize: '16px', fontWeight: 700 }}>Tổng tiền:</span>
-              <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>78,230,000 ₫</span>
+              <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>{formatCurrency(totalAmount)}</span>
             </div>
 
             <button 

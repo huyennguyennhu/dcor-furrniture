@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useStore } from '@/lib/store';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useStore, CartItem } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 
 interface CartDrawerProps {
@@ -20,8 +20,8 @@ const CustomCheckbox = ({ checked, onChange, indeterminate = false }: { checked:
         style={{ position: 'absolute', opacity: 0, cursor: 'pointer', height: 0, width: 0 }} 
       />
       <div style={{
-        width: '20px',
-        height: '20px',
+        width: '18px',
+        height: '18px',
         border: '1.5px solid var(--accent)',
         borderRadius: '4px',
         background: 'transparent',
@@ -45,9 +45,34 @@ const CustomCheckbox = ({ checked, onChange, indeterminate = false }: { checked:
 };
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { cart, removeFromCart, clearCart, updateQuantity, removeMultipleFromCart } = useStore();
+  const storeCartItems = useStore(state => state.cart);
+  const updateQuantity = useStore(state => state.updateQuantity);
+  const removeFromCart = useStore(state => state.removeFromCart);
+  const clearCart = useStore(state => state.clearCart);
+  const removeMultipleFromCart = useStore(state => state.removeMultipleFromCart);
+
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const cartItems = mounted ? storeCartItems : [];
+
+  const groupedCart = useMemo(() => {
+    const groups: { productId: string; name: string; items: { item: CartItem, originalIndex: number }[] }[] = [];
+    for (let i = cartItems.length - 1; i >= 0; i--) {
+      const item = cartItems[i];
+      let group = groups.find(g => g.productId === item.productId);
+      if (!group) {
+        group = { productId: item.productId, name: item.name, items: [] };
+        groups.push(group);
+      }
+      group.items.push({ item, originalIndex: i });
+    }
+    return groups;
+  }, [cartItems]);
 
   // Selection state for Bulk Delete
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
@@ -70,7 +95,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     };
   }, [isOpen]);
 
-  const cartItems = mounted ? cart : [];
+
   const totalPrice = cartItems.reduce((sum, item, index) => {
     return selectedIndices.has(index) ? sum + (item.price * item.quantity) : sum;
   }, 0);
@@ -193,15 +218,22 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <button 
                 onClick={requestDeleteBulk}
                 title="Xóa mục đã chọn"
-                style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px', transition: 'all 0.2s', position: 'relative' }}
+                onMouseEnter={e => { e.currentTarget.style.color='#e74c3c'; e.currentTarget.style.transform='scale(1.1)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color='var(--text-muted)'; e.currentTarget.style.transform='scale(1)'; }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                 </svg>
+                <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#e74c3c', color: '#fff', fontSize: '10px', minWidth: '16px', height: '16px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', padding: '0 4px', pointerEvents: 'none', transition: 'transform 0.2s' }}>
+                  {selectedIndices.size}
+                </span>
               </button>
             )}
-            <button className="close-btn" onClick={onClose} style={{ cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--text-primary)', padding: '4px' }}>
+            <button className="close-btn" onClick={onClose} style={{ cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--text-primary)', padding: '4px', transition: 'all 0.3s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.color='var(--accent)'; e.currentTarget.style.transform='rotate(90deg)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color='var(--text-primary)'; e.currentTarget.style.transform='rotate(0deg)'; }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
               </svg>
@@ -220,105 +252,119 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
           ) : (
             <>
-              {cartItems.map((item, index) => (
-                <div className="cart-item" key={index} style={{ display: 'flex', gap: '16px', padding: '20px 0', borderBottom: '1px solid var(--border-color)', position: 'relative', alignItems: 'flex-start' }}>
-                  
-                  {/* Item Checkbox */}
-                  <div style={{ paddingTop: '22px' }}>
-                    <CustomCheckbox 
-                      checked={selectedIndices.has(index)}
-                      onChange={() => handleSelectItem(index)}
-                    />
-                  </div>
+              {groupedCart.map((group, groupIndex) => {
+                const isGroupSelected = group.items.length > 0 && group.items.every(i => selectedIndices.has(i.originalIndex));
+                const isGroupIndeterminate = !isGroupSelected && group.items.some(i => selectedIndices.has(i.originalIndex));
 
-                  {/* Clickable Image */}
-                  <div 
-                    className="cart-item-image" 
-                    onClick={() => navigateToProduct(item.productId)}
-                    style={{ width: '64.8px', height: '64.8px', flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="Xem chi tiết sản phẩm"
-                  >
-                    <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.3s' }} onMouseEnter={e => e.currentTarget.style.transform='scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform='scale(1)'} />
-                  </div>
-                  
-                  <div className="cart-item-details" style={{ flexGrow: 1 }}>
-                    
-                    <div style={{ paddingRight: '28px' }}>
-                      {/* Clickable Title */}
+                return (
+                  <div key={group.productId} className="cart-group" style={{ marginBottom: '20px', background: 'transparent', borderRadius: '12px', overflow: 'hidden' }}>
+                    {/* Group Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 0', borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                      <CustomCheckbox 
+                        checked={isGroupSelected}
+                        indeterminate={isGroupIndeterminate}
+                        onChange={() => {
+                          const newSet = new Set(selectedIndices);
+                          if (isGroupSelected) {
+                            group.items.forEach(i => newSet.delete(i.originalIndex));
+                          } else {
+                            group.items.forEach(i => newSet.add(i.originalIndex));
+                          }
+                          setSelectedIndices(newSet);
+                        }}
+                      />
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7"/><path d="M4 15h16"/><path d="M4 11h16"/><path d="M12 4v7"/><path d="M8 7v4"/><path d="M16 7v4"/><path d="M12 2v2"/></svg>
                       <h4 
-                        className="cart-item-title" 
-                        onClick={() => navigateToProduct(item.productId)}
-                        style={{ fontSize: '16px', fontWeight: 600, cursor: 'pointer', color: 'var(--text-primary)', marginBottom: '8px', transition: 'color 0.2s' }}
+                        onClick={() => navigateToProduct(group.productId)}
+                        style={{ fontSize: '16px', fontWeight: 600, cursor: 'pointer', color: 'var(--text-primary)', margin: 0, transition: 'color 0.2s' }}
                         onMouseEnter={e => e.currentTarget.style.color='var(--accent)'} 
                         onMouseLeave={e => e.currentTarget.style.color='var(--text-primary)'}
                       >
-                        {item.name}
+                        {group.name}
                       </h4>
-                      
-                      {/* Variant Tags */}
-                      {(item.variantTags?.length ? true : (item.leg || item.upholstery)) && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
-                          {item.variantTags ? (
-                            item.variantTags.map((tag, idx) => (
-                              <span key={idx} style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>
-                                {tag.label}: {tag.value}
-                              </span>
-                            ))
-                          ) : (
-                            <>
-                              {item.leg && <span style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>Chân: {item.leg.name}</span>}
-                              {item.upholstery && <span style={{ fontSize: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>Vải: {item.upholstery.name}</span>}
-                            </>
-                          )}
-                        </div>
-                      )}
                     </div>
-                    
-                    {/* Price and Quantity Row */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '4px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {item.originalPrice && item.originalPrice > item.price && (
-                          <span style={{ fontSize: '13px', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
-                            {formatVND(item.originalPrice * item.quantity)}
-                          </span>
-                        )}
-                        <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent)' }}>
-                          {formatVND(item.price * item.quantity)}
-                        </span>
-                      </div>
-
-                      {/* Quantity Selector */}
-                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--accent)', borderRadius: '12px', overflow: 'hidden', background: 'transparent' }}>
-                        <button 
-                          onClick={() => updateQuantity(index, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                          style={{ padding: '2px 10px', background: 'transparent', border: 'none', cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer', color: item.quantity <= 1 ? 'var(--text-muted)' : 'var(--accent)', fontSize: '16px', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >-</button>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>{item.quantity}</span>
-                        <button 
-                          onClick={() => updateQuantity(index, item.quantity + 1)}
-                          style={{ padding: '2px 10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: '16px', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >+</button>
-                      </div>
-                    </div>
-                  </div>
                   
-                  {/* Trash Button */}
-                  <button 
-                    onClick={() => requestDeleteSingle(index)}
-                    title="Xóa khỏi giỏ hàng"
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', position: 'absolute', right: '0', top: '20px', padding: '4px', transition: 'color 0.2s' }}
-                    onMouseEnter={e => e.currentTarget.style.color='#e74c3c'}
-                    onMouseLeave={e => e.currentTarget.style.color='var(--text-muted)'}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
-                    </svg>
-                  </button>
+                  {/* Group Items */}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {group.items.map(({ item, originalIndex }, idx) => (
+                      <div className="cart-item" key={originalIndex} style={{ display: 'flex', gap: '16px', padding: '20px 0', borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-color)' : 'none', position: 'relative', alignItems: 'flex-start' }}>
+                        
+                        {/* Item Checkbox */}
+                        <div style={{ paddingTop: '22px' }}>
+                          <CustomCheckbox 
+                            checked={selectedIndices.has(originalIndex)}
+                            onChange={() => handleSelectItem(originalIndex)}
+                          />
+                        </div>
+
+                        {/* Clickable Image */}
+                        <div 
+                          className="cart-item-image" 
+                          onClick={() => navigateToProduct(item.productId)}
+                          style={{ width: '64.8px', height: '64.8px', flexShrink: 0, cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}
+                          title="Xem chi tiết sản phẩm"
+                        >
+                          <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.3s' }} onMouseEnter={e => e.currentTarget.style.transform='scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform='scale(1)'} />
+                        </div>
+                        
+                        <div className="cart-item-details" style={{ flexGrow: 1 }}>
+                          
+                          <div style={{ paddingRight: '28px' }}>
+                            {/* Variant Tags */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+                              {item.variantTags && item.variantTags.length > 0 ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                  {item.variantTags.map(tag => tag.value).join(' | ')}
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6"/></svg>
+                                </span>
+                              ) : (item.leg || item.upholstery) ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                  {[item.leg?.name, item.upholstery?.name].filter(Boolean).join(' | ')}
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6"/></svg>
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          
+                          {/* Price and Quantity Row */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '4px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              {item.originalPrice && item.originalPrice > item.price && (
+                                <span style={{ fontSize: '13px', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                                  {formatVND(item.originalPrice * item.quantity)}
+                                </span>
+                              )}
+                              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent)' }}>
+                                {formatVND(item.price * item.quantity)}
+                              </span>
+                            </div>
+
+                            {/* Quantity Selector */}
+                            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--accent)', borderRadius: '12px', overflow: 'hidden', background: 'transparent' }}>
+                              <button 
+                                onClick={() => {
+                                  if (item.quantity <= 1) {
+                                    requestDeleteSingle(originalIndex);
+                                  } else {
+                                    updateQuantity(originalIndex, item.quantity - 1);
+                                  }
+                                }}
+                                style={{ padding: '2px 10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: '16px', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >-</button>
+                              <span style={{ width: '24px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>{item.quantity}</span>
+                              <button 
+                                onClick={() => updateQuantity(originalIndex, item.quantity + 1)}
+                                style={{ padding: '2px 10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: '16px', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >+</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-              
+                );
+              })}
             </>
           )}
         </div>
@@ -360,7 +406,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)' }}>Xác nhận xóa</h3>
             <p style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '32px', lineHeight: 1.5 }}>
               {deleteModal.target === 'single' ? 'Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng không?' : 
-               deleteModal.target === 'bulk' ? `Bạn có chắc chắn muốn xóa ${deleteModal.indices.length} sản phẩm đã chọn khỏi giỏ hàng không?` :
+               deleteModal.target === 'bulk' ? (
+                 <>Bạn có chắc chắn muốn xóa <strong style={{ color: '#e74c3c', fontSize: '18px' }}>{deleteModal.indices.length}</strong> sản phẩm đã chọn khỏi giỏ hàng không?</>
+               ) :
                'Bạn có chắc chắn muốn xóa TẤT CẢ sản phẩm khỏi giỏ hàng không? Hành động này không thể hoàn tác.'}
             </p>
             <div style={{ display: 'flex', gap: '16px' }}>

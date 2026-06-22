@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { CatalogProduct } from '@/lib/data';
 import { Save, Undo, Redo, Share2, Download, Search, ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Maximize, Trash2, Upload, LayoutTemplate, AlertTriangle, ShoppingCart, Info } from 'lucide-react';
 import { useStore } from '@/lib/store';
+import { flyToCart } from '@/lib/flyToCart';
 
 const FALLBACK_IMAGE = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cccccc%22%20stroke-width%3D%221%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20width%3D%2218%22%20height%3D%2218%22%20x%3D%223%22%20y%3D%223%22%20rx%3D%222%22%20ry%3D%222%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%229%22%20r%3D%222%22%2F%3E%3Cpath%20d%3D%22m21%2015-3.086-3.086a2%202%200%200%200-2.828%200L6%2021%22%2F%3E%3C%2Fsvg%3E';
 
@@ -726,7 +727,10 @@ function RoomPlannerContent() {
                 className="planner-cart-btn"
                 title="Thêm vào giỏ hàng"
                 style={{ flex: 1, marginBottom: 0, padding: '12px 0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                onClick={() => addToCart({ productId: selectedItem.productId, name: selectedItem.name, price: selectedItem.price, image: selectedItem.image })}
+                onClick={(e) => {
+                  addToCart({ productId: selectedItem.productId, name: selectedItem.name, price: selectedItem.price, image: selectedItem.image });
+                  flyToCart(e, selectedItem.image);
+                }}
               >
                 <ShoppingCart size={20} />
               </button>

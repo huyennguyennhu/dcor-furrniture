@@ -60,6 +60,7 @@ export default function ProductInfo({ product, onImagesChange }: { product: any,
   const hasDynamicVariants = dynamicConfig && dynamicConfig.keys.length > 0;
 
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [quantity, setQuantity] = useState(1);
 
   const filteredVariantPrices = useMemo(() => {
     return (product.variants || []).filter((v: any) => v.images && v.images.length > 0);
@@ -67,8 +68,8 @@ export default function ProductInfo({ product, onImagesChange }: { product: any,
 
   useEffect(() => {
     if (hasDynamicVariants && filteredVariantPrices.length > 0) {
-      const cheapestVariant = [...filteredVariantPrices].sort((a, b) => (a.price || 0) - (b.price || 0))[0];
-      setSelectedOptions(cheapestVariant.selections || {});
+      const firstVariant = filteredVariantPrices[0];
+      setSelectedOptions(firstVariant.selections || {});
     }
   }, [hasDynamicVariants, filteredVariantPrices]);
 
@@ -114,13 +115,15 @@ export default function ProductInfo({ product, onImagesChange }: { product: any,
       dynamicConfig.keys.forEach(groupKey => {
         const groupName = dynamicConfig.names[groupKey] || groupKey;
         const options = dynamicConfig.groups[groupKey] || [];
-        const selectedId = selectedOptions[groupKey];
-        if (selectedId) {
-          const opt = options.find((o: any) => o.id === selectedId);
-          if (opt) variantTags.push({ label: groupName, value: opt.label || (opt as any).name || selectedId });
+        if (options.length > 1) {
+          const selectedId = selectedOptions[groupKey];
+          if (selectedId) {
+            const opt = options.find((o: any) => o.id === selectedId);
+            if (opt) variantTags.push({ label: groupName, value: opt.label || (opt as any).name || selectedId });
+          }
         }
       });
-    } else if (selectedColor) {
+    } else if (selectedColor && rawColors.length > 1) {
       variantTags.push({ label: 'Màu sắc', value: colors[rawColors.indexOf(selectedColor)] || selectedColor });
     }
 
@@ -131,7 +134,8 @@ export default function ProductInfo({ product, onImagesChange }: { product: any,
       name: title,
       image: productImage,
       price: currentPrice,
-      variantTags
+      variantTags,
+      quantity
     });
     flyToCart(e, productImage);
   };
@@ -261,6 +265,25 @@ export default function ProductInfo({ product, onImagesChange }: { product: any,
 
       {/* 6. CTAs */}
       <div className="product-actions" style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', border: '1.5px solid var(--accent)', borderRadius: '8px', overflow: 'hidden', height: '56px', transition: 'all 0.2s' }}>
+          <button 
+            onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+            style={{ width: '40px', height: '100%', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '18px', transition: 'background 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(224, 86, 36, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+            onMouseDown={(e) => e.currentTarget.style.background = 'rgba(224, 86, 36, 0.2)'}
+            onMouseUp={(e) => e.currentTarget.style.background = 'rgba(224, 86, 36, 0.1)'}
+          >-</button>
+          <span style={{ width: '32px', textAlign: 'center', fontSize: '16px', fontWeight: 600, color: 'var(--accent)' }}>{quantity}</span>
+          <button 
+            onClick={() => setQuantity(quantity + 1)} 
+            style={{ width: '40px', height: '100%', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '18px', transition: 'background 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(224, 86, 36, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+            onMouseDown={(e) => e.currentTarget.style.background = 'rgba(224, 86, 36, 0.2)'}
+            onMouseUp={(e) => e.currentTarget.style.background = 'rgba(224, 86, 36, 0.1)'}
+          >+</button>
+        </div>
         <button 
           onClick={handleAddToCart}
           style={{ flex: 1, padding: '16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 8px 24px rgba(224, 86, 36, 0.4)' }}

@@ -1,72 +1,34 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-
-interface CartItem {
-  id: string;
-  productId: string;
-  name: string;
-  image: string;
-  price: number;
-  formattedPrice: string;
-  quantity: number;
-  variantKey: string;
-  variantDesc: string;
-}
-
-const INITIAL_CART: CartItem[] = [
-  {
-    id: 'cart-1',
-    productId: 'SM42250020',
-    name: 'Sofa Indivi 3 chỗ',
-    image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/SM42250020_boconcept-indivi-upholstery-2.png',
-    price: 42250000,
-    formattedPrice: '42,250,000 ₫',
-    quantity: 1,
-    variantKey: 'Lazio-Grey-LegMetal',
-    variantDesc: 'Vải Lazio Xám đậm / Chân kim loại đen'
-  },
-  {
-    id: 'cart-2',
-    productId: '37006300',
-    name: 'Bàn console Bordeaux',
-    image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/tables/37006300_368118_PNG-Web2072dpi.png',
-    price: 17990000,
-    formattedPrice: '17,990,000 ₫',
-    quantity: 2,
-    variantKey: 'Lacquered-LightGrey',
-    variantDesc: 'Gỗ sơn mài Xám nhạt'
-  }
-];
+import { useStore, CartItem } from '@/lib/store';
+import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>(INITIAL_CART);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const cartItems = useStore(state => state.cart);
+  const updateQuantity = useStore(state => state.updateQuantity);
+  const removeFromCart = useStore(state => state.removeFromCart);
+  const router = useRouter();
 
-  const updateQuantity = (id: string, delta: number) => {
-    setCartItems(cartItems.map(item => {
-      if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const groupedCart = useMemo(() => {
+    const groups: { productId: string; name: string; items: { item: CartItem, originalIndex: number }[] }[] = [];
+    for (let i = cartItems.length - 1; i >= 0; i--) {
+      const item = cartItems[i];
+      let group = groups.find(g => g.productId === item.productId);
+      if (!group) {
+        group = { productId: item.productId, name: item.name, items: [] };
+        groups.push(group);
       }
-      return item;
-    }));
-  };
-
-  const removeItem = (id: string) => {
-    setCartItems(cartItems.filter(item => item.id !== id));
-  };
-
-  const handleVariantChange = (id: string, newDesc: string) => {
-    setCartItems(cartItems.map(item => {
-      if (item.id === id) {
-        return { ...item, variantDesc: newDesc };
-      }
-      return item;
-    }));
-    setEditingItemId(null);
-  };
+      group.items.push({ item, originalIndex: i });
+    }
+    return groups;
+  }, [cartItems]);
 
   const subTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingFee = subTotal > 50000000 ? 0 : 250000;
@@ -97,74 +59,86 @@ export default function CartPage() {
             
             {/* Cột trái: Danh sách sản phẩm */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {cartItems.map(item => (
-                <div key={item.id} style={{
+              {groupedCart.map(group => (
+                <div key={group.productId} style={{
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '16px',
-                  padding: '20px',
-                  display: 'flex',
-                  gap: '20px',
-                  alignItems: 'center',
+                  overflow: 'hidden',
                   boxShadow: 'var(--card-shadow)'
                 }}>
-                  <div style={{ width: '100px', height: '100px', background: 'var(--bg-tertiary)', borderRadius: '12px', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-                    <img src={item.image} alt={item.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                  {/* Group Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 24px', borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7"/><path d="M4 15h16"/><path d="M4 11h16"/><path d="M12 4v7"/><path d="M8 7v4"/><path d="M16 7v4"/><path d="M12 2v2"/></svg>
+                    <h3 
+                      onClick={() => router.push(`/kham-pha/${group.productId}`)}
+                      style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, cursor: 'pointer', transition: 'color 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.color='var(--accent)'}
+                      onMouseLeave={e => e.currentTarget.style.color='var(--text-primary)'}
+                    >
+                      {group.name}
+                    </h3>
                   </div>
 
-                  <div style={{ flexGrow: 1 }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</h3>
-                    
-                    {/* Đổi Variant Inline */}
-                    <div style={{ marginTop: '6px' }}>
-                      {editingItemId === item.id ? (
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                          <select 
-                            onChange={(e) => handleVariantChange(item.id, e.target.value)}
-                            defaultValue={item.variantDesc}
-                            style={{ padding: '6px 12px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '6px', color: '#fff', fontSize: '13px' }}
-                          >
-                            <option value="Vải Lazio Xám đậm / Chân thép đen">Vải Lazio Xám đậm / Chân thép đen</option>
-                            <option value="Vải Lazio Kem cát / Chân thép đen">Vải Lazio Kem cát / Chân thép đen</option>
-                            <option value="Da Estoril Nâu / Chân gỗ tự nhiên">Da Estoril Nâu / Chân gỗ tự nhiên</option>
-                            <option value="Gỗ sơn mài Xám nhạt">Gỗ sơn mài Xám nhạt</option>
-                            <option value="Gỗ sồi màu tự nhiên">Gỗ sồi màu tự nhiên</option>
-                          </select>
-                          <button onClick={() => setEditingItemId(null)} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Hủy</button>
+                  {/* Group Items */}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {group.items.map(({ item, originalIndex }, idx) => (
+                      <div key={originalIndex} style={{
+                        display: 'flex',
+                        gap: '24px',
+                        alignItems: 'center',
+                        padding: '24px',
+                        borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-color)' : 'none'
+                      }}>
+                        <div style={{ width: '100px', height: '100px', background: 'var(--bg-tertiary)', borderRadius: '12px', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0, cursor: 'pointer' }} onClick={() => router.push(`/kham-pha/${item.productId}`)}>
+                          <img src={item.image} alt={item.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Cấu hình: <strong>{item.variantDesc}</strong></span>
-                          <button 
-                            onClick={() => setEditingItemId(item.id)}
-                            style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}
-                          >
-                            Thay đổi
-                          </button>
-                        </div>
-                      )}
-                    </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '16px' }}>
-                      {/* Chỉnh số lượng */}
-                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
-                        <button onClick={() => updateQuantity(item.id, -1)} style={{ padding: '6px 14px', color: '#fff', fontWeight: 'bold' }}>-</button>
-                        <span style={{ padding: '0 10px', fontSize: '14px', minWidth: '30px', textAlign: 'center' }}>{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, 1)} style={{ padding: '6px 14px', color: '#fff', fontWeight: 'bold' }}>+</button>
+                        <div style={{ flexGrow: 1 }}>
+                          {/* Variant Tags */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                            {item.variantTags && item.variantTags.length > 0 ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '16px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <span>{item.variantTags.map(tag => tag.value).join(' | ')}</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6"/></svg>
+                              </span>
+                            ) : (item.leg || item.upholstery) ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '16px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <span>{[item.leg?.name, item.upholstery?.name].filter(Boolean).join(' | ')}</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6"/></svg>
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            {/* Chỉnh số lượng */}
+                            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+                              <button onClick={() => {
+                                if (item.quantity <= 1) {
+                                  removeFromCart(originalIndex);
+                                } else {
+                                  updateQuantity(originalIndex, item.quantity - 1);
+                                }
+                              }} style={{ padding: '6px 14px', color: '#fff', fontWeight: 'bold', background: 'transparent', border: 'none', cursor: 'pointer' }}>-</button>
+                              <span style={{ padding: '0 10px', fontSize: '14px', minWidth: '30px', textAlign: 'center' }}>{item.quantity}</span>
+                              <button onClick={() => updateQuantity(originalIndex, item.quantity + 1)} style={{ padding: '6px 14px', color: '#fff', fontWeight: 'bold', background: 'transparent', border: 'none', cursor: 'pointer' }}>+</button>
+                            </div>
+
+                            <button 
+                              onClick={() => removeFromCart(originalIndex)}
+                              style={{ color: '#E74C3C', fontSize: '13px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                              Xóa sản phẩm
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{formatCurrency(item.price * item.quantity)}</div>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Đơn giá: {formatCurrency(item.price)}</span>
+                        </div>
                       </div>
-
-                      <button 
-                        onClick={() => removeItem(item.id)}
-                        style={{ color: '#E74C3C', fontSize: '13px', fontWeight: 500 }}
-                      >
-                        Xóa sản phẩm
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{formatCurrency(item.price * item.quantity)}</div>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Đơn giá: {formatCurrency(item.price)}</span>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -193,13 +167,16 @@ export default function CartPage() {
                 <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>{formatCurrency(totalAmount)}</span>
               </div>
 
-              <Link 
-                href="/checkout" 
+              <button 
+                onClick={() => router.push('/checkout')}
                 style={{
                   display: 'block',
+                  width: '100%',
                   textAlign: 'center',
                   background: 'var(--accent)',
                   color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
                   padding: '16px',
                   borderRadius: '30px',
                   fontSize: '16px',
@@ -209,20 +186,24 @@ export default function CartPage() {
                 }}
               >
                 Tiến hành thanh toán
-              </Link>
+              </button>
               
-              <Link 
-                href="/" 
+              <button 
+                onClick={() => router.push('/')}
                 style={{
                   display: 'block',
+                  width: '100%',
                   textAlign: 'center',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
                   color: 'var(--text-secondary)',
                   marginTop: '16px',
                   fontSize: '14px'
                 }}
               >
                 ← Tiếp tục mua sắm
-              </Link>
+              </button>
             </div>
 
           </div>

@@ -23,6 +23,9 @@ const isOnSale = (prod: CatalogProduct) => {
 
 const QUICK_CATEGORIES = ['Tất cả', 'Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Trang trí', 'Phụ Kiện'];
 
+let cachedProducts: CatalogProduct[] | null = null;
+let cachedFilters: any = null;
+
 function KhamPhaContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,9 +34,9 @@ function KhamPhaContent() {
   const initialCategory = searchParams.get('category') || '';
   const initialQuery = searchParams.get('q') || '';
 
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dynamicFilters, setDynamicFilters] = useState({ categories: [], materials: [], colors: [] });
+  const [products, setProducts] = useState<CatalogProduct[]>(cachedProducts || []);
+  const [isLoading, setIsLoading] = useState(!cachedProducts);
+  const [dynamicFilters, setDynamicFilters] = useState(cachedFilters || { categories: [], materials: [], colors: [] });
   
   // Filter States
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -54,6 +57,10 @@ function KhamPhaContent() {
   const colDep = filters.colors.join(',');
 
   useEffect(() => {
+    if (cachedProducts && cachedFilters) {
+      setIsLoading(false);
+      return;
+    }
     async function loadData() {
       try {
         const [res, filterRes] = await Promise.all([
@@ -62,15 +69,18 @@ function KhamPhaContent() {
         ]);
         if (res.ok) {
           const data = await res.json();
+          cachedProducts = data;
           setProducts(data);
         }
         if (filterRes.ok) {
           const filterData = await filterRes.json();
-          setDynamicFilters({
+          const dFilters = {
             categories: filterData.categories || [],
             materials: filterData.materials || [],
             colors: filterData.colors || []
-          });
+          };
+          cachedFilters = dFilters;
+          setDynamicFilters(dFilters);
         }
       } catch (err) {
         console.error('Failed to fetch data:', err);
@@ -496,6 +506,7 @@ function KhamPhaContent() {
                             </>
                           )}
                         </div>
+                        {/*
                         <button 
                           className="add-to-cart-btn-icon"
                           title="Thêm vào giỏ"
@@ -524,6 +535,7 @@ function KhamPhaContent() {
                             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
                           </svg>
                         </button>
+                        */}
                       </div>
                     </div>
                   </div>

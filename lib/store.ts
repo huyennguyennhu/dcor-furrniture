@@ -40,15 +40,21 @@ export const useStore = create<DCorState>()(
       
       addToCart: (input) =>
         set((state) => {
+          const variantKey = input.variantTags && input.variantTags.length > 0 
+            ? input.variantTags.map(t => `${t.label}:${t.value}`).join('|') 
+            : 'default';
           const legId = input.leg?.id || 'noleg';
           const uphId = input.upholstery?.id || 'nouph';
-          const id = `${input.productId}-${legId}-${uphId}`;
+          const id = `${input.productId}-${legId}-${uphId}-${variantKey}`;
           const qtyToAdd = input.quantity || 1;
 
           const existingIndex = state.cart.findIndex(item => item.id === id);
           if (existingIndex >= 0) {
             const newCart = [...state.cart];
-            newCart[existingIndex].quantity += qtyToAdd;
+            newCart[existingIndex] = {
+              ...newCart[existingIndex],
+              quantity: newCart[existingIndex].quantity + (input.quantity || 1)
+            };
             return { cart: newCart };
           }
           return { cart: [...state.cart, { ...input, id, quantity: qtyToAdd }] };
