@@ -171,7 +171,6 @@ export default function CatalogSection({ products, initialCategory, categories }
                   <HoverImageSlider 
                     images={allImages} 
                     alt={titleVi} 
-                    materialLabel={materialLabel}
                     onSale={onSale}
                     isBestSeller={prod.isBestSeller || false}
                     isNew={prod.isNew || false}
