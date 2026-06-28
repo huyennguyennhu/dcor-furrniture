@@ -36,7 +36,8 @@ export async function POST(req: Request) {
       user = await prisma.user.create({
         data: {
           id: 'dummy_user_' + Date.now(),
-          name: 'Demo User',
+          fullName: 'Demo User',
+          phone: '09' + Math.floor(Math.random() * 100000000), // Random phone to avoid unique constraint
           email: 'demo@example.com',
           role: 'CUSTOMER'
         }
@@ -48,8 +49,7 @@ export async function POST(req: Request) {
         userId: user.id,
         name: name || 'Thiết kế mới',
         backgroundImage: finalImageUrl,
-        canvasState: canvasState,
-        isPublished: isPublished || false
+        canvasState: canvasState
       }
     });
 
