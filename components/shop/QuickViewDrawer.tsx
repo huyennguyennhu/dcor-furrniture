@@ -283,7 +283,7 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
               <span className="qv-category">{activeProduct.category}</span>
               <h2 className="qv-title">{titleVi}</h2>
               <div className="qv-price" style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500 }}>Giá từ:</span>
+                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500 }}>Giá từ</span>
                 <span style={{ color: 'var(--text-primary)', fontSize: '24px', fontWeight: 800 }}>
                   {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(minCurrentPrice)}
                 </span>
@@ -309,6 +309,8 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
                     const groupName = dynamicConfig.names[groupKey] || groupKey;
                     const options = dynamicConfig.groups[groupKey] || [];
                     const selectedId = selectedOptions[groupKey];
+                    const isImageGroup = groupKey.toLowerCase().includes('color') || groupKey.toLowerCase().includes('upholstery') || groupKey === 'vaMaterial' || groupKey === 'vaMaterialSeat';
+                    
                     return (
                       <div key={groupKey} className="qv-select-wrapper">
                         <label className="qv-select-label">{groupName}</label>
@@ -317,7 +319,7 @@ export default function QuickViewDrawer({ product, isOpen, onClose }: QuickViewD
                             options={options.map(opt => ({ label: opt.label, value: opt.id, image: opt.image }))}
                             value={selectedId || ''}
                             onChange={(val) => handleSelectOption(groupKey, val)}
-                            variant={options.some(opt => opt.image && !opt.image.startsWith('#') && !opt.image.startsWith('rgb')) ? 'image-grid' : 'default'}
+                            variant={(isImageGroup && options.some(opt => opt.image && !opt.image.startsWith('#') && !opt.image.startsWith('rgb'))) ? 'image-grid' : 'default'}
                           />
                         ) : (
                           <div style={{ padding: '10px 16px', borderRadius: '20px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'default' }}>

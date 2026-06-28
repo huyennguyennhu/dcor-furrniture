@@ -29,6 +29,7 @@ export interface CatalogProduct {
   discountValue?: number;
   discountType?: string;
   isSale?: boolean;
+  dimensions?: { width: number; depth: number };
 }
 
 export interface LegStyle {

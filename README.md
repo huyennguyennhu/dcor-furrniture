@@ -36,14 +36,14 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 
-## Dưới đây là sơ đồ cấu trúc trang web (Sitemap) của D'Cor Studio:
+## Dưới đây là sơ đồ cấu trúc trang web (Sitemap) của DCor Studio:
 ```mermaid
 %%{init: {"layout": "elk"}}%%
 flowchart TD
   classDef section stroke:#818cf8,fill:#eef2ff
   classDef page stroke:#38bdf8,fill:#f0f9ff
 
-  root["D'Cor Studio"]:::section
+  root["DCor Studio"]:::section
 
   root --> main["Trang chính"]:::section
   main --> home["/ (Trang chủ)"]:::page

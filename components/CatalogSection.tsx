@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CatalogProduct } from '@/lib/data';
 import { getProductPriceVal, getProductPriceFormatted, getLowestPriceFormatted, isOnSale } from '@/lib/helpers';
+import HoverImageSlider from '@/components/ui/HoverImageSlider';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -152,8 +153,14 @@ export default function CatalogSection({ products, initialCategory, categories }
             </div>
           ) : (
             paginated.map(prod => {
-              const img1 = prod.images?.[0] || '';
-              const img2 = prod.images?.[1] || img1;
+              let allImages = prod.images || [];
+              if (prod.variants) {
+                const extraImgs = prod.variants.flatMap((v: any) => v.images || []).filter(Boolean);
+                allImages = Array.from(new Set([...allImages, ...extraImgs]));
+              }
+              // Giới hạn 6 ảnh để vòng lặp không bị quá dài và nặng web
+              allImages = allImages.slice(0, 6);
+
               const titleVi = prod.shortDescription_vi || prod.shortDescription;
               const materialLabel = prod.refinementMaterials_vi?.[0] || prod.refinementMaterials?.[0] || 'Sản phẩm';
               const onSale = isOnSale(prod);
@@ -161,21 +168,14 @@ export default function CatalogSection({ products, initialCategory, categories }
 
               return (
                 <div className="product-card" key={prod.productId}>
-                  <div className="card-image-area">
-                    <img className="img-primary" src={img1} alt={titleVi} loading="lazy" />
-                    <img className="img-secondary" src={img2} alt={titleVi} loading="lazy" />
-                    <div className="product-badges">
-                      <span className="badge-tag">{materialLabel}</span>
-                      {onSale ? (
-                        <span className="badge-tag badge-sale">Sale</span>
-                      ) : prod.isBestSeller ? (
-                        <span className="badge-tag badge-bestseller">Bán chạy</span>
-                      ) : prod.isNew ? (
-                        <span className="badge-tag badge-new">Mới</span>
-                      ) : null}
-                      <span className="badge-tag badge-custom">Tự thiết kế</span>
-                    </div>
-                  </div>
+                  <HoverImageSlider 
+                    images={allImages} 
+                    alt={titleVi} 
+                    materialLabel={materialLabel}
+                    onSale={onSale}
+                    isBestSeller={prod.isBestSeller || false}
+                    isNew={prod.isNew || false}
+                  />
                   <div className="card-details">
                     <span className="card-category">{prod.category || 'Danish Design'}</span>
                     <h3 className="card-title">{titleVi}</h3>
@@ -188,7 +188,7 @@ export default function CatalogSection({ products, initialCategory, categories }
                           </>
                         ) : (
                           <>
-                            <span className="card-price-label">Giá từ:</span>
+                            <span className="card-price-label">Giá từ</span>
                             <div className="card-price">{getProductPriceFormatted(prod)}</div>
                           </>
                         )}

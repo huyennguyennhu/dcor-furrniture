@@ -9,6 +9,7 @@ import { useStore } from '@/lib/store';
 import SidebarFilter, { FilterState, INITIAL_FILTER_STATE } from '@/components/shop/SidebarFilter';
 import QuickViewDrawer from '@/components/shop/QuickViewDrawer';
 import CustomSelect from '@/components/ui/CustomSelect';
+import HoverImageSlider from '@/components/ui/HoverImageSlider';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -445,9 +446,15 @@ function KhamPhaContent() {
           ) : (
             <div className="products-grid">
               {paginated.map(prod => {
-                const img1 = prod.images?.[0] || '';
-                const img2 = prod.images?.[1] || img1;
+                let allImages = prod.images || [];
+                if (prod.variants) {
+                  const extraImgs = prod.variants.flatMap((v: any) => v.images || []).filter(Boolean);
+                  allImages = Array.from(new Set([...allImages, ...extraImgs]));
+                }
+                allImages = allImages.slice(0, 6);
+                
                 const titleVi = prod.shortDescription_vi || prod.shortDescription;
+                const materialLabel = prod.refinementMaterials_vi?.[0] || prod.refinementMaterials?.[0] || 'Sản phẩm';
                 const onSale = isOnSale(prod);
                 const lowestFmt = getLowestPriceFormatted(prod);
                 const isFavorite = wishlist.includes(prod.productId);
@@ -459,22 +466,15 @@ function KhamPhaContent() {
                     id={`product-${prod.productId}`}
                     onClick={() => handleProductClick(prod.productId)}
                   >
-                    <div className="card-image-area">
-                      <img className="img-primary" src={img1} alt={titleVi} loading="lazy" />
-                      <img className="img-secondary" src={img2} alt={titleVi} loading="lazy" />
-                      
-                      <div className="product-badges">
-                        {onSale && (prod.discountValue || 0) > 0 ? (
-                          <span className="badge-tag badge-sale">
-                            {prod.discountType === 'PERCENTAGE' ? `Giảm ${prod.discountValue}%` : `Giảm ${new Intl.NumberFormat('vi-VN').format(prod.discountValue || 0)}đ`}
-                          </span>
-                        ) : prod.isBestSeller ? (
-                          <span className="badge-tag badge-bestseller">Bán chạy</span>
-                        ) : prod.isNew ? (
-                          <span className="badge-tag badge-new">Mới</span>
-                        ) : null}
-                      </div>
-                    </div>
+                    <HoverImageSlider 
+                      images={allImages} 
+                      alt={titleVi} 
+                      onSale={onSale}
+                      isBestSeller={prod.isBestSeller || false}
+                      isNew={prod.isNew || false}
+                      discountType={prod.discountType}
+                      discountValue={prod.discountValue}
+                    />
                     
                     <div className="card-details">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -501,7 +501,7 @@ function KhamPhaContent() {
                             </>
                           ) : (
                             <>
-                              <span className="card-price-label">Giá từ:</span>
+                              <span className="card-price-label">Giá từ</span>
                               <div className="card-price">{getProductPriceFormatted(prod)}</div>
                             </>
                           )}

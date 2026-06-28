@@ -35,7 +35,7 @@ export default function AdminLayout({
       <aside style={{ width: '260px', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-color)', padding: '30px 20px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
         <div>
           <h3 style={{ fontSize: '18px', color: 'var(--accent)', fontWeight: 700 }}>Hệ Thống Admin</h3>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>D'Cor Studio Dashboard</p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>DCor Studio Dashboard</p>
         </div>
         
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

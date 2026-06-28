@@ -353,7 +353,7 @@ function TrustSection() {
       <div className="container">
         {/* Trust grid */}
         <div className="section-header-simple" style={{ marginBottom: '50px' }}>
-          <h2 className="section-title">Vì sao chọn <span>D'Cor Studio?</span></h2>
+          <h2 className="section-title">Vì sao chọn <span>DCor Studio?</span></h2>
         </div>
         <div className="trust-grid">
           {TRUST_ITEMS.map((item, i) => {

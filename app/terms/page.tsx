@@ -25,7 +25,7 @@ export default function TermsPage() {
         }}>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>1. Chấp nhận các điều khoản</h3>
-            <p>Bằng việc truy cập, duyệt sản phẩm hoặc thực hiện mua hàng tại D'Cor Studio, bạn mặc định đồng ý tuân thủ toàn bộ các điều khoản sử dụng và quy định bảo mật được nêu tại đây.</p>
+            <p>Bằng việc truy cập, duyệt sản phẩm hoặc thực hiện mua hàng tại DCor Studio, bạn mặc định đồng ý tuân thủ toàn bộ các điều khoản sử dụng và quy định bảo mật được nêu tại đây.</p>
           </div>
 
           <div>
@@ -35,12 +35,12 @@ export default function TermsPage() {
 
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>3. Sở hữu trí tuệ</h3>
-            <p>Toàn bộ thiết kế đồ họa, hình ảnh sản phẩm 3D, mã nguồn và nội dung bài viết đăng tải trên trang web thuộc quyền sở hữu trí tuệ của D'Cor Studio. Mọi hành vi sao chép thương mại khi chưa có sự đồng ý bằng văn bản đều bị nghiêm cấm.</p>
+            <p>Toàn bộ thiết kế đồ họa, hình ảnh sản phẩm 3D, mã nguồn và nội dung bài viết đăng tải trên trang web thuộc quyền sở hữu trí tuệ của DCor Studio. Mọi hành vi sao chép thương mại khi chưa có sự đồng ý bằng văn bản đều bị nghiêm cấm.</p>
           </div>
 
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>4. Trách nhiệm pháp lý</h3>
-            <p>Chúng tôi cam kết cung cấp thông tin giá bán chính xác và minh bạch. Trong trường hợp xảy ra lỗi hiển thị giá cực kỳ vô lý do lỗi kỹ thuật hệ thống, D'Cor Studio bảo lưu quyền liên hệ khách hàng để hủy đơn hoặc thương lượng lại giao dịch.</p>
+            <p>Chúng tôi cam kết cung cấp thông tin giá bán chính xác và minh bạch. Trong trường hợp xảy ra lỗi hiển thị giá cực kỳ vô lý do lỗi kỹ thuật hệ thống, DCor Studio bảo lưu quyền liên hệ khách hàng để hủy đơn hoặc thương lượng lại giao dịch.</p>
           </div>
         </div>
 

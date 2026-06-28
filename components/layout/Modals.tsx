@@ -58,7 +58,7 @@ export default function Modals() {
 
           {activeModal === 'about-modal' && (
             <div>
-              <p><strong>D'Cor Studio</strong> là thương hiệu nội thất phong cách Đan Mạch cao cấp, được thành lập làm đồ án môn học <em>Lập trình Web nâng cao</em> tại <strong>Trường Đại học Kinh tế - Luật (UEL)</strong>.</p>
+              <p><strong>DCor Studio</strong> là thương hiệu nội thất phong cách Đan Mạch cao cấp, được thành lập làm đồ án môn học <em>Lập trình Web nâng cao</em> tại <strong>Trường Đại học Kinh tế - Luật (UEL)</strong>.</p>
               <p style={{ marginTop: '15px' }}>Chúng tôi kế thừa và phát triển giải pháp cấu hình tùy biến sofa 2D trực quan từ hãng thiết kế BoConcept Đan Mạch. Toàn bộ hình ảnh sản phẩm và swatch chất liệu được lưu trữ an toàn trên Supabase Storage và tối ưu truyền tải qua CDN tốc độ cao.</p>
               <p style={{ marginTop: '15px' }}><strong>Giảng viên hướng dẫn:</strong> Khoa Hệ thống Thông tin - UEL.</p>
             </div>

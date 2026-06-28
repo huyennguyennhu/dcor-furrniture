@@ -246,6 +246,7 @@ model RoomDesign {
   name            String
   backgroundImage String?  @map("background_image")
   canvasState     Json     @map("canvas_state") // Dữ liệu JSON lưu tọa độ, góc xoay, màu sắc của các sản phẩm được xếp
+  isPublished     Boolean  @default(false) @map("is_published")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

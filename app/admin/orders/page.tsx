@@ -131,7 +131,7 @@ export default function AdminOrders() {
         <div className="print-only" style={{ padding: '40px', fontFamily: 'Arial, sans-serif', color: '#000', backgroundColor: '#fff', position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 9999 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
             <div>
-              <h1 style={{ fontSize: '28px', margin: 0, fontWeight: 'bold' }}>D'COR STUDIO SOFA</h1>
+              <h1 style={{ fontSize: '28px', margin: 0, fontWeight: 'bold' }}>DCOR STUDIO SOFA</h1>
               <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Đồ án: Lập trình Web nâng cao - Đại học UEL</p>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -179,7 +179,7 @@ export default function AdminOrders() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '60px' }}>
             <div style={{ width: '45%', textAlign: 'center' }}>
-              <p style={{ margin: '0 0 60px 0' }}><strong>Đại diện D'Cor Studio (Ký, ghi rõ họ tên)</strong></p>
+              <p style={{ margin: '0 0 60px 0' }}><strong>Đại diện DCor Studio (Ký, ghi rõ họ tên)</strong></p>
               <p style={{ borderBottom: '1px solid #ddd', width: '150px', margin: '0 auto' }}></p>
             </div>
             <div style={{ width: '45%', textAlign: 'center' }}>

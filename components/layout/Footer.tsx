@@ -160,9 +160,9 @@ export default function Footer() {
               <div className="footer-brand">
                 <Link href="/" className="footer-logo">
                   <div className="footer-logo-circle" style={{ overflow: 'hidden', padding: 0, background: 'transparent' }}>
-                    <img src="/assets/favicon.png" alt="D'Cor Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                    <img src="/assets/favicon.png" alt="DCor Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                   </div>
-                  <span className="footer-logo-name">D'Cor</span>
+                  <span className="footer-logo-name">DCor</span>
                 </Link>
                 <p className="footer-tagline">
                   Nội thất hiện đại kết hợp công nghệ, giúp khách hàng dễ dàng lựa chọn, tùy chỉnh và thiết kế không gian sống theo phong cách riêng.
@@ -231,7 +231,7 @@ export default function Footer() {
           <div className="container">
             <div className="footer-bottom-inner">
               <div className="footer-social">
-                <span className="footer-social-label">Kết nối cùng D'Cor</span>
+                <span className="footer-social-label">Kết nối cùng DCor</span>
                 <div className="footer-social-icons">
                   {SOCIAL_LINKS.map(s => (
                     <a
@@ -247,7 +247,12 @@ export default function Footer() {
                   ))}
                 </div>
               </div>
-              <p className="footer-copy">© 2026 D'Cor. All rights reserved.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'right' }}>
+                <p className="footer-copy" style={{ margin: 0 }}>© 2026 DCor. All rights reserved.</p>
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', maxWidth: '500px', lineHeight: '1.5' }}>
+                  <strong>Disclaimer:</strong> Website này là một đồ án học thuật phi lợi nhuận. Mọi bản quyền hình ảnh sản phẩm nội thất đều thuộc về <a href="https://www.boconcept.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}><strong>BoConcept</strong></a>.
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -26,9 +26,9 @@ export default function ForgotPasswordPage() {
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div className="logo" style={{ justifyContent: 'center', marginBottom: '16px' }}>
             <div className="logo-circle">
-              <span className="logo-circle-text">D'COR</span>
+              <span className="logo-circle-text">DCOR</span>
             </div>
-            <span className="logo-text">D'Cor</span>
+            <span className="logo-text">DCor</span>
           </div>
           <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>Khôi phục mật khẩu</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '6px' }}>Nhập số điện thoại hoặc email liên kết để nhận hướng dẫn đặt lại mật khẩu.</p>

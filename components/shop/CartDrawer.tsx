@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore, CartItem } from '@/lib/store';
 import { useRouter } from 'next/navigation';
+import CartEditVariantDrawer from './CartEditVariantDrawer';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -79,6 +80,20 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   // Custom Modal state
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, target: 'single' | 'bulk' | 'all', indices: number[] }>({ isOpen: false, target: 'single', indices: [] });
+
+  // Edit Variant state
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [flashItemIndex, setFlashItemIndex] = useState<number | null>(null);
+
+  const handleUpdateVariantSuccess = (newIndex: number) => {
+    // The store merges or replaces. The index might change if it merged, but if it replaced it stays the same.
+    // For visual flash, we flash the first occurrence of the newly matched item or just flash everything.
+    // To be safe, flash the specific item we just edited.
+    setFlashItemIndex(newIndex);
+    setTimeout(() => {
+      setFlashItemIndex(null);
+    }, 1500);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -180,10 +195,19 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   return (
     <div className={`cart-drawer-overlay ${isOpen ? 'active' : ''}`} onClick={(e) => {
       if (e.target === e.currentTarget && !deleteModal.isOpen) {
-        onClose();
+        if (editingItemIndex !== null) setEditingItemIndex(null);
+        else onClose();
       }
     }}>
-      <div className="cart-drawer">
+      <div className={`cart-drawer ${editingItemIndex !== null ? 'editing' : ''}`}>
+        <CartEditVariantDrawer 
+          cartItem={editingItemIndex !== null ? storeCartItems[editingItemIndex] : null}
+          originalIndex={editingItemIndex}
+          isOpen={editingItemIndex !== null}
+          onClose={() => setEditingItemIndex(null)}
+          onUpdated={handleUpdateVariantSuccess}
+        />
+
         <div className="cart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {cartItems.length > 0 && (
@@ -241,7 +265,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           </div>
         </div>
 
-        <div className="cart-items-wrapper" style={{ flexGrow: 1, overflowY: 'auto', paddingRight: '10px' }}>
+        <div className={`cart-items-wrapper ${editingItemIndex !== null ? 'is-editing' : ''}`} style={{ flexGrow: 1, overflowY: 'auto', paddingRight: '10px' }}>
           {cartItems.length === 0 ? (
             <div className="cart-empty-message" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '15px' }}>
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -287,7 +311,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   {/* Group Items */}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {group.items.map(({ item, originalIndex }, idx) => (
-                      <div className="cart-item" key={originalIndex} style={{ display: 'flex', gap: '16px', padding: '20px 0', borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-color)' : 'none', position: 'relative', alignItems: 'flex-start' }}>
+                      <div className={`cart-item ${editingItemIndex === originalIndex ? 'is-editing' : ''} ${flashItemIndex === originalIndex ? 'flash-update' : ''}`} key={originalIndex} style={{ display: 'flex', gap: '16px', padding: '20px 0', borderBottom: idx < group.items.length - 1 ? '1px solid var(--border-color)' : 'none', position: 'relative', alignItems: 'flex-start' }}>
                         
                         {/* Item Checkbox */}
                         <div style={{ paddingTop: '22px' }}>
@@ -313,12 +337,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             {/* Variant Tags */}
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
                               {item.variantTags && item.variantTags.length > 0 ? (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <span onClick={() => setEditingItemIndex(originalIndex)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => {e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e => {e.currentTarget.style.borderColor='var(--border-color)'; e.currentTarget.style.color='var(--text-secondary)'}}>
                                   {item.variantTags.map(tag => tag.value).join(' | ')}
                                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6"/></svg>
                                 </span>
                               ) : (item.leg || item.upholstery) ? (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <span onClick={() => setEditingItemIndex(originalIndex)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => {e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e => {e.currentTarget.style.borderColor='var(--border-color)'; e.currentTarget.style.color='var(--text-secondary)'}}>
                                   {[item.leg?.name, item.upholstery?.name].filter(Boolean).join(' | ')}
                                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6"/></svg>
                                 </span>
@@ -375,7 +399,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <span>Tổng cộng</span>
               <span className="cart-summary-total" style={{ color: 'var(--accent)', fontSize: '22px' }}>{formatVND(totalPrice)}</span>
             </div>
-            <button className="checkout-btn" onClick={handleCheckout} style={{ width: '100%', padding: '16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+            <button className="checkout-btn" onClick={handleCheckout} style={{ width: '100%', height: '54px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
               Đặt Hàng & Thanh Toán
             </button>
           </div>

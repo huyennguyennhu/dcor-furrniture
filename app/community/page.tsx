@@ -84,8 +84,8 @@ export default function CommunityPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <span style={{ color: 'var(--accent)', fontSize: '13px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>Ý tưởng từ cộng đồng</span>
-            <h1 style={{ fontSize: '32px', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>D'Cor Community</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>Khám phá không gian thực tế được chia sẻ bởi các khách hàng của D'Cor Studio.</p>
+            <h1 style={{ fontSize: '32px', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>DCor Community</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>Khám phá không gian thực tế được chia sẻ bởi các khách hàng của DCor Studio.</p>
           </div>
           <Link 
             href="/community/new" 

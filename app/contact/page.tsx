@@ -23,7 +23,7 @@ export default function ContactPage() {
         
         <div style={{ textAlign: 'center', marginBottom: '50px' }}>
           <span style={{ color: 'var(--accent)', fontSize: '14px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>Liên kết với chúng tôi</span>
-          <h1 style={{ fontSize: '38px', fontWeight: 800, marginTop: '8px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>Liên hệ D'Cor Studio</h1>
+          <h1 style={{ fontSize: '38px', fontWeight: 800, marginTop: '8px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>Liên hệ DCor Studio</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '6px' }}>Chúng tôi luôn sẵn sàng lắng nghe ý kiến và hỗ trợ thiết kế không gian sống của bạn.</p>
         </div>
 
@@ -68,7 +68,7 @@ export default function ContactPage() {
                 opacity: 0.2
               }}></div>
               <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '20px' }}>
-                <strong style={{ display: 'block', fontSize: '15px', color: 'var(--text-primary)' }}>Bản đồ Showroom D'Cor</strong>
+                <strong style={{ display: 'block', fontSize: '15px', color: 'var(--text-primary)' }}>Bản đồ Showroom DCor</strong>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>Nhấp để mở chỉ đường trên Google Maps</span>
               </div>
             </div>

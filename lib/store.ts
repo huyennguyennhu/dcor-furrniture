@@ -23,6 +23,7 @@ interface DCorState {
   theme: 'dark' | 'light';
   addToCart: (item: AddCartItemInput) => void;
   updateQuantity: (index: number, quantity: number) => void;
+  updateCartItem: (index: number, input: AddCartItemInput) => void;
   removeFromCart: (index: number) => void;
   removeMultipleFromCart: (indices: number[]) => void;
   clearCart: () => void;
@@ -65,6 +66,37 @@ export const useStore = create<DCorState>()(
           if (quantity < 1) return state; // handled by trash can
           const newCart = [...state.cart];
           newCart[index].quantity = quantity;
+          return { cart: newCart };
+        }),
+
+      updateCartItem: (index, input) =>
+        set((state) => {
+          const variantKey = input.variantTags && input.variantTags.length > 0 
+            ? input.variantTags.map(t => `${t.label}:${t.value}`).join('|') 
+            : 'default';
+          const legId = input.leg?.id || 'noleg';
+          const uphId = input.upholstery?.id || 'nouph';
+          const newId = `${input.productId}-${legId}-${uphId}-${variantKey}`;
+          const qtyToSet = input.quantity || state.cart[index]?.quantity || 1;
+
+          const existingIndex = state.cart.findIndex(item => item.id === newId);
+          
+          if (existingIndex >= 0 && existingIndex !== index) {
+            // Target variant already exists elsewhere in the cart.
+            // Merge quantity to the existing item and remove the original one.
+            const newCart = [...state.cart];
+            newCart[existingIndex] = {
+              ...newCart[existingIndex],
+              quantity: newCart[existingIndex].quantity + qtyToSet
+            };
+            // Remove the old item
+            newCart.splice(index, 1);
+            return { cart: newCart };
+          }
+          
+          // Update the item in-place
+          const newCart = [...state.cart];
+          newCart[index] = { ...input, id: newId, quantity: qtyToSet };
           return { cart: newCart };
         }),
         

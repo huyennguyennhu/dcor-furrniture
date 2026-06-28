@@ -1,4 +1,4 @@
-/* D'Cor Studio CSS - Premium Danish Furniture Design System */
+/* DCor Studio CSS - Premium Danish Furniture Design System */
 
 :root {
   /* Dark Mode Default - DCor Custom Color Palette */
@@ -1147,10 +1147,58 @@ nav ul a:hover {
   flex-direction: column;
   transform: translateX(100%);
   transition: transform var(--transition-normal);
+  z-index: 10;
 }
 
 .cart-drawer-overlay.active .cart-drawer {
   transform: translateX(0);
+}
+
+/* Edit Variant Drawer sliding from left of Cart Drawer */
+.cart-edit-drawer {
+  position: absolute;
+  top: 0;
+  right: 100%; /* Sits exactly to the left of cart-drawer */
+  width: 540px;
+  max-width: 100vw;
+  height: 100%;
+  background: var(--bg-primary);
+  /* Soft shadow cast to the right (onto the cart drawer) */
+  box-shadow: 10px 0 20px rgba(0, 0, 0, 0.15);
+  transform: translateX(100%); /* Hidden behind cart-drawer initially */
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+  z-index: 1; /* Positive z-index so it renders on top of the parent cart-drawer's background */
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-edit-drawer.active {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Dim other items when editing */
+.cart-items-wrapper {
+  transition: opacity 0.3s ease;
+}
+
+.cart-items-wrapper.is-editing .cart-item:not(.is-editing) {
+  opacity: 0.3;
+  pointer-events: none;
+  filter: grayscale(0.5);
+}
+
+/* Flash animation after update */
+@keyframes flashUpdate {
+  0% { background-color: rgba(var(--accent-rgb), 0.3); transform: scale(1.02); border-radius: 12px; }
+  50% { background-color: rgba(var(--accent-rgb), 0.1); transform: scale(1); border-radius: 12px; }
+  100% { background-color: transparent; }
+}
+.cart-item.flash-update {
+  animation: flashUpdate 1.5s ease-out;
 }
 
 .cart-header {
@@ -3344,7 +3392,7 @@ body:has(.planner-app) {
   display: none;
 }
 
-/* D'Cor room library panel */
+/* DCor room library panel */
 .room-library-panel {
   flex: 1;
   display: flex;
@@ -3511,7 +3559,7 @@ body:has(.planner-app) {
 }
 .dims-field input:focus { border-color: var(--accent); }
 
-/* D'Cor room library */
+/* DCor room library */
 .room-library-section {
   flex: 1;
   display: flex;
@@ -3708,7 +3756,16 @@ body:has(.planner-app) {
   transition: opacity 0.3s;
 }
 .room-type-card:hover .room-type-img-wrapper img {
-  transform: scale(1.05);
+  transform: scale(1.1);
+}
+.room-type-card.upload-card .room-type-img-wrapper {
+  transition: all 0.3s;
+}
+.room-type-card.upload-card:hover .room-type-img-wrapper {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--accent) !important;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 .room-type-card:hover .room-type-overlay {
   opacity: 1;

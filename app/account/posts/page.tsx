@@ -38,7 +38,7 @@ export default function UserPostsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>Bài chia sẻ của tôi</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>Quản lý các hình ảnh thực tế bạn đã đăng tải lên D'Cor Community.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>Quản lý các hình ảnh thực tế bạn đã đăng tải lên DCor Community.</p>
         </div>
         <Link 
           href="/community/new"

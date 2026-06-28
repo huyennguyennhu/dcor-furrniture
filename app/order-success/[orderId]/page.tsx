@@ -36,7 +36,7 @@ export default function OrderSuccessPage() {
 
         <h1 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>Đặt hàng thành công!</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '10px', maxWidth: '450px', margin: '10px auto 30px' }}>
-          Cảm ơn bạn đã lựa chọn D'Cor Studio. Đơn hàng của bạn đã được tiếp nhận và đang được nhân viên xử lý.
+          Cảm ơn bạn đã lựa chọn DCor Studio. Đơn hàng của bạn đã được tiếp nhận và đang được nhân viên xử lý.
         </p>
 
         {/* Thông tin mã đơn */}

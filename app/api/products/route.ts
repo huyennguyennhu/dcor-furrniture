@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 function capitalizeWords(str: string) {
+  console.log("rebuilding products API route...");
   return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 }
 
@@ -82,6 +83,32 @@ export async function GET() {
           });
         });
       }
+      
+      let parsedWidth = 0;
+      let parsedDepth = 0;
+      
+      if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+        const firstVariant = p.variants[0] as any;
+        const dims = firstVariant.dimensions || {};
+        const details = firstVariant.details || {};
+        
+        const parseDim = (str: string) => {
+          if (!str) return 0;
+          str = str.replace(',', '.').replace('½', '.5');
+          const m = str.match(/([\d\.]+)/);
+          return m ? parseFloat(m[1]) / 100 : 0; // cm to m
+        };
+
+        parsedWidth = parseDim(dims.width || details.diameter || '');
+        parsedDepth = parseDim(dims.depth || dims.length || details.diameter || '');
+        
+        if (parsedWidth > 0 && parsedDepth === 0) parsedDepth = parsedWidth;
+        if (parsedDepth > 0 && parsedWidth === 0) parsedWidth = parsedDepth;
+      }
+      
+      const dimensions = (parsedWidth > 0 && parsedDepth > 0) 
+        ? { width: parsedWidth, depth: parsedDepth } 
+        : undefined;
 
       return {
         id: p.id,
@@ -101,7 +128,8 @@ export async function GET() {
         isNew: p.isNew || (p.createdAt && new Date(p.createdAt) >= oneMonthAgo),
         createdAt: p.createdAt,
         discountValue: p.discountValue,
-        discountType: p.discountType
+        discountType: p.discountType,
+        dimensions: dimensions
       };
     });
 

@@ -41,7 +41,7 @@ export default function ReturnPolicyPage() {
             <ol>
               <li>Khách hàng đăng nhập tài khoản cá nhân, vào mục **Yêu cầu đổi trả** trong phần quản trị Đơn hàng.</li>
               <li>Tạo yêu cầu đổi trả online: chọn đơn hàng, chọn sản phẩm, chọn lý do lỗi và chụp ảnh/quay video thực tế đính kèm gửi đi.</li>
-              <li>Nhân viên CSKH kiểm tra thông tin và duyệt yêu cầu. Đội ngũ giao nhận của D'Cor sẽ hẹn lịch đến thu hồi sản phẩm lỗi và bàn giao sản phẩm thay thế mới hoàn toàn miễn phí tại nhà cho bạn.</li>
+              <li>Nhân viên CSKH kiểm tra thông tin và duyệt yêu cầu. Đội ngũ giao nhận của DCor sẽ hẹn lịch đến thu hồi sản phẩm lỗi và bàn giao sản phẩm thay thế mới hoàn toàn miễn phí tại nhà cho bạn.</li>
             </ol>
           </div>
 

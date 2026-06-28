@@ -92,7 +92,7 @@ export default function Header({ onOpenCart }: HeaderProps) {
       <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
         <Link href="/" className="logo">
           <div className="logo-circle" style={{ overflow: 'hidden', padding: 0, background: 'transparent' }}>
-            <img src="/assets/favicon.png" alt="D'Cor Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            <img src="/assets/favicon.png" alt="DCor Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
           </div>
         </Link>
 
@@ -103,7 +103,7 @@ export default function Header({ onOpenCart }: HeaderProps) {
               { label: 'Thiết kế', href: '/thiet-ke' },
               { label: 'Cộng đồng', href: '/community' },
               { label: 'Cảm hứng', href: '/blog' },
-              { label: "Về D'Cor", href: '/about' }
+              { label: "Về DCor", href: '/about' }
             ].map(link => {
               const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
               return (
@@ -215,7 +215,7 @@ export default function Header({ onOpenCart }: HeaderProps) {
                         onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <img src={p.images?.[0] || ''} alt="" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px', background: 'var(--bg-secondary)' }} />
+                        <img src={p.images?.[0] || ''} alt="" style={{ width: '48px', height: '48px', objectFit: 'contain', padding: '4px', borderRadius: '4px', background: 'var(--bg-tertiary)' }} />
                         <div>
                           <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{p.shortDescription_vi || p.shortDescription}</div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{p.category}</div>
@@ -250,7 +250,7 @@ export default function Header({ onOpenCart }: HeaderProps) {
             </button>
             <div className={`user-dropdown-menu ${userMenuOpen ? 'active' : ''}`} style={{ display: userMenuOpen ? 'block' : 'none' }}>
               <div className="user-dropdown-header">
-                <span className="user-name">Khách hàng D'Cor</span>
+                <span className="user-name">Khách hàng DCor</span>
                 <span className="user-role">Thành viên VIP</span>
               </div>
               <ul>

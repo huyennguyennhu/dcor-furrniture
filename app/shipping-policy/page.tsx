@@ -25,7 +25,7 @@ export default function ShippingPolicyPage() {
         }}>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>1. Phạm vi áp dụng</h3>
-            <p>D'Cor Studio hỗ trợ giao hàng và lắp đặt nội thất trọn gói trên phạm vi toàn quốc (63 tỉnh thành).</p>
+            <p>DCor Studio hỗ trợ giao hàng và lắp đặt nội thất trọn gói trên phạm vi toàn quốc (63 tỉnh thành).</p>
           </div>
 
           <div>
@@ -47,7 +47,7 @@ export default function ShippingPolicyPage() {
 
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>4. Quy định lắp đặt và đồng kiểm</h3>
-            <p>Khi nhận hàng, khách hàng có quyền mở kiểm tra đồng kiểm cùng nhân viên giao hàng về số lượng, tình trạng trầy xước bề mặt da/gỗ. Đội ngũ kỹ thuật của D'Cor sẽ chịu trách nhiệm bưng bê lắp ráp hoàn thiện tại phòng chỉ định của khách hàng.</p>
+            <p>Khi nhận hàng, khách hàng có quyền mở kiểm tra đồng kiểm cùng nhân viên giao hàng về số lượng, tình trạng trầy xước bề mặt da/gỗ. Đội ngũ kỹ thuật của DCor sẽ chịu trách nhiệm bưng bê lắp ráp hoàn thiện tại phòng chỉ định của khách hàng.</p>
           </div>
         </div>
 
