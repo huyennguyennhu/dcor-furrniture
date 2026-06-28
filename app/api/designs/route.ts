@@ -38,7 +38,7 @@ export async function POST(req: Request) {
           id: 'dummy_user_' + Date.now(),
           name: 'Demo User',
           email: 'demo@example.com',
-          role: 'user'
+          role: 'CUSTOMER'
         }
       });
     }
