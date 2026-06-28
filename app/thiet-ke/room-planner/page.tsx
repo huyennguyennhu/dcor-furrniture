@@ -694,7 +694,7 @@ function RoomPlannerContent() {
                         const reader = new FileReader();
                         reader.onload = (event) => {
                           const base64 = event.target?.result as string;
-                          usePlannerStore.getState().setCustomImageBase64(base64);
+                          usePlannerStore.getState().setCustomImage(base64);
                           setSelectedBg(base64);
                           setSelectedRoomId('custom');
                           setIsCustomBg(true);
