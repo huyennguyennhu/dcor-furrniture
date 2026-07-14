@@ -42,6 +42,7 @@ model User {
   fullName     String   @map("full_name")
   avatarUrl    String?  @map("avatar_url")
   role         Role     @default(CUSTOMER)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(3)
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -107,12 +108,17 @@ model Product {
   isBestSeller Boolean @default(false) @map("is_best_seller")
   isNew        Boolean @default(false) @map("is_new")
 
+  // Dành cho Admin quản lý trạng thái sản phẩm
+  isActive       Boolean @default(true) @map("is_active")
+  inactiveReason String? @map("inactive_reason")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   wishlistedBy Wishlist[]
   reviews      Review[]
   proposals    PriceProposal[]
+  cartItems    CartItem[]
 
   @@map("products")
 }
@@ -253,4 +259,28 @@ model RoomDesign {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("room_designs")
+}
+
+// 9. Giỏ hàng (Cart)
+model CartItem {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id") 
+  productId    String   @map("product_id")
+  name         String
+  image        String?
+  price        Decimal  @db.Decimal(15, 2)
+  quantity     Int      @default(1)
+  
+  variantKey   String   @map("variant_key")
+  variantTags  Json?    @map("variant_tags")
+  legId        String?  @map("leg_id")
+  upholsteryId String?  @map("upholstery_id")
+
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("cart_items")
 }

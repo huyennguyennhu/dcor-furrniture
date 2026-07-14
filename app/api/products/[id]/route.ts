@@ -20,8 +20,8 @@ export async function GET(
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-    const product = await prisma.product.findUnique({
-      where: { slug: id } // Dùng slug để query vì frontend đang truyền slug lên URL
+    const product = await prisma.product.findFirst({
+      where: { slug: id, isActive: true } // Dùng slug để query vì frontend đang truyền slug lên URL
     });
 
 

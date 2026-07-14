@@ -15,102 +15,188 @@ export interface CartItem {
   quantity: number;
 }
 
-export type AddCartItemInput = Omit<CartItem, 'id' | 'quantity'> & { quantity?: number };
+export type AddCartItemInput = Omit<CartItem, 'id' | 'quantity'> & { quantity?: number, dbId?: string };
 
 interface DCorState {
   cart: CartItem[];
   wishlist: string[];
   theme: 'dark' | 'light';
-  addToCart: (item: AddCartItemInput) => void;
-  updateQuantity: (index: number, quantity: number) => void;
-  updateCartItem: (index: number, input: AddCartItemInput) => void;
-  removeFromCart: (index: number) => void;
-  removeMultipleFromCart: (indices: number[]) => void;
-  clearCart: () => void;
+  isLoggedIn: boolean;
+  isLoginModalOpen: boolean;
+  
+  // Actions
+  setLoggedIn: (status: boolean) => void;
+  setLoginModalOpen: (isOpen: boolean) => void;
+  syncCartWithDB: (dbItems: any[]) => void;
+  addToCart: (item: AddCartItemInput) => Promise<void>;
+  updateQuantity: (index: number, quantity: number) => Promise<void>;
+  updateCartItem: (index: number, input: AddCartItemInput) => Promise<void>;
+  removeFromCart: (index: number) => Promise<void>;
+  removeMultipleFromCart: (indices: number[]) => Promise<void>;
+  clearCart: () => Promise<void>;
+  
   toggleWishlist: (productId: string) => void;
   setTheme: (theme: 'dark' | 'light') => void;
   toggleTheme: () => void;
 }
 
+// Hàm hỗ trợ đồng bộ API (âm thầm gọi ngầm)
+const apiCall = async (method: string, url: string, data?: any) => {
+  try {
+    await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  } catch (err) {
+    console.error('API Error:', err);
+  }
+};
+
 export const useStore = create<DCorState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       cart: [],
       wishlist: [],
       theme: 'dark',
+      isLoggedIn: false,
+      isLoginModalOpen: false,
       
-      addToCart: (input) =>
-        set((state) => {
-          const variantKey = input.variantTags && input.variantTags.length > 0 
-            ? input.variantTags.map(t => `${t.label}:${t.value}`).join('|') 
-            : 'default';
-          const legId = input.leg?.id || 'noleg';
-          const uphId = input.upholstery?.id || 'nouph';
-          const id = `${input.productId}-${legId}-${uphId}-${variantKey}`;
-          const qtyToAdd = input.quantity || 1;
+      setLoggedIn: (status) => set({ isLoggedIn: status }),
+      setLoginModalOpen: (isOpen) => set({ isLoginModalOpen: isOpen }),
+      
+      // Đồng bộ dữ liệu DB về Local state
+      syncCartWithDB: (dbItems) => {
+        // Map DB items to Local CartItems
+        const mappedCart: CartItem[] = dbItems.map((item: any) => ({
+          id: item.id, // dùng id thật của DB
+          productId: item.productId,
+          name: item.name,
+          image: item.image || '',
+          price: Number(item.price),
+          quantity: item.quantity,
+          variantTags: item.variantTags,
+          leg: item.legId ? { id: item.legId } as any : undefined,
+          upholstery: item.upholsteryId ? { id: item.upholsteryId } as any : undefined,
+        }));
+        set({ cart: mappedCart });
+      },
 
-          const existingIndex = state.cart.findIndex(item => item.id === id);
-          if (existingIndex >= 0) {
-            const newCart = [...state.cart];
-            newCart[existingIndex] = {
-              ...newCart[existingIndex],
-              quantity: newCart[existingIndex].quantity + (input.quantity || 1)
-            };
-            return { cart: newCart };
-          }
-          return { cart: [...state.cart, { ...input, id, quantity: qtyToAdd }] };
-        }),
-        
-      updateQuantity: (index, quantity) =>
-        set((state) => {
-          if (quantity < 1) return state; // handled by trash can
+      addToCart: async (input) => {
+        const variantKey = input.variantTags && input.variantTags.length > 0 
+          ? input.variantTags.map(t => `${t.label}:${t.value}`).join('|') 
+          : 'default';
+        const legId = input.leg?.id || 'noleg';
+        const uphId = input.upholstery?.id || 'nouph';
+        const tempId = `${input.productId}-${legId}-${uphId}-${variantKey}`;
+        const qtyToAdd = input.quantity || 1;
+
+        // Optimistic UI update
+        const state = get();
+        const existingIndex = state.cart.findIndex(item => 
+          item.id === tempId || (item.productId === input.productId && item.variantTags === input.variantTags)
+        );
+
+        if (existingIndex >= 0) {
           const newCart = [...state.cart];
-          newCart[index].quantity = quantity;
-          return { cart: newCart };
-        }),
+          newCart[existingIndex] = {
+            ...newCart[existingIndex],
+            quantity: newCart[existingIndex].quantity + qtyToAdd
+          };
+          set({ cart: newCart });
+        } else {
+          set({ cart: [...state.cart, { ...input, id: tempId, quantity: qtyToAdd }] });
+        }
 
-      updateCartItem: (index, input) =>
-        set((state) => {
-          const variantKey = input.variantTags && input.variantTags.length > 0 
-            ? input.variantTags.map(t => `${t.label}:${t.value}`).join('|') 
-            : 'default';
-          const legId = input.leg?.id || 'noleg';
-          const uphId = input.upholstery?.id || 'nouph';
-          const newId = `${input.productId}-${legId}-${uphId}-${variantKey}`;
-          const qtyToSet = input.quantity || state.cart[index]?.quantity || 1;
+        // Call API
+        if (state.isLoggedIn) {
+          await apiCall('POST', '/api/cart', {
+            productId: input.productId,
+            name: input.name,
+            image: input.image,
+            price: input.price,
+            quantity: qtyToAdd,
+            variantKey,
+            variantTags: input.variantTags,
+            legId: input.leg?.id,
+            upholsteryId: input.upholstery?.id
+          });
+        }
+      },
+        
+      updateQuantity: async (index, quantity) => {
+        const state = get();
+        if (quantity < 1) return;
+        const newCart = [...state.cart];
+        const item = newCart[index];
+        item.quantity = quantity;
+        set({ cart: newCart });
+        
+        if (state.isLoggedIn && item.id) {
+           await apiCall('PUT', '/api/cart', { id: item.id, quantity });
+        }
+      },
 
-          const existingIndex = state.cart.findIndex(item => item.id === newId);
-          
-          if (existingIndex >= 0 && existingIndex !== index) {
-            // Target variant already exists elsewhere in the cart.
-            // Merge quantity to the existing item and remove the original one.
-            const newCart = [...state.cart];
-            newCart[existingIndex] = {
-              ...newCart[existingIndex],
-              quantity: newCart[existingIndex].quantity + qtyToSet
-            };
-            // Remove the old item
-            newCart.splice(index, 1);
-            return { cart: newCart };
-          }
-          
-          // Update the item in-place
+      updateCartItem: async (index, input) => {
+        const state = get();
+        const variantKey = input.variantTags && input.variantTags.length > 0 
+          ? input.variantTags.map(t => `${t.label}:${t.value}`).join('|') 
+          : 'default';
+        const legId = input.leg?.id || 'noleg';
+        const uphId = input.upholstery?.id || 'nouph';
+        const newTempId = `${input.productId}-${legId}-${uphId}-${variantKey}`;
+        const qtyToSet = input.quantity || state.cart[index]?.quantity || 1;
+        const oldItem = state.cart[index];
+
+        const existingIndex = state.cart.findIndex(item => item.id === newTempId && item.id !== oldItem.id);
+        
+        if (existingIndex >= 0) {
           const newCart = [...state.cart];
-          newCart[index] = { ...input, id: newId, quantity: qtyToSet };
-          return { cart: newCart };
-        }),
-        
-      removeFromCart: (index) =>
-        set((state) => ({
-          cart: state.cart.filter((_, idx) => idx !== index),
-        })),
+          newCart[existingIndex].quantity += qtyToSet;
+          newCart.splice(index, 1);
+          set({ cart: newCart });
+        } else {
+          const newCart = [...state.cart];
+          newCart[index] = { ...input, id: oldItem.id || newTempId, quantity: qtyToSet };
+          set({ cart: newCart });
+        }
 
-      removeMultipleFromCart: (indices) =>
-        set((state) => ({
-          cart: state.cart.filter((_, idx) => !indices.includes(idx)),
-        })),
+        if (state.isLoggedIn && oldItem.id) {
+          await apiCall('PUT', '/api/cart', {
+             id: oldItem.id, quantity: qtyToSet, variantKey, variantTags: input.variantTags, legId, upholsteryId: uphId, price: input.price, image: input.image
+          });
+        }
+      },
         
-      clearCart: () => set({ cart: [] }),
+      removeFromCart: async (index) => {
+        const state = get();
+        const item = state.cart[index];
+        set({ cart: state.cart.filter((_, idx) => idx !== index) });
+        
+        if (state.isLoggedIn && item.id) {
+          await apiCall('DELETE', `/api/cart?id=${item.id}`);
+        }
+      },
+
+      removeMultipleFromCart: async (indices) => {
+        const state = get();
+        const itemsToRemove = state.cart.filter((_, idx) => indices.includes(idx));
+        set({ cart: state.cart.filter((_, idx) => !indices.includes(idx)) });
+        
+        if (state.isLoggedIn) {
+          for (const item of itemsToRemove) {
+            if (item.id) await apiCall('DELETE', `/api/cart?id=${item.id}`);
+          }
+        }
+      },
+        
+      clearCart: async () => {
+        const state = get();
+        set({ cart: [] });
+        if (state.isLoggedIn) {
+          await apiCall('DELETE', '/api/cart');
+        }
+      },
       
       toggleWishlist: (productId) =>
         set((state) => {
@@ -136,10 +222,32 @@ export const useStore = create<DCorState>()(
     {
       name: 'dcor-storage',
       onRehydrateStorage: () => (state) => {
-        if (state && typeof window !== 'undefined') {
-          document.documentElement.setAttribute('data-theme', state.theme);
+        if (typeof window !== 'undefined') {
+          // Xử lý logic 10 phút (Khách vãng lai)
+          const closedAtStr = localStorage.getItem('dcor-cart-closedAt');
+          if (closedAtStr) {
+            const closedAt = parseInt(closedAtStr, 10);
+            const now = Date.now();
+            if (now - closedAt > 10 * 60 * 1000) {
+              // Quá 10 phút -> Xóa giỏ hàng
+              state?.clearCart();
+            }
+            // Dọn dẹp cờ
+            localStorage.removeItem('dcor-cart-closedAt');
+          }
+          
+          if (state) {
+            document.documentElement.setAttribute('data-theme', state.theme);
+          }
         }
       },
     }
   )
 );
+
+// Gắn sự kiện beforeunload để ghi nhận thời điểm tắt tab
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    localStorage.setItem('dcor-cart-closedAt', Date.now().toString());
+  });
+}

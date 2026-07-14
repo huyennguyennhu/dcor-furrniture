@@ -7,6 +7,8 @@ import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/shop/CartDrawer';
 import Modals from '@/components/layout/Modals';
 import ScrollToTop from '@/components/layout/ScrollToTop';
+import Providers from '@/components/Providers';
+import LoginModal from '@/components/auth/LoginModal';
 
 export default function RootLayout({
   children,
@@ -18,19 +20,22 @@ export default function RootLayout({
   return (
     <html lang="vi" data-theme="light" suppressHydrationWarning>
       <body>
-        <Header onOpenCart={() => setCartOpen(true)} />
+        <Providers>
+          <Header onOpenCart={() => setCartOpen(true)} />
 
-        {children}
+          {children}
 
-        <Footer />
+          <Footer />
 
-        <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-        <Suspense fallback={null}>
-          <Modals />
-        </Suspense>
+          <Suspense fallback={null}>
+            <Modals />
+            <LoginModal />
+          </Suspense>
 
-        <ScrollToTop />
+          <ScrollToTop />
+        </Providers>
       </body>
     </html>
   );

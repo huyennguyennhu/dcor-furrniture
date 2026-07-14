@@ -19,6 +19,7 @@ export async function GET() {
 
     // 2. Fetch all products to extract unique colors and materials
     const products = await prisma.product.findMany({
+      where: { isActive: true },
       select: { configOptions: true }
     });
 

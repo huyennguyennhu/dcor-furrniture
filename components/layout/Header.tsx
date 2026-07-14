@@ -4,15 +4,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { ShoppingBag, User, Sun, Moon, ArrowRight } from 'lucide-react';
+import { ShoppingBag, User, Sun, Moon, ArrowRight, LogOut } from 'lucide-react';
 import { CatalogProduct } from '@/lib/data';
+import { useSession, signOut } from 'next-auth/react';
 
 interface HeaderProps {
   onOpenCart: () => void;
 }
 
 export default function Header({ onOpenCart }: HeaderProps) {
-  const { cart, toggleTheme, theme } = useStore();
+  const { cart, toggleTheme, theme, isLoggedIn, setLoginModalOpen, setLoggedIn } = useStore();
+  const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   
@@ -128,7 +130,7 @@ export default function Header({ onOpenCart }: HeaderProps) {
             className="floating-search-bar"
             style={{
               position: 'absolute',
-              right: isDocked ? '160px' : '40px', 
+              right: isDocked ? (isLoggedIn ? '160px' : '230px') : '40px', 
               top: isDocked ? `${dockedTop}px` : `${headerH + 16}px`,
               width: isDocked ? '260px' : '380px',
               zIndex: 101,
@@ -244,37 +246,80 @@ export default function Header({ onOpenCart }: HeaderProps) {
             {cartCount > 0 && <span className="badge" id="cart-count">{cartCount}</span>}
           </button>
 
-          <div className="user-dropdown-wrapper">
-            <button className="icon-btn" onClick={() => setUserMenuOpen(!userMenuOpen)} title="Tài khoản">
-              <User size={22} strokeWidth={1.5} />
-            </button>
-            <div className={`user-dropdown-menu ${userMenuOpen ? 'active' : ''}`} style={{ display: userMenuOpen ? 'block' : 'none' }}>
-              <div className="user-dropdown-header">
-                <span className="user-name">Khách hàng DCor</span>
-                <span className="user-role">Thành viên VIP</span>
+          {isLoggedIn ? (
+            <div className="user-dropdown-wrapper">
+              <button className="icon-btn" onClick={() => setUserMenuOpen(!userMenuOpen)} title="Tài khoản">
+                <User size={22} strokeWidth={1.5} />
+              </button>
+              <div className={`user-dropdown-menu ${userMenuOpen ? 'active' : ''}`} style={{ display: userMenuOpen ? 'block' : 'none' }}>
+                <div className="user-dropdown-header">
+                  <span className="user-name">{session?.user?.name || 'Khách hàng'}</span>
+                  <span className="user-role" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{session?.user?.email || 'Thành viên DCor'}</span>
+                </div>
+                <ul>
+                  <li><Link href="/account/profile" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>Hồ sơ cá nhân</Link></li>
+                  <li><Link href="/account/orders" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>Đơn hàng của tôi</Link></li>
+                  <li><Link href="/account/wishlist" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>Sản phẩm yêu thích</Link></li>
+                  <li>
+                    <button
+                      className="user-menu-item"
+                      onClick={() => { toggleTheme(); setUserMenuOpen(false); }}
+                      style={{
+                        width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 16px', fontSize: '14px', color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <span>{mounted && theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}</span>
+                      {mounted && theme === 'dark' ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
+                    </button>
+                  </li>
+                  {session?.user?.email === 'admin@dcor.vn' && (
+                    <li><Link href="/admin" className="user-menu-item" onClick={() => setUserMenuOpen(false)} style={{ borderTop: '1px solid var(--border-color)', marginTop: '4px' }}>Hệ thống quản trị Admin</Link></li>
+                  )}
+                  <li>
+                    <button
+                      className="user-menu-item"
+                      onClick={async () => {
+                        await signOut({ redirect: false });
+                        setLoggedIn(false);
+                        setUserMenuOpen(false);
+                      }}
+                      style={{
+                        width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '8px', color: '#ff4d4f',
+                        padding: '10px 16px', fontSize: '14px', borderTop: '1px solid var(--border-color)', marginTop: '4px'
+                      }}
+                    >
+                      <LogOut size={16} />
+                      Đăng xuất
+                    </button>
+                  </li>
+                </ul>
               </div>
-              <ul>
-                <li><Link href="/account/profile" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>Hồ sơ cá nhân</Link></li>
-                <li><Link href="/account/orders" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>Đơn hàng của tôi</Link></li>
-                <li><Link href="/account/wishlist" className="user-menu-item" onClick={() => setUserMenuOpen(false)}>Sản phẩm yêu thích</Link></li>
-                <li>
-                  <button
-                    className="user-menu-item"
-                    onClick={() => { toggleTheme(); setUserMenuOpen(false); }}
-                    style={{
-                      width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '10px 16px', fontSize: '14px', color: 'var(--text-secondary)',
-                    }}
-                  >
-                    <span>{mounted && theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}</span>
-                    {mounted && theme === 'dark' ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
-                  </button>
-                </li>
-                <li><Link href="/admin" className="user-menu-item" onClick={() => setUserMenuOpen(false)} style={{ borderTop: '1px solid var(--border-color)', marginTop: '4px' }}>Hệ thống quản trị Admin</Link></li>
-              </ul>
             </div>
-          </div>
+          ) : (
+            <button 
+              onClick={() => setLoginModalOpen(true)}
+              style={{
+                background: 'var(--text-primary)',
+                color: 'var(--bg-primary)',
+                padding: '8px 20px',
+                borderRadius: '50px',
+                fontSize: '14px',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              Đăng nhập
+            </button>
+          )}
         </div>
       </div>
     </header>
