@@ -48,3 +48,6 @@ next-env.d.ts
 /sample_*.txt
 
 /scratch/
+/private_docs/
+docs/private/
+test.js

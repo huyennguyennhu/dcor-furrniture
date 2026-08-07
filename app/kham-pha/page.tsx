@@ -22,7 +22,7 @@ const isOnSale = (prod: CatalogProduct) => {
   return low > 0 && low < base;
 };
 
-const QUICK_CATEGORIES = ['Tất cả', 'Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Trang trí', 'Phụ Kiện'];
+// Fallback constant removed as we extract strictly from data
 
 let cachedProducts: CatalogProduct[] | null = null;
 let cachedFilters: any = null;
@@ -323,9 +323,9 @@ function KhamPhaContent() {
               <div style={{ width: '110px', height: '36px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
               <div style={{ width: '85px', height: '36px', background: 'rgba(255,255,255,0.2)', borderRadius: '20px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
             </div>
-          ) : (
+          ) : products.length > 0 ? (
             <div className="quick-pill-list">
-              {['Tất cả', ...(dynamicFilters?.categories?.length > 0 ? dynamicFilters.categories : QUICK_CATEGORIES.slice(1))].map(cat => {
+              {['Tất cả', ...(dynamicFilters?.categories || [])].map(cat => {
                 const isActive = filters.categories.includes(cat) || (cat === 'Tất cả' && filters.categories.length === 0);
                 return (
                   <button 
@@ -338,51 +338,53 @@ function KhamPhaContent() {
                 );
               })}
             </div>
-          )}
+          ) : null}
         </div>
       </section>
 
-
       {/* 3. Thanh điều khiển danh sách (Sticky) */}
-      <div className="explore-active-bar">
-        <div className="container">
-          <div className="active-bar-content">
-            <div className="active-tags">
-              <span className="product-count">{filtered.length} sản phẩm</span>
-              {filters.categories.map(c => (
-                <span key={c} className="active-tag">{c} <button onClick={() => removeFilterTag('categories', c)}>&times;</button></span>
-              ))}
-              {filters.materials.map(m => (
-                <span key={m} className="active-tag">{m} <button onClick={() => removeFilterTag('materials', m)}>&times;</button></span>
-              ))}
-              {filters.colors.map(c => (
-                <span key={c} className="active-tag">{c} <button onClick={() => removeFilterTag('colors', c)}>&times;</button></span>
-              ))}
-              {filters.priceRange[1] < 100000000 && (
-                <span className="active-tag">Dưới {(filters.priceRange[1]/1000000).toFixed(0)}tr <button onClick={() => removeFilterTag('priceRange', null)}>&times;</button></span>
-              )}
-              {activeTagCount > 0 && (
-                <button className="clear-all-btn" onClick={clearAllFilters}>
-                  Xóa bộ lọc
-                </button>
-              )}
-            </div>
-            
-            <div className="sort-dropdown">
-              <CustomSelect 
-                value={sortBy} 
-                onChange={(val) => { setSortBy(val); setCurrentPage(1); }}
-                options={[
-                  { value: 'featured', label: 'Sắp xếp: Phổ biến' },
-                  { value: 'newest', label: 'Sắp xếp: Mới nhất' },
-                  { value: 'price-asc', label: 'Giá: Tăng dần' },
-                  { value: 'price-desc', label: 'Giá: Giảm dần' }
-                ]}
-              />
+      {products.length > 0 && (
+        <div className="explore-active-bar">
+          <div className="container">
+            <div className="active-bar-content">
+              <div className="active-tags">
+                <span className="product-count">{filtered.length} sản phẩm</span>
+                {filters.categories.map(c => (
+                  <span key={c} className="active-tag">{c} <button onClick={() => removeFilterTag('categories', c)}>&times;</button></span>
+                ))}
+                {filters.materials.map(m => (
+                  <span key={m} className="active-tag">{m} <button onClick={() => removeFilterTag('materials', m)}>&times;</button></span>
+                ))}
+                {filters.colors.map(c => (
+                  <span key={c} className="active-tag">{c} <button onClick={() => removeFilterTag('colors', c)}>&times;</button></span>
+                ))}
+                {filters.priceRange[1] < 100000000 && (
+                  <span className="active-tag">Dưới {(filters.priceRange[1]/1000000).toFixed(0)}tr <button onClick={() => removeFilterTag('priceRange', null)}>&times;</button></span>
+                )}
+                {activeTagCount > 0 && (
+                  <button className="clear-all-btn" onClick={clearAllFilters}>
+                    Xóa bộ lọc
+                  </button>
+                )}
+              </div>
+              
+              <div className="sort-controls">
+                <CustomSelect 
+                  value={sortBy}
+                  onChange={setSortBy}
+                  options={[
+                    { value: 'featured', label: 'Nổi bật nhất' },
+                    { value: 'newest', label: 'Mới nhất' },
+                    { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
+                    { value: 'price-desc', label: 'Giá: Cao đến Thấp' },
+                    { value: 'sale', label: 'Đang khuyến mãi' }
+                  ]}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 4. Khu vực chính */}
       <div className="container explore-main-layout">
@@ -413,7 +415,7 @@ function KhamPhaContent() {
               <div style={{ width: '60%', height: '24px', background: '#eaeaea', marginBottom: '20px', borderRadius: '4px' }}></div>
               <div style={{ width: '100%', height: '4px', background: '#eaeaea', marginBottom: '30px', borderRadius: '2px' }}></div>
             </div>
-          ) : (
+          ) : products.length > 0 ? (
             <SidebarFilter 
               filters={filters} 
               onFilterChange={(newFilters) => { setFilters(newFilters); setCurrentPage(1); }} 
@@ -421,7 +423,7 @@ function KhamPhaContent() {
               validFilters={validFiltersObj}
               dynamicMaxPrice={dynamicMaxPrice}
             />
-          )}
+          ) : null}
         </div>
 
         {/* 7. Product Grid */}

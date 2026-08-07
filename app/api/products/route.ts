@@ -107,6 +107,11 @@ export async function GET() {
         if (parsedDepth > 0 && parsedWidth === 0) parsedWidth = parsedDepth;
       }
       
+      let variantsCount = 0;
+      if (p.configOptions && Array.isArray(p.configOptions)) {
+        variantsCount = p.configOptions.length;
+      }
+      
       const dimensions = (parsedWidth > 0 && parsedDepth > 0) 
         ? { width: parsedWidth, depth: parsedDepth } 
         : undefined;
@@ -130,7 +135,8 @@ export async function GET() {
         createdAt: p.createdAt,
         discountValue: p.discountValue,
         discountType: p.discountType,
-        dimensions: dimensions
+        dimensions: dimensions,
+        variantsCount: variantsCount
       };
     });
 

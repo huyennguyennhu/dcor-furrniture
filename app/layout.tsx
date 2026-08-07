@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
+import { usePathname } from 'next/navigation';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -16,25 +17,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [cartOpen, setCartOpen] = useState(false);
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith('/admin');
 
   return (
     <html lang="vi" data-theme="light" suppressHydrationWarning>
-      <body>
+      <body className={isAdminRoute ? 'admin-body' : ''}>
         <Providers>
-          <Header onOpenCart={() => setCartOpen(true)} />
+          {!isAdminRoute && <Header onOpenCart={() => setCartOpen(true)} />}
 
           {children}
 
-          <Footer />
-
-          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-
-          <Suspense fallback={null}>
-            <Modals />
-            <LoginModal />
-          </Suspense>
-
-          <ScrollToTop />
+          {!isAdminRoute && (
+            <>
+              <Footer />
+              <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+              <Suspense fallback={null}>
+                <Modals />
+                <LoginModal />
+              </Suspense>
+              <ScrollToTop />
+            </>
+          )}
         </Providers>
       </body>
     </html>

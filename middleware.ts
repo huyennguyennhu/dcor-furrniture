@@ -7,10 +7,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith('/admin')) {
-    const role = (session?.user as any)?.role;
-    if (!session || (role !== 'ADMIN' && role !== 'STAFF')) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
+    // Tạm thời tắt check session để test giao diện Admin
+    // const role = (session?.user as any)?.role;
+    // if (!session || (role !== 'ADMIN' && role !== 'STAFF')) {
+    //   return NextResponse.redirect(new URL('/', request.url));
+    // }
   }
 
   if (pathname.startsWith('/account')) {

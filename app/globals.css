@@ -3,4 +3,44 @@
 @import "tailwindcss";
 @import "./styles.css";
 
+body.admin-body {
+  padding-top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar Sub Items */
+.admin-sub-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s;
+  background-color: transparent;
+}
+.admin-sub-item:hover {
+  color: var(--text-primary);
+}
+.admin-sub-item .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.2s;
+}
+.admin-sub-item:hover .dot {
+  background-color: #9ca3af; /* Light gray dot when hovered */
+}
+.admin-sub-item.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+.admin-sub-item.active .dot {
+  background-color: var(--accent);
+}
 
