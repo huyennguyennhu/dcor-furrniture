@@ -20,9 +20,10 @@ interface DataTableProps<T> {
   selectedKeys?: Set<string>;
   onSelectionChange?: (keys: Set<string>) => void;
   rowKey?: (item: T) => string;
+  isLoading?: boolean;
 }
 
-export default function DataTable<T>({ columns, data, onRowClick, actions, pageSize = 10, selectable = false, selectedKeys = new Set(), onSelectionChange, rowKey }: DataTableProps<T>) {
+export default function DataTable<T>({ columns, data, onRowClick, actions, pageSize = 10, selectable = false, selectedKeys = new Set(), onSelectionChange, rowKey, isLoading = false }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const totalItems = data.length;
   const totalPages = Math.ceil(totalItems / pageSize);
@@ -88,7 +89,13 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
             </tr>
           </thead>
           <tbody>
-            {paginatedData.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0)} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Đang tải dữ liệu...
+                </td>
+              </tr>
+            ) : paginatedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0)} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Không có dữ liệu
