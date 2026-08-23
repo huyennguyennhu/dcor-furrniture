@@ -2,8 +2,62 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Upload, Plus, Image as ImageIcon, Trash2, Eye, Edit2, X, Package } from 'lucide-react';
+import { ChevronDown, Plus, Trash2, X, ArrowLeft, Save, Edit2, Eye, Image as ImageIcon, Upload, Package } from 'lucide-react';
+import Modal from './Modal';
 import AdminPageTabs from '@/components/admin/AdminPageTabs';
+
+const CustomSelect = ({ options, value, onChange, placeholder, disabled, zIndex = 50, required = false }: any) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((o: any) => o.value === value);
+
+  return (
+    <div style={{ position: 'relative' }} ref={ref}>
+      <div 
+        onClick={() => { if (!disabled) setIsOpen(!isOpen); }}
+        className="admin-input"
+        style={{ cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: isOpen ? 'var(--accent)' : 'var(--border-color)', opacity: disabled ? 0.7 : 1, background: disabled ? 'var(--bg-primary)' : 'white' }}
+      >
+        <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: disabled ? 0.5 : 1 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      {isOpen && !disabled && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 2px)', left: 0, right: 0, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex, padding: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+          {!required && (
+            <div 
+              onClick={() => { onChange(''); setIsOpen(false); }}
+              style={{ padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', color: value === '' ? 'var(--accent)' : 'var(--text-primary)', fontWeight: value === '' ? 600 : 400, background: 'transparent' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              Không
+            </div>
+          )}
+          {options.map((opt: any) => (
+            <div 
+              key={opt.value} 
+              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              style={{ padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', color: value === opt.value ? 'var(--accent)' : 'var(--text-primary)', fontWeight: value === opt.value ? 600 : 400, background: 'transparent' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const TABS = [
   { id: 'general', label: 'Thông tin chung' },
@@ -23,6 +77,14 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
   const [expandedVariantIdx, setExpandedVariantIdx] = useState<number | null>(null);
   const [mainSku, setMainSku] = useState(initialData.product_id || '');
   const [dbCategories, setDbCategories] = useState<any[]>([]);
+  
+  // Classification States
+  const [catCategory, setCatCategory] = useState(initialData.category || '');
+  const [catRoom, setCatRoom] = useState(initialData.room || '');
+  const [catCollection, setCatCollection] = useState(initialData.collection || '');
+  const [catStyle, setCatStyle] = useState(initialData.style || '');
+  const [catMaterial, setCatMaterial] = useState(initialData.material || '');
+  const [catColor, setCatColor] = useState(initialData.color || '');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -321,60 +383,93 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Danh mục chính <span style={{ color: '#ef4444' }}>*</span></label>
-                <select disabled={viewMode} defaultValue={initialData.category} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
-                  <option value="">Chọn danh mục</option>
-                  {dbCategories.map(cat => (
-                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
-                  ))}
-                </select>
+                <CustomSelect 
+                  options={dbCategories.map((cat: any) => ({ value: cat.slug, label: cat.name }))}
+                  value={catCategory}
+                  onChange={setCatCategory}
+                  placeholder="Chọn danh mục"
+                  disabled={viewMode}
+                  zIndex={56}
+                  required={true}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Phòng</label>
-                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
-                  <option value="">Không</option>
-                  <option value="phong-khach">Phòng khách</option>
-                  <option value="phong-ngu">Phòng ngủ</option>
-                  <option value="phong-an">Phòng ăn</option>
-                  <option value="ngoai-troi">Ngoài trời</option>
-                </select>
+                <CustomSelect 
+                  options={[
+                    { value: 'phong-khach', label: 'Phòng khách' },
+                    { value: 'phong-ngu', label: 'Phòng ngủ' },
+                    { value: 'phong-an', label: 'Phòng ăn' },
+                    { value: 'ngoai-troi', label: 'Ngoài trời' }
+                  ]}
+                  value={catRoom}
+                  onChange={setCatRoom}
+                  placeholder="Không"
+                  disabled={viewMode}
+                  zIndex={55}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Bộ sưu tập (Collection)</label>
-                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
-                  <option value="">Không</option>
-                  <option value="osaka">Osaka Collection</option>
-                  <option value="indochine">Indochine Heritage</option>
-                  <option value="scandi">Scandi Minimalist</option>
-                </select>
+                <CustomSelect 
+                  options={[
+                    { value: 'osaka', label: 'Osaka Collection' },
+                    { value: 'indochine', label: 'Indochine Heritage' },
+                    { value: 'scandi', label: 'Scandi Minimalist' }
+                  ]}
+                  value={catCollection}
+                  onChange={setCatCollection}
+                  placeholder="Không"
+                  disabled={viewMode}
+                  zIndex={54}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Phong cách</label>
-                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
-                  <option value="">Không</option>
-                  <option value="hien-dai">Hiện đại</option>
-                  <option value="co-dien">Cổ điển</option>
-                  <option value="toi-gian">Tối giản</option>
-                </select>
+                <CustomSelect 
+                  options={[
+                    { value: 'hien-dai', label: 'Hiện đại' },
+                    { value: 'co-dien', label: 'Cổ điển' },
+                    { value: 'toi-gian', label: 'Tối giản' }
+                  ]}
+                  value={catStyle}
+                  onChange={setCatStyle}
+                  placeholder="Không"
+                  disabled={viewMode}
+                  zIndex={53}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Chất liệu chính</label>
-                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
-                  <option value="">Không</option>
-                  <option value="go-soi">Gỗ sồi</option>
-                  <option value="go-oc-cho">Gỗ óc chó</option>
-                  <option value="da-bo">Da bò thật</option>
-                  <option value="vai-linen">Vải Linen</option>
-                </select>
+                <CustomSelect 
+                  options={[
+                    { value: 'go-soi', label: 'Gỗ sồi' },
+                    { value: 'go-oc-cho', label: 'Gỗ óc chó' },
+                    { value: 'da-bo', label: 'Da bò thật' },
+                    { value: 'vai-linen', label: 'Vải Linen' }
+                  ]}
+                  value={catMaterial}
+                  onChange={setCatMaterial}
+                  placeholder="Không"
+                  disabled={viewMode}
+                  zIndex={52}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Màu sắc cơ bản</label>
-                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
-                  <option value="">Không</option>
-                  <option value="trang">Trắng</option>
-                  <option value="den">Đen</option>
-                  <option value="xam">Xám</option>
-                  <option value="nau">Nâu gỗ</option>
-                </select>
+                <CustomSelect 
+                  options={[
+                    { value: 'trang', label: 'Trắng' },
+                    { value: 'den', label: 'Đen' },
+                    { value: 'xam', label: 'Xám' },
+                    { value: 'nau', label: 'Nâu gỗ' }
+                  ]}
+                  value={catColor}
+                  onChange={setCatColor}
+                  placeholder="Không"
+                  disabled={viewMode}
+                  zIndex={51}
+                />
               </div>
             </div>
           </div>
@@ -386,8 +481,8 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>1. Loại biến thể</label>
                 {!viewMode && (
-                  <button type="button" onClick={handleAddConfigOption} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                    <Plus size={14} /> Thêm loại biến thể
+                  <button type="button" onClick={handleAddConfigOption} className="admin-btn admin-btn-secondary">
+                    <Plus size={16} /> Thêm loại biến thể
                   </button>
                 )}
               </div>
@@ -471,7 +566,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
                                 )}
                               </div>
                             </td>
-                            <td style={{ padding: '12px 16px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                            <td style={{ padding: '12px 16px', fontWeight: 500, color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.5' }}>
                               {getVariantDisplayName(v)}
                             </td>
                             <td style={{ padding: '12px 16px' }}>

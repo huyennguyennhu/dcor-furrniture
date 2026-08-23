@@ -85,7 +85,11 @@ export default function AdminCategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [isAddTypeOpen, setIsAddTypeOpen] = useState(false);
-  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  
+  // States cho modal Danh Mục chung (Thêm/Sửa/Xem)
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryModalMode, setCategoryModalMode] = useState<'add' | 'edit' | 'view'>('add');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   // States cho modal Thêm Loại
   const [newTypeName, setNewTypeName] = useState('');
@@ -259,6 +263,34 @@ export default function AdminCategoriesPage() {
     setShowStatusDropdown(false);
     setNewCatOrder(1);
     setShowOrderDetails(false);
+    setEditingCategoryId(null);
+  };
+
+  const openCategoryModal = (mode: 'add' | 'edit' | 'view', item?: Category) => {
+    setCategoryModalMode(mode);
+    if (mode === 'add') {
+      resetCatForm();
+    } else if (item) {
+      setNewCatName(item.name);
+      setNewCatSlug(item.slug);
+      setNewCatType(activeTab); // Giả định item thuộc tab hiện tại (đúng khi bấm từ bảng)
+      setNewCatStatus(item.status);
+      setNewCatOrder(item.order);
+      setEditingCategoryId(item.id);
+      setIsCatSlugEdited(true); // Không tự động gen slug khi đang sửa
+    }
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleToggleStatus = (item: Category) => {
+    // Trong thực tế sẽ gọi API. Ở đây ta alert mô phỏng
+    alert(`Đã đổi trạng thái danh mục "${item.name}" thành: ${item.status === 'Hiển thị' ? 'Đã ẩn' : 'Hiển thị'} (Mô phỏng)`);
+  };
+
+  const handleDeleteCategory = (item: Category) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa danh mục "${item.name}" không? Thao tác này không thể hoàn tác.`)) {
+      alert('Đã xóa thành công (Mô phỏng)');
+    }
   };
 
   const columns: Column<Category>[] = [
@@ -338,7 +370,7 @@ export default function AdminCategoriesPage() {
               </button>
             )}
             <button 
-              onClick={() => setIsAddCategoryOpen(true)}
+              onClick={() => openCategoryModal('add')}
               className="admin-btn admin-btn-primary"
             >
               <Plus size={16} />
@@ -358,13 +390,13 @@ export default function AdminCategoriesPage() {
         rowKey={(item) => item.id}
         actions={(item) => (
           <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', minWidth: '160px', display: 'flex', flexDirection: 'column' }}>
-            <button style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: 'var(--text-primary)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>Chỉnh sửa</button>
-            <button style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: 'var(--text-primary)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+            <button onClick={() => openCategoryModal('edit', item)} style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: 'var(--text-primary)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>Chỉnh sửa</button>
+            <button onClick={() => handleToggleStatus(item)} style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: 'var(--text-primary)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
               {item.status === 'Hiển thị' ? 'Ẩn danh mục' : 'Hiển thị danh mục'}
             </button>
-            <button style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: 'var(--text-primary)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'} onClick={() => alert('Chuyển hướng đến danh sách sản phẩm thuộc danh mục này!')}>Xem sản phẩm</button>
+            <button onClick={() => alert('Chuyển hướng đến danh sách sản phẩm thuộc danh mục này!')} style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: 'var(--text-primary)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>Xem sản phẩm</button>
             <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }}></div>
-            <button style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: '#ef4444' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>Xóa</button>
+            <button onClick={() => handleDeleteCategory(item)} style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', borderRadius: '4px', color: '#ef4444' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>Xóa</button>
           </div>
         )}
       />
@@ -409,25 +441,43 @@ export default function AdminCategoriesPage() {
         </div>
       </Modal>
 
-      {/* Modal Thêm Danh Mục */}
+      {/* Modal Danh Mục (Thêm/Sửa/Xem) */}
       <Modal 
-        isOpen={isAddCategoryOpen} 
-        onClose={() => { setIsAddCategoryOpen(false); resetCatForm(); }} 
-        title="Thêm danh mục mới"
+        isOpen={isCategoryModalOpen} 
+        onClose={() => { setIsCategoryModalOpen(false); resetCatForm(); }} 
+        title={categoryModalMode === 'add' ? 'Thêm danh mục mới' : categoryModalMode === 'edit' ? 'Chỉnh sửa danh mục' : 'Xem chi tiết danh mục'}
         width="600px"
         footer={
           <>
-            <button onClick={() => { setIsAddCategoryOpen(false); resetCatForm(); }} className="admin-btn admin-btn-secondary">Hủy</button>
-            <button className="admin-btn admin-btn-primary" disabled={!!catSlugError || !!catNameError || !newCatName || !newCatSlug}>Thêm danh mục</button>
+            {categoryModalMode === 'view' ? (
+              <>
+                <button onClick={() => setIsCategoryModalOpen(false)} className="admin-btn admin-btn-secondary">Đóng</button>
+                <button onClick={() => setCategoryModalMode('edit')} className="admin-btn admin-btn-primary">Chỉnh sửa danh mục</button>
+              </>
+            ) : (
+              <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between' }}>
+                <div>
+                  {categoryModalMode === 'edit' && (
+                    <button onClick={() => setCategoryModalMode('view')} className="admin-btn admin-btn-secondary">Chuyển sang Chế độ Xem</button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button onClick={() => { setIsCategoryModalOpen(false); resetCatForm(); }} className="admin-btn admin-btn-secondary">Hủy</button>
+                  <button className="admin-btn admin-btn-primary" disabled={!!catSlugError || !!catNameError || !newCatName || !newCatSlug}>
+                    {categoryModalMode === 'add' ? 'Thêm danh mục' : 'Lưu thay đổi'}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', opacity: categoryModalMode === 'view' ? 0.8 : 1, pointerEvents: categoryModalMode === 'view' ? 'none' : 'auto' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Thuộc loại <span style={{color: 'red'}}>*</span></label>
             <div style={{ position: 'relative' }} ref={typeDropdownRef}>
               <div 
-                onClick={() => { setShowTypeDropdown(!showTypeDropdown); setShowStatusDropdown(false); }}
+                onClick={() => { if (categoryModalMode !== 'view') { setShowTypeDropdown(!showTypeDropdown); setShowStatusDropdown(false); } }}
                 className="admin-input"
                 style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: showTypeDropdown ? 'var(--accent)' : 'var(--border-color)' }}
               >
@@ -461,6 +511,7 @@ export default function AdminCategoriesPage() {
                 onChange={handleCatNameChange}
                 className="admin-input" 
                 style={ catNameError ? { borderColor: 'red' } : {} }
+                readOnly={categoryModalMode === 'view'}
               />
               {catNameError && <div style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>{catNameError}</div>}
             </div>
@@ -473,6 +524,7 @@ export default function AdminCategoriesPage() {
                 onChange={handleCatSlugChange}
                 className="admin-input"
                 style={ catSlugError ? { borderColor: 'red' } : {} }
+                readOnly={categoryModalMode === 'view'}
               />
               {catSlugError && <div style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>{catSlugError}</div>}
             </div>
@@ -480,7 +532,7 @@ export default function AdminCategoriesPage() {
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Ảnh minh họa</label>
             <div 
-              onClick={() => document.getElementById('cat-image-upload')?.click()}
+              onClick={() => { if (categoryModalMode !== 'view') document.getElementById('cat-image-upload')?.click(); }}
               style={{ border: '1px dashed var(--border-color)', borderRadius: '8px', padding: '32px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
             >
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
@@ -498,6 +550,7 @@ export default function AdminCategoriesPage() {
                 value={newCatOrder}
                 onChange={(e) => setNewCatOrder(parseInt(e.target.value) || 1)}
                 className="admin-input" 
+                readOnly={categoryModalMode === 'view'}
               />
               <button 
                 type="button" 
@@ -524,7 +577,7 @@ export default function AdminCategoriesPage() {
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Trạng thái</label>
               <div style={{ position: 'relative' }} ref={statusDropdownRef}>
                 <div 
-                  onClick={() => { setShowStatusDropdown(!showStatusDropdown); setShowTypeDropdown(false); }}
+                  onClick={() => { if (categoryModalMode !== 'view') { setShowStatusDropdown(!showStatusDropdown); setShowTypeDropdown(false); } }}
                   className="admin-input"
                   style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: showStatusDropdown ? 'var(--accent)' : 'var(--border-color)' }}
                 >
