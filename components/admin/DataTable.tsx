@@ -25,6 +25,21 @@ interface DataTableProps<T> {
 
 export default function DataTable<T>({ columns, data, onRowClick, actions, pageSize = 10, selectable = false, selectedKeys = new Set(), onSelectionChange, rowKey, isLoading = false }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [openDropdownRow, setOpenDropdownRow] = useState<number | null>(null);
+  const dropdownRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (openDropdownRow !== null) {
+        const currentDropdown = dropdownRefs.current[openDropdownRow];
+        if (currentDropdown && !currentDropdown.contains(e.target as Node)) {
+          setOpenDropdownRow(null);
+        }
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openDropdownRow]);
   const totalItems = data.length;
   const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -44,8 +59,8 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
   const showNavButtons = totalPages > 3;
 
   return (
-    <div style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-      <div style={{ overflowX: 'auto' }}>
+    <div style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+      <div>
         <table className="admin-table">
           <thead>
             <tr>
@@ -126,14 +141,27 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
                     </td>
                   ))}
                   {actions && (
-                    <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                      <div className="dropdown" style={{ position: 'relative', display: 'inline-block' }}>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
+                    <td style={{ textAlign: 'right' }}>
+                      <div ref={(el) => { dropdownRefs.current[rIdx] = el; }} style={{ position: 'relative', display: 'inline-block' }}>
+                        <button 
+                          onClick={() => setOpenDropdownRow(openDropdownRow === rIdx ? null : rIdx)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
+                        >
                           <MoreHorizontal size={18} />
                         </button>
-                        <div style={{ display: 'none' }}>
-                           {actions(item)}
-                        </div>
+                        {openDropdownRow === rIdx && (
+                          <div 
+                            onClick={() => setOpenDropdownRow(null)}
+                            style={{ 
+                              position: 'absolute', 
+                              right: 0, 
+                              zIndex: 50,
+                              ...(paginatedData.length > 3 && rIdx >= paginatedData.length - 2 ? { bottom: '100%', marginBottom: '2px' } : { top: '100%', marginTop: '2px' })
+                            }}
+                          >
+                             {actions(item)}
+                          </div>
+                        )}
                       </div>
                     </td>
                   )}
