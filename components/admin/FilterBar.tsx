@@ -20,6 +20,7 @@ interface FilterBarProps {
     label: string;
     onClick: () => void;
   };
+  customActions?: React.ReactNode;
 }
 
 export default function FilterBar({ 
@@ -29,7 +30,8 @@ export default function FilterBar({
   filters = [],
   onFilterChange,
   onExport,
-  primaryAction
+  primaryAction,
+  customActions
 }: FilterBarProps) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -78,7 +80,7 @@ export default function FilterBar({
         {onExport && (
           <button 
             onClick={onExport}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'white', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+            className="admin-btn admin-btn-secondary"
           >
             <Download size={16} /> Export
           </button>
@@ -86,11 +88,12 @@ export default function FilterBar({
         {primaryAction && (
           <button 
             onClick={primaryAction.onClick}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', border: 'none', background: 'var(--text-primary)', color: 'white', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+            className="admin-btn admin-btn-primary"
           >
             <Plus size={16} /> {primaryAction.label}
           </button>
         )}
+        {customActions}
       </div>
     </div>
   );

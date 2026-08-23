@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import AdminPageTabs from '@/components/admin/AdminPageTabs';
 import DataTable, { Column } from '@/components/admin/DataTable';
 import FilterBar from '@/components/admin/FilterBar';
+import Modal from '@/components/admin/Modal';
+import { Trash2, Plus } from 'lucide-react';
 
 const TABS = [
   { id: 'main', label: 'Danh mục chính', count: 8 },
@@ -81,6 +83,13 @@ export default function AdminCategoriesPage() {
   const [search, setSearch] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [isAddTypeOpen, setIsAddTypeOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+
+  React.useEffect(() => {
+    setSelectedKeys(new Set());
+  }, [activeTab]);
 
   React.useEffect(() => {
     fetch('/api/categories')
@@ -139,9 +148,18 @@ export default function AdminCategoriesPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Quản lý Danh mục</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Thiết lập các thuộc tính phân loại sản phẩm để hỗ trợ tìm kiếm và lọc dữ liệu.</p>
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Quản lý Danh mục</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Thiết lập các thuộc tính phân loại sản phẩm để hỗ trợ tìm kiếm và lọc dữ liệu.</p>
+        </div>
+        <button 
+          onClick={() => setIsAddTypeOpen(true)}
+          className="admin-btn admin-btn-primary"
+        >
+          <Plus size={16} />
+          Thêm loại
+        </button>
       </div>
 
       <AdminPageTabs tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -150,16 +168,40 @@ export default function AdminCategoriesPage() {
         searchPlaceholder="Tìm kiếm danh mục..."
         searchValue={search}
         onSearchChange={setSearch}
-        primaryAction={{
-          label: 'Thêm danh mục mới',
-          onClick: () => alert('Mở popup thêm danh mục')
-        }}
+        customActions={
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            {selectedKeys.size > 0 && (
+              <button 
+                onClick={() => {
+                  if(confirm(`Bạn có chắc muốn xóa ${selectedKeys.size} danh mục?`)) {
+                    setSelectedKeys(new Set());
+                  }
+                }}
+                className="admin-btn admin-btn-danger"
+              >
+                <Trash2 size={16} />
+                Xóa danh mục ({selectedKeys.size})
+              </button>
+            )}
+            <button 
+              onClick={() => setIsAddCategoryOpen(true)}
+              className="admin-btn admin-btn-primary"
+            >
+              <Plus size={16} />
+              Thêm danh mục
+            </button>
+          </div>
+        }
       />
 
       <DataTable 
         columns={columns}
         data={filtered}
         isLoading={loading}
+        selectable={true}
+        selectedKeys={selectedKeys}
+        onSelectionChange={setSelectedKeys}
+        rowKey={(item) => item.id}
         actions={(item) => (
           <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px', position: 'absolute', right: 0, top: '30px', zIndex: 10, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', minWidth: '120px', display: 'flex', flexDirection: 'column' }}>
             <button style={{ padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', borderRadius: '4px' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>Chỉnh sửa</button>
@@ -167,6 +209,85 @@ export default function AdminCategoriesPage() {
           </div>
         )}
       />
+
+      {/* Modal Thêm Loại Danh Mục */}
+      <Modal 
+        isOpen={isAddTypeOpen} 
+        onClose={() => setIsAddTypeOpen(false)} 
+        title="Thêm loại danh mục mới"
+        footer={
+          <>
+            <button onClick={() => setIsAddTypeOpen(false)} className="admin-btn admin-btn-secondary">Hủy</button>
+            <button className="admin-btn admin-btn-primary">Lưu loại danh mục</button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Tên loại <span style={{color: 'red'}}>*</span></label>
+            <input type="text" placeholder="VD: Không gian, Màu sắc..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Mã (ID) <span style={{color: 'red'}}>*</span></label>
+            <input type="text" placeholder="VD: space, color..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Thêm Danh Mục */}
+      <Modal 
+        isOpen={isAddCategoryOpen} 
+        onClose={() => setIsAddCategoryOpen(false)} 
+        title="Thêm danh mục mới"
+        width="600px"
+        footer={
+          <>
+            <button onClick={() => setIsAddCategoryOpen(false)} className="admin-btn admin-btn-secondary">Hủy</button>
+            <button className="admin-btn admin-btn-primary">Thêm danh mục</button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Thuộc loại <span style={{color: 'red'}}>*</span></label>
+            <select defaultValue={activeTab} style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
+              {TABS.map(tab => (
+                <option key={tab.id} value={tab.id}>{tab.label}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Tên danh mục <span style={{color: 'red'}}>*</span></label>
+              <input type="text" placeholder="Nhập tên..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Đường dẫn (Slug)</label>
+              <input type="text" placeholder="Tự động tạo..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-secondary)', color: 'var(--text-muted)', outline: 'none' }} readOnly />
+            </div>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Ảnh minh họa</label>
+            <div style={{ border: '1px dashed var(--border-color)', borderRadius: '8px', padding: '24px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-secondary)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Click hoặc kéo thả ảnh vào đây</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Thứ tự hiển thị</label>
+              <input type="number" defaultValue={1} style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Trạng thái</label>
+              <select style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
+                <option value="Hiển thị">Hiển thị</option>
+                <option value="Đã ẩn">Đã ẩn</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 }

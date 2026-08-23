@@ -44,3 +44,48 @@ body.admin-body {
   background-color: var(--accent);
 }
 
+/* Admin Global Buttons */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.admin-btn-primary {
+  background: var(--accent);
+  color: white;
+}
+.admin-btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+}
+
+.admin-btn-secondary {
+  background: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.admin-btn-secondary:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-muted);
+}
+
+.admin-btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+}
+.admin-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(220, 38, 38);
+}
+

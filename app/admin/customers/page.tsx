@@ -185,20 +185,6 @@ export default function AdminCustomersPage() {
       )
     },
     {
-      key: 'labels',
-      header: 'Nhãn nội bộ',
-      width: '1%',
-      render: (item) => (
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-          {item.labels.length > 0 ? item.labels.map((lbl, idx) => (
-            <span key={idx} style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: lbl === 'VIP' ? 'rgba(245, 158, 11, 0.1)' : lbl === 'Khiếu nại' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: lbl === 'VIP' ? '#F59E0B' : lbl === 'Khiếu nại' ? '#EF4444' : '#3B82F6', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Tag size={10} /> {lbl}
-            </span>
-          )) : <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>-</span>}
-        </div>
-      )
-    },
-    {
       key: 'lastPurchase',
       header: 'Mua gần đây',
       width: '1%',
