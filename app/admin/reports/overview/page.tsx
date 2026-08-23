@@ -189,7 +189,7 @@ export default function AdminOverviewPage() {
               </div>
           </div>
           
-          <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'var(--accent)', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#fff', fontWeight: 600, fontSize: '12px' }}>
+          <button className="admin-btn admin-btn-primary">
             <Download size={16} /> Xuất báo cáo
           </button>
         </div>

@@ -89,3 +89,106 @@ body.admin-body {
   color: rgb(220, 38, 38);
 }
 
+/* Close Button with Rotation */
+.admin-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  padding: 4px;
+}
+.admin-close-btn:hover {
+  transform: rotate(180deg);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+/* Admin Input & Select */
+.admin-input, .admin-select {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.admin-input:focus, .admin-select:focus {
+  border-color: var(--accent);
+}
+.admin-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* Admin Search Wrapper */
+.admin-search-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 16px;
+  min-width: 260px;
+}
+.admin-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  width: 100%;
+  color: var(--text-primary);
+}
+
+/* Admin Filter Bar */
+.admin-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  flex-wrap: nowrap;
+}
+
+/* Admin Data Table */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.admin-table th {
+  padding: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+.admin-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+.admin-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Admin Checkbox */
+.admin-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  accent-color: var(--accent);
+}

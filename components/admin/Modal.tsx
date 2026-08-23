@@ -35,7 +35,7 @@ export default function Modal({ isOpen, onClose, title, children, footer, width 
       <div style={{ position: 'relative', background: 'var(--bg-primary)', borderRadius: '12px', width: width, maxWidth: '90vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
         <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{title}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+          <button onClick={onClose} className="admin-close-btn" aria-label="Đóng">
             <X size={20} />
           </button>
         </div>

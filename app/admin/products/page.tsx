@@ -214,20 +214,20 @@ export default function AdminProductsPage() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Danh sách sản phẩm, giá bán và tình trạng tồn kho.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ position: 'relative', width: '280px' }}>
+          <div className="admin-search-wrapper" style={{ width: '280px', padding: '10px 16px' }}>
+            <Search size={16} color="var(--text-muted)" style={{ marginRight: '8px' }} />
             <input 
               type="text" 
               placeholder="Tìm kiếm sản phẩm, mã SKU..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '10px 16px 10px 40px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
+              className="admin-search-input"
             />
-            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
           </div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 500, fontSize: '13px', transition: 'all 0.2s' }}>
+          <button className="admin-btn admin-btn-secondary">
             <Download size={16} /> Xuất
           </button>
-          <button onClick={() => router.push('/admin/products/new')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'var(--accent)', border: 'none', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 500, fontSize: '13px', transition: 'all 0.2s' }}>
+          <button onClick={() => router.push('/admin/products/new')} className="admin-btn admin-btn-primary">
             <Plus size={16} /> Thêm sản phẩm
           </button>
         </div>
@@ -283,7 +283,7 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div ref={filterRef} style={{ display: 'flex', gap: '16px', flexWrap: 'nowrap', alignItems: 'center', padding: '16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--card-shadow)', marginBottom: '24px' }}>
+      <div ref={filterRef} className="admin-filter-bar" style={{ marginBottom: '24px' }}>
         
         {/* Sort Filter */}
         <div style={{ display: 'flex', gap: '4px' }}>

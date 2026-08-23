@@ -46,45 +46,39 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
   return (
     <div style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="admin-table">
           <thead>
-            <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+            <tr>
               {selectable && (
-                <th style={{ padding: '16px', width: '40px', textAlign: 'center' }}>
-                  <div 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!onSelectionChange || !rowKey) return;
-                      const allSelected = paginatedData.length > 0 && paginatedData.every(item => selectedKeys.has(rowKey(item)));
-                      if (!allSelected) {
-                        const newKeys = new Set(selectedKeys);
-                        paginatedData.forEach(item => newKeys.add(rowKey(item)));
-                        onSelectionChange(newKeys);
-                      } else {
-                        const newKeys = new Set(selectedKeys);
-                        paginatedData.forEach(item => newKeys.delete(rowKey(item)));
-                        onSelectionChange(newKeys);
-                      }
-                    }}
-                    style={{ 
-                      cursor: 'pointer', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      color: (paginatedData.length > 0 && paginatedData.every(item => rowKey && selectedKeys.has(rowKey(item)))) ? 'var(--accent)' : 'var(--text-muted)'
-                    }}
-                  >
-                    {(paginatedData.length > 0 && paginatedData.every(item => rowKey && selectedKeys.has(rowKey(item)))) ? <CheckSquare size={16} /> : <Square size={16} />}
-                  </div>
+                <th style={{ width: '40px', textAlign: 'center' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', margin: 0 }}>
+                    <input 
+                      type="checkbox" 
+                      className="admin-checkbox"
+                      checked={paginatedData.length > 0 && paginatedData.every(item => rowKey && selectedKeys.has(rowKey(item)))}
+                      onChange={(e) => {
+                        if (!onSelectionChange || !rowKey) return;
+                        if (e.target.checked) {
+                          const newKeys = new Set(selectedKeys);
+                          paginatedData.forEach(item => newKeys.add(rowKey(item)));
+                          onSelectionChange(newKeys);
+                        } else {
+                          const newKeys = new Set(selectedKeys);
+                          paginatedData.forEach(item => newKeys.delete(rowKey(item)));
+                          onSelectionChange(newKeys);
+                        }
+                      }}
+                    />
+                  </label>
                 </th>
               )}
               {columns.map((col, idx) => (
-                <th key={idx} style={{ padding: '16px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', width: col.width }}>
+                <th key={idx} style={{ width: col.width }}>
                   {col.header}
                 </th>
               ))}
               {actions && (
-                <th style={{ padding: '16px', width: '60px' }}></th>
+                <th style={{ width: '60px' }}></th>
               )}
             </tr>
           </thead>
@@ -105,42 +99,34 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
               paginatedData.map((item, rIdx) => (
                 <tr 
                   key={rIdx} 
-                  style={{ borderBottom: '1px solid var(--border-color)', cursor: onRowClick ? 'pointer' : 'default', transition: 'background 0.2s' }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  style={{ cursor: onRowClick ? 'pointer' : 'default' }}
                   onClick={() => onRowClick && onRowClick(item)}
                 >
                   {selectable && rowKey && (
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <div 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!onSelectionChange) return;
-                          const newKeys = new Set(selectedKeys);
-                          const isChecked = selectedKeys.has(rowKey(item));
-                          if (!isChecked) newKeys.add(rowKey(item));
-                          else newKeys.delete(rowKey(item));
-                          onSelectionChange(newKeys);
-                        }}
-                        style={{ 
-                          cursor: 'pointer', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          color: selectedKeys.has(rowKey(item)) ? 'var(--accent)' : 'var(--text-muted)'
-                        }}
-                      >
-                        {selectedKeys.has(rowKey(item)) ? <CheckSquare size={16} /> : <Square size={16} />}
-                      </div>
+                    <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', margin: 0 }}>
+                        <input 
+                          type="checkbox" 
+                          className="admin-checkbox"
+                          checked={selectedKeys.has(rowKey(item))}
+                          onChange={(e) => {
+                            if (!onSelectionChange) return;
+                            const newKeys = new Set(selectedKeys);
+                            if (e.target.checked) newKeys.add(rowKey(item));
+                            else newKeys.delete(rowKey(item));
+                            onSelectionChange(newKeys);
+                          }}
+                        />
+                      </label>
                     </td>
                   )}
                   {columns.map((col, cIdx) => (
-                    <td key={cIdx} style={{ padding: '16px', fontSize: '14px', color: 'var(--text-primary)', whiteSpace: col.width === '1%' ? 'nowrap' : 'normal' }}>
+                    <td key={cIdx} style={{ fontSize: '14px', color: 'var(--text-primary)', whiteSpace: col.width === '1%' ? 'nowrap' : 'normal' }}>
                       {col.render ? col.render(item) : (item as any)[col.key]}
                     </td>
                   ))}
                   {actions && (
-                    <td style={{ padding: '16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                    <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                       <div className="dropdown" style={{ position: 'relative', display: 'inline-block' }}>
                         <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
                           <MoreHorizontal size={18} />

@@ -87,6 +87,30 @@ export default function AdminCategoriesPage() {
   const [isAddTypeOpen, setIsAddTypeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
 
+  // States cho modal Thêm Loại
+  const [newTypeName, setNewTypeName] = useState('');
+  const [newTypeId, setNewTypeId] = useState('');
+  const [isTypeIdEdited, setIsTypeIdEdited] = useState(false);
+  const [typeIdError, setTypeIdError] = useState('');
+
+  // States cho modal Thêm Danh Mục
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatSlug, setNewCatSlug] = useState('');
+  const [isCatSlugEdited, setIsCatSlugEdited] = useState(false);
+  const [catSlugError, setCatSlugError] = useState('');
+
+  const generateSlug = (str: string) => {
+    return str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .replace(/([^0-9a-z-\s])/g, '')
+      .replace(/(\s+)/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   React.useEffect(() => {
     setSelectedKeys(new Set());
   }, [activeTab]);
@@ -106,6 +130,71 @@ export default function AdminCategoriesPage() {
 
   const currentData = activeTab === 'main' ? categories : (SAMPLE_CATEGORIES[activeTab] || []);
   const filtered = currentData.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+
+  const handleTypeNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewTypeName(val);
+    if (!isTypeIdEdited) {
+      const slug = generateSlug(val);
+      setNewTypeId(slug);
+      validateTypeId(slug);
+    }
+  };
+
+  const handleTypeIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewTypeId(val);
+    setIsTypeIdEdited(true);
+    validateTypeId(val);
+  };
+
+  const validateTypeId = (id: string) => {
+    if (TABS.some(tab => tab.id === id)) {
+      setTypeIdError('Mã ID này đã tồn tại!');
+    } else {
+      setTypeIdError('');
+    }
+  };
+
+  const handleCatNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewCatName(val);
+    if (!isCatSlugEdited) {
+      const slug = generateSlug(val);
+      setNewCatSlug(slug);
+      validateCatSlug(slug);
+    }
+  };
+
+  const handleCatSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewCatSlug(val);
+    setIsCatSlugEdited(true);
+    validateCatSlug(val);
+  };
+
+  const validateCatSlug = (slug: string) => {
+    if (currentData.some(c => c.slug === slug)) {
+      setCatSlugError('Đường dẫn này đã tồn tại trong loại danh mục hiện tại!');
+    } else {
+      setCatSlugError('');
+    }
+  };
+
+  // Reset form khi đóng modal
+  const resetTypeForm = () => {
+    setNewTypeName('');
+    setNewTypeId('');
+    setIsTypeIdEdited(false);
+    setTypeIdError('');
+  };
+
+  const resetCatForm = () => {
+    setNewCatName('');
+    setNewCatSlug('');
+    setIsCatSlugEdited(false);
+    setCatSlugError('');
+  };
 
   const columns: Column<Category>[] = [
     {
@@ -213,23 +302,37 @@ export default function AdminCategoriesPage() {
       {/* Modal Thêm Loại Danh Mục */}
       <Modal 
         isOpen={isAddTypeOpen} 
-        onClose={() => setIsAddTypeOpen(false)} 
+        onClose={() => { setIsAddTypeOpen(false); resetTypeForm(); }} 
         title="Thêm loại danh mục mới"
         footer={
           <>
-            <button onClick={() => setIsAddTypeOpen(false)} className="admin-btn admin-btn-secondary">Hủy</button>
-            <button className="admin-btn admin-btn-primary">Lưu loại danh mục</button>
+            <button onClick={() => { setIsAddTypeOpen(false); resetTypeForm(); }} className="admin-btn admin-btn-secondary">Hủy</button>
+            <button className="admin-btn admin-btn-primary" disabled={!!typeIdError || !newTypeName || !newTypeId}>Lưu loại danh mục</button>
           </>
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Tên loại <span style={{color: 'red'}}>*</span></label>
-            <input type="text" placeholder="VD: Không gian, Màu sắc..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+            <input 
+              type="text" 
+              placeholder="VD: Không gian, Màu sắc..." 
+              value={newTypeName}
+              onChange={handleTypeNameChange}
+              className="admin-input" 
+            />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Mã (ID) <span style={{color: 'red'}}>*</span></label>
-            <input type="text" placeholder="VD: space, color..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+            <input 
+              type="text" 
+              placeholder="VD: space, color..." 
+              value={newTypeId}
+              onChange={handleTypeIdChange}
+              className="admin-input"
+              style={ typeIdError ? { borderColor: 'red' } : {} }
+            />
+            {typeIdError && <div style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>{typeIdError}</div>}
           </div>
         </div>
       </Modal>
@@ -237,20 +340,20 @@ export default function AdminCategoriesPage() {
       {/* Modal Thêm Danh Mục */}
       <Modal 
         isOpen={isAddCategoryOpen} 
-        onClose={() => setIsAddCategoryOpen(false)} 
+        onClose={() => { setIsAddCategoryOpen(false); resetCatForm(); }} 
         title="Thêm danh mục mới"
         width="600px"
         footer={
           <>
-            <button onClick={() => setIsAddCategoryOpen(false)} className="admin-btn admin-btn-secondary">Hủy</button>
-            <button className="admin-btn admin-btn-primary">Thêm danh mục</button>
+            <button onClick={() => { setIsAddCategoryOpen(false); resetCatForm(); }} className="admin-btn admin-btn-secondary">Hủy</button>
+            <button className="admin-btn admin-btn-primary" disabled={!!catSlugError || !newCatName || !newCatSlug}>Thêm danh mục</button>
           </>
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Thuộc loại <span style={{color: 'red'}}>*</span></label>
-            <select defaultValue={activeTab} style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
+            <select defaultValue={activeTab} className="admin-select">
               {TABS.map(tab => (
                 <option key={tab.id} value={tab.id}>{tab.label}</option>
               ))}
@@ -259,11 +362,25 @@ export default function AdminCategoriesPage() {
           <div style={{ display: 'flex', gap: '16px' }}>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Tên danh mục <span style={{color: 'red'}}>*</span></label>
-              <input type="text" placeholder="Nhập tên..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              <input 
+                type="text" 
+                placeholder="Nhập tên..." 
+                value={newCatName}
+                onChange={handleCatNameChange}
+                className="admin-input" 
+              />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Đường dẫn (Slug)</label>
-              <input type="text" placeholder="Tự động tạo..." style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-secondary)', color: 'var(--text-muted)', outline: 'none' }} readOnly />
+              <input 
+                type="text" 
+                placeholder="Tự động tạo..." 
+                value={newCatSlug}
+                onChange={handleCatSlugChange}
+                className="admin-input"
+                style={ catSlugError ? { borderColor: 'red' } : {} }
+              />
+              {catSlugError && <div style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>{catSlugError}</div>}
             </div>
           </div>
           <div>
@@ -275,11 +392,11 @@ export default function AdminCategoriesPage() {
           <div style={{ display: 'flex', gap: '16px' }}>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Thứ tự hiển thị</label>
-              <input type="number" defaultValue={1} style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              <input type="number" defaultValue={1} className="admin-input" />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Trạng thái</label>
-              <select style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
+              <select className="admin-select">
                 <option value="Hiển thị">Hiển thị</option>
                 <option value="Đã ẩn">Đã ẩn</option>
               </select>

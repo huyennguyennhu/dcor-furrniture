@@ -188,7 +188,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
         {!isEdit && (
           <button 
             type="submit"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: 600, cursor: 'pointer' }}
+            className="admin-btn admin-btn-primary"
           >
             <Save size={18} /> Lưu sản phẩm mới
           </button>
@@ -224,7 +224,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
             <button 
               type="button" 
               onClick={() => setViewMode(!viewMode)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+              className="admin-btn admin-btn-secondary"
             >
               {viewMode ? <Edit2 size={16} /> : <Eye size={16} />}
               {viewMode ? 'Chỉnh sửa' : 'Xem'}
@@ -233,12 +233,13 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               <button 
                 type="submit"
                 disabled={!isModified}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '8px', border: 'none', background: isModified ? 'var(--accent)' : 'var(--bg-tertiary)', color: isModified ? 'white' : 'var(--text-muted)', fontWeight: 600, cursor: isModified ? 'pointer' : 'not-allowed', fontSize: '13px', transition: 'all 0.2s' }}
+                className="admin-btn admin-btn-primary"
+                style={{ opacity: isModified ? 1 : 0.5, cursor: isModified ? 'pointer' : 'not-allowed' }}
               >
                 <Save size={16} /> Cập nhật sản phẩm
               </button>
             )}
-            <button type="button" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '8px', border: 'none', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+            <button type="button" className="admin-btn admin-btn-danger">
               <Trash2 size={16} /> Xóa sản phẩm
             </button>
           </div>
@@ -259,16 +260,16 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Tên sản phẩm <span style={{ color: '#ef4444' }}>*</span></label>
-                <input type="text" placeholder="Nhập tên sản phẩm..." defaultValue={initialData.name} disabled={viewMode} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1, boxSizing: 'border-box', background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '14px' }} />
+                <input type="text" placeholder="Nhập tên sản phẩm..." defaultValue={initialData.name} disabled={viewMode} required className="admin-input" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>SKU <span style={{ color: '#ef4444' }}>*</span></label>
-                <input type="text" placeholder="Nhập mã SKU..." value={mainSku} onChange={(e) => { setMainSku(e.target.value); setIsModified(true); }} disabled={viewMode} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1, boxSizing: 'border-box', background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '14px' }} />
+                <input type="text" placeholder="Nhập mã SKU..." value={mainSku} onChange={(e) => { setMainSku(e.target.value); setIsModified(true); }} disabled={viewMode} required className="admin-input" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Giá vốn (₫)</label>
                 <div style={{ position: 'relative' }}>
-                  <input type="text" placeholder="0" defaultValue={initialData.costPrice ? new Intl.NumberFormat('vi-VN').format(initialData.costPrice) : '0'} disabled={true} style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', outline: 'none', opacity: 0.7, boxSizing: 'border-box', cursor: 'not-allowed', color: 'var(--text-primary)', fontSize: '14px' }} />
+                  <input type="text" placeholder="0" defaultValue={initialData.costPrice ? new Intl.NumberFormat('vi-VN').format(initialData.costPrice) : '0'} disabled={true} className="admin-input" style={{ paddingLeft: '40px', opacity: 0.7, cursor: 'not-allowed', background: 'var(--bg-secondary)' }} />
                   <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>₫</span>
                 </div>
               </div>
@@ -289,10 +290,10 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 {specs.map((spec, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input type="text" placeholder="Tên thông số" value={spec.name} onChange={(e) => handleSpecChange(idx, 'name', e.target.value)} disabled={viewMode} style={{ width: '40%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '13px' }} />
-                    <input type="text" placeholder="Giá trị" value={spec.value} onChange={(e) => handleSpecChange(idx, 'value', e.target.value)} disabled={viewMode} style={{ width: '60%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '13px' }} />
+                    <input type="text" placeholder="Tên thông số" value={spec.name} onChange={(e) => handleSpecChange(idx, 'name', e.target.value)} disabled={viewMode} className="admin-input" style={{ width: '40%', opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }} />
+                    <input type="text" placeholder="Giá trị" value={spec.value} onChange={(e) => handleSpecChange(idx, 'value', e.target.value)} disabled={viewMode} className="admin-input" style={{ width: '60%', opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }} />
                     {!viewMode && (
-                      <button type="button" onClick={() => handleRemoveSpec(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
+                      <button type="button" onClick={() => handleRemoveSpec(idx)} className="admin-btn admin-btn-danger" style={{ padding: '8px' }}>
                         <Trash2 size={16} />
                       </button>
                     )}
@@ -320,7 +321,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Danh mục chính <span style={{ color: '#ef4444' }}>*</span></label>
-                <select disabled={viewMode} defaultValue={initialData.category} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '14px' }}>
+                <select disabled={viewMode} defaultValue={initialData.category} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
                   <option value="">Chọn danh mục</option>
                   {dbCategories.map(cat => (
                     <option key={cat.id} value={cat.slug}>{cat.name}</option>
@@ -329,7 +330,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Phòng</label>
-                <select disabled={viewMode} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '14px' }}>
+                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
                   <option value="">Không</option>
                   <option value="phong-khach">Phòng khách</option>
                   <option value="phong-ngu">Phòng ngủ</option>
@@ -339,7 +340,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Bộ sưu tập (Collection)</label>
-                <select disabled={viewMode} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '14px' }}>
+                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
                   <option value="">Không</option>
                   <option value="osaka">Osaka Collection</option>
                   <option value="indochine">Indochine Heritage</option>
@@ -348,7 +349,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Phong cách</label>
-                <select disabled={viewMode} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '14px' }}>
+                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
                   <option value="">Không</option>
                   <option value="hien-dai">Hiện đại</option>
                   <option value="co-dien">Cổ điển</option>
@@ -357,7 +358,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Chất liệu chính</label>
-                <select disabled={viewMode} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white', color: 'var(--text-primary)', fontSize: '14px' }}>
+                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
                   <option value="">Không</option>
                   <option value="go-soi">Gỗ sồi</option>
                   <option value="go-oc-cho">Gỗ óc chó</option>
@@ -367,7 +368,7 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Màu sắc cơ bản</label>
-                <select disabled={viewMode} style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', opacity: viewMode ? 0.7 : 1 }}>
+                <select disabled={viewMode} className="admin-select" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'var(--bg-primary)' : 'white' }}>
                   <option value="">Không</option>
                   <option value="trang">Trắng</option>
                   <option value="den">Đen</option>
@@ -436,15 +437,15 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
               
               {variants.length > 0 ? (
                 <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                    <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                  <table className="admin-table">
+                    <thead>
                       <tr>
-                        <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', width: '60px' }}>Ảnh</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Tên biến thể</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', width: '200px' }}>Mã SKU</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', width: '160px' }}>Giá bán (₫)</th>
-                        <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', width: '120px' }}>Tồn kho</th>
-                        {!viewMode && <th style={{ padding: '12px 16px', width: '50px' }}></th>}
+                        <th style={{ width: '60px' }}>Ảnh</th>
+                        <th>Tên biến thể</th>
+                        <th style={{ width: '200px' }}>Mã SKU</th>
+                        <th style={{ width: '160px' }}>Giá bán (₫)</th>
+                        <th style={{ width: '120px' }}>Tồn kho</th>
+                        {!viewMode && <th style={{ width: '50px' }}></th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -474,17 +475,17 @@ export default function ProductForm({ isEdit = false, initialData = {} }: { isEd
                               {getVariantDisplayName(v)}
                             </td>
                             <td style={{ padding: '12px 16px' }}>
-                              <input type="text" value={v.variantId || ''} onChange={(e) => { const nv = [...variants]; nv[idx].variantId = e.target.value; setVariants(nv); setIsModified(true); }} disabled={viewMode} placeholder="Nhập SKU..." style={{ padding: '8px', width: '100%', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none', background: viewMode ? 'transparent' : 'white', opacity: viewMode ? 0.7 : 1 }} />
+                              <input type="text" value={v.variantId || ''} onChange={(e) => { const nv = [...variants]; nv[idx].variantId = e.target.value; setVariants(nv); setIsModified(true); }} disabled={viewMode} placeholder="Nhập SKU..." className="admin-input" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'transparent' : 'white' }} />
                             </td>
                             <td style={{ padding: '12px 16px' }}>
-                              <input type="text" value={new Intl.NumberFormat('vi-VN').format(v.price || 0)} onChange={(e) => { const raw = e.target.value.replace(/\D/g, ''); const nv = [...variants]; nv[idx].price = raw ? Number(raw) : 0; setVariants(nv); setIsModified(true); }} disabled={viewMode} style={{ padding: '8px', width: '100%', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none', background: viewMode ? 'transparent' : 'white', opacity: viewMode ? 0.7 : 1 }} />
+                              <input type="text" value={new Intl.NumberFormat('vi-VN').format(v.price || 0)} onChange={(e) => { const raw = e.target.value.replace(/\D/g, ''); const nv = [...variants]; nv[idx].price = raw ? Number(raw) : 0; setVariants(nv); setIsModified(true); }} disabled={viewMode} className="admin-input" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'transparent' : 'white' }} />
                             </td>
                             <td style={{ padding: '12px 16px' }}>
-                              <input type="number" value={v.stock || 0} onChange={(e) => { const nv = [...variants]; nv[idx].stock = Number(e.target.value); setVariants(nv); setIsModified(true); }} disabled={viewMode} style={{ padding: '8px', width: '100%', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none', background: viewMode ? 'transparent' : 'white', opacity: viewMode ? 0.7 : 1 }} />
+                              <input type="number" value={v.stock || 0} onChange={(e) => { const nv = [...variants]; nv[idx].stock = Number(e.target.value); setVariants(nv); setIsModified(true); }} disabled={viewMode} className="admin-input" style={{ opacity: viewMode ? 0.7 : 1, background: viewMode ? 'transparent' : 'white' }} />
                             </td>
                             {!viewMode && (
                               <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                <button type="button" onClick={() => { const nv = [...variants]; nv.splice(idx, 1); setVariants(nv); setIsModified(true); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', borderRadius: '4px' }}>
+                                <button type="button" onClick={() => { const nv = [...variants]; nv.splice(idx, 1); setVariants(nv); setIsModified(true); }} className="admin-btn admin-btn-danger" style={{ padding: '8px' }}>
                                   <Trash2 size={16} />
                                 </button>
                               </td>

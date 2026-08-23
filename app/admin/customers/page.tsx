@@ -228,18 +228,18 @@ export default function AdminCustomersPage() {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {/* Search */}
-          <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 16px', minWidth: '260px' }}>
+          <div className="admin-search-wrapper">
             <Search size={16} color="var(--text-muted)" style={{ marginRight: '8px' }} />
             <input 
               type="text" 
               placeholder="Tìm tên, SĐT, Email, ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', width: '100%', color: 'var(--text-primary)' }}
+              className="admin-search-input"
             />
           </div>
 
-          <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', background: 'var(--accent)', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#fff', fontWeight: 600, fontSize: '13px', height: '36px' }}>
+          <button className="admin-btn admin-btn-primary" style={{ height: '36px', padding: '0 16px' }}>
             <Download size={16} /> Xuất dữ liệu
           </button>
         </div>
@@ -281,7 +281,7 @@ export default function AdminCustomersPage() {
       </div>
 
       {/* Filter Bar */}
-      <div ref={filterRef} style={{ display: 'flex', gap: '16px', flexWrap: 'nowrap', alignItems: 'center', padding: '16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--card-shadow)' }}>
+      <div ref={filterRef} className="admin-filter-bar">
         
         {/* Sort Filter */}
         <div style={{ display: 'flex', gap: '4px' }}>
