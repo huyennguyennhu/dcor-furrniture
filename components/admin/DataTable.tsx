@@ -9,6 +9,7 @@ export interface Column<T> {
   render?: (item: T) => React.ReactNode;
   width?: string | number;
   align?: 'left' | 'center' | 'right';
+  sortable?: boolean;
 }
 
 interface DataTableProps<T> {
