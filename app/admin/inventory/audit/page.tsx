@@ -309,7 +309,7 @@ export default function InventoryAuditPage() {
                       let rowStyle = {};
                       let diffDisplay = <span style={{ color: 'var(--text-muted)' }}>-</span>;
 
-                      if (item.sku !== '' && actualStock !== null) {
+                      if (item.sku !== '' && diff !== null) {
                         if (diff === 0) {
                           rowStyle = { backgroundColor: 'rgba(34, 197, 94, 0.05)' };
                           diffDisplay = <span style={{ color: 'rgb(34, 197, 94)', fontWeight: 600 }}>Khớp</span>;
