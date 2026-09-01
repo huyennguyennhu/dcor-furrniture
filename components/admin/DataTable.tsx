@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreHorizontal, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, CheckSquare, Square } from 'lucide-react';
+import { MoreHorizontal, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ChevronDown, ChevronRight as ChevronRightIcon } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
   header: string;
   render?: (item: T) => React.ReactNode;
   width?: string | number;
+  align?: 'left' | 'center' | 'right';
 }
 
 interface DataTableProps<T> {
@@ -21,11 +22,13 @@ interface DataTableProps<T> {
   onSelectionChange?: (keys: Set<string>) => void;
   rowKey?: (item: T) => string;
   isLoading?: boolean;
+  expandableContent?: (item: T) => React.ReactNode;
 }
 
-export default function DataTable<T>({ columns, data, onRowClick, actions, pageSize = 10, selectable = false, selectedKeys = new Set(), onSelectionChange, rowKey, isLoading = false }: DataTableProps<T>) {
+export default function DataTable<T>({ columns, data, onRowClick, actions, pageSize = 10, selectable = false, selectedKeys = new Set(), onSelectionChange, rowKey, isLoading = false, expandableContent }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdownRow, setOpenDropdownRow] = useState<number | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const dropdownRefs = React.useRef<(HTMLDivElement | null)[]>([]);
 
   React.useEffect(() => {
@@ -64,6 +67,7 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
         <table className="admin-table">
           <thead>
             <tr>
+              {expandableContent && <th style={{ width: '40px' }}></th>}
               {selectable && (
                 <th style={{ width: '40px', textAlign: 'center' }}>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', margin: 0 }}>
@@ -88,7 +92,7 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
                 </th>
               )}
               {columns.map((col, idx) => (
-                <th key={idx} style={{ width: col.width }}>
+                <th key={idx} style={{ width: col.width, textAlign: col.align || 'left' }}>
                   {col.header}
                 </th>
               ))}
@@ -100,23 +104,34 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0)} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0) + (expandableContent ? 1 : 0)} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Đang tải dữ liệu...
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0)} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0) + (expandableContent ? 1 : 0)} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Không có dữ liệu
                 </td>
               </tr>
             ) : (
               paginatedData.map((item, rIdx) => (
-                <tr 
-                  key={rIdx} 
-                  style={{ cursor: onRowClick ? 'pointer' : 'default' }}
-                  onClick={() => onRowClick && onRowClick(item)}
-                >
+                <React.Fragment key={rIdx}>
+                  <tr 
+                    style={{ cursor: onRowClick ? 'pointer' : 'default', background: expandedRows.has(rIdx) ? 'var(--bg-secondary)' : 'transparent' }}
+                    onClick={() => onRowClick && onRowClick(item)}
+                  >
+                    {expandableContent && (
+                      <td style={{ textAlign: 'center', cursor: 'pointer' }} onClick={(e) => {
+                        e.stopPropagation();
+                        const newSet = new Set(expandedRows);
+                        if (newSet.has(rIdx)) newSet.delete(rIdx);
+                        else newSet.add(rIdx);
+                        setExpandedRows(newSet);
+                      }}>
+                        {expandedRows.has(rIdx) ? <ChevronDown size={18} color="var(--text-muted)" /> : <ChevronRightIcon size={18} color="var(--text-muted)" />}
+                      </td>
+                    )}
                   {selectable && rowKey && (
                     <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                       <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', margin: 0 }}>
@@ -136,12 +151,12 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
                     </td>
                   )}
                   {columns.map((col, cIdx) => (
-                    <td key={cIdx} style={{ fontSize: '14px', color: 'var(--text-primary)', whiteSpace: col.width === '1%' ? 'nowrap' : 'normal' }}>
+                    <td key={cIdx} style={{ fontSize: '14px', color: 'var(--text-primary)', whiteSpace: col.width === '1%' ? 'nowrap' : 'normal', textAlign: col.align || 'left' }}>
                       {col.render ? col.render(item) : (item as any)[col.key]}
                     </td>
                   ))}
                   {actions && (
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                       <div ref={(el) => { dropdownRefs.current[rIdx] = el; }} style={{ position: 'relative', display: 'inline-block' }}>
                         <button 
                           onClick={() => setOpenDropdownRow(openDropdownRow === rIdx ? null : rIdx)}
@@ -166,6 +181,16 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
                     </td>
                   )}
                 </tr>
+                {expandableContent && expandedRows.has(rIdx) && (
+                  <tr>
+                    <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0) + (expandableContent ? 1 : 0)} style={{ padding: 0, borderBottom: '1px solid var(--border-color)' }}>
+                      <div style={{ padding: '16px 24px', background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
+                        {expandableContent(item)}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
               ))
             )}
           </tbody>

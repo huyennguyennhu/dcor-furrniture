@@ -50,7 +50,12 @@ const MENU_ITEMS = [
   {
     title: 'Quản lý tồn kho',
     icon: <Archive size={20} />,
-    href: '/admin/inventory'
+    href: '/admin/inventory',
+    subItems: [
+      { title: 'Tồn kho', href: '/admin/inventory' },
+      { title: 'Kiểm kê', href: '/admin/inventory/audit' },
+      { title: 'Lịch sử biến động', href: '/admin/inventory/history' },
+    ]
   },
   {
     title: 'Quản lý đơn hàng',
@@ -65,7 +70,11 @@ const MENU_ITEMS = [
   {
     title: 'Quản lý khuyến mãi',
     icon: <Tag size={20} />,
-    href: '/admin/promotions'
+    href: '/admin/promotions',
+    subItems: [
+      { title: 'Mã giảm giá', href: '/admin/promotions/vouchers' },
+      { title: 'Chiến dịch', href: '/admin/promotions/campaigns' },
+    ]
   },
   {
     title: 'Lịch tư vấn',
@@ -105,16 +114,31 @@ export default function AdminSidebar() {
   const [hoveredMenu, setHoveredMenu] = useState<{ href: string, top: number } | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
+  // Calculate activeHref based on longest prefix match
+  let activeHref = '';
+  let maxLen = 0;
+  for (const item of MENU_ITEMS) {
+    if (item.href === pathname || pathname.startsWith(item.href + '/')) {
+      if (item.href.length > maxLen) { activeHref = item.href; maxLen = item.href.length; }
+    }
+    if (item.subItems) {
+      for (const sub of item.subItems) {
+        if (sub.href === pathname || pathname.startsWith(sub.href + '/')) {
+          if (sub.href.length > maxLen) { activeHref = sub.href; maxLen = sub.href.length; }
+        }
+      }
+    }
+  }
+
   // Initialize active openMenu based on pathname
   useEffect(() => {
-    const activeItem = MENU_ITEMS.find(item => 
-      item.href === pathname || 
-      item.subItems?.some(sub => pathname === sub.href)
-    );
-    if (activeItem) {
-      setOpenMenu(activeItem.href);
+    for (const item of MENU_ITEMS) {
+      if (item.href === activeHref || (item.subItems && item.subItems.some(sub => sub.href === activeHref))) {
+        setOpenMenu(item.href);
+        break;
+      }
     }
-  }, [pathname]);
+  }, [activeHref]);
 
   const toggleMenu = (href: string) => {
     if (isCollapsed) setIsCollapsed(false); // Auto expand if opening a menu while collapsed
@@ -122,8 +146,7 @@ export default function AdminSidebar() {
   };
 
   const isParentActive = (item: any) => {
-    if (item.subItems) return item.subItems.some((sub: any) => pathname === sub.href);
-    return pathname === item.href || pathname.startsWith(item.href + '/');
+    return item.href === activeHref || (item.subItems && item.subItems.some((sub: any) => sub.href === activeHref));
   };
 
   const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -254,7 +277,7 @@ export default function AdminSidebar() {
                     <div style={{ overflow: 'hidden' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: '44px', marginTop: '4px', gap: '2px' }}>
                         {item.subItems.map((sub, sIdx) => {
-                          const isSubActive = pathname === sub.href;
+                          const isSubActive = sub.href === activeHref;
                           return (
                             <Link 
                               key={sIdx} 
@@ -298,7 +321,7 @@ export default function AdminSidebar() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       {item.subItems.map((sub, sIdx) => {
-                        const isSubActive = pathname === sub.href;
+                        const isSubActive = sub.href === activeHref;
                         return (
                           <Link 
                             key={sIdx}

@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 function capitalizeWords(str: string) {
-  console.log("rebuilding products API route...");
   return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 }
 
