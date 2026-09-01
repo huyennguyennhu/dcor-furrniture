@@ -53,7 +53,7 @@ interface AuditItem {
 
 export default function InventoryAuditPage() {
   const [data, setData] = useState(mockAudits);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showModal, setShowModal] = useState<boolean | any>(false);
   const [modalLocation, setModalLocation] = useState('Kho Tổng (TP.HCM)');
 
