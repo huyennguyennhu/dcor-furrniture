@@ -181,7 +181,7 @@ export default function InventoryAuditPage() {
         data={data}
         onRowClick={(item) => setShowModal(item)}
         onSelectionChange={setSelectedIds}
-        selectedIds={selectedIds}
+        selectedKeys={selectedIds}
         actions={(item) => (
           <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '4px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
             <div 

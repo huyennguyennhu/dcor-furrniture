@@ -12,7 +12,7 @@ export default function InventoryPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
   // States cho Dropdown Location
   const [locationFilter, setLocationFilter] = useState('Tất cả chi nhánh');
@@ -218,7 +218,7 @@ export default function InventoryPage() {
         columns={columns}
         data={data}
         onSelectionChange={setSelectedIds}
-        selectedIds={selectedIds}
+        selectedKeys={selectedIds}
         expandableContent={(item) => {
           // Mock data cho biến thể
           const variants = ['Màu Trắng, Gỗ sồi', 'Màu Đen, Khung thép', 'Màu Xám, Bọc da'].map((vName, idx) => {
