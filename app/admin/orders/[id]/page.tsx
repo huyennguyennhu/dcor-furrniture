@@ -25,7 +25,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
             onClick={() => router.back()}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-secondary)' }}
+            style={{ border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-secondary)' }}
           >
             <ArrowLeft size={18} color="var(--text-primary)" />
           </button>
