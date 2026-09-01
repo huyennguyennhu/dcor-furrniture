@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2 } from 'lucide-react';
-import DataTable from '@/components/admin/DataTable';
+import DataTable, { Column } from '@/components/admin/DataTable';
 import CustomSelect from '@/components/admin/CustomSelect';
 
 const mockProducts = [
@@ -117,7 +117,7 @@ export default function InventoryAuditPage() {
     }));
   };
 
-  const columns = [
+  const columns: Column<any>[] = [
     { key: 'id', header: 'Mã kiểm kê', sortable: true, render: (item: any) => <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{item.id}</span> },
     { key: 'date', header: 'Ngày tạo', sortable: true },
     { key: 'location', header: 'Chi nhánh / Kho', sortable: true },

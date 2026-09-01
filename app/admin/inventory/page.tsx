@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, Image as ImageIcon, X } from 'lucide-react';
-import DataTable from '@/components/admin/DataTable';
+import DataTable, { Column } from '@/components/admin/DataTable';
 import CustomSelect from '@/components/admin/CustomSelect';
 import TransactionModal from '@/components/admin/TransactionModal';
 import { addInventoryTransaction } from '@/lib/data/inventoryHistory';
@@ -95,7 +95,7 @@ export default function InventoryPage() {
     fetchProducts();
   }, []);
 
-  const columns = [
+  const columns: Column<any>[] = [
     {
       key: 'product',
       header: 'Sản phẩm',
