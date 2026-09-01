@@ -184,7 +184,7 @@ export default function DataTable<T>({ columns, data, onRowClick, actions, pageS
                 </tr>
                 {expandableContent && expandedRows.has(rIdx) && (
                   <tr>
-                    <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0) + (expandableContent ? 1 : 0)} style={{ padding: 0, borderBottom: '1px solid var(--border-color)' }}>
+                    <td colSpan={columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0) + 1} style={{ padding: 0, borderBottom: '1px solid var(--border-color)' }}>
                       <div style={{ padding: '16px 24px', background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
                         {expandableContent(item)}
                       </div>
