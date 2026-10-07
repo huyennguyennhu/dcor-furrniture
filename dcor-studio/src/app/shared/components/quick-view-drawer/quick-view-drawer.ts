@@ -64,7 +64,7 @@ export class QuickViewDrawerComponent implements OnChanges {
     if (this.product?.productId) {
       this.isLoadingDetails = true;
       // Giả lập fetch API chi tiết
-      fetch(`/api/products/${this.product.productId}`)
+      fetch(`https://dcor-furrniture.onrender.com/api/products/${this.product.productId}`)
         .then(res => res.json())
         .then(data => {
           this.fullProduct = data;

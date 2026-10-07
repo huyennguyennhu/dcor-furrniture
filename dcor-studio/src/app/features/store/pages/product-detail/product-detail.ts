@@ -33,7 +33,7 @@ export class ProductDetailComponent implements OnInit {
   async loadProduct(id: string) {
     this.isLoading = true;
     try {
-      const res = await fetch(`/api/products/${id}`);
+      const res = await fetch(`https://dcor-furrniture.onrender.com/api/products/${id}`);
       if (res.ok) {
         const data = await res.json();
         this.product = data;

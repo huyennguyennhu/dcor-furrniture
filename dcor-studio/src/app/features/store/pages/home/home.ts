@@ -83,7 +83,7 @@ export class HomeComponent implements OnInit {
 
   async fetchProducts() {
     try {
-      const res = await fetch('/api/products');
+      const res = await fetch('https://dcor-furrniture.onrender.com/api/products');
       if (res.ok) {
         const data = await res.json();
         this.products = data;

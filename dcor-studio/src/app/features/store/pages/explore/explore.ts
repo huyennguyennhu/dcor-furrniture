@@ -60,8 +60,8 @@ export class ExploreComponent implements OnInit {
   async fetchData() {
     this.isLoading = true;
     try {
-      // Mocking fetch since we don't have real API yet, or using /api/products if it exists.
-      const res = await fetch('/api/products');
+      // Mocking fetch since we don't have real API yet, or using https://dcor-furrniture.onrender.com/api/products if it exists.
+      const res = await fetch('https://dcor-furrniture.onrender.com/api/products');
       if (res.ok) {
         const data = await res.json();
         this.products = data;

@@ -72,7 +72,7 @@ export class ProductsComponent implements OnInit {
 
   fetchProducts() {
     this.isLoading = true;
-    fetch('/api/products')
+    fetch('https://dcor-furrniture.onrender.com/api/products')
       .then(res => res.json())
       .then(data => {
         const mapped: Product[] = data.map((p: any) => ({
