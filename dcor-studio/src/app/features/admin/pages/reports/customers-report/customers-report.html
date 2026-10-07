@@ -1,0 +1,319 @@
+<div class="reports-container">
+      
+  <!-- Page Header & Toolbar -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Báo cáo khách hàng</h1>
+      <p style="color: var(--text-secondary); font-size: 14px;">Theo dõi hành vi, phân khúc và giá trị của khách hàng.</p>
+    </div>
+    
+    <button class="admin-btn admin-btn-primary" style="display: flex; align-items: center; gap: 8px;">
+      <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất báo cáo
+    </button>
+  </div>
+    
+  <!-- Filter Bar -->
+  <div #filterRef style="display: flex; gap: 16px; flex-wrap: nowrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
+    
+    <div style="display: flex;">
+      <div style="position: relative;">
+        <div (click)="toggleDropdown('time', $event)" [ngStyle]="{
+               'display': 'flex', 'align-items': 'center', 'gap': '8px', 'padding': '8px 16px', 
+               'background': 'var(--bg-primary)', 'border': '1px solid var(--border-color)', 
+               'border-radius': timeRange === 'custom' ? '8px 0 0 8px' : '8px', 
+               'border-right': timeRange === 'custom' ? 'none' : '1px solid var(--border-color)', 
+               'cursor': 'pointer'
+             }">
+          <lucide-angular [img]="icons.Calendar" size="16" color="var(--text-muted)"></lucide-angular>
+          <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ TIME_LABELS[timeRange] }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
+        </div>
+        <div [ngStyle]="{
+               'opacity': showTimeDropdown ? 1 : 0, 
+               'visibility': showTimeDropdown ? 'visible' : 'hidden', 
+               'transform': showTimeDropdown ? 'translateY(0)' : 'translateY(-10px)', 
+               'transition': 'all 0.2s ease', 'pointer-events': showTimeDropdown ? 'auto' : 'none',  
+               'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
+               'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
+               'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
+             }">
+            <div *ngFor="let key of timeLabelKeys" 
+                 (click)="setDropdownValue('time', key)" 
+                 [ngStyle]="{
+                   'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
+                   'border-bottom': '1px solid var(--border-color)', 
+                   'background': timeRange === key ? 'var(--bg-tertiary)' : 'transparent', 
+                   'color': timeRange === key ? 'var(--accent)' : 'var(--text-primary)'
+                 }">
+              {{ TIME_LABELS[key] }}
+            </div>
+          </div>
+      </div>
+      
+      <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0;">
+        <input type="date" style="border: none; background: transparent; outline: none; font-size: 12px; color: var(--text-primary);" value="2026-08-01" />
+        <span style="font-size: 12px; color: var(--text-muted);">-</span>
+        <input type="date" style="border: none; background: transparent; outline: none; font-size: 12px; color: var(--text-primary);" value="2026-08-07" />
+      </div>
+    </div>
+    
+    <div style="position: relative; flex: 1;">
+      <div (click)="toggleDropdown('tier', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
+        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ tier }}</span>
+        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
+      </div>
+      <div [ngStyle]="{
+             'opacity': showTierDropdown ? 1 : 0, 
+             'visibility': showTierDropdown ? 'visible' : 'hidden', 
+             'transform': showTierDropdown ? 'translateY(0)' : 'translateY(-10px)', 
+             'transition': 'all 0.2s ease', 'pointer-events': showTierDropdown ? 'auto' : 'none',  
+             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
+             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
+             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
+           }">
+          <div *ngFor="let opt of tiers" 
+               (click)="setDropdownValue('tier', opt)" 
+               [ngStyle]="{
+                 'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
+                 'border-bottom': '1px solid var(--border-color)', 
+                 'background': tier === opt ? 'var(--bg-tertiary)' : 'transparent', 
+                 'color': tier === opt ? 'var(--accent)' : 'var(--text-primary)'
+               }">
+            {{ opt }}
+          </div>
+        </div>
+    </div>
+
+    <div style="position: relative; flex: 1;">
+      <div (click)="toggleDropdown('location', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
+        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ location }}</span>
+        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
+      </div>
+      <div [ngStyle]="{
+             'opacity': showLocationDropdown ? 1 : 0, 
+             'visibility': showLocationDropdown ? 'visible' : 'hidden', 
+             'transform': showLocationDropdown ? 'translateY(0)' : 'translateY(-10px)', 
+             'transition': 'all 0.2s ease', 'pointer-events': showLocationDropdown ? 'auto' : 'none',  
+             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
+             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
+             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
+           }">
+          <div *ngFor="let opt of locations" 
+               (click)="setDropdownValue('location', opt)" 
+               [ngStyle]="{
+                 'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
+                 'border-bottom': '1px solid var(--border-color)', 
+                 'background': location === opt ? 'var(--bg-tertiary)' : 'transparent', 
+                 'color': location === opt ? 'var(--accent)' : 'var(--text-primary)'
+               }">
+            {{ opt }}
+          </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+    
+    <div class="report-card kpi-card">
+      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng khách hàng</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">2,450</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+        <span style="color: #2ecc71; font-weight: 600;">+120</span> so với tháng trước
+      </div>
+    </div>
+    
+    <div class="report-card kpi-card">
+      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách hàng mới</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">345</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+        Trong kỳ báo cáo
+      </div>
+    </div>
+    
+    <div class="report-card kpi-card">
+      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách quay lại</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">856</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+        <span style="color: #3498db; font-weight: 600;">Mua từ 2 lần</span>
+      </div>
+    </div>
+
+    <div class="report-card kpi-card">
+      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách hàng VIP</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">365</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+        Hạng Vàng & Kim cương
+      </div>
+    </div>
+    
+    <div class="report-card kpi-card">
+      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Chi tiêu TB</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">12,500K</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+        Trên mỗi khách hàng
+      </div>
+    </div>
+    
+    <div class="report-card kpi-card">
+      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tỷ lệ quay lại</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">35.8%</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+        <span style="color: #2ecc71; font-weight: 600;">+2.4%</span> so với tháng trước
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Charts Row 1 -->
+  <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+    <div class="report-card" style="overflow: visible;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Khách hàng mới theo thời gian</h3>
+        
+        <div style="position: relative;">
+          <div (click)="toggleDropdown('interval', $event)" style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted);">
+            Theo {{ interval | lowercase }} <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+          </div>
+          <div [ngStyle]="{
+                 'opacity': showIntervalDropdown ? 1 : 0, 
+                 'visibility': showIntervalDropdown ? 'visible' : 'hidden', 
+                 'transform': showIntervalDropdown ? 'translateY(0)' : 'translateY(-10px)', 
+                 'transition': 'all 0.2s ease', 'pointer-events': showIntervalDropdown ? 'auto' : 'none',  
+                 'position': 'absolute', 'top': '100%', 'right': '0', 'margin-top': '4px', 
+                 'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
+                 'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100px', 'overflow': 'hidden'
+               }">
+              <div *ngFor="let opt of intervals" 
+                   (click)="setDropdownValue('interval', opt)" 
+                   [ngStyle]="{
+                     'padding': '8px 12px', 'font-size': '12px', 'cursor': 'pointer', 
+                     'border-bottom': '1px solid var(--border-color)', 
+                     'background': interval === opt ? 'var(--bg-tertiary)' : 'transparent', 
+                     'color': interval === opt ? 'var(--accent)' : 'var(--text-primary)'
+                   }">
+                {{ opt }}
+              </div>
+            </div>
+        </div>
+      </div>
+      <div style="width: 100%; height: 300px; position: relative;">
+        <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Charts Row 2 -->
+  <div class="chart-grid-1">
+    <div class="report-card">
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Phân bố hạng thành viên</h3>
+      <div style="width: 100%; height: 300px; position: relative;">
+        <canvas baseChart [data]="pieChartData" [options]="pieChartOptions" [type]="'pie'"></canvas>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Phân bố khu vực</h3>
+      <div style="width: 100%; height: 300px; position: relative;">
+        <canvas baseChart [data]="locationChartData" [options]="locationChartOptions" [type]="'bar'"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Charts Row 3 -->
+  <div class="chart-grid-2">
+    <div class="report-card" style="display: flex; flex-direction: column;">
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Top khách hàng chi tiêu</h3>
+      <div style="flex: 1; overflow-x: auto;">
+        <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
+              <th style="padding: 12px 16px; font-weight: 500;">Khách hàng</th>
+              <th style="padding: 12px 16px; font-weight: 500;">Hạng</th>
+              <th style="padding: 12px 16px; font-weight: 500;">Số ĐH</th>
+              <th style="padding: 12px 16px; font-weight: 500; text-align: right;">Tổng chi tiêu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cust of topSpenders" style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 12px 16px; color: var(--text-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 32px; height: 32px; border-radius: 16px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
+                    <lucide-angular [img]="icons.Users" size="14" color="var(--accent)"></lucide-angular>
+                  </div>
+                  <div>
+                    <div style="font-weight: 500;">{{ cust.name }}</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">{{ cust.id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="padding: 12px 16px;">
+                <span [ngStyle]="{
+                  'padding': '4px 8px', 
+                  'border-radius': '4px', 
+                  'font-size': '12px', 
+                  'font-weight': 500,
+                  'background-color': cust.tier === 'Kim cương' ? 'rgba(155, 89, 182, 0.1)' : 
+                                   cust.tier === 'Vàng' ? 'rgba(241, 196, 15, 0.1)' : 'rgba(149, 165, 166, 0.1)',
+                  'color': cust.tier === 'Kim cương' ? '#9b59b6' : 
+                         cust.tier === 'Vàng' ? '#f39c12' : '#7f8c8d'
+                }">
+                  {{ cust.tier }}
+                </span>
+              </td>
+              <td style="padding: 12px 16px; color: var(--text-primary);">{{ cust.orders }}</td>
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600; text-align: right;">{{ cust.spent }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="report-card" style="display: flex; flex-direction: column;">
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Top khách hàng mua nhiều đơn</h3>
+      <div style="flex: 1; overflow-x: auto;">
+        <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
+              <th style="padding: 12px 16px; font-weight: 500;">Khách hàng</th>
+              <th style="padding: 12px 16px; font-weight: 500;">Hạng</th>
+              <th style="padding: 12px 16px; font-weight: 500;">Số ĐH</th>
+              <th style="padding: 12px 16px; font-weight: 500; text-align: right;">Tổng chi tiêu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cust of topOrderFreq" style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 12px 16px; color: var(--text-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 32px; height: 32px; border-radius: 16px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
+                    <lucide-angular [img]="icons.Users" size="14" color="var(--accent)"></lucide-angular>
+                  </div>
+                  <div>
+                    <div style="font-weight: 500;">{{ cust.name }}</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">{{ cust.id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="padding: 12px 16px;">
+                <span [ngStyle]="{
+                  'padding': '4px 8px', 
+                  'border-radius': '4px', 
+                  'font-size': '12px', 
+                  'font-weight': 500,
+                  'background-color': cust.tier === 'Kim cương' ? 'rgba(155, 89, 182, 0.1)' : 
+                                   cust.tier === 'Vàng' ? 'rgba(241, 196, 15, 0.1)' : 'rgba(149, 165, 166, 0.1)',
+                  'color': cust.tier === 'Kim cương' ? '#9b59b6' : 
+                         cust.tier === 'Vàng' ? '#f39c12' : '#7f8c8d'
+                }">
+                  {{ cust.tier }}
+                </span>
+              </td>
+              <td style="padding: 12px 16px; color: var(--text-primary);">{{ cust.orders }}</td>
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600; text-align: right;">{{ cust.spent }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,254 @@
+<div style="display: flex; flex-direction: column; min-height: 100vh;">
+  <!-- 1. Hero -->
+  <section class="hero-shoppable" id="hero">
+    <div class="hero-bg" [ngStyle]="{'transform': 'translateY(' + (scrollY * 0.35) + 'px)'}"></div>
+    <div class="hero-overlay"></div>
+    
+    <div class="hero-shoppable-content">
+      <span class="hero-eyebrow">Nội thất cao cấp</span>
+      <h1 class="hero-headline">
+        Biến ngôi nhà
+        <span class="hero-headline-accent" style="display: block; white-space: nowrap;">thành tổ ấm</span>
+      </h1>
+      <p class="hero-tagline">
+        Hơn 300 mẫu nội thất thiết kế độc quyền — tùy biến theo phong cách của bạn.
+      </p>
+    </div>
+
+    <!-- Interactive Hotspots -->
+    <div *ngFor="let spot of HERO_HOTSPOTS" 
+         class="hotspot" 
+         [class.active]="activeHotspot === spot.id"
+         [ngStyle]="{'left': spot.x + '%', 'top': spot.y + '%'}"
+         (mouseenter)="activeHotspot = spot.id"
+         (mouseleave)="activeHotspot = null">
+      <div class="hotspot-pulse"></div>
+      <div class="hotspot-dot"></div>
+      <div class="hotspot-tooltip">
+        <img [src]="spot.image" [alt]="spot.name_vi" class="hotspot-img" />
+        <div class="hotspot-info">
+          <span class="hotspot-name">{{ spot.name_vi }}</span>
+          <span class="hotspot-price">{{ spot.price }}</span>
+          <a [routerLink]="['/kham-pha', spot.productId]" class="hotspot-cta">
+            Xem chi tiết →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-scroll-cue">
+      <span>Khám phá</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- 2. Categories -->
+  <section class="categories-section" id="categories">
+    <div class="container">
+      <div class="section-header-simple">
+        <h2 class="section-title">Danh mục <span>sản phẩm</span></h2>
+        <p class="section-tagline">Khám phá bộ sưu tập nội thất đa dạng</p>
+      </div>
+      <div class="categories-grid">
+        <a *ngFor="let cat of categories"
+           [routerLink]="['/kham-pha']" [queryParams]="{category: cat.value}"
+           class="category-card"
+           [id]="'cat-' + cat.value">
+          <div class="category-card-img">
+            <img [src]="cat.img" [alt]="cat.label" loading="lazy" />
+            <div class="category-card-overlay"></div>
+          </div>
+          <div class="category-card-body">
+            <span class="category-card-emoji">{{ cat.emoji }}</span>
+            <span class="category-card-name">{{ cat.label }}</span>
+            <span class="category-card-count">{{ cat.desc }}</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Featured -->
+  <section class="featured-section" id="featured">
+    <div class="container">
+      <div *ngIf="isLoading" style="height: 400px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+        Đang tải sản phẩm nổi bật...
+      </div>
+      
+      <ng-container *ngIf="!isLoading">
+        <div class="featured-header">
+          <div>
+            <h2 class="section-title">Sản phẩm <span>nổi bật</span></h2>
+            <p class="section-tagline">Được yêu thích nhiều nhất tháng này</p>
+          </div>
+          <div class="featured-tabs">
+            <button class="featured-tab" [class.active]="featuredTab === 'newest'" (click)="featuredTab = 'newest'">
+              Mới nhất
+            </button>
+            <button class="featured-tab" [class.active]="featuredTab === 'sale'" (click)="featuredTab = 'sale'">
+              Đang sale
+            </button>
+          </div>
+        </div>
+
+        <div class="featured-grid">
+          <a *ngFor="let prod of displayedFeatured" [routerLink]="['/kham-pha', prod.productId]" class="featured-card">
+            <div class="featured-card-img">
+              <img class="img-primary" [src]="prod.images[0] || ''"  loading="lazy" />
+              <img class="img-secondary" [src]="prod.images[1] || prod.images[0] || ''"  loading="lazy" />
+              <div *ngIf="isOnSale(prod)" class="sale-badge">SALE</div>
+              <div class="featured-card-hover-cta">Xem chi tiết</div>
+            </div>
+            <div class="featured-card-body">
+              <span class="featured-card-cat">{{ prod.category }}</span>
+              <h3 class="featured-card-name">{{ prod.shortDescription_vi || prod.shortDescription }}</h3>
+              <div class="featured-card-price-row">
+                <ng-container *ngIf="isOnSale(prod) && getLowestPriceFormatted(prod); else noSale">
+                  <span class="price-sale">{{ getLowestPriceFormatted(prod) }}</span>
+                  <span class="price-original">{{ getProductPriceFormatted(prod) }}</span>
+                </ng-container>
+                <ng-template #noSale>
+                  <span class="price-main">{{ getProductPriceFormatted(prod) }}</span>
+                </ng-template>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <a href="#catalog" class="cta-btn-outline">Xem tất cả sản phẩm</a>
+        </div>
+      </ng-container>
+    </div>
+  </section>
+
+  <!-- 4. Collections -->
+  <section class="collections-section" id="collections">
+    <div class="container">
+      <div class="collections-header">
+        <div>
+          <h2 class="section-title">Phong cách <span>thiết kế</span></h2>
+          <p class="section-tagline">Chọn phong cách — chúng tôi lo phần còn lại</p>
+        </div>
+        <div class="collection-nav-btns">
+          <button class="col-nav-btn" (click)="scrollCollections(track, 'left')" aria-label="Cuộn trái">‹</button>
+          <button class="col-nav-btn" (click)="scrollCollections(track, 'right')" aria-label="Cuộn phải">›</button>
+        </div>
+      </div>
+
+      <div class="collections-track" #track>
+        <div *ngFor="let col of STYLE_COLLECTIONS" class="collection-card" [ngStyle]="{'--col-accent': col.accentColor}">
+          <div class="collection-card-img">
+            <img [src]="col.coverImage" [alt]="col.name_vi" loading="lazy" />
+            <div class="collection-card-gradient"></div>
+          </div>
+          <div class="collection-card-body">
+            <span class="collection-tag">{{ col.name }}</span>
+            <h3 class="collection-name">{{ col.name_vi }}</h3>
+            <p class="collection-desc">{{ col.description_vi }}</p>
+            <a href="#catalog" class="collection-cta" [ngStyle]="{'background-color': col.accentColor}">
+              Khám phá
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Inspirations -->
+  <section *ngIf="!isLoading" class="inspirations-section" id="inspirations">
+    <div class="container">
+      <div class="section-header-simple">
+        <h2 class="section-title">Không gian <span>mẫu</span></h2>
+        <p class="section-tagline">Bộ sưu tập nội thất hoàn chỉnh theo diện tích và phong cách sống</p>
+      </div>
+
+      <div class="inspirations-grid">
+        <div *ngFor="let room of ROOM_INSPIRATIONS" class="inspiration-card" [class.expanded]="activeRoom === room.id">
+          <div class="inspiration-card-img" (click)="activeRoom = activeRoom === room.id ? null : room.id">
+            <img [src]="room.coverImage" [alt]="room.name_vi" loading="lazy" />
+            <div class="inspiration-overlay">
+              <span class="inspiration-tag">{{ room.tag }}</span>
+              <h3 class="inspiration-name">{{ room.name_vi }}</h3>
+              <span class="inspiration-area">{{ room.area }}</span>
+            </div>
+            <div class="inspiration-toggle">{{ activeRoom === room.id ? '−' : '+' }}</div>
+          </div>
+
+          <div *ngIf="activeRoom === room.id" class="inspiration-products">
+            <p class="inspiration-desc">{{ room.description_vi }}</p>
+            <div class="inspiration-products-list">
+              <a *ngFor="let prod of getProductsForRoom(room.productIds)" [routerLink]="['/kham-pha', prod.productId]" class="insp-prod-item">
+                <img [src]="prod.images[0]"  />
+                <div>
+                  <span class="insp-prod-name">{{ prod.shortDescription_vi || prod.shortDescription }}</span>
+                  <span class="insp-prod-price">{{ isOnSale(prod) ? getLowestPriceFormatted(prod) : getProductPriceFormatted(prod) }}</span>
+                </div>
+              </a>
+            </div>
+            <a href="#catalog" class="insp-view-all">Xem toàn bộ sản phẩm →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Trust + Reviews -->
+  <section class="trust-section" id="why-us">
+    <div class="container">
+      <!-- Trust grid -->
+      <div class="section-header-simple" style="margin-bottom: 50px;">
+        <h2 class="section-title">Vì sao chọn <span>DCor Studio?</span></h2>
+      </div>
+      <div class="trust-grid">
+        <div *ngFor="let item of TRUST_ITEMS" class="trust-card">
+          <span class="trust-icon" style="display: inline-flex; margin-bottom: 20px; color: var(--accent);">
+            <!-- Icon placeholder -->
+            <svg *ngIf="item.icon === 'leaf'" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            <svg *ngIf="item.icon === 'shield'" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <svg *ngIf="item.icon === 'truck'" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><path d="M15 18H9"/><circle cx="17" cy="18" r="2"/></svg>
+            <svg *ngIf="item.icon === 'wrench'" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </span>
+          <h4 class="trust-title">{{ item.title }}</h4>
+          <p class="trust-desc">{{ item.desc }}</p>
+        </div>
+      </div>
+
+      <!-- Reviews -->
+      <div class="reviews-block" style="margin-top: 80px;">
+        <h2 class="section-title" style="text-align: center; margin-bottom: 40px;">
+          Khách hàng <span>nói gì?</span>
+        </h2>
+        <div class="review-carousel">
+          <button class="review-nav review-nav-prev" (click)="reviewIdx = reviewIdx > 0 ? reviewIdx - 1 : 0">‹</button>
+          <div class="review-card">
+            <div class="review-stars">
+              <span *ngFor="let star of getStarsArray(STATIC_REVIEWS[reviewIdx].rating)">★</span>
+            </div>
+            <p class="review-text">"{{ STATIC_REVIEWS[reviewIdx].text }}"</p>
+            <div class="review-product">{{ STATIC_REVIEWS[reviewIdx].product }}</div>
+            <div class="review-author">
+              <div class="review-avatar">{{ STATIC_REVIEWS[reviewIdx].name[0] }}</div>
+              <div>
+                <span class="review-name">{{ STATIC_REVIEWS[reviewIdx].name }}</span>
+                <span class="review-city">{{ STATIC_REVIEWS[reviewIdx].city }}</span>
+              </div>
+            </div>
+          </div>
+          <button class="review-nav review-nav-next" (click)="reviewIdx = reviewIdx < STATIC_REVIEWS.length - 1 ? reviewIdx + 1 : reviewIdx">›</button>
+        </div>
+        <div class="review-dots">
+          <button *ngFor="let rv of STATIC_REVIEWS; let i = index" 
+                  class="review-dot" 
+                  [class.active]="i === reviewIdx" 
+                  (click)="reviewIdx = i"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Catalog Section -->
+  <app-catalog-section *ngIf="!isLoading" [products]="products" [categories]="categories"></app-catalog-section>
+
+</div>
+

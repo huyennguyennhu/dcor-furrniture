@@ -1,0 +1,262 @@
+<div style="display: flex; flex-direction: column; gap: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Kiểm kê kho</h1>
+      <p style="color: var(--text-secondary); font-size: 14px;">Theo dõi lịch sử và tạo phiếu đối chiếu tồn kho hệ thống với thực tế.</p>
+    </div>
+    <button (click)="openModal()" class="admin-btn admin-btn-primary" style="display: flex; align-items: center; gap: 8px;">
+      <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Tạo phiếu kiểm kê
+    </button>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+    <div style="position: relative; width: 300px;">
+      <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
+      <input type="text" placeholder="Tìm theo mã phiếu kiểm kê..." style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+    </div>
+    
+    <button style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); cursor: pointer; font-size: 13px;">
+      <lucide-angular [img]="icons.Filter" size="14"></lucide-angular> Tất cả chi nhánh
+    </button>
+    <button style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); cursor: pointer; font-size: 13px;">
+      <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular> Trạng thái
+    </button>
+  </div>
+
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+            <th style="padding: 16px; width: 40px; text-align: center;">
+              <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll($event)" style="cursor: pointer;" />
+            </th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Mã kiểm kê</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Ngày tạo</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chi nhánh / Kho</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Người thực hiện</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Số lượng SP kiểm</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Sai lệch</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Trạng thái</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of data" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
+              (click)="openModal(item)"
+              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseout="this.style.background='transparent'">
+            <td style="padding: 16px; text-align: center;" (click)="$event.stopPropagation()">
+              <input type="checkbox" [checked]="selectedIds.has(item.id)" (change)="toggleSelection(item.id, $event)" style="cursor: pointer;" />
+            </td>
+            <td style="padding: 16px;">
+              <span style="font-weight: 600; color: var(--accent);">{{ item.id }}</span>
+            </td>
+            <td style="padding: 16px;">{{ item.date }}</td>
+            <td style="padding: 16px;">{{ item.location }}</td>
+            <td style="padding: 16px;">{{ item.creator }}</td>
+            <td style="padding: 16px;">{{ item.totalItems }}</td>
+            <td style="padding: 16px;">
+              <span [ngStyle]="{
+                'font-weight': 600,
+                'color': item.discrepancyItems > 0 ? 'rgb(239, 68, 68)' : 'rgb(34, 197, 94)'
+              }">
+                {{ item.discrepancyItems > 0 ? item.discrepancyItems + ' SP lệch' : 'Khớp 100%' }}
+              </span>
+            </td>
+            <td style="padding: 16px;">
+              <span [ngStyle]="{
+                'padding': '4px 8px', 'border-radius': '4px', 'font-size': '12px', 'font-weight': 500,
+                'background': item.status === 'Hoạt động' || item.status === 'Hoàn tất' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+                'color': item.status === 'Hoạt động' || item.status === 'Hoàn tất' ? 'rgb(34, 197, 94)' : 'rgb(234, 179, 8)'
+              }">
+                {{ item.status }}
+              </span>
+            </td>
+            <td style="padding: 16px; position: relative;" (click)="$event.stopPropagation()">
+              <button (click)="activeActionMenu = activeActionMenu === item.id ? null : item.id" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='transparent'">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+
+              <div *ngIf="activeActionMenu === item.id" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: absolute; right: 0; top: 40px; z-index: 10; display: flex; flex-direction: column;">
+                <div (click)="activeActionMenu = null; alert('Tính năng đang phát triển')" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                  <lucide-angular [img]="icons.FileText" size="14"></lucide-angular> In phiếu kiểm
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create / View Audit Modal -->
+  <div *ngIf="showModal !== false" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100;">
+    <div style="background: var(--bg-primary); border-radius: 12px; width: 1000px; max-height: 90vh; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0;">
+          {{ showModal === true ? 'Tạo Phiếu Kiểm Kê Mới' : 'Chi tiết Phiếu Kiểm Kê ' + showModal.id }}
+        </h2>
+        <button (click)="closeModal()" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+      
+      <div style="display: flex; gap: 16px;">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Chi nhánh / Kho kiểm kê</label>
+          <ng-container *ngIf="showModal !== true">
+            <input type="text" [value]="showModal.location" disabled class="admin-input" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); outline: none; color: var(--text-primary);" />
+          </ng-container>
+          <ng-container *ngIf="showModal === true">
+            <select [(ngModel)]="modalLocation" class="admin-input" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); outline: none; color: var(--text-primary);">
+              <option value="Kho Tổng (TP.HCM)">Kho Tổng (TP.HCM)</option>
+              <option value="Kho Hà Nội">Kho Hà Nội</option>
+              <option value="Showroom Quận 1">Showroom Quận 1</option>
+            </select>
+          </ng-container>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Người phụ trách kiểm</label>
+          <input type="text" [value]="showModal !== true ? showModal.creator : 'Admin (Hiện tại)'" disabled class="admin-input" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); outline: none; color: var(--text-primary);" />
+        </div>
+      </div>
+
+      <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div>
+            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; margin-top: 0;">Danh sách sản phẩm kiểm kê</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Chọn sản phẩm/biến thể và nhập số lượng tồn thực tế đếm được.</p>
+          </div>
+          <button *ngIf="showModal === true" (click)="handleAddRow()" [disabled]="!canAddNewLine"
+            [ngStyle]="{
+              'display': 'flex', 'align-items': 'center', 'gap': '6px', 
+              'background': 'none', 'border': '1px dashed var(--accent)', 'color': 'var(--accent)', 
+              'padding': '8px 16px', 'border-radius': '6px', 'font-size': '13px', 'font-weight': 600, 
+              'cursor': canAddNewLine ? 'pointer' : 'not-allowed',
+              'opacity': canAddNewLine ? 1 : 0.5
+            }"
+          >
+            <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Thêm sản phẩm
+          </button>
+        </div>
+        
+        <table style="background: var(--bg-primary); color: var(--text-primary); border-radius: 8px; font-size: 13px; width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="font-size: 13px; color: var(--text-muted); text-align: left;">
+              <th style="width: 180px; padding: 12px 16px; font-weight: 600;">Mã SKU</th>
+              <th style="padding: 12px 16px; font-weight: 600;">Tên sản phẩm</th>
+              <th style="width: 180px; padding: 12px 16px; font-weight: 600;">Biến thể</th>
+              <th style="width: 80px; padding: 12px 16px; font-weight: 600; text-align: center;">Tồn HT</th>
+              <th style="width: 100px; padding: 12px 16px; font-weight: 600; text-align: center;">Tồn đếm</th>
+              <th style="width: 100px; padding: 12px 16px; font-weight: 600; text-align: center;">Chênh lệch</th>
+              <th *ngIf="showModal === true" style="width: 50px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngIf="showModal !== true">
+              <tr style="background-color: rgba(34, 197, 94, 0.05);">
+                <td style="padding: 12px 16px; font-weight: 600;">SF-OSA-3-BRW</td>
+                <td style="padding: 12px 16px;">Sofa Da Bò Osaka (Băng 3)</td>
+                <td style="padding: 12px 16px;">Nâu</td>
+                <td style="padding: 12px 16px; text-align: center;">25</td>
+                <td style="padding: 12px 16px;"><input type="text" [value]="25" [disabled]="showModal.status === 'Hoàn tất'" class="admin-input" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); text-align: center; font-size: 13px; background: var(--bg-primary); color: var(--text-primary);" /></td>
+                <td style="padding: 12px 16px; text-align: center; color: rgb(34, 197, 94); font-weight: 600;">Khớp</td>
+              </tr>
+              <tr style="background-color: rgba(239, 68, 68, 0.05);">
+                <td style="padding: 12px 16px; font-weight: 600;">BA-IND-WAL</td>
+                <td style="padding: 12px 16px;">Bàn ăn Indochine</td>
+                <td style="padding: 12px 16px;">Gỗ óc chó</td>
+                <td style="padding: 12px 16px; text-align: center;">3</td>
+                <td style="padding: 12px 16px;"><input type="text" [value]="2" [disabled]="showModal.status === 'Hoàn tất'" class="admin-input" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ef4444; text-align: center; font-size: 13px; color: #ef4444; font-weight: 600; background: var(--bg-primary);" /></td>
+                <td style="padding: 12px 16px; text-align: center; color: rgb(239, 68, 68); font-weight: 600;">-1 (Thiếu)</td>
+              </tr>
+            </ng-container>
+            
+            <ng-container *ngIf="showModal === true">
+              <tr *ngFor="let item of auditItems" 
+                  [ngStyle]="{
+                    'background-color': item.actualStock !== '' && +item.actualStock - +item.systemStock === 0 ? 'rgba(34, 197, 94, 0.05)' : 
+                                        item.actualStock !== '' && +item.actualStock - +item.systemStock > 0 ? 'rgba(59, 130, 246, 0.05)' :
+                                        item.actualStock !== '' && +item.actualStock - +item.systemStock < 0 ? 'rgba(239, 68, 68, 0.05)' : 'transparent'
+                  }">
+                <td style="padding: 8px 16px;">
+                  <select [ngModel]="item.sku" (ngModelChange)="handleUpdateRow(item.id, 'sku', $event)" class="admin-input" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;">
+                    <option value="">Tìm SKU...</option>
+                    <option *ngFor="let p of mockProducts" [value]="p.sku">{{ p.sku }}</option>
+                  </select>
+                </td>
+                <td style="padding: 8px 16px;">
+                  <select [ngModel]="item.productName" (ngModelChange)="handleUpdateRow(item.id, 'productName', $event)" class="admin-input" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;">
+                    <option value="">Chọn tên SP...</option>
+                    <option *ngFor="let name of getUniqueProductNames()" [value]="name">{{ name }}</option>
+                  </select>
+                </td>
+                <td style="padding: 8px 16px;">
+                  <select [ngModel]="item.sku" (ngModelChange)="handleUpdateRow(item.id, 'variant', $event)" [disabled]="!item.productName" class="admin-input" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;">
+                    <option value="">{{ item.productName ? 'Chọn biến thể...' : 'Vui lòng chọn SP trước' }}</option>
+                    <option *ngFor="let p of getVariantsForProduct(item.productName)" [value]="p.sku">{{ p.variant }}</option>
+                  </select>
+                </td>
+                <td style="padding: 8px 16px; text-align: center; font-weight: 600; color: var(--text-secondary);">
+                  {{ item.systemStock !== '' ? item.systemStock : '-' }}
+                </td>
+                <td style="padding: 8px 16px;">
+                  <input type="text" placeholder="0" [ngModel]="item.actualStock" (ngModelChange)="handleUpdateRow(item.id, 'actualStock', $event)" [disabled]="!item.sku" class="admin-input" 
+                    [ngStyle]="{
+                      'width': '100%', 'padding': '8px', 'border-radius': '6px', 'text-align': 'center', 'font-size': '13px', 'outline': 'none', 'background': 'var(--bg-primary)', 'color': 'var(--text-primary)',
+                      'border': item.sku !== '' && item.actualStock !== '' && +item.actualStock - +item.systemStock !== 0 ? 
+                                (+item.actualStock - +item.systemStock > 0 ? '1px solid rgb(59, 130, 246)' : '1px solid rgb(239, 68, 68)') : 
+                                '1px solid var(--border-color)'
+                    }" 
+                  />
+                </td>
+                <td style="padding: 8px 16px; text-align: center;">
+                  <ng-container *ngIf="item.sku !== '' && item.actualStock !== ''">
+                    <span *ngIf="+item.actualStock - +item.systemStock === 0" style="color: rgb(34, 197, 94); font-weight: 600;">Khớp</span>
+                    <span *ngIf="+item.actualStock - +item.systemStock > 0" style="color: rgb(59, 130, 246); font-weight: 600;">+{{ +item.actualStock - +item.systemStock }} (Dư)</span>
+                    <span *ngIf="+item.actualStock - +item.systemStock < 0" style="color: rgb(239, 68, 68); font-weight: 600;">{{ +item.actualStock - +item.systemStock }} (Thiếu)</span>
+                  </ng-container>
+                  <ng-container *ngIf="item.sku === '' || item.actualStock === ''">
+                    <span style="color: var(--text-muted);">-</span>
+                  </ng-container>
+                </td>
+                <td *ngIf="showModal === true" style="padding: 8px 16px; text-align: center;">
+                  <button (click)="handleRemoveRow(item.id)" [disabled]="auditItems.length === 1"
+                    [ngStyle]="{
+                      'background': 'none', 'border': 'none', 'cursor': auditItems.length === 1 ? 'not-allowed' : 'pointer',
+                      'color': auditItems.length === 1 ? 'var(--border-color)' : '#ef4444', 'padding': '4px'
+                    }"
+                    [title]="auditItems.length === 1 ? 'Không thể xóa dòng duy nhất' : 'Xóa dòng này'"
+                  >
+                    <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular>
+                  </button>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+        
+        <div *ngIf="showModal !== true" style="margin-top: 12px; font-size: 13px; color: rgb(239, 68, 68); font-weight: 500;">
+          Có 1 sản phẩm bị lệch số lượng. Vui lòng ghi chú nguyên nhân trước khi chốt kiểm kê.
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Ghi chú đợt kiểm kê</label>
+        <textarea 
+          rows="3" 
+          placeholder="Ví dụ: Bàn ăn Indochine bị vỡ 1 mặt kính trong quá trình vận chuyển..." 
+          class="admin-input" 
+          style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); outline: none; background: var(--bg-primary); color: var(--text-primary);"
+          [value]="showModal !== true && showModal.status === 'Hoàn tất' ? 'Phát hiện lệch 1 bàn do hư hỏng' : ''"
+          [disabled]="showModal !== true && showModal.status === 'Hoàn tất'"
+        ></textarea>
+      </div>
+
+      <div *ngIf="showModal === true || showModal.status !== 'Hoàn tất'" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button (click)="alert('Đã chốt sổ và cập nhật tồn kho!'); closeModal()" class="admin-btn admin-btn-primary">Hoàn tất kiểm kê & Chốt sổ</button>
+      </div>
+    </div>
+  </div>
+</div>

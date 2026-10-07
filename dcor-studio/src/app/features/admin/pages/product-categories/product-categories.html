@@ -1,0 +1,330 @@
+<div>
+  <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Quản lý Danh mục</h1>
+      <p style="color: var(--text-secondary);">Thiết lập các thuộc tính phân loại sản phẩm để hỗ trợ tìm kiếm và lọc dữ liệu.</p>
+    </div>
+    <button 
+      (click)="isAddTypeOpen = true"
+      class="admin-btn admin-btn-primary"
+    >
+      <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+      Thêm loại
+    </button>
+  </div>
+
+  <app-admin-page-tabs [tabs]="TABS" [activeTab]="activeTab" (tabChange)="onTabChange($event)"></app-admin-page-tabs>
+
+  <div style="display: flex; gap: 16px; margin-bottom: 24px; justify-content: space-between;">
+    <div class="admin-search-wrapper" style="width: 300px; padding: 10px 16px; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+      <input 
+        type="text" 
+        placeholder="Tìm kiếm danh mục..." 
+        [(ngModel)]="search"
+        style="border: none; background: transparent; outline: none; font-size: 14px; color: var(--text-primary); width: 100%;"
+      />
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button 
+        *ngIf="selectedKeys.size > 0"
+        (click)="deleteSelected()"
+        class="admin-btn"
+        style="background: #ef4444; color: white; border: 1px solid #ef4444; display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 8px; font-weight: 600;"
+      >
+        <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular>
+        Xóa danh mục ({{ selectedKeys.size }})
+      </button>
+      <button 
+        (click)="openCategoryModal('add')"
+        class="admin-btn admin-btn-primary"
+        style="display: flex; align-items: center; gap: 8px; height: 40px;"
+      >
+        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+        Thêm danh mục
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" style="padding: 40px; text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</div>
+
+  <div *ngIf="!loading" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 40px; text-align: center;">
+              <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll($event)" style="cursor: pointer;" />
+            </th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tên danh mục</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Số lượng sản phẩm</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Thứ tự hiển thị</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Trạng thái</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filtered" 
+              style="border-bottom: 1px solid var(--border-color);"
+              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseout="this.style.background='transparent'">
+            
+            <td style="padding: 16px; text-align: center;">
+              <input type="checkbox" [checked]="selectedKeys.has(item.id)" (change)="toggleSelection(item.id, $event)" style="cursor: pointer;" />
+            </td>
+
+            <td style="padding: 16px;">
+              <div style="font-weight: 600; color: var(--text-primary);">{{ item.name }}</div>
+              <div style="font-size: 12px; color: var(--text-muted);">/{{ item.slug }}</div>
+            </td>
+
+            <td style="padding: 16px;">
+              <span>{{ item.productsCount }} SP</span>
+            </td>
+
+            <td style="padding: 16px;">
+              <span>{{ item.order }}</span>
+            </td>
+
+            <td style="padding: 16px;">
+              <span [ngStyle]="{
+                'padding': '4px 8px',
+                'border-radius': '4px',
+                'font-size': '12px',
+                'font-weight': 600,
+                'background': item.status === 'Hiển thị' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                'color': item.status === 'Hiển thị' ? '#10b981' : '#64748b'
+              }">
+                {{ item.status }}
+              </span>
+            </td>
+
+            <td style="padding: 16px; position: relative;">
+              <button (click)="toggleActionMenu(item.id, $event)" class="action-menu-container" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='transparent'">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+
+              <div *ngIf="activeActionMenu === item.id" class="action-menu-container" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; position: absolute; right: 0; top: 40px; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); min-width: 160px; display: flex; flex-direction: column;">
+                <button (click)="openCategoryModal('edit', item)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: var(--text-primary);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Chỉnh sửa</button>
+                <button (click)="handleToggleStatus(item)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: var(--text-primary);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                  {{ item.status === 'Hiển thị' ? 'Ẩn danh mục' : 'Hiển thị danh mục' }}
+                </button>
+                <button (click)="activeActionMenu = null" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: var(--text-primary);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Xem sản phẩm</button>
+                <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
+                <button (click)="handleDeleteCategory(item)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: #ef4444;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Xóa</button>
+              </div>
+            </td>
+
+          </tr>
+          <tr *ngIf="filtered.length === 0">
+            <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">Không tìm thấy danh mục nào.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Thêm Loại Danh Mục -->
+  <div *ngIf="isAddTypeOpen" style="position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+    <div (click)="isAddTypeOpen = false; resetTypeForm();" style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"></div>
+    <div style="background: var(--bg-secondary); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); position: relative; z-index: 1001; display: flex; flex-direction: column; width: 100%; max-width: 500px; max-height: calc(100vh - 40px);">
+      <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">Thêm loại danh mục mới</h2>
+        <button (click)="isAddTypeOpen = false; resetTypeForm();" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      
+      <div style="padding: 24px; overflow-y: auto;">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Tên loại <span style="color: red;">*</span></label>
+            <input 
+              type="text" 
+              placeholder="VD: Không gian, Màu sắc..." 
+              [ngModel]="newTypeName"
+              (ngModelChange)="handleTypeNameChange($event)"
+              class="admin-input" 
+              [ngStyle]="typeNameError ? { 'border-color': 'red' } : {}"
+            />
+            <div *ngIf="typeNameError" style="color: red; font-size: 12px; margin-top: 4px;">{{ typeNameError }}</div>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Mã (ID) <span style="color: red;">*</span></label>
+            <input 
+              type="text" 
+              placeholder="VD: space, color..." 
+              [ngModel]="newTypeId"
+              (ngModelChange)="handleTypeIdChange($event)"
+              class="admin-input"
+              [ngStyle]="typeIdError ? { 'border-color': 'red' } : {}"
+            />
+            <div *ngIf="typeIdError" style="color: red; font-size: 12px; margin-top: 4px;">{{ typeIdError }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px;">
+        <button (click)="isAddTypeOpen = false; resetTypeForm();" class="admin-btn admin-btn-secondary">Hủy</button>
+        <button class="admin-btn admin-btn-primary" [disabled]="!!typeIdError || !!typeNameError || !newTypeName || !newTypeId">Lưu loại danh mục</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Danh Mục (Thêm/Sửa/Xem) -->
+  <div *ngIf="isCategoryModalOpen" style="position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+    <div (click)="isCategoryModalOpen = false; resetCatForm();" style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"></div>
+    <div style="background: var(--bg-secondary); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); position: relative; z-index: 1001; display: flex; flex-direction: column; width: 100%; max-width: 600px; max-height: calc(100vh - 40px);">
+      <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">{{ categoryModalMode === 'add' ? 'Thêm danh mục mới' : categoryModalMode === 'edit' ? 'Chỉnh sửa danh mục' : 'Xem chi tiết danh mục' }}</h2>
+        <button (click)="isCategoryModalOpen = false; resetCatForm();" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      
+      <div style="padding: 24px; overflow-y: auto;">
+        <div style="display: flex; flex-direction: column; gap: 16px;" [ngStyle]="{'opacity': categoryModalMode === 'view' ? 0.8 : 1, 'pointer-events': categoryModalMode === 'view' ? 'none' : 'auto'}">
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Thuộc loại <span style="color: red;">*</span></label>
+            <div style="position: relative;" #typeDropdownRef>
+              <div 
+                (click)="categoryModalMode !== 'view' && (showTypeDropdown = !showTypeDropdown); showStatusDropdown = false"
+                class="admin-input"
+                style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
+                [ngStyle]="{'border-color': showTypeDropdown ? 'var(--accent)' : 'var(--border-color)'}"
+              >
+                <span>{{ getTabLabel(newCatType) }}</span>
+                <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTypeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+              </div>
+              <div *ngIf="showTypeDropdown" style="position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; padding: 4px;">
+                <div *ngFor="let tab of TABS" 
+                  (click)="newCatType = tab.id; showTypeDropdown = false"
+                  style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                  [ngStyle]="{'color': newCatType === tab.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': newCatType === tab.id ? 600 : 400}"
+                  onmouseover="this.style.background='var(--bg-tertiary)'"
+                  onmouseout="this.style.background='transparent'"
+                >
+                  {{ tab.label }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 16px;">
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Tên danh mục <span style="color: red;">*</span></label>
+              <input 
+                type="text" 
+                placeholder="Nhập tên..." 
+                [ngModel]="newCatName"
+                (ngModelChange)="handleCatNameChange($event)"
+                class="admin-input" 
+                [ngStyle]="catNameError ? { 'border-color': 'red' } : {}"
+                [readOnly]="categoryModalMode === 'view'"
+              />
+              <div *ngIf="catNameError" style="color: red; font-size: 12px; margin-top: 4px;">{{ catNameError }}</div>
+            </div>
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Đường dẫn (Slug)</label>
+              <input 
+                type="text" 
+                placeholder="Tự động tạo..." 
+                [ngModel]="newCatSlug"
+                (ngModelChange)="handleCatSlugChange($event)"
+                class="admin-input"
+                [ngStyle]="catSlugError ? { 'border-color': 'red' } : {}"
+                [readOnly]="categoryModalMode === 'view'"
+              />
+              <div *ngIf="catSlugError" style="color: red; font-size: 12px; margin-top: 4px;">{{ catSlugError }}</div>
+            </div>
+          </div>
+
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Ảnh minh họa</label>
+            <div 
+              (click)="categoryModalMode !== 'view' && fileInput.click()"
+              style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 32px; text-align: center; cursor: pointer; background: var(--bg-secondary); display: flex; flex-direction: column; align-items: center; gap: 8px;"
+            >
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--bg-primary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
+                <lucide-angular [img]="icons.Plus" size="20"></lucide-angular>
+              </div>
+              <span style="font-size: 13px; color: var(--text-muted);">Click hoặc kéo thả ảnh vào đây</span>
+              <input type="file" #fileInput accept="image/*" style="display: none;" />
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 16px; align-items: flex-start;">
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Thứ tự hiển thị</label>
+              <input 
+                type="number" 
+                [(ngModel)]="newCatOrder"
+                class="admin-input" 
+                [readOnly]="categoryModalMode === 'view'"
+              />
+              <button 
+                type="button" 
+                (click)="showOrderDetails = !showOrderDetails"
+                style="background: none; border: none; color: var(--accent); font-size: 12px; margin-top: 8px; cursor: pointer; text-decoration: underline; padding: 0;"
+              >
+                {{ showOrderDetails ? 'Ẩn chi tiết' : 'Xem chi tiết thứ tự hiện tại' }}
+              </button>
+              <div *ngIf="showOrderDetails" style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px;">
+                <div style="margin-bottom: 8px; font-weight: 600;">Thứ tự hiện tại ({{ getTabLabel(newCatType) }}):</div>
+                <div style="max-height: 120px; overflow-y: auto; padding-right: 4px;">
+                  <div *ngFor="let c of getSortedCategoriesForOrder()" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+                    <span style="color: var(--text-secondary);">{{ c.name }}</span>
+                    <span style="font-weight: 600; color: var(--text-primary);">{{ c.order }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Trạng thái</label>
+              <div style="position: relative;" #statusDropdownRef>
+                <div 
+                  (click)="categoryModalMode !== 'view' && (showStatusDropdown = !showStatusDropdown); showTypeDropdown = false"
+                  class="admin-input"
+                  style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
+                  [ngStyle]="{'border-color': showStatusDropdown ? 'var(--accent)' : 'var(--border-color)'}"
+                >
+                  <span>{{ newCatStatus }}</span>
+                  <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showStatusDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+                </div>
+                <div *ngIf="showStatusDropdown" style="position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; padding: 4px;">
+                  <div *ngFor="let status of ['Hiển thị', 'Đã ẩn']" 
+                    (click)="newCatStatus = status; showStatusDropdown = false"
+                    style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                    [ngStyle]="{'color': newCatStatus === status ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': newCatStatus === status ? 600 : 400}"
+                    onmouseover="this.style.background='var(--bg-tertiary)'"
+                    onmouseout="this.style.background='transparent'"
+                  >
+                    {{ status }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; gap: 12px;" [ngStyle]="{'justify-content': categoryModalMode === 'view' ? 'flex-end' : 'space-between'}">
+        <ng-container *ngIf="categoryModalMode === 'view'">
+          <button (click)="isCategoryModalOpen = false" class="admin-btn admin-btn-secondary">Đóng</button>
+          <button (click)="setCategoryModalMode('edit')" class="admin-btn admin-btn-primary">Chỉnh sửa danh mục</button>
+        </ng-container>
+        <ng-container *ngIf="categoryModalMode !== 'view'">
+          <div>
+            <button *ngIf="categoryModalMode === 'edit'" (click)="setCategoryModalMode('view')" class="admin-btn admin-btn-secondary">Chuyển sang Chế độ Xem</button>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button (click)="isCategoryModalOpen = false; resetCatForm();" class="admin-btn admin-btn-secondary">Hủy</button>
+            <button class="admin-btn admin-btn-primary" [disabled]="!!catSlugError || !!catNameError || !newCatName || !newCatSlug">
+              {{ categoryModalMode === 'add' ? 'Thêm danh mục' : 'Lưu thay đổi' }}
+            </button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

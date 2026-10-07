@@ -1,0 +1,165 @@
+<header [class]="isDocked ? 'header-solid' : 'header-hero'">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+    
+    <a routerLink="/" class="logo">
+      <div class="logo-circle" style="overflow: hidden; padding: 0; background: transparent;">
+        <img src="/assets/favicon.png" alt="DCor Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+      </div>
+    </a>
+
+    <nav style="flex: 1; display: flex; justify-content: center;">
+      <ul style="display: flex; align-items: center; gap: 40px; list-style: none; margin: 0; padding: 0;">
+        <li>
+          <a routerLink="/kham-pha" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Khám phá</a>
+        </li>
+        <li>
+          <a routerLink="/thiet-ke" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Thiết kế</a>
+        </li>
+        <li>
+          <a routerLink="/community" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Cộng đồng</a>
+        </li>
+        <li>
+          <a routerLink="/blog" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Cảm hứng</a>
+        </li>
+        <li>
+          <a routerLink="/about" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Về DCor</a>
+        </li>
+      </ul>
+    </nav>
+
+    <div style="display: flex; align-items: center; gap: 16px;">
+      
+      <!-- Spacer for floating search bar to push things correctly -->
+      <div [ngStyle]="{'width': isDocked ? '260px' : '0px', 'transition': 'width 0.35s cubic-bezier(0.4,0,0.2,1)', 'height': '44px'}" aria-hidden="true"></div>
+
+      <!-- Floating Search Bar -->
+      <div class="floating-search-bar"
+           [ngStyle]="{
+             'position': 'absolute',
+             'right': isDocked ? (isLoggedIn ? '160px' : '230px') : '40px',
+             'top': isDocked ? '18px' : '96px',
+             'width': isDocked ? '260px' : '380px',
+             'z-index': '101',
+             'transition': 'all 0.35s cubic-bezier(0.4,0,0.2,1)',
+             'box-shadow': isDocked ? 'none' : '0 8px 32px rgba(0,0,0,0.15)'
+           }">
+        <div [ngStyle]="{
+               'display': 'flex', 'align-items': 'center', 'gap': '8px', 'box-sizing': 'border-box',
+               'background': isDocked ? 'var(--bg-tertiary)' : 'rgba(255,255,255,0.15)',
+               'backdrop-filter': 'blur(20px)', '-webkit-backdrop-filter': 'blur(20px)',
+               'border': '1px solid ' + (isDocked ? 'transparent' : 'rgba(255,255,255,0.3)'),
+               'border-radius': '50px',
+               'padding': isDocked ? '6px 8px 6px 14px' : '8px 10px 8px 18px',
+               'height': '44px',
+               'transition': 'background 0.35s ease, padding 0.35s ease, border-color 0.35s ease'
+             }">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               [ngStyle]="{'color': isDocked ? 'var(--text-primary)' : 'rgba(255,255,255,0.8)', 'flex-shrink': '0', 'transition': 'color 0.35s ease'}">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input #searchInput type="text"
+                 [(ngModel)]="searchQuery"
+                 (focus)="onSearchFocus()"
+                 (blur)="onSearchBlur()"
+                 (keydown)="handleSearch($event)"
+                 placeholder="Khám phá mảnh ghép hoàn hảo"
+                 [ngStyle]="{
+                   'flex': '1', 'background': 'none', 'border': 'none', 'outline': 'none',
+                   'color': isDocked ? 'var(--text-primary)' : '#fff',
+                   'font-size': isDocked ? '14px' : '15px', 'font-family': 'var(--font-body)',
+                   'min-width': '0', 'transition': 'font-size 0.35s ease, color 0.35s ease'
+                 }" />
+                 
+          <button *ngIf="searchQuery" (click)="handleSearchSubmit()"
+                  style="background: var(--accent); border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Dropdown -->
+        <div *ngIf="isDropdownOpen && searchQuery.trim()"
+             (mousedown)="$event.preventDefault()"
+             style="position: absolute; top: calc(100% + 12px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; z-index: 102;">
+          <div *ngIf="searchResults.length > 0; else noResults" style="display: flex; flex-direction: column; gap: 8px;">
+            <a *ngFor="let p of searchResults.slice(0, 5)" [routerLink]="['/kham-pha', p.productId]" (click)="isDropdownOpen = false"
+               style="display: flex; gap: 12px; padding: 8px; border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: background 0.2s;"
+               onmouseenter="this.style.background='rgba(0,0,0,0.05)'" onmouseleave="this.style.background='transparent'">
+              <img [src]="p.images[0] || ''" alt="" style="width: 48px; height: 48px; object-fit: contain; padding: 4px; border-radius: 4px; background: var(--bg-tertiary);" />
+              <div>
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">{{ p.shortDescription_vi || p.shortDescription }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">{{ p.category }}</div>
+              </div>
+            </a>
+            
+            <div *ngIf="searchResults.length > 5" style="text-align: center; padding-top: 8px; border-top: 1px solid var(--border-color);">
+              <button (click)="handleSearchSubmit()" style="background: none; border: none; color: var(--accent); font-weight: 600; cursor: pointer; font-size: 13px;">
+                Xem tất cả {{ searchResults.length }} kết quả
+              </button>
+            </div>
+          </div>
+          <ng-template #noResults>
+            <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              Không tìm thấy sản phẩm nào
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;" (click)="toggleCartDrawer()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
+      </button>
+
+      <ng-container *ngIf="isLoggedIn; else guestTemplate">
+        <div class="user-dropdown-wrapper">
+          <button class="icon-btn" (click)="toggleUserMenu()" title="Tài khoản">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+          
+          <div class="user-dropdown-menu" [class.active]="userMenuOpen" [style.display]="userMenuOpen ? 'block' : 'none'">
+            <div class="user-dropdown-header">
+              <span class="user-name">{{ user?.name || 'Khách hàng' }}</span>
+              <span class="user-role" style="font-size: 12px; color: var(--text-muted);">{{ user?.email || 'Thành viên DCor' }}</span>
+            </div>
+            <ul>
+              <li><a routerLink="/account/profile" class="user-menu-item" (click)="userMenuOpen = false">Hồ sơ cá nhân</a></li>
+              <li><a routerLink="/account/orders" class="user-menu-item" (click)="userMenuOpen = false">Đơn hàng của tôi</a></li>
+              <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="userMenuOpen = false">Sản phẩm yêu thích</a></li>
+              <li>
+                <button class="user-menu-item" (click)="toggleTheme()"
+                        style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 14px; color: var(--text-secondary);">
+                  <span>{{ theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối' }}</span>
+                  <svg *ngIf="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                  <svg *ngIf="theme === 'light'" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </button>
+              </li>
+              <li *ngIf="user?.role === 'ADMIN'">
+                <a routerLink="/admin" class="user-menu-item" (click)="userMenuOpen = false" style="border-top: 1px solid var(--border-color); margin-top: 4px;">Hệ thống quản trị Admin</a>
+              </li>
+              <li>
+                <button class="user-menu-item" (click)="logout()"
+                        style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #ff4d4f; padding: 10px 16px; font-size: 14px; border-top: 1px solid var(--border-color); margin-top: 4px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                  Đăng xuất
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </ng-container>
+      
+      <ng-template #guestTemplate>
+        <button (click)="openLoginModal()"
+                style="background: var(--text-primary); color: var(--bg-primary); padding: 8px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center;"
+                onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">
+          Đăng nhập
+        </button>
+      </ng-template>
+
+    </div>
+  </div>
+</header>
+
+<app-cart-drawer [isOpen]="isCartDrawerOpen" (close)="isCartDrawerOpen = false"></app-cart-drawer>

@@ -1,0 +1,433 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================================
+// 1. KHÁCH HÀNG & NHÂN SỰ
+// ============================================================================
+enum CustomerType {
+  RETAIL
+  B2B
+}
+
+model Customer {
+  id              String       @id @default(uuid())
+  type            CustomerType @default(RETAIL)
+  phone           String       @unique
+  email           String?      @unique
+  passwordHash    String?
+  fullName        String
+  avatarUrl       String?
+  isPhoneVerified Boolean      @default(false)
+  
+  // B2B
+  companyName     String?
+  taxCode         String?
+
+  // Thống kê & Hạng thành viên
+  rewardPoints    Int          @default(0) // Điểm tích lũy (Loyalty points)
+  totalSpent      BigInt       @default(0) // Tổng giá trị mua hàng (Lifetime Value) - Dùng BigInt vì tiền tệ
+
+  // Security
+  failedLoginCount Int         @default(0)
+  lockedUntil      DateTime?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?    // Soft Delete (Cần xử lý partial unique bằng SQL tay)
+
+  addresses       Address[]
+  orders          Order[]
+  cartItems       CartItem[]
+  sessions        UserSession[]
+  otpCodes        OtpCode[]
+}
+
+enum StaffRole {
+  OWNER
+  ADMIN
+  SALES
+  WAREHOUSE
+  CONTENT
+}
+
+enum StaffStatus {
+  PENDING_ACTIVATION // Vừa được tạo, chờ click link trong email
+  ACTIVE
+  INACTIVE
+}
+
+model StaffUser {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  phone           String?    @unique // Quản lý nhập SĐT
+  passwordHash    String?    // Cho phép Null vì ban đầu chưa set pass
+  fullName        String
+  role            StaffRole
+  status          StaffStatus @default(PENDING_ACTIVATION)
+  
+  // Link mời (Invite Link)
+  invitationToken       String?   @unique
+  invitationTokenExpiry DateTime?
+  
+  // 2FA & Security
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?  // Nghỉ việc
+
+  statusChanges   OrderStatusHistory[]
+  sessions        UserSession[]
+}
+
+model UserSession {
+  id           String    @id @default(uuid())
+  refreshToken String    @unique
+  expiresAt    DateTime
+  
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  staffId      String?
+  staff        StaffUser? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([staffId])
+}
+
+model OtpCode {
+  id         String   @id @default(uuid())
+  phone      String
+  otpHash    String   // Lưu Hash của OTP
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@index([phone])
+}
+
+// ============================================================================
+// 2. SỔ ĐỊA CHỈ 
+// ============================================================================
+model Address {
+  id           String   @id @default(uuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  receiverName String
+  phone        String
+  
+  // Thông tin hành chính (chuẩn hóa mã để tính phí ship)
+  province     String
+  provinceCode String?
+  district     String?
+  districtCode String?
+  ward         String?
+  wardCode     String?
+  detail       String
+  isDefault    Boolean  @default(false) // Cần SQL constraint 1 user 1 default
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([customerId])
+}
+
+// ============================================================================
+// 3. SẢN PHẨM & DANH MỤC
+// ============================================================================
+model Category {
+  id        String    @id @default(uuid())
+  parentId  String?   // Phân cấp danh mục
+  parent    Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  
+  name      String
+  slug      String    @unique
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products  Product[]
+}
+
+enum DiscountType {
+  PERCENT
+  AMOUNT
+}
+
+model Product {
+  id             String   @id @default(uuid())
+  slug           String   @unique
+  name           String
+  
+  categoryId     String
+  category       Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  
+  description    String?  @db.Text
+  basePrice      Int      // VND (Giá từ)
+  
+  discountValue  Int?     
+  discountType   DiscountType?
+  
+  images         Json     
+  configOptions  Json?    
+  
+  isBestSeller   Boolean  @default(false)
+  isNew          Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime? 
+
+  variants       ProductVariant[] // BẮT BUỘC có ít nhất 1 variant (Default)
+
+  // Thay các index đơn lẻ bằng Composite Index cho trang Khám Phá
+  @@index([categoryId, isActive, deletedAt])
+  @@index([createdAt]) 
+  @@index([isBestSeller])
+}
+
+model ProductVariant {
+  id            String   @id @default(uuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  sku           String   @unique
+  name          String   
+  price         Int      
+  
+  // TỒN KHO 
+  stock         Int      @default(0)
+  reservedStock Int      @default(0) 
+  
+  optionValues  Json?    
+  isActive      Boolean  @default(true) // Ẩn biến thể thay vì xóa cứng
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@index([productId, isActive])
+}
+
+// ============================================================================
+// 4. GIỎ HÀNG 
+// ============================================================================
+model CartItem {
+  id             String   @id @default(uuid())
+  customerId     String
+  customer       Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  
+  quantity       Int
+  selectedOptions Json?   // Lưu các lựa chọn custom ngoài variant gốc (màu chân/vải)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Unique đã hoạt động đúng do variantId bắt buộc
+  @@unique([customerId, variantId])
+  @@index([customerId])
+  @@index([variantId])
+}
+
+// ============================================================================
+// 5. ĐƠN HÀNG & MỤC ĐƠN HÀNG (Dữ liệu tài chính dùng BigInt)
+// ============================================================================
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum PaymentMethod {
+  COD
+  VNPAY
+  BANK_TRANSFER
+  CREDIT_CARD
+}
+
+model Order {
+  id               String   @id @default(uuid())
+  orderNumber      String   @unique 
+  
+  customerId       String?  
+  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  
+  // SNAPSHOT ĐỊA CHỈ & B2B
+  email            String?
+  phone            String
+  receiverName     String
+  companyName      String?
+  taxCode          String?
+  province         String
+  provinceCode     String?
+  district         String?
+  districtCode     String?
+  ward             String?
+  wardCode         String?
+  detailAddress    String
+  
+  isGift           Boolean  @default(false)
+  giftMessage      String?
+  hideInvoicePrice Boolean  @default(false)
+  
+  // TÀI CHÍNH (BigInt cho chống tràn với B2B)
+  subTotal         BigInt
+  shippingFee      BigInt
+  discountAmount   BigInt   @default(0)
+  totalAmount      BigInt
+  promoCode        String?  
+  
+  status           OrderStatus   @default(PENDING)
+  paymentMethod    PaymentMethod 
+  paymentStatus    PaymentStatus @default(UNPAID)
+  
+  notes            String?  @db.Text
+  internalNotes    String?  @db.Text
+  cancelReason     String?  @db.Text
+  
+  // Vận chuyển
+  shippingProvider String?
+  trackingCode     String?
+  
+  // Dòng đời Đơn hàng
+  expiresAt        DateTime? // Hạn nhả tồn kho nếu không thanh toán
+  paidAt           DateTime?
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  cancelledAt      DateTime?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Chặn xóa Order nếu có OrderItem hoặc Payment (Restrict)
+  items            OrderItem[]
+  statusHistory    OrderStatusHistory[]
+  payments         PaymentTransaction[]
+
+  @@index([customerId])
+  @@index([status, createdAt]) // Tối ưu cho Admin sort
+  @@index([phone]) // Tìm kiếm của khách vãng lai
+}
+
+model OrderItem {
+  id                 String  @id @default(uuid())
+  orderId            String
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Restrict) // Chống xóa
+  
+  productId          String
+  variantId          String?
+  variant            ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  
+  productName        String
+  sku                String?
+  imageUrl           String
+  
+  // Cấu hình Custom đã chọn
+  variantDescription String?
+  selectedOptions    Json?   
+  
+  quantity           Int
+  price              Int     // Giá đơn vị lúc mua (Int đủ)
+  discountAmount     BigInt  @default(0) // Giảm giá trên từng món
+  lineTotal          BigInt  
+  
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+// Bảng Lịch sử trạng thái đơn hàng (Tracking / Tranh chấp)
+model OrderStatusHistory {
+  id         String      @id @default(uuid())
+  orderId    String
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  
+  status       OrderStatus
+  fromStatus   OrderStatus?
+  actorType    String      // 'CUSTOMER', 'SYSTEM', 'STAFF'
+  notes        String?     @db.Text
+  
+  staffId      String?
+  staff        StaffUser?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  
+  createdAt  DateTime    @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([staffId])
+}
+
+// ============================================================================
+// 6. GIAO DỊCH THANH TOÁN (Đối soát)
+// ============================================================================
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum TransactionType {
+  PAYMENT
+  DEPOSIT
+  REFUND
+}
+
+model PaymentTransaction {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Restrict) // Chống xóa
+  
+  transactionCode String   // Mã VNPAY/Ngân hàng
+  gatewayRef      String?  
+  
+  amount          BigInt
+  paymentMethod   PaymentMethod
+  transactionType TransactionType @default(PAYMENT)
+  status          TransactionStatus @default(PENDING)
+  
+  rawResponse     Json?    
+  
+  createdAt       DateTime @default(now())
+
+  @@unique([paymentMethod, transactionCode])
+  @@index([orderId])
+  @@index([gatewayRef])
+  @@index([status, createdAt])
+}

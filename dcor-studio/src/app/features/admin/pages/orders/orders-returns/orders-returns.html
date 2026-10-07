@@ -1,0 +1,156 @@
+<div>
+  <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 24px;">Yêu cầu Đổi trả</h2>
+  
+  <!-- Stat Cards -->
+  <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div style="background: var(--bg-primary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.RotateCcw" size="20" color="var(--accent)"></lucide-angular> Tổng yêu cầu
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ mockReturns.length }}</div>
+    </div>
+    <div style="background: #fffbeb; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.Clock" size="20" color="#d97706"></lucide-angular> Chờ xử lý
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getPendingCount() }}</div>
+    </div>
+    <div style="background: #eff6ff; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.Package" size="20" color="#2563eb"></lucide-angular> Đang xử lý
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getProcessingCount() }}</div>
+    </div>
+    <div style="background: #faf5ff; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.CheckCircle2" size="20" color="#9333ea"></lucide-angular> Đã duyệt
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getApprovedCount() }}</div>
+    </div>
+    <div style="background: #ecfdf5; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.CheckCircle2" size="20" color="#059669"></lucide-angular> Đã hoàn tất
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getCompletedCount() }}</div>
+    </div>
+    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.XCircle" size="20" color="#dc2626"></lucide-angular> Đã từ chối
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getRejectedCount() }}</div>
+    </div>
+  </div>
+
+  <!-- Status Filters (Pills) -->
+  <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+    <button *ngFor="let filter of statusFilters"
+      (click)="activeStatus = filter.id"
+      [ngStyle]="{
+        'padding': '6px 16px',
+        'border-radius': '20px',
+        'border': activeStatus === filter.id ? 'none' : '1px solid var(--border-color)',
+        'background': activeStatus === filter.id ? 'var(--accent)' : 'transparent',
+        'color': activeStatus === filter.id ? '#fff' : 'var(--text-secondary)',
+        'font-size': '13px',
+        'font-weight': 500,
+        'cursor': 'pointer',
+        'display': 'flex',
+        'align-items': 'center',
+        'gap': '6px',
+        'transition': 'all 0.2s'
+      }"
+    >
+      {{ filter.label }}
+      <span *ngIf="filter.count !== undefined" [ngStyle]="{
+        'background': activeStatus === filter.id ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
+        'color': activeStatus === filter.id ? '#fff' : 'inherit',
+        'padding': '2px 6px',
+        'border-radius': '10px',
+        'font-size': '11px'
+      }">
+        {{ filter.count }}
+      </span>
+    </button>
+  </div>
+
+  <!-- Filters Bar -->
+  <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+    <div style="position: relative; flex: 1;">
+      <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
+      <input type="text" placeholder="Tìm mã yêu cầu, đơn hàng, khách hàng hoặc sản phẩm..." style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+    </div>
+    <select class="admin-input" style="width: 160px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+      <option value="ALL">Loại yêu cầu</option>
+      <option value="EXCHANGE">Đổi sản phẩm</option>
+      <option value="RETURN">Trả sản phẩm</option>
+      <option value="REFUND">Hoàn tiền</option>
+    </select>
+    <select class="admin-input" style="width: 180px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+      <option value="ALL">Lý do đổi trả</option>
+      <option value="DEFECTIVE">Sản phẩm lỗi/hư hỏng</option>
+      <option value="WRONG_ITEM">Sai sản phẩm</option>
+      <option value="NOT_AS_DESCRIBED">Không đúng mô tả</option>
+      <option value="NO_LONGER_NEEDED">Khách không còn nhu cầu</option>
+    </select>
+  </div>
+
+  <!-- Data Table -->
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Mã yêu cầu</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Ngày YC</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Đơn hàng</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Khách hàng</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 15%; min-width: 200px;">Sản phẩm</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Loại YC</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Trạng thái</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Người xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredReturns" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
+              [routerLink]="['/admin/orders/returns', item.id]"
+              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseout="this.style.background='transparent'">
+            <td style="padding: 16px; white-space: nowrap;">
+              <span style="font-weight: 600; color: var(--accent);">{{ item.id }}</span>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <div>
+                <div style="font-weight: 500;">{{ item.createdAt.split(' ')[0] }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
+              </div>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">{{ item.orderId }}</td>
+            <td style="padding: 16px; white-space: nowrap;">{{ item.customerName }}</td>
+            <td style="padding: 16px;">
+              <span style="font-weight: 500;">{{ item.productName }}</span>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">{{ getTypeBadgeText(item.type) }}</td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 8px; background: #fef3c7; color: #d97706; border-radius: 4px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
+              <span *ngIf="item.status === 'REVIEWING'" style="padding: 4px 8px; background: #dbeafe; color: #2563eb; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang xem xét</span>
+              <span *ngIf="item.status === 'APPROVED'" style="padding: 4px 8px; background: #f3e8ff; color: #9333ea; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã duyệt</span>
+              <span *ngIf="item.status === 'RETURNING'" style="padding: 4px 8px; background: #ffedd5; color: #ea580c; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang thu hồi</span>
+              <span *ngIf="item.status === 'RECEIVED'" style="padding: 4px 8px; background: #e0f2fe; color: #0284c7; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã nhận hàng</span>
+              <span *ngIf="item.status === 'REFUNDING'" style="padding: 4px 8px; background: #fce7f3; color: #db2777; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang xử lý hoàn tiền</span>
+              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 8px; background: #d1fae5; color: #059669; border-radius: 4px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
+              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 8px; background: #fee2e2; color: #dc2626; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã từ chối</span>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <span [ngStyle]="{
+                'color': item.assignee === 'Chưa phân công' ? '#dc2626' : 'var(--text-primary)',
+                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500
+              }">
+                {{ item.assignee }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

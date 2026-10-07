@@ -1,0 +1,7 @@
+/* register.component.css */
+@media (min-width: 900px) {
+  .login-image-column {
+    display: block !important;
+  }
+}
+

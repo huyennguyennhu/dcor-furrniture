@@ -1,0 +1,45 @@
+<div class="account-page">
+  <div class="container" style="display: flex; gap: 40px; padding: 40px 0;">
+    
+    <!-- Sidebar Account -->
+    <div style="width: 250px; flex-shrink: 0;">
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">Tài khoản</h2>
+      <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px;">
+        <li><a routerLink="/account/profile" style="color: var(--text-secondary); text-decoration: none;">Hồ sơ cá nhân</a></li>
+        <li><a routerLink="/account/orders" style="color: var(--text-secondary); text-decoration: none;">Đơn hàng của tôi</a></li>
+        <li><a routerLink="/account/wishlist" style="color: var(--accent); font-weight: 600; text-decoration: none;">Sản phẩm yêu thích</a></li>
+        <li><a style="color: #E74C3C; text-decoration: none; cursor: pointer; margin-top: 20px; display: inline-block;">Đăng xuất</a></li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div style="flex-grow: 1;">
+      <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 30px;">Sản phẩm yêu thích</h1>
+
+      <div *ngIf="wishlistItems.length === 0" style="text-align: center; padding: 60px; background: var(--bg-secondary); border-radius: 12px; border: 1px dashed var(--border-color);">
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Danh sách yêu thích của bạn đang trống.</p>
+        <a routerLink="/kham-pha" class="cta-btn" style="text-decoration: none; display: inline-block;">Khám phá sản phẩm</a>
+      </div>
+
+      <div *ngIf="wishlistItems.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px;">
+        <div *ngFor="let item of wishlistItems; let i = index" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; position: relative;">
+          
+          <button (click)="removeFromWishlist(i)" style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+
+          <div style="padding: 20px; background: var(--bg-tertiary); display: flex; justify-content: center; align-items: center; height: 200px; cursor: pointer;" [routerLink]="['/kham-pha', item.id]">
+            <img [src]="item.image" [alt]="item.name" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+          </div>
+
+          <div style="padding: 16px;">
+            <div style="font-size: 15px; font-weight: 600; margin-bottom: 8px; cursor: pointer;" [routerLink]="['/kham-pha', item.id]">{{ item.name }}</div>
+            <div style="font-size: 14px; color: var(--accent); font-weight: 700;">{{ formatCurrency(item.price) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+

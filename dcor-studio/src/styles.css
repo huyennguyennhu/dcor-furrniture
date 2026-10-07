@@ -1,0 +1,221 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+@import "./dcor-styles.css";
+
+body.admin-body {
+  padding-top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar Sub Items */
+.admin-sub-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s;
+  background-color: transparent;
+}
+.admin-sub-item:hover {
+  color: var(--text-primary);
+}
+.admin-sub-item .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.2s;
+}
+.admin-sub-item:hover .dot {
+  background-color: #9ca3af; /* Light gray dot when hovered */
+}
+.admin-sub-item.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+.admin-sub-item.active .dot {
+  background-color: var(--accent);
+}
+
+/* Admin Global Buttons */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.admin-btn-primary {
+  background: var(--accent);
+  color: white;
+}
+.admin-btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+}
+
+.admin-btn-secondary {
+  background: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.admin-btn-secondary:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-muted);
+}
+
+.admin-btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+}
+.admin-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(220, 38, 38);
+}
+
+/* Close Button with Rotation */
+.admin-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  padding: 4px;
+}
+.admin-close-btn:hover {
+  transform: rotate(180deg);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+/* Admin Input & Select */
+.admin-input, .admin-select {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.admin-input:focus, .admin-select:focus {
+  border-color: var(--accent);
+}
+.admin-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+}
+
+/* Admin Search Wrapper */
+.admin-search-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 16px;
+  min-width: 260px;
+}
+.admin-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  width: 100%;
+  color: var(--text-primary);
+}
+
+/* Admin Filter Bar */
+.admin-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  flex-wrap: nowrap;
+}
+
+/* Admin Data Table */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.admin-table th {
+  padding: 12px 16px;
+  font-size: 13px !important;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+.admin-table td, table:not(.custom-table) td {
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid var(--border-color);
+}
+.admin-table tbody tr:hover, table:not(.custom-table) tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Admin Checkbox */
+.admin-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+  opacity: 0;
+}

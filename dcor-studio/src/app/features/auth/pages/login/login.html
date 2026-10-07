@@ -1,0 +1,116 @@
+<div style="display: flex; min-height: 100vh; width: 100vw; background: var(--bg-primary);">
+  <!-- Left Column - Image -->
+  <div class="login-image-column" style="flex: 1; display: none; position: relative;">
+    <img 
+      src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&q=80" 
+      alt="DCor Interior" 
+      style="width: 100%; height: 100vh; object-fit: cover;" 
+    />
+    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); display: flex; flex-direction: column; justify-content: flex-end; padding: 60px; color: #fff;">
+      <h1 style="font-size: 48px; font-weight: 300; margin-bottom: 20px; letter-spacing: -1px;">DCor Studio</h1>
+      <p style="font-size: 18px; opacity: 0.9; max-width: 500px; line-height: 1.6;">Nâng tầm không gian sống với thiết kế nội thất tối giản phong cách Bắc Âu.</p>
+    </div>
+  </div>
+
+  <!-- Right Column - Form -->
+  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 20px;">
+    <div style="width: 100%; max-width: 420px;">
+      <div style="margin-bottom: 40px; text-align: center;">
+        <h2 style="font-size: 32px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Welcome Back</h2>
+        <p style="font-size: 15px; color: var(--text-muted);">Đăng nhập để tiếp tục mua sắm</p>
+      </div>
+
+      <form (submit)="handleLogin($event)" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <div>
+          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Số điện thoại <span style="color: red;">*</span></label>
+          <div style="position: relative;">
+            <input 
+              type="tel" 
+              [ngModel]="phone" (ngModelChange)="onPhoneChange($event)" name="phone"
+              maxlength="10"
+              required 
+              class="auth-input" 
+              placeholder="Nhập số điện thoại" 
+              autocomplete="off"
+              style="padding-right: 40px;"
+            />
+            <button *ngIf="phone" type="button" (click)="phone = ''" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Mật khẩu <span style="color: red;">*</span></label>
+          <div style="position: relative;">
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              [(ngModel)]="password" name="password"
+              (ngModelChange)="error = ''"
+              required 
+              class="auth-input" 
+              style="padding-right: 70px;" 
+              placeholder="Nhập mật khẩu" 
+              autocomplete="new-password"
+            />
+            <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; gap: 8px; align-items: center;">
+              <button type="button" (click)="showPassword = !showPassword" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
+                <svg *ngIf="showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-.722-3.25"/><path d="M2 8a10.645 10.645 0 0 0 20 0"/><path d="m20 15-1.726-2.05"/><path d="m4 15 1.726-2.05"/><path d="m9 18 .722-3.25"/></svg>
+                <svg *ngIf="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button *ngIf="password" type="button" (click)="password = ''" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+          <label class="auth-checkbox-label">
+            <input type="checkbox" class="auth-checkbox" checked /> Ghi nhớ đăng nhập
+          </label>
+          <a routerLink="/forgot-password" class="hover-underline-lr" style="color: var(--accent); text-decoration: none; font-weight: 600;">Quên mật khẩu?</a>
+        </div>
+
+        <button type="submit" class="checkout-btn" [disabled]="loading || !isFormValid" 
+                [style.opacity]="(loading || !isFormValid) ? 0.5 : 1" 
+                [style.cursor]="(loading || !isFormValid) ? 'not-allowed' : 'pointer'"
+                style="width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; margin-top: 10px;">
+          {{ loading ? 'Đang xử lý...' : 'ĐĂNG NHẬP' }}
+        </button>
+        <div *ngIf="error" style="color: red; font-size: 14px; text-align: center; padding: 10px; background: rgba(255,0,0,0.05); border-radius: 8px; margin-top: -10px;">{{ error }}</div>
+      </form>
+
+      <div style="display: flex; align-items: center; margin: 30px 0; gap: 15px;">
+        <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+        <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Hoặc</span>
+        <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+      </div>
+
+      <button type="button" (click)="handleGoogleLogin()" class="google-auth-btn">
+        <span class="google-auth-btn-bg"></span>
+        <span class="google-auth-btn-content">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Tiếp tục với Google
+        </span>
+      </button>
+
+      <div style="text-align: center; margin-top: 30px; font-size: 15px;">
+        <span style="color: var(--text-muted);">Bạn chưa có tài khoản? </span>
+        <a routerLink="/register" class="hover-underline-lr" style="color: var(--accent); font-weight: 600; text-decoration: none;">Đăng ký ngay</a>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+        Bằng việc đăng nhập bạn đồng ý với<br />
+        <a href="#" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">Điều khoản sử dụng</a> và <a href="#" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">Chính sách bảo mật</a> của DCor Studio
+      </div>
+    </div>
+  </div>
+</div>
+

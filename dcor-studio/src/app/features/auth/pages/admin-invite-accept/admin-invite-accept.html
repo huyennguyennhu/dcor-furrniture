@@ -1,0 +1,60 @@
+<div class="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+  <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-10"></div>
+  <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80"></div>
+  
+  <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+    <div class="text-center animate-fade-in-up">
+      <h2 class="text-4xl font-extrabold text-white tracking-tight flex items-center justify-center gap-3">
+        <span class="text-emerald-500">Dcor</span> Studio
+      </h2>
+      <p class="mt-2 text-sm text-slate-400 uppercase tracking-widest">Thiết lập Mật khẩu Mới</p>
+    </div>
+
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-md animate-fade-in-up" style="animation-delay: 0.1s;">
+      <div class="bg-slate-800/60 backdrop-blur-xl py-8 px-4 shadow-2xl shadow-black/50 sm:rounded-2xl sm:px-10 border border-slate-700/50">
+        
+        <!-- Error Alert -->
+        <div *ngIf="error" class="mb-4 bg-red-500/20 border border-red-500/50 p-4 rounded-xl flex items-start gap-3">
+          <svg class="w-5 h-5 text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <p class="text-sm text-red-200">{{ error }}</p>
+        </div>
+
+        <!-- Success Alert -->
+        <div *ngIf="success" class="mb-4 bg-emerald-500/20 border border-emerald-500/50 p-4 rounded-xl flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          <p class="text-sm text-emerald-200">Đã thiết lập mật khẩu thành công! Đang chuyển hướng...</p>
+        </div>
+
+        <form class="space-y-6" (ngSubmit)="handleSetup($event)">
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Email công việc</label>
+            <input name="email" [(ngModel)]="email" type="email" required readonly class="appearance-none block w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl shadow-sm text-slate-400 sm:text-sm cursor-not-allowed">
+            <p class="text-xs text-slate-500 mt-1">Email được cung cấp trong thư mời.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Mật khẩu mới</label>
+            <input name="password" [(ngModel)]="password" type="password" required class="appearance-none block w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all sm:text-sm" placeholder="Nhập mật khẩu mới">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Xác nhận mật khẩu mới</label>
+            <input name="confirmPassword" [(ngModel)]="confirmPassword" type="password" required class="appearance-none block w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all sm:text-sm" placeholder="Nhập lại mật khẩu mới">
+          </div>
+
+          <div>
+            <button type="submit" [disabled]="!password || !confirmPassword || loading" 
+                    [ngClass]="(!password || !confirmPassword || loading) ? 'bg-emerald-600/50 cursor-not-allowed opacity-70' : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98]'"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white transition-all items-center gap-2">
+              <svg *ngIf="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ loading ? 'Đang xử lý...' : 'Kích hoạt tài khoản' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

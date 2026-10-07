@@ -1,0 +1,243 @@
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background: var(--bg-primary, #fff);
+  width: 100%;
+  max-width: 500px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color, #eee);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #222);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-primary, #222);
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.product-preview {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px dashed var(--border-color, #eee);
+}
+
+.product-preview img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: #FAF3E8;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.product-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.product-details h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+.product-details .price {
+  margin: 0;
+  color: var(--accent, #B77953);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.option-group {
+  margin-bottom: 24px;
+}
+
+.option-group label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary, #222);
+}
+
+/* Leg Cards */
+.leg-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.leg-card {
+  padding: 12px 16px;
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary, #555);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leg-card:hover {
+  border-color: var(--accent, #B77953);
+}
+
+.leg-card.active {
+  border-color: var(--accent, #B77953);
+  background: rgba(183, 121, 83, 0.05);
+  color: var(--accent, #B77953);
+  font-weight: 600;
+}
+
+/* Upholstery Cards */
+.upholstery-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upholstery-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upholstery-card img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.upholstery-info {
+  flex-grow: 1;
+  font-size: 14px;
+  color: var(--text-secondary, #555);
+}
+
+.upholstery-card:hover {
+  border-color: var(--accent, #B77953);
+}
+
+.upholstery-card.active {
+  border-color: var(--accent, #B77953);
+  background: rgba(183, 121, 83, 0.05);
+}
+
+.upholstery-card.active .upholstery-info {
+  color: var(--accent, #B77953);
+  font-weight: 600;
+}
+
+.check-icon {
+  color: var(--accent, #B77953);
+  margin-left: auto;
+}
+
+.modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-color, #eee);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: var(--bg-secondary, #fafafa);
+}
+
+.cancel-btn {
+  padding: 12px 24px;
+  border: 1px solid var(--border-color, #ddd);
+  background: #fff;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-primary, #333);
+  transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #f0f0f0;
+}
+
+.save-btn {
+  padding: 12px 32px;
+  border: none;
+  background: var(--accent, #B77953);
+  color: #fff;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(183, 121, 83, 0.3);
+  transition: all 0.2s;
+}
+
+.save-btn:hover {
+  background: #a06845;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

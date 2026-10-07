@@ -1,0 +1,175 @@
+<div class="explore-page">
+  <!-- 1. Hero & Quick Filter -->
+  <section class="explore-hero">
+    <div class="container">
+      <div class="explore-hero-content">
+        <h1 class="explore-hero-title">KHÁM PHÁ</h1>
+        <p class="explore-hero-subtitle">Tìm kiếm nội thất phù hợp với không gian và phong cách của bạn</p>
+      </div>
+      
+      <div *ngIf="isLoading" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
+        <div style="width: 80px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: pulse 1.5s infinite ease-in-out;"></div>
+        <div style="width: 100px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: pulse 1.5s infinite ease-in-out;"></div>
+        <div style="width: 90px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: pulse 1.5s infinite ease-in-out;"></div>
+      </div>
+      
+      <div *ngIf="!isLoading && products.length > 0" class="quick-pill-list">
+        <button 
+          class="quick-pill" 
+          [class.active]="filters.categories.length === 0"
+          (click)="handleQuickCatClick('Tất cả')">
+          Tất cả
+        </button>
+        <button *ngFor="let cat of dynamicFilters.categories"
+          class="quick-pill" 
+          [class.active]="filters.categories.includes(cat)"
+          (click)="handleQuickCatClick(cat)">
+          {{ cat }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Thanh điều khiển danh sách (Sticky) -->
+  <div *ngIf="products.length > 0" class="explore-active-bar">
+    <div class="container">
+      <div class="active-bar-content">
+        <div class="active-tags">
+          <span class="product-count">{{ filteredProducts.length }} sản phẩm</span>
+          
+          <span *ngFor="let c of filters.categories" class="active-tag">{{ c }} <button (click)="removeFilterTag('categories', c)">&times;</button></span>
+          <span *ngFor="let m of filters.materials" class="active-tag">{{ m }} <button (click)="removeFilterTag('materials', m)">&times;</button></span>
+          <span *ngFor="let c of filters.colors" class="active-tag">{{ c }} <button (click)="removeFilterTag('colors', c)">&times;</button></span>
+          <span *ngIf="filters.priceRange[1] < 100000000" class="active-tag">Dưới {{ (filters.priceRange[1]/1000000).toFixed(0) }}tr <button (click)="removeFilterTag('priceRange', null)">&times;</button></span>
+          
+          <button *ngIf="activeTagCount > 0" class="clear-all-btn" (click)="clearAllFilters()">
+            Xóa bộ lọc
+          </button>
+        </div>
+        
+        <div class="sort-controls">
+          <app-custom-select 
+            [value]="sortBy"
+            (valueChange)="sortBy = $event; currentPage = 1"
+            [options]="[
+              { value: 'featured', label: 'Nổi bật nhất' },
+              { value: 'newest', label: 'Mới nhất' },
+              { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
+              { value: 'price-desc', label: 'Giá: Cao đến Thấp' },
+              { value: 'sale', label: 'Đang khuyến mãi' }
+            ]"
+          ></app-custom-select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Khu vực chính -->
+  <div class="container explore-main-layout">
+    <!-- 5. Sidebar Filter (Giả lập đơn giản tạm thời) -->
+    <div class="explore-sidebar">
+      <div *ngIf="isLoading" style="padding: 20px;">
+        <div style="width: 60%; height: 24px; background: #eaeaea; margin-bottom: 20px; border-radius: 4px; animation: pulse 1.5s infinite ease-in-out;"></div>
+        <div style="width: 100%; height: 30px; background: #f5f5f5; margin-bottom: 10px; border-radius: 4px; animation: pulse 1.5s infinite ease-in-out;"></div>
+        <div style="width: 100%; height: 30px; background: #f5f5f5; margin-bottom: 10px; border-radius: 4px; animation: pulse 1.5s infinite ease-in-out;"></div>
+      </div>
+      <div *ngIf="!isLoading && products.length > 0">
+        <app-sidebar-filter
+          [filters]="filters"
+          [dynamicFilters]="dynamicFilters"
+          [validFilters]="validFiltersObj"
+          [dynamicMaxPrice]="dynamicMaxPrice"
+          (onFilterChange)="onFilterChange($event)">
+        </app-sidebar-filter>
+      </div>
+    </div>
+
+    <!-- 7. Product Grid -->
+    <div class="explore-content">
+      <div *ngIf="isLoading" class="products-grid">
+        <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12]" class="skeleton-card">
+          <div class="skeleton-img" style="height: 280px; background: rgba(0,0,0,0.05); animation: pulse 1.5s infinite;"></div>
+          <div style="padding: 20px;">
+            <div style="height: 12px; width: 40%; margin-bottom: 10px; background: rgba(0,0,0,0.05); animation: pulse 1.5s infinite;"></div>
+            <div style="height: 18px; width: 80%; background: rgba(0,0,0,0.05); animation: pulse 1.5s infinite;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div *ngIf="!isLoading && paginatedProducts.length === 0" class="empty-state" style="text-align: center; padding: 100px 0;">
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Không tìm thấy sản phẩm nào phù hợp với bộ lọc hiện tại.</p>
+        <button (click)="clearAllFilters()" class="cta-btn">Xóa bộ lọc</button>
+      </div>
+
+      <div *ngIf="!isLoading && paginatedProducts.length > 0" class="products-grid">
+        <div *ngFor="let prod of paginatedProducts" 
+             class="product-card" 
+             [id]="'product-' + prod.productId"
+             (click)="handleProductClick(prod.productId)">
+          
+          <app-hover-image-slider 
+            [images]="prod.images || []" 
+             
+            [onSale]="isOnSale(prod)"
+            [isBestSeller]="prod.isBestSeller || false"
+            [isNew]="prod.isNew || false"
+            [discountType]="prod.discountType"
+            [discountValue]="prod.discountValue">
+          </app-hover-image-slider>
+          
+          <div class="card-details">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="card-category">{{ prod.category || 'D\'Cor' }}</span>
+              <div class="card-mini-actions">
+                <button class="mini-action-btn" [class.favorite-active]="wishlist.includes(prod.productId)" title="Yêu thích" (click)="toggleWishlist($event, prod.productId)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" [attr.fill]="wishlist.includes(prod.productId) ? 'var(--accent)' : 'none'" [attr.stroke]="wishlist.includes(prod.productId) ? 'var(--accent)' : 'currentColor'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                </button>
+                <button class="mini-action-btn" title="So sánh" (click)="$event.stopPropagation(); $event.preventDefault();">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                </button>
+                <button class="mini-action-btn" title="Xem nhanh" (click)="openQuickView($event, prod)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+            <h3 class="card-title">{{ prod.shortDescription_vi || prod.shortDescription }}</h3>
+            <div class="card-price-row">
+              <div>
+                <ng-container *ngIf="isOnSale(prod) && getLowestPriceFormatted(prod); else normalPrice">
+                  <span class="card-price-label">Sale:</span>
+                  <div class="card-price" style="color: var(--accent);">{{ getLowestPriceFormatted(prod) }}</div>
+                </ng-container>
+                <ng-template #normalPrice>
+                  <span class="card-price-label">Giá từ</span>
+                  <div class="card-price">{{ getProductPriceFormatted(prod) }}</div>
+                </ng-template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. Pagination -->
+      <div *ngIf="!isLoading && currentPage < totalPages" class="explore-load-more">
+        <button (click)="currentPage = currentPage + 1">
+          Khám phá thêm
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </div>
+
+      <!-- 10. CTA Room Planner -->
+      <div *ngIf="!isLoading" class="explore-cta-banner">
+        <div class="cta-content">
+          <h2>Chưa tìm được sản phẩm phù hợp?</h2>
+          <p>Hãy thử bố trí không gian bằng công cụ Thiết kế phòng của chúng tôi.</p>
+          <button routerLink="/thiet-ke/room-planner" class="cta-btn">
+            Thiết kế ngay
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<app-quick-view-drawer [product]="quickViewProduct" [isOpen]="isQuickViewOpen" (onClose)="isQuickViewOpen = false"></app-quick-view-drawer>

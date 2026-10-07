@@ -1,0 +1,84 @@
+<div *ngIf="isOpen" class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Hợp đồng Thiết kế & Báo giá</h3>
+      <button class="close-btn" (click)="closeModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body contract-document">
+      <div class="doc-header">
+        <h2>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h2>
+        <p>Độc lập - Tự do - Hạnh phúc</p>
+        <hr />
+        <h3>HỢP ĐỒNG DỊCH VỤ THIẾT KẾ NỘI THẤT</h3>
+        <p class="doc-number">Số: HD-{{ requestData?.id || '2026/001' }}/DCOR</p>
+      </div>
+
+      <div class="doc-content">
+        <p>Hôm nay, ngày {{ currentDate | date:'dd/MM/yyyy' }}, tại Văn phòng Dcor Studio, chúng tôi gồm có:</p>
+        
+        <h4>BÊN A (ĐƠN VỊ CUNG CẤP DỊCH VỤ): DCOR STUDIO</h4>
+        <ul>
+          <li>Địa chỉ: Khu Công nghệ phần mềm, ĐHQG TP.HCM</li>
+          <li>Đại diện: Nguyễn Văn Giám Đốc</li>
+        </ul>
+
+        <h4>BÊN B (KHÁCH HÀNG):</h4>
+        <ul>
+          <li>Họ và tên: {{ requestData?.customerName || 'Khách hàng' }}</li>
+          <li>Số điện thoại: {{ requestData?.customerPhone || '090xxxxxxx' }}</li>
+        </ul>
+
+        <h4>ĐIỀU 1: NỘI DUNG DỊCH VỤ</h4>
+        <p>Bên A đồng ý thực hiện thiết kế nội thất cho công trình của Bên B theo yêu cầu: <strong>{{ requestData?.title || 'Thiết kế căn hộ' }}</strong>.</p>
+        <p>Hồ sơ bao gồm: Bản vẽ 3D, Bản vẽ kỹ thuật thi công chi tiết.</p>
+
+        <h4>ĐIỀU 2: GIÁ TRỊ HỢP ĐỒNG & THANH TOÁN</h4>
+        <table class="quote-table">
+          <thead>
+            <tr>
+              <th>Hạng mục</th>
+              <th>Đơn vị</th>
+              <th>Số lượng</th>
+              <th>Thành tiền (VNĐ)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Phí thiết kế bản vẽ 3D & Kỹ thuật</td>
+              <td>Gói</td>
+              <td>1</td>
+              <td class="text-right">15,000,000</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" class="text-right"><strong>Tổng cộng:</strong></td>
+              <td class="text-right total"><strong>15,000,000</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+        
+        <div class="deposit-box">
+          <p><strong>Yêu cầu đặt cọc (50%):</strong> <span class="highlight">7,500,000 VNĐ</span></p>
+          <p class="text-sm">Bên B thanh toán khoản đặt cọc trên ngay sau khi ký hợp đồng này.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div class="consent-checkbox">
+        <input type="checkbox" id="consent" [(ngModel)]="isConsented" />
+        <label for="consent">Tôi đã đọc, hiểu rõ và đồng ý với các điều khoản của Hợp đồng.</label>
+      </div>
+      <div class="actions">
+        <button class="cancel-btn" (click)="closeModal()">Từ chối</button>
+        <button class="sign-btn" [disabled]="!isConsented" (click)="handleSign()">
+          Tiến hành Ký & Đặt cọc
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

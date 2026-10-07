@@ -1,0 +1,229 @@
+.custom-requests-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  min-height: 70vh;
+}
+
+.header {
+  margin-bottom: 40px;
+}
+
+.header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary, #111);
+  margin: 0 0 8px 0;
+}
+
+.header p {
+  color: var(--text-secondary, #666);
+  margin: 0;
+  font-size: 15px;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.request-card {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #eaeaea);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  transition: transform 0.2s;
+}
+
+.request-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+
+.title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.req-id {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, #B77953);
+  background: rgba(183, 121, 83, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.title-wrap h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-badge.draft { background: #f3f4f6; color: #4b5563; }
+.status-badge.drawing_3d { background: #eff6ff; color: #2563eb; }
+.status-badge.contract_signing { background: #fefce8; color: #ca8a04; }
+.status-badge.deposit_pending { background: #fef2f2; color: #dc2626; }
+.status-badge.processing { background: #f0fdf4; color: #16a34a; }
+.status-badge.completed { background: #111; color: #fff; }
+
+/* Timeline BPMN */
+.timeline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  position: relative;
+  padding: 0 10px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.step p {
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted, #999);
+  text-align: center;
+}
+
+.dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px #e5e7eb;
+  transition: all 0.3s;
+}
+
+.line {
+  position: absolute;
+  top: 8px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: #e5e7eb;
+  z-index: -1;
+  transition: all 0.3s;
+}
+
+/* Active State Timeline */
+.step.active .dot {
+  background: var(--accent, #B77953);
+  box-shadow: 0 0 0 2px rgba(183, 121, 83, 0.3);
+}
+
+.step.active .line {
+  background: var(--accent, #B77953);
+}
+
+.step.active p {
+  color: var(--text-primary, #222);
+  font-weight: 600;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px dashed var(--border-color, #eee);
+}
+
+.date {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted, #888);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.action-btn.sign {
+  background: var(--accent, #B77953);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(183, 121, 83, 0.2);
+}
+
+.action-btn.sign:hover {
+  background: #a06845;
+  transform: translateY(-2px);
+}
+
+.action-btn.pay {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.action-btn.pay:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+.action-btn.outline {
+  background: transparent;
+  border: 1px solid var(--border-color, #ddd);
+  color: var(--text-primary, #333);
+}
+
+.action-btn.outline:hover {
+  background: #f9f9f9;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--bg-primary, #fff);
+  border-radius: 20px;
+  border: 1px dashed var(--border-color, #ccc);
+  color: var(--text-muted, #888);
+}
+
+.empty-state svg {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}

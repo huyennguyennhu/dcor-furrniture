@@ -1,0 +1,34 @@
+.admin-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.admin-sub-item:hover {
+  color: var(--text-primary);
+  background: rgba(0,0,0,0.02);
+}
+
+.admin-sub-item.active {
+  color: var(--accent);
+  background: rgba(188, 95, 19, 0.05);
+  font-weight: 500;
+}
+
+.admin-sub-item .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.admin-sub-item.active .dot {
+  opacity: 1;
+}

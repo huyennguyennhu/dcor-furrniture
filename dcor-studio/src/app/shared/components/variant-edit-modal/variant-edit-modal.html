@@ -1,0 +1,60 @@
+<div *ngIf="isOpen" class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <h3>Chỉnh sửa tuỳ chọn</h3>
+      <button class="close-btn" (click)="closeModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body" *ngIf="item">
+      <!-- Product Info -->
+      <div class="product-preview">
+        <img [src]="item.image" [alt]="item.name" />
+        <div class="product-details">
+          <h4>{{ item.name }}</h4>
+          <p class="price">{{ item.price | number:'1.0-0' }} ₫</p>
+        </div>
+      </div>
+
+      <!-- Legs Options -->
+      <div class="option-group">
+        <label>Chân ghế</label>
+        <div class="leg-options">
+          <div *ngFor="let leg of availableLegs" 
+               class="leg-card" 
+               [class.active]="selectedLegId === leg.id"
+               (click)="selectLeg(leg.id)">
+            <span>{{ leg.name }}</span>
+            <svg *ngIf="selectedLegId === leg.id" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upholstery Options -->
+      <div class="option-group">
+        <label>Chất liệu & Màu sắc</label>
+        <div class="upholstery-options">
+          <div *ngFor="let uph of availableUpholsteries" 
+               class="upholstery-card" 
+               [class.active]="selectedUpholsteryId === uph.id"
+               (click)="selectUpholstery(uph.id)">
+            <img [src]="uph.img" [alt]="uph.name" />
+            <div class="upholstery-info">
+              <span>{{ uph.name }}</span>
+            </div>
+            <svg *ngIf="selectedUpholsteryId === uph.id" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="closeModal()">Huỷ</button>
+      <button class="save-btn" (click)="handleSave()">Lưu thay đổi</button>
+    </div>
+  </div>
+</div>

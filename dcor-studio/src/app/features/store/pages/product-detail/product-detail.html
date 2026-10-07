@@ -1,0 +1,133 @@
+<div class="pdp-wrapper" style="padding: 24px 0 80px 0; background: var(--bg-primary); min-height: 100vh;">
+  <div class="container">
+    
+    <!-- Skeleton Loading -->
+    <div *ngIf="isLoading" class="skeleton-layout">
+      <div class="breadcrumb" style="display: flex; gap: 8px; margin-bottom: 32px;">
+        <div class="skeleton-box" style="width: 200px; height: 20px; border-radius: 4px;"></div>
+      </div>
+      <div class="pdp-hero-layout">
+        <div style="flex: 1 1 50%;">
+          <div class="skeleton-box" style="width: 100%; aspect-ratio: 1; border-radius: 16px;"></div>
+          <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
+            <div class="skeleton-box" style="width: 64px; height: 64px; border-radius: 8px;"></div>
+            <div class="skeleton-box" style="width: 64px; height: 64px; border-radius: 8px;"></div>
+            <div class="skeleton-box" style="width: 64px; height: 64px; border-radius: 8px;"></div>
+          </div>
+        </div>
+        <div class="pdp-hero-info" style="flex: 1 1 50%; padding-top: 12px;">
+          <div class="skeleton-box" style="width: 30%; height: 20px; margin-bottom: 16px; border-radius: 4px;"></div>
+          <div class="skeleton-box" style="width: 85%; height: 40px; margin-bottom: 32px; border-radius: 8px;"></div>
+          <div style="display: flex; gap: 16px; margin-bottom: 40px;">
+            <div class="skeleton-box" style="width: 120px; height: 32px; border-radius: 6px;"></div>
+            <div class="skeleton-box" style="width: 100px; height: 32px; border-radius: 6px;"></div>
+          </div>
+          <div style="width: 100%; height: 1px; background: var(--border-color); margin-bottom: 32px;"></div>
+          <div class="skeleton-box" style="width: 40%; height: 24px; margin-bottom: 24px; border-radius: 4px;"></div>
+          <div class="skeleton-box" style="width: 100%; height: 56px; margin-bottom: 24px; border-radius: 12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Detail Content -->
+    <ng-container *ngIf="!isLoading && product">
+      <!-- 1. Breadcrumb -->
+      <div class="breadcrumb" style="display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 32px;">
+        <a routerLink="/" style="color: var(--text-muted); text-decoration: none;">Trang chủ</a>
+        <span style="color: var(--text-muted);">/</span>
+        <a routerLink="/kham-pha" style="color: var(--text-muted); text-decoration: none;">Khám phá</a>
+        <span style="color: var(--text-muted);">/</span>
+        <a [routerLink]="['/kham-pha']" [queryParams]="{category: product.category}" style="color: var(--text-secondary); text-decoration: none;">{{ displayCategory }}</a>
+        <span style="color: var(--text-muted);">/</span>
+        <span style="color: var(--text-primary); font-weight: 500;">{{ title }}</span>
+      </div>
+
+      <!-- 2. Hero Layout (Ảnh & Info) -->
+      <div class="pdp-hero-layout">
+        <!-- Trái: Hình ảnh -->
+        <div style="flex: 1 1 50%;">
+          <div style="width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: var(--bg-tertiary); position: relative;">
+            <img [src]="displayImages[0]" [alt]="title" style="width: 100%; height: 100%; object-fit: contain;" />
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center; overflow-x: auto;">
+            <img *ngFor="let img of displayImages" [src]="img" 
+                 style="width: 64px; height: 64px; border-radius: 8px; object-fit: contain; background: var(--bg-tertiary); cursor: pointer; border: 1px solid transparent;" 
+                 onmouseover="this.style.borderColor='var(--accent)'" 
+                 onmouseout="this.style.borderColor='transparent'" />
+          </div>
+        </div>
+        
+        <!-- Phải: Thông tin & Thuộc tính & CTA -->
+        <div class="pdp-hero-info" style="flex: 1 1 50%; padding-top: 12px;">
+          <h1 style="font-size: 32px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px;">{{ title }}</h1>
+          <p style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 24px;">{{ getProductPriceFormatted(product) }}</p>
+          
+          <div style="margin-bottom: 32px;">
+            <p style="color: var(--text-secondary); line-height: 1.6;">{{ product.description_vi || product.description }}</p>
+          </div>
+
+          <div style="display: flex; gap: 16px; margin-bottom: 40px;">
+            <button style="flex: 1; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 30px; font-weight: 600; font-size: 16px; cursor: pointer;">
+              Thêm vào giỏ hàng
+            </button>
+            <button style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Kích thước & Vận chuyển -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 48px; margin-bottom: 40px; margin-top: 60px;">
+        <!-- Cột Trái: Bảng Kích thước -->
+        <div>
+          <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px;">Kích thước & Trọng lượng</h3>
+          <div *ngIf="product.variants?.[0]?.dimensions" style="background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <tbody>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Chiều rộng</td>
+                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.width }} cm</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Chiều sâu</td>
+                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.depth }} cm</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Chiều cao</td>
+                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.height }} cm</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Trọng lượng</td>
+                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.weight }} kg</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cột Phải: Vận chuyển xếp dọc -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="product-usp-section" style="padding: 24px; background: rgba(255, 255, 255, 0.02); border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: center;">
+            <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              Vận chuyển & Lắp đặt
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 14px; color: var(--text-secondary);">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <strong style="color: var(--text-primary);">Thời gian:</strong>
+                <span>Nội thành HCM: 1-3 ngày<br/>Toàn quốc: 3-7 ngày</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <strong style="color: var(--text-primary);">Phí dịch vụ:</strong>
+                <span>Miễn phí đơn &gt; 10 triệu<br/>Hỗ trợ lắp đặt toàn quốc</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+  </div>
+</div>
+

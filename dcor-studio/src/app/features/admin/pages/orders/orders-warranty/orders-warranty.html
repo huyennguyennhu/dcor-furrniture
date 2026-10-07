@@ -1,0 +1,170 @@
+<div>
+  <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 24px;">Yêu cầu Bảo hành</h2>
+  
+  <!-- Stat Cards -->
+  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div style="background: var(--bg-primary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.AlertCircle" size="20" color="var(--accent)"></lucide-angular> Tổng yêu cầu
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ mockWarranties.length }}</div>
+    </div>
+    <div style="background: #fffbeb; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.Clock" size="20" color="#d97706"></lucide-angular> Chờ tiếp nhận
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getPendingCount() }}</div>
+    </div>
+    <div style="background: #faf5ff; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.Wrench" size="20" color="#9333ea"></lucide-angular> Đang sửa chữa
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getRepairingCount() }}</div>
+    </div>
+    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.AlertOctagon" size="20" color="#dc2626"></lucide-angular> Sắp hết hạn xử lý
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getExpiringSoonCount() }}</div>
+    </div>
+    <div style="background: #ecfdf5; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+        <lucide-angular [img]="icons.CheckCircle2" size="20" color="#059669"></lucide-angular> Đã hoàn tất
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getCompletedCount() }}</div>
+    </div>
+  </div>
+
+  <!-- Status Filters (Pills) -->
+  <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+    <button *ngFor="let filter of statusFilters"
+      (click)="activeStatus = filter.id"
+      [ngStyle]="{
+        'padding': '6px 16px',
+        'border-radius': '20px',
+        'border': activeStatus === filter.id ? 'none' : '1px solid var(--border-color)',
+        'background': activeStatus === filter.id ? 'var(--accent)' : 'transparent',
+        'color': activeStatus === filter.id ? '#fff' : 'var(--text-secondary)',
+        'font-size': '13px',
+        'font-weight': 500,
+        'cursor': 'pointer',
+        'display': 'flex',
+        'align-items': 'center',
+        'gap': '6px',
+        'transition': 'all 0.2s'
+      }"
+    >
+      {{ filter.label }}
+      <span *ngIf="filter.count !== undefined" [ngStyle]="{
+        'background': activeStatus === filter.id ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
+        'color': activeStatus === filter.id ? '#fff' : 'inherit',
+        'padding': '2px 6px',
+        'border-radius': '10px',
+        'font-size': '11px'
+      }">
+        {{ filter.count }}
+      </span>
+    </button>
+  </div>
+
+  <!-- Filters Bar -->
+  <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+    <div style="position: relative; flex: 1;">
+      <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
+      <input type="text" placeholder="Tìm mã bảo hành, mã đơn, khách hàng hoặc SKU..." style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+    </div>
+    <select class="admin-input" style="width: 160px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+      <option value="">Tất cả thời gian</option>
+      <option value="today">Hôm nay</option>
+      <option value="7days">7 ngày qua</option>
+      <option value="this_month">Tháng này</option>
+      <option value="custom">Tùy chỉnh...</option>
+    </select>
+    <select class="admin-input" style="width: 160px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+      <option value="ALL">Phân loại</option>
+      <option value="SOFA">Sofa</option>
+      <option value="TABLE">Bàn ghế</option>
+      <option value="BED">Giường</option>
+    </select>
+    <select class="admin-input" style="width: 220px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+      <option value="ALL">Kho/Showroom phụ trách</option>
+      <option value="Q1">Showroom Quận 1</option>
+      <option value="KHO">Kho Tổng</option>
+    </select>
+  </div>
+
+  <!-- Data Table -->
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Mã yêu cầu</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Ngày YC</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Khách hàng</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); min-width: 200px;">Sản phẩm</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Bảo hành</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Trạng thái</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Người xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredWarranties" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
+              [routerLink]="['/admin/orders/warranty', item.id]"
+              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseout="this.style.background='transparent'">
+            <td style="padding: 16px; white-space: nowrap;">
+              <div>
+                <span style="font-weight: 600; color: var(--accent);">{{ item.id }}</span>
+                <div *ngIf="item.isExpiringSoon" style="font-size: 11px; color: #ef4444; margin-top: 4px; font-weight: 600; display: flex; align-items: center; gap: 4px;"><lucide-angular [img]="icons.AlertOctagon" size="10"></lucide-angular> SẮP HẾT HẠN</div>
+              </div>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <div>
+                <div style="font-weight: 500;">{{ item.createdAt.split(' ')[0] }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
+              </div>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <div>
+                <div style="font-weight: 600;">{{ item.customerName }}</div>
+              </div>
+            </td>
+            <td style="padding: 16px;">
+              <div>
+                <div style="font-weight: 500;">{{ item.productName }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">{{ item.variant }}</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; background: var(--bg-secondary); padding: 4px 8px; border-radius: 4px;">
+                  Lỗi: {{ item.reason }}
+                </div>
+              </div>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <div style="font-size: 12px; min-width: 130px;">
+                <div><span style="color: var(--text-muted);">Mua:</span> {{ item.purchaseDate }}</div>
+                <div><span style="color: var(--text-muted);">Hạn:</span> <span [ngStyle]="{'font-weight': 500, 'color': item.isExpiringSoon ? '#ef4444' : 'var(--text-primary)'}">{{ item.warrantyExpiry }}</span></div>
+              </div>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 8px; background: #fef3c7; color: #d97706; border-radius: 4px; font-size: 12px; font-weight: 600;">Chờ tiếp nhận</span>
+              <span *ngIf="item.status === 'INSPECTING'" style="padding: 4px 8px; background: #dbeafe; color: #2563eb; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang kiểm tra</span>
+              <span *ngIf="item.status === 'PROCESSING'" style="padding: 4px 8px; background: #ffedd5; color: #ea580c; border-radius: 4px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
+              <span *ngIf="item.status === 'REPAIRING'" style="padding: 4px 8px; background: #f3e8ff; color: #9333ea; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang sửa chữa</span>
+              <span *ngIf="item.status === 'REPLACING'" style="padding: 4px 8px; background: #e0f2fe; color: #0284c7; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang thay thế</span>
+              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 8px; background: #d1fae5; color: #059669; border-radius: 4px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
+              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 8px; background: #fee2e2; color: #dc2626; border-radius: 4px; font-size: 12px; font-weight: 600;">Từ chối</span>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <span [ngStyle]="{
+                'color': item.assignee === 'Chưa phân công' ? '#dc2626' : 'var(--text-primary)',
+                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500
+              }">
+                {{ item.assignee }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

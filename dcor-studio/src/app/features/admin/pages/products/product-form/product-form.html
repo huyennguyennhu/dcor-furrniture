@@ -1,0 +1,251 @@
+﻿<form (ngSubmit)="handleSave()" (change)="isModified = true" style="padding-bottom: 40px;">
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <button 
+      type="button"
+      (click)="goBack()"
+      style="display: flex; align-items: center; gap: 8px; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px;"
+    >
+      <lucide-angular [img]="icons.ArrowLeft" size="16"></lucide-angular> Quay lại
+    </button>
+    <button *ngIf="!isEdit" type="submit" class="admin-btn admin-btn-primary">
+      <lucide-angular [img]="icons.Save" size="18"></lucide-angular> Lưu sản phẩm mới
+    </button>
+  </div>
+
+  <div *ngIf="isEdit" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
+    <div style="display: flex; gap: 20px; align-items: center;">
+      <div style="width: 80px; height: 80px; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <lucide-angular [img]="icons.ImageIcon" size="32" color="var(--text-muted)"></lucide-angular>
+      </div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0;">{{initialData.name}}</h1>
+          <span style="padding: 2px 8px; border-radius: 24px; background: rgba(16, 185, 129, 0.1); color: #10b981; font-size: 11px; font-weight: 600;">
+            {{initialData.status}}
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+          <span>SKU: <strong style="color: var(--text-primary);">{{initialData.product_id}}</strong></span>
+          <span>•</span>
+          <span>Danh mục: <strong style="color: var(--text-primary);">{{initialData.category || 'N/A'}}</strong></span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button 
+        type="button" 
+        (click)="toggleViewMode()"
+        class="admin-btn admin-btn-secondary"
+      >
+        <lucide-angular *ngIf="viewMode" [img]="icons.Edit2" size="16"></lucide-angular>
+        <lucide-angular *ngIf="!viewMode" [img]="icons.Eye" size="16"></lucide-angular>
+        {{viewMode ? 'Chỉnh sửa' : 'Xem'}}
+      </button>
+      <button 
+        *ngIf="!viewMode"
+        type="submit"
+        [disabled]="!isModified"
+        class="admin-btn admin-btn-primary"
+      >
+        <lucide-angular [img]="icons.Save" size="16"></lucide-angular> Cập nhật sản phẩm
+      </button>
+      <button type="button" class="admin-btn admin-btn-danger">
+        <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular> Xóa sản phẩm
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="!isEdit" style="margin-bottom: 32px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Thêm sản phẩm mới</h1>
+  </div>
+
+  <app-admin-page-tabs [tabs]="TABS" [activeTab]="activeTab" (tabChange)="onTabChange($event)"></app-admin-page-tabs>
+
+  <div style="background: var(--bg-primary); border-radius: 12px; padding: 32px; border: 1px solid var(--border-color);">
+    <!-- TAB GENERAL -->
+    <div *ngIf="activeTab === 'general'" style="display: flex; flex-direction: column; gap: 24px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Tên sản phẩm <span style="color: #ef4444;">*</span></label>
+          <input type="text" placeholder="Nhập tên sản phẩm..." [(ngModel)]="initialData.name" name="pName" [disabled]="viewMode" required class="admin-input" [ngStyle]="{'opacity': viewMode ? 0.7 : 1, 'background': viewMode ? 'var(--bg-primary)' : 'white'}" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">SKU <span style="color: #ef4444;">*</span></label>
+          <input type="text" placeholder="Nhập mã SKU..." [(ngModel)]="mainSku" name="pSku" (ngModelChange)="isModified = true" [disabled]="viewMode" required class="admin-input" [ngStyle]="{'opacity': viewMode ? 0.7 : 1, 'background': viewMode ? 'var(--bg-primary)' : 'white'}" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Giá vốn (₫)</label>
+          <div style="position: relative;">
+            <input type="text" [value]="formatVND(initialData.costPrice || 0)" disabled class="admin-input" style="padding-left: 40px; opacity: 0.7; cursor: not-allowed; background: var(--bg-secondary);" />
+            <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">₫</span>
+          </div>
+        </div>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border-color); margin: 0;" />
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Thông số kỹ thuật</label>
+          <button *ngIf="!viewMode" type="button" (click)="handleAddSpec()" style="display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--accent); cursor: pointer; font-size: 13px; font-weight: 600;">
+            <lucide-angular [img]="icons.Plus" size="14"></lucide-angular> Thêm thông số
+          </button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div *ngFor="let spec of specs; let idx = index" style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" placeholder="Tên thông số" [(ngModel)]="spec.name" [name]="'sName'+idx" (ngModelChange)="handleSpecChange()" [disabled]="viewMode" class="admin-input" style="width: 40%;" [ngStyle]="{'opacity': viewMode ? 0.7 : 1, 'background': viewMode ? 'var(--bg-primary)' : 'white'}" />
+            <input type="text" placeholder="Giá trị" [(ngModel)]="spec.value" [name]="'sVal'+idx" (ngModelChange)="handleSpecChange()" [disabled]="viewMode" class="admin-input" style="width: 60%;" [ngStyle]="{'opacity': viewMode ? 0.7 : 1, 'background': viewMode ? 'var(--bg-primary)' : 'white'}" />
+            <button *ngIf="!viewMode" type="button" (click)="handleRemoveSpec(idx)" class="admin-btn admin-btn-danger" style="padding: 8px;">
+              <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border-color); margin: 0;" />
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Mô tả ngắn</label>
+        <textarea placeholder="Viết một đoạn mô tả ngắn về sản phẩm..." [(ngModel)]="initialData.shortDescription" name="pShortDesc" [disabled]="viewMode" class="admin-input" style="min-height: 80px; resize: vertical;" [ngStyle]="{'opacity': viewMode ? 0.7 : 1, 'background': viewMode ? 'var(--bg-primary)' : 'white'}"></textarea>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Mô tả chi tiết</label>
+        <textarea placeholder="Sử dụng trình soạn thảo văn bản ở đây..." [(ngModel)]="initialData.description" name="pDesc" [disabled]="viewMode" class="admin-input" style="min-height: 200px; resize: vertical;" [ngStyle]="{'opacity': viewMode ? 0.7 : 1, 'background': viewMode ? 'var(--bg-primary)' : 'white'}"></textarea>
+      </div>
+    </div>
+
+    <!-- TAB CLASSIFICATION -->
+    <div *ngIf="activeTab === 'classification'" style="display: flex; flex-direction: column; gap: 24px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Danh mục chính <span style="color: #ef4444;">*</span></label>
+          <select class="admin-select" [(ngModel)]="catCategory" name="catCategory" [disabled]="viewMode">
+            <option value="">Chọn danh mục</option>
+            <option *ngFor="let cat of dbCategories" [value]="cat.slug">{{cat.name}}</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Phòng</label>
+          <select class="admin-select" [(ngModel)]="catRoom" name="catRoom" [disabled]="viewMode">
+            <option value="">Không</option>
+            <option value="phong-khach">Phòng khách</option>
+            <option value="phong-ngu">Phòng ngủ</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Màu sắc cơ bản</label>
+          <select class="admin-select" [(ngModel)]="catColor" name="catColor" [disabled]="viewMode">
+            <option value="">Không</option>
+            <option value="trang">Trắng</option>
+            <option value="den">Đen</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB VARIANTS -->
+    <div *ngIf="activeTab === 'variants'" style="display: flex; flex-direction: column; gap: 32px;">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">1. Loại biến thể</label>
+          <button *ngIf="!viewMode" type="button" (click)="handleAddConfigOption()" class="admin-btn admin-btn-secondary">
+            <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Thêm loại biến thể
+          </button>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div *ngIf="configOptions.length === 0" style="font-size: 13px; color: var(--text-muted);">Chưa có loại biến thể nào.</div>
+          <div *ngFor="let opt of configOptions; let optIdx = index" style="padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
+            <div style="display: flex; gap: 16px; align-items: flex-start;">
+              <div style="display: flex; flex-direction: column; gap: 8px; width: 200px;">
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tên loại</label>
+                <input type="text" placeholder="Nhập tên..." [(ngModel)]="opt.groupName" [name]="'ogName'+optIdx" (ngModelChange)="handleChangeConfigName()" [disabled]="viewMode" class="admin-input" [ngStyle]="{'background': viewMode ? 'var(--bg-primary)' : 'white'}" />
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Các giá trị (Gõ chữ và ấn Enter)</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 40px; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px;" [ngStyle]="{'background': viewMode ? 'var(--bg-primary)' : 'white'}">
+                  <span *ngFor="let val of opt.options; let valIdx = index" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-secondary); border-radius: 100px; font-size: 13px; border: 1px solid var(--border-color);">
+                    {{val.name}}
+                    <lucide-angular *ngIf="!viewMode" [img]="icons.X" size="12" style="cursor: pointer; color: var(--text-muted);" (click)="handleRemoveConfigValue(optIdx, valIdx)"></lucide-angular>
+                  </span>
+                  <input *ngIf="!viewMode" type="text" placeholder="Thêm giá trị..." (keydown)="handleAddConfigValue(optIdx, $event)" style="border: none; outline: none; background: transparent; flex: 1; min-width: 100px; font-size: 13px;" />
+                </div>
+              </div>
+              <button *ngIf="!viewMode" type="button" (click)="handleRemoveConfigOption(optIdx)" style="background: none; border: none; color: #ef4444; cursor: pointer; margin-top: 30px; padding: 8px;">
+                <lucide-angular [img]="icons.Trash2" size="18"></lucide-angular>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 0;" />
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">2. Tổ hợp biến thể</label>
+        </div>
+        
+        <div *ngIf="variants.length > 0" style="border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">Ảnh</th>
+                <th>Tên biến thể</th>
+                <th style="width: 200px;">Mã SKU</th>
+                <th style="width: 160px;">Giá bán (₫)</th>
+                <th style="width: 120px;">Tồn kho</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let v of variants; let idx = index">
+                <tr [ngStyle]="{'background': expandedVariantIdx === idx ? 'rgba(0,0,0,0.02)' : 'transparent'}">
+                  <td>
+                    <div 
+                      (click)="expandedVariantIdx = expandedVariantIdx === idx ? null : idx"
+                      style="width: 40px; height: 40px; border-radius: 6px; background: white; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer;"
+                    >
+                      <lucide-angular [img]="icons.ImageIcon" size="16" color="var(--text-muted)"></lucide-angular>
+                    </div>
+                  </td>
+                  <td style="font-weight: 500; font-size: 13px;">{{getVariantDisplayName(v)}}</td>
+                  <td>
+                    <input type="text" [(ngModel)]="v.variantId" [name]="'vSku'+idx" (ngModelChange)="isModified = true" [disabled]="viewMode" placeholder="Nhập SKU..." class="admin-input" [ngStyle]="{'background': viewMode ? 'transparent' : 'white'}" />
+                  </td>
+                  <td>
+                    <input type="number" [(ngModel)]="v.price" [name]="'vPrice'+idx" (ngModelChange)="isModified = true" [disabled]="viewMode" class="admin-input" [ngStyle]="{'background': viewMode ? 'transparent' : 'white'}" />
+                  </td>
+                  <td>
+                    <input type="number" [(ngModel)]="v.stock" [name]="'vStock'+idx" (ngModelChange)="isModified = true" [disabled]="viewMode" class="admin-input" [ngStyle]="{'background': viewMode ? 'transparent' : 'white'}" />
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+        
+        <div *ngIf="variants.length === 0" style="padding: 40px 24px; background: var(--bg-secondary); border-radius: 12px; color: var(--text-muted); text-align: center;">
+          <lucide-angular [img]="icons.Package" size="32" style="margin-bottom: 16px; opacity: 0.5;"></lucide-angular>
+          <div style="font-weight: 500; font-size: 14px; color: var(--text-primary);">Chưa có biến thể nào</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB PROMOTION -->
+    <div *ngIf="activeTab === 'promotion'" style="display: flex; flex-direction: column; gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Chương trình khuyến mãi áp dụng</label>
+        <select class="admin-select" [disabled]="viewMode" style="max-width: 400px;">
+          <option value="">Không có khuyến mãi</option>
+          <option value="flash-sale">Flash Sale Mùa Hè (-20%)</option>
+        </select>
+      </div>
+      <div style="padding: 24px; background: var(--bg-secondary); border-radius: 12px; color: var(--text-muted); font-size: 13px;">
+        Sản phẩm đang được bán với giá gốc, chưa áp dụng bất kỳ chương trình giảm giá nào.
+      </div>
+    </div>
+  </div>
+</form>

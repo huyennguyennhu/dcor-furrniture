@@ -1,0 +1,142 @@
+<section class="catalog-section" id="catalog">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Toàn bộ <span>bộ sưu tập</span></h2>
+        <p class="section-tagline">
+          {{ filteredProducts.length }} sản phẩm<span *ngIf="categoryFilter"> trong danh mục "{{ categoryFilter }}"</span>
+        </p>
+      </div>
+
+      <!-- Category filter pills -->
+      <div class="color-filters-bar" style="gap: 5px; flex-wrap: wrap;">
+        <button class="filter-select"
+                [class.active]="categoryFilter === ''"
+                (click)="handleCatChange('')"
+                [ngStyle]="{'background': categoryFilter === '' ? 'var(--accent)' : 'none', 'color': '#fff', 'padding': '8px 16px', 'border-radius': '15px', 'font-size': '13px'}">
+          Tất cả
+        </button>
+        <button *ngFor="let c of categories"
+                class="filter-select"
+                [class.active]="categoryFilter === c.value"
+                (click)="handleCatChange(c.value)"
+                [ngStyle]="{'background': categoryFilter === c.value ? 'var(--accent)' : 'none', 'color': '#fff', 'padding': '8px 16px', 'border-radius': '15px', 'font-size': '13px'}">
+          {{ c.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-container">
+      <div class="filters-group">
+        <div class="search-wrapper">
+          <input type="text" class="search-input" placeholder="Tìm sản phẩm theo tên..."
+                 [(ngModel)]="searchQuery" (ngModelChange)="onFilterChange()" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+        </div>
+        <div class="select-wrapper">
+          <select class="filter-select" [(ngModel)]="materialFilter" (ngModelChange)="onFilterChange()">
+            <option value="">Tất cả chất liệu</option>
+            <option value="Fabric">Vải bọc đệm</option>
+            <option value="Leather">Da thú thật</option>
+            <option value="Wood">Gỗ tự nhiên</option>
+            <option value="Metal">Khung kim loại</option>
+            <option value="Lacquered">Sơn mài</option>
+          </select>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="select-wrapper">
+          <select class="filter-select" [(ngModel)]="sortBy" (ngModelChange)="onFilterChange()">
+            <option value="featured">Sắp xếp: Nổi bật</option>
+            <option value="price-asc">Giá: Thấp đến Cao</option>
+            <option value="price-desc">Giá: Cao đến Thấp</option>
+          </select>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+
+      <!-- Color filter dots -->
+      <div class="color-filters-bar">
+        <span class="color-filter-label">Tông màu:</span>
+        <button class="color-badge-btn" [class.active]="colorFilter === ''"
+                [ngStyle]="{'background-color': '#fff', 'border': colorFilter === '' ? '2px solid var(--accent)' : '2px solid transparent'}"
+                (click)="colorFilter = ''; onFilterChange()" title="Tất cả"></button>
+        
+        <button *ngFor="let color of colorEntries"
+                class="color-badge-btn" [class.active]="colorFilter === color[0]"
+                [ngStyle]="{'background-color': color[1]}"
+                (click)="colorFilter = color[0]; onFilterChange()"
+                [title]="color[0]">
+        </button>
+      </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="products-grid">
+      <div *ngIf="paginatedProducts.length === 0" style="grid-column: 1/-1; text-align: center; padding: 80px 0; color: var(--text-secondary);">
+        Không tìm thấy sản phẩm nào phù hợp với bộ lọc đã chọn.
+      </div>
+      
+      <div class="product-card" *ngFor="let prod of paginatedProducts">
+        <app-hover-image-slider 
+          [images]="getAllImages(prod)" 
+          [altText]="prod.shortDescription_vi || prod.shortDescription"
+          [onSale]="isOnSale(prod)"
+          [isBestSeller]="prod.isBestSeller || false"
+          [isNew]="prod.isNew || false"
+          [discountType]="prod.discountType"
+          [discountValue]="prod.discountValue">
+        </app-hover-image-slider>
+        
+        <div class="card-details">
+          <span class="card-category">{{ prod.category || 'Danish Design' }}</span>
+          <h3 class="card-title">{{ prod.shortDescription_vi || prod.shortDescription }}</h3>
+          <div class="card-price-row">
+            <div>
+              <ng-container *ngIf="isOnSale(prod) && getLowestPriceFormatted(prod); else normalPrice">
+                <span class="card-price-label">Sale:</span>
+                <div class="card-price" style="color: var(--accent);">{{ getLowestPriceFormatted(prod) }}</div>
+              </ng-container>
+              <ng-template #normalPrice>
+                <span class="card-price-label">Giá từ</span>
+                <div class="card-price">{{ getProductPriceFormatted(prod) }}</div>
+              </ng-template>
+            </div>
+            
+            <a [href]="'/products/' + prod.productId" class="customize-btn">
+              Xem chi tiết
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" x2="19" y1="12" y2="12"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 50px; flex-wrap: wrap;">
+      <button class="pagination-btn" [disabled]="currentPage === 1" (click)="setPage(Math.max(currentPage - 1, 1))"
+              [ngStyle]="{'padding': '10px 20px', 'background': 'rgba(255,255,255,.04)', 'border': '1px solid var(--border-color)', 'color': currentPage === 1 ? 'var(--text-muted)' : '#fff', 'border-radius': '25px', 'cursor': currentPage === 1 ? 'not-allowed' : 'pointer', 'font-size': '13px'}">
+        Trước
+      </button>
+      
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <ng-container *ngFor="let page of getPageNumbers(); let idx = index">
+          <span *ngIf="page === '...'" style="color: var(--text-muted); padding: 0 8px;">...</span>
+          <button *ngIf="page !== '...'" (click)="setPage(page)"
+                  [ngStyle]="{'width': '40px', 'height': '40px', 'display': 'flex', 'justify-content': 'center', 'align-items': 'center', 'background': page === currentPage ? 'var(--accent)' : 'rgba(255,255,255,.04)', 'border': page === currentPage ? '1px solid var(--accent)' : '1px solid var(--border-color)', 'color': '#fff', 'border-radius': '50%', 'cursor': 'pointer', 'font-size': '14px', 'font-weight': page === currentPage ? 600 : 400}">
+            {{ page }}
+          </button>
+        </ng-container>
+      </div>
+      
+      <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="setPage(Math.min(currentPage + 1, totalPages))"
+              [ngStyle]="{'padding': '10px 20px', 'background': 'rgba(255,255,255,.04)', 'border': '1px solid var(--border-color)', 'color': currentPage === totalPages ? 'var(--text-muted)' : '#fff', 'border-radius': '25px', 'cursor': currentPage === totalPages ? 'not-allowed' : 'pointer', 'font-size': '13px'}">
+        Sau
+      </button>
+    </div>
+  </div>
+</section>

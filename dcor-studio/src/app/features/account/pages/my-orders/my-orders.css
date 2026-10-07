@@ -1,0 +1,15 @@
+/* my-orders.component.css */
+.cta-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.cta-btn:hover {
+  opacity: 0.9;
+}
+

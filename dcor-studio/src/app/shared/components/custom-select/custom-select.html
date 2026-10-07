@@ -1,0 +1,63 @@
+<div style="position: relative; width: 100%;">
+  <button
+    type="button"
+    [disabled]="disabled"
+    (mousedown)="toggleOpen($event)"
+    [ngStyle]="{
+      'background': disabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+      'color': value ? 'var(--text-primary)' : 'var(--text-muted)',
+      'cursor': disabled ? 'not-allowed' : 'pointer',
+      'box-shadow': isOpen ? '0 0 0 2px rgba(139, 92, 246, 0.1)' : 'none',
+      'border-color': isOpen ? 'var(--accent)' : 'var(--border-color)',
+      'opacity': disabled ? 0.7 : 1
+    }"
+    style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; outline: none;"
+  >
+    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+      {{ selectedOption ? selectedOption.label : placeholder }}
+    </span>
+    
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+         [ngStyle]="{'transform': isOpen ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'color': 'var(--text-muted)'}">
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  </button>
+
+  <div *ngIf="isOpen"
+       [ngStyle]="dropUp ? { 'bottom': 'calc(100% + 2px)', 'top': 'auto', 'box-shadow': '0 -4px 12px rgba(0,0,0,0.1)' } : { 'top': 'calc(100% + 2px)', 'bottom': 'auto', 'box-shadow': '0 4px 12px rgba(0,0,0,0.1)' }"
+       style="position: absolute; left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; padding: 4px; max-height: 250px; display: flex; flex-direction: column;">
+    
+    <div *ngIf="searchable" style="padding: 4px; border-bottom: 1px solid var(--border-color); margin-bottom: 4px;">
+      <div style="position: relative;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input
+          type="text"
+          placeholder="Tìm kiếm..."
+          [ngModel]="searchQuery"
+          (ngModelChange)="onSearchChange($event)"
+          style="width: 100%; padding: 8px 8px 8px 28px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; outline: none;"
+        />
+      </div>
+    </div>
+
+    <div style="overflow-y: auto; flex: 1;">
+      <div *ngIf="filteredOptions.length === 0" style="padding: 8px 12px; font-size: 13px; color: var(--text-muted); text-align: center;">
+        Không tìm thấy kết quả
+      </div>
+      
+      <div *ngFor="let opt of filteredOptions"
+           (mousedown)="selectOption(opt.value)"
+           class="custom-select-option"
+           [ngStyle]="{
+             'color': value === opt.value ? 'var(--accent)' : 'var(--text-primary)',
+             'font-weight': value === opt.value ? 600 : 400
+           }"
+           style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+        {{ opt.label }}
+      </div>
+    </div>
+  </div>
+</div>

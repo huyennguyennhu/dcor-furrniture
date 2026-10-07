@@ -1,0 +1,38 @@
+<div *ngIf="isOpen" class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="icon-box">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <button class="close-btn" (click)="closeModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body text-center">
+      <h3>Xác thực chữ ký số (OTP)</h3>
+      <p class="desc">Vui lòng nhập mã OTP gồm 6 chữ số đã được gửi đến số điện thoại <strong>{{ phoneNumber }}</strong> để xác nhận ký Hợp đồng Thiết kế.</p>
+
+      <div class="otp-inputs">
+        <input *ngFor="let val of otpValues; let i = index" 
+               [id]="'otp-' + i"
+               type="text" 
+               maxlength="1" 
+               [(ngModel)]="otpValues[i]" 
+               (input)="onOtpInput($event, i)" 
+               (keydown)="onKeyDown($event, i)"
+               class="otp-box" />
+      </div>
+
+      <div *ngIf="error" class="error-text">{{ error }}</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="resend-btn">Gửi lại mã</button>
+      <button class="confirm-btn" [disabled]="loading" (click)="handleVerify()">
+        <span *ngIf="loading" class="spinner"></span>
+        {{ loading ? 'Đang xử lý...' : 'Xác nhận Ký' }}
+      </button>
+    </div>
+  </div>
+</div>
