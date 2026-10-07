@@ -4,3 +4,11 @@ dist/
 .DS_Store
 *.log
 .angular/
+
+# Tài liệu thiết kế không đưa lên Git
+FRD/
+angular_component_tree_plan.md
+bpmn_custom_order_process.md
+database_schema_design.md
+implementation_plan.md
+progress_tracker.md
