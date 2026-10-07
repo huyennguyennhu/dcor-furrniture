@@ -49,7 +49,7 @@ export class RegisterComponent {
     this.error = '';
     this.success = '';
 
-    this.http.post<any>('http://localhost:3000/api/auth/customer/register', {
+    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/customer/register', {
       fullName: this.fullName,
       phone: this.phone,
       password: this.password
@@ -83,7 +83,7 @@ export class RegisterComponent {
       avatarUrl: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png'
     };
 
-    this.http.post<any>('http://localhost:3000/api/auth/customer/google', mockGoogleUser)
+    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/customer/google', mockGoogleUser)
       .subscribe({
         next: (res) => {
           this.loading = false;

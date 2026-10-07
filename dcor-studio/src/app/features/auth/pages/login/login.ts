@@ -41,7 +41,7 @@ export class LoginComponent {
       return;
     }
 
-    this.http.post<any>('http://localhost:3000/api/auth/customer/login', {
+    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/customer/login', {
       phone: this.phone,
       password: this.password
     }).subscribe({
@@ -69,7 +69,7 @@ export class LoginComponent {
       avatarUrl: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png'
     };
 
-    this.http.post<any>('http://localhost:3000/api/auth/customer/google', mockGoogleUser)
+    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/customer/google', mockGoogleUser)
       .subscribe({
         next: (res) => {
           this.loading = false;

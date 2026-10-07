@@ -21,7 +21,7 @@ export interface CartItem {
   providedIn: 'root',
 })
 export class CartService {
-  private apiUrl = 'http://localhost:3000/api/store/cart';
+  private apiUrl = 'https://dcor-furrniture.onrender.com/api/store/cart';
   private cartSubject = new BehaviorSubject<CartItem[]>([]);
   public cart$ = this.cartSubject.asObservable();
 

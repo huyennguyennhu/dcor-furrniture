@@ -26,7 +26,7 @@ export class AdminLoginComponent {
     this.loading = true;
     this.error = '';
 
-    this.http.post<any>('http://localhost:3000/api/auth/admin/login', {
+    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/admin/login', {
       email: this.email,
       password: this.password
     }).subscribe({
