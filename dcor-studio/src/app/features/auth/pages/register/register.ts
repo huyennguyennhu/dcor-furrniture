@@ -115,8 +115,4 @@ export class RegisterComponent {
       }
     });
   }
-
-    });
-  }
 }
-
