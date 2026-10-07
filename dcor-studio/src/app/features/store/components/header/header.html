@@ -10,10 +10,10 @@
     <nav style="flex: 1; display: flex; justify-content: center;">
       <ul style="display: flex; align-items: center; gap: 40px; list-style: none; margin: 0; padding: 0;">
         <li>
-          <a routerLink="/kham-pha" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Khám phá</a>
+          <a routerLink="/explore" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Khám phá</a>
         </li>
         <li>
-          <a routerLink="/thiet-ke" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Thiết kế</a>
+          <a routerLink="/custom-design" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Thiết kế</a>
         </li>
         <li>
           <a routerLink="/community" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Cộng đồng</a>
@@ -83,7 +83,7 @@
              (mousedown)="$event.preventDefault()"
              style="position: absolute; top: calc(100% + 12px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; z-index: 102;">
           <div *ngIf="searchResults.length > 0; else noResults" style="display: flex; flex-direction: column; gap: 8px;">
-            <a *ngFor="let p of searchResults.slice(0, 5)" [routerLink]="['/kham-pha', p.productId]" (click)="isDropdownOpen = false"
+            <a *ngFor="let p of searchResults.slice(0, 5)" [routerLink]="['/explore', p.productId]" (click)="isDropdownOpen = false"
                style="display: flex; gap: 12px; padding: 8px; border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: background 0.2s;"
                onmouseenter="this.style.background='rgba(0,0,0,0.05)'" onmouseleave="this.style.background='transparent'">
               <img [src]="p.images[0] || ''" alt="" style="width: 48px; height: 48px; object-fit: contain; padding: 4px; border-radius: 4px; background: var(--bg-tertiary);" />

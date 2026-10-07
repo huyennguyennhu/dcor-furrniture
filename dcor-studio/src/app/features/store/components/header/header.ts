@@ -97,7 +97,7 @@ export class Header implements OnInit {
   handleSearchSubmit() {
     if (this.searchQuery.trim() && this.searchResults.length > 0) {
       this.isDropdownOpen = false;
-      this.router.navigate(['/kham-pha'], { queryParams: { q: this.searchQuery.trim() } });
+      this.router.navigate(['/explore'], { queryParams: { q: this.searchQuery.trim() } });
     } else {
       if (this.searchInput) {
         this.searchInput.nativeElement.focus();
