@@ -14,10 +14,7 @@ export const cartController = {
         include: {
           variant: {
             include: {
-              product: true,
-              attributes: {
-                include: { attribute: true }
-              }
+              product: true
             }
           }
         }
@@ -25,18 +22,23 @@ export const cartController = {
 
       // Format lại data cho giống CartItem interface trên Frontend
       const formattedCart = cartItems.map(item => {
-        // Gom các Tags
-        const tags = item.variant.attributes.map(va => ({
-          label: va.attribute.name,
-          value: va.value
+        // Gom các Tags từ optionValues (Json)
+        const options = (item.variant.optionValues as any) || {};
+        const tags = Object.keys(options).map(key => ({
+          label: key,
+          value: options[key]
         }));
+
+        // Lấy ảnh gốc
+        const productImages = (item.variant.product.images as any) || [];
+        const baseImage = Array.isArray(productImages) && productImages.length > 0 ? productImages[0] : '';
 
         return {
           id: item.id, // ID của CartItem
           productId: item.variant.productId,
           variantId: item.variantId,
           name: item.variant.product.name,
-          image: item.variant.imageUrls[0] || item.variant.product.baseImage,
+          image: baseImage,
           price: item.variant.price || item.variant.product.basePrice,
           quantity: item.quantity,
           variantTags: tags,
@@ -101,14 +103,14 @@ export const cartController = {
 
       if (quantity < 1) {
         await prisma.cartItem.delete({
-          where: { id }
+          where: { id: id as string }
         });
         res.status(200).json({ message: 'Đã xóa sản phẩm khỏi giỏ hàng' });
         return;
       }
 
       const cartItem = await prisma.cartItem.update({
-        where: { id },
+        where: { id: id as string },
         data: { quantity }
       });
 
@@ -125,7 +127,7 @@ export const cartController = {
       const { id } = req.params;
 
       await prisma.cartItem.delete({
-        where: { id }
+        where: { id: id as string }
       });
 
       res.status(200).json({ message: 'Đã xóa sản phẩm khỏi giỏ hàng' });

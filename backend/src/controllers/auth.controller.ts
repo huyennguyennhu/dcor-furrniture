@@ -222,6 +222,7 @@ export const authController = {
             email,
             fullName: fullName || 'Khách hàng Google',
             avatarUrl: avatarUrl || null,
+            phone: 'GOOG_' + email, // Fake phone do Google login không cấp phone
             isPhoneVerified: false
           }
         });
