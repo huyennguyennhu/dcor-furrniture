@@ -7,7 +7,7 @@ import { HoverImageSlider } from '../hover-image-slider/hover-image-slider';
 import { CustomSelect } from '../custom-select/custom-select';
 import { LucideAngularModule, X, Plus, Minus, Info } from 'lucide-angular';
 
-import { environment } from '../../../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-quick-view-drawer',
