@@ -139,13 +139,15 @@ function getParentCategory(childCat: string): string {
     this.dynamicConfig = this.buildDynamicOptions(activeProduct);
     this.hasDynamicVariants = this.dynamicConfig && this.dynamicConfig.keys.length > 0;
     
-    this.filteredVariantPrices = (activeProduct.variants || []).filter((v: any) => v.images && v.images.length > 0);
+    // Lấy variants từ database (không lọc v.images vì db chưa có cột images cho variant)
+    this.filteredVariantPrices = activeProduct.variants || [];
     this.rawColors = activeProduct.refinementColors || [];
     this.colors = activeProduct.refinementColors_vi || this.rawColors;
 
     if (this.hasDynamicVariants && this.filteredVariantPrices.length > 0) {
       const firstVariant = this.filteredVariantPrices[0];
-      this.selectedOptions = firstVariant.selections || {};
+      // Dùng optionValues (của db) thay vì selections
+      this.selectedOptions = firstVariant.optionValues || firstVariant.selections || {};
     } else if (this.rawColors.length > 0) {
       this.selectedColor = this.rawColors[0];
     }
@@ -154,7 +156,10 @@ function getParentCategory(childCat: string): string {
   }
 
   buildDynamicOptions(product: any) {
-    const configOptions = product.configOptions || [];
+    let configOptions = product.configOptions || [];
+    if (configOptions && !Array.isArray(configOptions)) {
+      configOptions = configOptions.attributes || [];
+    }
     if (!configOptions || configOptions.length === 0) return null;
 
     const groups: any = {};
@@ -199,7 +204,7 @@ function getParentCategory(childCat: string): string {
       return;
     }
     this.matchedVariant = this.filteredVariantPrices.find((v: any) => {
-      const sel = v.selections || {};
+      const sel = v.optionValues || v.selections || {};
       return Object.keys(this.selectedOptions).every(k => sel[k] === this.selectedOptions[k]);
     }) || null;
   }
@@ -211,9 +216,12 @@ function getParentCategory(childCat: string): string {
       return Object.keys(newOptions).every(k => sel[k] === newOptions[k]);
     });
     if (!comboExists && this.filteredVariantPrices.length > 0) {
-      const fallbackVariant = this.filteredVariantPrices.find((v: any) => v.selections?.[groupKey] === optionId);
+      const fallbackVariant = this.filteredVariantPrices.find((v: any) => {
+        const sel = v.optionValues || v.selections;
+        return sel?.[groupKey] === optionId;
+      });
       if (fallbackVariant) {
-        this.selectedOptions = fallbackVariant.selections || {};
+        this.selectedOptions = fallbackVariant.optionValues || fallbackVariant.selections || {};
         this.updateMatchedVariant();
         return;
       }
@@ -260,7 +268,10 @@ function getParentCategory(childCat: string): string {
   }
 
   get dimensionData() {
-    return this.matchedVariant?.dimensions || this.activeProduct?.dimensions;
+    // Ưu tiên đọc từ configOptions nếu lưu dưới dạng object JSON
+    const configDims = this.activeProduct?.configOptions?.dimensions;
+    const optionValuesDims = this.matchedVariant?.optionValues?.dimensions;
+    return optionValuesDims || configDims || this.matchedVariant?.dimensions || this.activeProduct?.dimensions;
   }
 
   hasDimensions() {

@@ -43,7 +43,8 @@ app.get('/api/products/:id', async (req, res) => {
     const product = await prisma.product.findUnique({ 
       where: { id: req.params.id },
       include: {
-        category: true
+        category: true,
+        variants: true
       }
     });
     if (product) {
