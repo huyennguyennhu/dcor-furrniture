@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -66,7 +66,7 @@ export class ProductsComponent implements OnInit {
 
   @ViewChild('filterRef', { static: false }) filterRef!: ElementRef;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.fetchProducts();
@@ -91,6 +91,7 @@ export class ProductsComponent implements OnInit {
         this.products = mapped;
         this.applyFilters();
         this.isLoading = false;
+        this.cdr.detectChanges();
       })
       .catch(err => {
         console.error('Failed to fetch products', err);
@@ -102,6 +103,7 @@ export class ProductsComponent implements OnInit {
         ];
         this.applyFilters();
         this.isLoading = false;
+        this.cdr.detectChanges();
       });
   }
 

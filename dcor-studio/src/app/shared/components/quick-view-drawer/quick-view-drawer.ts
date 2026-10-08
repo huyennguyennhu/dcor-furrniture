@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +18,8 @@ import { environment } from '../../../../environments/environment';
 })
 export class QuickViewDrawerComponent implements OnChanges {
   icons = { X, Plus, Minus, Info };
+  constructor(private cdr: ChangeDetectorRef) {}
+
 
   @Input() product: CatalogProduct | null = null;
   @Input() isOpen = false;
@@ -72,12 +74,14 @@ export class QuickViewDrawerComponent implements OnChanges {
           this.fullProduct = data;
           this.initProductState();
           this.isLoadingDetails = false;
+          this.cdr.detectChanges();
         })
         .catch(err => {
           console.error(err);
           this.fullProduct = this.product;
           this.initProductState();
           this.isLoadingDetails = false;
+          this.cdr.detectChanges();
         });
     }
   }

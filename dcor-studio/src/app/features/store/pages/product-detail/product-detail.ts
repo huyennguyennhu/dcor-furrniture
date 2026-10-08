@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
@@ -19,7 +19,8 @@ export class ProductDetailComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -66,6 +67,7 @@ export class ProductDetailComponent implements OnInit {
       this.router.navigate(['/']);
     } finally {
       this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
 

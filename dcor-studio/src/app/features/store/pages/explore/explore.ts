@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, HostListener, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -45,7 +45,7 @@ export class ExploreComponent implements OnInit {
   
   wishlist: string[] = [];
 
-  constructor(private route: ActivatedRoute, private router: Router) {}
+  constructor(private route: ActivatedRoute, private router: Router, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
@@ -73,6 +73,7 @@ export class ExploreComponent implements OnInit {
       console.error(e);
     } finally {
       this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
 

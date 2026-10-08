@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
@@ -44,6 +44,8 @@ const STATIC_REVIEWS = [
   styleUrls: ['./home.css']
 })
 export class HomeComponent implements OnInit {
+  constructor(private cdr: ChangeDetectorRef) {}
+
   products: CatalogProduct[] = [];
   categories: any[] = [];
   isLoading = true;
@@ -95,6 +97,7 @@ export class HomeComponent implements OnInit {
       console.error(e);
     } finally {
       this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
 
