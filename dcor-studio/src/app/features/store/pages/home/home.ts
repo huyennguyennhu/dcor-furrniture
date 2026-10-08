@@ -4,7 +4,7 @@ import { RouterModule } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CatalogSection } from '../../../../shared/components/catalog-section/catalog-section';
 
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../../../environments/environment';
 
 // Data from lib/collections
 const STYLE_COLLECTIONS = [

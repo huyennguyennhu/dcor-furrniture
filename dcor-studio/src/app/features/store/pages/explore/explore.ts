@@ -9,7 +9,7 @@ import { SidebarFilterComponent, FilterState as SidebarFilterState } from '../..
 import { QuickViewDrawerComponent } from '../../../../shared/components/quick-view-drawer/quick-view-drawer';
 import { LucideAngularModule, Heart, Share2, Eye } from 'lucide-angular';
 
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../../../environments/environment';
 
 export type FilterState = SidebarFilterState;
 
