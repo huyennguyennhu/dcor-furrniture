@@ -16,11 +16,18 @@ Dưới đây là các lệnh cơ bản để khởi chạy dự án trong môi 
    ```bash
    npm install
    ```
-4. Chạy Server ở chế độ Development (sử dụng nodemon tự động restart khi lưu code):
+4. **Cấu hình Biến môi trường (QUAN TRỌNG):**
+   Tạo file `.env` từ file mẫu bằng lệnh sau (hoặc copy thủ công file `.env.example` thành `.env`):
+   ```bash
+   cp .env.example .env
+   ```
+   *Sau đó mở file `.env` lên và điền link Database thật vào chỗ `DATABASE_URL` (hỏi Leader để lấy link này).*
+
+5. Chạy Server ở chế độ Development (sử dụng nodemon tự động restart khi lưu code):
    ```bash
    npm run dev
    ```
-> **Lưu ý:** Đảm bảo bạn đã cấu hình đúng file `.env` và đã bật Database (PostgreSQL) trước khi chạy lệnh này. Backend mặc định sẽ chạy ở cổng `http://localhost:3000` hoặc `http://localhost:3005`.
+> **Lưu ý:** Đảm bảo bạn đã điền đúng `DATABASE_URL` trong file `.env` trước khi chạy lệnh này. Backend mặc định sẽ chạy ở cổng `http://localhost:3000` hoặc `http://localhost:3005`.
 
 ---
 
