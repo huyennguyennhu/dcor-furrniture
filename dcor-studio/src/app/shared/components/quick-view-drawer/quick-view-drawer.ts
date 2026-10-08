@@ -7,6 +7,8 @@ import { HoverImageSlider } from '../hover-image-slider/hover-image-slider';
 import { CustomSelect } from '../custom-select/custom-select';
 import { LucideAngularModule, X, Plus, Minus, Info } from 'lucide-angular';
 
+import { environment } from '../../../../environments/environment';
+
 @Component({
   selector: 'app-quick-view-drawer',
   standalone: true,
@@ -64,7 +66,7 @@ export class QuickViewDrawerComponent implements OnChanges {
     if (this.product?.productId) {
       this.isLoadingDetails = true;
       // Giả lập fetch API chi tiết
-      fetch(`https://dcor-furrniture.onrender.com/api/products/${this.product.productId}`)
+      fetch(`${environment.apiUrl}/products/${this.product.productId}`)
         .then(res => res.json())
         .then(data => {
           this.fullProduct = data;

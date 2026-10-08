@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-admin-invite-accept',
@@ -47,7 +48,7 @@ export class AdminInviteAcceptComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/admin/invite-accept', {
+    this.http.post<any>(`${environment.apiUrl}/auth/admin/invite-accept`, {
       email: this.email,
       password: this.password
     }).subscribe({

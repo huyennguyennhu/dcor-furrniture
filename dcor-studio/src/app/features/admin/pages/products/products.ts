@@ -7,6 +7,8 @@ import {
   Package, Tag, AlertCircle, TrendingUp, Search, Download, Plus, ChevronDown, ArrowUp, ArrowDown 
 } from 'lucide-angular';
 
+import { environment } from '../../../../../environments/environment';
+
 interface Product {
   id: string;
   sku: string;
@@ -72,7 +74,7 @@ export class ProductsComponent implements OnInit {
 
   fetchProducts() {
     this.isLoading = true;
-    fetch('https://dcor-furrniture.onrender.com/api/products')
+    fetch(`${environment.apiUrl}/products`)
       .then(res => res.json())
       .then(data => {
         const mapped: Product[] = data.map((p: any) => ({

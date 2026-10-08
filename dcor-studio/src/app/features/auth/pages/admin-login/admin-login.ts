@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-admin-login',
@@ -26,7 +27,7 @@ export class AdminLoginComponent {
     this.loading = true;
     this.error = '';
 
-    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/admin/login', {
+    this.http.post<any>(`${environment.apiUrl}/auth/admin/login`, {
       email: this.email,
       password: this.password
     }).subscribe({

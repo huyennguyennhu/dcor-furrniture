@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-product-detail',
@@ -33,7 +34,7 @@ export class ProductDetailComponent implements OnInit {
   async loadProduct(id: string) {
     this.isLoading = true;
     try {
-      const res = await fetch(`https://dcor-furrniture.onrender.com/api/products/${id}`);
+      const res = await fetch(`${environment.apiUrl}/products/${id}`);
       if (res.ok) {
         const data = await res.json();
         this.product = data;

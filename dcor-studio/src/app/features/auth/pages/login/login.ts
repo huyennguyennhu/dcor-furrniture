@@ -5,6 +5,7 @@ import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SocialAuthService, GoogleSigninButtonModule } from '@abacritt/angularx-social-login';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -40,7 +41,7 @@ export class LoginComponent {
           avatarUrl: user.photoUrl
         };
 
-        this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/customer/google', payload)
+        this.http.post<any>(`${environment.apiUrl}/auth/customer/google`, payload)
           .subscribe({
             next: (res) => {
               this.loading = false;
@@ -85,7 +86,7 @@ export class LoginComponent {
       return;
     }
 
-    this.http.post<any>('https://dcor-furrniture.onrender.com/api/auth/customer/login', {
+    this.http.post<any>(`${environment.apiUrl}/auth/customer/login`, {
       phone: this.phone,
       password: this.password
     }).subscribe({

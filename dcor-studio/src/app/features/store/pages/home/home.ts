@@ -4,6 +4,8 @@ import { RouterModule } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CatalogSection } from '../../../../shared/components/catalog-section/catalog-section';
 
+import { environment } from '../../../../environments/environment';
+
 // Data from lib/collections
 const STYLE_COLLECTIONS = [
   { id: 'scandinavian', name: 'Scandinavian', name_vi: 'Bắc Âu Hiện Đại', description_vi: 'Đơn giản, tinh tế, ưu tiên ánh sáng tự nhiên và công năng.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/scandi.jpg', accentColor: '#D1D5DB' },
@@ -83,7 +85,7 @@ export class HomeComponent implements OnInit {
 
   async fetchProducts() {
     try {
-      const res = await fetch('https://dcor-furrniture.onrender.com/api/products');
+      const res = await fetch(`${environment.apiUrl}/products`);
       if (res.ok) {
         const data = await res.json();
         this.products = data;

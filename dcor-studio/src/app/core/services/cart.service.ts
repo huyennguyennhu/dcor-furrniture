@@ -16,12 +16,13 @@ export interface CartItem {
   leg?: any;
   upholstery?: any;
 }
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CartService {
-  private apiUrl = 'https://dcor-furrniture.onrender.com/api/store/cart';
+  private apiUrl = `${environment.apiUrl}/store/cart`;
   private cartSubject = new BehaviorSubject<CartItem[]>([]);
   public cart$ = this.cartSubject.asObservable();
 

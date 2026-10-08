@@ -9,6 +9,8 @@ import { SidebarFilterComponent, FilterState as SidebarFilterState } from '../..
 import { QuickViewDrawerComponent } from '../../../../shared/components/quick-view-drawer/quick-view-drawer';
 import { LucideAngularModule, Heart, Share2, Eye } from 'lucide-angular';
 
+import { environment } from '../../../../environments/environment';
+
 export type FilterState = SidebarFilterState;
 
 const INITIAL_FILTER_STATE: FilterState = {
@@ -60,8 +62,8 @@ export class ExploreComponent implements OnInit {
   async fetchData() {
     this.isLoading = true;
     try {
-      // Mocking fetch since we don't have real API yet, or using https://dcor-furrniture.onrender.com/api/products if it exists.
-      const res = await fetch('https://dcor-furrniture.onrender.com/api/products');
+      // Gọi qua environment.apiUrl thay vì hardcode
+      const res = await fetch(`${environment.apiUrl}/products`);
       if (res.ok) {
         const data = await res.json();
         this.products = data;
