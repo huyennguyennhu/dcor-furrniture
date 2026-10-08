@@ -27,7 +27,11 @@ app.use('/api/store/cart', cartRoutes);
 // Example route
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+      include: {
+        category: true
+      }
+    });
     res.json(products);
   } catch (error) {
     res.json([]);
@@ -36,7 +40,12 @@ app.get('/api/products', async (req, res) => {
 
 app.get('/api/products/:id', async (req, res) => {
   try {
-    const product = await prisma.product.findUnique({ where: { id: req.params.id } });
+    const product = await prisma.product.findUnique({ 
+      where: { id: req.params.id },
+      include: {
+        category: true
+      }
+    });
     if (product) {
       res.json(product);
     } else {

@@ -1,17 +1,7 @@
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-
-export interface CartItem {
-  productId: string;
-  name: string;
-  image: string;
-  price: number;
-  quantity: number;
-  variantTags?: {label: string, value: string}[];
-  leg?: any;
-  upholstery?: any;
-}
+import { CartService, CartItem } from '../../../core/services/cart.service';
 
 @Component({
   selector: 'app-cart-drawer',
@@ -25,20 +15,13 @@ export class CartDrawerComponent implements OnInit {
 
   cartItems: CartItem[] = [];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private cartService: CartService) {}
 
   ngOnInit() {
-    // MOCK data. In real app, load from LocalStorage or CartService/Store
-    this.cartItems = [
-      {
-        productId: 'prod-1',
-        name: 'Sofa Indivi 3 chỗ',
-        image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/41252001_2733503_PNG-Web2072dpi.png',
-        price: 45000000,
-        quantity: 1,
-        variantTags: [{ label: 'Màu', value: 'Xám đậm' }]
-      }
-    ];
+    this.cartService.cart$.subscribe(items => {
+      this.cartItems = items;
+    });
+    this.cartService.loadCart();
   }
 
   get subTotal() {
@@ -61,16 +44,16 @@ export class CartDrawerComponent implements OnInit {
     return val.toLocaleString('vi-VN') + ' ₫';
   }
 
-  updateQuantity(index: number, newQty: number) {
+  updateQuantity(id: string, newQty: number) {
     if (newQty < 1) {
-      this.removeFromCart(index);
+      this.removeFromCart(id);
     } else {
-      this.cartItems[index].quantity = newQty;
+      this.cartService.updateQuantity(id, newQty).subscribe();
     }
   }
 
-  removeFromCart(index: number) {
-    this.cartItems.splice(index, 1);
+  removeFromCart(id: string) {
+    this.cartService.removeFromCart(id).subscribe();
   }
 
   closeDrawer() {

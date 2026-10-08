@@ -17,15 +17,15 @@
       </div>
 
       <div *ngFor="let gItem of cartItems; let idx = index" style="display: flex; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
-        <div style="width: 80px; height: 80px; background: var(--bg-tertiary); border-radius: 8px; padding: 5px; cursor: pointer;" [routerLink]="['/kham-pha', gItem.productId]" (click)="closeDrawer()">
+        <div style="width: 80px; height: 80px; background: var(--bg-tertiary); border-radius: 8px; padding: 5px; cursor: pointer;" [routerLink]="['/products', gItem.productId]" (click)="closeDrawer()">
           <img [src]="gItem.image" [alt]="gItem.name" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <h4 [routerLink]="['/kham-pha', gItem.productId]" (click)="closeDrawer()" style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary); cursor: pointer; max-width: 85%;">{{ gItem.name }}</h4>
-              <button (click)="removeFromCart(idx)" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0;">
+              <h4 [routerLink]="['/products', gItem.productId]" (click)="closeDrawer()" style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary); cursor: pointer; max-width: 85%;">{{ gItem.name }}</h4>
+              <button (click)="removeFromCart(gItem.id)" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
@@ -37,9 +37,9 @@
           
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
             <div style="display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; background: var(--bg-tertiary);">
-              <button (click)="updateQuantity(idx, gItem.quantity - 1)" style="padding: 4px 10px; background: transparent; border: none; cursor: pointer; color: var(--text-primary); font-weight: bold;">-</button>
+              <button (click)="updateQuantity(gItem.id, gItem.quantity - 1)" style="padding: 4px 10px; background: transparent; border: none; cursor: pointer; color: var(--text-primary); font-weight: bold;">-</button>
               <span style="font-size: 13px; min-width: 20px; text-align: center; color: var(--text-primary);">{{ gItem.quantity }}</span>
-              <button (click)="updateQuantity(idx, gItem.quantity + 1)" style="padding: 4px 10px; background: transparent; border: none; cursor: pointer; color: var(--text-primary); font-weight: bold;">+</button>
+              <button (click)="updateQuantity(gItem.id, gItem.quantity + 1)" style="padding: 4px 10px; background: transparent; border: none; cursor: pointer; color: var(--text-primary); font-weight: bold;">+</button>
             </div>
             <div style="font-weight: 700; color: var(--accent); font-size: 15px;">{{ formatCurrency(gItem.price * gItem.quantity) }}</div>
           </div>

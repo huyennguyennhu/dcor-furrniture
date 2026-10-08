@@ -86,12 +86,45 @@ export class HomeComponent implements OnInit {
   }
 
   async fetchProducts() {
+    this.isLoading = true;
     try {
       const res = await fetch(`${environment.apiUrl}/products`);
       if (res.ok) {
         const data = await res.json();
-        this.products = data;
-        this.generateCategories(data);
+        
+        let rawProducts = Array.isArray(data) ? data : (data.data || data.Items || data.products || []);
+        
+function getParentCategory(childCat: string): string {
+  if (!childCat) return 'Sofa';
+  const c = childCat.toLowerCase();
+  if (c.includes('sofa') || c.includes('chaise')) return 'Sofa';
+  if (c.includes('chair') || c.includes('bench') || c.includes('stool') || c.includes('recliner') || c.includes('poufs') || c.includes('cushion') || c.includes('seat')) return 'Ghế';
+  if (c.includes('table') || c.includes('desk') || (c.includes('stand') && !c.includes('night'))) return 'Bàn';
+  if (c.includes('storage') || c.includes('shelf') || c.includes('shelves') || c.includes('bookcase') || c.includes('board') || c.includes('unit') || c.includes('chest') || c.includes('drawer') || c.includes('system') || c.includes('night') || c.includes('hallway')) return 'Tủ Kệ';
+  if (c.includes('bed') || c.includes('daybed')) return 'Giường';
+  if (c.includes('lamp') || c.includes('pendant') || c.includes('lighting')) return 'Đèn';
+  if (c.includes('rug') || c.includes('carpet')) return 'Thảm';
+  return 'Phụ Kiện';
+}
+
+        this.products = rawProducts.map((p: any) => ({
+          productId: p.id || p.productId,
+          shortDescription: p.name || p.shortDescription || '',
+          shortDescription_vi: p.name || p.shortDescription_vi || '',
+          category: getParentCategory(p.category?.name || (typeof p.category === 'string' ? p.category : '')),
+          description: p.description || p.description_vi,
+          refinementMaterials: p.description ? [p.description] : (p.refinementMaterials || []),
+          refinementMaterials_vi: p.description ? [p.description] : (p.refinementMaterials_vi || []),
+          refinementColors: p.refinementColors || [],
+          images: p.images || [],
+          prices: p.prices || [{ price: p.basePrice || 0, formattedPrice: new Intl.NumberFormat('vi-VN').format(p.basePrice || 0) + ' ₫' }],
+          lowestPrices: p.discountValue ? [{ price: (p.basePrice || 0) - p.discountValue, formattedPrice: new Intl.NumberFormat('vi-VN').format((p.basePrice || 0) - p.discountValue) + ' ₫' }] : (p.lowestPrices || []),
+          isBestSeller: p.isBestSeller || false,
+          isNew: p.isNew || false,
+          createdAt: p.createdAt
+        }));
+        
+        this.generateCategories(this.products);
       }
     } catch (e) {
       console.error(e);
@@ -113,7 +146,7 @@ export class HomeComponent implements OnInit {
       }
     });
 
-    const order = ['Sofa', 'Ghế', 'Bàn', 'Tủ & Kệ', 'Đèn', 'Thảm', 'Giường', 'Phụ kiện'];
+    const order = ['Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Phụ Kiện'];
     
     this.categories = Object.keys(counts).map(cat => ({
       label: cat,

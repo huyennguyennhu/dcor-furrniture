@@ -1,0 +1,36 @@
+@font-face {
+  font-family: "Poppins";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("./poppins-vi-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("./poppins-vi-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("./poppins-vi-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./poppins-vi-700.woff2") format("woff2");
+}
+
+:root {
+  --font-body: "Poppins", "Be Vietnam Pro", sans-serif;
+  --font-heading: "Poppins", "Be Vietnam Pro", sans-serif;
+}

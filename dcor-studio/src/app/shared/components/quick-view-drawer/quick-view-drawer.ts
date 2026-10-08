@@ -3,22 +3,33 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CatalogProduct } from '../../models/catalog.model';
-import { HoverImageSlider } from '../hover-image-slider/hover-image-slider';
 import { CustomSelect } from '../custom-select/custom-select';
-import { LucideAngularModule, X, Plus, Minus, Info } from 'lucide-angular';
+import { LucideAngularModule, X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink } from 'lucide-angular';
 
 import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-quick-view-drawer',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule, HoverImageSlider, CustomSelect],
+  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule, CustomSelect],
   templateUrl: './quick-view-drawer.html',
   styleUrls: ['./quick-view-drawer.css']
 })
 export class QuickViewDrawerComponent implements OnChanges {
-  icons = { X, Plus, Minus, Info };
+  icons = { X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink };
   constructor(private cdr: ChangeDetectorRef) {}
+
+  currentImageIdx = 0;
+
+  prevImage(e: Event) {
+    e.stopPropagation();
+    this.currentImageIdx = this.currentImageIdx === 0 ? this.images.length - 1 : this.currentImageIdx - 1;
+  }
+
+  nextImage(e: Event) {
+    e.stopPropagation();
+    this.currentImageIdx = this.currentImageIdx === this.images.length - 1 ? 0 : this.currentImageIdx + 1;
+  }
 
 
   @Input() product: CatalogProduct | null = null;
@@ -65,13 +76,34 @@ export class QuickViewDrawerComponent implements OnChanges {
     this.quantity = 1;
     document.body.style.overflow = 'hidden';
 
+function getParentCategory(childCat: string): string {
+  if (!childCat) return 'Sofa';
+  const c = childCat.toLowerCase();
+  if (c.includes('sofa') || c.includes('chaise')) return 'Sofa';
+  if (c.includes('chair') || c.includes('bench') || c.includes('stool') || c.includes('recliner') || c.includes('poufs') || c.includes('cushion') || c.includes('seat')) return 'Ghế';
+  if (c.includes('table') || c.includes('desk') || (c.includes('stand') && !c.includes('night'))) return 'Bàn';
+  if (c.includes('storage') || c.includes('shelf') || c.includes('shelves') || c.includes('bookcase') || c.includes('board') || c.includes('unit') || c.includes('chest') || c.includes('drawer') || c.includes('system') || c.includes('night') || c.includes('hallway')) return 'Tủ Kệ';
+  if (c.includes('bed') || c.includes('daybed')) return 'Giường';
+  if (c.includes('lamp') || c.includes('pendant') || c.includes('lighting')) return 'Đèn';
+  if (c.includes('rug') || c.includes('carpet')) return 'Thảm';
+  return 'Phụ Kiện';
+}
+
     if (this.product?.productId) {
       this.isLoadingDetails = true;
-      // Giả lập fetch API chi tiết
       fetch(`${environment.apiUrl}/products/${this.product.productId}`)
         .then(res => res.json())
         .then(data => {
-          this.fullProduct = data;
+          this.fullProduct = {
+            ...this.product,
+            ...data,
+            productId: data.id || this.product?.productId,
+            shortDescription: data.name || this.product?.shortDescription,
+            shortDescription_vi: data.name || this.product?.shortDescription_vi,
+            category: getParentCategory(data.category?.name || this.product?.category || ''),
+            prices: data.basePrice ? [{ price: data.basePrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(data.basePrice) + ' ₫' }] : this.product?.prices,
+            lowestPrices: data.discountValue ? [{ price: data.basePrice - data.discountValue, formattedPrice: new Intl.NumberFormat('vi-VN').format(data.basePrice - data.discountValue) + ' ₫' }] : this.product?.lowestPrices,
+          };
           this.initProductState();
           this.isLoadingDetails = false;
           this.cdr.detectChanges();
