@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ContractModalComponent } from '../../../../shared/components/contract-modal/contract-modal';
@@ -6,7 +7,7 @@ import { OtpModalComponent } from '../../../../shared/components/otp-modal/otp-m
 @Component({
   selector: 'app-custom-requests',
   standalone: true,
-  imports: [CommonModule, ContractModalComponent, OtpModalComponent],
+  imports: [IconComponent, CommonModule, ContractModalComponent, OtpModalComponent],
   templateUrl: './custom-requests.html',
   styleUrls: ['./custom-requests.css']
 })

@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -41,7 +42,7 @@ const SORT_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  imports: [IconComponent, CommonModule, FormsModule, RouterModule, LucideAngularModule],
   templateUrl: './customers.html',
   styleUrls: ['./customers.css']
 })

@@ -1,3 +1,4 @@
+import { IconComponent } from '../icon/icon';
 import { Component, Input, Output, EventEmitter, TemplateRef, ContentChild, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -12,7 +13,7 @@ export interface Column {
 @Component({
   selector: 'app-data-table',
   standalone: true,
-  imports: [CommonModule],
+  imports: [IconComponent, CommonModule],
   templateUrl: './data-table.html',
   styleUrls: ['./data-table.css']
 })

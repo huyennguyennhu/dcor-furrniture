@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -5,7 +6,7 @@ import { RouterModule } from '@angular/router';
 @Component({
   selector: 'app-wishlist',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [IconComponent, CommonModule, RouterModule],
   templateUrl: './wishlist.html',
   styleUrls: ['./wishlist.css']
 })

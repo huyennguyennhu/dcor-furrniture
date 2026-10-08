@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +9,7 @@ import { environment } from '../../../../../environments/environment';
 @Component({
   selector: 'app-admin-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [IconComponent, CommonModule, FormsModule],
   templateUrl: './admin-login.html',
   styleUrls: ['./admin-login.css']
 })

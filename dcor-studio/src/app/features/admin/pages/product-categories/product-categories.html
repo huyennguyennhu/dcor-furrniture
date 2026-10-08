@@ -101,7 +101,7 @@
 
             <td style="padding: 16px; position: relative;">
               <button (click)="toggleActionMenu(item.id, $event)" class="action-menu-container" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='transparent'">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                <app-icon name="MoreVertical" size="16"></app-icon>
               </button>
 
               <div *ngIf="activeActionMenu === item.id" class="action-menu-container" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; position: absolute; right: 0; top: 40px; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); min-width: 160px; display: flex; flex-direction: column;">
@@ -131,7 +131,7 @@
       <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
         <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">Thêm loại danh mục mới</h2>
         <button (click)="isAddTypeOpen = false; resetTypeForm();" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <app-icon name="X" size="20"></app-icon>
         </button>
       </div>
       
@@ -178,7 +178,7 @@
       <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
         <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">{{ categoryModalMode === 'add' ? 'Thêm danh mục mới' : categoryModalMode === 'edit' ? 'Chỉnh sửa danh mục' : 'Xem chi tiết danh mục' }}</h2>
         <button (click)="isCategoryModalOpen = false; resetCatForm();" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <app-icon name="X" size="20"></app-icon>
         </button>
       </div>
       

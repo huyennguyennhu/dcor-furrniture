@@ -75,7 +75,7 @@
         <div style="display: flex; align-items: center; gap: 8px;">
           <lucide-angular [img]="icons.Filter" size="14"></lucide-angular> {{ locationFilter }}
         </div>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <app-icon name="ChevronDown" size="14" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></app-icon>
       </button>
       
       <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; padding: 4px;">

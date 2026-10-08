@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
@@ -8,7 +9,7 @@ import { environment } from '../../../../../environments/environment';
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [IconComponent, CommonModule, RouterModule],
   templateUrl: './product-detail.html',
   styleUrls: ['./product-detail.css']
 })

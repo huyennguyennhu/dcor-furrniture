@@ -1,3 +1,4 @@
+import { IconComponent } from '../icon/icon';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -5,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-contract-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [IconComponent, CommonModule, FormsModule],
   templateUrl: './contract-modal.html',
   styleUrls: ['./contract-modal.css']
 })

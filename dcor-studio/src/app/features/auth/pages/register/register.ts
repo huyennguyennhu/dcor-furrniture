@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +11,7 @@ import { environment } from '../../../../../environments/environment';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, GoogleSigninButtonModule],
+  imports: [IconComponent, CommonModule, FormsModule, RouterModule, GoogleSigninButtonModule],
   templateUrl: './register.html',
   styleUrls: ['./register.css']
 })

@@ -53,10 +53,7 @@
                'height': '44px',
                'transition': 'background 0.35s ease, padding 0.35s ease, border-color 0.35s ease'
              }">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-               [ngStyle]="{'color': isDocked ? 'var(--text-primary)' : 'rgba(255,255,255,0.8)', 'flex-shrink': '0', 'transition': 'color 0.35s ease'}">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-          </svg>
+          <app-icon name="Search" size="16" [ngStyle]="{'color': isDocked ? 'var(--text-primary)' : 'rgba(255,255,255,0.8)', 'flex-shrink': '0', 'transition': 'color 0.35s ease'}"></app-icon>
           <input #searchInput type="text"
                  [(ngModel)]="searchQuery"
                  (focus)="onSearchFocus()"
@@ -72,9 +69,7 @@
                  
           <button *ngIf="searchQuery" (click)="handleSearchSubmit()"
                   style="background: var(--accent); border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-            </svg>
+            <app-icon name="ArrowRight" size="14" color="#fff"></app-icon>
           </button>
         </div>
 
@@ -108,14 +103,14 @@
       </div>
 
       <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;" (click)="toggleCartDrawer()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <app-icon name="ShoppingBag" size="22"></app-icon>
         <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
       </button>
 
       <ng-container *ngIf="isLoggedIn; else guestTemplate">
         <div class="user-dropdown-wrapper">
           <button class="icon-btn" (click)="toggleUserMenu()" title="Tài khoản">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <app-icon name="UserRound" size="22"></app-icon>
           </button>
           
           <div class="user-dropdown-menu" [class.active]="userMenuOpen" [style.display]="userMenuOpen ? 'block' : 'none'">
@@ -131,8 +126,8 @@
                 <button class="user-menu-item" (click)="toggleTheme()"
                         style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 14px; color: var(--text-secondary);">
                   <span>{{ theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối' }}</span>
-                  <svg *ngIf="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-                  <svg *ngIf="theme === 'light'" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                  <app-icon name="Sun" size="15" *ngIf="theme === 'dark'"></app-icon>
+                  <app-icon name="Moon" size="15" *ngIf="theme === 'light'"></app-icon>
                 </button>
               </li>
               <li *ngIf="user?.role === 'ADMIN'">
@@ -141,7 +136,7 @@
               <li>
                 <button class="user-menu-item" (click)="logout()"
                         style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #ff4d4f; padding: 10px 16px; font-size: 14px; border-top: 1px solid var(--border-color); margin-top: 4px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                  <app-icon name="LogOut" size="16"></app-icon>
                   Đăng xuất
                 </button>
               </li>

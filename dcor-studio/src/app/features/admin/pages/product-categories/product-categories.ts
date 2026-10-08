@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -82,7 +83,7 @@ const SAMPLE_CATEGORIES: Record<string, Category[]> = {
 @Component({
   selector: 'app-product-categories',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AdminPageTabs],
+  imports: [IconComponent, CommonModule, FormsModule, RouterModule, LucideAngularModule, AdminPageTabs],
   templateUrl: './product-categories.html',
   styleUrls: ['./product-categories.css']
 })

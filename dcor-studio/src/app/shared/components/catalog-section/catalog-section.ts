@@ -1,3 +1,4 @@
+import { IconComponent } from '../icon/icon';
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,7 +8,7 @@ import { CatalogProduct } from '../../models/catalog.model';
 @Component({
   selector: 'app-catalog-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, HoverImageSlider],
+  imports: [IconComponent, CommonModule, FormsModule, HoverImageSlider],
   templateUrl: './catalog-section.html',
   styleUrls: ['./catalog-section.css']
 })

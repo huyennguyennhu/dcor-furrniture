@@ -75,7 +75,7 @@
             </td>
             <td style="padding: 16px; position: relative;" (click)="$event.stopPropagation()">
               <button (click)="activeActionMenu = activeActionMenu === item.id ? null : item.id" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='transparent'">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                <app-icon name="MoreVertical" size="16"></app-icon>
               </button>
 
               <div *ngIf="activeActionMenu === item.id" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: absolute; right: 0; top: 40px; z-index: 10; display: flex; flex-direction: column;">

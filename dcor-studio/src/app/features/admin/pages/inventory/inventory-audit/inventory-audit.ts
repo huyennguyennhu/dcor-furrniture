@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +18,7 @@ const mockProducts = [
 @Component({
   selector: 'app-inventory-audit',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  imports: [IconComponent, CommonModule, FormsModule, RouterModule, LucideAngularModule],
   templateUrl: './inventory-audit.html',
   styleUrls: ['./inventory-audit.css']
 })

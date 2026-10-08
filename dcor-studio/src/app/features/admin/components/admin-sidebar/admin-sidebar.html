@@ -16,8 +16,8 @@
     (click)="toggleCollapse()"
     style="position: absolute; top: 20px; right: -14px; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-primary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 30; color: var(--text-secondary); box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
   >
-    <svg *ngIf="isCollapsed" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-    <svg *ngIf="!isCollapsed" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <app-icon name="ChevronLeft" size="16" *ngIf="isCollapsed"></app-icon>
+    <app-icon name="ChevronRight" size="16" *ngIf="!isCollapsed"></app-icon>
   </button>
 
   <div style="flex-grow: 1; overflow-y: auto; padding: 24px 12px;">
@@ -38,12 +38,12 @@
                     'font-weight': isParentActive(item) ? 600 : 500, 'transition': 'all 0.2s', 'position': 'relative'
                   }">
             <div style="display: flex; align-items: center; gap: 12px;">
-              <span [innerHTML]="item.icon"></span>
+              <app-icon [name]="item.icon" size="20"></app-icon>
               <span *ngIf="!isCollapsed">{{ item.title }}</span>
             </div>
             <ng-container *ngIf="!isCollapsed">
-              <svg *ngIf="openMenu === item.href" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-              <svg *ngIf="openMenu !== item.href" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              <app-icon name="ChevronDown" size="16" *ngIf="openMenu === item.href"></app-icon>
+              <app-icon name="ChevronLeft" size="16" *ngIf="openMenu !== item.href"></app-icon>
             </ng-container>
           </button>
         </ng-container>
@@ -60,7 +60,7 @@
                'font-weight': isParentActive(item) ? 600 : 500, 'transition': 'all 0.2s', 'position': 'relative'
              }">
             <div style="display: flex; align-items: center; gap: 12px;">
-              <span [innerHTML]="item.icon"></span>
+              <app-icon [name]="item.icon" size="20"></app-icon>
               <span *ngIf="!isCollapsed">{{ item.title }}</span>
             </div>
           </a>
@@ -100,7 +100,7 @@
           <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; width: 220px; box-shadow: var(--card-shadow); padding: 8px;">
             <ng-container *ngIf="item.subItems; else hoverLinkTemplate">
               <div style="padding: 8px 12px; font-size: 14px; font-weight: 600; color: var(--accent); border-bottom: 1px solid var(--border-color); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                <span [innerHTML]="item.icon"></span> {{ item.title }}
+                <app-icon [name]="item.icon" size="20"></app-icon> {{ item.title }}
               </div>
               <div style="display: flex; flex-direction: column; gap: 2px;">
                 <a *ngFor="let sub of item.subItems" 
@@ -115,7 +115,7 @@
             <ng-template #hoverLinkTemplate>
               <a [routerLink]="item.href"
                  style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; border-radius: 8px;">
-                <span [innerHTML]="item.icon"></span> {{ item.title }}
+                <app-icon [name]="item.icon" size="20"></app-icon> {{ item.title }}
               </a>
             </ng-template>
           </div>

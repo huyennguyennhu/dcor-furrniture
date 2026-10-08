@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, HostListener, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
@@ -9,7 +10,7 @@ import { CartDrawerComponent } from '../../../../shared/components/cart-drawer/c
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, CartDrawerComponent],
+  imports: [IconComponent, CommonModule, RouterModule, FormsModule, CartDrawerComponent],
   templateUrl: './header.html',
   styleUrls: ['./header.css']
 })

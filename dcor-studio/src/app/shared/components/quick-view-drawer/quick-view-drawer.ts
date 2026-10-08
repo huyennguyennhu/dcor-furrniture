@@ -1,3 +1,4 @@
+import { IconComponent } from '../icon/icon';
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -11,7 +12,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-quick-view-drawer',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule, CustomSelect],
+  imports: [IconComponent, CommonModule, RouterModule, FormsModule, LucideAngularModule, CustomSelect],
   templateUrl: './quick-view-drawer.html',
   styleUrls: ['./quick-view-drawer.css']
 })

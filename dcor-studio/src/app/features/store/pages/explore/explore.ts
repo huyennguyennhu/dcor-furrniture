@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, HostListener, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
@@ -23,7 +24,7 @@ const INITIAL_FILTER_STATE: FilterState = {
 @Component({
   selector: 'app-explore',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, CustomSelect, HoverImageSlider, SidebarFilterComponent, QuickViewDrawerComponent, LucideAngularModule],
+  imports: [IconComponent, CommonModule, RouterModule, FormsModule, CustomSelect, HoverImageSlider, SidebarFilterComponent, QuickViewDrawerComponent, LucideAngularModule],
   templateUrl: './explore.html',
   styleUrls: ['./explore.css']
 })

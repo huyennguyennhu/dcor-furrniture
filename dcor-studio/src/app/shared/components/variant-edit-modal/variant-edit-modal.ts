@@ -1,10 +1,11 @@
+import { IconComponent } from '../icon/icon';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-variant-edit-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [IconComponent, CommonModule],
   templateUrl: './variant-edit-modal.html',
   styleUrls: ['./variant-edit-modal.css']
 })

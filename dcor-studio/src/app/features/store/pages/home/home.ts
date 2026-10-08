@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -39,7 +40,7 @@ const STATIC_REVIEWS = [
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, CatalogSection],
+  imports: [IconComponent, CommonModule, RouterModule, CatalogSection],
   templateUrl: './home.html',
   styleUrls: ['./home.css']
 })
