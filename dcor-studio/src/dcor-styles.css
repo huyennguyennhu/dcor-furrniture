@@ -1,61 +1,142 @@
 /* DCor Studio CSS - Premium Danish Furniture Design System */
 
 :root {
-  /* Dark Mode Default - DCor Custom Color Palette */
-  --bg-primary: #3F2C1B; /* Circle 1 - Nâu tối chủ đạo */
-  --bg-secondary: #765337; /* Circle 2 - Nâu vừa */
-  --bg-tertiary: #4F3725; /* Tông nâu trung gian ấm áp cho card/khối phụ */
-  
-  --text-primary: #FFF3E3; /* Circle 5 - Kem ấm */
-  --text-secondary: #FCF8F3; /* Circle 4 - Kem nhạt */
-  --text-muted: #A08C7F; /* Nâu ấm mờ */
-  
-  --accent: #BC5F13; /* Circle 3 - Cam đất */
-  --accent-hover: #E67E22; 
-  --accent-rgb: 188, 95, 19;
-  
-  --border-color: rgba(255, 243, 227, 0.12);
-  --border-focus: rgba(188, 95, 19, 0.5);
-  
-  --glass-bg: rgba(63, 44, 27, 0.8);
-  --glass-border: rgba(255, 243, 227, 0.08);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  
-  --card-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.35);
-  --modal-overlay: rgba(31, 21, 16, 0.92);
-  
-  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  
+  color-scheme: dark;
+
+  --color-primary: #b98a5e;
+  --color-primary-hover: #d9782a;
+  --color-primary-pressed: #8f6642;
+  --color-accent: #d9782a;
+  --color-accent-hover: #b98a5e;
+  --color-primary-subtle: #3a2a1c;
+  --color-primary-border: #d9782a;
+  --color-focus: #e8873a;
+
+  --color-page: #14120f;
+  --color-sub-bg: #3a2a1c;
+  --color-surface: #1e1b17;
+  --color-surface-subtle: #26221d;
+  --color-surface-muted: #312c26;
+
+  --color-success: #4cd35a;
+  --color-success-bg: #12301a;
+  --color-warning: #f2bf3d;
+  --color-warning-hover: #e8a909;
+  --color-warning-bg: #3a2f10;
+  --color-danger: #ff6b6e;
+  --color-danger-hover: #c42326;
+  --color-danger-bg: #3b1819;
+  --color-info: #8a9bff;
+  --color-info-bg: #1c2145;
+
+  --color-text: #f4f0e9;
+  --color-text-heading: #f4f0e9;
+  --color-text-secondary: #bdb7ad;
+  --color-text-muted: #968f84;
+  --color-border: #3a352e;
+  --color-border-subtle: #2c2823;
+  --color-overlay: rgb(0 0 0 / 48%);
+
+  --radius-sm: 4px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 40%);
+  --shadow-hover: 0 4px 6px -1px rgb(0 0 0 / 50%), 0 2px 4px -2px rgb(0 0 0 / 45%);
+  --shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 50%), 0 4px 6px -4px rgb(0 0 0 / 45%);
+  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 65%);
+  --shadow-header: 0 1px 8px rgb(0 0 0 / 35%);
+  --shadow-control: 0 2px 6px -1px rgb(0 0 0 / 30%);
+
+  --bg-primary: var(--color-page);
+  --bg-secondary: var(--color-sub-bg);
+  --bg-tertiary: var(--color-surface-subtle);
+  --bg-hover: var(--color-surface-subtle);
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --accent: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+  --accent-rgb: 217, 120, 42;
+  --border-color: var(--color-border);
+  --border-focus: color-mix(in srgb, var(--color-focus) 50%, transparent);
+  --glass-bg: color-mix(in srgb, var(--color-page) 80%, transparent);
+  --glass-border: color-mix(in srgb, var(--color-text) 8%, transparent);
+  --glass-shadow: var(--shadow-header);
+  --card-shadow: var(--shadow-card);
+  --modal-overlay: var(--color-overlay);
+
+  --transition-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-normal: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-slow: 320ms cubic-bezier(0.2, 0, 0, 1);
+
   --font-title: 'Poppins', sans-serif;
   --font-body: 'Poppins', sans-serif;
-  
+
   --header-height: 80px;
 }
 
 
 [data-theme="light"] {
-  --bg-primary: #FCF8F3; /* Circle 4 - Light cream */
-  --bg-secondary: #FFF3E3; /* Circle 5 - Warm white/cream */
-  --bg-tertiary: #EBDCCB; /* Soft sand beige */
-  
-  --text-primary: #3F2C1B; /* Circle 1 - Dark brown */
-  --text-secondary: #765337; /* Circle 2 - Medium brown */
-  --text-muted: #A08C7F; /* Soft brown */
-  
-  --accent: #BC5F13; /* Circle 3 - Orange accent */
-  --accent-hover: #9E4F0F;
-  
-  --border-color: rgba(63, 44, 27, 0.08);
-  --border-focus: rgba(188, 95, 19, 0.5);
-  
-  --glass-bg: rgba(252, 248, 243, 0.85);
-  --glass-border: rgba(63, 44, 27, 0.06);
-  --glass-shadow: 0 8px 32px 0 rgba(118, 83, 55, 0.08);
-  
-  --card-shadow: 0 4px 20px 0 rgba(118, 83, 55, 0.05);
-  --modal-overlay: rgba(252, 248, 243, 0.9);
+  color-scheme: light;
+
+  --color-primary: #765337;
+  --color-primary-hover: #bc5f13;
+  --color-primary-pressed: #3f2c1b;
+  --color-accent: #bc5f13;
+  --color-accent-hover: #765337;
+  --color-primary-subtle: #fff3e3;
+  --color-primary-border: #bc5f13;
+  --color-focus: #bc5f13;
+
+  --color-page: #fcf8f3;
+  --color-sub-bg: #fff3e3;
+  --color-surface: #fff;
+  --color-surface-subtle: #f5f5f5;
+  --color-surface-muted: #ededed;
+
+  --color-success: #00a30b;
+  --color-success-bg: #e9f8e9;
+  --color-warning: #f2bf3d;
+  --color-warning-hover: #e8a909;
+  --color-warning-bg: #fff8e5;
+  --color-danger: #c42326;
+  --color-danger-hover: #8c1f1f;
+  --color-danger-bg: #ffe8e8;
+  --color-info: #0023dd;
+  --color-info-bg: #ebeeff;
+
+  --color-text: #0a0a0a;
+  --color-text-heading: #0a0a0a;
+  --color-text-secondary: #616161;
+  --color-text-muted: #757575;
+  --color-border: #e0e0e0;
+  --color-border-subtle: #ededed;
+  --color-overlay: rgb(10 10 10 / 48%);
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  --shadow-hover: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  --shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
+  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 25%);
+  --shadow-header: 0 1px 8px rgb(118 83 55 / 6%);
+  --shadow-control: 0 2px 6px -1px rgb(118 83 55 / 4%);
+
+  --accent-rgb: 188, 95, 19;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+    --transition-slow: 0ms;
+  }
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 * {
@@ -109,7 +190,7 @@ button {
   border: none;
   background: none;
   outline: none;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 img {
@@ -2840,9 +2921,7 @@ nav ul a:hover {
   width: 100%; height: 44px; padding: 0 16px; border-radius: 8px;
   background: var(--bg-tertiary); color: white;
   border: 1px solid var(--border-color); font-size: 14px;
-  appearance: none; cursor: pointer; outline: none; transition: border-color 0.2s;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m6 9 6 6 6-6"/></svg>');
-  background-repeat: no-repeat; background-position: right 16px center; background-size: 16px;
+  cursor: pointer; outline: none; transition: border-color 0.2s;
 }
 .qv-select:focus { border-color: var(--accent); }
 
@@ -4214,13 +4293,11 @@ body:has(.planner-app) {
   font-size: 14px;
 }
 .auth-checkbox {
-  appearance: none;
-  -webkit-appearance: none;
   width: 18px;
   height: 18px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: transparent;
+  accent-color: var(--accent);
   cursor: pointer;
   transition: all 0.2s ease;
   margin: 0;
@@ -4228,15 +4305,6 @@ body:has(.planner-app) {
 .auth-checkbox:hover {
   border-color: var(--accent);
 }
-.auth-checkbox:checked {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
-  background-size: 12px;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
 .google-auth-btn {
   position: relative;
   width: 100%;
