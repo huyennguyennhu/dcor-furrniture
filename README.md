@@ -38,9 +38,9 @@ Dưới đây là các lệnh cơ bản để khởi chạy dự án trong môi 
    ```bash
    cd dcor-studio
    ```
-3. Cài đặt các thư viện (nếu chạy lần đầu):
+3. Cài đặt các thư viện (LƯU Ý: Thêm cờ --legacy-peer-deps để tránh lỗi xung đột phiên bản):
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 4. Khởi chạy ứng dụng Angular:
    ```bash
