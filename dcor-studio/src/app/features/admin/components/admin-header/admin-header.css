@@ -1,0 +1,103 @@
+:host {
+  display: block;
+  flex: 0 0 60px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 250px;
+  justify-content: flex-end;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.account-menu-trigger:hover,
+.account-menu-trigger.open {
+  background: #fff3e4;
+}
+
+.account-label {
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+}
+
+.account-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.account-role {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.account-chevron {
+  margin-left: 8px;
+  transition: transform 0.18s ease;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 30;
+  width: 100%;
+  min-width: 0;
+  padding: 0px 0;
+  background: var(--bg-primary);
+  box-shadow: 0 6px 16px rgba(59, 40, 25, 0.14);
+}
+
+.logout-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 40px;
+  padding: 12px 24px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.18s ease, background-color 0.18s ease;
+}
+
+.logout-menu-item:hover,
+.logout-menu-item:focus-visible {
+  background: var(--color-danger-bg);
+  color: #dc2626;
+}
+
+@media (max-width: 700px) {
+  .header-actions {
+    width: auto;
+    gap: 12px;
+  }
+
+  .account-label {
+    display: none;
+  }
+}

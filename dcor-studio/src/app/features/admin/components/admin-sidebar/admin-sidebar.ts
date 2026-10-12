@@ -1,5 +1,5 @@
 import { IconComponent, IconName } from '../../../../shared/components/icon/icon';
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -8,7 +8,7 @@ interface MenuItem {
   title: string;
   icon: IconName;
   href: string;
-  subItems?: { title: string; href: string; }[];
+  subItems?: { title: string; href: string }[];
 }
 
 @Component({
@@ -19,7 +19,8 @@ interface MenuItem {
   styleUrls: ['./admin-sidebar.css']
 })
 export class AdminSidebar implements OnInit {
-  isCollapsed = false;
+  @Input() isCollapsed = false;
+  @Output() expandSidebar = new EventEmitter<void>();
   hoveredMenu: { href: string, top: number } | null = null;
   openMenu: string | null = null;
   activeHref = '';
@@ -28,11 +29,15 @@ export class AdminSidebar implements OnInit {
 
   MENU_ITEMS: MenuItem[] = [
     {
+      title: 'Tổng quan',
+      icon: 'House',
+      href: '/admin/reports/overview'
+    },
+    {
       title: 'Báo cáo & Thống kê',
-      icon: 'Activity',
-      href: '/admin/reports',
+      icon: 'ChartNoAxesCombined',
+      href: '/admin/reports/revenue',
       subItems: [
-        { title: 'Tổng quan', href: '/admin/reports/overview' },
         { title: 'Báo cáo doanh thu', href: '/admin/reports/revenue' },
         { title: 'Báo cáo đơn hàng', href: '/admin/reports/orders' },
         { title: 'Báo cáo sản phẩm', href: '/admin/reports/products' },
@@ -40,12 +45,12 @@ export class AdminSidebar implements OnInit {
       ]
     },
     {
-      title: 'Quản lý khách hàng',
-      icon: 'UserRound',
+      title: 'Khách hàng',
+      icon: 'UsersRound',
       href: '/admin/customers'
     },
     {
-      title: 'Quản lý sản phẩm',
+      title: 'Sản phẩm',
       icon: 'Package',
       href: '/admin/products',
       subItems: [
@@ -54,17 +59,18 @@ export class AdminSidebar implements OnInit {
       ]
     },
     {
-      title: 'Quản lý tồn kho',
-      icon: 'Layers',
+      title: 'Tồn kho',
+      icon: 'Warehouse',
       href: '/admin/inventory',
       subItems: [
-        { title: 'Tồn kho', href: '/admin/inventory' },
+        { title: 'Tổng quan kho', href: '/admin/inventory' },
         { title: 'Kiểm kê', href: '/admin/inventory/audit' },
+        { title: 'Lệnh xuất-nhập kho', href: '/admin/inventory/transactions' },
         { title: 'Lịch sử biến động', href: '/admin/inventory/history' },
       ]
     },
     {
-      title: 'Quản lý đơn hàng',
+      title: 'Đơn hàng',
       icon: 'ShoppingCart',
       href: '/admin/orders',
       subItems: [
@@ -74,45 +80,63 @@ export class AdminSidebar implements OnInit {
       ]
     },
     {
-      title: 'Quản lý khuyến mãi',
-      icon: 'Tag',
-      href: '/admin/promotions',
+      title: 'Khuyến mãi',
+      icon: 'TicketPercent',
+      href: '/admin/vouchers',
       subItems: [
-        { title: 'Mã giảm giá', href: '/admin/promotions/vouchers' },
-        { title: 'Chiến dịch', href: '/admin/promotions/campaigns' },
+        { title: 'Mã giảm giá', href: '/admin/vouchers' },
+        { title: 'Chiến dịch', href: '/admin/campaigns' },
       ]
     },
     {
-      title: 'Lịch tư vấn',
-      icon: 'Clock',
-      href: '/admin/appointments'
+      title: 'Tư vấn',
+      icon: 'CalendarDays',
+      href: '/admin/appointments/schedule',
+      subItems: [
+        { title: 'Lịch tư vấn', href: '/admin/appointments/schedule' },
+        { title: 'Yêu cầu tư vấn', href: '/admin/appointments/requests' },
+      ]
     },
     {
-      title: 'Quản lý nội dung',
-      icon: 'FileText',
+      title: 'Blog',
+      icon: 'Newspaper',
       href: '/admin/content'
     },
     {
-      title: 'Hội thoại Chatbox',
-      icon: 'MessageCircle',
+      title: 'Hội thoại',
+      icon: 'MessagesSquare',
       href: '/admin/chat'
     },
     {
-      title: 'Quản lý thiết kế',
+      title: 'Cộng đồng thiết kế',
       icon: 'Image',
-      href: '/admin/designs'
+      href: '/admin/designs/settings',
+      subItems: [
+        { title: 'Cấu hình', href: '/admin/designs/settings' },
+        { title: 'Bài viết cộng đồng', href: '/admin/designs/posts' },
+      ]
     },
     {
-      title: 'Cài đặt hệ thống',
-      icon: 'Settings',
-      href: '/admin/settings',
+      title: 'Nhân sự',
+      icon: 'UsersRound',
+      href: '/admin/staff/accounts',
       subItems: [
-        { title: 'Thông tin chung', href: '/admin/settings/general' },
-        { title: 'Vận chuyển & Thanh toán', href: '/admin/settings/logistics' },
-        { title: 'Tài khoản & Phân quyền', href: '/admin/settings/users' },
+        { title: 'Quản lý tài khoản', href: '/admin/staff/accounts' },
+        { title: 'Ma trận phân quyền', href: '/admin/staff/permissions' },
       ]
+    },
+    {
+      title: 'Nhật ký hoạt động',
+      icon: 'ClipboardList',
+      href: '/admin/activity'
     }
   ];
+
+  SETTINGS_ITEM: MenuItem = {
+    title: 'Cài đặt',
+    icon: 'Settings',
+    href: '/admin/settings'
+  };
 
   constructor(private router: Router) {
     this.router.events.pipe(
@@ -128,6 +152,8 @@ export class AdminSidebar implements OnInit {
 
   calculateActiveHref(pathname: string) {
     let maxLen = 0;
+    this.activeHref = '';
+    this.openMenu = null;
     for (const item of this.MENU_ITEMS) {
       if (item.href === pathname || pathname.startsWith(item.href + '/')) {
         if (item.href.length > maxLen) { this.activeHref = item.href; maxLen = item.href.length; }
@@ -147,11 +173,19 @@ export class AdminSidebar implements OnInit {
         break;
       }
     }
+    if (this.SETTINGS_ITEM.href === this.activeHref) {
+      this.openMenu = null;
+    }
   }
 
   toggleMenu(href: string) {
-    if (this.isCollapsed) this.isCollapsed = false;
+    if (this.isCollapsed) this.expandSidebar.emit();
     this.openMenu = this.openMenu === href ? null : href;
+  }
+
+  selectMenu(href: string) {
+    if (this.isCollapsed) this.expandSidebar.emit();
+    this.openMenu = href;
   }
 
   isParentActive(item: MenuItem): boolean {
@@ -179,13 +213,11 @@ export class AdminSidebar implements OnInit {
 
   handleDropdownMouseLeave() {
     if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
-    this.hoverTimeout = setTimeout(() => {
-      this.hoveredMenu = null;
-    }, 300);
+    this.hoveredMenu = null;
   }
-  
-  toggleCollapse() {
-    this.isCollapsed = !this.isCollapsed;
+
+  closeHoveredMenu() {
+    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
     this.hoveredMenu = null;
   }
 }

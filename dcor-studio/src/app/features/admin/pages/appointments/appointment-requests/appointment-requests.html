@@ -1,0 +1,26 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div><h1>Yêu cầu tư vấn</h1><p>Tiếp nhận và theo dõi các yêu cầu tư vấn từ khách hàng.</p></div>
+    <button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button>
+  </header>
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng yêu cầu</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Yêu cầu mới</div><div class="admin-page-stat-value">1</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang xử lý</div><div class="admin-page-stat-value">1</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đã liên hệ</div><div class="admin-page-stat-value">1</div></article>
+  </div>
+  <div class="admin-page-filter">
+    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm mã, khách hàng, số điện thoại..." aria-label="Tìm yêu cầu tư vấn">
+    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Mới</option><option>Đang xử lý</option><option>Đã liên hệ</option></select>
+    <input class="admin-input" type="date" aria-label="Lọc ngày nhận">
+  </div>
+  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
+    <table class="admin-table">
+      <thead><tr><th>Mã yêu cầu</th><th>Khách hàng</th><th>Điện thoại</th><th>Nội dung</th><th>Ngày nhận</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.code }}</strong></td><td>{{ record.customer }}</td><td>{{ record.phone }}</td><td>{{ record.topic }}</td><td>{{ record.receivedAt }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
+        <tr *ngIf="filteredRecords.length === 0"><td colspan="6" class="admin-page-table-empty">Không tìm thấy yêu cầu tư vấn phù hợp.</td></tr>
+      </tbody>
+    </table>
+  </div></div>
+</section>

@@ -1,0 +1,24 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div><h1>Mã giảm giá</h1><p>Tạo và theo dõi voucher áp dụng cho khách hàng.</p></div>
+    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button><button type="button" class="admin-btn admin-btn-primary">+ Tạo voucher</button></div>
+  </header>
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng voucher</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang hoạt động</div><div class="admin-page-stat-value">2</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Lượt sử dụng tháng này</div><div class="admin-page-stat-value">384</div></article>
+  </div>
+  <div class="admin-page-filter">
+    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm mã voucher hoặc điều kiện..." aria-label="Tìm voucher">
+    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Đang hoạt động</option><option>Đã kết thúc</option></select>
+  </div>
+  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
+    <table class="admin-table">
+      <thead><tr><th>Mã voucher</th><th>Mức giảm</th><th>Điều kiện áp dụng</th><th>Ngày hết hạn</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.code }}</strong></td><td>{{ record.discount }}</td><td>{{ record.condition }}</td><td>{{ record.expiry }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
+        <tr *ngIf="filteredRecords.length === 0"><td colspan="5" class="admin-page-table-empty">Không tìm thấy voucher phù hợp.</td></tr>
+      </tbody>
+    </table>
+  </div></div>
+</section>

@@ -67,13 +67,14 @@
           </div>
 
           <div style="display: flex; gap: 16px; margin-bottom: 40px;">
-            <button style="flex: 1; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 30px; font-weight: 600; font-size: 16px; cursor: pointer;">
-              Thêm vào giỏ hàng
+            <button (click)="addToCart()" [disabled]="isAddingToCart" style="flex: 1; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 30px; font-weight: 600; font-size: 16px; cursor: pointer;">
+              {{ isAddingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng' }}
             </button>
             <button style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer;">
               <app-icon name="Heart" size="24"></app-icon>
             </button>
           </div>
+          <p *ngIf="cartMessage" role="status" style="margin-top: -28px; margin-bottom: 24px; color: var(--text-secondary);">{{ cartMessage }}</p>
         </div>
       </div>
 
@@ -130,4 +131,3 @@
 
   </div>
 </div>
-

@@ -13,8 +13,17 @@ import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 })
 export class AdminLayout implements OnInit {
   mounted = false;
+  isSidebarCollapsed = false;
 
   constructor(private router: Router) {}
+
+  toggleSidebar(): void {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  }
+
+  expandSidebar(): void {
+    this.isSidebarCollapsed = false;
+  }
 
   ngOnInit(): void {
     this.mounted = true;

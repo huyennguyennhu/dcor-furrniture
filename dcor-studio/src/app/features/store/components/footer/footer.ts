@@ -1,4 +1,4 @@
-import { IconComponent, IconName } from '../../../../shared/components/icon/icon';
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -18,7 +18,7 @@ interface FooterCol {
 interface SocialLink {
   label: string;
   href: string;
-  icon: IconName;
+  image: string;
 }
 
 @Component({
@@ -32,47 +32,41 @@ export class Footer {
   FOOTER_COLS: FooterCol[] = [
     {
       id: 'explore',
-      title: 'Khám phá',
+      title: 'Về DCor',
       links: [
-        { label: 'Sản phẩm', href: '/products' },
-        { label: 'Không gian', href: '/kham-pha' },
-        { label: 'Thiết kế phòng', href: '/room-planner' },
-        { label: 'So sánh sản phẩm', href: '/compare' },
+        { label: 'Giới thiệu về DCor', href: '/' },
+        { label: 'Danh sách sản phẩm', href: '/explore' },
+        { label: 'Đặt lịch tư vấn Showroom', href: '/custom-design' },
+        { label: 'Thiết kế không gian', href: '/custom-design' },
         { label: 'Cộng đồng', href: '/community' },
-        { label: 'Cảm hứng', href: '/kham-pha' },
+        { label: 'Blog', href: '/blog' },
       ],
     },
     {
       id: 'support',
-      title: 'Hỗ trợ khách hàng',
+      title: 'Hỗ trợ',
       links: [
-        { label: 'Liên hệ', href: '/contact' },
-        { label: 'Theo dõi đơn hàng', href: '/account/orders' },
-        { label: 'Chính sách giao hàng', href: '/shipping-policy' },
-        { label: 'Chính sách đổi trả', href: '/return-policy' },
-        { label: 'Điều khoản sử dụng', href: '/terms' },
+        { label: 'Hướng dẫn đặt hàng', href: '/explore' },
         { label: 'Câu hỏi thường gặp', href: '/faq' },
       ],
     },
     {
-      id: 'account',
-      title: 'Tài khoản',
+      id: 'policies',
+      title: 'Chính sách',
       links: [
-        { label: 'Hồ sơ cá nhân', href: '/account/profile' },
-        { label: 'Đơn hàng của tôi', href: '/account/orders' },
-        { label: 'Danh sách yêu thích', href: '/account/wishlist' },
-        { label: 'Thiết kế của tôi', href: '/account/designs' },
-        { label: 'Bài đăng của tôi', href: '/account/posts' },
-        { label: 'Đánh giá của tôi', href: '/account/reviews' },
+        { label: 'Chính sách bảo hành & đổi trả', href: '/blog' },
+        { label: 'Chính sách bảo hành', href: '/blog' },
+        { label: 'Chính sách thanh toán', href: '/blog' },
+        { label: 'Chính sách vận chuyển', href: '/blog' },
       ],
     },
   ];
 
   CONTACT_LINKS: FooterLink[] = [
-    { label: '123 Nguyễn Văn A, TP. HCM', href: '#' },
-    { label: 'Hotline: 1900 xxxx', href: 'tel:1900xxxx' },
-    { label: 'support@dcor.vn', href: 'mailto:support@dcor.vn' },
-    { label: '08:00 – 22:00, Thứ 2 – Chủ nhật', href: '#' },
+    { label: '669 QL1A, TP. Hồ Chí Minh', href: '#' },
+    { label: '1900 1234', href: 'tel:19001234' },
+    { label: 'dcorfurniture406@gmail.com', href: 'mailto:dcorfurniture406@gmail.com' },
+    { label: '8:00 – 22:00, Thứ 2 – Chủ nhật', href: '#' },
   ];
   
   isContactColOpen = false;
@@ -80,28 +74,18 @@ export class Footer {
   SOCIAL_LINKS: SocialLink[] = [
     {
       label: 'Facebook',
-      href: 'https://www.facebook.com/profile.php?id=61587272468575',
-      icon: 'Share2',
+      href: 'https://www.facebook.com/profile.php?id=61587272468575&locale=vi_VN',
+      image: '/assets/img/facebook.png',
     },
     {
       label: 'Instagram',
-      href: '#',
-      icon: 'Share2',
-    },
-    {
-      label: 'Pinterest',
-      href: '#',
-      icon: 'Share2',
+      href: 'https://www.instagram.com/dcor_furniture/',
+      image: '/assets/img/insta.png',
     },
     {
       label: 'TikTok',
       href: '#',
-      icon: 'Share2',
-    },
-    {
-      label: 'YouTube',
-      href: '#',
-      icon: 'Share2',
+      image: '/assets/img/tiktok.png',
     },
   ];
 

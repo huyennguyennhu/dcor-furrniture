@@ -146,8 +146,8 @@
           <span style="width: 28px; text-align: center; font-size: 14px; font-weight: 600; color: var(--accent);">{{quantity}}</span>
           <button (click)="quantity = quantity + 1" style="width: 32px; height: 100%; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; color: var(--accent); cursor: pointer; font-size: 18px; transition: background 0.2s;">+</button>
         </div>
-        <button class="qv-add-btn" (click)="handleAddToCart($event)">
-          {{formatPrice(currentPrice * quantity)}}
+        <button class="qv-add-btn" (click)="handleAddToCart($event)" [disabled]="isAddingToCart">
+          {{isAddingToCart ? 'Đang thêm...' : formatPrice(currentPrice * quantity)}}
           <app-icon name="ShoppingCart" size="18"></app-icon>
         </button>
         <a [routerLink]="['/products', activeProduct?.productId]" class="qv-detail-link" title="Khám phá chi tiết">
@@ -155,6 +155,7 @@
           <app-icon name="ExternalLink" size="18"></app-icon>
         </a>
       </div>
+      <p *ngIf="cartMessage" role="status" style="margin: 0 16px 12px; color: var(--text-secondary);">{{cartMessage}}</p>
     </div>
   </ng-container>
 </div>

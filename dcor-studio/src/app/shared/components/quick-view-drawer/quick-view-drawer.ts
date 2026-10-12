@@ -1,11 +1,15 @@
 import { IconComponent } from '../icon/icon';
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { finalize, TimeoutError, timeout } from 'rxjs';
 import { CatalogProduct } from '../../models/catalog.model';
 import { CustomSelect } from '../custom-select/custom-select';
 import { LucideAngularModule, X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink } from 'lucide-angular';
+import { CartService } from '../../../core/services/cart.service';
 
 import { environment } from '../../../../environments/environment';
 
@@ -18,7 +22,11 @@ import { environment } from '../../../../environments/environment';
 })
 export class QuickViewDrawerComponent implements OnChanges {
   icons = { X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink };
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private cartService: CartService,
+    private router: Router
+  ) {}
 
   currentImageIdx = 0;
 
@@ -47,6 +55,8 @@ export class QuickViewDrawerComponent implements OnChanges {
   hasDynamicVariants = false;
   selectedOptions: Record<string, string> = {};
   quantity = 1;
+  isAddingToCart = false;
+  cartMessage = '';
 
   filteredVariantPrices: any[] = [];
   rawColors: string[] = [];
@@ -234,9 +244,49 @@ function getParentCategory(childCat: string): string {
   handleAddToCart(e: Event) {
     e.stopPropagation();
     e.preventDefault();
-    // Logic addToCart here
-    window.alert(`Đã thêm ${this.quantity} ${this.activeProduct?.shortDescription || ''} vào giỏ hàng`);
-    this.closeAction();
+    const token = localStorage.getItem('dcor_customer_token');
+    if (!token) {
+      this.closeAction();
+      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+
+    const variants = this.activeProduct?.variants || [];
+    const variant = this.matchedVariant?.isActive !== false &&
+      this.matchedVariant?.stock > this.matchedVariant?.reservedStock
+      ? this.matchedVariant
+      : variants.find((item: any) =>
+          item.isActive !== false && item.stock > item.reservedStock
+        );
+    if (!variant) {
+      this.cartMessage = 'Sản phẩm hiện chưa có biến thể còn hàng để thêm vào giỏ.';
+      return;
+    }
+
+    this.isAddingToCart = true;
+    this.cartMessage = '';
+    this.cartService.addToCart(variant.id, this.quantity, variant.optionValues || this.selectedOptions)
+      .pipe(
+        timeout({ first: 15000 }),
+        finalize(() => {
+          this.isAddingToCart = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.cartMessage = 'Đã thêm sản phẩm vào giỏ hàng.';
+          this.cdr.detectChanges();
+        },
+        error: (error: unknown) => {
+          this.cartMessage = error instanceof TimeoutError
+            ? 'Máy chủ phản hồi quá lâu. Vui lòng kiểm tra lại kết nối rồi thử lại.'
+            : error instanceof HttpErrorResponse
+              ? error.error?.message || 'Không thể thêm sản phẩm vào giỏ hàng.'
+              : 'Không thể thêm sản phẩm vào giỏ hàng.';
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   get activeProduct(): any {

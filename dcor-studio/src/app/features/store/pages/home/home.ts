@@ -90,6 +90,10 @@ export class HomeComponent implements OnInit {
     this.isLoading = true;
     try {
       const res = await fetch(`${environment.apiUrl}/products`);
+      if (!res.ok) {
+        throw new Error(`Không thể tải danh sách sản phẩm (HTTP ${res.status}).`);
+      }
+
       if (res.ok) {
         const data = await res.json();
         
@@ -191,4 +195,3 @@ function getParentCategory(childCat: string): string {
     return Array(rating).fill(0);
   }
 }
-

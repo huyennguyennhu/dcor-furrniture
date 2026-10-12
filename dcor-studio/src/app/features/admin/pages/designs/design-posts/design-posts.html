@@ -1,0 +1,25 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div><h1>Bài viết cộng đồng</h1><p>Kiểm duyệt và quản lý nội dung chia sẻ thiết kế.</p></div>
+    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button><button type="button" class="admin-btn admin-btn-primary">+ Tạo bài viết</button></div>
+  </header>
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng bài viết</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Chờ duyệt</div><div class="admin-page-stat-value">2</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đã đăng</div><div class="admin-page-stat-value">1</div></article>
+  </div>
+  <div class="admin-page-filter">
+    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm tiêu đề hoặc tác giả..." aria-label="Tìm bài viết">
+    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Chờ duyệt</option><option>Đã đăng</option><option>Đã ẩn</option></select>
+    <input class="admin-input" type="date" aria-label="Lọc ngày gửi">
+  </div>
+  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
+    <table class="admin-table">
+      <thead><tr><th>Tiêu đề bài viết</th><th>Tác giả</th><th>Ngày gửi</th><th>Lượt tương tác</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.title }}</strong></td><td>{{ record.author }}</td><td>{{ record.submittedAt }}</td><td>{{ record.reactions }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
+        <tr *ngIf="filteredRecords.length === 0"><td colspan="5" class="admin-page-table-empty">Không tìm thấy bài viết phù hợp.</td></tr>
+      </tbody>
+    </table>
+  </div></div>
+</section>

@@ -109,6 +109,8 @@ dcor-studio/
 │   │   │   │   └── pages/
 │   │   │   │       ├── admin-landing/    # Trang bắt đầu khu vực admin
 │   │   │   │       ├── appointments/     # Lịch hẹn
+│   │   │   │       │   ├── appointment-requests/ # Yêu cầu tư vấn
+│   │   │   │       │   └── appointment-schedule/ # Lịch tư vấn
 │   │   │   │       ├── chat/             # Chat/hỗ trợ khách hàng
 │   │   │   │       ├── content/          # Quản lý nội dung
 │   │   │   │       ├── custom-requests/  # Yêu cầu thiết kế riêng
@@ -116,10 +118,13 @@ dcor-studio/
 │   │   │   │       │   └── customer-detail/
 │   │   │   │       ├── dashboard/
 │   │   │   │       ├── designs/          # Thiết kế
+│   │   │   │       │   ├── design-posts/  # Bài viết cộng đồng
+│   │   │   │       │   └── design-settings/ # Cấu hình cộng đồng thiết kế
 │   │   │   │       ├── inventory/
 │   │   │   │       │   ├── inventory-audit/
 │   │   │   │       │   ├── inventory-history/
-│   │   │   │       │   └── inventory-product-detail/
+│   │   │   │       │   ├── inventory-product-detail/
+│   │   │   │       │   └── inventory-transactions/ # Lệnh xuất-nhập kho
 │   │   │   │       ├── orders/
 │   │   │   │       │   ├── order-detail/
 │   │   │   │       │   ├── orders-returns/
@@ -128,12 +133,17 @@ dcor-studio/
 │   │   │   │       ├── products/
 │   │   │   │       │   └── product-form/
 │   │   │   │       ├── promotions/
+│   │   │   │       │   ├── campaigns/       # Chiến dịch khuyến mãi
+│   │   │   │       │   └── vouchers/        # Mã giảm giá
 │   │   │   │       ├── reports/
 │   │   │   │       │   ├── customers-report/
 │   │   │   │       │   ├── orders/
 │   │   │   │       │   ├── products-report/
 │   │   │   │       │   └── revenue/
-│   │   │   │       └── settings/
+│   │   │   │       ├── settings/
+│   │   │   │       └── staff/
+│   │   │   │           ├── staff-accounts/ # Tài khoản nhân sự
+│   │   │   │           └── staff-permissions/ # Ma trận phân quyền
 │   │   │   ├── auth/
 │   │   │   │   ├── auth-module.ts
 │   │   │   │   ├── auth-routing-module.ts

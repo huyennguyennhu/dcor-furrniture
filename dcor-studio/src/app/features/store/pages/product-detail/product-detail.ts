@@ -1,8 +1,11 @@
 import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
+import { CartService } from '../../../../core/services/cart.service';
+import { finalize, TimeoutError, timeout } from 'rxjs';
 
 import { environment } from '../../../../../environments/environment';
 
@@ -16,11 +19,14 @@ import { environment } from '../../../../../environments/environment';
 export class ProductDetailComponent implements OnInit {
   product: CatalogProduct | null = null;
   isLoading = true;
+  isAddingToCart = false;
+  cartMessage = '';
   displayImages: string[] = [];
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private cartService: CartService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -37,9 +43,18 @@ export class ProductDetailComponent implements OnInit {
     this.isLoading = true;
     try {
       const res = await fetch(`${environment.apiUrl}/products/${id}`);
+      if (!res.ok && res.status !== 404) {
+        throw new Error(`Không thể tải sản phẩm (HTTP ${res.status}).`);
+      }
+
       if (res.ok) {
         const data = await res.json();
-        this.product = data;
+        this.product = {
+          ...data,
+          category: typeof data.category === 'string'
+            ? data.category
+            : data.category?.name || ''
+        };
         this.displayImages = data.images || [];
       } else {
         // MOCK data for demo if API fails
@@ -79,11 +94,53 @@ export class ProductDetailComponent implements OnInit {
 
   get displayCategory() {
     if (!this.product?.category) return 'Sản phẩm';
-    return this.product.category.charAt(0).toUpperCase() + this.product.category.slice(1);
+    const category = this.product.category;
+    return typeof category === 'string'
+      ? category.charAt(0).toUpperCase() + category.slice(1)
+      : 'Sản phẩm';
   }
 
   getProductPriceFormatted(prod: CatalogProduct) {
     return prod.prices?.[0]?.formattedPrice ?? 'Liên hệ';
   }
-}
 
+  addToCart() {
+    if (!this.product) return;
+
+    if (!localStorage.getItem('dcor_customer_token')) {
+      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+
+    const variant = this.product.variants?.find(item =>
+      item.isActive !== false && item.stock > item.reservedStock
+    );
+    if (!variant) {
+      this.cartMessage = 'Sản phẩm hiện chưa có biến thể còn hàng để thêm vào giỏ.';
+      return;
+    }
+
+    this.isAddingToCart = true;
+    this.cartMessage = '';
+    this.cartService.addToCart(variant.id, 1, variant.optionValues || {})
+      .pipe(
+        timeout({ first: 15000 }),
+        finalize(() => {
+          this.isAddingToCart = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.cartMessage = 'Đã thêm sản phẩm vào giỏ hàng.';
+        },
+        error: (error: unknown) => {
+          this.cartMessage = error instanceof TimeoutError
+            ? 'Máy chủ phản hồi quá lâu. Vui lòng kiểm tra lại kết nối rồi thử lại.'
+            : error instanceof HttpErrorResponse
+              ? error.error?.message || 'Không thể thêm sản phẩm vào giỏ hàng.'
+              : 'Không thể thêm sản phẩm vào giỏ hàng.';
+        }
+      });
+  }
+}

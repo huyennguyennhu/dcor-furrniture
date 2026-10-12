@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./dcor-styles.css";
+@import "../public/assets/dcor-poppins-viet-hoa/dcor-fonts/dcor-fonts.css";
 
 @theme {
   --font-sans: "Poppins", sans-serif;
@@ -7,6 +8,15 @@
 
 body {
   font-family: var(--font-body);
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 body.admin-body {
@@ -196,6 +206,134 @@ body.admin-body {
 }
 .admin-table tbody tr:hover, table:not(.custom-table) tbody tr:hover {
   background: var(--color-surface-subtle);
+}
+
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--text-primary);
+}
+
+.admin-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: static;
+  width: auto;
+  height: auto;
+  background: transparent;
+  backdrop-filter: none;
+  border: 0;
+  box-shadow: none;
+  z-index: auto;
+}
+
+.admin-page-heading h1 {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.admin-page-heading p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.admin-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-page-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.admin-page-stat,
+.admin-page-table-card {
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  box-shadow: var(--card-shadow);
+}
+
+.admin-page-stat {
+  padding: 18px 20px;
+}
+
+.admin-page-stat-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.admin-page-stat-value {
+  margin-top: 8px;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.admin-page-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  flex-wrap: wrap;
+}
+
+.admin-page-filter .admin-input,
+.admin-page-filter .admin-select {
+  width: auto;
+  min-width: 180px;
+}
+
+.admin-page-table-scroll {
+  overflow-x: auto;
+}
+
+.admin-page-table-empty {
+  padding: 40px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.admin-page-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(189, 95, 19, 0.1);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .admin-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-page-actions {
+    flex-wrap: wrap;
+  }
+
+  .admin-page-filter .admin-input,
+  .admin-page-filter .admin-select {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 /* Admin Checkbox */

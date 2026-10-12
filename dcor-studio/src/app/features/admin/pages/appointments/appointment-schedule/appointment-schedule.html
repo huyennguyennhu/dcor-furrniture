@@ -1,0 +1,25 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div><h1>Lịch tư vấn</h1><p>Quản lý lịch hẹn tư vấn tại showroom và trực tuyến.</p></div>
+    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất lịch</button><button type="button" class="admin-btn admin-btn-primary">+ Tạo lịch hẹn</button></div>
+  </header>
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Lịch hôm nay</div><div class="admin-page-stat-value">12</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Chờ xác nhận</div><div class="admin-page-stat-value">4</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đã xác nhận</div><div class="admin-page-stat-value">8</div></article>
+  </div>
+  <div class="admin-page-filter">
+    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm khách hàng, chủ đề, nhân viên..." aria-label="Tìm lịch tư vấn">
+    <input class="admin-input" type="date" aria-label="Chọn ngày">
+    <select class="admin-select" aria-label="Lọc địa điểm"><option>Tất cả địa điểm</option><option>Showroom</option><option>Trực tuyến</option></select>
+  </div>
+  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
+    <table class="admin-table">
+      <thead><tr><th>Thời gian</th><th>Khách hàng</th><th>Nội dung tư vấn</th><th>Kênh/Địa điểm</th><th>Nhân viên</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let record of filteredRecords"><td>{{ record.time }}</td><td><strong>{{ record.customer }}</strong></td><td>{{ record.topic }}</td><td>{{ record.channel }}</td><td>{{ record.assignee }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
+        <tr *ngIf="filteredRecords.length === 0"><td colspan="6" class="admin-page-table-empty">Không tìm thấy lịch tư vấn phù hợp.</td></tr>
+      </tbody>
+    </table>
+  </div></div>
+</section>

@@ -1,75 +1,49 @@
-<header [class]="isDocked ? 'header-solid' : 'header-hero'">
-  <div class="container" style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+<header class="header-solid store-site-header" [class.is-scrolled]="isScrolled">
+  <div class="store-utility-bar">
+    <div class="store-utility-content container">
+      <a routerLink="/about">Về DCor</a>
+      <a routerLink="/blog">Hướng dẫn mua hàng</a>
+      <a href="tel:19001234"><strong>Hotline: 1900 1234</strong></a>
+    </div>
+  </div>
+  <div class="container store-header-main">
     
-    <a routerLink="/" class="logo">
-      <div class="logo-circle" style="overflow: hidden; padding: 0; background: transparent;">
-        <img src="/assets/favicon.png" alt="DCor Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-      </div>
+    <a routerLink="/" class="logo store-wordmark" aria-label="DCor - Trang chủ">
+      <img src="/assets/favicon/logo.png" alt="DCor" />
     </a>
 
-    <nav style="flex: 1; display: flex; justify-content: center;">
-      <ul style="display: flex; align-items: center; gap: 40px; list-style: none; margin: 0; padding: 0;">
+    <nav class="store-header-nav">
+      <ul>
         <li>
-          <a routerLink="/explore" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Khám phá</a>
+          <a routerLink="/explore" routerLinkActive="active" class="header-nav-link">Mua Sắm</a>
         </li>
         <li>
-          <a routerLink="/custom-design" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Thiết kế</a>
+          <a routerLink="/custom-design" routerLinkActive="active" class="header-nav-link">Thiết kế</a>
         </li>
         <li>
-          <a routerLink="/community" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Cộng đồng</a>
+          <a routerLink="/community" routerLinkActive="active" class="header-nav-link">Cộng đồng</a>
         </li>
         <li>
-          <a routerLink="/blog" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Cảm hứng</a>
-        </li>
-        <li>
-          <a routerLink="/about" routerLinkActive="active" class="header-nav-link" style="font-size: 16px; letter-spacing: 0.2px;">Về DCor</a>
+          <a routerLink="/blog" routerLinkActive="active" class="header-nav-link">Blog</a>
         </li>
       </ul>
     </nav>
 
-    <div style="display: flex; align-items: center; gap: 16px;">
-      
-      <!-- Spacer for floating search bar to push things correctly -->
-      <div [ngStyle]="{'width': isDocked ? '260px' : '0px', 'transition': 'width 0.35s cubic-bezier(0.4,0,0.2,1)', 'height': '44px'}" aria-hidden="true"></div>
-
-      <!-- Floating Search Bar -->
-      <div class="floating-search-bar"
-           [ngStyle]="{
-             'position': 'absolute',
-             'right': isDocked ? (isLoggedIn ? '160px' : '230px') : '40px',
-             'top': isDocked ? '18px' : '96px',
-             'width': isDocked ? '260px' : '380px',
-             'z-index': '101',
-             'transition': 'all 0.35s cubic-bezier(0.4,0,0.2,1)',
-             'box-shadow': isDocked ? 'none' : '0 8px 32px rgba(0,0,0,0.15)'
-           }">
-        <div [ngStyle]="{
-               'display': 'flex', 'align-items': 'center', 'gap': '8px', 'box-sizing': 'border-box',
-               'background': isDocked ? 'var(--bg-tertiary)' : 'rgba(255,255,255,0.15)',
-               'backdrop-filter': 'blur(20px)', '-webkit-backdrop-filter': 'blur(20px)',
-               'border': '1px solid ' + (isDocked ? 'transparent' : 'rgba(255,255,255,0.3)'),
-               'border-radius': '50px',
-               'padding': isDocked ? '6px 8px 6px 14px' : '8px 10px 8px 18px',
-               'height': '44px',
-               'transition': 'background 0.35s ease, padding 0.35s ease, border-color 0.35s ease'
-             }">
-          <app-icon name="Search" size="16" [ngStyle]="{'color': isDocked ? 'var(--text-primary)' : 'rgba(255,255,255,0.8)', 'flex-shrink': '0', 'transition': 'color 0.35s ease'}"></app-icon>
+    <div class="store-header-actions">
+      <div class="floating-search-bar">
+        <div class="store-search-field">
+          <app-icon class="store-search-icon" name="Search" size="16"></app-icon>
           <input #searchInput type="text"
                  [(ngModel)]="searchQuery"
                  (focus)="onSearchFocus()"
                  (blur)="onSearchBlur()"
                  (keydown)="handleSearch($event)"
-                 placeholder="Khám phá mảnh ghép hoàn hảo"
-                 [ngStyle]="{
-                   'flex': '1', 'background': 'none', 'border': 'none', 'outline': 'none',
-                   'color': isDocked ? 'var(--text-primary)' : '#fff',
-                   'font-size': isDocked ? '14px' : '15px', 'font-family': 'var(--font-body)',
-                   'min-width': '0', 'transition': 'font-size 0.35s ease, color 0.35s ease'
-                 }" />
+                 placeholder="Tìm kiếm sản phẩm"
+                 />
                  
           <button *ngIf="searchQuery" (click)="handleSearchSubmit()"
-                  style="background: var(--accent); border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-            <app-icon name="ArrowRight" size="14" color="#fff"></app-icon>
+                  class="store-search-submit">
+            <app-icon class="store-search-submit-icon" name="ArrowRight" size="14" color="#fff"></app-icon>
           </button>
         </div>
 
@@ -102,12 +76,17 @@
         </div>
       </div>
 
-      <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;" (click)="toggleCartDrawer()">
-        <app-icon name="ShoppingBag" size="22"></app-icon>
-        <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
-      </button>
-
       <ng-container *ngIf="isLoggedIn; else guestTemplate">
+        <button class="icon-btn" title="Sản phẩm yêu thích" routerLink="/account/wishlist">
+          <app-icon name="Heart" size="20"></app-icon>
+        </button>
+        <button class="icon-btn" title="Thông báo">
+          <app-icon name="Bell" size="20"></app-icon>
+        </button>
+        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;" (click)="toggleCartDrawer()">
+          <app-icon name="ShoppingCart" size="20"></app-icon>
+          <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
+        </button>
         <div class="user-dropdown-wrapper">
           <button class="icon-btn" (click)="toggleUserMenu()" title="Tài khoản">
             <app-icon name="UserRound" size="22"></app-icon>
@@ -115,8 +94,8 @@
           
           <div class="user-dropdown-menu" [class.active]="userMenuOpen" [style.display]="userMenuOpen ? 'block' : 'none'">
             <div class="user-dropdown-header">
-              <span class="user-name">{{ user?.name || 'Khách hàng' }}</span>
-              <span class="user-role" style="font-size: 12px; color: var(--text-muted);">{{ user?.email || 'Thành viên DCor' }}</span>
+              <span class="user-name">{{ user?.fullName || user?.name || 'Khách hàng' }}</span>
+              <span class="user-role" style="font-size: 12px; color: var(--text-muted);">{{ user?.email || user?.phone || 'Thành viên DCor' }}</span>
             </div>
             <ul>
               <li><a routerLink="/account/profile" class="user-menu-item" (click)="userMenuOpen = false">Hồ sơ cá nhân</a></li>
@@ -146,8 +125,12 @@
       </ng-container>
       
       <ng-template #guestTemplate>
+        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;" (click)="toggleCartDrawer()">
+          <app-icon name="ShoppingCart" size="20"></app-icon>
+          <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
+        </button>
         <button (click)="openLoginModal()"
-                style="background: var(--text-primary); color: var(--bg-primary); padding: 8px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center;"
+                class="store-login-button"
                 onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">
           Đăng nhập
         </button>

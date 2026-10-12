@@ -50,12 +50,9 @@ export class ExploreComponent implements OnInit {
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
-      if (params['category']) {
-        this.filters.categories = [params['category']];
-      }
-      if (params['q']) {
-        this.searchQuery = params['q'];
-      }
+      this.filters.categories = params['category'] ? [params['category']] : [];
+      this.searchQuery = params['q'] || '';
+      this.currentPage = 1;
       this.fetchData();
     });
   }
@@ -64,6 +61,10 @@ export class ExploreComponent implements OnInit {
     this.isLoading = true;
     try {
       const res = await fetch(`${environment.apiUrl}/products`);
+      if (!res.ok) {
+        throw new Error(`Không thể tải danh sách sản phẩm (HTTP ${res.status}).`);
+      }
+
       if (res.ok) {
         const data = await res.json();
         
@@ -142,13 +143,24 @@ function getParentCategory(childCat: string): string {
         if (!prod.refinementColors?.some(c => this.filters.colors.includes(c)) &&
             !prod.refinementColors_vi?.some(c => this.filters.colors.includes(c))) return false;
       }
-      const titleVi = prod.shortDescription_vi || prod.shortDescription;
-      if (this.searchQuery &&
-        !titleVi.toLowerCase().includes(this.searchQuery.toLowerCase()) &&
-        !prod.shortDescription.toLowerCase().includes(this.searchQuery.toLowerCase())) return false;
+      const query = this.normalizeSearchText(this.searchQuery);
+      const searchableText = [
+        prod.shortDescription_vi,
+        prod.shortDescription,
+        prod.category
+      ].map(value => this.normalizeSearchText(value || ''));
+      if (query && !searchableText.some(value => value.includes(query))) return false;
       
       return true;
     });
+  }
+
+  private normalizeSearchText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('vi')
+      .trim();
   }
 
   get filteredProducts() {
@@ -314,4 +326,3 @@ function getParentCategory(childCat: string): string {
     this.router.navigate(['/products', productId]);
   }
 }
-
