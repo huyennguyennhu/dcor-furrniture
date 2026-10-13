@@ -62,6 +62,7 @@ export class AdminSidebar implements OnInit {
       title: 'Tồn kho',
       icon: 'Warehouse',
       href: '/admin/inventory',
+      subItems: [
         { title: 'Tổng quan kho', href: '/admin/inventory' },
         { title: 'Kiểm kê', href: '/admin/inventory/audit' },
         { title: 'Lệnh xuất-nhập kho', href: '/admin/inventory/transactions' },
