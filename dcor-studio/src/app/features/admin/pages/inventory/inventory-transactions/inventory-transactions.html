@@ -1,39 +1,521 @@
-<section class="admin-page">
-  <header class="admin-page-heading">
+<div class="inventory-orders-container">
+  <!-- Page Header -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
     <div>
-      <h1>Lệnh xuất-nhập kho</h1>
-      <p>Theo dõi phiếu nhập, xuất và chuyển kho trên toàn hệ thống.</p>
+      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px;">Lệnh xuất - nhập kho</h1>
+      <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">Quản lý và điều phối các lệnh nhập hàng, xuất kho bán lẻ/dự án và luân chuyển hàng giữa các kho chi nhánh.</p>
     </div>
-    <div class="admin-page-actions">
-      <button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button>
-      <button type="button" class="admin-btn admin-btn-primary">+ Tạo lệnh kho</button>
-    </div>
-  </header>
-
-  <div class="admin-page-stats">
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng lệnh tháng này</div><div class="admin-page-stat-value">86</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Chờ duyệt</div><div class="admin-page-stat-value">8</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang xử lý</div><div class="admin-page-stat-value">12</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Đã hoàn tất</div><div class="admin-page-stat-value">66</div></article>
-  </div>
-
-  <div class="admin-page-filter">
-    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm mã lệnh, loại lệnh, kho..." aria-label="Tìm lệnh kho">
-    <select class="admin-select" aria-label="Lọc loại lệnh"><option>Tất cả loại lệnh</option><option>Nhập kho</option><option>Xuất kho</option><option>Chuyển kho</option></select>
-    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Chờ duyệt</option><option>Đang xử lý</option><option>Hoàn tất</option></select>
-  </div>
-
-  <div class="admin-page-table-card">
-    <div class="admin-page-table-scroll">
-      <table class="admin-table">
-        <thead><tr><th>Mã lệnh</th><th>Loại lệnh</th><th>Kho/Chi nhánh</th><th>Ngày tạo</th><th>Người tạo</th><th>Trạng thái</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let record of filteredRecords">
-            <td><strong>{{ record.code }}</strong></td><td>{{ record.type }}</td><td>{{ record.location }}</td><td>{{ record.createdAt }}</td><td>{{ record.creator }}</td><td><span class="admin-page-status">{{ record.status }}</span></td>
-          </tr>
-          <tr *ngIf="filteredRecords.length === 0"><td colspan="6" class="admin-page-table-empty">Không tìm thấy lệnh kho phù hợp.</td></tr>
-        </tbody>
-      </table>
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <button (click)="exportExcel()" class="admin-btn admin-btn-secondary">
+        <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất Excel
+      </button>
+      <button (click)="openCreateModal('export')" class="admin-btn admin-btn-secondary" style="border-color: #fca5a5; color: #b91c1c;">
+        <lucide-angular [img]="icons.ArrowUpRight" size="16" color="#ef4444"></lucide-angular> Tạo lệnh xuất kho
+      </button>
+      <button (click)="openCreateModal('import')" class="admin-btn admin-btn-primary">
+        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Tạo lệnh nhập kho
+      </button>
     </div>
   </div>
-</section>
+
+  <!-- Metric KPI Cards -->
+  <div class="kpi-grid">
+    <!-- Stat 1: Total -->
+    <div (click)="setTypeFilter('all')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
+         [style.border-color]="typeFilter === 'all' ? 'var(--accent)' : 'var(--border-color)'"
+         [style.background]="typeFilter === 'all' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tổng số lệnh kho</span>
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(59,130,246,0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ totalCount }}</div>
+      <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        {{ importCount }} nhập • {{ exportCount }} xuất • {{ transferCount }} chuyển
+      </div>
+    </div>
+
+    <!-- Stat 2: Import -->
+    <div (click)="setTypeFilter('import')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
+         [style.border-color]="typeFilter === 'import' ? '#10b981' : 'var(--border-color)'"
+         [style.background]="typeFilter === 'import' ? 'rgba(16,185,129,0.06)' : 'var(--bg-secondary)'">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Lệnh Nhập kho</span>
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16,185,129,0.12); color: #059669; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.ArrowDownRight" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ importCount }}</div>
+      <div style="font-size: 12px; color: #059669; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+        Giá trị: {{ formatCurrency(totalImportValue) }}
+      </div>
+    </div>
+
+    <!-- Stat 3: Export -->
+    <div (click)="setTypeFilter('export')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
+         [style.border-color]="typeFilter === 'export' ? '#ef4444' : 'var(--border-color)'"
+         [style.background]="typeFilter === 'export' ? 'rgba(239,68,68,0.06)' : 'var(--bg-secondary)'">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Lệnh Xuất kho</span>
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(239,68,68,0.12); color: #dc2626; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.ArrowUpRight" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ exportCount }}</div>
+      <div style="font-size: 12px; color: #dc2626; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+        Giá trị: {{ formatCurrency(totalExportValue) }}
+      </div>
+    </div>
+
+    <!-- Stat 4: Transfer -->
+    <div (click)="setTypeFilter('transfer')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
+         [style.border-color]="typeFilter === 'transfer' ? '#8b5cf6' : 'var(--border-color)'"
+         [style.background]="typeFilter === 'transfer' ? 'rgba(139,92,246,0.06)' : 'var(--bg-secondary)'">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chuyển kho</span>
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(139,92,246,0.12); color: #7c3aed; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.ArrowLeftRight" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ transferCount }}</div>
+      <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        Luân chuyển showroom nội bộ
+      </div>
+    </div>
+
+    <!-- Stat 5: Pending/Processing -->
+    <div (click)="statusFilter = statusFilter === 'PENDING' ? 'all' : 'PENDING'"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
+         [style.border-color]="statusFilter === 'PENDING' ? '#f59e0b' : 'var(--border-color)'"
+         [style.background]="statusFilter === 'PENDING' ? 'rgba(245,158,11,0.06)' : 'var(--bg-secondary)'">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chờ duyệt / Xử lý</span>
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245,158,11,0.12); color: #d97706; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ pendingCount }}</div>
+      <div style="font-size: 12px; color: #d97706; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+        Cần thủ kho kiểm tra & ký
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; flex-wrap: wrap;">
+    <!-- Type Pills -->
+    <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-tertiary); padding: 4px; border-radius: 10px;">
+      <button 
+        type="button" 
+        (click)="setTypeFilter('all')"
+        style="display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; transition: all 0.15s;"
+        [style.background]="typeFilter === 'all' ? 'var(--bg-primary)' : 'transparent'"
+        [style.color]="typeFilter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)'"
+        [style.font-weight]="typeFilter === 'all' ? 600 : 400"
+        [style.box-shadow]="typeFilter === 'all' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'">
+        Tất cả ({{ totalCount }})
+      </button>
+      <button 
+        type="button" 
+        (click)="setTypeFilter('import')"
+        style="display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; transition: all 0.15s;"
+        [style.background]="typeFilter === 'import' ? 'var(--bg-primary)' : 'transparent'"
+        [style.color]="typeFilter === 'import' ? 'var(--text-primary)' : 'var(--text-secondary)'"
+        [style.font-weight]="typeFilter === 'import' ? 600 : 400"
+        [style.box-shadow]="typeFilter === 'import' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'">
+        <lucide-angular [img]="icons.ArrowDownRight" size="14" color="#10b981"></lucide-angular> Nhập kho ({{ importCount }})
+      </button>
+      <button 
+        type="button" 
+        (click)="setTypeFilter('export')"
+        style="display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; transition: all 0.15s;"
+        [style.background]="typeFilter === 'export' ? 'var(--bg-primary)' : 'transparent'"
+        [style.color]="typeFilter === 'export' ? 'var(--text-primary)' : 'var(--text-secondary)'"
+        [style.font-weight]="typeFilter === 'export' ? 600 : 400"
+        [style.box-shadow]="typeFilter === 'export' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'">
+        <lucide-angular [img]="icons.ArrowUpRight" size="14" color="#ef4444"></lucide-angular> Xuất kho ({{ exportCount }})
+      </button>
+      <button 
+        type="button" 
+        (click)="setTypeFilter('transfer')"
+        style="display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; transition: all 0.15s;"
+        [style.background]="typeFilter === 'transfer' ? 'var(--bg-primary)' : 'transparent'"
+        [style.color]="typeFilter === 'transfer' ? 'var(--text-primary)' : 'var(--text-secondary)'"
+        [style.font-weight]="typeFilter === 'transfer' ? 600 : 400"
+        [style.box-shadow]="typeFilter === 'transfer' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'">
+        <lucide-angular [img]="icons.ArrowLeftRight" size="14" color="#8b5cf6"></lucide-angular> Chuyển kho ({{ transferCount }})
+      </button>
+    </div>
+
+    <!-- Filter Controls -->
+    <div style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end; flex-wrap: wrap;">
+      <!-- Search -->
+      <div style="position: relative; min-width: 260px; flex: 1; max-width: 360px;">
+        <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          placeholder="Tìm mã lệnh, tham chiếu, kho hàng..." 
+          class="admin-input" 
+          style="padding-left: 36px; padding-right: 30px;"
+        />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px;">
+          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- Location Filter -->
+      <div style="width: 170px;">
+        <select [(ngModel)]="locationFilter" class="admin-select">
+          <option *ngFor="let loc of locations" [value]="loc">{{ loc }}</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div style="width: 160px;">
+        <select [(ngModel)]="statusFilter" class="admin-select">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="COMPLETED">Đã hoàn tất</option>
+          <option value="PROCESSING">Đang xử lý</option>
+          <option value="PENDING">Chờ phê duyệt</option>
+          <option value="CANCELLED">Đã hủy bỏ</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Action Bar -->
+  <div *ngIf="selectedIds.size > 0" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(var(--accent-rgb), 0.08); border: 1px solid var(--accent); border-radius: 10px; font-size: 13px;">
+    <div>
+      Đã chọn <strong style="color: var(--accent);">{{ selectedIds.size }}</strong> lệnh kho
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button (click)="batchUpdateStatus('COMPLETED')" class="admin-btn admin-btn-secondary" style="color: #059669;">
+        <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular> Đánh dấu Hoàn tất
+      </button>
+      <button (click)="batchUpdateStatus('CANCELLED')" class="admin-btn admin-btn-secondary" style="color: #dc2626;">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular> Hủy các lệnh này
+      </button>
+      <button (click)="selectedIds.clear()" class="admin-btn admin-btn-secondary">
+        Bỏ chọn
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Container -->
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+          <th style="padding: 12px 14px; width: 44px; text-align: center;">
+            <input 
+              type="checkbox" 
+              [checked]="isAllSelected()" 
+              (change)="toggleSelectAll($event)" 
+              style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);" 
+            />
+          </th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Mã lệnh</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Loại lệnh</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Thời gian</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Kho xuất &rarr; Kho nhập</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Lý do & Tham chiếu</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Thủ kho</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Chi tiết SP</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Tổng giá trị</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Trạng thái</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 60px; text-align: center;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr 
+          *ngFor="let order of filteredOrders" 
+          (click)="viewOrderDetail(order)"
+          style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s;"
+          [style.background]="selectedIds.has(order.id) ? 'rgba(var(--accent-rgb), 0.04)' : 'transparent'"
+          onmouseover="this.style.background='var(--bg-tertiary)'"
+          onmouseout="this.style.background='transparent'"
+        >
+          <!-- Checkbox -->
+          <td style="padding: 12px 14px; text-align: center;" (click)="$event.stopPropagation()">
+            <input 
+              type="checkbox" 
+              [checked]="selectedIds.has(order.id)" 
+              (change)="toggleSelection(order.id, $event)" 
+              style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);" 
+            />
+          </td>
+
+          <!-- ID -->
+          <td style="padding: 12px 14px;">
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-weight: 700; color: var(--accent); font-size: 13px;">{{ order.id }}</span>
+              <span *ngIf="order.referenceCode" style="font-size: 11px; color: var(--text-muted); font-family: monospace;">{{ order.referenceCode }}</span>
+            </div>
+          </td>
+
+          <!-- Type Badge -->
+          <td style="padding: 12px 14px;">
+            <span 
+              style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;"
+              [style.background]="order.type === 'import' ? 'rgba(16,185,129,0.12)' : (order.type === 'export' ? 'rgba(239,68,68,0.12)' : 'rgba(139,92,246,0.12)')"
+              [style.color]="order.type === 'import' ? '#059669' : (order.type === 'export' ? '#dc2626' : '#7c3aed')"
+            >
+              <lucide-angular *ngIf="order.type === 'import'" [img]="icons.ArrowDownRight" size="13"></lucide-angular>
+              <lucide-angular *ngIf="order.type === 'export'" [img]="icons.ArrowUpRight" size="13"></lucide-angular>
+              <lucide-angular *ngIf="order.type === 'transfer'" [img]="icons.ArrowLeftRight" size="13"></lucide-angular>
+              {{ order.typeLabel }}
+            </span>
+          </td>
+
+          <!-- Date -->
+          <td style="padding: 12px 14px; font-size: 12px; color: var(--text-secondary); white-space: nowrap;">
+            {{ order.createdAt }}
+          </td>
+
+          <!-- Route -->
+          <td style="padding: 12px 14px;">
+            <div style="display: flex; flex-direction: column; gap: 1px; max-width: 190px; font-size: 12px;">
+              <span style="color: var(--text-secondary);">{{ order.sourceLocation }}</span>
+              <span style="font-size: 10px; color: var(--text-muted); line-height: 1;">&darr;</span>
+              <span style="font-weight: 600; color: var(--text-primary);">{{ order.destinationLocation }}</span>
+            </div>
+          </td>
+
+          <!-- Reason -->
+          <td style="padding: 12px 14px;">
+            <div style="max-width: 210px;">
+              <div style="font-weight: 500; line-height: 1.3; font-size: 13px; color: var(--text-primary);">{{ order.reason }}</div>
+              <div *ngIf="order.notes" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ order.notes }}</div>
+            </div>
+          </td>
+
+          <!-- Creator -->
+          <td style="padding: 12px 14px;">
+            <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+              <div style="width: 22px; height: 22px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">
+                {{ order.creator.charAt(0) }}
+              </div>
+              <span style="font-size: 13px;">{{ order.creator }}</span>
+            </div>
+          </td>
+
+          <!-- Items Summary -->
+          <td style="padding: 12px 14px; white-space: nowrap; font-size: 13px;">
+            <strong>{{ order.items.length }}</strong> SP
+            <span style="font-size: 11px; color: var(--text-muted); margin-left: 3px;">({{ order.totalQuantity }} chiếc)</span>
+          </td>
+
+          <!-- Amount -->
+          <td style="padding: 12px 14px; font-weight: 600; white-space: nowrap; font-size: 13px; color: var(--text-primary);">
+            {{ formatCurrency(order.totalAmount) }}
+          </td>
+
+          <!-- Status -->
+          <td style="padding: 12px 14px;">
+            <span 
+              style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;"
+              [style.background]="order.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : (order.status === 'PROCESSING' ? 'rgba(59,130,246,0.12)' : (order.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.12)'))"
+              [style.color]="order.status === 'COMPLETED' ? '#059669' : (order.status === 'PROCESSING' ? '#2563eb' : (order.status === 'PENDING' ? '#d97706' : '#4b5563'))"
+            >
+              <lucide-angular *ngIf="order.status === 'COMPLETED'" [img]="icons.CheckCircle2" size="12"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'PROCESSING'" [img]="icons.Clock" size="12"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'PENDING'" [img]="icons.AlertCircle" size="12"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'CANCELLED'" [img]="icons.X" size="12"></lucide-angular>
+              
+              <span *ngIf="order.status === 'COMPLETED'">Hoàn tất</span>
+              <span *ngIf="order.status === 'PROCESSING'">Đang xử lý</span>
+              <span *ngIf="order.status === 'PENDING'">Chờ duyệt</span>
+              <span *ngIf="order.status === 'CANCELLED'">Đã hủy</span>
+            </span>
+          </td>
+
+          <!-- Actions -->
+          <td style="padding: 12px 14px; text-align: center;" (click)="$event.stopPropagation()">
+            <div style="position: relative; display: inline-block;">
+              <button 
+                type="button" 
+                (click)="toggleActionMenu(order.id, $event)" 
+                style="background: transparent; border: none; cursor: pointer; padding: 4px; border-radius: 6px; color: var(--text-secondary); display: flex;"
+                title="Tùy chọn"
+              >
+                <lucide-angular [img]="icons.MoreVertical" size="16"></lucide-angular>
+              </button>
+
+              <!-- Dropdown Action Menu -->
+              <div *ngIf="activeActionMenu === order.id" style="position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); min-width: 155px; z-index: 50; padding: 4px; display: flex; flex-direction: column;">
+                <button (click)="viewOrderDetail(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
+                  <lucide-angular [img]="icons.Eye" size="14"></lucide-angular> Xem chi tiết
+                </button>
+                <button (click)="printOrder(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
+                  <lucide-angular [img]="icons.Printer" size="14"></lucide-angular> In phiếu lệnh
+                </button>
+                <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--border-color);" />
+                <button *ngIf="order.status !== 'COMPLETED'" (click)="updateOrderStatus(order, 'COMPLETED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #059669; cursor: pointer; text-align: left;">
+                  <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular> Đã hoàn tất
+                </button>
+                <button *ngIf="order.status !== 'CANCELLED'" (click)="updateOrderStatus(order, 'CANCELLED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #d97706; cursor: pointer; text-align: left;">
+                  <lucide-angular [img]="icons.X" size="14"></lucide-angular> Hủy lệnh này
+                </button>
+                <button (click)="deleteOrder(order.id, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #dc2626; cursor: pointer; text-align: left;">
+                  <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular> Xóa lệnh
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr *ngIf="filteredOrders.length === 0">
+          <td colspan="11" style="padding: 40px 16px; text-align: center;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+              <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
+                <lucide-angular [img]="icons.Package" size="24" color="var(--text-muted)"></lucide-angular>
+              </div>
+              <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary);">Không tìm thấy lệnh kho nào</h3>
+              <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">Không có kết quả phù hợp với các tiêu chí tìm kiếm hoặc bộ lọc hiện tại.</p>
+              <button (click)="searchTerm = ''; typeFilter = 'all'; locationFilter = 'all'; statusFilter = 'all';" class="admin-btn admin-btn-secondary" style="margin-top: 8px;">
+                Đặt lại bộ lọc
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Detail Modal -->
+  <div *ngIf="selectedOrder" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; backdrop-filter: blur(2px);" (click)="closeOrderDetail()">
+    <div style="background: var(--bg-primary); border-radius: 12px; width: 850px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 16px 36px rgba(0,0,0,0.25); overflow: hidden;" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <h2 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary);">Chi tiết {{ selectedOrder.typeLabel }}: {{ selectedOrder.id }}</h2>
+            <span 
+              style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;"
+              [style.background]="selectedOrder.type === 'import' ? 'rgba(16,185,129,0.12)' : (selectedOrder.type === 'export' ? 'rgba(239,68,68,0.12)' : 'rgba(139,92,246,0.12)')"
+              [style.color]="selectedOrder.type === 'import' ? '#059669' : (selectedOrder.type === 'export' ? '#dc2626' : '#7c3aed')"
+            >
+              {{ selectedOrder.typeLabel }}
+            </span>
+            <span 
+              style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;"
+              [style.background]="selectedOrder.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : (selectedOrder.status === 'PROCESSING' ? 'rgba(59,130,246,0.12)' : (selectedOrder.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.12)'))"
+              [style.color]="selectedOrder.status === 'COMPLETED' ? '#059669' : (selectedOrder.status === 'PROCESSING' ? '#2563eb' : (selectedOrder.status === 'PENDING' ? '#d97706' : '#4b5563'))"
+            >
+              {{ selectedOrder.status === 'COMPLETED' ? 'Hoàn tất' : (selectedOrder.status === 'PROCESSING' ? 'Đang xử lý' : (selectedOrder.status === 'PENDING' ? 'Chờ duyệt' : 'Đã hủy')) }}
+            </span>
+          </div>
+          <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">Thời gian tạo: {{ selectedOrder.createdAt }} &bull; Người lập: <strong>{{ selectedOrder.creator }}</strong></p>
+        </div>
+        <button (click)="closeOrderDetail()" class="admin-close-btn">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Kho / Nguồn xuất</span>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.sourceLocation }}</span>
+          </div>
+          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Kho / Nơi nhận</span>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.destinationLocation }}</span>
+          </div>
+          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Chứng từ tham chiếu</span>
+            <span style="font-size: 13px; font-weight: 600; font-family: monospace; color: var(--accent);">{{ selectedOrder.referenceCode || 'Không có' }}</span>
+          </div>
+          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Lý do thực hiện</span>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.reason }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="selectedOrder.notes" style="padding: 10px 12px; border-radius: 6px; background: rgba(var(--accent-rgb), 0.05); border-left: 3px solid var(--accent); font-size: 12px; color: var(--text-primary);">
+          <strong>Ghi chú:</strong> {{ selectedOrder.notes }}
+        </div>
+
+        <!-- Products Table -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text-primary);">Danh sách sản phẩm trong lệnh ({{ selectedOrder.items.length }} mặt hàng)</h3>
+          <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <thead>
+                <tr style="background: var(--bg-tertiary);">
+                  <th style="padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border-color); width: 40px;">STT</th>
+                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Mã SKU</th>
+                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Tên sản phẩm</th>
+                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Biến thể / Màu sắc</th>
+                  <th style="padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border-color); width: 50px;">ĐVT</th>
+                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color); width: 70px;">Số lượng</th>
+                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color);">Đơn giá</th>
+                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color);">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let it of selectedOrder.items; let idx = index" style="border-bottom: 1px solid var(--border-color);">
+                  <td style="padding: 8px 10px; text-align: center;">{{ idx + 1 }}</td>
+                  <td style="padding: 8px 10px;"><span style="font-family: monospace; font-size: 11px; padding: 2px 4px; border-radius: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-color);">{{ it.sku }}</span></td>
+                  <td style="padding: 8px 10px;"><strong>{{ it.productName }}</strong></td>
+                  <td style="padding: 8px 10px; color: var(--text-secondary);">{{ it.variant }}</td>
+                  <td style="padding: 8px 10px; text-align: center;">{{ it.unit }}</td>
+                  <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: var(--accent);">{{ it.quantity }}</td>
+                  <td style="padding: 8px 10px; text-align: right;">{{ formatCurrency(it.unitPrice) }}</td>
+                  <td style="padding: 8px 10px; text-align: right; font-weight: 700;">{{ formatCurrency(it.quantity * it.unitPrice) }}</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="background: var(--bg-tertiary); font-weight: 700;">
+                  <td colspan="5" style="padding: 10px; text-align: right;">TỔNG CỘNG:</td>
+                  <td style="padding: 10px; text-align: right; color: var(--accent);">{{ selectedOrder.totalQuantity }}</td>
+                  <td></td>
+                  <td style="padding: 10px; text-align: right; color: #10b981; font-size: 14px;">{{ formatCurrency(selectedOrder.totalAmount) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+        <button (click)="printOrder(selectedOrder)" class="admin-btn admin-btn-secondary">
+          <lucide-angular [img]="icons.Printer" size="16"></lucide-angular> In phiếu lệnh
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button 
+            *ngIf="selectedOrder.status !== 'COMPLETED'" 
+            (click)="updateOrderStatus(selectedOrder, 'COMPLETED')" 
+            class="admin-btn admin-btn-primary"
+          >
+            <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular> Hoàn tất lệnh
+          </button>
+          <button (click)="closeOrderDetail()" class="admin-btn admin-btn-secondary">
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reusable Transaction Modal (Nhập/Xuất kho) -->
+  <app-transaction-modal
+    [isOpen]="modalConfig.isOpen"
+    [type]="modalConfig.type"
+    [initialProductId]="modalConfig.initialProductId"
+    [initialVariantId]="modalConfig.initialVariantId"
+    [isProductFixed]="modalConfig.isProductFixed"
+    [isVariantFixed]="modalConfig.isVariantFixed"
+    (onClose)="closeModal()"
+    (onSubmit)="handleModalSubmit($event)"
+  ></app-transaction-modal>
+</div>

@@ -34,9 +34,9 @@ export const routes: Routes = [
       { path: 'inventory/product/:id', loadComponent: () => import('./features/admin/pages/inventory/inventory-product-detail/inventory-product-detail').then(m => m.InventoryProductDetailComponent) },
       { path: 'inventory/audit', loadComponent: () => import('./features/admin/pages/inventory/inventory-audit/inventory-audit').then(m => m.InventoryAuditComponent) },
       // Lệnh xuất - nhập kho
-      { path: 'inventory/orders', loadComponent: () => import('./features/admin/pages/inventory/inventory-orders/inventory-orders').then(m => m.InventoryOrdersComponent) },
-      { path: 'inventory/history', loadComponent: () => import('./features/admin/pages/inventory/inventory-history/inventory-history').then(m => m.InventoryHistoryComponent) },
+      { path: 'inventory/orders', redirectTo: 'inventory/transactions', pathMatch: 'full' },
       { path: 'inventory/transactions', loadComponent: () => import('./features/admin/pages/inventory/inventory-transactions/inventory-transactions').then(m => m.InventoryTransactionsComponent) },
+      { path: 'inventory/history', loadComponent: () => import('./features/admin/pages/inventory/inventory-history/inventory-history').then(m => m.InventoryHistoryComponent) },
       { path: 'promotions', loadComponent: () => import('./features/admin/pages/promotions/promotions').then(m => m.PromotionsComponent) },
       { path: 'vouchers', loadComponent: () => import('./features/admin/pages/promotions/vouchers/vouchers').then(m => m.VouchersComponent) },
       { path: 'campaigns', loadComponent: () => import('./features/admin/pages/promotions/campaigns/campaigns').then(m => m.CampaignsComponent) },
