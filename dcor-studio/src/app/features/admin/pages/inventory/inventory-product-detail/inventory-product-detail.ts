@@ -1,15 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
   ArrowLeft, Package, Clock, Filter, Search, Plus, ArrowRightLeft, RefreshCcw, X 
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
+import { environment } from '../../../../../../environments/environment';
 
 interface VariantStock {
   id: string;
+  sku?: string;
   name: string;
   physical: number;
   reserved: number;
@@ -30,6 +33,14 @@ interface StockHistory {
   selector: 'app-inventory-product-detail',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, TransactionModalComponent],
+  styles: [`
+    .admin-table th {
+      background: #EAE1D7 !important;
+    }
+    .admin-table tbody tr:hover {
+      background: #F3E5D3 !important;
+    }
+  `],
   template: `
     <div style="display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px;">
       
@@ -252,6 +263,9 @@ export class InventoryProductDetailComponent implements OnInit {
     initialVariantId: ''
   };
 
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+
   constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
@@ -275,30 +289,57 @@ export class InventoryProductDetailComponent implements OnInit {
   }
 
   loadData(productId: string) {
-    // Mock data
-    this.product = {
-      id: productId,
-      name: 'Sản phẩm ' + productId,
-      slug: productId,
-      category: 'Nội thất',
-      images: []
-    };
+    this.isLoading = true;
+    this.http.get<any>(`${environment.apiUrl}/admin/inventory/product/${productId}`).subscribe({
+      next: (res) => {
+        const p = res.product;
+        this.product = {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          category: p.category?.name || 'Nội thất',
+          images: p.images || []
+        };
 
-    this.variants = [
-      { id: 'v1', name: 'Màu Trắng, Gỗ sồi', physical: 12, reserved: 2, available: 10 },
-      { id: 'v2', name: 'Màu Đen, Khung thép', physical: 5, reserved: 0, available: 5 },
-      { id: 'v3', name: 'Màu Xám, Bọc da', physical: 0, reserved: 0, available: 0 },
-      { id: 'v4', name: 'Màu Xanh, Khung thép', physical: 8, reserved: 4, available: 4 },
-    ];
+        this.variants = (p.variants || []).map((v: any) => {
+          let physical = 0;
+          let reserved = v.reservedStock || 0;
+          if (v.warehouseStocks && v.warehouseStocks.length > 0) {
+            physical = v.warehouseStocks.reduce((sum: number, ws: any) => sum + (ws.physicalStock || 0), 0);
+            reserved = v.warehouseStocks.reduce((sum: number, ws: any) => sum + (ws.reservedStock || 0), 0);
+          } else {
+            physical = v.stock || 0;
+          }
 
-    this.history = [
-      { id: 'h1', date: '2026-08-20 14:30', type: 'IMPORT', variantName: 'Màu Trắng, Gỗ sồi', quantity: 15, reason: 'Nhập hàng đợt 1 tháng 8', user: 'Admin' },
-      { id: 'h2', date: '2026-08-22 09:15', type: 'EXPORT', variantName: 'Màu Trắng, Gỗ sồi', quantity: 3, reason: 'Xuất bán khách lẻ', user: 'Staff_HCM' },
-      { id: 'h3', date: '2026-08-23 11:00', type: 'TRANSFER', variantName: 'Màu Đen, Khung thép', quantity: 2, reason: 'Chuyển sang Kho HN', user: 'Admin' },
-      { id: 'h4', date: '2026-08-24 16:45', type: 'EXPORT', variantName: 'Màu Xanh, Khung thép', quantity: 4, reason: 'Giữ chỗ đơn hàng #1024', user: 'System' },
-    ];
-    
-    this.isLoading = false;
+          return {
+            id: v.id,
+            name: v.name || v.sku,
+            sku: v.sku,
+            physical,
+            reserved,
+            available: Math.max(0, physical - reserved)
+          };
+        });
+
+        this.history = (res.history || []).map((h: any) => ({
+          id: h.txCode || h.id,
+          date: h.createdAt ? new Date(h.createdAt).toISOString().replace('T', ' ').substring(0, 16) : '',
+          type: h.type?.includes('IMPORT') ? 'IMPORT' : (h.type?.includes('EXPORT') ? 'EXPORT' : 'TRANSFER'),
+          variantName: h.variant?.name || 'Mặc định',
+          quantity: h.quantityChange || 0,
+          reason: h.notes || (h.referenceCode ? `Tham chiếu ${h.referenceCode}` : 'Biến động tồn kho'),
+          user: h.warehouse?.name || 'Hệ thống'
+        }));
+
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Error fetching product inventory detail:', err);
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   goBack() {

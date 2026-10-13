@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChange
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { LucideAngularModule, X, Plus, Trash2, Filter, Search } from 'lucide-angular';
+import { LucideAngularModule, X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown } from 'lucide-angular';
 import { environment } from '../../../../../environments/environment';
 
 interface LineItem {
@@ -153,7 +153,7 @@ interface LineItem {
             <div [ngStyle]="{'display': 'grid', 'grid-template-columns': getGridColumns(), 'gap': '12px', 'padding-bottom': '8px', 'border-bottom': '1px solid var(--border-color)'}">
               <div style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Sản phẩm</div>
               <div style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Biến thể</div>
-              <div style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Số lượng</div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-align: center;">Số lượng</div>
               <div *ngIf="type === 'import'" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Đơn giá (₫)</div>
               <div style="font-size: 13px; font-weight: 600; color: var(--text-muted); text-align: center;">Xóa</div>
             </div>
@@ -275,8 +275,64 @@ interface LineItem {
                 </div>
 
                 <!-- Quantity -->
-                <div>
-                  <input type="text" class="admin-input" placeholder="0" [ngModel]="item.quantity" (ngModelChange)="updateLineItem(item.id, 'quantity', $event)" />
+                <div style="display: flex; justify-content: center;">
+                  <div style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 110px; background: var(--bg-primary); transition: all 0.15s ease;"
+                       [ngStyle]="{
+                         'opacity': (!item.productId || !item.variantId) ? '0.5' : '1',
+                         'background': (!item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)'
+                       }">
+                    <!-- Input Nhập số lượng -->
+                    <input 
+                      type="text" 
+                      inputmode="numeric"
+                      pattern="[0-9]*"
+                      [disabled]="!item.productId || !item.variantId"
+                      [value]="item.quantity" 
+                      (keydown)="onQuantityKeydown($event)"
+                      (input)="onQuantityInput(item, $event)"
+                      placeholder="0"
+                      style="flex: 1; min-width: 0; width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-primary); padding: 0 4px;"
+                      [ngStyle]="{'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'text'}"
+                    />
+
+                    <!-- Cụm mũi tên tăng/giảm bên phải -->
+                    <div style="display: flex; flex-direction: column; width: 26px; border-left: 1px solid var(--border-color); flex-shrink: 0;">
+                      <!-- Mũi tên Lên (Tăng) -->
+                      <button 
+                        type="button"
+                        (click)="increaseQuantity(item)"
+                        [disabled]="!item.productId || !item.variantId"
+                        style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-bottom: 1px solid var(--border-color); padding: 0; transition: all 0.12s ease;"
+                        [ngStyle]="{
+                          'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'pointer',
+                          'color': (!item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)'
+                        }"
+                        onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)'"
+                        onmouseout="this.style.background='transparent'"
+                        title="Tăng số lượng"
+                      >
+                        <lucide-angular [img]="icons.ChevronUp" size="13"></lucide-angular>
+                      </button>
+
+                      <!-- Mũi tên Xuống (Giảm) -->
+                      <button 
+                        type="button"
+                        (click)="decreaseQuantity(item)"
+                        [disabled]="!item.productId || !item.variantId || getQuantity(item) <= 0"
+                        style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; padding: 0; transition: all 0.12s ease;"
+                        [ngStyle]="{
+                          'cursor': (!item.productId || !item.variantId || getQuantity(item) <= 0) ? 'not-allowed' : 'pointer',
+                          'color': (!item.productId || !item.variantId || getQuantity(item) <= 0) ? 'var(--text-muted)' : 'var(--text-primary)',
+                          'opacity': getQuantity(item) <= 0 ? '0.35' : '1'
+                        }"
+                        onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)'"
+                        onmouseout="this.style.background='transparent'"
+                        title="Giảm số lượng"
+                      >
+                        <lucide-angular [img]="icons.ChevronDown" size="13"></lucide-angular>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Price -->
@@ -333,7 +389,7 @@ interface LineItem {
   `
 })
 export class TransactionModalComponent implements OnInit, OnChanges {
-  icons = { X, Plus, Trash2, Filter, Search };
+  icons = { X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown };
   private http = inject(HttpClient);
 
   @Input() isOpen = false;
@@ -577,7 +633,45 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getGridColumns() {
-    return this.type === 'import' ? '2.5fr 2fr 1fr 1.5fr 40px' : '2.5fr 2fr 1fr 40px';
+    return this.type === 'import' ? '1.8fr 1.4fr 110px 140px 40px' : '1.8fr 1.4fr 110px 40px';
+  }
+
+  getQuantity(item: LineItem): number {
+    return parseInt(item.quantity, 10) || 0;
+  }
+
+  increaseQuantity(item: LineItem) {
+    if (!item.productId || !item.variantId) return;
+    const current = this.getQuantity(item);
+    this.updateLineItem(item.id, 'quantity', String(current + 1));
+  }
+
+  decreaseQuantity(item: LineItem) {
+    if (!item.productId || !item.variantId) return;
+    const current = this.getQuantity(item);
+    if (current > 0) {
+      this.updateLineItem(item.id, 'quantity', String(current - 1));
+    }
+  }
+
+  onQuantityKeydown(event: KeyboardEvent) {
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    if (allowedKeys.includes(event.key)) {
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
+      return;
+    }
+    // Chỉ cho phép gõ số từ 0 đến 9 (chặn dấu trừ '-', '+', 'e', 'E', '.', ',' và chữ)
+    if (!/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  onQuantityInput(item: LineItem, event: any) {
+    const rawValue = event.target ? event.target.value : event;
+    const cleanValue = String(rawValue || '').replace(/[^0-9]/g, '');
+    this.updateLineItem(item.id, 'quantity', cleanValue);
   }
 
   getProductName(id: string) {
@@ -670,9 +764,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!this.transactionLocation) return window.alert('Vui lòng chọn chi nhánh/kho');
     if (this.type === 'export' && !this.transactionReason) return window.alert('Vui lòng chọn lý do xuất');
     
-    const invalidItems = this.lineItems.filter((item: any) => !item.productId || !item.variantId || !item.quantity);
+    const invalidItems = this.lineItems.filter((item: any) => !item.productId || !item.variantId || !item.quantity || parseInt(item.quantity, 10) <= 0);
     if (invalidItems.length > 0) {
-      return window.alert('Vui lòng điền đầy đủ thông tin Sản phẩm, Biến thể và Số lượng cho tất cả các dòng.');
+      return window.alert('Vui lòng điền đầy đủ thông tin Sản phẩm, Biến thể và Số lượng (lớn hơn 0) cho tất cả các dòng.');
     }
 
     const sourceWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionLocation);

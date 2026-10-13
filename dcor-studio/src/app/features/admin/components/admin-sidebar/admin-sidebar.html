@@ -18,29 +18,23 @@
         (mouseenter)="handleMouseEnter($event, item.href)"
         (mouseleave)="handleMouseLeave()">
         <ng-container *ngIf="item.subItems; else directLink">
-          <div class="sidebar-parent-link">
-            <a
-              class="sidebar-link"
-              [class.active]="isParentActive(item)"
-              [routerLink]="item.href"
-              [attr.aria-label]="isCollapsed ? item.title : null"
-              [title]="isCollapsed ? item.title : null"
-              (click)="selectMenu(item.href)">
-              <app-icon [name]="item.icon" size="18"></app-icon>
-              <span class="sidebar-label" *ngIf="!isCollapsed">{{ item.title }}</span>
-            </a>
-            <button
+          <button
+            type="button"
+            class="sidebar-link"
+            [class.active]="isParentActive(item)"
+            [attr.aria-label]="(isMenuOpen(item.href) ? 'Thu gọn ' : 'Mở rộng ') + item.title"
+            [attr.aria-expanded]="isMenuOpen(item.href)"
+            [title]="isCollapsed ? item.title : null"
+            (click)="toggleMenu(item.href)">
+            <app-icon [name]="item.icon" size="18"></app-icon>
+            <span class="sidebar-label" *ngIf="!isCollapsed">{{ item.title }}</span>
+            <app-icon
               *ngIf="!isCollapsed"
-              class="sidebar-link-toggle"
-              [class.active]="isParentActive(item)"
-              [attr.aria-label]="(openMenu === item.href ? 'Thu gọn ' : 'Mở rộng ') + item.title"
-              [attr.aria-expanded]="openMenu === item.href"
-              (click)="toggleMenu(item.href)">
-              <app-icon
-                [name]="openMenu === item.href ? 'ChevronDown' : 'ChevronRight'"
-                size="16"></app-icon>
-            </button>
-          </div>
+              class="sidebar-chevron"
+              [name]="isMenuOpen(item.href) ? 'ChevronDown' : 'ChevronRight'"
+              size="16">
+            </app-icon>
+          </button>
         </ng-container>
 
         <ng-template #directLink>
@@ -49,20 +43,22 @@
             [class.active]="isParentActive(item)"
             [routerLink]="item.href"
             [attr.aria-label]="isCollapsed ? item.title : null"
-            [title]="isCollapsed ? item.title : null">
+            [title]="isCollapsed ? item.title : null"
+            (click)="selectDirectItem()">
             <app-icon [name]="item.icon" size="18"></app-icon>
             <span class="sidebar-label" *ngIf="!isCollapsed">{{ item.title }}</span>
           </a>
         </ng-template>
 
         <div
-          *ngIf="!isCollapsed && item.subItems && openMenu === item.href"
+          *ngIf="!isCollapsed && item.subItems && isMenuOpen(item.href)"
           class="sidebar-submenu">
           <a
             *ngFor="let sub of item.subItems"
             class="admin-sub-item"
             [class.active]="sub.href === activeHref"
-            [routerLink]="sub.href">
+            [routerLink]="sub.href"
+            (click)="selectSubItem(item.href)">
             {{ sub.title }}
           </a>
         </div>
@@ -82,7 +78,7 @@
             class="admin-sub-item"
             [class.active]="sub.href === activeHref"
             [routerLink]="sub.href"
-            (click)="closeHoveredMenu()">
+            (click)="closeHoveredMenu(); selectSubItem(item.href)">
             {{ sub.title }}
           </a>
         </div>
@@ -96,7 +92,8 @@
       [class.active]="SETTINGS_ITEM.href === activeHref"
       [routerLink]="SETTINGS_ITEM.href"
       [attr.aria-label]="isCollapsed ? SETTINGS_ITEM.title : null"
-      [title]="isCollapsed ? SETTINGS_ITEM.title : null">
+      [title]="isCollapsed ? SETTINGS_ITEM.title : null"
+      (click)="selectDirectItem()">
       <app-icon [name]="SETTINGS_ITEM.icon" size="18"></app-icon>
       <span class="sidebar-label" *ngIf="!isCollapsed">{{ SETTINGS_ITEM.title }}</span>
     </a>

@@ -23,8 +23,12 @@ export class AdminSidebar implements OnInit {
   @Output() expandSidebar = new EventEmitter<void>();
   @Output() toggleCollapse = new EventEmitter<void>();
   hoveredMenu: { href: string, top: number } | null = null;
-  openMenu: string | null = null;
+  openMenus: Set<string> = new Set<string>();
   activeHref = '';
+
+  get openMenu(): string | null {
+    return this.openMenus.values().next().value ?? null;
+  }
 
   private hoverTimeout: any;
 
@@ -152,41 +156,74 @@ export class AdminSidebar implements OnInit {
   }
 
   calculateActiveHref(pathname: string) {
+    const cleanPath = pathname.split('?')[0].split('#')[0];
     let maxLen = 0;
     this.activeHref = '';
-    this.openMenu = null;
+
     for (const item of this.MENU_ITEMS) {
-      if (item.href === pathname || pathname.startsWith(item.href + '/')) {
+      if (item.href === cleanPath || cleanPath.startsWith(item.href + '/')) {
         if (item.href.length > maxLen) { this.activeHref = item.href; maxLen = item.href.length; }
       }
       if (item.subItems) {
         for (const sub of item.subItems) {
-          if (sub.href === pathname || pathname.startsWith(sub.href + '/')) {
+          if (sub.href === cleanPath || cleanPath.startsWith(sub.href + '/')) {
             if (sub.href.length > maxLen) { this.activeHref = sub.href; maxLen = sub.href.length; }
           }
         }
       }
     }
 
+    if (this.SETTINGS_ITEM.href === cleanPath || cleanPath.startsWith(this.SETTINGS_ITEM.href + '/')) {
+      if (this.SETTINGS_ITEM.href.length > maxLen) {
+        this.activeHref = this.SETTINGS_ITEM.href;
+      }
+    }
+
+    let activeParentHref: string | null = null;
     for (const item of this.MENU_ITEMS) {
       if (item.href === this.activeHref || (item.subItems && item.subItems.some(sub => sub.href === this.activeHref))) {
-        this.openMenu = item.href;
+        if (item.subItems && item.subItems.length > 0) {
+          activeParentHref = item.href;
+        }
         break;
       }
     }
-    if (this.SETTINGS_ITEM.href === this.activeHref) {
-      this.openMenu = null;
+
+    // Khi chuyển trang (navigate), đóng tất cả các tab cha khác, chỉ giữ lại tab cha đang active
+    this.openMenus.clear();
+    if (activeParentHref) {
+      this.openMenus.add(activeParentHref);
     }
+  }
+
+  isMenuOpen(href: string): boolean {
+    return this.openMenus.has(href);
   }
 
   toggleMenu(href: string) {
     if (this.isCollapsed) this.expandSidebar.emit();
-    this.openMenu = this.openMenu === href ? null : href;
+    // Cho phép mở nhiều tab cha: nếu đã mở thì đóng tab đó, nếu chưa mở thì thêm vào (không đóng các tab cha khác)
+    if (this.openMenus.has(href)) {
+      this.openMenus.delete(href);
+    } else {
+      this.openMenus.add(href);
+    }
   }
 
   selectMenu(href: string) {
     if (this.isCollapsed) this.expandSidebar.emit();
-    this.openMenu = href;
+    this.toggleMenu(href);
+  }
+
+  selectSubItem(parentHref: string) {
+    // Khi chọn 1 tab con, đóng tất cả các tab cha khác, chỉ giữ lại tab cha của tab con đó
+    this.openMenus.clear();
+    this.openMenus.add(parentHref);
+  }
+
+  selectDirectItem() {
+    // Khi chọn 1 tab cha không có tab con, đóng tất cả các tab cha đang mở
+    this.openMenus.clear();
   }
 
   isParentActive(item: MenuItem): boolean {

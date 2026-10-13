@@ -2,9 +2,9 @@
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div>
       <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Lịch sử biến động kho</h1>
-      <p style="color: var(--text-secondary); font-size: 14px;">Tra cứu lịch sử nhập, xuất, bán hàng và kiểm kê của toàn bộ hệ thống.</p>
+      <p style="color: var(--text-secondary); font-size: 14px;">Tra cứu nhật ký sổ cái biến động kho thực tế của toàn bộ hệ thống từ Supabase.</p>
     </div>
-    <button class="admin-btn admin-btn-secondary" style="display: flex; align-items: center; gap: 8px;">
+    <button (click)="exportExcel()" class="admin-btn admin-btn-secondary" style="display: flex; align-items: center; gap: 8px;">
       <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất Excel
     </button>
   </div>
@@ -12,26 +12,25 @@
   <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; flex-wrap: wrap;">
     <div style="position: relative; flex: 1; min-width: 250px;">
       <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
-      <input type="text" placeholder="Tìm kiếm mã biến động / SKU / mã đơn hàng" style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+      <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="filterData()" placeholder="Tìm kiếm mã biến động / SKU / tên sản phẩm / chứng từ..." style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
     </div>
     
-    <div style="width: 150px;">
-      <select [(ngModel)]="viewBy" class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+    <div style="width: 160px;">
+      <select [(ngModel)]="viewBy" class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; outline: none;">
         <option value="variant">Theo biến thể</option>
         <option value="product">Theo sản phẩm</option>
       </select>
     </div>
 
-    <div style="width: 180px;">
-      <select class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+    <div style="width: 200px;">
+      <select [(ngModel)]="selectedWarehouse" (ngModelChange)="filterData()" class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; outline: none;">
         <option value="">Tất cả Kho/Showroom</option>
-        <option value="Kho Tổng">Kho Tổng (TP.HCM)</option>
-        <option value="Showroom Thủ Đức">Showroom Thủ Đức</option>
+        <option *ngFor="let w of warehouses" [value]="w.name">{{ w.name }}</option>
       </select>
     </div>
 
     <div style="width: 180px;">
-      <select class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
+      <select [(ngModel)]="selectedType" (ngModelChange)="filterData()" class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; outline: none;">
         <option value="">Mọi loại biến động</option>
         <option value="Nhập kho">Nhập kho</option>
         <option value="Xuất kho">Xuất kho</option>
@@ -41,17 +40,13 @@
         <option value="Hoàn hàng">Hoàn hàng</option>
       </select>
     </div>
-
-    <button style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); cursor: pointer; font-size: 13px; white-space: nowrap;">
-      <lucide-angular [img]="icons.CalendarIcon" size="14"></lucide-angular> Khoảng thời gian
-    </button>
   </div>
 
   <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
     <div style="width: 100%; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Mã biến động</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Thời gian</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ viewBy === 'variant' ? 'Biến thể' : 'Sản phẩm' }}</th>
@@ -64,8 +59,19 @@
           </tr>
         </thead>
         <tbody>
+          <tr *ngIf="isLoading">
+            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted);">
+              <lucide-angular [img]="icons.Loader2" size="24" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <div style="margin-top: 8px; font-size: 13px;">Đang tải lịch sử biến động từ Supabase...</div>
+            </td>
+          </tr>
+          <tr *ngIf="!isLoading && data.length === 0">
+            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              Chưa có ghi nhận biến động kho nào phù hợp.
+            </td>
+          </tr>
           <tr *ngFor="let item of data" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
-              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseover="this.style.background='#F3E5D3'" 
               onmouseout="this.style.background='transparent'">
             <td style="padding: 16px;">
               <span style="font-weight: 600; color: var(--accent); cursor: pointer;">{{ item.id }}</span>
@@ -99,11 +105,11 @@
                 {{ item.quantity }}
               </span>
             </td>
-            <td style="padding: 16px; text-align: center;">{{ item.stockAfter }}</td>
+            <td style="padding: 16px; text-align: center; font-weight: 600;">{{ item.stockAfter }}</td>
             <td style="padding: 16px;">
-              <span style="color: var(--text-secondary);">{{ item.reference }}</span>
+              <span style="color: var(--text-secondary); font-weight: 500;">{{ item.reference }}</span>
             </td>
-            <td style="padding: 16px;">{{ item.creator }}</td>
+            <td style="padding: 16px; color: var(--text-secondary);">{{ item.creator }}</td>
           </tr>
         </tbody>
       </table>

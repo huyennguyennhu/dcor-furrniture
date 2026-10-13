@@ -211,7 +211,7 @@
   <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow-x: auto;">
     <table style="width: 100%; border-collapse: collapse; text-align: left;">
       <thead>
-        <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+        <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
           <th style="padding: 12px 14px; width: 44px; text-align: center;">
             <input 
               type="checkbox" 
@@ -238,7 +238,7 @@
           (click)="viewOrderDetail(order)"
           style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s;"
           [style.background]="selectedIds.has(order.id) ? 'rgba(var(--accent-rgb), 0.04)' : 'transparent'"
-          onmouseover="this.style.background='var(--bg-tertiary)'"
+          onmouseover="this.style.background='#F3E5D3'"
           onmouseout="this.style.background='transparent'"
         >
           <!-- Checkbox -->
@@ -450,7 +450,7 @@
           <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
               <thead>
-                <tr style="background: var(--bg-tertiary);">
+                <tr style="background: #EAE1D7;">
                   <th style="padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border-color); width: 40px;">STT</th>
                   <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Mã SKU</th>
                   <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Tên sản phẩm</th>
@@ -462,7 +462,10 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let it of selectedOrder.items; let idx = index" style="border-bottom: 1px solid var(--border-color);">
+                <tr *ngFor="let it of selectedOrder.items; let idx = index" 
+                    style="border-bottom: 1px solid var(--border-color);"
+                    onmouseover="this.style.background='#F3E5D3'"
+                    onmouseout="this.style.background='transparent'">
                   <td style="padding: 8px 10px; text-align: center;">{{ idx + 1 }}</td>
                   <td style="padding: 8px 10px;"><span style="font-family: monospace; font-size: 11px; padding: 2px 4px; border-radius: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-color);">{{ it.sku }}</span></td>
                   <td style="padding: 8px 10px;"><strong>{{ it.productName }}</strong></td>
@@ -474,7 +477,7 @@
                 </tr>
               </tbody>
               <tfoot>
-                <tr style="background: var(--bg-tertiary); font-weight: 700;">
+                <tr style="background: #EAE1D7; font-weight: 700;">
                   <td colspan="5" style="padding: 10px; text-align: right;">TỔNG CỘNG:</td>
                   <td style="padding: 10px; text-align: right; color: var(--accent);">{{ selectedOrder.totalQuantity }}</td>
                   <td></td>

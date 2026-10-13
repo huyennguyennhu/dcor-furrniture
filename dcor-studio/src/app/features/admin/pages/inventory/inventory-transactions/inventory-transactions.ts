@@ -93,7 +93,7 @@ export class InventoryTransactionsComponent implements OnInit {
   fetchOrders() {
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/orders`).subscribe({
       next: (orders) => {
-        if (Array.isArray(orders) && orders.length > 0) {
+        if (Array.isArray(orders)) {
           this.data = orders.map(o => ({
             id: o.orderCode || o.id,
             type: (o.type || 'import').toLowerCase() as any,
@@ -105,7 +105,7 @@ export class InventoryTransactionsComponent implements OnInit {
             destinationLocation: o.destinationLocation || o.destWarehouse?.name || 'Chi nhánh / Khách hàng',
             referenceCode: o.referenceCode || o.orderCode,
             reason: o.reason || 'Lệnh điều phối kho',
-            creator: o.creator?.name || 'Admin Quản Trị',
+            creator: o.creator?.fullName || o.creator?.name || '-',
             totalQuantity: o.totalQuantity || 0,
             totalAmount: Number(o.totalAmount || 0),
             status: o.status,
@@ -119,13 +119,10 @@ export class InventoryTransactionsComponent implements OnInit {
               unit: 'Chiếc'
             }))
           }));
-        } else {
-          this.initMockData();
         }
       },
       error: (err) => {
-        console.warn('Could not fetch orders from API, using fallback data:', err);
-        this.initMockData();
+        console.error('Error fetching stock orders from Supabase:', err);
       }
     });
   }
