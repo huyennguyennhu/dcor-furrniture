@@ -1,4 +1,15 @@
 <aside class="admin-sidebar" [class.collapsed]="isCollapsed">
+  <!-- Nút < thu gọn/mở rộng ở lề phải sidebar, cách header 1cm -->
+  <button
+    type="button"
+    class="sidebar-edge-toggle"
+    (click)="toggleCollapse.emit()"
+    [attr.aria-expanded]="!isCollapsed"
+    [attr.aria-label]="isCollapsed ? 'Mở thanh điều hướng' : 'Thu gọn thanh điều hướng'"
+    [title]="isCollapsed ? 'Mở thanh điều hướng' : 'Thu gọn thanh điều hướng'">
+    <app-icon [name]="isCollapsed ? 'ChevronRight' : 'ChevronLeft'" size="14"></app-icon>
+  </button>
+
   <div class="sidebar-navigation">
     <nav class="sidebar-menu" aria-label="Điều hướng quản trị">
       <div

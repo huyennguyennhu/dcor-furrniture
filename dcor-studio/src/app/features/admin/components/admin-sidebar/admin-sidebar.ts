@@ -21,6 +21,7 @@ interface MenuItem {
 export class AdminSidebar implements OnInit {
   @Input() isCollapsed = false;
   @Output() expandSidebar = new EventEmitter<void>();
+  @Output() toggleCollapse = new EventEmitter<void>();
   hoveredMenu: { href: string, top: number } | null = null;
   openMenu: string | null = null;
   activeHref = '';

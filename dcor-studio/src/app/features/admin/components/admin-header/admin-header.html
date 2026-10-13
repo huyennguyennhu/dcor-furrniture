@@ -1,23 +1,10 @@
 <header style="height: 60px; flex-shrink: 0; background: var(--bg-primary); border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(59, 40, 25, 0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: relative; z-index: 10;">
   
   <!-- Left: Logo -->
-  <div style="width: 250px; display: flex; align-items: center; gap: 16px;">
+  <div style="width: 220px; display: flex; align-items: center;">
     <a routerLink="/admin/reports/overview" style="text-decoration: none;">
       <img src="/assets/favicon/logo.png" alt="DCor" style="display: block; width: 88px; height: 40px; object-fit: contain;" />
     </a>
-    <button
-      type="button"
-      (click)="sidebarToggle.emit()"
-      [attr.aria-expanded]="!sidebarCollapsed"
-      [attr.aria-label]="sidebarCollapsed ? 'Mở thanh điều hướng' : 'Thu gọn thanh điều hướng'"
-      title="Đóng/mở thanh điều hướng"
-      style="width: 32px; height: 32px; flex: 0 0 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary); cursor: pointer;">
-      <app-icon
-        name="ListIndentDecrease"
-        size="20"
-        [style.transform]="sidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)'"
-        style="transition: transform 0.25s ease;"></app-icon>
-    </button>
   </div>
 
   <!-- Center: Search Bar -->

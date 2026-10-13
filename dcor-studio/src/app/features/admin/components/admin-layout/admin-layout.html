@@ -5,6 +5,7 @@
   <div class="admin-layout-content">
     <app-admin-sidebar
       [isCollapsed]="isSidebarCollapsed"
+      (toggleCollapse)="toggleSidebar()"
       (expandSidebar)="expandSidebar()"></app-admin-sidebar>
     <main class="admin-layout-main">
       <router-outlet></router-outlet>
