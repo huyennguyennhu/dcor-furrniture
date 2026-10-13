@@ -33,6 +33,8 @@ export const routes: Routes = [
       { path: 'inventory', loadComponent: () => import('./features/admin/pages/inventory/inventory').then(m => m.InventoryComponent) },
       { path: 'inventory/product/:id', loadComponent: () => import('./features/admin/pages/inventory/inventory-product-detail/inventory-product-detail').then(m => m.InventoryProductDetailComponent) },
       { path: 'inventory/audit', loadComponent: () => import('./features/admin/pages/inventory/inventory-audit/inventory-audit').then(m => m.InventoryAuditComponent) },
+      // Lệnh xuất - nhập kho
+      { path: 'inventory/orders', loadComponent: () => import('./features/admin/pages/inventory/inventory-orders/inventory-orders').then(m => m.InventoryOrdersComponent) },
       { path: 'inventory/history', loadComponent: () => import('./features/admin/pages/inventory/inventory-history/inventory-history').then(m => m.InventoryHistoryComponent) },
       { path: 'promotions', loadComponent: () => import('./features/admin/pages/promotions/promotions').then(m => m.PromotionsComponent) },
       { path: 'appointments', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },

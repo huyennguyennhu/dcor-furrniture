@@ -1,7 +1,9 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChanges, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, X, Plus, Trash2 } from 'lucide-angular';
+import { HttpClient } from '@angular/common/http';
+import { LucideAngularModule, X, Plus, Trash2, Filter, Search } from 'lucide-angular';
+import { environment } from '../../../../../environments/environment';
 
 interface LineItem {
   id: string;
@@ -38,33 +40,91 @@ interface LineItem {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Chi nhánh / Kho <span style="color: #ef4444;">*</span></label>
-              <select class="admin-select" [(ngModel)]="transactionLocation">
-                <option value="">Chọn chi nhánh</option>
-                <option value="Kho Tổng">Kho Tổng (TP.HCM)</option>
-                <option value="Kho HN">Kho Hà Nội</option>
-                <option value="Q1">Showroom Quận 1</option>
-              </select>
+              <div class="location-filter-wrapper" style="position: relative; width: 100%;">
+                <button 
+                  type="button"
+                  (click)="toggleLocationDropdown($event)"
+                  style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                  [style.color]="transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)'"
+                >
+                  <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <lucide-angular [img]="icons.Filter" size="14"></lucide-angular>
+                    {{ getLocationLabel() }}
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                  <div *ngFor="let w of activeWarehouses"
+                    (click)="selectLocation(w.id, $event)"
+                    style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                    [ngStyle]="{'color': transactionLocation === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': transactionLocation === w.id ? 600 : 400}"
+                    onmouseover="this.style.background='var(--bg-secondary)'"
+                    onmouseout="this.style.background='transparent'"
+                  >
+                    {{ w.name }} ({{ w.code }})
+                  </div>
+                </div>
+              </div>
             </div>
 
             <ng-container *ngIf="type === 'export'; else importNote">
-              <div [ngStyle]="{'display': 'grid', 'grid-template-columns': transactionReason === 'Chuyển kho' ? '1fr 1fr' : '1fr', 'gap': '16px'}">
+              <div [ngStyle]="{'display': 'grid', 'grid-template-columns': transactionReason.includes('Chuyển kho') ? '1fr 1fr' : '1fr', 'gap': '16px'}">
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                   <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Lý do xuất <span style="color: #ef4444;">*</span></label>
-                  <select class="admin-select" [(ngModel)]="transactionReason">
-                    <option value="">Chọn lý do</option>
-                    <option value="Chuyển kho">Chuyển kho</option>
-                    <option value="Hư hỏng">Hư hỏng, thất thoát</option>
-                    <option value="Khác">Khác</option>
-                  </select>
+                  <div style="position: relative; width: 100%;">
+                    <button 
+                      type="button"
+                      (click)="toggleReasonDropdown($event)"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [style.color]="transactionReason ? 'var(--text-primary)' : 'var(--text-muted)'"
+                    >
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ transactionReason || 'Chọn lý do' }}
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1050; padding: 4px;">
+                      <div *ngFor="let r of reasonOptions"
+                        (click)="selectReason(r, $event)"
+                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                        [ngStyle]="{'color': transactionReason === r ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': transactionReason === r ? 600 : 400}"
+                        onmouseover="this.style.background='var(--bg-secondary)'"
+                        onmouseout="this.style.background='transparent'"
+                      >
+                        {{ r }}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div *ngIf="transactionReason === 'Chuyển kho'" style="display: flex; flex-direction: column; gap: 8px;">
+
+                <div *ngIf="transactionReason.includes('Chuyển kho')" style="display: flex; flex-direction: column; gap: 8px;">
                   <label style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Chuyển đến <span style="color: #ef4444;">*</span></label>
-                  <select class="admin-select" [(ngModel)]="transactionDestination">
-                    <option value="">Chọn kho nhận</option>
-                    <option value="Kho Tổng" *ngIf="transactionLocation !== 'Kho Tổng'">Kho Tổng (TP.HCM)</option>
-                    <option value="Kho HN" *ngIf="transactionLocation !== 'Kho HN'">Kho Hà Nội</option>
-                    <option value="Q1" *ngIf="transactionLocation !== 'Q1'">Showroom Quận 1</option>
-                  </select>
+                  <div style="position: relative; width: 100%;">
+                    <button 
+                      type="button"
+                      (click)="toggleDestDropdown($event)"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
+                    >
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ getDestLabel() }}
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                      <ng-container *ngFor="let w of activeWarehouses">
+                        <div *ngIf="w.id !== transactionLocation"
+                          (click)="selectDest(w.id, $event)"
+                          style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                          [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': transactionDestination === w.id ? 600 : 400}"
+                          onmouseover="this.style.background='var(--bg-secondary)'"
+                          onmouseout="this.style.background='transparent'"
+                        >
+                          {{ w.name }} ({{ w.code }})
+                        </div>
+                      </ng-container>
+                    </div>
+                  </div>
                 </div>
               </div>
             </ng-container>
@@ -103,25 +163,115 @@ interface LineItem {
               <div *ngFor="let item of lineItems; let i = index" [ngStyle]="{'display': 'grid', 'grid-template-columns': getGridColumns(), 'gap': '12px', 'align-items': 'start'}">
                 
                 <!-- Product -->
-                <div>
-                  <div *ngIf="item.isProductFixed" style="padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ getProductName(item.productId) }}
+                <div style="position: relative;">
+                  <div *ngIf="item.isProductFixed" style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ getProductLabel(item.productId) }}
                   </div>
-                  <select *ngIf="!item.isProductFixed" class="admin-select" [ngModel]="item.productId" (ngModelChange)="updateLineItem(item.id, 'productId', $event)">
-                    <option value="">Chọn SP...</option>
-                    <option *ngFor="let p of products" [value]="p.id">{{ p.name || p.productName }}</option>
-                  </select>
+                  <div *ngIf="!item.isProductFixed" style="position: relative; width: 100%;">
+                    <button 
+                      type="button"
+                      (click)="toggleProductDropdown(item.id, $event)"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [style.color]="item.productId ? 'var(--text-primary)' : 'var(--text-muted)'"
+                    >
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ getProductLabel(item.productId) }}
+                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': openProductDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'flex-shrink': '0'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    
+                    <!-- Product Popup with Search -->
+                    <div *ngIf="openProductDropdownId === item.id" 
+                      style="position: absolute; top: calc(100% + 4px); left: 0; min-width: 320px; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1100; padding: 6px; display: flex; flex-direction: column; gap: 6px;"
+                    >
+                      <!-- Search Input Box -->
+                      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px;" (click)="$event.stopPropagation()">
+                        <lucide-angular [img]="icons.Search" size="14" color="var(--text-muted)"></lucide-angular>
+                        <input 
+                          type="text" 
+                          placeholder="Tìm kiếm theo tên SP hoặc SKU..." 
+                          [(ngModel)]="productSearchTerm" 
+                          (click)="$event.stopPropagation()"
+                          style="width: 100%; border: none; background: transparent; outline: none; font-size: 12px; color: var(--text-primary);" 
+                        />
+                        <button *ngIf="productSearchTerm" (click)="productSearchTerm = ''; $event.stopPropagation()" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--text-muted);">
+                          <lucide-angular [img]="icons.X" size="12"></lucide-angular>
+                        </button>
+                      </div>
+
+                      <!-- Product Options List -->
+                      <div style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;">
+                        <div *ngFor="let p of getFilteredProducts()"
+                          (click)="selectProduct(item, p.id, $event)"
+                          style="padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; flex-direction: column; gap: 2px;"
+                          [ngStyle]="{'background': item.productId === p.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'}"
+                          onmouseover="this.style.background='var(--bg-secondary)'"
+                          onmouseout="this.style.background=item.productId === p.id ? 'var(--bg-secondary)' : 'transparent'"
+                        >
+                          <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ p.name || p.productName }}
+                          </div>
+                          <div style="font-size: 11px; color: var(--text-muted); display: flex; gap: 8px;">
+                            <span>SKU: {{ p.sku || 'N/A' }}</span>
+                            <span *ngIf="p.variants?.length">• {{ p.variants.length }} biến thể</span>
+                          </div>
+                        </div>
+                        <div *ngIf="getFilteredProducts().length === 0" style="padding: 16px; text-align: center; font-size: 12px; color: var(--text-muted);">
+                          Không tìm thấy sản phẩm phù hợp
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Variant -->
-                <div>
-                  <div *ngIf="item.isVariantFixed" style="padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ item.variantId || 'N/A' }}
+                <div style="position: relative;">
+                  <div *ngIf="item.isVariantFixed" style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ getVariantName(item.productId, item.variantId) }}
                   </div>
-                  <select *ngIf="!item.isVariantFixed" class="admin-select" [ngModel]="item.variantId" (ngModelChange)="updateLineItem(item.id, 'variantId', $event)" [disabled]="!item.productId">
-                    <option value="">Chọn biến thể...</option>
-                    <option *ngFor="let v of getVariantsForProduct(item.productId)" [value]="v.name">{{ v.name }}</option>
-                  </select>
+                  <div *ngIf="!item.isVariantFixed" style="position: relative; width: 100%;">
+                    <button 
+                      type="button"
+                      (click)="toggleVariantDropdown(item, $event)"
+                      [disabled]="!item.productId"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left; transition: all 0.2s;"
+                      [ngStyle]="{
+                        'background': !item.productId ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'cursor': !item.productId ? 'not-allowed' : 'pointer',
+                        'opacity': !item.productId ? '0.6' : '1',
+                        'color': item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'
+                      }"
+                    >
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ getVariantDisplay(item) }}
+                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'flex-shrink': '0'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+
+                    <!-- Variant Popup Menu -->
+                    <div *ngIf="openVariantDropdownId === item.id && item.productId"
+                      style="position: absolute; top: calc(100% + 4px); left: 0; min-width: 260px; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1100; padding: 4px; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;"
+                    >
+                      <div *ngFor="let v of getVariantsForProduct(item.productId)"
+                        (click)="selectVariant(item, v.id, $event)"
+                        style="padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px;"
+                        [ngStyle]="{'background': item.variantId === v.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.variantId === v.id ? 'var(--accent)' : 'var(--text-primary)'}"
+                        onmouseover="this.style.background='var(--bg-secondary)'"
+                        onmouseout="this.style.background=item.variantId === v.id ? 'var(--bg-secondary)' : 'transparent'"
+                      >
+                        <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
+                          <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ v.name }}</span>
+                          <span *ngIf="v.sku" style="font-size: 11px; color: var(--text-muted);">{{ v.sku }}</span>
+                        </div>
+                        <span *ngIf="v.price" style="font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap;">
+                          {{ formatPrice(v.price) }}
+                        </span>
+                      </div>
+                      <div *ngIf="getVariantsForProduct(item.productId).length === 0" style="padding: 12px; text-align: center; font-size: 12px; color: var(--text-muted);">
+                        Không có biến thể
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Quantity -->
@@ -182,8 +332,9 @@ interface LineItem {
     </div>
   `
 })
-export class TransactionModalComponent implements OnChanges {
-  icons = { X, Plus, Trash2 };
+export class TransactionModalComponent implements OnInit, OnChanges {
+  icons = { X, Plus, Trash2, Filter, Search };
+  private http = inject(HttpClient);
 
   @Input() isOpen = false;
   @Input() type: 'import' | 'export' = 'import';
@@ -196,15 +347,77 @@ export class TransactionModalComponent implements OnChanges {
   @Output() onClose = new EventEmitter<void>();
   @Output() onSubmit = new EventEmitter<any>();
 
+  warehouses: any[] = [];
+  fetchedProducts: any[] = [];
+  fallbackWarehouses = [
+    { id: 'KHO_TONG_HCM', name: 'Kho Tổng (TP.HCM)', code: 'KHO_TONG_HCM' },
+    { id: 'KHO_HN', name: 'Kho Hà Nội', code: 'KHO_HN' },
+    { id: 'SR_Q1', name: 'Showroom Quận 1', code: 'SR_Q1' },
+    { id: 'SR_THU_DUC', name: 'Showroom Thủ Đức', code: 'SR_THU_DUC' }
+  ];
+
+  get activeWarehouses() {
+    return this.warehouses.length > 0 ? this.warehouses : this.fallbackWarehouses;
+  }
+
+  get availableProducts() {
+    if (this.fetchedProducts.length > 0) return this.fetchedProducts;
+    if (this.products && this.products.length > 0) return this.products;
+    return [];
+  }
+
   transactionLocation = '';
   transactionReason = '';
   transactionDestination = '';
   transactionNote = '';
   lineItems: LineItem[] = [];
 
+  showLocationDropdown = false;
+  showReasonDropdown = false;
+  showDestDropdown = false;
+
+  openProductDropdownId: string | null = null;
+  openVariantDropdownId: string | null = null;
+  productSearchTerm = '';
+
+  reasonOptions = [
+    'Chuyển kho (Luân chuyển)',
+    'Xuất bán lẻ / Dự án',
+    'Hư hỏng, thất thoát',
+    'Trưng bày mẫu',
+    'Khác'
+  ];
+
+  ngOnInit() {
+    this.loadBackendData();
+  }
+
+  loadBackendData() {
+    this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/warehouses`).subscribe({
+      next: (data) => {
+        if (Array.isArray(data)) {
+          this.warehouses = data;
+        }
+      },
+      error: (err) => console.warn('Could not fetch warehouses:', err)
+    });
+
+    this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/products-options`).subscribe({
+      next: (data) => {
+        if (Array.isArray(data)) {
+          this.fetchedProducts = data;
+        }
+      },
+      error: (err) => console.warn('Could not fetch products options:', err)
+    });
+  }
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['isOpen'] && this.isOpen) {
       this.resetState();
+      if (this.warehouses.length === 0 || this.fetchedProducts.length === 0) {
+        this.loadBackendData();
+      }
     }
   }
 
@@ -222,6 +435,145 @@ export class TransactionModalComponent implements OnChanges {
     this.transactionReason = '';
     this.transactionDestination = '';
     this.transactionNote = '';
+    this.showLocationDropdown = false;
+    this.showReasonDropdown = false;
+    this.showDestDropdown = false;
+    this.openProductDropdownId = null;
+    this.openVariantDropdownId = null;
+    this.productSearchTerm = '';
+  }
+
+  getLocationLabel(): string {
+    if (!this.transactionLocation) return 'Chọn chi nhánh';
+    const w = this.activeWarehouses.find((x: any) => x.id === this.transactionLocation);
+    return w ? `${w.name} (${w.code})` : this.transactionLocation;
+  }
+
+  getDestLabel(): string {
+    if (!this.transactionDestination) return 'Chọn kho nhận';
+    const w = this.activeWarehouses.find((x: any) => x.id === this.transactionDestination);
+    return w ? `${w.name} (${w.code})` : this.transactionDestination;
+  }
+
+  toggleLocationDropdown(event: Event) {
+    event.stopPropagation();
+    this.showLocationDropdown = !this.showLocationDropdown;
+    this.showReasonDropdown = false;
+    this.showDestDropdown = false;
+    this.openProductDropdownId = null;
+    this.openVariantDropdownId = null;
+  }
+
+  selectLocation(id: string, event: Event) {
+    event.stopPropagation();
+    this.transactionLocation = id;
+    this.showLocationDropdown = false;
+    if (this.transactionDestination === id) {
+      this.transactionDestination = '';
+    }
+  }
+
+  toggleReasonDropdown(event: Event) {
+    event.stopPropagation();
+    this.showReasonDropdown = !this.showReasonDropdown;
+    this.showLocationDropdown = false;
+    this.showDestDropdown = false;
+    this.openProductDropdownId = null;
+    this.openVariantDropdownId = null;
+  }
+
+  selectReason(reason: string, event: Event) {
+    event.stopPropagation();
+    this.transactionReason = reason;
+    this.showReasonDropdown = false;
+    if (!reason.includes('Chuyển kho')) {
+      this.transactionDestination = '';
+    }
+  }
+
+  toggleDestDropdown(event: Event) {
+    event.stopPropagation();
+    this.showDestDropdown = !this.showDestDropdown;
+    this.showLocationDropdown = false;
+    this.showReasonDropdown = false;
+    this.openProductDropdownId = null;
+    this.openVariantDropdownId = null;
+  }
+
+  selectDest(id: string, event: Event) {
+    event.stopPropagation();
+    this.transactionDestination = id;
+    this.showDestDropdown = false;
+  }
+
+  getProductLabel(productId: string): string {
+    if (!productId) return 'Chọn sản phẩm...';
+    const p = this.availableProducts.find((x: any) => x.id === productId);
+    return p ? (p.name || p.productName) : 'N/A';
+  }
+
+  getVariantDisplay(item: LineItem): string {
+    if (!item.productId) return 'Chọn biến thể...';
+    if (!item.variantId) return 'Chọn biến thể...';
+    const vars = this.getVariantsForProduct(item.productId);
+    const v = vars.find((x: any) => x.id === item.variantId);
+    return v ? `${v.name} ${v.price ? '(' + this.formatPrice(v.price) + ')' : ''}` : item.variantId;
+  }
+
+  getFilteredProducts(): any[] {
+    if (!this.productSearchTerm.trim()) {
+      return this.availableProducts;
+    }
+    const term = this.productSearchTerm.toLowerCase();
+    return this.availableProducts.filter((p: any) => 
+      (p.name && p.name.toLowerCase().includes(term)) ||
+      (p.productName && p.productName.toLowerCase().includes(term)) ||
+      (p.sku && p.sku.toLowerCase().includes(term))
+    );
+  }
+
+  toggleProductDropdown(itemId: string, event: Event) {
+    event.stopPropagation();
+    if (this.openProductDropdownId === itemId) {
+      this.openProductDropdownId = null;
+    } else {
+      this.closeAllDropdowns();
+      this.openProductDropdownId = itemId;
+      this.productSearchTerm = '';
+    }
+  }
+
+  selectProduct(item: LineItem, productId: string, event: Event) {
+    event.stopPropagation();
+    this.updateLineItem(item.id, 'productId', productId);
+    this.openProductDropdownId = null;
+    this.productSearchTerm = '';
+  }
+
+  toggleVariantDropdown(item: LineItem, event: Event) {
+    event.stopPropagation();
+    if (!item.productId) return;
+    if (this.openVariantDropdownId === item.id) {
+      this.openVariantDropdownId = null;
+    } else {
+      this.closeAllDropdowns();
+      this.openVariantDropdownId = item.id;
+    }
+  }
+
+  selectVariant(item: LineItem, variantId: string, event: Event) {
+    event.stopPropagation();
+    this.updateLineItem(item.id, 'variantId', variantId);
+    this.openVariantDropdownId = null;
+  }
+
+  @HostListener('document:click')
+  closeAllDropdowns() {
+    this.showLocationDropdown = false;
+    this.showReasonDropdown = false;
+    this.showDestDropdown = false;
+    this.openProductDropdownId = null;
+    this.openVariantDropdownId = null;
   }
 
   getGridColumns() {
@@ -229,18 +581,34 @@ export class TransactionModalComponent implements OnChanges {
   }
 
   getProductName(id: string) {
-    const p = this.products.find(x => x.id === id);
+    const p = this.availableProducts.find((x: any) => x.id === id);
     return p ? (p.name || p.productName) : 'N/A';
+  }
+
+  getVariantName(productId: string, variantId: string) {
+    const vars = this.getVariantsForProduct(productId);
+    const v = vars.find((x: any) => x.id === variantId);
+    return v ? v.name : (variantId || 'N/A');
   }
 
   getVariantsForProduct(productId: string) {
     if (!productId) return [];
+    const p = this.availableProducts.find((x: any) => x.id === productId);
+    if (p && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+      return p.variants.map((v: any) => ({
+        id: v.id,
+        name: v.name || v.color || v.material || 'Bản tiêu chuẩn',
+        sku: v.sku || '',
+        price: v.price || 0
+      }));
+    }
     return [
-      { id: 'v1', name: 'Màu Trắng, Gỗ sồi' },
-      { id: 'v2', name: 'Màu Đen, Khung thép' },
-      { id: 'v3', name: 'Màu Xám, Bọc da' },
-      { id: 'v4', name: 'Màu Xanh, Khung thép' },
+      { id: 'v_default', name: 'Tiêu chuẩn', sku: p?.sku || 'SKU-STD', price: p?.price || 0 }
     ];
+  }
+
+  formatPrice(price: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   }
 
   handleAddLineItem() {
@@ -257,16 +625,32 @@ export class TransactionModalComponent implements OnChanges {
 
   handleRemoveLineItem(id: string) {
     if (this.lineItems.length === 1) return;
-    this.lineItems = this.lineItems.filter(item => item.id !== id);
+    this.lineItems = this.lineItems.filter((item: any) => item.id !== id);
   }
 
   updateLineItem(id: string, field: keyof LineItem, value: any) {
-    const item = this.lineItems.find(x => x.id === id);
+    const item = this.lineItems.find((x: any) => x.id === id);
     if (!item) return;
 
     if (field === 'productId') {
       item.productId = value;
-      item.variantId = '';
+      const variants = this.getVariantsForProduct(value);
+      if (variants.length === 1) {
+        item.variantId = variants[0].id;
+        if (variants[0].price) {
+          item.price = new Intl.NumberFormat('vi-VN').format(variants[0].price);
+        }
+      } else {
+        item.variantId = '';
+        item.price = '';
+      }
+    } else if (field === 'variantId') {
+      item.variantId = value;
+      const variants = this.getVariantsForProduct(item.productId);
+      const v = variants.find((x: any) => x.id === value);
+      if (v && v.price) {
+        item.price = new Intl.NumberFormat('vi-VN').format(v.price);
+      }
     } else if (field === 'price') {
       let rawValue = value.replace(/[^0-9]/g, '');
       const num = parseInt(rawValue, 10);
@@ -279,30 +663,43 @@ export class TransactionModalComponent implements OnChanges {
   }
 
   canAddNewLine() {
-    return this.lineItems.every(item => item.productId && item.variantId);
+    return this.lineItems.every((item: any) => item.productId && item.variantId);
   }
 
   handleSubmit() {
     if (!this.transactionLocation) return window.alert('Vui lòng chọn chi nhánh/kho');
     if (this.type === 'export' && !this.transactionReason) return window.alert('Vui lòng chọn lý do xuất');
     
-    const invalidItems = this.lineItems.filter(item => !item.productId || !item.variantId || !item.quantity);
+    const invalidItems = this.lineItems.filter((item: any) => !item.productId || !item.variantId || !item.quantity);
     if (invalidItems.length > 0) {
       return window.alert('Vui lòng điền đầy đủ thông tin Sản phẩm, Biến thể và Số lượng cho tất cả các dòng.');
     }
 
+    const sourceWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionLocation);
+    const destWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionDestination);
+
     const data = {
       type: this.type,
-      location: this.transactionLocation,
+      location: sourceWarehouse ? sourceWarehouse.name : this.transactionLocation,
+      sourceWarehouseId: sourceWarehouse ? sourceWarehouse.id : null,
       reason: this.transactionReason,
-      destination: this.transactionDestination,
+      destination: destWarehouse ? destWarehouse.name : (this.transactionDestination || 'Khách hàng / Đối tác'),
+      destWarehouseId: destWarehouse ? destWarehouse.id : null,
       note: this.transactionNote,
-      items: this.lineItems.map(item => ({
-        productId: item.productId,
-        variantId: item.variantId,
-        quantity: item.quantity,
-        price: item.price,
-      }))
+      items: this.lineItems.map((item: any) => {
+        const prod = this.availableProducts.find((p: any) => p.id === item.productId);
+        const variants = this.getVariantsForProduct(item.productId);
+        const variant = variants.find((v: any) => v.id === item.variantId);
+        return {
+          productId: item.productId,
+          productName: prod ? (prod.name || prod.productName) : 'Sản phẩm',
+          variantId: item.variantId,
+          variantName: variant ? variant.name : 'Tiêu chuẩn',
+          sku: variant?.sku || prod?.sku || 'SKU-AUTO',
+          quantity: item.quantity,
+          price: item.price,
+        };
+      })
     };
     
     this.onSubmit.emit(data);

@@ -87,8 +87,12 @@ model StaffUser {
   updatedAt       DateTime   @updatedAt
   deletedAt       DateTime?  // Nghỉ việc
 
-  statusChanges   OrderStatusHistory[]
-  sessions        UserSession[]
+  statusChanges        OrderStatusHistory[]
+  sessions             UserSession[]
+  stockOrdersCreated   StockOrder[]
+  stockAuditsCreated   StockAudit[]         @relation("AuditCreator")
+  stockAuditsAudited   StockAudit[]         @relation("AuditAuditor")
+  stockTransactions    StockTransaction[]
 }
 
 model UserSession {
@@ -228,8 +232,12 @@ model ProductVariant {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  cartItems     CartItem[]
-  orderItems    OrderItem[]
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  warehouseStocks   WarehouseStock[]
+  stockOrderItems   StockOrderItem[]
+  stockAuditItems   StockAuditItem[]
+  stockTransactions StockTransaction[]
 
   @@index([productId, isActive])
 }
@@ -337,10 +345,10 @@ model Order {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  // Chặn xóa Order nếu có OrderItem hoặc Payment (Restrict)
-  items            OrderItem[]
-  statusHistory    OrderStatusHistory[]
-  payments         PaymentTransaction[]
+  items             OrderItem[]
+  statusHistory     OrderStatusHistory[]
+  payments          PaymentTransaction[]
+  stockTransactions StockTransaction[]
 
   @@index([customerId])
   @@index([status, createdAt]) // Tối ưu cho Admin sort
@@ -431,3 +439,232 @@ model PaymentTransaction {
   @@index([gatewayRef])
   @@index([status, createdAt])
 }
+
+// ============================================================================
+// 7. QUẢN LÝ TỒN KHO (INVENTORY & WAREHOUSING)
+// ============================================================================
+
+enum WarehouseType {
+  CENTRAL_WAREHOUSE   // Kho tổng
+  REGIONAL_WAREHOUSE  // Kho khu vực
+  SHOWROOM            // Showroom trưng bày
+}
+
+model Warehouse {
+  id           String        @id @default(uuid())
+  code         String        @unique // e.g. KHO_TONG_HCM, KHO_HN, SR_Q1, SR_THU_DUC
+  name         String        // Kho Tổng (TP.HCM)
+  type         WarehouseType @default(CENTRAL_WAREHOUSE)
+  address      String
+  phone        String?
+  managerName  String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  stocks       WarehouseStock[]
+  sourceOrders StockOrder[]       @relation("SourceWarehouse")
+  destOrders   StockOrder[]       @relation("DestWarehouse")
+  audits       StockAudit[]
+  transactions StockTransaction[]
+}
+
+model WarehouseStock {
+  id              String         @id @default(uuid())
+  warehouseId     String
+  warehouse       Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  
+  variantId       String
+  variant         ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  
+  physicalStock   Int            @default(0) // Tồn vật lý
+  reservedStock   Int            @default(0) // Tạm giữ cho đơn hàng
+  safetyThreshold Int            @default(5) // Ngưỡng an toàn
+  shelfLocation   String?        // Ví dụ: Kệ A-01-02
+  
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([warehouseId, variantId])
+  @@index([warehouseId])
+  @@index([variantId])
+}
+
+enum StockOrderType {
+  IMPORT      // Nhập kho
+  EXPORT      // Xuất kho
+  TRANSFER    // Chuyển kho nội bộ
+}
+
+enum StockOrderStatus {
+  PENDING     // Chờ duyệt / Chưa thực tế xuất-nhập
+  PROCESSING  // Đang xuất/nhập/vận chuyển
+  COMPLETED   // Đã hoàn tất thực xuất/nhập
+  CANCELLED   // Đã hủy lệnh
+}
+
+model StockOrder {
+  id                  String           @id @default(uuid())
+  orderCode           String           @unique // NK-2410-001, XK-2410-002, CK-2410-003
+  type                StockOrderType
+  status              StockOrderStatus @default(PENDING)
+  
+  sourceLocation      String           // Tên địa điểm nguồn (kho xuất hoặc tên NCC)
+  destinationLocation String           // Tên địa điểm đích (kho nhận hoặc tên khách hàng/công trình)
+  
+  sourceWarehouseId   String?
+  sourceWarehouse     Warehouse?       @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id], onDelete: SetNull)
+  
+  destWarehouseId     String?
+  destWarehouse       Warehouse?       @relation("DestWarehouse", fields: [destWarehouseId], references: [id], onDelete: SetNull)
+  
+  referenceCode       String?          // Mã chứng từ (PO-..., ORD-...)
+  reason              String           // Lý do xuất/nhập
+  notes               String?          @db.Text
+  
+  creatorId           String?
+  creator             StaffUser?       @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  
+  totalQuantity       Int              @default(0)
+  totalAmount         BigInt           @default(0) // VND
+  
+  completedAt         DateTime?        // Thời điểm hoàn tất thực xuất/nhập
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  items               StockOrderItem[]
+  transactions        StockTransaction[]
+
+  @@index([type, status])
+  @@index([orderCode])
+  @@index([createdAt])
+}
+
+model StockOrderItem {
+  id           String         @id @default(uuid())
+  stockOrderId String
+  stockOrder   StockOrder     @relation(fields: [stockOrderId], references: [id], onDelete: Cascade)
+  
+  variantId    String
+  variant      ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  
+  quantity     Int            // Số lượng yêu cầu trong lệnh
+  unitPrice    Int            @default(0) // Đơn giá
+  lineTotal    BigInt         @default(0)
+  
+  actualQty    Int?           // Số lượng thực giao nhận
+  notes        String?
+  
+  createdAt    DateTime       @default(now())
+
+  @@index([stockOrderId])
+  @@index([variantId])
+}
+
+enum AuditStatus {
+  PENDING     // Đơn yêu cầu kiểm kê vừa tạo, CHƯA thực hiện kiểm kê
+  IN_PROGRESS // Đang kiểm đếm thực tế tại kho
+  COMPLETED   // Đã đối chiếu và cân bằng tồn kho
+  CANCELLED   // Đã hủy đợt kiểm
+}
+
+model StockAudit {
+  id               String           @id @default(uuid())
+  auditCode        String           @unique // ADT-2410-001
+  location         String           // Chi nhánh/Kho kiểm kê
+  warehouseId      String?
+  warehouse        Warehouse?       @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  
+  status           AuditStatus      @default(PENDING) // Mặc định CHƯA thực hiện
+  targetDate       DateTime?        // Ngày dự kiến kiểm kê
+  completedAt      DateTime?        // Ngày giờ hoàn tất cân bằng
+  
+  creatorId        String?
+  creator          StaffUser?       @relation("AuditCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  
+  auditorId        String?
+  auditor          StaffUser?       @relation("AuditAuditor", fields: [auditorId], references: [id], onDelete: SetNull)
+  
+  scope            String           @default("ALL") // "ALL", "CATEGORY", "CUSTOM"
+  notes            String?          @db.Text
+  
+  totalItemsCount  Int              @default(0) // Số SKU kiểm
+  discrepancyCount Int              @default(0) // Số SKU lệch
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  items            StockAuditItem[]
+  transactions     StockTransaction[]
+
+  @@index([status, location])
+  @@index([auditCode])
+}
+
+model StockAuditItem {
+  id          String         @id @default(uuid())
+  auditId     String
+  audit       StockAudit     @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  
+  systemStock Int            // Tồn hệ thống ghi nhận lúc tạo phiếu
+  actualStock Int?           // Số đếm thực tế (null khi PENDING)
+  discrepancy Int?           // actualStock - systemStock
+  reason      String?        // Lý do sai lệch
+  
+  createdAt   DateTime       @default(now())
+
+  @@index([auditId])
+  @@index([variantId])
+}
+
+enum StockTransactionType {
+  IMPORT_RECEIPT      // Nhập hàng theo lệnh
+  SALES_DISPATCH      // Xuất bán đơn hàng
+  TRANSFER_OUT        // Chuyển kho đi
+  TRANSFER_IN         // Chuyển kho đến
+  AUDIT_INCREASE      // Cân bằng kiểm kê tăng
+  AUDIT_DECREASE      // Cân bằng kiểm kê giảm
+  RETURN_RECEIPT      // Nhập hàng khách trả lại
+  DISPOSAL_DISPATCH   // Xuất hủy hư hỏng
+}
+
+model StockTransaction {
+  id             String               @id @default(uuid())
+  txCode         String               @unique // TX-2410-001
+  type           StockTransactionType
+  
+  variantId      String
+  variant        ProductVariant       @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  
+  location       String               // Kho phát sinh giao dịch
+  warehouseId    String?
+  warehouse      Warehouse?           @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  
+  stockBefore    Int                  // Tồn trước biến động
+  quantityChange Int                  // Số lượng thay đổi (+15 hoặc -2)
+  stockAfter     Int                  // Tồn sau biến động
+  
+  referenceCode  String               // Mã đơn hàng, mã lệnh kho, mã kiểm kê
+  stockOrderId   String?
+  stockOrder     StockOrder?          @relation(fields: [stockOrderId], references: [id], onDelete: SetNull)
+  
+  stockAuditId   String?
+  stockAudit     StockAudit?          @relation(fields: [stockAuditId], references: [id], onDelete: SetNull)
+  
+  orderId        String?
+  order          Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  
+  actorId        String?
+  actor          StaffUser?           @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  
+  notes          String?
+  createdAt      DateTime             @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([type])
+  @@index([referenceCode])
+  @@index([location])
+}
+
