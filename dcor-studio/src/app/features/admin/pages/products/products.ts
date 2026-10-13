@@ -75,7 +75,12 @@ export class ProductsComponent implements OnInit {
   fetchProducts() {
     this.isLoading = true;
     fetch(`${environment.apiUrl}/products`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Products API returned HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         const mapped: Product[] = data.map((p: any) => ({
           id: p.id,
@@ -95,12 +100,7 @@ export class ProductsComponent implements OnInit {
       })
       .catch(err => {
         console.error('Failed to fetch products', err);
-        // Fallback mockup data if api is not ready
-        this.products = [
-          { id: '1', sku: 'SKU-01', name: 'Sofa Indivi', category: 'Nội thất', variants: 3, price: 12000000, stock: 15, status: 'Đang bán', image: '' },
-          { id: '2', sku: 'SKU-02', name: 'Đèn bàn', category: 'Đèn', variants: 1, price: 500000, stock: 4, status: 'Sắp hết', image: '' },
-          { id: '3', sku: 'SKU-03', name: 'Ghế xoay', category: 'Nội thất', variants: 5, price: 2500000, stock: 0, status: 'Hết hàng', image: '' }
-        ];
+        this.products = [];
         this.applyFilters();
         this.isLoading = false;
         this.cdr.detectChanges();

@@ -1,6 +1,6 @@
 # Hướng Dẫn Chạy Dự Án DCor Studio (Angular)
 
-Dự án này là phiên bản Frontend sử dụng **Angular 19**. Dưới đây là các bước cơ bản để khởi động và xử lý lỗi thường gặp (như kẹt cổng).
+Dự án này là phiên bản Frontend sử dụng **Angular 21**. Dưới đây là các bước cơ bản để khởi động và xử lý lỗi thường gặp (như kẹt cổng).
 
 ## 1. Mở Dự Án Lên Trình Duyệt
 
@@ -62,28 +62,173 @@ Khi đó, truy cập bằng đường link: `http://localhost:4201`.
 
 ## 4. Cấu Trúc Cây Thư Mục Dự Án (Project Structure)
 
-Dự án được tổ chức theo kiến trúc **Feature-based** (dựa trên tính năng), giúp mã nguồn gọn gàng và dễ bảo trì. Dưới đây là ý nghĩa của các file và thư mục quan trọng:
+Frontend được tổ chức theo kiến trúc **Feature-based**: mỗi khu vực nghiệp vụ nằm trong `features`, phần dùng chung ở `shared`, còn dịch vụ và xử lý xác thực dùng chung nằm trong `core`.
 
 ```text
 dcor-studio/
 ├── src/
 │   ├── app/
-│   │   ├── features/          # Chứa các trang & tính năng chính của ứng dụng
-│   │   │   ├── admin/         # Giao diện quản trị viên (Dashboard, Products, Orders...)
-│   │   │   ├── auth/          # Giao diện xác thực (Đăng nhập, Đăng ký...)
-│   │   │   ├── account/       # Giao diện tài khoản người dùng (Hồ sơ, Lịch sử mua hàng...)
-│   │   │   └── store/         # Giao diện cửa hàng (Trang chủ, Chi tiết sản phẩm, Giỏ hàng...)
-│   │   ├── shared/            # Chứa các thành phần dùng chung ở nhiều nơi
-│   │   │   ├── components/    # UI Components tái sử dụng (Bảng, Modal, Slider...)
-│   │   │   └── models/        # Định nghĩa kiểu dữ liệu TypeScript (Interfaces, Types)
-│   │   ├── core/              # Chứa các service cốt lõi (Nếu có - vd: API service, Config...)
-│   │   └── app.routes.ts      # File cấu hình Routing (điều hướng URL) cho toàn bộ ứng dụng
-│   ├── assets/                # Chứa tài nguyên tĩnh (hình ảnh, fonts, icons...)
-│   ├── dcor-styles.css        # File cấu hình CSS toàn cục (đã tích hợp Tailwind v4)
-│   ├── index.html             # File HTML gốc (entry HTML)
-│   └── main.ts                # File khởi chạy ứng dụng Angular
-├── public/                    # Chứa các tệp public như favicon, logo
-├── angular.json               # Cấu hình chính của Angular Workspace
-├── package.json               # Danh sách thư viện và các script (npm start, build...)
-└── tsconfig.json              # Cấu hình TypeScript cho dự án
+│   │   ├── app.config.ts                 # Cấu hình providers của ứng dụng
+│   │   ├── app.routes.ts                 # Routing cấp ứng dụng
+│   │   ├── app.ts / app.html / app.css   # Component gốc
+│   │   ├── app.spec.ts                   # Test component gốc
+│   │   ├── core/
+│   │   │   ├── guards/
+│   │   │   │   ├── admin.guard.ts        # Bảo vệ các route quản trị
+│   │   │   │   └── admin.guard.spec.ts
+│   │   │   ├── interceptors/
+│   │   │   │   ├── auth-interceptor.ts
+│   │   │   │   ├── auth-interceptor.spec.ts
+│   │   │   │   └── auth.interceptor.ts   # Interceptor xác thực
+│   │   │   └── services/
+│   │   │       ├── auth.service.ts       # Đăng nhập và trạng thái xác thực
+│   │   │       ├── auth.service.spec.ts
+│   │   │       ├── cart.service.ts       # Trạng thái và thao tác giỏ hàng
+│   │   │       ├── cart.service.spec.ts
+│   │   │       ├── custom-order.ts       # Dữ liệu/logic đơn hàng thiết kế riêng
+│   │   │       ├── product.service.ts    # Truy xuất dữ liệu sản phẩm
+│   │   │       └── product.service.spec.ts
+│   │   ├── features/
+│   │   │   ├── account/
+│   │   │   │   ├── account-module.ts
+│   │   │   │   ├── account-routing-module.ts
+│   │   │   │   └── pages/
+│   │   │   │       ├── custom-requests/  # Yêu cầu thiết kế riêng
+│   │   │   │       ├── my-orders/        # Đơn hàng của khách hàng
+│   │   │   │       ├── profile/          # Hồ sơ cá nhân
+│   │   │   │       └── wishlist/         # Sản phẩm yêu thích
+│   │   │   ├── admin/
+│   │   │   │   ├── admin-module.ts
+│   │   │   │   ├── admin-routing-module.ts
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── admin-header/
+│   │   │   │   │   ├── admin-layout/
+│   │   │   │   │   ├── admin-page-tabs/
+│   │   │   │   │   ├── admin-sidebar/
+│   │   │   │   │   └── transaction-modal/
+│   │   │   │   └── pages/
+│   │   │   │       ├── admin-landing/    # Trang bắt đầu khu vực admin
+│   │   │   │       ├── appointments/     # Lịch hẹn
+│   │   │   │       │   ├── appointment-requests/ # Yêu cầu tư vấn
+│   │   │   │       │   └── appointment-schedule/ # Lịch tư vấn
+│   │   │   │       ├── chat/             # Chat/hỗ trợ khách hàng
+│   │   │   │       ├── content/          # Quản lý nội dung
+│   │   │   │       ├── custom-requests/  # Yêu cầu thiết kế riêng
+│   │   │   │       ├── customers/
+│   │   │   │       │   └── customer-detail/
+│   │   │   │       ├── dashboard/
+│   │   │   │       ├── designs/          # Thiết kế
+│   │   │   │       │   ├── design-posts/  # Bài viết cộng đồng
+│   │   │   │       │   └── design-settings/ # Cấu hình cộng đồng thiết kế
+│   │   │   │       ├── inventory/
+│   │   │   │       │   ├── inventory-audit/
+│   │   │   │       │   ├── inventory-history/
+│   │   │   │       │   ├── inventory-product-detail/
+│   │   │   │       │   └── inventory-transactions/ # Lệnh xuất-nhập kho
+│   │   │   │       ├── orders/
+│   │   │   │       │   ├── order-detail/
+│   │   │   │       │   ├── orders-returns/
+│   │   │   │       │   └── orders-warranty/
+│   │   │   │       ├── product-categories/
+│   │   │   │       ├── products/
+│   │   │   │       │   └── product-form/
+│   │   │   │       ├── promotions/
+│   │   │   │       │   ├── campaigns/       # Chiến dịch khuyến mãi
+│   │   │   │       │   └── vouchers/        # Mã giảm giá
+│   │   │   │       ├── reports/
+│   │   │   │       │   ├── customers-report/
+│   │   │   │       │   ├── orders/
+│   │   │   │       │   ├── products-report/
+│   │   │   │       │   └── revenue/
+│   │   │   │       ├── settings/
+│   │   │   │       └── staff/
+│   │   │   │           ├── staff-accounts/ # Tài khoản nhân sự
+│   │   │   │           └── staff-permissions/ # Ma trận phân quyền
+│   │   │   ├── auth/
+│   │   │   │   ├── auth-module.ts
+│   │   │   │   ├── auth-routing-module.ts
+│   │   │   │   └── pages/
+│   │   │   │       ├── admin-invite-accept/ # Chấp nhận lời mời admin
+│   │   │   │       ├── admin-login/         # Đăng nhập quản trị
+│   │   │   │       ├── admin-logout/        # Đăng xuất quản trị
+│   │   │   │       ├── login/               # Đăng nhập khách hàng
+│   │   │   │       └── register/            # Đăng ký tài khoản
+│   │   │   └── store/
+│   │   │   │   ├── store-module.ts
+│   │   │   │   ├── store-routing-module.ts
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── footer/
+│   │   │   │   │   ├── header/
+│   │   │   │   │   └── store-layout/
+│   │   │   │   └── pages/
+│   │   │   │       ├── blog/
+│   │   │   │       ├── cart/
+│   │   │   │       ├── checkout/
+│   │   │   │       ├── custom-design/   # Gửi yêu cầu thiết kế riêng
+│   │   │   │       ├── explore/         # Khám phá/danh mục sản phẩm
+│   │   │   │       ├── home/
+│   │   │   │       └── product-detail/
+│   │   └── shared/
+│   │       ├── shared-module.ts
+│   │       ├── components/               # Component UI tái sử dụng
+│   │       │   ├── cart-drawer/
+│   │       │   ├── catalog-section/
+│   │       │   ├── contract-modal/
+│   │       │   ├── custom-select/
+│   │       │   ├── data-table/
+│   │       │   ├── hover-image-slider/
+│   │       │   ├── icon/
+│   │       │   ├── modal/
+│   │       │   ├── otp-modal/
+│   │       │   ├── quick-view-drawer/
+│   │       │   ├── sidebar-filter/
+│   │       │   ├── stat-card/
+│   │       │   └── variant-edit-modal/
+│   │       └── models/
+│   │           ├── catalog.model.ts       # Kiểu dữ liệu danh mục/sản phẩm
+│   │           └── prisma.model.ts        # Kiểu dữ liệu tương ứng Prisma
+│   ├── environments/
+│   │   ├── environment.ts                 # Cấu hình môi trường phát triển
+│   │   └── environment.production.ts      # Cấu hình môi trường production
+│   ├── dcor-styles.css                    # Theme và cấu hình Tailwind CSS v4
+│   ├── styles.css                         # CSS toàn cục
+│   ├── index.html                         # HTML entry point
+│   └── main.ts                            # Khởi chạy ứng dụng Angular
+├── public/
+│   ├── favicon.ico
+│   └── assets/
+│       ├── favicon.png
+│       ├── dcor-poppins-viet-hoa/
+│       │   └── dcor-fonts/
+│       │       ├── dcor-fonts.css
+│       │       ├── README.txt
+│       │       └── poppins-vi-{400,500,600,700}.woff2
+│       └── room_img/
+│           ├── phong_an.png
+│           ├── phong_khach.png
+│           └── phong_ngu.png
+├── assets/
+│   ├── DCor UI Style Guide.html           # Tài liệu giao diện
+│   └── DCor UI Style Guide.md
+├── angular.json                           # Cấu hình Angular workspace/build
+├── package.json                           # Dependencies và scripts npm
+├── package-lock.json                      # Khóa phiên bản dependencies
+├── tsconfig.json                          # Cấu hình TypeScript chung
+├── tsconfig.app.json                      # Cấu hình TypeScript cho ứng dụng
+├── tsconfig.spec.json                     # Cấu hình TypeScript cho tests
+├── .editorconfig
+├── .gitignore
+└── .prettierrc                             # Cấu hình định dạng code
 ```
+
+> Trong từng thư mục màn hình/component, các file `.ts`, `.html`, `.css` và `.spec.ts` được tạo tùy theo phần đã triển khai; không phải thư mục nào cũng có đủ cả bốn loại file. Các file `*.spec.ts` là unit tests.
+
+### Vai trò các khu vực chính
+
+- `app/core`: guard, interceptor và service dùng chung xuyên suốt ứng dụng.
+- `app/features`: nhóm màn hình theo nghiệp vụ; mỗi feature có module/routing riêng.
+- `app/shared`: component và model có thể dùng lại giữa nhiều feature.
+- `environments`: cấu hình theo môi trường chạy.
+- `public/assets`: tài nguyên tĩnh được truy cập trực tiếp, như font, ảnh phòng và favicon.
+- `assets`: tài liệu hướng dẫn UI của dự án; đây không phải thư mục `src/assets`.
+- `dcor-styles.css` và `styles.css`: lần lượt là cấu hình/theme Tailwind và stylesheet toàn cục.

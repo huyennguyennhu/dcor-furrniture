@@ -66,6 +66,35 @@ export const cartController = {
         return;
       }
 
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        res.status(400).json({ message: 'Số lượng phải là số nguyên lớn hơn 0.' });
+        return;
+      }
+
+      const variant = await prisma.productVariant.findUnique({
+        where: { id: variantId },
+        select: { isActive: true, stock: true, reservedStock: true }
+      });
+      if (!variant || !variant.isActive) {
+        res.status(404).json({ message: 'Không tìm thấy biến thể sản phẩm.' });
+        return;
+      }
+
+      const existingItem = await prisma.cartItem.findUnique({
+        where: {
+          customerId_variantId: {
+            customerId,
+            variantId
+          }
+        },
+        select: { quantity: true }
+      });
+      const availableStock = variant.stock - variant.reservedStock;
+      if (quantity + (existingItem?.quantity || 0) > availableStock) {
+        res.status(409).json({ message: 'Số lượng sản phẩm vượt quá tồn kho hiện có.' });
+        return;
+      }
+
       // Kiểm tra xem đã có trong giỏ hàng chưa (cùng variantId)
       // Prisma có @@unique([customerId, variantId]) nên ta dùng upsert
       const cartItem = await prisma.cartItem.upsert({

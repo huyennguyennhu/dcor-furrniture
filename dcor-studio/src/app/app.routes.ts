@@ -36,12 +36,23 @@ export const routes: Routes = [
       // Lệnh xuất - nhập kho
       { path: 'inventory/orders', loadComponent: () => import('./features/admin/pages/inventory/inventory-orders/inventory-orders').then(m => m.InventoryOrdersComponent) },
       { path: 'inventory/history', loadComponent: () => import('./features/admin/pages/inventory/inventory-history/inventory-history').then(m => m.InventoryHistoryComponent) },
+      { path: 'inventory/transactions', loadComponent: () => import('./features/admin/pages/inventory/inventory-transactions/inventory-transactions').then(m => m.InventoryTransactionsComponent) },
       { path: 'promotions', loadComponent: () => import('./features/admin/pages/promotions/promotions').then(m => m.PromotionsComponent) },
+      { path: 'vouchers', loadComponent: () => import('./features/admin/pages/promotions/vouchers/vouchers').then(m => m.VouchersComponent) },
+      { path: 'campaigns', loadComponent: () => import('./features/admin/pages/promotions/campaigns/campaigns').then(m => m.CampaignsComponent) },
       { path: 'appointments', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
+      { path: 'appointments/schedule', loadComponent: () => import('./features/admin/pages/appointments/appointment-schedule/appointment-schedule').then(m => m.AppointmentScheduleComponent) },
+      { path: 'appointments/requests', loadComponent: () => import('./features/admin/pages/appointments/appointment-requests/appointment-requests').then(m => m.AppointmentRequestsComponent) },
       { path: 'content', loadComponent: () => import('./features/admin/pages/content/content').then(m => m.ContentComponent) },
       { path: 'chat', loadComponent: () => import('./features/admin/pages/chat/chat').then(m => m.ChatComponent) },
       { path: 'designs', loadComponent: () => import('./features/admin/pages/designs/designs').then(m => m.DesignsComponent) },
+      { path: 'designs/settings', loadComponent: () => import('./features/admin/pages/designs/design-settings/design-settings').then(m => m.DesignSettingsComponent) },
+      { path: 'designs/posts', loadComponent: () => import('./features/admin/pages/designs/design-posts/design-posts').then(m => m.DesignPostsComponent) },
+      { path: 'staff', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
+      { path: 'staff/accounts', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
+      { path: 'staff/permissions', loadComponent: () => import('./features/admin/pages/staff/staff-permissions/staff-permissions').then(m => m.StaffPermissionsComponent) },
       { path: 'settings', loadComponent: () => import('./features/admin/pages/settings/settings').then(m => m.SettingsComponent) },
+      { path: '**', redirectTo: 'dashboard' },
     ]
   },
   
@@ -83,4 +94,3 @@ export const routes: Routes = [
   // Fallback
   { path: '**', redirectTo: '' }
 ];
-

@@ -1,23 +1,32 @@
+import { IconComponent } from '../icon/icon';
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { finalize, TimeoutError, timeout } from 'rxjs';
 import { CatalogProduct } from '../../models/catalog.model';
 import { CustomSelect } from '../custom-select/custom-select';
 import { LucideAngularModule, X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink } from 'lucide-angular';
+import { CartService } from '../../../core/services/cart.service';
 
 import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-quick-view-drawer',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule, CustomSelect],
+  imports: [IconComponent, CommonModule, RouterModule, FormsModule, LucideAngularModule, CustomSelect],
   templateUrl: './quick-view-drawer.html',
   styleUrls: ['./quick-view-drawer.css']
 })
 export class QuickViewDrawerComponent implements OnChanges {
   icons = { X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink };
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private cartService: CartService,
+    private router: Router
+  ) {}
 
   currentImageIdx = 0;
 
@@ -46,6 +55,8 @@ export class QuickViewDrawerComponent implements OnChanges {
   hasDynamicVariants = false;
   selectedOptions: Record<string, string> = {};
   quantity = 1;
+  isAddingToCart = false;
+  cartMessage = '';
 
   filteredVariantPrices: any[] = [];
   rawColors: string[] = [];
@@ -139,13 +150,15 @@ function getParentCategory(childCat: string): string {
     this.dynamicConfig = this.buildDynamicOptions(activeProduct);
     this.hasDynamicVariants = this.dynamicConfig && this.dynamicConfig.keys.length > 0;
     
-    this.filteredVariantPrices = (activeProduct.variants || []).filter((v: any) => v.images && v.images.length > 0);
+    // Lấy variants từ database (không lọc v.images vì db chưa có cột images cho variant)
+    this.filteredVariantPrices = activeProduct.variants || [];
     this.rawColors = activeProduct.refinementColors || [];
     this.colors = activeProduct.refinementColors_vi || this.rawColors;
 
     if (this.hasDynamicVariants && this.filteredVariantPrices.length > 0) {
       const firstVariant = this.filteredVariantPrices[0];
-      this.selectedOptions = firstVariant.selections || {};
+      // Dùng optionValues (của db) thay vì selections
+      this.selectedOptions = firstVariant.optionValues || firstVariant.selections || {};
     } else if (this.rawColors.length > 0) {
       this.selectedColor = this.rawColors[0];
     }
@@ -154,7 +167,10 @@ function getParentCategory(childCat: string): string {
   }
 
   buildDynamicOptions(product: any) {
-    const configOptions = product.configOptions || [];
+    let configOptions = product.configOptions || [];
+    if (configOptions && !Array.isArray(configOptions)) {
+      configOptions = configOptions.attributes || [];
+    }
     if (!configOptions || configOptions.length === 0) return null;
 
     const groups: any = {};
@@ -199,7 +215,7 @@ function getParentCategory(childCat: string): string {
       return;
     }
     this.matchedVariant = this.filteredVariantPrices.find((v: any) => {
-      const sel = v.selections || {};
+      const sel = v.optionValues || v.selections || {};
       return Object.keys(this.selectedOptions).every(k => sel[k] === this.selectedOptions[k]);
     }) || null;
   }
@@ -211,9 +227,12 @@ function getParentCategory(childCat: string): string {
       return Object.keys(newOptions).every(k => sel[k] === newOptions[k]);
     });
     if (!comboExists && this.filteredVariantPrices.length > 0) {
-      const fallbackVariant = this.filteredVariantPrices.find((v: any) => v.selections?.[groupKey] === optionId);
+      const fallbackVariant = this.filteredVariantPrices.find((v: any) => {
+        const sel = v.optionValues || v.selections;
+        return sel?.[groupKey] === optionId;
+      });
       if (fallbackVariant) {
-        this.selectedOptions = fallbackVariant.selections || {};
+        this.selectedOptions = fallbackVariant.optionValues || fallbackVariant.selections || {};
         this.updateMatchedVariant();
         return;
       }
@@ -225,9 +244,49 @@ function getParentCategory(childCat: string): string {
   handleAddToCart(e: Event) {
     e.stopPropagation();
     e.preventDefault();
-    // Logic addToCart here
-    window.alert(`Đã thêm ${this.quantity} ${this.activeProduct?.shortDescription || ''} vào giỏ hàng`);
-    this.closeAction();
+    const token = localStorage.getItem('dcor_customer_token');
+    if (!token) {
+      this.closeAction();
+      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+
+    const variants = this.activeProduct?.variants || [];
+    const variant = this.matchedVariant?.isActive !== false &&
+      this.matchedVariant?.stock > this.matchedVariant?.reservedStock
+      ? this.matchedVariant
+      : variants.find((item: any) =>
+          item.isActive !== false && item.stock > item.reservedStock
+        );
+    if (!variant) {
+      this.cartMessage = 'Sản phẩm hiện chưa có biến thể còn hàng để thêm vào giỏ.';
+      return;
+    }
+
+    this.isAddingToCart = true;
+    this.cartMessage = '';
+    this.cartService.addToCart(variant.id, this.quantity, variant.optionValues || this.selectedOptions)
+      .pipe(
+        timeout({ first: 15000 }),
+        finalize(() => {
+          this.isAddingToCart = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.cartMessage = 'Đã thêm sản phẩm vào giỏ hàng.';
+          this.cdr.detectChanges();
+        },
+        error: (error: unknown) => {
+          this.cartMessage = error instanceof TimeoutError
+            ? 'Máy chủ phản hồi quá lâu. Vui lòng kiểm tra lại kết nối rồi thử lại.'
+            : error instanceof HttpErrorResponse
+              ? error.error?.message || 'Không thể thêm sản phẩm vào giỏ hàng.'
+              : 'Không thể thêm sản phẩm vào giỏ hàng.';
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   get activeProduct(): any {
@@ -260,7 +319,10 @@ function getParentCategory(childCat: string): string {
   }
 
   get dimensionData() {
-    return this.matchedVariant?.dimensions || this.activeProduct?.dimensions;
+    // Ưu tiên đọc từ configOptions nếu lưu dưới dạng object JSON
+    const configDims = this.activeProduct?.configOptions?.dimensions;
+    const optionValuesDims = this.matchedVariant?.optionValues?.dimensions;
+    return optionValuesDims || configDims || this.matchedVariant?.dimensions || this.activeProduct?.dimensions;
   }
 
   hasDimensions() {

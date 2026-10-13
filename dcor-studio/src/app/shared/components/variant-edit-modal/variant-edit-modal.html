@@ -4,7 +4,7 @@
     <div class="modal-header">
       <h3>Chỉnh sửa tuỳ chọn</h3>
       <button class="close-btn" (click)="closeModal()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        <app-icon name="X" size="24"></app-icon>
       </button>
     </div>
 
@@ -28,7 +28,7 @@
                [class.active]="selectedLegId === leg.id"
                (click)="selectLeg(leg.id)">
             <span>{{ leg.name }}</span>
-            <svg *ngIf="selectedLegId === leg.id" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <app-icon name="Check" size="16" class="check-icon" *ngIf="selectedLegId === leg.id"></app-icon>
           </div>
         </div>
       </div>
@@ -45,7 +45,7 @@
             <div class="upholstery-info">
               <span>{{ uph.name }}</span>
             </div>
-            <svg *ngIf="selectedUpholsteryId === uph.id" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <app-icon name="Check" size="16" class="check-icon" *ngIf="selectedUpholsteryId === uph.id"></app-icon>
           </div>
         </div>
       </div>

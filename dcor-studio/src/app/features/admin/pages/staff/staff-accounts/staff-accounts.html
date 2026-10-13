@@ -1,0 +1,25 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div><h1>Quản lý tài khoản nhân sự</h1><p>Quản lý tài khoản nhân viên, vai trò và trạng thái hoạt động.</p></div>
+    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button><button type="button" class="admin-btn admin-btn-primary">+ Thêm nhân sự</button></div>
+  </header>
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng nhân sự</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang hoạt động</div><div class="admin-page-stat-value">2</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Tạm khóa</div><div class="admin-page-stat-value">1</div></article>
+  </div>
+  <div class="admin-page-filter">
+    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm tên, email nhân viên..." aria-label="Tìm nhân sự">
+    <select class="admin-select" aria-label="Lọc vai trò"><option>Tất cả vai trò</option><option>Quản trị viên</option><option>Tư vấn bán hàng</option><option>Quản lý kho</option></select>
+    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Đang hoạt động</option><option>Tạm khóa</option></select>
+  </div>
+  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
+    <table class="admin-table">
+      <thead><tr><th>Nhân viên</th><th>Email</th><th>Vai trò</th><th>Bộ phận</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.name }}</strong></td><td>{{ record.email }}</td><td>{{ record.role }}</td><td>{{ record.team }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
+        <tr *ngIf="filteredRecords.length === 0"><td colspan="5" class="admin-page-table-empty">Không tìm thấy nhân sự phù hợp.</td></tr>
+      </tbody>
+    </table>
+  </div></div>
+</section>

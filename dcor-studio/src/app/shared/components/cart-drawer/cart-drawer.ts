@@ -1,3 +1,4 @@
+import { IconComponent } from '../icon/icon';
 import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
@@ -6,7 +7,7 @@ import { CartService, CartItem } from '../../../core/services/cart.service';
 @Component({
   selector: 'app-cart-drawer',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [IconComponent, CommonModule, RouterModule],
   templateUrl: './cart-drawer.html'
 })
 export class CartDrawerComponent implements OnInit {

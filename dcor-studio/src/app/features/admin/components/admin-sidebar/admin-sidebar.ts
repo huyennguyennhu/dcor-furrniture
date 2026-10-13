@@ -1,25 +1,26 @@
-import { Component, OnInit } from '@angular/core';
+import { IconComponent, IconName } from '../../../../shared/components/icon/icon';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 interface MenuItem {
   title: string;
-  icon: string | SafeHtml;
+  icon: IconName;
   href: string;
-  subItems?: { title: string; href: string; }[];
+  subItems?: { title: string; href: string }[];
 }
 
 @Component({
   selector: 'app-admin-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [IconComponent, CommonModule, RouterModule],
   templateUrl: './admin-sidebar.html',
   styleUrls: ['./admin-sidebar.css']
 })
 export class AdminSidebar implements OnInit {
-  isCollapsed = false;
+  @Input() isCollapsed = false;
+  @Output() expandSidebar = new EventEmitter<void>();
   hoveredMenu: { href: string, top: number } | null = null;
   openMenu: string | null = null;
   activeHref = '';
@@ -28,11 +29,15 @@ export class AdminSidebar implements OnInit {
 
   MENU_ITEMS: MenuItem[] = [
     {
+      title: 'Tổng quan',
+      icon: 'House',
+      href: '/admin/reports/overview'
+    },
+    {
       title: 'Báo cáo & Thống kê',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>',
-      href: '/admin/reports',
+      icon: 'ChartNoAxesCombined',
+      href: '/admin/reports/revenue',
       subItems: [
-        { title: 'Tổng quan', href: '/admin/reports/overview' },
         { title: 'Báo cáo doanh thu', href: '/admin/reports/revenue' },
         { title: 'Báo cáo đơn hàng', href: '/admin/reports/orders' },
         { title: 'Báo cáo sản phẩm', href: '/admin/reports/products' },
@@ -40,13 +45,13 @@ export class AdminSidebar implements OnInit {
       ]
     },
     {
-      title: 'Quản lý khách hàng',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      title: 'Khách hàng',
+      icon: 'UsersRound',
       href: '/admin/customers'
     },
     {
-      title: 'Quản lý sản phẩm',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+      title: 'Sản phẩm',
+      icon: 'Package',
       href: '/admin/products',
       subItems: [
         { title: 'Danh sách sản phẩm', href: '/admin/products' },
@@ -54,19 +59,19 @@ export class AdminSidebar implements OnInit {
       ]
     },
     {
-      title: 'Quản lý tồn kho',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="4" rx="2"/><path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="M10 13h4"/></svg>',
+      title: 'Tồn kho',
+      icon: 'Warehouse',
       href: '/admin/inventory',
-      subItems: [
-        { title: 'Tồn kho', href: '/admin/inventory' },
-        { title: 'Kiểm kê kho', href: '/admin/inventory/audit' },
-        { title: 'Lệnh xuất - nhập kho', href: '/admin/inventory/orders' },
+        { title: 'Tổng quan kho', href: '/admin/inventory' },
+        { title: 'Kiểm kê', href: '/admin/inventory/audit' },
+        { title: 'Lệnh xuất-nhập kho', href: '/admin/inventory/transactions' },
+        { title: 'Phiếu xuất kho', href: '/admin/inventory/orders' },
         { title: 'Lịch sử biến động', href: '/admin/inventory/history' },
       ]
     },
     {
-      title: 'Quản lý đơn hàng',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>',
+      title: 'Đơn hàng',
+      icon: 'ShoppingCart',
       href: '/admin/orders',
       subItems: [
         { title: 'Danh sách đơn hàng', href: '/admin/orders' },
@@ -75,53 +80,65 @@ export class AdminSidebar implements OnInit {
       ]
     },
     {
-      title: 'Quản lý khuyến mãi',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>',
-      href: '/admin/promotions',
+      title: 'Khuyến mãi',
+      icon: 'TicketPercent',
+      href: '/admin/vouchers',
       subItems: [
-        { title: 'Mã giảm giá', href: '/admin/promotions/vouchers' },
-        { title: 'Chiến dịch', href: '/admin/promotions/campaigns' },
+        { title: 'Mã giảm giá', href: '/admin/vouchers' },
+        { title: 'Chiến dịch', href: '/admin/campaigns' },
       ]
     },
     {
-      title: 'Lịch tư vấn',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>',
-      href: '/admin/appointments'
+      title: 'Tư vấn',
+      icon: 'CalendarDays',
+      href: '/admin/appointments/schedule',
+      subItems: [
+        { title: 'Lịch tư vấn', href: '/admin/appointments/schedule' },
+        { title: 'Yêu cầu tư vấn', href: '/admin/appointments/requests' },
+      ]
     },
     {
-      title: 'Quản lý nội dung',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>',
+      title: 'Blog',
+      icon: 'Newspaper',
       href: '/admin/content'
     },
     {
-      title: 'Hội thoại Chatbox',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      title: 'Hội thoại',
+      icon: 'MessagesSquare',
       href: '/admin/chat'
     },
     {
-      title: 'Quản lý thiết kế',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
-      href: '/admin/designs'
+      title: 'Cộng đồng thiết kế',
+      icon: 'Image',
+      href: '/admin/designs/settings',
+      subItems: [
+        { title: 'Cấu hình', href: '/admin/designs/settings' },
+        { title: 'Bài viết cộng đồng', href: '/admin/designs/posts' },
+      ]
     },
     {
-      title: 'Cài đặt hệ thống',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
-      href: '/admin/settings',
+      title: 'Nhân sự',
+      icon: 'UsersRound',
+      href: '/admin/staff/accounts',
       subItems: [
-        { title: 'Thông tin chung', href: '/admin/settings/general' },
-        { title: 'Vận chuyển & Thanh toán', href: '/admin/settings/logistics' },
-        { title: 'Tài khoản & Phân quyền', href: '/admin/settings/users' },
+        { title: 'Quản lý tài khoản', href: '/admin/staff/accounts' },
+        { title: 'Ma trận phân quyền', href: '/admin/staff/permissions' },
       ]
+    },
+    {
+      title: 'Nhật ký hoạt động',
+      icon: 'ClipboardList',
+      href: '/admin/activity'
     }
   ];
 
-  constructor(private router: Router, private sanitizer: DomSanitizer) {
-    // Sanitize all icons
-    this.MENU_ITEMS = this.MENU_ITEMS.map(item => ({
-      ...item,
-      icon: typeof item.icon === 'string' ? this.sanitizer.bypassSecurityTrustHtml(item.icon) : item.icon
-    }));
+  SETTINGS_ITEM: MenuItem = {
+    title: 'Cài đặt',
+    icon: 'Settings',
+    href: '/admin/settings'
+  };
 
+  constructor(private router: Router) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
@@ -135,6 +152,8 @@ export class AdminSidebar implements OnInit {
 
   calculateActiveHref(pathname: string) {
     let maxLen = 0;
+    this.activeHref = '';
+    this.openMenu = null;
     for (const item of this.MENU_ITEMS) {
       if (item.href === pathname || pathname.startsWith(item.href + '/')) {
         if (item.href.length > maxLen) { this.activeHref = item.href; maxLen = item.href.length; }
@@ -154,11 +173,19 @@ export class AdminSidebar implements OnInit {
         break;
       }
     }
+    if (this.SETTINGS_ITEM.href === this.activeHref) {
+      this.openMenu = null;
+    }
   }
 
   toggleMenu(href: string) {
-    if (this.isCollapsed) this.isCollapsed = false;
+    if (this.isCollapsed) this.expandSidebar.emit();
     this.openMenu = this.openMenu === href ? null : href;
+  }
+
+  selectMenu(href: string) {
+    if (this.isCollapsed) this.expandSidebar.emit();
+    this.openMenu = href;
   }
 
   isParentActive(item: MenuItem): boolean {
@@ -186,13 +213,11 @@ export class AdminSidebar implements OnInit {
 
   handleDropdownMouseLeave() {
     if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
-    this.hoverTimeout = setTimeout(() => {
-      this.hoveredMenu = null;
-    }, 300);
+    this.hoveredMenu = null;
   }
-  
-  toggleCollapse() {
-    this.isCollapsed = !this.isCollapsed;
+
+  closeHoveredMenu() {
+    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
     this.hoveredMenu = null;
   }
 }

@@ -1,7 +1,8 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SocialAuthService, GoogleSigninButtonModule } from '@abacritt/angularx-social-login';
 import { Subscription } from 'rxjs';
@@ -10,7 +11,7 @@ import { environment } from '../../../../../environments/environment';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, GoogleSigninButtonModule],
+  imports: [IconComponent, CommonModule, FormsModule, RouterModule, GoogleSigninButtonModule],
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
@@ -25,6 +26,7 @@ export class LoginComponent {
 
   constructor(
     private router: Router, 
+    private route: ActivatedRoute,
     private http: HttpClient,
     private authService: SocialAuthService
   ) {}
@@ -47,7 +49,7 @@ export class LoginComponent {
               this.loading = false;
               localStorage.setItem('dcor_customer_token', res.token);
               localStorage.setItem('dcor_customer', JSON.stringify(res.user));
-              this.router.navigate(['/']);
+              this.navigateAfterLogin();
             },
             error: (err) => {
               this.loading = false;
@@ -94,12 +96,17 @@ export class LoginComponent {
         this.loading = false;
         localStorage.setItem('dcor_customer_token', res.token);
         localStorage.setItem('dcor_customer', JSON.stringify(res.user));
-        this.router.navigate(['/']);
+        this.navigateAfterLogin();
       },
       error: (err) => {
         this.loading = false;
         this.error = err.error?.message || 'Đã có lỗi kết nối máy chủ.';
       }
     });
+  }
+
+  private navigateAfterLogin() {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    this.router.navigateByUrl(returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/');
   }
 }

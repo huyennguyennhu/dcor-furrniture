@@ -1,127 +1,93 @@
-<aside [ngStyle]="{
-  'width': isCollapsed ? '80px' : '260px',
-  'flex-shrink': '0',
-  'transition': 'width 0.3s ease',
-  'background': 'var(--bg-secondary)',
-  'border-right': '1px solid var(--border-color)',
-  'display': 'flex',
-  'flex-direction': 'column',
-  'height': '100%',
-  'position': 'relative',
-  'z-index': '20'
-}">
-
-  <!-- Toggle Button -->
-  <button 
-    (click)="toggleCollapse()"
-    style="position: absolute; top: 20px; right: -14px; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-primary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 30; color: var(--text-secondary); box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-  >
-    <svg *ngIf="isCollapsed" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-    <svg *ngIf="!isCollapsed" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-  </button>
-
-  <div style="flex-grow: 1; overflow-y: auto; padding: 24px 12px;">
-    <nav style="display: flex; flex-direction: column; gap: 8px;">
-      <div *ngFor="let item of MENU_ITEMS; let idx = index" 
-           style="position: relative;"
-           (mouseenter)="handleMouseEnter($event, item.href)"
-           (mouseleave)="handleMouseLeave()">
-        
-        <ng-container *ngIf="item.subItems; else linkTemplate">
-          <button (click)="toggleMenu(item.href)" 
-                  [ngStyle]="{
-                    'width': '100%', 'display': 'flex', 'align-items': 'center', 'justify-content': isCollapsed ? 'center' : 'space-between',
-                    'padding': isCollapsed ? '12px' : '12px 16px', 'border-radius': '12px',
-                    'background': isParentActive(item) ? 'rgba(188, 95, 19, 0.1)' : 'transparent',
-                    'color': isParentActive(item) ? 'var(--accent)' : 'var(--text-secondary)',
-                    'border': 'none', 'cursor': 'pointer', 'font-size': '14px',
-                    'font-weight': isParentActive(item) ? 600 : 500, 'transition': 'all 0.2s', 'position': 'relative'
-                  }">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span [innerHTML]="item.icon"></span>
-              <span *ngIf="!isCollapsed">{{ item.title }}</span>
-            </div>
-            <ng-container *ngIf="!isCollapsed">
-              <svg *ngIf="openMenu === item.href" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-              <svg *ngIf="openMenu !== item.href" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-            </ng-container>
-          </button>
+<aside class="admin-sidebar" [class.collapsed]="isCollapsed">
+  <div class="sidebar-navigation">
+    <nav class="sidebar-menu" aria-label="Điều hướng quản trị">
+      <div
+        *ngFor="let item of MENU_ITEMS"
+        class="sidebar-entry"
+        (mouseenter)="handleMouseEnter($event, item.href)"
+        (mouseleave)="handleMouseLeave()">
+        <ng-container *ngIf="item.subItems; else directLink">
+          <div class="sidebar-parent-link">
+            <a
+              class="sidebar-link"
+              [class.active]="isParentActive(item)"
+              [routerLink]="item.href"
+              [attr.aria-label]="isCollapsed ? item.title : null"
+              [title]="isCollapsed ? item.title : null"
+              (click)="selectMenu(item.href)">
+              <app-icon [name]="item.icon" size="18"></app-icon>
+              <span class="sidebar-label" *ngIf="!isCollapsed">{{ item.title }}</span>
+            </a>
+            <button
+              *ngIf="!isCollapsed"
+              class="sidebar-link-toggle"
+              [class.active]="isParentActive(item)"
+              [attr.aria-label]="(openMenu === item.href ? 'Thu gọn ' : 'Mở rộng ') + item.title"
+              [attr.aria-expanded]="openMenu === item.href"
+              (click)="toggleMenu(item.href)">
+              <app-icon
+                [name]="openMenu === item.href ? 'ChevronDown' : 'ChevronRight'"
+                size="16"></app-icon>
+            </button>
+          </div>
         </ng-container>
-        
-        <ng-template #linkTemplate>
-          <a [routerLink]="item.href" 
-             [ngStyle]="{
-               'text-decoration': 'none',
-               'width': '100%', 'display': 'flex', 'align-items': 'center', 'justify-content': isCollapsed ? 'center' : 'space-between',
-               'padding': isCollapsed ? '12px' : '12px 16px', 'border-radius': '12px',
-               'background': isParentActive(item) ? 'rgba(188, 95, 19, 0.1)' : 'transparent',
-               'color': isParentActive(item) ? 'var(--accent)' : 'var(--text-secondary)',
-               'border': 'none', 'cursor': 'pointer', 'font-size': '14px',
-               'font-weight': isParentActive(item) ? 600 : 500, 'transition': 'all 0.2s', 'position': 'relative'
-             }">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span [innerHTML]="item.icon"></span>
-              <span *ngIf="!isCollapsed">{{ item.title }}</span>
-            </div>
+
+        <ng-template #directLink>
+          <a
+            class="sidebar-link"
+            [class.active]="isParentActive(item)"
+            [routerLink]="item.href"
+            [attr.aria-label]="isCollapsed ? item.title : null"
+            [title]="isCollapsed ? item.title : null">
+            <app-icon [name]="item.icon" size="18"></app-icon>
+            <span class="sidebar-label" *ngIf="!isCollapsed">{{ item.title }}</span>
           </a>
         </ng-template>
 
-        <!-- Sub items Accordion -->
-        <div *ngIf="!isCollapsed && item.subItems" 
-             [ngStyle]="{
-               'display': 'grid',
-               'grid-template-rows': openMenu === item.href ? '1fr' : '0fr',
-               'transition': 'grid-template-rows 0.3s ease'
-             }">
-          <div style="overflow: hidden;">
-            <div style="display: flex; flex-direction: column; padding-left: 44px; margin-top: 4px; gap: 2px;">
-              <a *ngFor="let sub of item.subItems" 
-                 [routerLink]="sub.href"
-                 class="admin-sub-item"
-                 [class.active]="sub.href === activeHref">
-                <span class="dot"></span>
-                {{ sub.title }}
-              </a>
-            </div>
-          </div>
+        <div
+          *ngIf="!isCollapsed && item.subItems && openMenu === item.href"
+          class="sidebar-submenu">
+          <a
+            *ngFor="let sub of item.subItems"
+            class="admin-sub-item"
+            [class.active]="sub.href === activeHref"
+            [routerLink]="sub.href">
+            {{ sub.title }}
+          </a>
         </div>
 
-        <!-- Hover Dropdown for Collapsed State -->
-        <div *ngIf="isCollapsed && hoveredMenu?.href === item.href"
-             (mouseenter)="handleDropdownMouseEnter()"
-             (mouseleave)="handleDropdownMouseLeave()"
-             [ngStyle]="{
-               'position': 'fixed',
-               'left': '80px',
-               'top': hoveredMenu?.top + 'px',
-               'padding-left': '10px',
-               'z-index': '9999'
-             }">
-          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; width: 220px; box-shadow: var(--card-shadow); padding: 8px;">
-            <ng-container *ngIf="item.subItems; else hoverLinkTemplate">
-              <div style="padding: 8px 12px; font-size: 14px; font-weight: 600; color: var(--accent); border-bottom: 1px solid var(--border-color); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                <span [innerHTML]="item.icon"></span> {{ item.title }}
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 2px;">
-                <a *ngFor="let sub of item.subItems" 
-                   [routerLink]="sub.href"
-                   class="admin-sub-item"
-                   [class.active]="sub.href === activeHref">
-                  <span class="dot"></span>
-                  {{ sub.title }}
-                </a>
-              </div>
-            </ng-container>
-            <ng-template #hoverLinkTemplate>
-              <a [routerLink]="item.href"
-                 style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; border-radius: 8px;">
-                <span [innerHTML]="item.icon"></span> {{ item.title }}
-              </a>
-            </ng-template>
+        <div
+          *ngIf="isCollapsed && hoveredMenu?.href === item.href && item.subItems"
+          class="sidebar-hover-menu"
+          [style.top.px]="hoveredMenu?.top"
+          (mouseenter)="handleDropdownMouseEnter()"
+          (mouseleave)="handleDropdownMouseLeave()">
+          <div class="sidebar-hover-title">
+            <app-icon [name]="item.icon" size="18"></app-icon>
+            {{ item.title }}
           </div>
+          <a
+            *ngFor="let sub of item.subItems"
+            class="admin-sub-item"
+            [class.active]="sub.href === activeHref"
+            [routerLink]="sub.href"
+            (click)="closeHoveredMenu()">
+            {{ sub.title }}
+          </a>
         </div>
-        
       </div>
     </nav>
   </div>
+
+  <nav class="sidebar-footer" aria-label="Ajustes">
+    <a
+      class="sidebar-link"
+      [class.active]="SETTINGS_ITEM.href === activeHref"
+      [routerLink]="SETTINGS_ITEM.href"
+      [attr.aria-label]="isCollapsed ? SETTINGS_ITEM.title : null"
+      [title]="isCollapsed ? SETTINGS_ITEM.title : null">
+      <app-icon [name]="SETTINGS_ITEM.icon" size="18"></app-icon>
+      <span class="sidebar-label" *ngIf="!isCollapsed">{{ SETTINGS_ITEM.title }}</span>
+    </a>
+  </nav>
 </aside>

@@ -1,0 +1,18 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div><h1>Cấu hình cộng đồng thiết kế</h1><p>Quản lý thiết lập hiển thị và quy tắc đăng bài cộng đồng.</p></div>
+    <button type="button" class="admin-btn admin-btn-primary">Lưu cấu hình</button>
+  </header>
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng bài viết</div><div class="admin-page-stat-value">248</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Chờ kiểm duyệt</div><div class="admin-page-stat-value">12</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Thành viên</div><div class="admin-page-stat-value">1.286</div></article>
+  </div>
+  <div class="admin-page-table-card">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);"><strong>Cài đặt hoạt động</strong><p style="margin: 4px 0 0; color: var(--text-secondary); font-size: 13px;">Bật hoặc tắt các tính năng của cộng đồng.</p></div>
+    <div *ngFor="let setting of settings" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--border-color);">
+      <div><div style="font-weight: 600;">{{ setting.name }}</div><div style="margin-top: 4px; color: var(--text-secondary); font-size: 13px;">{{ setting.description }}</div></div>
+      <input type="checkbox" [(ngModel)]="setting.enabled" [attr.aria-label]="setting.name">
+    </div>
+  </div>
+</section>

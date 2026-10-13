@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -25,7 +26,7 @@ interface InventoryItem {
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, TransactionModalComponent],
+  imports: [IconComponent, CommonModule, FormsModule, RouterModule, LucideAngularModule, TransactionModalComponent],
   templateUrl: './inventory.html',
   styleUrls: ['./inventory.css']
 })

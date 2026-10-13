@@ -25,7 +25,7 @@
         <div *ngFor="let item of wishlistItems; let i = index" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; position: relative;">
           
           <button (click)="removeFromWishlist(i)" style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <app-icon name="X" size="16"></app-icon>
           </button>
 
           <div style="padding: 20px; background: var(--bg-tertiary); display: flex; justify-content: center; align-items: center; height: 200px; cursor: pointer;" [routerLink]="['/kham-pha', item.id]">

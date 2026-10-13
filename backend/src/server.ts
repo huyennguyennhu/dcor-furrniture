@@ -15,8 +15,18 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Backend is running!' });
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running. See /api/health for health checks.' });
+});
+
+app.get('/api/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', message: 'Backend and database are connected.' });
+  } catch (error) {
+    console.error('Health check database error:', error);
+    res.status(503).json({ status: 'error', message: 'Backend is running, but the database is unavailable.' });
+  }
 });
 
 // Gắn router xác thực
@@ -41,7 +51,8 @@ app.get('/api/products', async (req, res) => {
     });
     res.json(products);
   } catch (error) {
-    res.json([]);
+    console.error('Lỗi lấy danh sách sản phẩm:', error);
+    res.status(503).json({ message: 'Không thể lấy sản phẩm từ cơ sở dữ liệu.' });
   }
 });
 
@@ -50,7 +61,8 @@ app.get('/api/products/:id', async (req, res) => {
     const product = await prisma.product.findUnique({ 
       where: { id: req.params.id },
       include: {
-        category: true
+        category: true,
+        variants: true
       }
     });
     if (product) {
@@ -59,7 +71,8 @@ app.get('/api/products/:id', async (req, res) => {
       res.status(404).json({ error: 'Product not found' });
     }
   } catch (error) {
-    res.status(404).json({ error: 'Product not found' });
+    console.error('Lỗi lấy thông tin sản phẩm:', error);
+    res.status(503).json({ message: 'Không thể lấy sản phẩm từ cơ sở dữ liệu.' });
   }
 });
 

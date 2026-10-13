@@ -1,3 +1,4 @@
+import { IconComponent } from '../icon/icon';
 import { Component, Input, Output, EventEmitter, ElementRef, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +11,7 @@ export interface Option {
 @Component({
   selector: 'app-custom-select',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [IconComponent, CommonModule, FormsModule],
   templateUrl: './custom-select.html',
   styleUrls: ['./custom-select.css']
 })

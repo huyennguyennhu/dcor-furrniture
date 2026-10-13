@@ -67,13 +67,14 @@
           </div>
 
           <div style="display: flex; gap: 16px; margin-bottom: 40px;">
-            <button style="flex: 1; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 30px; font-weight: 600; font-size: 16px; cursor: pointer;">
-              Thêm vào giỏ hàng
+            <button (click)="addToCart()" [disabled]="isAddingToCart" style="flex: 1; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 30px; font-weight: 600; font-size: 16px; cursor: pointer;">
+              {{ isAddingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng' }}
             </button>
             <button style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+              <app-icon name="Heart" size="24"></app-icon>
             </button>
           </div>
+          <p *ngIf="cartMessage" role="status" style="margin-top: -28px; margin-bottom: 24px; color: var(--text-secondary);">{{ cartMessage }}</p>
         </div>
       </div>
 
@@ -110,7 +111,7 @@
         <div style="display: flex; flex-direction: column; gap: 24px;">
           <div class="product-usp-section" style="padding: 24px; background: rgba(255, 255, 255, 0.02); border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: center;">
             <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              <app-icon name="Truck" size="20" style="color: var(--accent);"></app-icon>
               Vận chuyển & Lắp đặt
             </h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 14px; color: var(--text-secondary);">
@@ -130,4 +131,3 @@
 
   </div>
 </div>
-

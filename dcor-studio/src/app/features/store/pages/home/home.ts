@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -39,7 +40,7 @@ const STATIC_REVIEWS = [
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, CatalogSection],
+  imports: [IconComponent, CommonModule, RouterModule, CatalogSection],
   templateUrl: './home.html',
   styleUrls: ['./home.css']
 })
@@ -89,6 +90,10 @@ export class HomeComponent implements OnInit {
     this.isLoading = true;
     try {
       const res = await fetch(`${environment.apiUrl}/products`);
+      if (!res.ok) {
+        throw new Error(`Không thể tải danh sách sản phẩm (HTTP ${res.status}).`);
+      }
+
       if (res.ok) {
         const data = await res.json();
         
@@ -190,4 +195,3 @@ function getParentCategory(childCat: string): string {
     return Array(rating).fill(0);
   }
 }
-

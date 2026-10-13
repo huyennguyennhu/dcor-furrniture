@@ -1,0 +1,21 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div><h1>Ma trận phân quyền</h1><p>Cấu hình quyền truy cập các khu vực quản trị theo vai trò.</p></div>
+    <button type="button" class="admin-btn admin-btn-primary">Lưu phân quyền</button>
+  </header>
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Vai trò hệ thống</div><div class="admin-page-stat-value">4</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Nhóm quyền</div><div class="admin-page-stat-value">{{ permissions.length }}</div></article>
+  </div>
+  <div class="admin-page-filter">
+    <label for="staff-role" style="font-size: 13px; color: var(--text-secondary);">Vai trò</label>
+    <select id="staff-role" class="admin-select" [(ngModel)]="selectedRole"><option>Quản trị viên</option><option>Quản lý</option><option>Tư vấn bán hàng</option><option>Nhân viên kho</option></select>
+  </div>
+  <div class="admin-page-table-card">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);"><strong>Quyền của vai trò: {{ selectedRole }}</strong></div>
+    <div *ngFor="let permission of permissions" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+      <span>{{ permission.name }}</span>
+      <input type="checkbox" [(ngModel)]="permission.enabled" [attr.aria-label]="permission.name">
+    </div>
+  </div>
+</section>

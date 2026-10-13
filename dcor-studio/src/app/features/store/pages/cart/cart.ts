@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
@@ -7,7 +8,7 @@ import { VariantEditModalComponent } from '../../../../shared/components/variant
 @Component({
   selector: 'app-cart',
   standalone: true,
-  imports: [CommonModule, RouterModule, VariantEditModalComponent],
+  imports: [IconComponent, CommonModule, RouterModule, VariantEditModalComponent],
   templateUrl: './cart.html',
   styleUrls: ['./cart.css']
 })

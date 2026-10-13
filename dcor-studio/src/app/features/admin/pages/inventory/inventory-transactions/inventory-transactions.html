@@ -1,0 +1,39 @@
+<section class="admin-page">
+  <header class="admin-page-heading">
+    <div>
+      <h1>Lệnh xuất-nhập kho</h1>
+      <p>Theo dõi phiếu nhập, xuất và chuyển kho trên toàn hệ thống.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button>
+      <button type="button" class="admin-btn admin-btn-primary">+ Tạo lệnh kho</button>
+    </div>
+  </header>
+
+  <div class="admin-page-stats">
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng lệnh tháng này</div><div class="admin-page-stat-value">86</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Chờ duyệt</div><div class="admin-page-stat-value">8</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang xử lý</div><div class="admin-page-stat-value">12</div></article>
+    <article class="admin-page-stat"><div class="admin-page-stat-label">Đã hoàn tất</div><div class="admin-page-stat-value">66</div></article>
+  </div>
+
+  <div class="admin-page-filter">
+    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm mã lệnh, loại lệnh, kho..." aria-label="Tìm lệnh kho">
+    <select class="admin-select" aria-label="Lọc loại lệnh"><option>Tất cả loại lệnh</option><option>Nhập kho</option><option>Xuất kho</option><option>Chuyển kho</option></select>
+    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Chờ duyệt</option><option>Đang xử lý</option><option>Hoàn tất</option></select>
+  </div>
+
+  <div class="admin-page-table-card">
+    <div class="admin-page-table-scroll">
+      <table class="admin-table">
+        <thead><tr><th>Mã lệnh</th><th>Loại lệnh</th><th>Kho/Chi nhánh</th><th>Ngày tạo</th><th>Người tạo</th><th>Trạng thái</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let record of filteredRecords">
+            <td><strong>{{ record.code }}</strong></td><td>{{ record.type }}</td><td>{{ record.location }}</td><td>{{ record.createdAt }}</td><td>{{ record.creator }}</td><td><span class="admin-page-status">{{ record.status }}</span></td>
+          </tr>
+          <tr *ngIf="filteredRecords.length === 0"><td colspan="6" class="admin-page-table-empty">Không tìm thấy lệnh kho phù hợp.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

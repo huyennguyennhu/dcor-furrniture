@@ -122,13 +122,13 @@
               <span class="card-category">{{ prod.category || 'D\'Cor' }}</span>
               <div class="card-mini-actions">
                 <button class="mini-action-btn" [class.favorite-active]="wishlist.includes(prod.productId)" title="Yêu thích" (click)="toggleWishlist($event, prod.productId)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" [attr.fill]="wishlist.includes(prod.productId) ? 'var(--accent)' : 'none'" [attr.stroke]="wishlist.includes(prod.productId) ? 'var(--accent)' : 'currentColor'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                  <app-icon name="Heart" size="14" [color]="wishlist.includes(prod.productId) ? 'var(--accent)' : 'currentColor'" [filled]="wishlist.includes(prod.productId)"></app-icon>
                 </button>
                 <button class="mini-action-btn" title="So sánh" (click)="$event.stopPropagation(); $event.preventDefault();">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                  <app-icon name="Activity" size="14"></app-icon>
                 </button>
                 <button class="mini-action-btn" title="Xem nhanh" (click)="openQuickView($event, prod)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <app-icon name="Eye" size="14"></app-icon>
                 </button>
               </div>
             </div>
@@ -153,7 +153,7 @@
       <div *ngIf="!isLoading && currentPage < totalPages" class="explore-load-more">
         <button (click)="currentPage = currentPage + 1">
           Khám phá thêm
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          <app-icon name="ChevronDown" size="16"></app-icon>
         </button>
       </div>
 

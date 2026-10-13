@@ -39,8 +39,8 @@
               (click)="onRowClick(item)">
             
             <td *ngIf="expandableTemplate" style="text-align: center; cursor: pointer;" (click)="toggleExpand(rIdx, $event)">
-              <svg *ngIf="expandedRows.has(rIdx)" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" color="var(--text-muted)"><path d="m6 9 6 6 6-6"/></svg>
-              <svg *ngIf="!expandedRows.has(rIdx)" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" color="var(--text-muted)"><path d="m9 18 6-6-6-6"/></svg>
+              <app-icon name="ChevronDown" size="18" *ngIf="expandedRows.has(rIdx)" color="var(--text-muted)"></app-icon>
+              <app-icon name="ChevronLeft" size="18" *ngIf="!expandedRows.has(rIdx)" color="var(--text-muted)"></app-icon>
             </td>
             
             <td *ngIf="selectable" style="text-align: center;" (click)="$event.stopPropagation()">
@@ -69,7 +69,7 @@
               <div style="position: relative; display: inline-block;">
                 <button (click)="toggleDropdown(rIdx, $event)"
                         style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  <app-icon name="MoreHorizontal" size="18"></app-icon>
                 </button>
                 
                 <div *ngIf="openDropdownRow === rIdx"
@@ -103,11 +103,11 @@
       <ng-container *ngIf="showNavButtons">
         <button (click)="setPage(1)" [disabled]="currentPage === 1"
                 class="admin-pagination-btn" [class.disabled]="currentPage === 1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg>
+          <app-icon name="ChevronLeft" size="16"></app-icon>
         </button>
         <button (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1"
                 class="admin-pagination-btn" [class.disabled]="currentPage === 1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          <app-icon name="ChevronRight" size="16"></app-icon>
         </button>
       </ng-container>
 
@@ -120,11 +120,11 @@
       <ng-container *ngIf="showNavButtons">
         <button (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages"
                 class="admin-pagination-btn" [class.disabled]="currentPage === totalPages">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          <app-icon name="ChevronLeft" size="16"></app-icon>
         </button>
         <button (click)="setPage(totalPages)" [disabled]="currentPage === totalPages"
                 class="admin-pagination-btn" [class.disabled]="currentPage === totalPages">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/></svg>
+          <app-icon name="ChevronsLeft" size="16"></app-icon>
         </button>
       </ng-container>
     </div>
