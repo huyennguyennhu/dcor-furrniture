@@ -478,11 +478,60 @@ export class InventoryComponent implements OnInit, OnDestroy {
     return item.variants || [];
   }
 
+  isLowStock(status: string): boolean {
+    if (!status) return false;
+    const s = status.toLowerCase();
+    return s.includes('sắp hết') || s.includes('sap het');
+  }
+
+  isOutOfStock(status: string): boolean {
+    if (!status) return false;
+    const s = status.toLowerCase();
+    return s.includes('hết hàng') || s.includes('het hang');
+  }
+
+  getStatusBadgeStyle(status: string): { [key: string]: string } {
+    if (this.isOutOfStock(status)) {
+      return {
+        'padding': '4px 10px',
+        'border-radius': '6px',
+        'font-size': '12px',
+        'font-weight': '600',
+        'display': 'inline-block',
+        'background': '#fee2e2',
+        'color': '#dc2626',
+        'border': '1px solid #fecaca'
+      };
+    }
+    if (this.isLowStock(status)) {
+      return {
+        'padding': '4px 10px',
+        'border-radius': '6px',
+        'font-size': '12px',
+        'font-weight': '600',
+        'display': 'inline-block',
+        'background': '#fef3c7',
+        'color': '#b45309',
+        'border': '1px solid #fde68a'
+      };
+    }
+    return {
+      'padding': '4px 10px',
+      'border-radius': '6px',
+      'font-size': '12px',
+      'font-weight': '600',
+      'display': 'inline-block',
+      'background': '#ecfdf5',
+      'color': '#059669',
+      'border': '1px solid #a7f3d0'
+    };
+  }
+
   getVariantStatus(v: InventoryVariant): string {
     if (v.status) return v.status;
     const thresh = v.threshold != null ? v.threshold : 5;
     if (v.available <= 0) return 'Hết hàng';
-    if (v.available <= thresh) return 'Sắp hết';
+    if (v.available <= thresh) return 'Sắp hết hàng';
     return 'Còn hàng';
   }
 

@@ -641,7 +641,7 @@ export const inventoryController = {
               // Ghi bút toán sổ cái biến động kho StockTransaction cho Nhập kho
               const txRandom = Math.floor(1000 + Math.random() * 9000);
               const txType = reason?.includes('Chuyển kho') ? 'TRANSFER_IN'
-                           : (reason?.includes('trả lại') || reason?.includes('khách hàng') ? 'CUSTOMER_RETURN' : 'PURCHASE_RECEIPT');
+                           : (reason?.includes('trả lại') || reason?.includes('khách hàng') ? 'RETURN_RECEIPT' : 'IMPORT_RECEIPT');
               await (prisma as any).stockTransaction.create({
                 data: {
                   txCode: `TX-${yearMonth}-${txRandom}`,

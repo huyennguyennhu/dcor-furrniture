@@ -51,9 +51,8 @@
         </thead>
         <tbody>
           <tr *ngIf="isLoading">
-            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted);">
-              <lucide-angular [img]="icons.Loader2" size="24" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <div style="margin-top: 8px; font-size: 13px;">Đang tải danh sách kiểm kê thực tế từ Supabase...</div>
+            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              Đang tải danh sách kiểm kê...
             </td>
           </tr>
           <tr *ngIf="!isLoading && data.length === 0">

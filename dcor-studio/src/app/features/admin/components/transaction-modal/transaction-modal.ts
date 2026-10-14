@@ -255,12 +255,12 @@ export interface LineItem {
                 <!-- Xuất kho thông thường -->
                 <ng-container *ngIf="type === 'export' && !transactionReason.includes('Chuyển kho')">
                   <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
-                    Người nhận / Đơn vị nhận hàng
+                    {{ transactionReason.includes('nhà cung cấp') ? 'Nhà cung cấp / Đối tác nhận hoàn trả' : 'Người nhận / Đơn vị nhận hàng' }}
                   </label>
                   <input 
                     type="text" 
                     [(ngModel)]="recipientName" 
-                    placeholder="VD: Khách hàng Trần Anh Tuấn, Cty Kiến Trúc Alpha..." 
+                    [placeholder]="transactionReason.includes('nhà cung cấp') ? 'Nhập tên nhà cung cấp / đối tác nhận...' : 'Nhập tên khách hàng, đối tác hoặc đơn vị nhận hàng...'" 
                     style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                   />
                 </ng-container>
@@ -275,7 +275,7 @@ export interface LineItem {
                 <input 
                   type="text" 
                   [(ngModel)]="referenceCode" 
-                  [placeholder]="type === 'import' ? 'VD: HD-002934, PO-2026-001...' : 'VD: HD-00821, SO-2026-009...'" 
+                  [placeholder]="type === 'import' ? 'Nhập số hóa đơn VAT / Mã PO (nếu có)...' : 'Nhập số hóa đơn / Mã SO / Chứng từ gốc (nếu có)...'" 
                   style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                 />
               </div>
@@ -291,7 +291,7 @@ export interface LineItem {
                 <input 
                   type="text" 
                   [(ngModel)]="creatorName" 
-                  placeholder="Tên nhân viên lập phiếu..." 
+                  placeholder="Nhập họ tên người lập phiếu..." 
                   style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                 />
               </div>
@@ -325,7 +325,7 @@ export interface LineItem {
             
             <!-- Wrapper cuộn ngang an toàn khi màn hình thu nhỏ -->
             <div style="overflow-x: auto; width: 100%; padding-bottom: 6px;">
-              <div [ngStyle]="{'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'min-width': type === 'import' ? '920px' : '720px'}">
+              <div [ngStyle]="{'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'min-width': '940px'}">
                 
                 <!-- Table Headers -->
                 <div [ngStyle]="{'display': 'grid', 'grid-template-columns': getGridColumns(), 'gap': '10px', 'padding': '10px 14px', 'background': 'var(--bg-secondary)', 'border-radius': '8px', 'border': '1px solid var(--border-color)'}">
@@ -334,9 +334,9 @@ export interface LineItem {
                   <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">Tồn kho</div>
                   <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">ĐVT</div>
                   <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">Số lượng</div>
-                  <div *ngIf="type === 'import'" style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">Đơn giá (₫)</div>
-                  <div *ngIf="type === 'import'" style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">Thành tiền (₫)</div>
-                  <div *ngIf="type === 'import'" style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase; white-space: nowrap;">Số Lô / HSD</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">{{ type === 'import' ? 'Đơn giá nhập (₫)' : 'Đơn giá xuất (₫)' }}</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">Thành tiền (₫)</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase; white-space: nowrap;">Số Lô / HSD</div>
                   <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase;">Xóa</div>
                 </div>
 
@@ -560,6 +560,7 @@ export interface LineItem {
                     [(ngModel)]="item.unit" 
                     style="height: 38px; width: 68px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-weight: 500; text-align: center; outline: none; cursor: pointer;"
                   >
+                    <option value="">-</option>
                     <option value="Chiếc">Chiếc</option>
                     <option value="Bộ">Bộ</option>
                     <option value="Cái">Cái</option>
@@ -624,8 +625,8 @@ export interface LineItem {
                   </div>
                 </div>
 
-                <!-- 6. Giá nhập (chỉ hiện khi import) -->
-                <div *ngIf="type === 'import'">
+                <!-- 6. Đơn giá xuất / nhập -->
+                <div>
                   <input 
                     type="text" 
                     placeholder="0" 
@@ -635,13 +636,13 @@ export interface LineItem {
                   />
                 </div>
 
-                <!-- 7. Thành tiền = Số lượng × Đơn giá (chỉ hiện khi import) -->
-                <div *ngIf="type === 'import'" style="display: flex; align-items: center; justify-content: flex-end; height: 38px; font-size: 13px; font-weight: 700; color: #059669; padding-right: 4px; white-space: nowrap;" [title]="getFormattedLineSubtotal(item)">
+                <!-- 7. Thành tiền = Số lượng × Đơn giá -->
+                <div style="display: flex; align-items: center; justify-content: flex-end; height: 38px; font-size: 13px; font-weight: 700; color: #059669; padding-right: 4px; white-space: nowrap;" [title]="getFormattedLineSubtotal(item)">
                   {{ getFormattedLineSubtotal(item) }}
                 </div>
 
-                <!-- 8. Số Lô / HSD (chỉ hiện khi import) -->
-                <div *ngIf="type === 'import'" style="display: flex; flex-direction: column; gap: 3px; justify-content: center; height: 38px;">
+                <!-- 8. Số Lô / HSD -->
+                <div style="display: flex; flex-direction: column; gap: 3px; justify-content: center; height: 38px;">
                   <input 
                     type="text" 
                     [(ngModel)]="item.lotNumber" 
@@ -697,20 +698,20 @@ export interface LineItem {
               </button>
             </div>
 
-            <!-- Bảng tổng kết tài chính phiếu nhập (Financial Summary) -->
-            <div *ngIf="type === 'import'" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 6px;">
+            <!-- Bảng tổng kết tài chính phiếu nhập/xuất (Financial Summary) -->
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 6px;">
               
               <!-- Cột trái: Tóm tắt thông số -->
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                   <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
-                  Tóm tắt quy mô phiếu nhập
+                  {{ type === 'import' ? 'Tóm tắt quy mô phiếu nhập' : 'Tóm tắt quy mô phiếu xuất' }}
                 </div>
                 <div style="font-size: 12.5px; color: var(--text-muted); display: flex; flex-direction: column; gap: 5px;">
                   <div>• Tổng số lượng: <strong style="color: var(--text-primary);">{{ getTotalQuantity() }}</strong> đơn vị sản phẩm</div>
                   <div>• Số chủng loại: <strong style="color: var(--text-primary);">{{ lineItems.length }}</strong> mặt hàng</div>
                   <div *ngIf="referenceCode">• Chứng từ kèm theo: <strong style="color: var(--accent); font-family: monospace;">{{ referenceCode }}</strong></div>
-                  <div *ngIf="recipientName">• Đối tác / Nhà cung cấp: <strong style="color: var(--text-primary);">{{ recipientName }}</strong></div>
+                  <div *ngIf="recipientName">• {{ type === 'import' ? 'Đối tác / Nhà cung cấp' : 'Đối tác / Khách hàng / Đơn vị nhận' }}: <strong style="color: var(--text-primary);">{{ recipientName }}</strong></div>
                 </div>
               </div>
 
@@ -767,7 +768,7 @@ export interface LineItem {
 
                 <!-- Tổng giá trị nhập kho / Thanh toán -->
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">Tổng thanh toán:</span>
+                  <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">{{ type === 'import' ? 'Tổng thanh toán:' : 'Tổng giá trị xuất kho:' }}</span>
                   <span style="font-size: 17px; font-weight: 800; color: #059669;">{{ formatCurrency(getFinalTotal()) }}</span>
                 </div>
               </div>
@@ -784,10 +785,8 @@ export interface LineItem {
             <span>Mã phiếu: <strong style="font-family: monospace; color: var(--text-primary);">{{ orderCode }}</strong></span>
             <span>•</span>
             <span>Tổng SP: <strong style="color: var(--text-primary);">{{ getTotalQuantity() }}</strong></span>
-            <ng-container *ngIf="type === 'import'">
-              <span>•</span>
-              <span>Tổng tiền: <strong style="color: #059669; font-size: 13px;">{{ formatCurrency(getFinalTotal()) }}</strong></span>
-            </ng-container>
+            <span>•</span>
+            <span>Tổng tiền: <strong style="color: #059669; font-size: 13px;">{{ formatCurrency(getFinalTotal()) }}</strong></span>
           </div>
 
           <!-- 3 Nút hành động cốt lõi -->
@@ -981,10 +980,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.taxRate = 0;
     this.shippingFee = '';
 
-    this.creatorName = 'Admin Quản Trị';
+    // Khởi tạo form trống hoàn toàn, không mock data
+    this.creatorName = '';
     this.recipientName = '';
-    this.transactionLocation = this.activeWarehouses[0]?.id || '';
-    this.transactionReason = this.type === 'export' ? 'Xuất bán lẻ / Dự án' : 'Nhập mua hàng từ Nhà cung cấp';
+    this.transactionLocation = '';
+    this.transactionReason = '';
     this.transactionDestination = '';
     this.transactionNote = '';
     this.showLocationDropdown = false;
@@ -995,15 +995,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.productSearchTerm = '';
     this.dropdownPositions = {};
 
-    // Khởi tạo mã phiếu
+    // Khởi tạo mã phiếu ban đầu
     this.generateOrderCode();
 
-    // Dòng sản phẩm ban đầu: nếu chưa có initialProductId thì để trống hoàn toàn để ô Biến thể bị Disable
-    const initialUnit = this.initialProductId ? this.inferUnit(this.getProductName(this.initialProductId)) : 'Chiếc';
+    // Dòng sản phẩm ban đầu: khởi tạo từ input nếu có
+    const initialProd = this.initialProductId || '';
+    const initialVar = this.initialVariantId || '';
+    const initialUnit = initialProd ? this.inferUnit(this.getProductName(initialProd)) : '';
+
     this.lineItems = [{
       id: Date.now().toString(),
-      productId: this.initialProductId || '',
-      variantId: this.initialVariantId || '',
+      productId: initialProd,
+      variantId: initialVar,
       quantity: '',
       price: '',
       unit: initialUnit,
@@ -1013,9 +1016,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       isVariantFixed: this.isVariantFixed,
     }];
 
-    // Nếu đã có initialProductId, chọn variant đầu tiên nếu chưa có
-    if (this.initialProductId && !this.initialVariantId) {
-      const vars = this.getVariantsForProduct(this.initialProductId);
+    // Nếu có initialProductId nhưng chưa có variantId, chọn variant đầu tiên
+    if (initialProd && !initialVar) {
+      const vars = this.getVariantsForProduct(initialProd);
       if (vars.length > 0) {
         this.lineItems[0].variantId = vars[0].id;
       }
@@ -1038,19 +1041,23 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   // --- LOGIC SINH MÃ PHIẾU XUẤT / NHẬP ---
   getPrefixForReasonText(reason: string): string {
-    const r = (reason || '').toLowerCase();
+    const r = (reason || '').toLowerCase().trim();
     if (this.type === 'import') {
+      if (!r) return 'PNK';
       if (r.includes('chuyển kho')) return 'PNK-CK';
       if (r.includes('trả lại') || r.includes('đổi trả') || r.includes('thu hồi')) return 'PNK-TH';
       if (r.includes('kiểm kê') || r.includes('dư')) return 'PNK-KK';
-      return 'PNK-NCC';
+      if (r.includes('nhà cung cấp') || r.includes('ncc') || r.includes('mua')) return 'PNK-NCC';
+      return 'PNK';
     }
+    if (!r) return 'PXK';
     if (r.includes('bán') || r.includes('dự án') || r.includes('khách')) return 'PXK-BH';
     if (r.includes('chuyển kho') || r.includes('luân chuyển')) return 'PXK-CK';
     if (r.includes('trả') || r.includes('ncc') || r.includes('nhà cung cấp')) return 'PXK-NCC';
     if (r.includes('hủy') || r.includes('hư hỏng') || r.includes('thất thoát')) return 'PXK-HUY';
     if (r.includes('nội bộ') || r.includes('trưng bày') || r.includes('mẫu')) return 'PXK-NB';
-    return 'PXK-KHAC';
+    if (r.includes('khác')) return 'PXK-KHAC';
+    return 'PXK';
   }
 
   generateOrderCode() {
@@ -1337,9 +1344,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getGridColumns() {
-    return this.type === 'import' 
-      ? 'minmax(180px, 1.4fr) minmax(140px, 1.1fr) 70px 65px 70px 110px 115px 110px 36px' 
-      : 'minmax(220px, 1.8fr) minmax(180px, 1.5fr) 85px 70px 75px 40px';
+    return 'minmax(180px, 1.4fr) minmax(140px, 1.1fr) 70px 65px 70px 110px 115px 110px 36px';
   }
 
   getQuantity(item: LineItem): number {
@@ -1422,7 +1427,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       variantId: '',
       quantity: '',
       price: '',
-      unit: 'Chiếc',
+      unit: '',
       lotNumber: '',
       expiryDate: '',
       isProductFixed: false,
@@ -1501,7 +1506,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     const discount = this.getDiscountValue();
     const tax = this.getTaxValue();
     const shipping = this.getShippingValue();
-    const finalTotal = isImport ? this.getFinalTotal() : 0;
+    const finalTotal = this.getFinalTotal();
 
     return {
       action,

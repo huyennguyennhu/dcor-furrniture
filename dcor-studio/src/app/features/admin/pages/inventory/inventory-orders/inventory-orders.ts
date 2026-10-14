@@ -120,12 +120,12 @@ export class InventoryOrdersComponent implements OnInit {
             }))
           }));
         } else {
-          this.initMockData();
+          this.data = [];
         }
       },
       error: (err) => {
-        console.warn('Could not fetch orders from API, using fallback data:', err);
-        this.initMockData();
+        console.warn('Could not fetch orders from API:', err);
+        this.data = [];
       }
     });
   }
