@@ -5,7 +5,7 @@ import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { 
   LucideAngularModule, 
-  Calendar, Download, ChevronDown, Package, Star, Link as LinkIcon, Search 
+  Calendar, Download, ChevronDown, Package, Star, Link as LinkIcon, Search, Tag, Layers, Filter, Activity 
 } from 'lucide-angular';
 
 const PIE_COLORS = ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71', '#9b59b6'];
@@ -110,7 +110,7 @@ const PRODUCT_PERFORMANCE = [
   styleUrls: ['./products-report.css']
 })
 export class ProductsReportComponent implements OnInit {
-  icons = { Calendar, Download, ChevronDown, Package, Star, LinkIcon, Search };
+  icons = { Calendar, Download, ChevronDown, Package, Star, LinkIcon, Search, Tag, Layers, Filter, Activity };
 
   timeRange = '7_days';
   showTimeDropdown = false;

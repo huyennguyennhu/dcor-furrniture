@@ -7,7 +7,8 @@ import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
   Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, Image as ImageIcon, X,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
+  Building2, Layers, Tag, RotateCcw
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../environments/environment';
@@ -48,7 +49,8 @@ export interface InventoryItem {
 export class InventoryComponent implements OnInit {
   icons = { 
     Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, ImageIcon, X,
-    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
+    Building2, Layers, Tag, RotateCcw
   };
 
   private http = inject(HttpClient);
@@ -97,10 +99,35 @@ export class InventoryComponent implements OnInit {
     totalProducts: 0
   };
 
+  // 1. Tìm tức thời
   searchTerm = '';
+
+  // 2. Chi nhánh / Kho
   locationFilter = 'Tất cả chi nhánh';
   showLocationDropdown = false;
-  locationOptions: string[] = ['Tất cả chi nhánh'];
+  locationOptions: string[] = [
+    'Tất cả chi nhánh',
+    'Kho Tổng (TP.HCM)',
+    'Kho Hà Nội',
+    'Showroom Quận 1',
+    'Showroom Thủ Đức'
+  ];
+
+  // 3. Trạng thái tồn
+  statusFilter = 'Tất cả trạng thái';
+  showStatusDropdown = false;
+  statusOptions: string[] = [
+    'Tất cả trạng thái',
+    'Còn hàng',
+    'Sắp hết hàng',
+    'Hết hàng'
+  ];
+
+  // 4. Danh mục cấp 1 & cấp 2
+  categoryFilter = 'Tất cả danh mục';
+  selectedCategoryId = '';
+  showCategoryDropdown = false;
+  categoriesTree: any[] = [];
 
   // Modal
   modalConfig = {
@@ -120,6 +147,7 @@ export class InventoryComponent implements OnInit {
 
   ngOnInit() {
     this.fetchWarehouses();
+    this.fetchCategories();
     this.fetchOverview();
   }
 
@@ -127,12 +155,29 @@ export class InventoryComponent implements OnInit {
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/warehouses`).subscribe({
       next: (warehouses) => {
         if (Array.isArray(warehouses) && warehouses.length > 0) {
-          this.locationOptions = ['Tất cả chi nhánh', ...warehouses.map(w => w.name)];
+          const names = warehouses.map(w => w.name);
+          // Đảm bảo các tùy chọn theo yêu cầu và thêm kho từ DB nếu có mới
+          const merged = new Set(['Tất cả chi nhánh', 'Kho Tổng (TP.HCM)', 'Kho Hà Nội', 'Showroom Quận 1', 'Showroom Thủ Đức', ...names]);
+          this.locationOptions = Array.from(merged);
           this.cdr.markForCheck();
         }
       },
       error: (err) => {
         console.warn('Could not fetch warehouses:', err);
+      }
+    });
+  }
+
+  fetchCategories() {
+    this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/categories`).subscribe({
+      next: (cats) => {
+        if (Array.isArray(cats)) {
+          this.categoriesTree = cats;
+          this.cdr.markForCheck();
+        }
+      },
+      error: (err) => {
+        console.warn('Could not fetch categories:', err);
       }
     });
   }
@@ -148,6 +193,12 @@ export class InventoryComponent implements OnInit {
     }
     if (this.searchTerm.trim()) {
       params.search = this.searchTerm.trim();
+    }
+    if (this.statusFilter && this.statusFilter !== 'Tất cả trạng thái') {
+      params.stockStatus = this.statusFilter;
+    }
+    if (this.selectedCategoryId) {
+      params.categoryId = this.selectedCategoryId;
     }
 
     this.http.get<any>(`${environment.apiUrl}/admin/inventory/overview`, { params }).subscribe({
@@ -184,6 +235,45 @@ export class InventoryComponent implements OnInit {
   onSelectLocation(location: string) {
     this.locationFilter = location;
     this.showLocationDropdown = false;
+    this.currentPage = 1;
+    this.fetchOverview();
+  }
+
+  onSelectStatus(status: string) {
+    this.statusFilter = status;
+    this.showStatusDropdown = false;
+    this.currentPage = 1;
+    this.fetchOverview();
+  }
+
+  onSelectCategory(cat: any, parentName?: string) {
+    if (!cat) {
+      this.categoryFilter = 'Tất cả danh mục';
+      this.selectedCategoryId = '';
+    } else {
+      this.categoryFilter = parentName ? `${parentName} > ${cat.name}` : cat.name;
+      this.selectedCategoryId = cat.id;
+    }
+    this.showCategoryDropdown = false;
+    this.currentPage = 1;
+    this.fetchOverview();
+  }
+
+  hasActiveFilters(): boolean {
+    return Boolean(
+      this.searchTerm.trim() ||
+      this.locationFilter !== 'Tất cả chi nhánh' ||
+      this.statusFilter !== 'Tất cả trạng thái' ||
+      this.selectedCategoryId
+    );
+  }
+
+  resetFilters() {
+    this.searchTerm = '';
+    this.locationFilter = 'Tất cả chi nhánh';
+    this.statusFilter = 'Tất cả trạng thái';
+    this.categoryFilter = 'Tất cả danh mục';
+    this.selectedCategoryId = '';
     this.currentPage = 1;
     this.fetchOverview();
   }
@@ -238,6 +328,12 @@ export class InventoryComponent implements OnInit {
     const target = event.target as HTMLElement;
     if (!target.closest('.location-filter-wrapper')) {
       this.showLocationDropdown = false;
+    }
+    if (!target.closest('.status-filter-wrapper')) {
+      this.showStatusDropdown = false;
+    }
+    if (!target.closest('.category-filter-wrapper')) {
+      this.showCategoryDropdown = false;
     }
     if (!target.closest('.variant-dropdown-wrapper')) {
       this.openVariantDropdown = null;

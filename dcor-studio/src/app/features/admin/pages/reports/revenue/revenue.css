@@ -58,3 +58,96 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   DROPDOWN & BỘ LỌC DOANH THU
+   ========================================================================== */
+.revenue-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  min-width: 160px;
+  width: 100%;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.revenue-filter-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+.revenue-filter-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.revenue-compare-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.revenue-compare-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+.revenue-compare-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.revenue-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  padding: 4px;
+}
+
+.revenue-dropdown-item {
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  background: transparent;
+  color: var(--text-primary);
+  transition: background 0.12s ease;
+}
+
+.revenue-dropdown-item:hover {
+  background: var(--bg-secondary);
+}
+
+.revenue-dropdown-item.selected {
+  color: var(--accent);
+  font-weight: 600;
+}

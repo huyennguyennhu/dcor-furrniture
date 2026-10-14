@@ -6,6 +6,9 @@ const router = Router();
 // Warehouses & Branches
 router.get('/warehouses', inventoryController.getWarehouses);
 
+// Categories (Cấp 1 & Cấp 2)
+router.get('/categories', inventoryController.getCategories);
+
 // Inventory Overview (Tab 1: Tổng quan kho)
 router.get('/overview', inventoryController.getInventoryOverview);
 

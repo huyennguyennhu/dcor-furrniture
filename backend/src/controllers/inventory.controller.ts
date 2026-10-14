@@ -10,6 +10,8 @@ let cachedWarehouses: any[] = [
   { id: 'eec08fe7-3c73-4e29-b124-4001e51eaed7', code: 'SR_THU_DUC', name: 'Showroom Thủ Đức', type: 'SHOWROOM' }
 ];
 
+let cachedCategories: any[] = [];
+
 interface OverviewSummary {
   totalPhysicalStock: number;
   totalReservedStock: number;
@@ -21,6 +23,82 @@ interface OverviewSummary {
 }
 
 const summaryCache = new Map<string, { data: OverviewSummary; timestamp: number }>();
+
+function mapProductToInventoryItem(prod: any, warehouseId?: string) {
+  let prodPhysical = 0;
+  let prodReserved = 0;
+
+  const variants = prod.variants.map((v: any) => {
+    let vPhysical = v.stock || 0;
+    let vReserved = v.reservedStock || 0;
+
+    if (warehouseId && warehouseId !== 'all' && warehouseId !== 'Tất cả chi nhánh') {
+      const whStock = v.warehouseStocks?.find((ws: any) =>
+        ws.warehouseId === warehouseId || ws.warehouse?.name === warehouseId
+      );
+      if (whStock) {
+        vPhysical = whStock.physicalStock;
+        vReserved = whStock.reservedStock;
+      } else {
+        vPhysical = Math.floor(vPhysical / 4);
+        vReserved = Math.floor(vReserved / 4);
+      }
+    }
+
+    const vAvailable = Math.max(0, vPhysical - vReserved);
+    prodPhysical += vPhysical;
+    prodReserved += vReserved;
+
+    return {
+      id: v.id,
+      sku: v.sku,
+      name: v.name,
+      price: v.price,
+      physical: vPhysical,
+      reserved: vReserved,
+      available: vAvailable,
+      threshold: 5
+    };
+  });
+
+  const prodAvailable = Math.max(0, prodPhysical - prodReserved);
+  const threshold = 15;
+  let status = 'Còn hàng';
+  if (prodAvailable <= 0) {
+    status = 'Hết hàng';
+  } else if (prodAvailable <= threshold) {
+    status = 'Sắp hết hàng';
+  } else {
+    status = 'Còn hàng';
+  }
+
+  let image = '';
+  if (Array.isArray(prod.images) && prod.images.length > 0) {
+    image = (prod.images[0] as string) || '';
+  } else if (typeof prod.images === 'string') {
+    try {
+      const parsed = JSON.parse(prod.images);
+      image = Array.isArray(parsed) ? parsed[0] : prod.images;
+    } catch {
+      image = prod.images;
+    }
+  }
+
+  return {
+    id: prod.id,
+    sku: prod.variants[0]?.sku || `SKU-${prod.id.slice(0, 8)}`,
+    productName: prod.name,
+    category: prod.category?.name || 'Nội thất',
+    image,
+    location: warehouseId && warehouseId !== 'all' && warehouseId !== 'Tất cả chi nhánh' ? warehouseId : 'Toàn hệ thống',
+    physicalStock: prodPhysical,
+    reservedStock: prodReserved,
+    availableStock: prodAvailable,
+    threshold,
+    status,
+    variants
+  };
+}
 
 export const inventoryController = {
   // 1. Lấy danh sách Kho / Chi nhánh thực tế
@@ -40,11 +118,36 @@ export const inventoryController = {
     }
   },
 
-  // 1b. Lấy dữ liệu Tổng quan kho thực tế từ Supabase (có phân trang 10 sp/trang)
+  // 1b. Lấy danh sách Danh mục cấp 1 & cấp 2 cho bộ lọc
+  getCategories: async (req: Request, res: Response) => {
+    try {
+      const categories = await prisma.category.findMany({
+        where: { parentId: null, isActive: true },
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: { name: 'asc' }
+          }
+        },
+        orderBy: { name: 'asc' }
+      });
+      if (categories && categories.length > 0) {
+        cachedCategories = categories;
+      }
+      res.json(categories.length > 0 ? categories : cachedCategories);
+    } catch (error) {
+      console.warn('Temporary connection issue fetching categories, using cache:', (error as any)?.message);
+      res.json(cachedCategories);
+    }
+  },
+
+  // 1c. Lấy dữ liệu Tổng quan kho thực tế từ Supabase (có phân trang 10 sp/trang)
   getInventoryOverview: async (req: Request, res: Response) => {
     try {
       const warehouseId = req.query.warehouseId as string | undefined;
       const search = (req.query.search as string || '').trim();
+      const categoryId = req.query.categoryId as string | undefined;
+      const stockStatus = (req.query.stockStatus as string || req.query.status as string || '').trim();
       const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
       const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 10);
       const skip = (page - 1) * limit;
@@ -143,21 +246,54 @@ export const inventoryController = {
 
       // Điều kiện lọc sản phẩm cho bảng
       const whereCondition: any = {
-        isActive: true,
-        ...(search ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } }
-          ]
-        } : {})
+        isActive: true
       };
 
-      const needWhStocksInList = Boolean(warehouseId && warehouseId !== 'all' && warehouseId !== 'Tất cả chi nhánh');
+      // 1. Tìm tức thời theo Tên sản phẩm, Mã SKU, Danh mục
+      if (search) {
+        whereCondition.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { variants: { some: { sku: { contains: search, mode: 'insensitive' } } } },
+          { category: { name: { contains: search, mode: 'insensitive' } } },
+          { category: { parent: { name: { contains: search, mode: 'insensitive' } } } }
+        ];
+      }
 
-      // Đếm tổng số và phân trang chỉ lấy 10 sản phẩm
-      const [totalItems, products] = await Promise.all([
-        search ? prisma.product.count({ where: whereCondition }) : Promise.resolve(summary.totalProducts),
-        prisma.product.findMany({
+      // 2. Lọc theo danh mục cấp 1, cấp 2
+      if (categoryId && categoryId !== 'all' && categoryId !== 'Tất cả danh mục') {
+        try {
+          const selectedCat = await prisma.category.findFirst({
+            where: {
+              OR: [
+                { id: categoryId },
+                { name: { equals: categoryId, mode: 'insensitive' } }
+              ]
+            },
+            include: { children: { select: { id: true } } }
+          });
+
+          if (selectedCat) {
+            if (selectedCat.children && selectedCat.children.length > 0) {
+              const childIds = selectedCat.children.map(c => c.id);
+              whereCondition.categoryId = { in: [selectedCat.id, ...childIds] };
+            } else {
+              whereCondition.categoryId = selectedCat.id;
+            }
+          }
+        } catch (catErr) {
+          console.warn('Could not resolve category filter:', catErr);
+        }
+      }
+
+      const needWhStocksInList = Boolean(warehouseId && warehouseId !== 'all' && warehouseId !== 'Tất cả chi nhánh');
+      const hasStatusFilter = Boolean(stockStatus && stockStatus !== 'Tất cả trạng thái');
+
+      let totalItems = 0;
+      let items: any[] = [];
+
+      if (hasStatusFilter) {
+        // Lấy tất cả ứng viên khớp điều kiện tìm kiếm và danh mục để tính toán trạng thái tồn chính xác
+        const matchedProducts = await prisma.product.findMany({
           where: whereCondition,
           include: {
             category: { select: { id: true, name: true } },
@@ -171,87 +307,41 @@ export const inventoryController = {
               orderBy: { name: 'asc' }
             }
           },
-          skip,
-          take: limit,
           orderBy: { createdAt: 'desc' }
-        })
-      ]);
-
-      const items = products.map((prod) => {
-        let prodPhysical = 0;
-        let prodReserved = 0;
-
-        const variants = prod.variants.map((v) => {
-          let vPhysical = v.stock || 0;
-          let vReserved = v.reservedStock || 0;
-
-          if (warehouseId && warehouseId !== 'all' && warehouseId !== 'Tất cả chi nhánh') {
-            const whStock = (v as any).warehouseStocks?.find((ws: any) =>
-              ws.warehouseId === warehouseId || ws.warehouse?.name === warehouseId
-            );
-            if (whStock) {
-              vPhysical = whStock.physicalStock;
-              vReserved = whStock.reservedStock;
-            } else {
-              vPhysical = Math.floor(vPhysical / 4);
-              vReserved = Math.floor(vReserved / 4);
-            }
-          }
-
-          const vAvailable = Math.max(0, vPhysical - vReserved);
-          prodPhysical += vPhysical;
-          prodReserved += vReserved;
-
-          return {
-            id: v.id,
-            sku: v.sku,
-            name: v.name,
-            price: v.price,
-            physical: vPhysical,
-            reserved: vReserved,
-            available: vAvailable,
-            threshold: 5
-          };
         });
 
-        const prodAvailable = Math.max(0, prodPhysical - prodReserved);
-        const threshold = 15;
-        let status = 'Tốt';
-        if (prodAvailable <= 0) {
-          status = 'Hết hàng';
-        } else if (prodAvailable <= threshold) {
-          status = 'Sắp hết';
-        } else {
-          status = 'Tốt';
-        }
+        const allMapped = matchedProducts.map(p => mapProductToInventoryItem(p, warehouseId));
+        const filtered = allMapped.filter(item => item.status === stockStatus);
+        totalItems = filtered.length;
+        items = filtered.slice(skip, skip + limit);
+      } else {
+        const [count, products] = await Promise.all([
+          (search || (categoryId && categoryId !== 'all' && categoryId !== 'Tất cả danh mục'))
+            ? prisma.product.count({ where: whereCondition })
+            : Promise.resolve(summary.totalProducts),
+          prisma.product.findMany({
+            where: whereCondition,
+            include: {
+              category: { select: { id: true, name: true } },
+              variants: {
+                where: { isActive: true },
+                include: needWhStocksInList ? {
+                  warehouseStocks: {
+                    include: { warehouse: true }
+                  }
+                } : undefined,
+                orderBy: { name: 'asc' }
+              }
+            },
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' }
+          })
+        ]);
 
-        let image = '';
-        if (Array.isArray(prod.images) && prod.images.length > 0) {
-          image = (prod.images[0] as string) || '';
-        } else if (typeof prod.images === 'string') {
-          try {
-            const parsed = JSON.parse(prod.images);
-            image = Array.isArray(parsed) ? parsed[0] : prod.images;
-          } catch {
-            image = prod.images;
-          }
-        }
-
-        return {
-          id: prod.id,
-          sku: prod.variants[0]?.sku || `SKU-${prod.id.slice(0, 8)}`,
-          productName: prod.name,
-          category: prod.category?.name || 'Nội thất',
-          image,
-          location: warehouseId && warehouseId !== 'all' ? warehouseId : 'Toàn hệ thống',
-          physicalStock: prodPhysical,
-          reservedStock: prodReserved,
-          availableStock: prodAvailable,
-          threshold,
-          status,
-          variants
-        };
-      });
+        totalItems = count;
+        items = products.map(p => mapProductToInventoryItem(p, warehouseId));
+      }
 
       res.json({
         summary,
