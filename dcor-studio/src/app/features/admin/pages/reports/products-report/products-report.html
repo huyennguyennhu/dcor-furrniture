@@ -161,7 +161,7 @@
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng sản phẩm</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">690</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.totalProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
         Toàn hệ thống
       </div>
@@ -169,15 +169,15 @@
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Đang bán</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">580</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.activeProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">+15</span> SP mới tuần này
+        <span style="color: #2ecc71; font-weight: 600;">Sẵn sàng kinh doanh</span>
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Gần hết hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">24</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.lowStockProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
         <span style="color: #f1c40f; font-weight: 600;">&lt; 5</span> tồn kho
       </div>
@@ -185,7 +185,7 @@
 
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Hết hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">12</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.outOfStockProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
         <span style="color: #e74c3c; font-weight: 600;">0</span> tồn kho
       </div>
@@ -193,17 +193,9 @@
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">SP Bán chạy nhất</div>
-      <div style="font-size: 16px; font-weight: 700; margin: 14px 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Sofa Indivi</div>
+      <div style="font-size: 15px; font-weight: 700; margin: 12px 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="kpi.bestSellerName">{{ kpi.bestSellerName }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        124 lượt bán
-      </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Giá bán TB</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">3,650K</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Toàn bộ danh mục
+        {{ kpi.bestSellerCount }} lượt bán
       </div>
     </div>
   </div>

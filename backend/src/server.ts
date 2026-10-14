@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.routes';
 import cartRoutes from './routes/cart.routes';
 import inventoryRoutes from './routes/inventory.routes';
+import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 
@@ -40,6 +41,9 @@ app.use('/api/admin/inventory', inventoryRoutes);
 app.use('/api/admin/warehouses', (req, res, next) => {
   res.redirect('/api/admin/inventory/warehouses');
 });
+
+// Gắn router báo cáo & thống kê
+app.use('/api/admin/reports', reportRoutes);
 
 // Example route
 app.get('/api/products', async (req, res) => {

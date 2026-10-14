@@ -45,9 +45,9 @@
       </div>
       
       <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0; height: 41px; box-sizing: border-box;">
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-01" />
+        <input type="date" [(ngModel)]="startDate" (change)="loadOrdersData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
         <span style="font-size: 13px; color: var(--text-muted);">-</span>
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-07" />
+        <input type="date" [(ngModel)]="endDate" (change)="loadOrdersData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
       </div>
     </div>
     
@@ -135,47 +135,47 @@
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng đơn hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">925</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.totalOrders }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">+12.5%</span> vs tháng trước
+        <span style="color: #2ecc71; font-weight: 600;">Toàn bộ kỳ</span>
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Hoàn thành</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">680</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.completedOrders }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        73.5% tổng đơn
+        {{ kpi.completedRate }}% tổng đơn
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Đang xử lý</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">120</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.processingOrders }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Cần đóng gói
+        Đang giao & xử lý
       </div>
     </div>
 
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Đã hủy</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">45</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.cancelledOrders }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Hủy bởi khách hàng
+        Đơn hủy
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tỷ lệ hủy</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">4.8%</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.cancelRate }}%</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #e74c3c; font-weight: 600;">+0.5%</span> vs tháng trước
+        Theo tổng đơn
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">TG Xử lý TB</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">4.2 giờ</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.avgProcessingHours }} giờ</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
         Từ lúc đặt đến lúc giao
       </div>

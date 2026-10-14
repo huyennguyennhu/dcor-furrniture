@@ -57,9 +57,9 @@
       </div>
       
       <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0; height: 41px; box-sizing: border-box;">
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-01" />
+        <input type="date" [(ngModel)]="startDate" (change)="loadReportData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
         <span style="font-size: 13px; color: var(--text-muted);">-</span>
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-07" />
+        <input type="date" [(ngModel)]="endDate" (change)="loadReportData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
       </div>
     </div>
     
@@ -146,41 +146,41 @@
   <div class="kpi-grid">
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng doanh thu</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">1,248,500K</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.totalRevenue) }}</div>
       <div style="font-size: 12px; color: #2ecc71; display: flex; align-items: center; gap: 4px;">
-        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> +15.4% so với kỳ trước
+        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> {{ kpi.growthRate >= 0 ? '+' : '' }}{{ kpi.growthRate }}% so với kỳ trước
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Doanh thu thuần</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">1,120,000K</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.netRevenue) }}</div>
       <div style="font-size: 12px; color: #2ecc71; display: flex; align-items: center; gap: 4px;">
-        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> +12.1% so với kỳ trước
+        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> {{ kpi.growthRate >= 0 ? '+' : '' }}{{ kpi.growthRate }}% so với kỳ trước
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Trung bình/ngày</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">41,616K</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.dailyAverage) }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Dựa trên 30 ngày
+        Theo thời gian lọc
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Giá trị ĐH TB (AOV)</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">3,650K</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.aov) }}</div>
       <div style="font-size: 12px; color: #2ecc71; display: flex; align-items: center; gap: 4px;">
-        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> +2.5% so với kỳ trước
+        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> Doanh thu / số đơn
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tăng trưởng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">15.4%</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.growthRate }}%</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Vượt mục tiêu 5.4%
+        So với kỳ trước
       </div>
     </div>
   </div>

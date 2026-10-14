@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
@@ -7,68 +7,9 @@ import {
   LucideAngularModule, 
   Calendar, Download, ChevronDown, Filter, Truck, CreditCard, Activity 
 } from 'lucide-angular';
+import { ReportService, OrdersReportData } from '../../../../../core/services/report.service';
 
 const PIE_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e74c3c'];
-
-const ORDERS_DATA_MAP: Record<string, any[]> = {
-  'today': [
-    { name: '00:00', total: 10, completed: 8 },
-    { name: '06:00', total: 25, completed: 20 },
-    { name: '12:00', total: 45, completed: 35 },
-    { name: '18:00', total: 30, completed: 25 },
-  ],
-  '7_days': [
-    { name: '01/08', total: 40, completed: 35 },
-    { name: '02/08', total: 30, completed: 28 },
-    { name: '03/08', total: 55, completed: 50 },
-    { name: '04/08', total: 42, completed: 38 },
-    { name: '05/08', total: 48, completed: 45 },
-    { name: '06/08', total: 60, completed: 55 },
-    { name: '07/08', total: 67, completed: 62 },
-  ],
-  'month': [
-    { name: 'Tuần 1', total: 200, completed: 180 },
-    { name: 'Tuần 2', total: 250, completed: 230 },
-    { name: 'Tuần 3', total: 220, completed: 200 },
-    { name: 'Tuần 4', total: 300, completed: 280 },
-  ]
-};
-
-const ORDER_STATUS = [
-  { name: 'Hoàn thành', value: 680 },
-  { name: 'Đang xử lý', value: 120 },
-  { name: 'Chờ thanh toán', value: 80 },
-  { name: 'Đã hủy', value: 45 },
-];
-
-const PAYMENT_METHODS = [
-  { name: 'COD', value: 450 },
-  { name: 'Chuyển khoản', value: 320 },
-  { name: 'Thẻ tín dụng', value: 120 },
-  { name: 'Ví điện tử', value: 35 },
-];
-
-const SHIPPING_METHODS = [
-  { name: 'Giao hàng tiêu chuẩn', value: 600 },
-  { name: 'Giao hàng hỏa tốc', value: 250 },
-  { name: 'Nhận tại cửa hàng', value: 75 },
-];
-
-const LOCATION_DATA = [
-  { name: 'TP.HCM', value: 450 },
-  { name: 'Hà Nội', value: 320 },
-  { name: 'Đà Nẵng', value: 120 },
-  { name: 'Đồng Nai', value: 85 },
-  { name: 'Bình Dương', value: 65 },
-];
-
-const TOP_ORDERS = [
-  { id: '#ORD-0012', customer: 'Nguyễn Văn A', items: 3, total: '45,000,000 ₫', status: 'Hoàn thành', date: '07/08/2026' },
-  { id: '#ORD-0084', customer: 'Trần Thị B', items: 5, total: '32,500,000 ₫', status: 'Đang xử lý', date: '07/08/2026' },
-  { id: '#ORD-0105', customer: 'Lê Văn C', items: 2, total: '28,000,000 ₫', status: 'Hoàn thành', date: '06/08/2026' },
-  { id: '#ORD-0042', customer: 'Phạm Thị D', items: 1, total: '15,000,000 ₫', status: 'Đã hủy', date: '05/08/2026' },
-  { id: '#ORD-0199', customer: 'Hoàng Văn E', items: 4, total: '12,500,000 ₫', status: 'Hoàn thành', date: '05/08/2026' },
-];
 
 @Component({
   selector: 'app-orders-report',
@@ -81,6 +22,10 @@ const TOP_ORDERS = [
 export class OrdersComponent implements OnInit {
   icons = { Calendar, Download, ChevronDown, Filter, Truck, CreditCard, Activity };
 
+  private reportService = inject(ReportService);
+  private cdr = inject(ChangeDetectorRef);
+
+  isLoading = false;
   timeRange = '7_days';
   showTimeDropdown = false;
   
@@ -90,7 +35,7 @@ export class OrdersComponent implements OnInit {
 
   payment = 'Tất cả thanh toán';
   showPaymentDropdown = false;
-  payments = ['Tất cả thanh toán', 'COD', 'Chuyển khoản', 'Thẻ tín dụng', 'Ví điện tử'];
+  payments = ['Tất cả thanh toán', 'COD', 'VNPAY', 'BANK_TRANSFER'];
 
   shipping = 'Tất cả vận chuyển';
   showShippingDropdown = false;
@@ -100,6 +45,19 @@ export class OrdersComponent implements OnInit {
   showIntervalDropdown = false;
   intervals = ['Giờ', 'Ngày', 'Tuần', 'Tháng'];
 
+  startDate: string = '';
+  endDate: string = '';
+
+  kpi = {
+    totalOrders: 0,
+    completedOrders: 0,
+    completedRate: 0,
+    processingOrders: 0,
+    cancelledOrders: 0,
+    cancelRate: 0,
+    avgProcessingHours: 4.2
+  };
+
   TIME_LABELS: Record<string, string> = {
     'today': 'Hôm nay',
     '7_days': '7 ngày qua',
@@ -108,7 +66,7 @@ export class OrdersComponent implements OnInit {
   };
   timeLabelKeys = Object.keys(this.TIME_LABELS);
 
-  topOrders = TOP_ORDERS;
+  topOrders: any[] = [];
 
   @ViewChild('filterRef', { static: false }) filterRef!: ElementRef;
 
@@ -206,7 +164,7 @@ export class OrdersComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.updateCharts();
+    this.loadOrdersData();
   }
 
   toggleDropdown(name: string, event: Event) {
@@ -219,83 +177,106 @@ export class OrdersComponent implements OnInit {
   }
 
   setDropdownValue(type: string, value: string) {
-    if (type === 'time') { this.timeRange = value; this.showTimeDropdown = false; this.updateCharts(); }
+    if (type === 'time') { this.timeRange = value; this.showTimeDropdown = false; }
     if (type === 'status') { this.status = value; this.showStatusDropdown = false; }
     if (type === 'payment') { this.payment = value; this.showPaymentDropdown = false; }
     if (type === 'shipping') { this.shipping = value; this.showShippingDropdown = false; }
     if (type === 'interval') { this.interval = value; this.showIntervalDropdown = false; }
+    this.loadOrdersData();
   }
 
-  updateCharts() {
-    const ordersData = ORDERS_DATA_MAP[this.timeRange] || ORDERS_DATA_MAP['7_days'];
-    
-    // Line Chart
-    this.lineChartData = {
-      labels: ordersData.map(d => d.name),
-      datasets: [
-        {
-          data: ordersData.map(d => d.total),
-          label: 'Tổng đơn',
-          borderColor: '#3498db',
-          backgroundColor: '#3498db',
-          borderWidth: 3,
-          pointBackgroundColor: '#3498db',
-        },
-        {
-          data: ordersData.map(d => d.completed),
-          label: 'Hoàn thành',
-          borderColor: '#2ecc71',
-          backgroundColor: '#2ecc71',
-          borderWidth: 3,
-          pointBackgroundColor: '#2ecc71',
-        }
-      ]
-    };
+  loadOrdersData() {
+    this.isLoading = true;
+    this.reportService.getOrdersReport({
+      timeRange: this.timeRange,
+      status: this.status !== 'Tất cả trạng thái' ? this.status : undefined,
+      payment: this.payment !== 'Tất cả thanh toán' ? this.payment : undefined,
+      shipping: this.shipping !== 'Tất cả vận chuyển' ? this.shipping : undefined,
+      interval: this.interval,
+      startDate: this.startDate,
+      endDate: this.endDate
+    }).subscribe({
+      next: (data) => {
+        this.kpi = data.kpi;
+        this.topOrders = data.topOrders || [];
 
-    // Pie Chart
-    this.pieChartData = {
-      labels: ORDER_STATUS.map(d => d.name),
-      datasets: [{
-        data: ORDER_STATUS.map(d => d.value),
-        backgroundColor: PIE_COLORS,
-        borderWidth: 0
-      }]
-    };
+        // Line Chart: Đơn hàng theo thời gian
+        this.lineChartData = {
+          labels: data.chart.labels,
+          datasets: [
+            {
+              data: data.chart.total,
+              label: 'Tổng đơn',
+              borderColor: '#3498db',
+              backgroundColor: '#3498db',
+              borderWidth: 3,
+              pointBackgroundColor: '#3498db',
+            },
+            {
+              data: data.chart.completed,
+              label: 'Hoàn thành',
+              borderColor: '#2ecc71',
+              backgroundColor: '#2ecc71',
+              borderWidth: 3,
+              pointBackgroundColor: '#2ecc71',
+            }
+          ]
+        };
 
-    // Payment Chart
-    this.paymentChartData = {
-      labels: PAYMENT_METHODS.map(d => d.name),
-      datasets: [{
-        data: PAYMENT_METHODS.map(d => d.value),
-        label: 'Đơn hàng',
-        backgroundColor: '#34495e',
-        borderRadius: [4, 4, 0, 0],
-        barPercentage: 0.6
-      }]
-    };
+        // Pie Chart: Trạng thái đơn hàng
+        this.pieChartData = {
+          labels: data.byStatus.map(d => d.name),
+          datasets: [{
+            data: data.byStatus.map(d => d.value),
+            backgroundColor: PIE_COLORS.slice(0, data.byStatus.length),
+            borderWidth: 0
+          }]
+        };
 
-    // Shipping Chart
-    this.shippingChartData = {
-      labels: SHIPPING_METHODS.map(d => d.name),
-      datasets: [{
-        data: SHIPPING_METHODS.map(d => d.value),
-        label: 'Đơn hàng',
-        backgroundColor: '#9b59b6',
-        borderRadius: [4, 4, 0, 0],
-        barPercentage: 0.6
-      }]
-    };
-    
-    // Location Chart
-    this.locationChartData = {
-      labels: LOCATION_DATA.map(d => d.name),
-      datasets: [{
-        data: LOCATION_DATA.map(d => d.value),
-        label: 'Đơn hàng',
-        backgroundColor: '#e67e22',
-        borderRadius: [4, 4, 0, 0],
-        barPercentage: 0.6
-      }]
-    };
+        // Payment Chart: Phương thức thanh toán
+        this.paymentChartData = {
+          labels: data.byPaymentMethod.map(d => d.name),
+          datasets: [{
+            data: data.byPaymentMethod.map(d => d.value),
+            label: 'Đơn hàng',
+            backgroundColor: '#34495e',
+            borderRadius: [4, 4, 0, 0],
+            barPercentage: 0.6
+          }]
+        };
+
+        // Shipping Chart: Phương thức vận chuyển
+        this.shippingChartData = {
+          labels: data.byShippingMethod.map(d => d.name),
+          datasets: [{
+            data: data.byShippingMethod.map(d => d.value),
+            label: 'Đơn hàng',
+            backgroundColor: '#9b59b6',
+            borderRadius: [4, 4, 0, 0],
+            barPercentage: 0.6
+          }]
+        };
+        
+        // Location Chart: Đơn theo Tỉnh thành
+        this.locationChartData = {
+          labels: data.byLocation.map(d => d.name),
+          datasets: [{
+            data: data.byLocation.map(d => d.value),
+            label: 'Đơn hàng',
+            backgroundColor: '#e67e22',
+            borderRadius: [4, 4, 0, 0],
+            barPercentage: 0.6
+          }]
+        };
+
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Lỗi tải báo cáo đơn hàng thực tế:', err);
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 }
