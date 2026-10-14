@@ -24,6 +24,41 @@ interface OverviewSummary {
 
 const summaryCache = new Map<string, { data: OverviewSummary; timestamp: number }>();
 
+function resolveVariantNameAndImage(v: any, prod: any) {
+  let nameParts: string[] = [];
+  let variantImage = '';
+
+  const configOptions = prod?.configOptions?.attributes || prod?.configOptions || [];
+  if (Array.isArray(configOptions) && v.optionValues && typeof v.optionValues === 'object') {
+    for (const group of configOptions) {
+      const valId = v.optionValues[group.groupId];
+      if (valId !== undefined && Array.isArray(group.options)) {
+        const matched = group.options.find((opt: any) => String(opt.id) === String(valId));
+        if (matched) {
+          nameParts.push(matched.name);
+          if (!variantImage && (matched.imageUrl || matched.image)) {
+            variantImage = matched.imageUrl || matched.image;
+          }
+        }
+      }
+    }
+  }
+
+  let finalName = v.name || '';
+  if (nameParts.length > 0) {
+    finalName = nameParts.join(' / ');
+  } else if (finalName.includes('(Tiêu chuẩn)')) {
+    finalName = 'Tiêu chuẩn';
+  } else if (finalName === prod?.name) {
+    finalName = 'Tiêu chuẩn';
+  }
+
+  return {
+    name: finalName,
+    image: variantImage || v.image || (v as any).imageUrl || (Array.isArray(prod?.images) ? prod.images[0] : '') || prod?.thumbnail || ''
+  };
+}
+
 function mapProductToInventoryItem(prod: any, warehouseId?: string) {
   let prodPhysical = 0;
   let prodReserved = 0;
@@ -53,22 +88,24 @@ function mapProductToInventoryItem(prod: any, warehouseId?: string) {
     if (vAvailable <= 0) {
       vStatus = 'Hết hàng';
     } else if (vAvailable <= vThreshold) {
-      vStatus = 'Sắp hết';
+      vStatus = 'Sắp hết hàng';
     } else {
       vStatus = 'Còn hàng';
     }
 
+    const resolved = resolveVariantNameAndImage(v, prod);
+
     return {
       id: v.id,
       sku: v.sku,
-      name: v.name,
+      name: resolved.name,
       price: v.price,
       physical: vPhysical,
       reserved: vReserved,
       available: vAvailable,
       threshold: vThreshold,
       status: vStatus,
-      image: v.image || (v as any).imageUrl || prod.images?.[0] || prod.thumbnail || ''
+      image: resolved.image
     };
   });
 
@@ -395,6 +432,7 @@ export const inventoryController = {
               price: true,
               stock: true,
               reservedStock: true,
+              optionValues: true,
               warehouseStocks: {
                 select: {
                   warehouseId: true,
@@ -413,7 +451,15 @@ export const inventoryController = {
       });
       const formatted = products.map((p: any) => ({
         ...p,
-        sku: p.variants?.[0]?.sku || `SKU-${p.id.slice(0, 8).toUpperCase()}`
+        sku: p.variants?.[0]?.sku || `SKU-${p.id.slice(0, 8).toUpperCase()}`,
+        variants: (p.variants || []).map((v: any) => {
+          const resolved = resolveVariantNameAndImage(v, p);
+          return {
+            ...v,
+            name: resolved.name,
+            image: resolved.image
+          };
+        })
       }));
       res.json(formatted);
     } catch (error) {
@@ -874,6 +920,17 @@ export const inventoryController = {
         orderBy: { createdAt: 'desc' },
         take: 50
       });
+
+      if (product && product.variants) {
+        product.variants = product.variants.map((v: any) => {
+          const resolved = resolveVariantNameAndImage(v, product);
+          return {
+            ...v,
+            name: resolved.name,
+            image: resolved.image
+          };
+        });
+      }
 
       res.json({
         product,

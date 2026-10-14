@@ -6,7 +6,7 @@ import {
   LucideAngularModule, 
   X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
   Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-  CheckSquare, Square
+  CheckSquare, Square, Package, Percent
 } from 'lucide-angular';
 import { environment } from '../../../../../environments/environment';
 
@@ -47,6 +47,109 @@ export interface LineItem {
     .custom-dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
       background: #765337;
     }
+    .filter-dropdown-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .filter-trigger-btn {
+      width: 100%;
+      height: 38px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+      padding: 0 7px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 12.5px;
+      transition: all 0.15s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .filter-trigger-btn:hover {
+      border-color: var(--accent);
+      background: var(--bg-secondary);
+    }
+    .filter-trigger-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(245, 128, 37, 0.05);
+      font-weight: 500;
+    }
+    .trigger-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1;
+    }
+    .trigger-icon {
+      flex-shrink: 0;
+      color: var(--text-secondary);
+    }
+    .filter-trigger-btn.active .trigger-icon {
+      color: var(--accent);
+    }
+    .truncate-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+      min-width: 0;
+      font-size: 12.5px;
+    }
+    .filter-menu-dropdown {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 85px;
+      width: max-content;
+      max-width: 140px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+      z-index: 1050;
+      padding: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      animation: fadeInDown 0.15s ease;
+    }
+    .filter-menu-item {
+      padding: 7px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12.5px;
+      color: var(--text-primary);
+      text-align: center;
+      transition: background 0.15s ease;
+      user-select: none;
+    }
+    .filter-menu-item:hover {
+      background: var(--bg-secondary);
+    }
+    .filter-menu-item.selected {
+      color: var(--accent);
+      font-weight: 600;
+      background: rgba(245, 128, 37, 0.08);
+    }
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -6px);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+    }
   `],
   template: `
     <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px);">
@@ -78,18 +181,18 @@ export interface LineItem {
             <!-- FORM BỐ TRÍ DÀNH RIÊNG CHO PHIẾU XUẤT KHO -->
             <ng-container *ngIf="type === 'export'">
               <!-- Hàng 1: Mã phiếu xuất * | Người lập phiếu (hệ thống tự điền, khóa) | Ngày xuất kho * -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; position: relative; z-index: 1;">
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
                 <!-- 1. Mã phiếu xuất -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Mã phiếu xuất <span style="color: #ef4444;">*</span>
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
                       type="text" 
                       [value]="orderCode" 
                       readonly 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-family: monospace; font-size: 13px; font-weight: 400; color: var(--accent); cursor: not-allowed; letter-spacing: 0.5px;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-family: monospace; font-size: 13px; font-weight: 400; color: var(--accent); cursor: not-allowed; letter-spacing: 0.5px;"
                     />
                     <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
@@ -98,16 +201,16 @@ export interface LineItem {
                 </div>
 
                 <!-- 2. Người lập phiếu (tự điền, khóa không cho chỉnh sửa) -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                     <lucide-angular [img]="icons.User" size="14"></lucide-angular> Người lập phiếu
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
                       type="text" 
                       [value]="creatorName" 
                       readonly 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 400; color: var(--text-primary); cursor: not-allowed;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 400; color: var(--text-primary); cursor: not-allowed;"
                     />
                     <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
@@ -116,45 +219,49 @@ export interface LineItem {
                 </div>
 
                 <!-- 3. Ngày xuất kho * -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Ngày xuất kho <span style="color: #ef4444;">*</span>
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
                       type="datetime-local" 
                       [(ngModel)]="transactionDate" 
                       (change)="onDateChange()"
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;"
                     />
                   </div>
                 </div>
               </div>
 
               <!-- Hàng 2: Chi nhánh / Kho xuất * | Lý do xuất kho * | Đơn vị nhận hàng -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; position: relative; z-index: 15;">
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 15;">
                 <!-- 1. Chi nhánh / Kho xuất * -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Chi nhánh / Kho xuất <span style="color: #ef4444;">*</span>
                   </label>
-                  <div class="location-filter-wrapper" style="position: relative; width: 100%;">
+                  <div class="location-filter-wrapper" style="position: relative; width: 100%; min-width: 0;">
                     <button 
                       type="button"
                       (click)="toggleLocationDropdown($event)"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [title]="getLocationLabel()"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
                       [style.color]="transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)'"
                     >
-                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        <lucide-angular [img]="icons.Filter" size="14"></lucide-angular>
-                        {{ getLocationLabel() }}
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
+                        <lucide-angular [img]="icons.Filter" size="14" style="flex-shrink: 0;"></lucide-angular>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
+                          {{ getLocationLabel() }}
+                        </span>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                     <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                       <div *ngFor="let w of activeWarehouses"
                         (click)="selectLocation(w.id, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                        [title]="w.name + ' (' + w.code + ')'"
                         [ngStyle]="{'color': transactionLocation === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
                         onmouseover="this.style.background='var(--bg-secondary)'"
                         onmouseout="this.style.background='transparent'"
@@ -166,34 +273,37 @@ export interface LineItem {
                 </div>
 
                 <!-- 2. Lý do xuất kho * -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Lý do xuất kho <span style="color: #ef4444;">*</span>
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <button 
                       type="button"
                       (click)="toggleReasonDropdown($event)"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [title]="transactionReason || 'Chọn lý do xuất'"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
                       [style.color]="transactionReason ? 'var(--text-primary)' : 'var(--text-muted)'"
                     >
-                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ transactionReason || 'Chọn lý do xuất' }}
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
+                          {{ transactionReason || 'Chọn lý do xuất' }}
+                        </span>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                     <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 260px; overflow-y: auto;">
                       <div *ngFor="let r of currentReasonOptions"
                         (click)="selectReason(r, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; display: flex; align-items: center; justify-content: space-between;"
+                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; display: flex; align-items: center; justify-content: space-between; gap: 8px;"
                         [ngStyle]="{'color': transactionReason === r ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
                         onmouseover="this.style.background='var(--bg-secondary)'"
                         onmouseout="this.style.background='transparent'"
                       >
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                          <span>{{ r }}</span>
+                        <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
+                          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r }}</span>
                         </div>
-                        <span style="font-size: 11px; font-family: monospace; color: var(--text-muted);">
+                        <span style="font-size: 11px; font-family: monospace; color: var(--text-muted); flex-shrink: 0;">
                           [{{ getPrefixForReasonText(r) }}]
                         </span>
                       </div>
@@ -213,29 +323,33 @@ export interface LineItem {
                 </div>
 
                 <!-- 3. Đơn vị nhận hàng: Tinh chỉnh linh hoạt theo từng lý do xuất kho -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <!-- 1. Chuyển kho -> Kho đích * -->
                   <ng-container *ngIf="transactionReason.includes('Chuyển kho')">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                       Kho đích <span style="color: #ef4444;">*</span>
                     </label>
-                    <div style="position: relative; width: 100%;">
+                    <div style="position: relative; width: 100%; min-width: 0;">
                       <button 
                         type="button"
                         (click)="toggleDestDropdown($event)"
-                        style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                        [title]="getDestLabel()"
+                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
                         [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
                       >
-                        <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                          {{ getDestLabel() }}
+                        <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
+                          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
+                            {{ getDestLabel() }}
+                          </span>
                         </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                       </button>
                       <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                         <ng-container *ngFor="let w of activeWarehouses">
                           <div *ngIf="w.id !== transactionLocation"
                             (click)="selectDest(w.id, $event)"
-                            style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                            style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                            [title]="w.name + ' (' + w.code + ')'"
                             [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
                             onmouseover="this.style.background='var(--bg-secondary)'"
                             onmouseout="this.style.background='transparent'"
@@ -252,13 +366,13 @@ export interface LineItem {
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-muted);">
                       Đơn vị nhận hàng
                     </label>
-                    <div style="position: relative; width: 100%;">
+                    <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
                         type="text" 
                         value="Không áp dụng" 
                         readonly 
                         disabled
-                        style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; font-style: italic;" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; font-style: italic;" 
                       />
                       <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
                         <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
@@ -271,13 +385,13 @@ export interface LineItem {
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                       Nhà cung cấp <span style="color: #ef4444;">*</span>
                     </label>
-                    <div style="position: relative; width: 100%;">
+                    <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
                         type="text" 
                         [(ngModel)]="recipientName" 
                         list="supplierListSuggestionsExport"
                         placeholder="VD: BoConcept VN, Gỗ An Cường, Hafele..." 
-                        style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                       />
                       <datalist id="supplierListSuggestionsExport">
                         <option *ngFor="let s of supplierOptions" [value]="s"></option>
@@ -294,7 +408,7 @@ export interface LineItem {
                       type="text" 
                       [(ngModel)]="recipientName" 
                       placeholder="VD: Anh Minh, Công ty CP Kiến trúc ABC..." 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                     />
                   </ng-container>
 
@@ -307,7 +421,7 @@ export interface LineItem {
                       type="text" 
                       [(ngModel)]="recipientName" 
                       placeholder="VD: Showroom Quận 1, Showroom Thủ Đức, Triển lãm VietBuild..." 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                     />
                   </ng-container>
 
@@ -320,16 +434,16 @@ export interface LineItem {
                       type="text" 
                       [(ngModel)]="recipientName" 
                       placeholder="VD: Nhập tên đối tác, đơn vị hoặc người nhận..." 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                     />
                   </ng-container>
                 </div>
               </div>
 
               <!-- Hàng 3: Số hóa đơn / Chứng từ gốc | Ghi chú -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; position: relative; z-index: 1;">
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
                 <!-- 1. Số hóa đơn / Chứng từ gốc -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Số hóa đơn / Chứng từ gốc
                   </label>
@@ -337,18 +451,18 @@ export interface LineItem {
                     type="text" 
                     [(ngModel)]="referenceCode" 
                     placeholder="Nhập số hóa đơn / Mã SO / Chứng từ gốc (nếu có)..." 
-                    style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                   />
                 </div>
 
                 <!-- 2. Ghi chú -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">Ghi chú</label>
                   <input 
                     type="text" 
                     [(ngModel)]="transactionNote" 
                     placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
-                    style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                   />
                 </div>
               </div>
@@ -357,18 +471,18 @@ export interface LineItem {
             <!-- FORM BỐ TRÍ DÀNH RIÊNG CHO PHIẾU NHẬP KHO -->
             <ng-container *ngIf="type === 'import'">
               <!-- Hàng 1: Mã phiếu nhập * | Người lập phiếu (hệ thống tự điền, khóa) | Ngày nhập kho * -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; position: relative; z-index: 1;">
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
                 <!-- 1. Mã phiếu nhập -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Mã phiếu nhập <span style="color: #ef4444;">*</span>
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
                       type="text" 
                       [value]="orderCode" 
                       readonly 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-family: monospace; font-size: 13px; font-weight: 400; color: var(--accent); cursor: not-allowed; letter-spacing: 0.5px;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-family: monospace; font-size: 13px; font-weight: 400; color: var(--accent); cursor: not-allowed; letter-spacing: 0.5px;"
                     />
                     <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
@@ -377,16 +491,16 @@ export interface LineItem {
                 </div>
 
                 <!-- 2. Người lập phiếu (hệ thống tự điền, khóa không cho chỉnh sửa) -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                     <lucide-angular [img]="icons.User" size="14"></lucide-angular> Người lập phiếu
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
                       type="text" 
                       [value]="creatorName" 
                       readonly 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 400; color: var(--text-primary); cursor: not-allowed;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 400; color: var(--text-primary); cursor: not-allowed;"
                     />
                     <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
@@ -395,45 +509,49 @@ export interface LineItem {
                 </div>
 
                 <!-- 3. Ngày nhập kho * -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Ngày nhập kho <span style="color: #ef4444;">*</span>
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
                       type="datetime-local" 
                       [(ngModel)]="transactionDate" 
                       (change)="onDateChange()"
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;"
                     />
                   </div>
                 </div>
               </div>
 
               <!-- Hàng 2: Kho đích nhập về * | Lý do nhập kho * | Nhà cung cấp -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; position: relative; z-index: 15;">
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 15;">
                 <!-- 1. Kho đích nhập về * -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Kho đích nhập về <span style="color: #ef4444;">*</span>
                   </label>
-                  <div class="location-filter-wrapper" style="position: relative; width: 100%;">
+                  <div class="location-filter-wrapper" style="position: relative; width: 100%; min-width: 0;">
                     <button 
                       type="button"
                       (click)="toggleLocationDropdown($event)"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [title]="getLocationLabel()"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
                       [style.color]="transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)'"
                     >
-                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        <lucide-angular [img]="icons.Filter" size="14"></lucide-angular>
-                        {{ getLocationLabel() }}
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
+                        <lucide-angular [img]="icons.Filter" size="14" style="flex-shrink: 0;"></lucide-angular>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
+                          {{ getLocationLabel() }}
+                        </span>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                     <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                       <div *ngFor="let w of activeWarehouses"
                         (click)="selectLocation(w.id, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                        [title]="w.name + ' (' + w.code + ')'"
                         [ngStyle]="{'color': transactionLocation === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
                         onmouseover="this.style.background='var(--bg-secondary)'"
                         onmouseout="this.style.background='transparent'"
@@ -445,63 +563,83 @@ export interface LineItem {
                 </div>
 
                 <!-- 2. Lý do nhập kho * -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Lý do nhập kho <span style="color: #ef4444;">*</span>
                   </label>
-                  <div style="position: relative; width: 100%;">
+                  <div style="position: relative; width: 100%; min-width: 0;">
                     <button 
                       type="button"
                       (click)="toggleReasonDropdown($event)"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [title]="transactionReason || 'Chọn lý do nhập'"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
                       [style.color]="transactionReason ? 'var(--text-primary)' : 'var(--text-muted)'"
                     >
-                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ transactionReason || 'Chọn lý do nhập' }}
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
+                          {{ transactionReason || 'Chọn lý do nhập' }}
+                        </span>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
-                    <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px;">
+                    <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 260px; overflow-y: auto;">
                       <div *ngFor="let r of currentReasonOptions"
                         (click)="selectReason(r, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; display: flex; align-items: center; justify-content: space-between;"
+                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; display: flex; align-items: center; justify-content: space-between; gap: 8px;"
                         [ngStyle]="{'color': transactionReason === r ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
                         onmouseover="this.style.background='var(--bg-secondary)'"
                         onmouseout="this.style.background='transparent'"
                       >
-                        <span>{{ r }}</span>
-                        <span style="font-size: 11px; font-family: monospace; color: var(--text-muted);">
+                        <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
+                          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r }}</span>
+                        </div>
+                        <span style="font-size: 11px; font-family: monospace; color: var(--text-muted); flex-shrink: 0;">
                           [{{ getPrefixForReasonText(r) }}]
                         </span>
+                      </div>
+
+                      <!-- Nút thêm lý do nhập mới dưới cùng -->
+                      <div 
+                        (click)="openAddReasonModal($event)"
+                        style="padding: 9px 12px; border-radius: 4px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--accent); border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 6px; margin-top: 4px;"
+                        onmouseover="this.style.background='var(--bg-secondary)'"
+                        onmouseout="this.style.background='transparent'"
+                      >
+                        <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
+                        <span>Thêm lý do nhập</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- 3. Nhà cung cấp -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                  <!-- Nhập chuyển kho (chọn kho nguồn gửi sang) -->
-                  <ng-container *ngIf="transactionReason.includes('Chuyển kho')">
+                <!-- 3. Nhà cung cấp / Kho xuất / Khách hàng / Khóa khi Dư sau kiểm kê -->
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                  <!-- Trường hợp 1: Nhập chuyển kho -> Chọn Kho xuất * -->
+                  <ng-container *ngIf="isImportTransfer()">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      Chuyển từ Kho nguồn <span style="color: #ef4444;">*</span>
+                      Kho xuất <span style="color: #ef4444;">*</span>
                     </label>
-                    <div style="position: relative; width: 100%;">
+                    <div style="position: relative; width: 100%; min-width: 0;">
                       <button 
                         type="button"
                         (click)="toggleDestDropdown($event)"
-                        style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                        [title]="getDestLabel()"
+                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
                         [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
                       >
-                        <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                          {{ getDestLabel() }}
+                        <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
+                          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
+                            {{ getDestLabel() }}
+                          </span>
                         </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                       </button>
                       <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                         <ng-container *ngFor="let w of activeWarehouses">
                           <div *ngIf="w.id !== transactionLocation"
                             (click)="selectDest(w.id, $event)"
-                            style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                            style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                            [title]="w.name + ' (' + w.code + ')'"
                             [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
                             onmouseover="this.style.background='var(--bg-secondary)'"
                             onmouseout="this.style.background='transparent'"
@@ -513,17 +651,37 @@ export interface LineItem {
                     </div>
                   </ng-container>
 
-                  <!-- Nhập mua hàng từ Nhà cung cấp hoặc Nhập hàng trả lại -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho')">
+                  <!-- Trường hợp 2: Dư sau kiểm kê -> Không có NCC và khóa trường NCC lại, không cần viết lý do gì hết -->
+                  <ng-container *ngIf="!isImportTransfer() && isImportAuditSurplus()">
+                    <label style="font-size: 13px; font-weight: 400; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                      Nhà cung cấp
+                    </label>
+                    <div style="position: relative; width: 100%; min-width: 0;">
+                      <input 
+                        type="text" 
+                        value="" 
+                        readonly 
+                        disabled
+                        placeholder="Không áp dụng (Dư sau kiểm kê)" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; opacity: 0.75;" 
+                      />
+                      <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
+                        <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
+                      </div>
+                    </div>
+                  </ng-container>
+
+                  <!-- Trường hợp 3: Mua từ nhà cung cấp hoặc Khách trả hàng (hoặc lý do nhập khác) -->
+                  <ng-container *ngIf="!isImportTransfer() && !isImportAuditSurplus()">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      {{ transactionReason.includes('khách hàng') ? 'Khách hàng / Đơn vị trả hàng' : 'Nhà cung cấp' }}
+                      {{ isImportCustomerReturn() ? 'Khách hàng' : 'Nhà cung cấp' }} <span style="color: #ef4444;">*</span>
                     </label>
                     <input 
                       type="text" 
                       [(ngModel)]="recipientName" 
-                      list="supplierListSuggestions"
-                      [placeholder]="transactionReason.includes('khách hàng') ? 'VD: Khách hàng Trần Tuấn, Đơn #ORD-092...' : 'VD: BoConcept VN, Gỗ An Cường, Hafele...'" 
-                      style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      [attr.list]="isImportCustomerReturn() ? null : 'supplierListSuggestions'"
+                      [placeholder]="isImportCustomerReturn() ? 'VD: Khách hàng Trần Tuấn, Đơn #ORD-092...' : 'VD: BoConcept VN, Gỗ An Cường, Hafele...'" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                     />
                     <datalist id="supplierListSuggestions">
                       <option *ngFor="let s of supplierOptions" [value]="s"></option>
@@ -533,9 +691,9 @@ export interface LineItem {
               </div>
 
               <!-- Hàng 3: Số hóa đơn VAT / Mã PO | Ghi chú -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; position: relative; z-index: 1;">
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
                 <!-- 1. Số hóa đơn VAT / Mã PO -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
                     Số hóa đơn VAT / Mã PO
                   </label>
@@ -543,18 +701,18 @@ export interface LineItem {
                     type="text" 
                     [(ngModel)]="referenceCode" 
                     placeholder="Nhập số hóa đơn VAT / Mã PO (nếu có)..." 
-                    style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                   />
                 </div>
 
                 <!-- 2. Ghi chú -->
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">Ghi chú</label>
                   <input 
                     type="text" 
                     [(ngModel)]="transactionNote" 
                     placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
-                    style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                   />
                 </div>
               </div>
@@ -581,14 +739,14 @@ export interface LineItem {
                 
                 <!-- Table Headers -->
                 <div [ngStyle]="{'display': 'grid', 'grid-template-columns': getGridColumns(), 'gap': '10px', 'padding': '10px 14px', 'background': 'var(--bg-secondary)', 'border-radius': '8px', 'border': '1px solid var(--border-color)'}">
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: left; text-transform: uppercase;">Sản phẩm</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: left; text-transform: uppercase;">Biến thể</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">Tồn kho</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">ĐVT</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">Số lượng</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">{{ type === 'import' ? 'Đơn giá nhập (₫)' : 'Đơn giá xuất (₫)' }}</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">Thành tiền (₫)</div>
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase;">Số Lô / HSD</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: left; text-transform: uppercase;">Sản phẩm</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: left; text-transform: uppercase;">Biến thể</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; text-transform: uppercase;">Tồn kho</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; text-transform: uppercase;">ĐVT</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; text-transform: uppercase;">Số lượng</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; text-transform: uppercase; white-space: nowrap;">{{ type === 'import' ? 'Đơn giá nhập (₫)' : 'Đơn giá xuất (₫)' }}</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; text-transform: uppercase; white-space: nowrap;">Thành tiền (₫)</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; text-transform: uppercase;">Số Lô / HSD</div>
                   <div></div>
                 </div>
 
@@ -605,7 +763,7 @@ export interface LineItem {
                      'background': 'var(--bg-primary)', 
                      'border': isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)',
                      'position': 'relative',
-                     'z-index': (openProductDropdownId === item.id || openVariantDropdownId === item.id) ? 100 : 1
+                     'z-index': (openProductDropdownId === item.id || openVariantDropdownId === item.id || openUnitDropdownId === item.id) ? 100 : 1
                    }">
                 
                 <!-- 1. Sản phẩm -->
@@ -807,19 +965,49 @@ export interface LineItem {
                 </div>
 
                 <!-- 4. Đơn vị tính (ĐVT) -->
-                <div style="display: flex; justify-content: center;">
-                  <select 
-                    [(ngModel)]="item.unit" 
-                    style="height: 38px; width: 68px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-weight: 500; text-align: center; outline: none; cursor: pointer;"
-                  >
-                    <option value="">-</option>
-                    <option value="Chiếc">Chiếc</option>
-                    <option value="Bộ">Bộ</option>
-                    <option value="Cái">Cái</option>
-                    <option value="Thùng">Thùng</option>
-                    <option value="Hộp">Hộp</option>
-                    <option value="Mét">Mét</option>
-                  </select>
+                <div style="display: flex; justify-content: center; width: 100%;">
+                  <div class="filter-dropdown-wrapper location-filter-wrapper" style="width: 100%; position: relative;">
+                    <button 
+                      type="button" 
+                      class="filter-trigger-btn"
+                      [class.active]="!!item.unit"
+                      [disabled]="!item.productId || !item.variantId"
+                      [title]="(!item.productId || !item.variantId) ? 'Vui lòng chọn sản phẩm và biến thể trước' : ('Đơn vị tính: ' + (item.unit || 'Chưa chọn'))"
+                      (click)="toggleUnitDropdown(item, $event)"
+                      [ngStyle]="{
+                        'opacity': (!item.productId || !item.variantId) ? '0.6' : '1',
+                        'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'pointer',
+                        'background': (!item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)'
+                      }"
+                    >
+                      <div class="trigger-label">
+                        <lucide-angular [img]="icons.Package" size="13" class="trigger-icon"></lucide-angular>
+                        <span class="truncate-label">{{ (item.productId && item.variantId) ? (item.unit || '-') : '-' }}</span>
+                      </div>
+                      <lucide-angular 
+                        [img]="icons.ChevronDown" 
+                        size="13" 
+                        [style.transform]="openUnitDropdownId === item.id ? 'rotate(180deg)' : 'none'" 
+                        style="transition: transform 0.2s; flex-shrink: 0;"
+                      ></lucide-angular>
+                    </button>
+
+                    <div *ngIf="openUnitDropdownId === item.id && item.productId && item.variantId" 
+                      class="filter-menu-dropdown custom-dropdown-scrollbar"
+                      [ngStyle]="{
+                        'bottom': dropdownPositions['unit_' + item.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
+                        'top': dropdownPositions['unit_' + item.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
+                      }"
+                    >
+                      <div *ngFor="let opt of getUnitOptions(item.unit)"
+                        (click)="selectUnit(item, opt, $event)"
+                        class="filter-menu-item"
+                        [class.selected]="item.unit === opt"
+                      >
+                        <span>{{ opt }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- 5. Số lượng (kèm Validation cảnh báo vượt tồn) -->
@@ -881,10 +1069,21 @@ export interface LineItem {
                 <div>
                   <input 
                     type="text" 
+                    inputmode="numeric"
+                    pattern="[0-9]*"
                     placeholder="0" 
-                    [ngModel]="item.price" 
+                    [disabled]="!item.productId || !item.variantId"
+                    [value]="item.price" 
+                    (keydown)="onNumberKeydown($event)"
                     (input)="onPriceInput(item, $event)" 
-                    style="height: 38px; width: 100%; box-sizing: border-box; font-size: 13px; text-align: right; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;" 
+                    style="height: 38px; width: 100%; box-sizing: border-box; font-size: 13px; text-align: right; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-color); outline: none; transition: all 0.15s ease;" 
+                    [ngStyle]="{
+                      'background': (!item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': (!item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'text',
+                      'opacity': (!item.productId || !item.variantId) ? '0.6' : '1'
+                    }"
+                    [title]="(!item.productId || !item.variantId) ? 'Vui lòng chọn sản phẩm và biến thể trước khi chỉnh sửa đơn giá' : ''"
                   />
                 </div>
 
@@ -963,8 +1162,8 @@ export interface LineItem {
                   <div>• Tổng số lượng: <strong style="color: var(--text-primary);">{{ getTotalQuantity() }}</strong> đơn vị sản phẩm</div>
                   <div>• Số chủng loại: <strong style="color: var(--text-primary);">{{ lineItems.length }}</strong> mặt hàng</div>
                   <div *ngIf="referenceCode">• Chứng từ kèm theo: <strong style="color: var(--accent); font-family: monospace;">{{ referenceCode }}</strong></div>
-                  <div *ngIf="recipientName && !isReasonDisposal(transactionReason)">• {{ type === 'import' ? 'Đối tác / Nhà cung cấp' : getExportRecipientLabel() }}: <strong style="color: var(--text-primary);">{{ recipientName }}</strong></div>
-                  <div *ngIf="transactionReason.includes('Chuyển kho') && transactionDestination">• Kho đích: <strong style="color: var(--text-primary);">{{ getDestLabel() }}</strong></div>
+                  <div *ngIf="recipientName && !isReasonDisposal(transactionReason) && !(type === 'import' && isImportAuditSurplus())">• {{ type === 'import' ? (isImportCustomerReturn() ? 'Khách hàng' : 'Nhà cung cấp') : getExportRecipientLabel() }}: <strong style="color: var(--text-primary);">{{ recipientName }}</strong></div>
+                  <div *ngIf="transactionReason.includes('Chuyển kho') && transactionDestination">• {{ type === 'import' ? 'Kho xuất' : 'Kho đích' }}: <strong style="color: var(--text-primary);">{{ getDestLabel() }}</strong></div>
                 </div>
               </div>
 
@@ -972,7 +1171,7 @@ export interface LineItem {
               <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
                 <!-- Tiền hàng -->
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="color: var(--text-secondary);">Tổng tiền hàng (Subtotal):</span>
+                  <span style="color: var(--text-secondary);">Tổng tiền hàng:</span>
                   <span style="font-weight: 600; color: var(--text-primary); font-size: 13.5px;">{{ formatCurrency(getTotalSubtotal()) }}</span>
                 </div>
 
@@ -981,26 +1180,60 @@ export interface LineItem {
                   <span style="color: var(--text-secondary);">Chiết khấu (₫):</span>
                   <input 
                     type="text" 
+                    inputmode="numeric"
+                    pattern="[0-9]*"
                     [value]="discountAmount" 
+                    (keydown)="onNumberKeydown($event)"
                     (input)="onCurrencyInput('discount', $event)" 
                     placeholder="0" 
-                    style="width: 140px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
+                    style="width: 190px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
                   />
                 </div>
 
                 <!-- Thuế VAT -->
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                   <span style="color: var(--text-secondary);">Thuế VAT:</span>
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    <select 
-                      [(ngModel)]="taxRate" 
-                      style="height: 28px; padding: 0 6px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12px; outline: none; cursor: pointer;"
-                    >
-                      <option [ngValue]="0">0%</option>
-                      <option [ngValue]="8">8%</option>
-                      <option [ngValue]="10">10%</option>
-                    </select>
-                    <span style="font-weight: 500; min-width: 85px; text-align: right; color: var(--text-primary); font-size: 12.5px;">+{{ formatCurrency(getTaxValue()) }}</span>
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 190px; gap: 6px;">
+                    <div class="filter-dropdown-wrapper location-filter-wrapper" style="position: relative; width: 78px; flex-shrink: 0;">
+                      <button 
+                        type="button" 
+                        class="filter-trigger-btn"
+                        style="width: 100%; height: 28px; padding: 0 6px; font-size: 12px; border-radius: 6px; gap: 4px;"
+                        [class.active]="taxRate > 0"
+                        [title]="'Thuế VAT: ' + taxRate + '%'"
+                        (click)="toggleTaxDropdown($event)"
+                      >
+                        <div class="trigger-label" style="gap: 4px;">
+                          <lucide-angular [img]="icons.Percent" size="12" class="trigger-icon"></lucide-angular>
+                          <span class="truncate-label" style="font-size: 12px; font-weight: 500;">{{ taxRate }}%</span>
+                        </div>
+                        <lucide-angular 
+                          [img]="icons.ChevronDown" 
+                          size="12" 
+                          [style.transform]="showTaxDropdown ? 'rotate(180deg)' : 'none'" 
+                          style="transition: transform 0.2s; flex-shrink: 0;"
+                        ></lucide-angular>
+                      </button>
+
+                      <div *ngIf="showTaxDropdown" 
+                        class="filter-menu-dropdown custom-dropdown-scrollbar"
+                        style="width: 78px; min-width: 78px; padding: 3px;"
+                        [ngStyle]="{
+                          'bottom': dropdownPositions['tax'] === 'up' ? 'calc(100% + 4px)' : 'auto',
+                          'top': dropdownPositions['tax'] === 'up' ? 'auto' : 'calc(100% + 4px)'
+                        }"
+                      >
+                        <div *ngFor="let rate of taxRateOptions"
+                          (click)="selectTaxRate(rate, $event)"
+                          class="filter-menu-item"
+                          style="padding: 5px 8px; font-size: 12px;"
+                          [class.selected]="taxRate === rate"
+                        >
+                          <span>{{ rate }}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span style="font-weight: 500; text-align: right; color: var(--text-primary); font-size: 12.5px; flex: 1; white-space: nowrap;">+{{ formatCurrency(getTaxValue()) }}</span>
                   </div>
                 </div>
 
@@ -1009,10 +1242,13 @@ export interface LineItem {
                   <span style="color: var(--text-secondary);">Phí vận chuyển (₫):</span>
                   <input 
                     type="text" 
+                    inputmode="numeric"
+                    pattern="[0-9]*"
                     [value]="shippingFee" 
+                    (keydown)="onNumberKeydown($event)"
                     (input)="onCurrencyInput('shipping', $event)" 
                     placeholder="0" 
-                    style="width: 140px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
+                    style="width: 190px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
                   />
                 </div>
 
@@ -1126,7 +1362,9 @@ export interface LineItem {
             <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(194, 154, 107, 0.15); color: var(--accent); display: flex; align-items: center; justify-content: center;">
               <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
             </div>
-            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary);">Thêm lý do xuất kho</h3>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary);">
+              {{ type === 'import' ? 'Thêm lý do nhập kho' : 'Thêm lý do xuất kho' }}
+            </h3>
           </div>
           <button type="button" (click)="closeAddReasonModal()" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; display: flex;" title="Đóng">
             <lucide-angular [img]="icons.X" size="18"></lucide-angular>
@@ -1139,7 +1377,7 @@ export interface LineItem {
           <div style="display: flex; flex-direction: column; gap: 6px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                Lý do xuất kho <span style="color: #ef4444;">*</span>
+                {{ type === 'import' ? 'Lý do nhập kho' : 'Lý do xuất kho' }} <span style="color: #ef4444;">*</span>
               </label>
               <span style="font-size: 11.5px; font-weight: 400;" [style.color]="getWordCount(newReasonText) > 10 ? '#ef4444' : 'var(--text-muted)'">
                 {{ getWordCount(newReasonText) }} / 10 từ
@@ -1149,13 +1387,13 @@ export interface LineItem {
               type="text" 
               [(ngModel)]="newReasonText"
               maxlength="70"
-              placeholder="VD: Xuất quà tặng tri ân, Xuất mẫu cho kiến trúc sư..." 
+              [placeholder]="type === 'import' ? 'VD: Nhập hàng mẫu từ triển lãm, Nhập hàng bảo hành...' : 'VD: Xuất quà tặng tri ân, Xuất mẫu cho kiến trúc sư...'" 
               style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none; transition: border-color 0.15s;"
               [style.border-color]="getWordCount(newReasonText) > 10 ? '#ef4444' : 'var(--border-color)'"
               (keydown.enter)="confirmAddReason()"
             />
             <div *ngIf="getWordCount(newReasonText) > 10" style="font-size: 11.5px; color: #ef4444; font-weight: 500;">
-              Lý do xuất không được vượt quá 10 từ. Vui lòng rút gọn nội dung.
+              {{ type === 'import' ? 'Lý do nhập không được vượt quá 10 từ. Vui lòng rút gọn nội dung.' : 'Lý do xuất không được vượt quá 10 từ. Vui lòng rút gọn nội dung.' }}
             </div>
           </div>
 
@@ -1175,7 +1413,9 @@ export interface LineItem {
               </div>
               <div style="display: flex; flex-direction: column; gap: 2px;">
                 <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Có yêu cầu nhà cung cấp không</span>
-                <span style="font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">Bật tùy chọn này nếu lý do xuất cần ghi nhận và trả cho Nhà cung cấp</span>
+                <span style="font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
+                  {{ type === 'import' ? 'Bật tùy chọn này nếu lý do nhập cần ghi nhận từ Nhà cung cấp' : 'Bật tùy chọn này nếu lý do xuất cần ghi nhận và trả cho Nhà cung cấp' }}
+                </span>
               </div>
             </div>
           </div>
@@ -1214,7 +1454,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   icons = { 
     X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
     Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-    CheckSquare, Square
+    CheckSquare, Square, Package, Percent
   };
   private http = inject(HttpClient);
 
@@ -1264,6 +1504,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   // Quản lý tài chính & chi phí cho phiếu nhập
   discountAmount = '';
   taxRate = 0;
+  showTaxDropdown = false;
+  taxRateOptions: number[] = [0, 8, 10];
   shippingFee = '';
 
   supplierOptions = [
@@ -1282,6 +1524,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   openProductDropdownId: string | null = null;
   openVariantDropdownId: string | null = null;
+  openUnitDropdownId: string | null = null;
   productSearchTerm = '';
 
   // Vị trí auto dropup/dropdown
@@ -1313,6 +1556,20 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return r.includes('hủy') || r.includes('huy') || r.includes('hỏng') || r.includes('hong') || r.includes('tiêu hủy');
   }
 
+  isImportTransfer(): boolean {
+    return (this.transactionReason || '').toLowerCase().includes('chuyển kho');
+  }
+
+  isImportCustomerReturn(): boolean {
+    const r = (this.transactionReason || '').toLowerCase();
+    return r.includes('khách') || r.includes('trả hàng') || r.includes('trả lại') || r.includes('đổi trả');
+  }
+
+  isImportAuditSurplus(): boolean {
+    const r = (this.transactionReason || '').toLowerCase();
+    return r.includes('kiểm kê') || r.includes('dư');
+  }
+
   getWordCount(text: string): number {
     if (!text || !text.trim()) return 0;
     return text.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -1335,14 +1592,20 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   confirmAddReason() {
     const trimmed = this.newReasonText.trim();
     if (!trimmed) {
-      return window.alert('Vui lòng nhập lý do xuất kho.');
+      return window.alert(this.type === 'import' ? 'Vui lòng nhập lý do nhập kho.' : 'Vui lòng nhập lý do xuất kho.');
     }
     const words = this.getWordCount(trimmed);
     if (words > 10) {
-      return window.alert(`Lý do xuất không được vượt quá 10 từ (hiện tại: ${words} từ). Vui lòng rút gọn lại.`);
+      return window.alert(`Lý do ${this.type === 'import' ? 'nhập' : 'xuất'} không được vượt quá 10 từ (hiện tại: ${words} từ). Vui lòng rút gọn lại.`);
     }
-    if (!this.exportReasonOptions.includes(trimmed)) {
-      this.exportReasonOptions.push(trimmed);
+    if (this.type === 'import') {
+      if (!this.importReasonOptions.includes(trimmed)) {
+        this.importReasonOptions.push(trimmed);
+      }
+    } else {
+      if (!this.exportReasonOptions.includes(trimmed)) {
+        this.exportReasonOptions.push(trimmed);
+      }
     }
     if (this.newReasonRequiresSupplier) {
       this.reasonsRequiringSupplier.add(trimmed);
@@ -1414,6 +1677,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.referenceCode = '';
     this.discountAmount = '';
     this.taxRate = 0;
+    this.showTaxDropdown = false;
     this.shippingFee = '';
 
     // Người lập phiếu: hệ thống tự điền vào từ phiên đăng nhập
@@ -1436,8 +1700,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showLocationDropdown = false;
     this.showReasonDropdown = false;
     this.showDestDropdown = false;
+    this.showTaxDropdown = false;
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
+    this.openUnitDropdownId = null;
     this.productSearchTerm = '';
     this.dropdownPositions = {};
 
@@ -1447,7 +1713,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     // Dòng sản phẩm ban đầu: khởi tạo từ input nếu có
     const initialProd = this.initialProductId || '';
     const initialVar = this.initialVariantId || '';
-    const initialUnit = initialProd ? this.inferUnit(this.getProductName(initialProd)) : '';
+    const initialUnit = (initialProd && initialVar) ? this.inferUnit(this.getProductName(initialProd)) : '';
 
     this.lineItems = [{
       id: Date.now().toString(),
@@ -1467,6 +1733,14 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       const vars = this.getVariantsForProduct(initialProd);
       if (vars.length > 0) {
         this.lineItems[0].variantId = vars[0].id;
+        this.lineItems[0].unit = this.inferUnit(this.getProductName(initialProd));
+        this.lineItems[0].price = new Intl.NumberFormat('vi-VN').format(vars[0].price || 0);
+      }
+    } else if (initialProd && initialVar) {
+      const vars = this.getVariantsForProduct(initialProd);
+      const v = vars.find((x: any) => x.id === initialVar);
+      if (v) {
+        this.lineItems[0].price = new Intl.NumberFormat('vi-VN').format(v.price || 0);
       }
     }
   }
@@ -1632,20 +1906,28 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   onPriceInput(item: LineItem, event: any) {
-    const rawValue = event.target ? event.target.value : event;
+    if (!item.productId || !item.variantId) return;
+    const inputEl = event.target as HTMLInputElement;
+    const rawValue = inputEl ? inputEl.value : event;
     const clean = String(rawValue || '').replace(/[^0-9]/g, '');
     const num = parseInt(clean, 10);
     item.price = clean ? new Intl.NumberFormat('vi-VN').format(num) : '';
+    if (inputEl) {
+      inputEl.value = item.price;
+    }
   }
 
   onCurrencyInput(field: 'discount' | 'shipping', event: any) {
-    const rawValue = event.target ? event.target.value : event;
+    const inputEl = event.target as HTMLInputElement;
+    const rawValue = inputEl ? inputEl.value : event;
     const clean = String(rawValue || '').replace(/[^0-9]/g, '');
     const formatted = clean ? new Intl.NumberFormat('vi-VN').format(parseInt(clean, 10)) : '';
     if (field === 'discount') {
       this.discountAmount = formatted;
+      if (inputEl) inputEl.value = formatted;
     } else {
       this.shippingFee = formatted;
+      if (inputEl) inputEl.value = formatted;
     }
   }
 
@@ -1677,6 +1959,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showLocationDropdown = !this.showLocationDropdown;
     this.showReasonDropdown = false;
     this.showDestDropdown = false;
+    this.showTaxDropdown = false;
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
   }
@@ -1695,6 +1978,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showReasonDropdown = !this.showReasonDropdown;
     this.showLocationDropdown = false;
     this.showDestDropdown = false;
+    this.showTaxDropdown = false;
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
   }
@@ -1706,8 +1990,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!reason.includes('Chuyển kho')) {
       this.transactionDestination = '';
     }
-    if (this.isReasonDisposal(reason)) {
+    if (this.isReasonDisposal(reason) || (this.type === 'import' && this.isImportAuditSurplus())) {
       this.recipientName = '';
+      this.transactionDestination = '';
     }
     this.generateOrderCode();
   }
@@ -1717,6 +2002,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showDestDropdown = !this.showDestDropdown;
     this.showLocationDropdown = false;
     this.showReasonDropdown = false;
+    this.showTaxDropdown = false;
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
   }
@@ -1806,17 +2092,66 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.openVariantDropdownId = null;
   }
 
+  toggleUnitDropdown(item: LineItem, event: Event) {
+    event.stopPropagation();
+    if (!item.productId || !item.variantId) return;
+    if (this.openUnitDropdownId === item.id) {
+      this.openUnitDropdownId = null;
+    } else {
+      this.closeAllDropdowns();
+      this.openUnitDropdownId = item.id;
+      const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
+      this.checkDropdownPosition(target, 'unit_' + item.id);
+    }
+  }
+
+  selectUnit(item: LineItem, unit: string, event: Event) {
+    event.stopPropagation();
+    this.updateLineItem(item.id, 'unit', unit);
+    this.openUnitDropdownId = null;
+  }
+
+  defaultUnitOptions: string[] = ['Chiếc', 'Bộ', 'Cái', 'Thùng', 'Hộp', 'Mét'];
+
+  getUnitOptions(currentUnit?: string): string[] {
+    const list = [...this.defaultUnitOptions];
+    if (currentUnit && currentUnit !== '-' && !list.includes(currentUnit)) {
+      list.unshift(currentUnit);
+    }
+    return list;
+  }
+
+  toggleTaxDropdown(event: Event) {
+    event.stopPropagation();
+    if (this.showTaxDropdown) {
+      this.showTaxDropdown = false;
+    } else {
+      this.closeAllDropdowns();
+      this.showTaxDropdown = true;
+      const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
+      this.checkDropdownPosition(target, 'tax');
+    }
+  }
+
+  selectTaxRate(rate: number, event: Event) {
+    event.stopPropagation();
+    this.taxRate = rate;
+    this.showTaxDropdown = false;
+  }
+
   @HostListener('document:click')
   closeAllDropdowns() {
     this.showLocationDropdown = false;
     this.showReasonDropdown = false;
     this.showDestDropdown = false;
+    this.showTaxDropdown = false;
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
+    this.openUnitDropdownId = null;
   }
 
   getGridColumns() {
-    return 'minmax(180px, 1.4fr) minmax(140px, 1.1fr) 70px 65px 70px 110px 115px 110px 36px';
+    return 'minmax(170px, 1.4fr) minmax(130px, 1.1fr) 70px 85px 70px 110px 115px 110px 36px';
   }
 
   getQuantity(item: LineItem): number {
@@ -1841,7 +2176,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     }
   }
 
-  onQuantityKeydown(event: KeyboardEvent) {
+  onNumberKeydown(event: KeyboardEvent) {
     const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
     if (allowedKeys.includes(event.key)) {
       return;
@@ -1852,6 +2187,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!/^[0-9]$/.test(event.key)) {
       event.preventDefault();
     }
+  }
+
+  onQuantityKeydown(event: KeyboardEvent) {
+    this.onNumberKeydown(event);
   }
 
   onQuantityInput(item: LineItem, event: any) {
@@ -1879,7 +2218,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         id: v.id,
         name: v.name || v.color || v.material || 'Bản tiêu chuẩn',
         sku: v.sku || '',
-        price: v.price || 0,
+        price: v.price || p?.price || 0,
         warehouseStocks: v.warehouseStocks || []
       }));
     }
@@ -1918,23 +2257,25 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
     if (field === 'productId') {
       item.productId = value;
-      item.unit = this.inferUnit(this.getProductName(value));
       const variants = this.getVariantsForProduct(value);
       if (variants.length === 1) {
         item.variantId = variants[0].id;
-        if (variants[0].price) {
-          item.price = new Intl.NumberFormat('vi-VN').format(variants[0].price);
-        }
+        item.unit = this.inferUnit(this.getProductName(value));
+        item.price = new Intl.NumberFormat('vi-VN').format(variants[0].price ?? 0);
       } else {
         item.variantId = '';
+        item.unit = '';
         item.price = '';
       }
     } else if (field === 'variantId') {
       item.variantId = value;
+      if (!item.unit) {
+        item.unit = this.inferUnit(this.getProductName(item.productId));
+      }
       const variants = this.getVariantsForProduct(item.productId);
       const v = variants.find((x: any) => x.id === value);
-      if (v && v.price) {
-        item.price = new Intl.NumberFormat('vi-VN').format(v.price);
+      if (v) {
+        item.price = new Intl.NumberFormat('vi-VN').format(v.price ?? 0);
       }
     } else if (field === 'price') {
       let rawValue = value.replace(/[^0-9]/g, '');
@@ -2062,11 +2403,14 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         }
       }
     } else {
-      if (this.transactionReason.includes('Chuyển kho')) {
+      if (this.isImportTransfer()) {
         if (!this.transactionDestination) {
           return false;
         }
-      } else if (this.transactionReason.includes('Nhà cung cấp') || this.isReasonRequiringSupplier(this.transactionReason)) {
+      } else if (this.isImportAuditSurplus()) {
+        // Dư sau kiểm kê: không có NCC và khóa trường NCC lại -> không bắt buộc điền
+      } else {
+        // Mua từ nhà cung cấp hoặc Khách trả hàng -> bắt buộc điền
         if (!this.recipientName || !this.recipientName.trim()) {
           return false;
         }

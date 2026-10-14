@@ -491,16 +491,29 @@ export class InventoryComponent implements OnInit, OnDestroy {
   isLowStock(status: string): boolean {
     if (!status) return false;
     const s = status.toLowerCase();
-    return s.includes('sắp hết') || s.includes('sap het');
+    return s.includes('sắp hết') || s.includes('sap het') || s.includes('low');
   }
 
   isOutOfStock(status: string): boolean {
     if (!status) return false;
+    if (this.isLowStock(status)) return false;
     const s = status.toLowerCase();
-    return s.includes('hết hàng') || s.includes('het hang');
+    return s.includes('hết hàng') || s.includes('het hang') || s.includes('out');
   }
 
   getStatusBadgeStyle(status: string): { [key: string]: string } {
+    if (this.isLowStock(status)) {
+      return {
+        'padding': '5px 12px',
+        'border-radius': '6px',
+        'font-size': '12px',
+        'font-weight': '600',
+        'display': 'inline-block',
+        'background': 'rgba(245, 158, 11, 0.15)',
+        'color': '#b45309',
+        'border': 'none'
+      };
+    }
     if (this.isOutOfStock(status)) {
       return {
         'padding': '5px 12px',
@@ -510,18 +523,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
         'display': 'inline-block',
         'background': 'rgba(239, 68, 68, 0.12)',
         'color': '#b91c1c',
-        'border': 'none'
-      };
-    }
-    if (this.isLowStock(status)) {
-      return {
-        'padding': '5px 12px',
-        'border-radius': '6px',
-        'font-size': '12px',
-        'font-weight': '600',
-        'display': 'inline-block',
-        'background': 'rgba(245, 158, 11, 0.12)',
-        'color': '#b45309',
         'border': 'none'
       };
     }
