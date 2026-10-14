@@ -536,11 +536,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
       orderCode: data.orderCode,
       status: orderStatus,
       type: orderType,
-      sourceLocation: data.location,
-      destinationLocation: data.destination,
+      sourceLocation: data.sourceLocation || data.location,
+      destinationLocation: data.destinationLocation || data.destination,
       sourceWarehouseId: data.sourceWarehouseId,
       destWarehouseId: data.destWarehouseId,
-      referenceCode: data.orderCode,
+      referenceCode: data.referenceCode || data.orderCode,
       reason: data.reason,
       notes: data.note,
       createdAt: data.createdAt,
@@ -550,7 +550,12 @@ export class InventoryComponent implements OnInit, OnDestroy {
         variantId: it.variantId,
         quantity: parseInt(it.quantity, 10) || 1,
         price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0,
-        unit: it.unit || 'Chiếc'
+        unit: it.unit || 'Chiếc',
+        notes: [
+          it.unit ? `ĐVT: ${it.unit}` : null,
+          it.lotNumber ? `Lô: ${it.lotNumber}` : null,
+          it.expiryDate ? `HSD: ${it.expiryDate}` : null
+        ].filter(Boolean).join(' | ') || null
       }))
     };
 

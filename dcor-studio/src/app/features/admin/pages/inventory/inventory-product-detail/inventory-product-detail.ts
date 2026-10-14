@@ -251,6 +251,7 @@ export class InventoryProductDetailComponent implements OnInit {
   private inventoryState = inject(InventoryStateService);
   icons = { ArrowLeft, Package, Clock, Filter, Search, Plus, ArrowRightLeft, RefreshCcw, X };
 
+  productId: string = '';
   product: any = null;
   variants: VariantStock[] = [];
   history: StockHistory[] = [];
@@ -274,6 +275,7 @@ export class InventoryProductDetailComponent implements OnInit {
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
+        this.productId = id;
         this.loadData(id);
       }
     });
@@ -290,7 +292,15 @@ export class InventoryProductDetailComponent implements OnInit {
     });
   }
 
+  fetchProductDetail(productId?: string) {
+    const id = productId || this.productId;
+    if (id) {
+      this.loadData(id);
+    }
+  }
+
   loadData(productId: string) {
+    this.productId = productId;
     this.isLoading = true;
     this.http.get<any>(`${environment.apiUrl}/admin/inventory/product/${productId}`).subscribe({
       next: (res) => {
@@ -394,11 +404,11 @@ export class InventoryProductDetailComponent implements OnInit {
       orderCode: data.orderCode,
       status: orderStatus,
       type: orderType,
-      sourceLocation: data.location,
-      destinationLocation: data.destination,
+      sourceLocation: data.sourceLocation || data.location,
+      destinationLocation: data.destinationLocation || data.destination,
       sourceWarehouseId: data.sourceWarehouseId,
       destWarehouseId: data.destWarehouseId,
-      referenceCode: data.orderCode,
+      referenceCode: data.referenceCode || data.orderCode,
       reason: data.reason,
       notes: data.note,
       createdAt: data.createdAt,
@@ -408,7 +418,12 @@ export class InventoryProductDetailComponent implements OnInit {
         variantId: it.variantId,
         quantity: parseInt(it.quantity, 10) || 1,
         price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0,
-        unit: it.unit || 'Chiếc'
+        unit: it.unit || 'Chiếc',
+        notes: [
+          it.unit ? `ĐVT: ${it.unit}` : null,
+          it.lotNumber ? `Lô: ${it.lotNumber}` : null,
+          it.expiryDate ? `HSD: ${it.expiryDate}` : null
+        ].filter(Boolean).join(' | ') || null
       }))
     };
 

@@ -16,6 +16,8 @@ export interface LineItem {
   quantity: string;
   price: string;
   unit: string;
+  lotNumber?: string;
+  expiryDate?: string;
   isProductFixed: boolean;
   isVariantFixed: boolean;
 }
@@ -26,10 +28,10 @@ export interface LineItem {
   imports: [CommonModule, FormsModule, LucideAngularModule],
   template: `
     <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px);">
-      <div style="background: var(--bg-primary); border-radius: 14px; width: 980px; max-width: 95vw; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid var(--border-color); overflow: hidden;">
+      <div style="background: var(--bg-primary); border-radius: 14px; width: 1040px; max-width: 96vw; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid var(--border-color); overflow: hidden; position: relative;">
         
         <!-- Header -->
-        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); z-index: 20; position: relative;">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div [ngStyle]="{'background': type === 'export' ? '#fef2f2' : '#f0fdf4', 'color': type === 'export' ? '#ef4444' : '#10b981'}" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
               <lucide-angular [img]="icons.FileText" size="20"></lucide-angular>
@@ -38,7 +40,7 @@ export interface LineItem {
               <h2 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                 {{ type === 'import' ? 'Tạo phiếu Nhập kho' : 'Tạo phiếu Xuất kho' }}
                 <span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted);">
-                  {{ type === 'export' ? 'Xuất kho nội bộ / Bán hàng' : 'Nhập hàng từ NCC' }}
+                  {{ type === 'export' ? 'Xuất kho nội bộ / Bán hàng' : 'Nhập hàng từ NCC / Chuyển kho' }}
                 </span>
               </h2>
               <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
@@ -51,18 +53,18 @@ export interface LineItem {
           </button>
         </div>
         
-        <!-- Body -->
-        <div style="padding: 22px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;">
+        <!-- Body: Cung cấp min-height và padding-bottom đệm rộng rãi để không bị đè bởi footer -->
+        <div class="modal-body-scroll" style="padding: 22px 24px 160px 24px; min-height: 480px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;">
           
           <!-- General Info Card -->
           <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
             
-            <!-- Row 1: Mã phiếu & Ngày giờ xuất -->
+            <!-- Row 1: Mã phiếu & Ngày giờ xuất/nhập -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <!-- Mã phiếu (Khóa lại, tự sinh) -->
               <div style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
-                  <span>{{ type === 'import' ? 'Mã phiếu nhập' : 'Mã phiếu xuất' }} <span style="color: #ef4444;">*</span></span>
+                  <span>{{ type === 'import' ? 'Mã phiếu nhập (Receipt Code)' : 'Mã phiếu xuất' }} <span style="color: #ef4444;">*</span></span>
                   <span style="font-size: 11px; font-weight: 500; color: #10b981; background: #ecfdf5; padding: 1px 6px; border-radius: 4px; display: flex; align-items: center; gap: 3px;">
                     <lucide-angular [img]="icons.Lock" size="10"></lucide-angular> Tự động sinh
                   </span>
@@ -83,7 +85,7 @@ export interface LineItem {
               <!-- Ngày giờ xuất / nhập -->
               <div style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                  <span>{{ type === 'import' ? 'Ngày nhập kho' : 'Ngày xuất kho' }} <span style="color: #ef4444;">*</span></span>
+                  <span>{{ type === 'import' ? 'Ngày nhập kho (Posting Date)' : 'Ngày xuất kho' }} <span style="color: #ef4444;">*</span></span>
                   <span style="font-size: 11px; color: var(--text-muted); font-weight: 400;">(Mặc định hiện tại, có thể hạch toán lùi)</span>
                 </label>
                 <div style="position: relative; width: 100%;">
@@ -99,7 +101,7 @@ export interface LineItem {
 
             <!-- Row 2: Chi nhánh / Kho & Lý do -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-              <!-- Chi nhánh / Kho xuất -->
+              <!-- Chi nhánh / Kho -->
               <div style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
                   {{ type === 'import' ? 'Kho đích nhập về' : 'Chi nhánh / Kho xuất' }} <span style="color: #ef4444;">*</span>
@@ -117,7 +119,7 @@ export interface LineItem {
                     </div>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                   </button>
-                  <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                  <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                     <div *ngFor="let w of activeWarehouses"
                       (click)="selectLocation(w.id, $event)"
                       style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
@@ -131,10 +133,10 @@ export interface LineItem {
                 </div>
               </div>
 
-              <!-- Lý do xuất (hoặc nguồn nhập) -->
+              <!-- Lý do xuất/nhập -->
               <div style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
-                  {{ type === 'import' ? 'Nguồn gốc / Lý do nhập' : 'Lý do xuất kho' }} <span style="color: #ef4444;">*</span>
+                  {{ type === 'import' ? 'Lý do nhập kho' : 'Lý do xuất kho' }} <span style="color: #ef4444;">*</span>
                 </label>
                 <div style="position: relative; width: 100%;">
                   <button 
@@ -148,7 +150,7 @@ export interface LineItem {
                     </div>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                   </button>
-                  <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1050; padding: 4px;">
+                  <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px;">
                     <div *ngFor="let r of currentReasonOptions"
                       (click)="selectReason(r, $event)"
                       style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; display: flex; align-items: center; justify-content: space-between;"
@@ -157,7 +159,7 @@ export interface LineItem {
                       onmouseout="this.style.background='transparent'"
                     >
                       <span>{{ r }}</span>
-                      <span *ngIf="type === 'export'" style="font-size: 11px; font-family: monospace; color: var(--text-muted);">
+                      <span style="font-size: 11px; font-family: monospace; color: var(--text-muted);">
                         [{{ getPrefixForReasonText(r) }}]
                       </span>
                     </div>
@@ -166,7 +168,120 @@ export interface LineItem {
               </div>
             </div>
 
-            <!-- Row 3: Người tạo & Người nhận (Nếu có) & Kho đích nếu chuyển kho -->
+            <!-- Row 3: Đối tác (NCC / Khách / Kho chuyển) & Số hóa đơn/PO -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <!-- Cột 1: Đối tác / NCC / Đơn vị giao / Kho chuyển -->
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- Nhập chuyển kho (chọn kho nguồn gửi sang) -->
+                <ng-container *ngIf="type === 'import' && transactionReason.includes('Chuyển kho')">
+                  <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Chuyển từ Kho nguồn <span style="color: #ef4444;">*</span></label>
+                  <div style="position: relative; width: 100%;">
+                    <button 
+                      type="button"
+                      (click)="toggleDestDropdown($event)"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
+                    >
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ getDestLabel() }}
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                      <ng-container *ngFor="let w of activeWarehouses">
+                        <div *ngIf="w.id !== transactionLocation"
+                          (click)="selectDest(w.id, $event)"
+                          style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                          [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': transactionDestination === w.id ? 600 : 400}"
+                          onmouseover="this.style.background='var(--bg-secondary)'"
+                          onmouseout="this.style.background='transparent'"
+                        >
+                          {{ w.name }} ({{ w.code }})
+                        </div>
+                      </ng-container>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <!-- Xuất chuyển kho (chọn kho đích đến) -->
+                <ng-container *ngIf="type === 'export' && transactionReason.includes('Chuyển kho')">
+                  <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Chuyển đến Kho đích <span style="color: #ef4444;">*</span></label>
+                  <div style="position: relative; width: 100%;">
+                    <button 
+                      type="button"
+                      (click)="toggleDestDropdown($event)"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
+                      [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
+                    >
+                      <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ getDestLabel() }}
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                      <ng-container *ngFor="let w of activeWarehouses">
+                        <div *ngIf="w.id !== transactionLocation"
+                          (click)="selectDest(w.id, $event)"
+                          style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
+                          [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': transactionDestination === w.id ? 600 : 400}"
+                          onmouseover="this.style.background='var(--bg-secondary)'"
+                          onmouseout="this.style.background='transparent'"
+                        >
+                          {{ w.name }} ({{ w.code }})
+                        </div>
+                      </ng-container>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <!-- Nhập mua hàng từ Nhà cung cấp -->
+                <ng-container *ngIf="type === 'import' && !transactionReason.includes('Chuyển kho')">
+                  <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
+                    {{ transactionReason.includes('khách hàng') ? 'Khách hàng / Đơn vị trả hàng' : 'Nhà cung cấp / Đối tác giao' }}
+                    <span *ngIf="transactionReason.includes('Nhà cung cấp')" style="color: #ef4444;">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="recipientName" 
+                    list="supplierListSuggestions"
+                    [placeholder]="transactionReason.includes('khách hàng') ? 'VD: Khách hàng Trần Tuấn, Đơn #ORD-092...' : 'VD: BoConcept VN, Gỗ An Cường, Hafele...'" 
+                    style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                  />
+                  <datalist id="supplierListSuggestions">
+                    <option *ngFor="let s of supplierOptions" [value]="s"></option>
+                  </datalist>
+                </ng-container>
+
+                <!-- Xuất kho thông thường -->
+                <ng-container *ngIf="type === 'export' && !transactionReason.includes('Chuyển kho')">
+                  <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
+                    Người nhận / Đơn vị nhận hàng
+                  </label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="recipientName" 
+                    placeholder="VD: Khách hàng Trần Anh Tuấn, Cty Kiến Trúc Alpha..." 
+                    style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                  />
+                </ng-container>
+              </div>
+
+              <!-- Cột 2: Số hóa đơn / PO No. (Reference No.) -->
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
+                  <span>{{ type === 'import' ? 'Số hóa đơn VAT / Mã PO' : 'Số hóa đơn / Chứng từ gốc' }}</span>
+                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 400;">(Đối soát Kế toán)</span>
+                </label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="referenceCode" 
+                  [placeholder]="type === 'import' ? 'VD: HD-002934, PO-2026-001...' : 'VD: HD-00821, SO-2026-009...'" 
+                  style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                />
+              </div>
+            </div>
+
+            <!-- Row 4: Người tạo & Ghi chú -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <!-- Người tạo phiếu -->
               <div style="display: flex; flex-direction: column; gap: 6px;">
@@ -181,60 +296,16 @@ export interface LineItem {
                 />
               </div>
 
-              <!-- Người nhận / Đơn vị nhận (hoặc Kho đích nếu Chuyển kho) -->
-              <div *ngIf="!transactionReason.includes('Chuyển kho')" style="display: flex; flex-direction: column; gap: 6px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
-                  {{ type === 'import' ? 'Nhà cung cấp / Đơn vị giao' : 'Người nhận / Đơn vị nhận hàng' }}
-                </label>
+              <!-- Ghi chú chứng từ -->
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Ghi chú / Diễn giải chứng từ</label>
                 <input 
                   type="text" 
-                  [(ngModel)]="recipientName" 
-                  [placeholder]="type === 'import' ? 'VD: Xưởng BoConcept, NCC Gỗ...' : 'VD: Khách hàng Trần Anh Tuấn, Cty Kiến Trúc Alpha...'" 
+                  [(ngModel)]="transactionNote" 
+                  placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
                   style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
                 />
               </div>
-
-              <!-- Kho nhận nếu Chuyển kho -->
-              <div *ngIf="transactionReason.includes('Chuyển kho')" style="display: flex; flex-direction: column; gap: 6px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Chuyển đến Kho <span style="color: #ef4444;">*</span></label>
-                <div style="position: relative; width: 100%;">
-                  <button 
-                    type="button"
-                    (click)="toggleDestDropdown($event)"
-                    style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                    [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
-                  >
-                    <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                      {{ getDestLabel() }}
-                    </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                  </button>
-                  <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
-                    <ng-container *ngFor="let w of activeWarehouses">
-                      <div *ngIf="w.id !== transactionLocation"
-                        (click)="selectDest(w.id, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
-                        [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': transactionDestination === w.id ? 600 : 400}"
-                        onmouseover="this.style.background='var(--bg-secondary)'"
-                        onmouseout="this.style.background='transparent'"
-                      >
-                        {{ w.name }} ({{ w.code }})
-                      </div>
-                    </ng-container>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Row 4: Ghi chú chứng từ -->
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-              <label style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Ghi chú / Diễn giải chứng từ</label>
-              <input 
-                type="text" 
-                [(ngModel)]="transactionNote" 
-                placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
-                style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
-              />
             </div>
 
           </div>
@@ -252,20 +323,38 @@ export interface LineItem {
               </div>
             </div>
             
-            <!-- Table Headers -->
-            <div [ngStyle]="{'display': 'grid', 'grid-template-columns': getGridColumns(), 'gap': '12px', 'padding': '10px 14px', 'background': 'var(--bg-secondary)', 'border-radius': '8px', 'border': '1px solid var(--border-color)'}">
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Sản phẩm</div>
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Biến thể & Tồn kho</div>
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase;">ĐVT</div>
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase;">Số lượng</div>
-              <div *ngIf="type === 'import'" style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Đơn giá nhập (₫)</div>
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase;">Xóa</div>
-            </div>
+            <!-- Wrapper cuộn ngang an toàn khi màn hình thu nhỏ -->
+            <div style="overflow-x: auto; width: 100%; padding-bottom: 6px;">
+              <div [ngStyle]="{'display': 'flex', 'flex-direction': 'column', 'gap': '10px', 'min-width': type === 'import' ? '920px' : '720px'}">
+                
+                <!-- Table Headers -->
+                <div [ngStyle]="{'display': 'grid', 'grid-template-columns': getGridColumns(), 'gap': '10px', 'padding': '10px 14px', 'background': 'var(--bg-secondary)', 'border-radius': '8px', 'border': '1px solid var(--border-color)'}">
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: left; text-transform: uppercase;">Sản phẩm</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: left; text-transform: uppercase;">Biến thể</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">Tồn kho</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">ĐVT</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; white-space: nowrap; text-transform: uppercase;">Số lượng</div>
+                  <div *ngIf="type === 'import'" style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">Đơn giá (₫)</div>
+                  <div *ngIf="type === 'import'" style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: right; text-transform: uppercase; white-space: nowrap;">Thành tiền (₫)</div>
+                  <div *ngIf="type === 'import'" style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase; white-space: nowrap;">Số Lô / HSD</div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; text-transform: uppercase;">Xóa</div>
+                </div>
 
-            <!-- Rows -->
+            <!-- Rows: Có z-index phân tầng để dropdown không bị các dòng bên dưới đè -->
             <div style="display: flex; flex-direction: column; gap: 10px;">
               <div *ngFor="let item of lineItems; let i = index" 
-                   [ngStyle]="{'display': 'grid', 'grid-template-columns': getGridColumns(), 'gap': '12px', 'align-items': 'start', 'padding': '8px 12px', 'border-radius': '8px', 'background': 'var(--bg-primary)', 'border': isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)'}">
+                   [ngStyle]="{
+                     'display': 'grid', 
+                     'grid-template-columns': getGridColumns(), 
+                     'gap': '12px', 
+                     'align-items': 'start', 
+                     'padding': '10px 14px', 
+                     'border-radius': '8px', 
+                     'background': 'var(--bg-primary)', 
+                     'border': isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)',
+                     'position': 'relative',
+                     'z-index': (openProductDropdownId === item.id || openVariantDropdownId === item.id) ? 100 : 1
+                   }">
                 
                 <!-- 1. Sản phẩm -->
                 <div style="position: relative;">
@@ -285,12 +374,28 @@ export interface LineItem {
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': openProductDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'flex-shrink': '0'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                     
-                    <!-- Product Popup with Search -->
+                    <!-- Product Popup with Search: Tự động Dropup/Dropdown theo vị trí -->
                     <div *ngIf="openProductDropdownId === item.id" 
-                      style="position: absolute; top: calc(100% + 4px); left: 0; min-width: 320px; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1100; padding: 6px; display: flex; flex-direction: column; gap: 6px;"
+                      [ngStyle]="{
+                        'position': 'absolute',
+                        'left': '0',
+                        'min-width': '340px',
+                        'width': '100%',
+                        'background': 'var(--bg-primary)',
+                        'border': '1px solid var(--border-color)',
+                        'border-radius': '10px',
+                        'box-shadow': '0 16px 36px rgba(0,0,0,0.22)',
+                        'z-index': '1200',
+                        'padding': '8px',
+                        'display': 'flex',
+                        'flex-direction': 'column',
+                        'gap': '8px',
+                        'bottom': dropdownPositions['prod_' + item.id] === 'up' ? 'calc(100% + 6px)' : 'auto',
+                        'top': dropdownPositions['prod_' + item.id] === 'up' ? 'auto' : 'calc(100% + 6px)'
+                      }"
                     >
                       <!-- Search Input Box -->
-                      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px;" (click)="$event.stopPropagation()">
+                      <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px;" (click)="$event.stopPropagation()">
                         <lucide-angular [img]="icons.Search" size="14" color="var(--text-muted)"></lucide-angular>
                         <input 
                           type="text" 
@@ -308,7 +413,7 @@ export interface LineItem {
                       <div style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;">
                         <div *ngFor="let p of getFilteredProducts()"
                           (click)="selectProduct(item, p.id, $event)"
-                          style="padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; flex-direction: column; gap: 2px;"
+                          style="padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; flex-direction: column; gap: 2px;"
                           [ngStyle]="{'background': item.productId === p.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'}"
                           onmouseover="this.style.background='var(--bg-secondary)'"
                           onmouseout="this.style.background=item.productId === p.id ? 'var(--bg-secondary)' : 'transparent'"
@@ -329,7 +434,7 @@ export interface LineItem {
                   </div>
                 </div>
 
-                <!-- 2. Biến thể & Tồn kho hiện tại -->
+                <!-- 2. Biến thể & Tồn kho hiện tại: ĐÃ DISABLE RÕ RÀNG KHI CHƯA CHỌN SẢN PHẨM -->
                 <div style="position: relative; display: flex; flex-direction: column; gap: 4px;">
                   <div *ngIf="item.isVariantFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ getVariantName(item.productId, item.variantId) }}
@@ -339,27 +444,55 @@ export interface LineItem {
                       type="button"
                       (click)="toggleVariantDropdown(item, $event)"
                       [disabled]="!item.productId"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left; transition: all 0.2s;"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
                       [ngStyle]="{
-                        'background': !item.productId ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'background': !item.productId ? '#f4f4f5' : 'var(--bg-primary)',
                         'cursor': !item.productId ? 'not-allowed' : 'pointer',
-                        'opacity': !item.productId ? '0.6' : '1',
-                        'color': item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'
+                        'opacity': !item.productId ? '0.65' : '1',
+                        'color': !item.productId ? '#a1a1aa' : (item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'),
+                        'border': !item.productId ? '1px dashed #d4d4d8' : '1px solid var(--border-color)'
                       }"
+                      [attr.title]="!item.productId ? 'Vui lòng chọn sản phẩm trước' : ''"
                     >
                       <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ getVariantDisplay(item) }}
+                        {{ !item.productId ? 'Chọn sản phẩm trước' : getVariantDisplay(item) }}
                       </span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'flex-shrink': '0'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                        [ngStyle]="{
+                          'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 
+                          'transition': 'transform 0.2s', 
+                          'flex-shrink': '0',
+                          'opacity': !item.productId ? '0.35' : '1'
+                        }">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
                     </button>
 
-                    <!-- Variant Popup Menu -->
+                    <!-- Variant Popup Menu: Tự động Dropup/Dropdown theo vị trí -->
                     <div *ngIf="openVariantDropdownId === item.id && item.productId"
-                      style="position: absolute; top: calc(100% + 4px); left: 0; min-width: 260px; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1100; padding: 4px; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;"
+                      [ngStyle]="{
+                        'position': 'absolute',
+                        'left': '0',
+                        'min-width': '280px',
+                        'width': '100%',
+                        'background': 'var(--bg-primary)',
+                        'border': '1px solid var(--border-color)',
+                        'border-radius': '10px',
+                        'box-shadow': '0 16px 36px rgba(0,0,0,0.22)',
+                        'z-index': '1200',
+                        'padding': '6px',
+                        'max-height': '220px',
+                        'overflow-y': 'auto',
+                        'display': 'flex',
+                        'flex-direction': 'column',
+                        'gap': '2px',
+                        'bottom': dropdownPositions['var_' + item.id] === 'up' ? 'calc(100% + 6px)' : 'auto',
+                        'top': dropdownPositions['var_' + item.id] === 'up' ? 'auto' : 'calc(100% + 6px)'
+                      }"
                     >
                       <div *ngFor="let v of getVariantsForProduct(item.productId)"
                         (click)="selectVariant(item, v.id, $event)"
-                        style="padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px;"
+                        style="padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px;"
                         [ngStyle]="{'background': item.variantId === v.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.variantId === v.id ? 'var(--accent)' : 'var(--text-primary)'}"
                         onmouseover="this.style.background='var(--bg-secondary)'"
                         onmouseout="this.style.background=item.variantId === v.id ? 'var(--bg-secondary)' : 'transparent'"
@@ -368,9 +501,22 @@ export interface LineItem {
                           <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ v.name }}</span>
                           <span *ngIf="v.sku" style="font-size: 11px; color: var(--text-muted);">{{ v.sku }}</span>
                         </div>
-                        <span *ngIf="v.price" style="font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap;">
-                          {{ formatPrice(v.price) }}
-                        </span>
+                        <!-- Hiển thị Tồn kho khả dụng (Available Stock) thay vì giá tiền -->
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0;">
+                          <span 
+                            style="font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; white-space: nowrap; display: inline-flex; align-items: center;"
+                            [ngStyle]="{
+                              'color': getVariantStockInfo(item.productId, v.id).available > 5 ? '#059669' : (getVariantStockInfo(item.productId, v.id).available > 0 ? '#d97706' : '#dc2626'),
+                              'background': getVariantStockInfo(item.productId, v.id).available > 5 ? '#ecfdf5' : (getVariantStockInfo(item.productId, v.id).available > 0 ? '#fffbeb' : '#fef2f2'),
+                              'border': getVariantStockInfo(item.productId, v.id).available > 5 ? '1px solid #a7f3d0' : (getVariantStockInfo(item.productId, v.id).available > 0 ? '1px solid #fde68a' : '1px solid #fecaca')
+                            }"
+                          >
+                            {{ type === 'export' ? 'Khả dụng: ' : 'Tồn kho: ' }}{{ getVariantStockInfo(item.productId, v.id).available }}
+                          </span>
+                          <span *ngIf="transactionLocation && getVariantStockInfo(item.productId, v.id).reserved > 0" style="font-size: 10px; color: var(--text-muted); white-space: nowrap;">
+                            (Thực tế: {{ getVariantStockInfo(item.productId, v.id).physical }} | Giữ: {{ getVariantStockInfo(item.productId, v.id).reserved }})
+                          </span>
+                        </div>
                       </div>
                       <div *ngIf="getVariantsForProduct(item.productId).length === 0" style="padding: 12px; text-align: center; font-size: 12px; color: var(--text-muted);">
                         Không có biến thể
@@ -378,25 +524,41 @@ export interface LineItem {
                     </div>
                   </div>
 
-                  <!-- Thông tin Tồn kho hiện tại tại Kho đã chọn -->
-                  <div *ngIf="item.variantId" style="font-size: 11px; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
-                    <span style="color: var(--text-muted);">Tồn kho:</span>
-                    <span *ngIf="!transactionLocation" style="color: #f59e0b; font-weight: 500;">
-                      (Chọn kho để xem)
-                    </span>
-                    <span *ngIf="transactionLocation" 
-                          [style.color]="getVariantStock(item) > 5 ? '#10b981' : (getVariantStock(item) > 0 ? '#f59e0b' : '#ef4444')"
-                          style="font-weight: 700; background: var(--bg-secondary); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border-color);">
-                      {{ getVariantStock(item) }} {{ item.unit || 'Chiếc' }}
-                    </span>
-                  </div>
                 </div>
 
-                <!-- 3. Đơn vị tính (ĐVT) -->
+                <!-- 3. Cột Tồn kho: Hiển thị sau khi chọn biến thể -->
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 38px;">
+                  <span *ngIf="!item.productId || !item.variantId" style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
+                    --
+                  </span>
+                  <span *ngIf="item.productId && item.variantId && !transactionLocation" style="color: #f59e0b; font-size: 10.5px; font-weight: 500; text-align: center; line-height: 1.1;">
+                    Chưa chọn kho
+                  </span>
+                  <ng-container *ngIf="item.productId && item.variantId && transactionLocation">
+                    <span 
+                      style="font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; min-width: 36px;"
+                      [ngStyle]="{
+                        'color': getVariantStock(item) > 5 ? '#059669' : (getVariantStock(item) > 0 ? '#d97706' : '#dc2626'),
+                        'background': getVariantStock(item) > 5 ? '#ecfdf5' : (getVariantStock(item) > 0 ? '#fffbeb' : '#fef2f2'),
+                        'border': getVariantStock(item) > 5 ? '1px solid #a7f3d0' : (getVariantStock(item) > 0 ? '1px solid #fde68a' : '1px solid #fecaca')
+                      }"
+                      [title]="'Tồn khả dụng: ' + getVariantStock(item) + ' ' + (item.unit || 'Chiếc')"
+                    >
+                      {{ getVariantStock(item) }}
+                    </span>
+                    <span *ngIf="getVariantStockInfo(item.productId, item.variantId).reserved > 0" 
+                          style="font-size: 9.5px; color: var(--text-muted); white-space: nowrap; margin-top: 1px;"
+                          [title]="'Thực tế: ' + getVariantStockInfo(item.productId, item.variantId).physical + ' | Tạm giữ: ' + getVariantStockInfo(item.productId, item.variantId).reserved">
+                      (Giữ: {{ getVariantStockInfo(item.productId, item.variantId).reserved }})
+                    </span>
+                  </ng-container>
+                </div>
+
+                <!-- 4. Đơn vị tính (ĐVT) -->
                 <div style="display: flex; justify-content: center;">
                   <select 
                     [(ngModel)]="item.unit" 
-                    style="height: 38px; width: 75px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-weight: 500; text-align: center; outline: none; cursor: pointer;"
+                    style="height: 38px; width: 68px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-weight: 500; text-align: center; outline: none; cursor: pointer;"
                   >
                     <option value="Chiếc">Chiếc</option>
                     <option value="Bộ">Bộ</option>
@@ -407,9 +569,9 @@ export interface LineItem {
                   </select>
                 </div>
 
-                <!-- 4. Số lượng (kèm Validation cảnh báo vượt tồn) -->
+                <!-- 5. Số lượng (kèm Validation cảnh báo vượt tồn) -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                  <div style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 105px; background: var(--bg-primary); transition: all 0.15s ease;"
+                  <div style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 68px; background: var(--bg-primary); transition: all 0.15s ease;"
                        [ngStyle]="{
                          'opacity': (!item.productId || !item.variantId) ? '0.5' : '1',
                          'border-color': isQuantityExceeded(item) ? '#ef4444' : 'var(--border-color)',
@@ -425,7 +587,7 @@ export interface LineItem {
                       (keydown)="onQuantityKeydown($event)"
                       (input)="onQuantityInput(item, $event)"
                       placeholder="0"
-                      style="flex: 1; min-width: 0; width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-primary); padding: 0 4px;"
+                      style="flex: 1; min-width: 0; width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-primary); padding: 0 2px;"
                       [ngStyle]="{
                         'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'text',
                         'color': isQuantityExceeded(item) ? '#dc2626' : 'var(--text-primary)'
@@ -433,7 +595,7 @@ export interface LineItem {
                     />
 
                     <!-- Cụm mũi tên tăng/giảm bên phải -->
-                    <div style="display: flex; flex-direction: column; width: 24px; border-left: 1px solid var(--border-color); flex-shrink: 0;">
+                    <div style="display: flex; flex-direction: column; width: 20px; border-left: 1px solid var(--border-color); flex-shrink: 0;">
                       <button 
                         type="button"
                         (click)="increaseQuantity(item)"
@@ -441,7 +603,7 @@ export interface LineItem {
                         style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-bottom: 1px solid var(--border-color); padding: 0; transition: all 0.12s ease; cursor: pointer;"
                         title="Tăng"
                       >
-                        <lucide-angular [img]="icons.ChevronUp" size="12"></lucide-angular>
+                        <lucide-angular [img]="icons.ChevronUp" size="10"></lucide-angular>
                       </button>
 
                       <button 
@@ -451,7 +613,7 @@ export interface LineItem {
                         style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; padding: 0; transition: all 0.12s ease; cursor: pointer;"
                         title="Giảm"
                       >
-                        <lucide-angular [img]="icons.ChevronDown" size="12"></lucide-angular>
+                        <lucide-angular [img]="icons.ChevronDown" size="10"></lucide-angular>
                       </button>
                     </div>
                   </div>
@@ -462,26 +624,58 @@ export interface LineItem {
                   </div>
                 </div>
 
-                <!-- 5. Giá nhập (chỉ hiện khi import) -->
+                <!-- 6. Giá nhập (chỉ hiện khi import) -->
                 <div *ngIf="type === 'import'">
-                  <input type="text" class="admin-input" placeholder="0" [ngModel]="item.price" (ngModelChange)="updateLineItem(item.id, 'price', $event)" style="height: 38px; width: 100%; box-sizing: border-box; font-size: 13px; text-align: right; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);" />
+                  <input 
+                    type="text" 
+                    placeholder="0" 
+                    [ngModel]="item.price" 
+                    (input)="onPriceInput(item, $event)" 
+                    style="height: 38px; width: 100%; box-sizing: border-box; font-size: 13px; text-align: right; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;" 
+                  />
                 </div>
 
-                <!-- 6. Delete Row -->
-                <div style="display: flex; justify-content: center; padding-top: 8px;">
+                <!-- 7. Thành tiền = Số lượng × Đơn giá (chỉ hiện khi import) -->
+                <div *ngIf="type === 'import'" style="display: flex; align-items: center; justify-content: flex-end; height: 38px; font-size: 13px; font-weight: 700; color: #059669; padding-right: 4px; white-space: nowrap;" [title]="getFormattedLineSubtotal(item)">
+                  {{ getFormattedLineSubtotal(item) }}
+                </div>
+
+                <!-- 8. Số Lô / HSD (chỉ hiện khi import) -->
+                <div *ngIf="type === 'import'" style="display: flex; flex-direction: column; gap: 3px; justify-content: center; height: 38px;">
+                  <input 
+                    type="text" 
+                    [(ngModel)]="item.lotNumber" 
+                    placeholder="Số Lô..." 
+                    title="Số Lô / Batch No."
+                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 11px; padding: 0 5px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;" 
+                  />
+                  <input 
+                    type="date" 
+                    [(ngModel)]="item.expiryDate" 
+                    title="Hạn sử dụng (Expiry Date)"
+                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 10px; padding: 0 2px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;" 
+                  />
+                </div>
+
+                <!-- 9. Delete Row -->
+                <div style="display: flex; justify-content: center; align-items: center; height: 38px;">
                   <button 
                     (click)="handleRemoveLineItem(item.id)"
                     [disabled]="lineItems.length === 1"
                     [ngStyle]="{
                       'background': 'none', 'border': 'none', 'cursor': lineItems.length === 1 ? 'not-allowed' : 'pointer',
                       'color': lineItems.length === 1 ? 'var(--border-color)' : '#ef4444',
-                      'padding': '4px'
+                      'padding': '4px',
+                      'display': 'flex', 'align-items': 'center', 'justify-content': 'center'
                     }"
                     title="Xóa dòng"
                   >
                     <lucide-angular [img]="icons.Trash2" size="18"></lucide-angular>
                   </button>
                 </div>
+              </div>
+            </div>
+
               </div>
             </div>
 
@@ -502,17 +696,98 @@ export interface LineItem {
                 <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Thêm sản phẩm
               </button>
             </div>
+
+            <!-- Bảng tổng kết tài chính phiếu nhập (Financial Summary) -->
+            <div *ngIf="type === 'import'" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 6px;">
+              
+              <!-- Cột trái: Tóm tắt thông số -->
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
+                  Tóm tắt quy mô phiếu nhập
+                </div>
+                <div style="font-size: 12.5px; color: var(--text-muted); display: flex; flex-direction: column; gap: 5px;">
+                  <div>• Tổng số lượng: <strong style="color: var(--text-primary);">{{ getTotalQuantity() }}</strong> đơn vị sản phẩm</div>
+                  <div>• Số chủng loại: <strong style="color: var(--text-primary);">{{ lineItems.length }}</strong> mặt hàng</div>
+                  <div *ngIf="referenceCode">• Chứng từ kèm theo: <strong style="color: var(--accent); font-family: monospace;">{{ referenceCode }}</strong></div>
+                  <div *ngIf="recipientName">• Đối tác / Nhà cung cấp: <strong style="color: var(--text-primary);">{{ recipientName }}</strong></div>
+                </div>
+              </div>
+
+              <!-- Cột phải: Tính toán chiết khấu, VAT, Vận chuyển, Tổng thanh toán -->
+              <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                <!-- Tiền hàng -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="color: var(--text-secondary);">Tổng tiền hàng (Subtotal):</span>
+                  <span style="font-weight: 600; color: var(--text-primary); font-size: 13.5px;">{{ formatCurrency(getTotalSubtotal()) }}</span>
+                </div>
+
+                <!-- Chiết khấu -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                  <span style="color: var(--text-secondary);">Chiết khấu (₫):</span>
+                  <input 
+                    type="text" 
+                    [value]="discountAmount" 
+                    (input)="onCurrencyInput('discount', $event)" 
+                    placeholder="0" 
+                    style="width: 140px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
+                  />
+                </div>
+
+                <!-- Thuế VAT -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                  <span style="color: var(--text-secondary);">Thuế VAT:</span>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <select 
+                      [(ngModel)]="taxRate" 
+                      style="height: 28px; padding: 0 6px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12px; outline: none; cursor: pointer;"
+                    >
+                      <option [ngValue]="0">0%</option>
+                      <option [ngValue]="8">8%</option>
+                      <option [ngValue]="10">10%</option>
+                    </select>
+                    <span style="font-weight: 500; min-width: 85px; text-align: right; color: var(--text-primary); font-size: 12.5px;">+{{ formatCurrency(getTaxValue()) }}</span>
+                  </div>
+                </div>
+
+                <!-- Chi phí vận chuyển -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                  <span style="color: var(--text-secondary);">Phí vận chuyển (₫):</span>
+                  <input 
+                    type="text" 
+                    [value]="shippingFee" 
+                    (input)="onCurrencyInput('shipping', $event)" 
+                    placeholder="0" 
+                    style="width: 140px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
+                  />
+                </div>
+
+                <!-- Đường kẻ phân cách -->
+                <div style="height: 1px; background: var(--border-color); margin: 3px 0;"></div>
+
+                <!-- Tổng giá trị nhập kho / Thanh toán -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">Tổng thanh toán:</span>
+                  <span style="font-size: 17px; font-weight: 800; color: #059669;">{{ formatCurrency(getFinalTotal()) }}</span>
+                </div>
+              </div>
+
+            </div>
             
           </div>
         </div>
 
-        <!-- Footer với 3 nút chức năng -->
-        <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+        <!-- Footer với 3 nút chức năng (z-index: 20 để không che dropdown khi dropup) -->
+        <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); z-index: 20; position: relative;">
           <!-- Left info: Tóm tắt trạng thái -->
           <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
             <span>Mã phiếu: <strong style="font-family: monospace; color: var(--text-primary);">{{ orderCode }}</strong></span>
             <span>•</span>
             <span>Tổng SP: <strong style="color: var(--text-primary);">{{ getTotalQuantity() }}</strong></span>
+            <ng-container *ngIf="type === 'import'">
+              <span>•</span>
+              <span>Tổng tiền: <strong style="color: #059669; font-size: 13px;">{{ formatCurrency(getFinalTotal()) }}</strong></span>
+            </ng-container>
           </div>
 
           <!-- 3 Nút hành động cốt lõi -->
@@ -535,13 +810,13 @@ export interface LineItem {
               style="display: flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; border: 1px solid #d97706; background: #fffbeb; color: #b45309; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
               onmouseover="this.style.background='#fef3c7'"
               onmouseout="this.style.background='#fffbeb'"
-              title="Lưu lại dạng bản nháp để duyệt sau, chưa trừ số lượng tồn kho"
+              title="Lưu lại dạng bản nháp để duyệt sau, chưa thay đổi số lượng tồn kho"
             >
               <lucide-angular [img]="icons.Save" size="15"></lucide-angular>
               Lưu nháp
             </button>
 
-            <!-- Nút 3: TẠO PHIẾU XUẤT (Hoàn thành / Xác nhận trừ kho) -->
+            <!-- Nút 3: TẠO PHIẾU (Hoàn thành / Xác nhận ghi nhận kho) -->
             <button 
               type="button"
               (click)="handleSubmitConfirmed()" 
@@ -553,7 +828,7 @@ export interface LineItem {
               style="display: flex; align-items: center; gap: 6px; padding: 9px 22px; border-radius: 8px; border: none; background: #18181b; color: #ffffff; font-size: 13px; font-weight: 600; transition: all 0.15s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.15);"
               onmouseover="if(!this.disabled) this.style.background='#27272a'"
               onmouseout="this.style.background='#18181b'"
-              title="Phát hành phiếu chính thức và cập nhật trừ trực tiếp tồn kho"
+              [title]="type === 'import' ? 'Phát hành phiếu nhập chính thức và cộng tồn kho' : 'Phát hành phiếu xuất chính thức và trừ trực tiếp tồn kho'"
             >
               <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
               {{ type === 'import' ? 'Tạo phiếu nhập' : 'Tạo phiếu xuất' }}
@@ -604,6 +879,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   // Quản lý thông tin chứng từ
   orderCode = '';
   orderSequence = '';
+  referenceCode = '';
   transactionDate = '';
   creatorName = 'Admin Quản Trị';
   recipientName = '';
@@ -613,6 +889,21 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   transactionNote = '';
   lineItems: LineItem[] = [];
 
+  // Quản lý tài chính & chi phí cho phiếu nhập
+  discountAmount = '';
+  taxRate = 0;
+  shippingFee = '';
+
+  supplierOptions = [
+    'BoConcept Vietnam (Nội thất cao cấp)',
+    'Công ty CP Gỗ An Cường',
+    'Hafele Việt Nam (Phụ kiện & Thiết bị)',
+    'Kian Furniture International',
+    'Nhà máy Chế biến Gỗ Hố Nai',
+    'Tập đoàn Vicostone (Đá thạch anh)',
+    'Nội thất Hòa Phát / The One'
+  ];
+
   showLocationDropdown = false;
   showReasonDropdown = false;
   showDestDropdown = false;
@@ -620,6 +911,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   openProductDropdownId: string | null = null;
   openVariantDropdownId: string | null = null;
   productSearchTerm = '';
+
+  // Vị trí auto dropup/dropdown
+  dropdownPositions: { [key: string]: 'up' | 'down' } = {};
 
   exportReasonOptions = [
     'Xuất bán lẻ / Dự án',
@@ -631,11 +925,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   ];
 
   importReasonOptions = [
-    'Nhập từ Nhà cung cấp',
-    'Nhập chuyển kho đến',
-    'Nhập thu hồi / Đổi trả khách hàng',
-    'Nhập cân bằng kiểm kê',
-    'Khác'
+    'Nhập mua hàng từ Nhà cung cấp',
+    'Nhập chuyển kho nội bộ (từ kho khác sang)',
+    'Nhập hàng trả lại từ khách hàng (Trả hàng/Đổi trả)',
+    'Nhập dư sau kiểm kê / Khác'
   ];
 
   get currentReasonOptions(): string[] {
@@ -683,11 +976,15 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
     // Số thứ tự 4 số ngẫu nhiên hoặc tự tăng
     this.orderSequence = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
+    this.referenceCode = '';
+    this.discountAmount = '';
+    this.taxRate = 0;
+    this.shippingFee = '';
 
     this.creatorName = 'Admin Quản Trị';
     this.recipientName = '';
     this.transactionLocation = this.activeWarehouses[0]?.id || '';
-    this.transactionReason = this.type === 'export' ? 'Xuất bán lẻ / Dự án' : 'Nhập từ Nhà cung cấp';
+    this.transactionReason = this.type === 'export' ? 'Xuất bán lẻ / Dự án' : 'Nhập mua hàng từ Nhà cung cấp';
     this.transactionDestination = '';
     this.transactionNote = '';
     this.showLocationDropdown = false;
@@ -696,19 +993,22 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
     this.productSearchTerm = '';
+    this.dropdownPositions = {};
 
     // Khởi tạo mã phiếu
     this.generateOrderCode();
 
-    // Dòng sản phẩm ban đầu
-    const initialUnit = this.inferUnit(this.getProductName(this.initialProductId));
+    // Dòng sản phẩm ban đầu: nếu chưa có initialProductId thì để trống hoàn toàn để ô Biến thể bị Disable
+    const initialUnit = this.initialProductId ? this.inferUnit(this.getProductName(this.initialProductId)) : 'Chiếc';
     this.lineItems = [{
       id: Date.now().toString(),
-      productId: this.initialProductId,
-      variantId: this.initialVariantId,
+      productId: this.initialProductId || '',
+      variantId: this.initialVariantId || '',
       quantity: '',
       price: '',
       unit: initialUnit,
+      lotNumber: '',
+      expiryDate: '',
       isProductFixed: this.isProductFixed,
       isVariantFixed: this.isVariantFixed,
     }];
@@ -722,12 +1022,29 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     }
   }
 
+  // --- LOGIC TÍNH TOÁN AUTO DROPUP / DROPDOWN ---
+  checkDropdownPosition(element: HTMLElement, key: string) {
+    if (!element) return;
+    const rect = element.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    
+    // Nếu khoảng cách bên dưới < 290px và bên trên có từ 200px trở lên -> Xổ lên trên (Dropup)
+    if (spaceBelow < 290 && rect.top > 200) {
+      this.dropdownPositions[key] = 'up';
+    } else {
+      this.dropdownPositions[key] = 'down';
+    }
+  }
+
   // --- LOGIC SINH MÃ PHIẾU XUẤT / NHẬP ---
   getPrefixForReasonText(reason: string): string {
+    const r = (reason || '').toLowerCase();
     if (this.type === 'import') {
+      if (r.includes('chuyển kho')) return 'PNK-CK';
+      if (r.includes('trả lại') || r.includes('đổi trả') || r.includes('thu hồi')) return 'PNK-TH';
+      if (r.includes('kiểm kê') || r.includes('dư')) return 'PNK-KK';
       return 'PNK-NCC';
     }
-    const r = (reason || '').toLowerCase();
     if (r.includes('bán') || r.includes('dự án') || r.includes('khách')) return 'PXK-BH';
     if (r.includes('chuyển kho') || r.includes('luân chuyển')) return 'PXK-CK';
     if (r.includes('trả') || r.includes('ncc') || r.includes('nhà cung cấp')) return 'PXK-NCC';
@@ -768,12 +1085,12 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   // --- TỒN KHO & VALIDATION ---
-  getVariantStock(item: LineItem): number {
-    if (!item.productId || !item.variantId) return 0;
-    const p = this.availableProducts.find((x: any) => x.id === item.productId);
-    if (!p || !p.variants) return 0;
-    const v = p.variants.find((x: any) => x.id === item.variantId);
-    if (!v) return 0;
+  getVariantStockInfo(productId: string, variantId: string): { available: number; physical: number; reserved: number } {
+    if (!productId || !variantId) return { available: 0, physical: 0, reserved: 0 };
+    const p = this.availableProducts.find((x: any) => x.id === productId);
+    if (!p || !p.variants) return { available: 0, physical: 0, reserved: 0 };
+    const v = p.variants.find((x: any) => x.id === variantId);
+    if (!v) return { available: 0, physical: 0, reserved: 0 };
 
     if (this.transactionLocation) {
       if (v.warehouseStocks && Array.isArray(v.warehouseStocks) && v.warehouseStocks.length > 0) {
@@ -783,13 +1100,23 @@ export class TransactionModalComponent implements OnInit, OnChanges {
           w.warehouse?.code === this.transactionLocation
         );
         if (ws) {
-          return Math.max(0, ws.physicalStock - (ws.reservedStock || 0));
+          const physical = ws.physicalStock ?? 0;
+          const reserved = ws.reservedStock ?? 0;
+          const available = Math.max(0, physical - reserved);
+          return { available, physical, reserved };
         }
       }
       // Fallback nếu chưa có phân bổ kho riêng
-      return Math.max(0, Math.floor((v.stock || 0) / 4));
+      const fallbackTotal = v.stock || 0;
+      const fallbackStock = Math.max(0, Math.floor(fallbackTotal / 4));
+      return { available: fallbackStock, physical: fallbackStock, reserved: 0 };
     }
-    return v.stock || 0;
+    const total = v.stock || 0;
+    return { available: total, physical: total, reserved: 0 };
+  }
+
+  getVariantStock(item: LineItem): number {
+    return this.getVariantStockInfo(item.productId, item.variantId).available;
   }
 
   isQuantityExceeded(item: LineItem): boolean {
@@ -810,15 +1137,75 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return this.lineItems.reduce((acc, it) => acc + (parseInt(it.quantity, 10) || 0), 0);
   }
 
+  // --- TÍNH TOÁN TÀI CHÍNH & TIỀN TỆ ---
+  getRawNumber(val: any): number {
+    if (val === null || val === undefined) return 0;
+    const clean = String(val).replace(/[^0-9]/g, '');
+    return parseInt(clean, 10) || 0;
+  }
+
+  formatCurrency(value: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0);
+  }
+
+  getLineSubtotal(item: LineItem): number {
+    const qty = parseInt(item.quantity, 10) || 0;
+    const price = this.getRawNumber(item.price);
+    return qty * price;
+  }
+
+  getFormattedLineSubtotal(item: LineItem): string {
+    return this.formatCurrency(this.getLineSubtotal(item));
+  }
+
+  getTotalSubtotal(): number {
+    return this.lineItems.reduce((sum, item) => sum + this.getLineSubtotal(item), 0);
+  }
+
+  getDiscountValue(): number {
+    return this.getRawNumber(this.discountAmount);
+  }
+
+  getShippingValue(): number {
+    return this.getRawNumber(this.shippingFee);
+  }
+
+  getTaxValue(): number {
+    const taxable = Math.max(0, this.getTotalSubtotal() - this.getDiscountValue());
+    return Math.round(taxable * (this.taxRate / 100));
+  }
+
+  getFinalTotal(): number {
+    return Math.max(0, this.getTotalSubtotal() - this.getDiscountValue() + this.getTaxValue() + this.getShippingValue());
+  }
+
+  onPriceInput(item: LineItem, event: any) {
+    const rawValue = event.target ? event.target.value : event;
+    const clean = String(rawValue || '').replace(/[^0-9]/g, '');
+    const num = parseInt(clean, 10);
+    item.price = clean ? new Intl.NumberFormat('vi-VN').format(num) : '';
+  }
+
+  onCurrencyInput(field: 'discount' | 'shipping', event: any) {
+    const rawValue = event.target ? event.target.value : event;
+    const clean = String(rawValue || '').replace(/[^0-9]/g, '');
+    const formatted = clean ? new Intl.NumberFormat('vi-VN').format(parseInt(clean, 10)) : '';
+    if (field === 'discount') {
+      this.discountAmount = formatted;
+    } else {
+      this.shippingFee = formatted;
+    }
+  }
+
   // --- DROPDOWN LABELS ---
   getLocationLabel(): string {
-    if (!this.transactionLocation) return 'Chọn chi nhánh / kho';
+    if (!this.transactionLocation) return this.type === 'import' ? 'Chọn kho đích nhập về' : 'Chọn chi nhánh / kho xuất';
     const w = this.activeWarehouses.find((x: any) => x.id === this.transactionLocation || x.name === this.transactionLocation);
     return w ? `${w.name} (${w.code})` : this.transactionLocation;
   }
 
   getDestLabel(): string {
-    if (!this.transactionDestination) return 'Chọn kho nhận';
+    if (!this.transactionDestination) return this.type === 'import' ? 'Chọn kho nguồn' : 'Chọn kho nhận';
     const w = this.activeWarehouses.find((x: any) => x.id === this.transactionDestination || x.name === this.transactionDestination);
     return w ? `${w.name} (${w.code})` : this.transactionDestination;
   }
@@ -882,11 +1269,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getVariantDisplay(item: LineItem): string {
-    if (!item.productId) return 'Chọn biến thể...';
+    if (!item.productId) return 'Chọn sản phẩm trước';
     if (!item.variantId) return 'Chọn biến thể...';
     const vars = this.getVariantsForProduct(item.productId);
     const v = vars.find((x: any) => x.id === item.variantId);
-    return v ? `${v.name} ${v.price ? '(' + this.formatPrice(v.price) + ')' : ''}` : item.variantId;
+    return v ? v.name : item.variantId;
   }
 
   getFilteredProducts(): any[] {
@@ -909,6 +1296,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       this.closeAllDropdowns();
       this.openProductDropdownId = itemId;
       this.productSearchTerm = '';
+      const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
+      this.checkDropdownPosition(target, 'prod_' + itemId);
     }
   }
 
@@ -921,12 +1310,14 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   toggleVariantDropdown(item: LineItem, event: Event) {
     event.stopPropagation();
-    if (!item.productId) return;
+    if (!item.productId) return; // Chặn tuyệt đối khi chưa chọn sản phẩm
     if (this.openVariantDropdownId === item.id) {
       this.openVariantDropdownId = null;
     } else {
       this.closeAllDropdowns();
       this.openVariantDropdownId = item.id;
+      const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
+      this.checkDropdownPosition(target, 'var_' + item.id);
     }
   }
 
@@ -946,7 +1337,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getGridColumns() {
-    return this.type === 'import' ? '1.8fr 1.6fr 80px 105px 130px 40px' : '1.8fr 1.6fr 80px 105px 40px';
+    return this.type === 'import' 
+      ? 'minmax(180px, 1.4fr) minmax(140px, 1.1fr) 70px 65px 70px 110px 115px 110px 36px' 
+      : 'minmax(220px, 1.8fr) minmax(180px, 1.5fr) 85px 70px 75px 40px';
   }
 
   getQuantity(item: LineItem): number {
@@ -958,7 +1351,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     const current = this.getQuantity(item);
     const maxStock = this.getVariantStock(item);
     if (this.type === 'export' && current >= maxStock) {
-      return; // Không tăng vượt quá tồn kho
+      return;
     }
     this.updateLineItem(item.id, 'quantity', String(current + 1));
   }
@@ -995,7 +1388,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return p ? (p.name || p.productName) : 'N/A';
   }
 
-  getVariantName(productId: string, variantId: string) {
+  getVariantName(productId: string, variantId: string): string {
     const vars = this.getVariantsForProduct(productId);
     const v = vars.find((x: any) => x.id === variantId);
     return v ? v.name : (variantId || 'N/A');
@@ -1030,6 +1423,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       quantity: '',
       price: '',
       unit: 'Chiếc',
+      lotNumber: '',
+      expiryDate: '',
       isProductFixed: false,
       isVariantFixed: false,
     });
@@ -1080,27 +1475,66 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   buildFormData(status: 'PENDING' | 'COMPLETED', action: 'draft' | 'confirm') {
-    const sourceWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionLocation || w.name === this.transactionLocation);
-    const destWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionDestination || w.name === this.transactionDestination);
+    const selectedWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionLocation || w.name === this.transactionLocation);
+    const transferWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionDestination || w.name === this.transactionDestination);
+
+    const isImport = this.type === 'import';
+    const isTransfer = this.transactionReason.includes('Chuyển kho');
+
+    const sourceWarehouseId = isImport
+      ? (isTransfer ? (transferWarehouse?.id || null) : null)
+      : (selectedWarehouse?.id || null);
+
+    const destWarehouseId = isImport
+      ? (selectedWarehouse?.id || null)
+      : (isTransfer ? (transferWarehouse?.id || null) : null);
+
+    const sourceLocationName = isImport
+      ? (isTransfer ? (transferWarehouse?.name || 'Kho chuyển') : (this.recipientName || 'Nhà cung cấp / Đối tác'))
+      : (selectedWarehouse?.name || this.transactionLocation);
+
+    const destinationLocationName = isImport
+      ? (selectedWarehouse?.name || this.transactionLocation)
+      : (isTransfer ? (transferWarehouse?.name || 'Kho nhận') : (this.recipientName || 'Khách hàng / Đối tác'));
+
+    const subtotal = this.getTotalSubtotal();
+    const discount = this.getDiscountValue();
+    const tax = this.getTaxValue();
+    const shipping = this.getShippingValue();
+    const finalTotal = isImport ? this.getFinalTotal() : 0;
 
     return {
       action,
       status,
       type: this.type,
       orderCode: this.orderCode,
+      referenceCode: this.referenceCode || this.orderCode,
       createdAt: this.transactionDate ? new Date(this.transactionDate).toISOString() : new Date().toISOString(),
       creatorName: this.creatorName,
       recipientName: this.recipientName,
-      location: sourceWarehouse ? sourceWarehouse.name : this.transactionLocation,
-      sourceWarehouseId: sourceWarehouse ? sourceWarehouse.id : null,
+      location: isImport ? destinationLocationName : sourceLocationName,
+      sourceLocation: sourceLocationName,
+      destination: destinationLocationName,
+      destinationLocation: destinationLocationName,
+      sourceWarehouseId,
+      destWarehouseId,
       reason: this.transactionReason,
-      destination: destWarehouse ? destWarehouse.name : (this.recipientName || 'Khách hàng / Đối tác'),
-      destWarehouseId: destWarehouse ? destWarehouse.id : null,
       note: this.transactionNote,
+      financials: {
+        subtotal,
+        discount,
+        taxRate: this.taxRate,
+        tax,
+        shipping,
+        totalAmount: finalTotal
+      },
+      totalAmount: finalTotal,
       items: this.lineItems.map((item: any) => {
         const prod = this.availableProducts.find((p: any) => p.id === item.productId);
         const variants = this.getVariantsForProduct(item.productId);
         const variant = variants.find((v: any) => v.id === item.variantId);
+        const priceNum = this.getRawNumber(item.price);
+        const qtyNum = parseInt(item.quantity, 10) || 0;
         return {
           productId: item.productId,
           productName: prod ? (prod.name || prod.productName) : 'Sản phẩm',
@@ -1109,7 +1543,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
           sku: variant?.sku || prod?.sku || 'SKU-AUTO',
           quantity: item.quantity,
           price: item.price,
-          unit: item.unit || 'Chiếc'
+          unit: item.unit || 'Chiếc',
+          lotNumber: item.lotNumber || null,
+          expiryDate: item.expiryDate || null,
+          subtotal: priceNum * qtyNum
         };
       })
     };
@@ -1117,8 +1554,12 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   // --- NÚT 2: LƯU NHÁP (Draft) ---
   handleSaveDraft() {
-    if (!this.transactionLocation) return window.alert('Vui lòng chọn chi nhánh/kho trước khi lưu nháp.');
-    if (this.type === 'export' && !this.transactionReason) return window.alert('Vui lòng chọn lý do xuất.');
+    if (!this.transactionLocation) {
+      return window.alert(this.type === 'import' ? 'Vui lòng chọn Kho đích nhập về trước khi lưu nháp.' : 'Vui lòng chọn chi nhánh/kho trước khi lưu nháp.');
+    }
+    if (!this.transactionReason) {
+      return window.alert(this.type === 'import' ? 'Vui lòng chọn lý do nhập kho.' : 'Vui lòng chọn lý do xuất.');
+    }
 
     const validItems = this.lineItems.filter(it => it.productId && it.variantId);
     if (validItems.length === 0) {
@@ -1129,13 +1570,21 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.onSubmit.emit(data);
   }
 
-  // --- NÚT 3: TẠO PHIẾU XUẤT (Hoàn thành / Xác nhận trừ kho) ---
+  // --- NÚT 3: TẠO PHIẾU (Hoàn thành / Xác nhận ghi nhận kho) ---
   handleSubmitConfirmed() {
-    if (!this.transactionLocation) return window.alert('Vui lòng chọn chi nhánh/kho.');
-    if (this.type === 'export' && !this.transactionReason) return window.alert('Vui lòng chọn lý do xuất.');
+    if (!this.transactionLocation) {
+      return window.alert(this.type === 'import' ? 'Vui lòng chọn Kho đích nhập về.' : 'Vui lòng chọn chi nhánh/kho xuất.');
+    }
+    if (!this.transactionReason) {
+      return window.alert(this.type === 'import' ? 'Vui lòng chọn lý do nhập kho.' : 'Vui lòng chọn lý do xuất kho.');
+    }
 
     if (this.transactionReason.includes('Chuyển kho') && !this.transactionDestination) {
-      return window.alert('Vui lòng chọn kho nhận cho lệnh chuyển kho.');
+      return window.alert(this.type === 'import' ? 'Vui lòng chọn Kho nguồn điều chuyển sang.' : 'Vui lòng chọn kho nhận cho lệnh chuyển kho.');
+    }
+
+    if (this.type === 'import' && this.transactionReason.includes('Nhà cung cấp') && !this.recipientName.trim()) {
+      return window.alert('Vui lòng nhập hoặc chọn Nhà cung cấp / Đối tác giao hàng.');
     }
 
     const invalidItems = this.lineItems.filter((item: any) => !item.productId || !item.variantId || !item.quantity || parseInt(item.quantity, 10) <= 0);
@@ -1143,7 +1592,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       return window.alert('Vui lòng điền đầy đủ thông tin Sản phẩm, Biến thể và Số lượng (lớn hơn 0) cho tất cả các dòng.');
     }
 
-    // Chặn nếu có sản phẩm vượt quá tồn kho thực tế
+    // Chặn nếu có sản phẩm vượt quá tồn kho thực tế khi xuất
     if (this.type === 'export' && this.hasExceededStock()) {
       return window.alert('Không thể tạo phiếu xuất! Có sản phẩm có số lượng xuất vượt quá tồn kho khả dụng của chi nhánh đã chọn. Vui lòng kiểm tra và điều chỉnh lại số lượng.');
     }

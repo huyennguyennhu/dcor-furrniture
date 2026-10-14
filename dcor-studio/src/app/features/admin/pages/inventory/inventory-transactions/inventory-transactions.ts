@@ -413,11 +413,11 @@ export class InventoryTransactionsComponent implements OnInit {
       orderCode: formData.orderCode,
       status: orderStatus,
       type: orderType,
-      sourceLocation: formData.location,
-      destinationLocation: formData.destination,
+      sourceLocation: formData.sourceLocation || formData.location,
+      destinationLocation: formData.destinationLocation || formData.destination,
       sourceWarehouseId: formData.sourceWarehouseId,
       destWarehouseId: formData.destWarehouseId,
-      referenceCode: formData.orderCode,
+      referenceCode: formData.referenceCode || formData.orderCode,
       reason: formData.reason,
       notes: formData.note,
       createdAt: formData.createdAt,
@@ -427,7 +427,12 @@ export class InventoryTransactionsComponent implements OnInit {
         variantId: it.variantId,
         quantity: parseInt(it.quantity, 10) || 1,
         price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0,
-        unit: it.unit || 'Chiếc'
+        unit: it.unit || 'Chiếc',
+        notes: [
+          it.unit ? `ĐVT: ${it.unit}` : null,
+          it.lotNumber ? `Lô: ${it.lotNumber}` : null,
+          it.expiryDate ? `HSD: ${it.expiryDate}` : null
+        ].filter(Boolean).join(' | ') || null
       }))
     };
 

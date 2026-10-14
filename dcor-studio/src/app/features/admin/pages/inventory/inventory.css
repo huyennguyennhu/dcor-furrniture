@@ -264,14 +264,13 @@
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .filter-search-box {
   position: relative;
   flex: 1;
-  min-width: 260px;
-  max-width: 360px;
+  min-width: 240px;
 }
 
 .filter-search-box .search-icon {
@@ -323,6 +322,7 @@
 .filter-dropdown-wrapper {
   position: relative;
   min-width: 160px;
+  flex-shrink: 0;
 }
 
 .filter-trigger-btn {
@@ -616,7 +616,7 @@
   font-weight: 500;
   transition: all 0.15s ease;
   white-space: nowrap;
-  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .reset-filters-btn:hover {

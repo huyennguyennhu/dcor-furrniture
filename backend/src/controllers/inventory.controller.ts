@@ -621,17 +621,42 @@ export const inventoryController = {
                 }
               }).catch((e: any) => console.warn('Could not increment variant stock:', e));
 
+              let stockBefore = 0;
+              let stockAfter = item.quantity;
+
               if (destWarehouseId) {
                 const whStock = await (prisma as any).warehouseStock.findFirst({
                   where: { warehouseId: destWarehouseId, variantId: item.variantId }
                 });
                 if (whStock) {
+                  stockBefore = whStock.physicalStock;
+                  stockAfter = whStock.physicalStock + item.quantity;
                   await (prisma as any).warehouseStock.update({
                     where: { id: whStock.id },
                     data: { physicalStock: { increment: item.quantity } }
                   }).catch((e: any) => console.warn('Could not increment warehouseStock:', e));
                 }
               }
+
+              // Ghi bút toán sổ cái biến động kho StockTransaction cho Nhập kho
+              const txRandom = Math.floor(1000 + Math.random() * 9000);
+              const txType = reason?.includes('Chuyển kho') ? 'TRANSFER_IN'
+                           : (reason?.includes('trả lại') || reason?.includes('khách hàng') ? 'CUSTOMER_RETURN' : 'PURCHASE_RECEIPT');
+              await (prisma as any).stockTransaction.create({
+                data: {
+                  txCode: `TX-${yearMonth}-${txRandom}`,
+                  type: txType,
+                  variantId: item.variantId,
+                  location: destinationLocation || 'Kho nhập',
+                  warehouseId: destWarehouseId || null,
+                  stockBefore,
+                  quantityChange: item.quantity,
+                  stockAfter,
+                  referenceCode: referenceCode || orderCode,
+                  stockOrderId: newOrder.id,
+                  notes: `Nhập kho [${orderCode}]: ${reason || 'Nhập kho hàng hóa'}`
+                }
+              }).catch((e: any) => console.warn('Could not create import transaction ledger:', e));
             }
           } catch (itemErr) {
             console.error('Error processing item inventory update:', itemErr);
