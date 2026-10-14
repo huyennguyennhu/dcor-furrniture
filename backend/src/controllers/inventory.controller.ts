@@ -28,10 +28,15 @@ function resolveVariantNameAndImage(v: any, prod: any) {
   let nameParts: string[] = [];
   let variantImage = '';
 
+  const optValues = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+  if (Array.isArray(optValues.images) && optValues.images.length > 0) {
+    variantImage = optValues.images[0];
+  }
+
   const configOptions = prod?.configOptions?.attributes || prod?.configOptions || [];
-  if (Array.isArray(configOptions) && v.optionValues && typeof v.optionValues === 'object') {
+  if (Array.isArray(configOptions) && typeof optValues === 'object') {
     for (const group of configOptions) {
-      const valId = v.optionValues[group.groupId];
+      const valId = optValues[group.groupId];
       if (valId !== undefined && Array.isArray(group.options)) {
         const matched = group.options.find((opt: any) => String(opt.id) === String(valId));
         if (matched) {

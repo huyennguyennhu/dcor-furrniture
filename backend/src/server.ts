@@ -70,7 +70,37 @@ app.get('/api/products/:id', async (req, res) => {
       }
     });
     if (product) {
-      res.json(product);
+      const variantsWithDimensions = product.variants.map((v: any) => {
+        const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+        const attrs = opt.attributes || {};
+        const parseNum = (val: any) => {
+          if (!val) return null;
+          const match = String(val).match(/\d+/);
+          return match ? parseInt(match[0], 10) : null;
+        };
+        return {
+          ...v,
+          images: opt.images || [],
+          dimensions: {
+            width: parseNum(attrs.width) || parseNum(attrs.length),
+            depth: parseNum(attrs.depth),
+            height: parseNum(attrs.height),
+            weight: parseNum(attrs.weight)
+          },
+          attributes: attrs
+        };
+      });
+
+      const firstVariantAttrs = variantsWithDimensions[0]?.attributes || {};
+      const descVi = firstVariantAttrs.designFeatures_vi 
+        ? firstVariantAttrs.designFeatures_vi.split('|').join('\n\n')
+        : (firstVariantAttrs.designFeatures ? firstVariantAttrs.designFeatures.split('|').join('\n\n') : undefined);
+
+      res.json({
+        ...product,
+        description_vi: descVi,
+        variants: variantsWithDimensions
+      });
     } else {
       res.status(404).json({ error: 'Product not found' });
     }
