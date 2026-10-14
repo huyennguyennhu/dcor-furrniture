@@ -400,13 +400,17 @@
 }
 
 .category-menu-dropdown {
-  min-width: 260px;
-  max-width: 340px;
+  left: auto;
+  right: 0;
+  min-width: 250px;
+  width: 280px;
+  max-width: min(320px, calc(100vw - 32px));
   padding: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   max-height: 400px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15);
 }
 
 .cat-search-box {

@@ -10,6 +10,7 @@ export interface InventoryVariant {
   available: number;
   threshold: number;
   status?: string;
+  image?: string;
 }
 
 export interface InventoryItem {

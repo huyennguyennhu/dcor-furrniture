@@ -457,11 +457,21 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   getVisibleColumnCount(): number {
-    let count = 2; // Checkbox + Actions
+    let count = 3; // Checkbox + Actions + Xem chi tiết (">")
     for (const col of this.columnsConfig) {
       if (this.columnVisibility[col.key]) count++;
     }
     return count;
+  }
+
+  goToProductDetail(productId: string, event: Event, variantName?: string) {
+    event.stopPropagation();
+    if (!productId) return;
+    if (variantName) {
+      this.router.navigate(['/admin/inventory/product', productId], { queryParams: { variant: variantName } });
+    } else {
+      this.router.navigate(['/admin/inventory/product', productId]);
+    }
   }
 
   toggleExpand(id: string, event: Event) {
@@ -493,37 +503,37 @@ export class InventoryComponent implements OnInit, OnDestroy {
   getStatusBadgeStyle(status: string): { [key: string]: string } {
     if (this.isOutOfStock(status)) {
       return {
-        'padding': '4px 10px',
+        'padding': '5px 12px',
         'border-radius': '6px',
         'font-size': '12px',
         'font-weight': '600',
         'display': 'inline-block',
-        'background': '#fee2e2',
-        'color': '#dc2626',
-        'border': '1px solid #fecaca'
+        'background': 'rgba(239, 68, 68, 0.12)',
+        'color': '#b91c1c',
+        'border': 'none'
       };
     }
     if (this.isLowStock(status)) {
       return {
-        'padding': '4px 10px',
+        'padding': '5px 12px',
         'border-radius': '6px',
         'font-size': '12px',
         'font-weight': '600',
         'display': 'inline-block',
-        'background': '#fef3c7',
+        'background': 'rgba(245, 158, 11, 0.12)',
         'color': '#b45309',
-        'border': '1px solid #fde68a'
+        'border': 'none'
       };
     }
     return {
-      'padding': '4px 10px',
+      'padding': '5px 12px',
       'border-radius': '6px',
       'font-size': '12px',
       'font-weight': '600',
       'display': 'inline-block',
-      'background': '#ecfdf5',
-      'color': '#059669',
-      'border': '1px solid #a7f3d0'
+      'background': 'rgba(16, 185, 129, 0.12)',
+      'color': '#047857',
+      'border': 'none'
     };
   }
 
@@ -541,6 +551,25 @@ export class InventoryComponent implements OnInit, OnDestroy {
       this.selectedIds.delete(id);
     } else {
       this.selectedIds.add(id);
+    }
+  }
+
+  getVariantIdKey(item: InventoryItem, v: InventoryVariant): string {
+    return v.id ? v.id : `${item.id}_${v.sku || v.name}`;
+  }
+
+  isVariantSelected(item: InventoryItem, v: InventoryVariant): boolean {
+    const key = this.getVariantIdKey(item, v);
+    return this.selectedIds.has(key);
+  }
+
+  toggleVariantSelection(item: InventoryItem, v: InventoryVariant, event: Event) {
+    event.stopPropagation();
+    const key = this.getVariantIdKey(item, v);
+    if (this.selectedIds.has(key)) {
+      this.selectedIds.delete(key);
+    } else {
+      this.selectedIds.add(key);
     }
   }
 

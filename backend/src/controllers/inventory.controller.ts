@@ -67,7 +67,8 @@ function mapProductToInventoryItem(prod: any, warehouseId?: string) {
       reserved: vReserved,
       available: vAvailable,
       threshold: vThreshold,
-      status: vStatus
+      status: vStatus,
+      image: v.image || (v as any).imageUrl || prod.images?.[0] || prod.thumbnail || ''
     };
   });
 
@@ -410,7 +411,11 @@ export const inventoryController = {
         },
         orderBy: { name: 'asc' }
       });
-      res.json(products);
+      const formatted = products.map((p: any) => ({
+        ...p,
+        sku: p.variants?.[0]?.sku || `SKU-${p.id.slice(0, 8).toUpperCase()}`
+      }));
+      res.json(formatted);
     } catch (error) {
       console.error('Error fetching products with options:', error);
       res.status(500).json({ error: 'Không thể lấy danh sách sản phẩm' });
