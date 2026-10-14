@@ -407,21 +407,30 @@ export class InventoryOrdersComponent implements OnInit {
 
   handleModalSubmit(formData: any) {
     const isImport = formData.type === 'import';
-    const isTransfer = formData.reason === 'Chuyển kho';
+    const isTransfer = (formData.reason || '').includes('Chuyển kho');
     const orderType = isImport ? 'IMPORT' : (isTransfer ? 'TRANSFER' : 'EXPORT');
+    const isDraft = formData.action === 'draft';
+    const orderStatus = isDraft ? 'PENDING' : 'COMPLETED';
 
     const payload = {
+      orderCode: formData.orderCode,
+      status: orderStatus,
       type: orderType,
       sourceLocation: formData.location,
       destinationLocation: formData.destination,
       sourceWarehouseId: formData.sourceWarehouseId,
       destWarehouseId: formData.destWarehouseId,
+      referenceCode: formData.orderCode,
       reason: formData.reason,
       notes: formData.note,
+      createdAt: formData.createdAt,
+      creatorName: formData.creatorName,
+      recipientName: formData.recipientName,
       items: (formData.items || []).map((it: any) => ({
         variantId: it.variantId,
         quantity: parseInt(it.quantity, 10) || 1,
-        price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0
+        price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0,
+        unit: it.unit || 'Chiếc'
       }))
     };
 
@@ -429,14 +438,16 @@ export class InventoryOrdersComponent implements OnInit {
       next: (created) => {
         this.closeModal();
         this.fetchOrders();
-        window.alert(`Đã tạo thành công lệnh kho ${created.orderCode || created.id}!`);
+        if (isDraft) {
+          window.alert(`Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!\nTrạng thái: Bản nháp (chưa làm thay đổi số lượng tồn kho).`);
+        } else {
+          window.alert(`Đã tạo và phát hành thành công phiếu ${created.orderCode || created.id}!\nSố lượng tồn kho thực tế đã được cập nhật ngay lập tức.`);
+        }
       },
       error: (err) => {
         console.warn('API error creating order, falling back to local list:', err);
-        const prefix = isImport ? 'NK' : (isTransfer ? 'CK' : 'XK');
-        const randomNum = Math.floor(100 + Math.random() * 900);
-        const dateStr = new Date().toLocaleDateString('vi-VN');
-        const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = new Date(formData.createdAt || Date.now()).toLocaleDateString('vi-VN');
+        const timeStr = new Date(formData.createdAt || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         
         let totalQty = 0;
         let totalAmt = 0;
@@ -451,32 +462,36 @@ export class InventoryOrdersComponent implements OnInit {
             variant: it.variantName || 'Tiêu chuẩn',
             quantity: q,
             unitPrice: rawPrice,
-            unit: 'Chiếc'
+            unit: it.unit || 'Chiếc'
           };
         });
 
         const newOrder: StockOrder = {
-          id: `${prefix}-2410-${randomNum}`,
+          id: formData.orderCode || (isImport ? 'NK-2610-0001' : 'PXK-BH-2610-0001'),
           type: (orderType.toLowerCase()) as any,
           typeLabel: isImport ? 'Nhập kho' : (isTransfer ? 'Chuyển kho' : 'Xuất kho'),
           createdAt: `${dateStr} ${timeStr}`,
           sourceLocation: formData.location || 'Kho Tổng (TP.HCM)',
           destinationLocation: formData.destination || 'Chi nhánh / Khách hàng nhận',
-          referenceCode: `${prefix}-REF-${randomNum}`,
+          referenceCode: formData.orderCode,
           reason: formData.reason || (isImport ? 'Nhập kho theo kế hoạch' : 'Xuất kho phục vụ hoạt động'),
-          creator: 'Admin Quản Trị',
+          creator: formData.creatorName || 'Admin Quản Trị',
           items: items.length > 0 ? items : [
             { sku: 'SF-NEW-01', productName: 'Sản phẩm mới nhập', variant: 'Tiêu chuẩn', quantity: 5, unitPrice: 20000000, unit: 'Bộ' }
           ],
           totalQuantity: totalQty || 5,
           totalAmount: totalAmt || 100000000,
-          status: 'PENDING',
-          notes: formData.note || 'Tạo tự động từ hệ thống quản lý lệnh kho.'
+          status: orderStatus,
+          notes: formData.note || 'Tạo từ form quản lý kho'
         };
 
         this.data.unshift(newOrder);
         this.closeModal();
-        window.alert(`Đã tạo thành công ${newOrder.typeLabel}: ${newOrder.id}`);
+        if (isDraft) {
+          window.alert(`Đã lưu nháp thành công ${newOrder.typeLabel}: ${newOrder.id}`);
+        } else {
+          window.alert(`Đã phát hành thành công ${newOrder.typeLabel}: ${newOrder.id}`);
+        }
       }
     });
   }

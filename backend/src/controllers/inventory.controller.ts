@@ -370,6 +370,7 @@ export const inventoryController = {
   },
 
   // 2. Lấy danh sách Sản phẩm kèm đầy đủ Biến thể thực tế cho Form
+  // 2. Lấy danh sách Sản phẩm kèm đầy đủ Biến thể & Tồn kho theo từng kho thực tế cho Form
   getProductsWithOptions: async (req: Request, res: Response) => {
     try {
       const products = await prisma.product.findMany({
@@ -392,7 +393,17 @@ export const inventoryController = {
               name: true,
               price: true,
               stock: true,
-              reservedStock: true
+              reservedStock: true,
+              warehouseStocks: {
+                select: {
+                  warehouseId: true,
+                  physicalStock: true,
+                  reservedStock: true,
+                  warehouse: {
+                    select: { id: true, name: true, code: true }
+                  }
+                }
+              }
             },
             orderBy: { name: 'asc' }
           }
@@ -452,7 +463,7 @@ export const inventoryController = {
     }
   },
 
-  // 4. Tạo Lệnh xuất - nhập kho mới
+  // 4. Tạo Lệnh xuất - nhập kho mới (Hỗ trợ Lưu nháp PENDING và Tạo phiếu xuất COMPLETED trừ kho)
   createStockOrder: async (req: Request, res: Response) => {
     try {
       const {
@@ -464,14 +475,47 @@ export const inventoryController = {
         referenceCode,
         reason,
         notes,
-        items
+        items,
+        orderCode: customOrderCode,
+        status: customStatus,
+        createdAt: customCreatedAt,
+        creatorName,
+        recipientName
       } = req.body;
 
-      const prefix = type === 'IMPORT' ? 'NK' : (type === 'EXPORT' ? 'XK' : 'CK');
-      const randomNum = Math.floor(100 + Math.random() * 900);
       const now = new Date();
       const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-      const orderCode = `${prefix}-${yearMonth}-${randomNum}`;
+      
+      // Xác định mã phiếu nếu client chưa gửi
+      // Xác định mã phiếu nếu client chưa gửi
+      let orderCode = customOrderCode;
+      if (!orderCode) {
+        const prefix = type === 'IMPORT' ? 'NK' : (type === 'EXPORT' ? 'XK' : 'CK');
+        const randomNum = Math.floor(100 + Math.random() * 900);
+        orderCode = `${prefix}-${yearMonth}-${randomNum}`;
+      }
+
+      // Đảm bảo mã chứng từ orderCode không bị trùng trong DB (tự tăng STT nếu đã có)
+      let uniqueOrderCode = orderCode;
+      let counter = 1;
+      while (await (prisma as any).stockOrder.findUnique({ where: { orderCode: uniqueOrderCode } })) {
+        const parts = orderCode.split('-');
+        const prefixParts = parts.slice(0, -1).join('-');
+        const lastPart = parts[parts.length - 1];
+        const num = parseInt(lastPart, 10);
+        if (!isNaN(num)) {
+          uniqueOrderCode = `${prefixParts}-${String(num + counter).padStart(lastPart.length, '0')}`;
+        } else {
+          uniqueOrderCode = `${orderCode}-${counter}`;
+        }
+        counter++;
+      }
+      orderCode = uniqueOrderCode;
+
+      const finalStatus = customStatus || 'PENDING';
+      const createdDate = customCreatedAt ? new Date(customCreatedAt) : now;
+      const finalDestination = destinationLocation || recipientName || (type === 'TRANSFER' ? 'Chi nhánh điều chuyển' : 'Khách hàng / Đối tác');
+      const extraNotes = recipientName ? `[Người nhận: ${recipientName}] ${notes || ''}` : (notes || null);
 
       let totalQty = 0;
       let totalAmt = BigInt(0);
@@ -488,7 +532,7 @@ export const inventoryController = {
           quantity: qty,
           unitPrice: price,
           lineTotal: lineTotal,
-          notes: it.notes || null
+          notes: it.notes || (it.unit ? `ĐVT: ${it.unit}` : null)
         };
       });
 
@@ -496,16 +540,18 @@ export const inventoryController = {
         data: {
           orderCode,
           type,
-          status: 'PENDING',
+          status: finalStatus,
           sourceLocation: sourceLocation || 'Kho Tổng (TP.HCM)',
-          destinationLocation: destinationLocation || 'Khách hàng / Chi nhánh',
+          destinationLocation: finalDestination,
           sourceWarehouseId: sourceWarehouseId || null,
           destWarehouseId: destWarehouseId || null,
-          referenceCode: referenceCode || null,
+          referenceCode: referenceCode || orderCode,
           reason: reason || 'Lập lệnh kho theo yêu cầu',
-          notes: notes || null,
+          notes: extraNotes,
           totalQuantity: totalQty,
           totalAmount: totalAmt,
+          completedAt: finalStatus === 'COMPLETED' ? new Date() : null,
+          createdAt: createdDate,
           items: {
             create: lineItems
           }
@@ -515,10 +561,92 @@ export const inventoryController = {
         }
       });
 
+      // Nếu trạng thái là COMPLETED (Tạo phiếu xuất chính thức), cập nhật ngay lập tức tồn kho & ghi sổ cái biến động
+      if (finalStatus === 'COMPLETED') {
+        for (const item of lineItems) {
+          try {
+            if (type === 'EXPORT') {
+              // 1. Trừ tồn kho tổng của Variant
+              await prisma.productVariant.update({
+                where: { id: item.variantId },
+                data: {
+                  stock: { decrement: item.quantity }
+                }
+              }).catch(e => console.warn('Could not decrement variant stock:', e));
+
+              // 2. Trừ tồn kho tại WarehouseStock cụ thể
+              let stockBefore = 0;
+              let stockAfter = 0;
+              if (sourceWarehouseId) {
+                const whStock = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: sourceWarehouseId, variantId: item.variantId }
+                });
+                if (whStock) {
+                  stockBefore = whStock.physicalStock;
+                  stockAfter = Math.max(0, whStock.physicalStock - item.quantity);
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStock.id },
+                    data: { physicalStock: { decrement: item.quantity } }
+                  }).catch((e: any) => console.warn('Could not decrement warehouseStock:', e));
+                }
+              }
+
+              // 3. Ghi bút toán sổ cái biến động kho StockTransaction
+              const txRandom = Math.floor(1000 + Math.random() * 9000);
+              const txType = reason?.includes('Chuyển kho') ? 'TRANSFER_OUT'
+                           : (reason?.includes('hủy') || reason?.includes('Hư hỏng') ? 'DISPOSAL_DISPATCH' : 'SALES_DISPATCH');
+              
+              await (prisma as any).stockTransaction.create({
+                data: {
+                  txCode: `TX-${yearMonth}-${txRandom}`,
+                  type: txType,
+                  variantId: item.variantId,
+                  location: sourceLocation || 'Kho xuất',
+                  warehouseId: sourceWarehouseId || null,
+                  stockBefore,
+                  quantityChange: -item.quantity,
+                  stockAfter,
+                  referenceCode: orderCode,
+                  stockOrderId: newOrder.id,
+                  notes: `Xuất kho [${orderCode}]: ${reason || 'Xuất kho chính thức'}`
+                }
+              }).catch((e: any) => console.warn('Could not create transaction ledger:', e));
+
+            } else if (type === 'IMPORT') {
+              // Tăng tồn kho nếu là phiếu nhập hoàn tất
+              await prisma.productVariant.update({
+                where: { id: item.variantId },
+                data: {
+                  stock: { increment: item.quantity }
+                }
+              }).catch((e: any) => console.warn('Could not increment variant stock:', e));
+
+              if (destWarehouseId) {
+                const whStock = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: destWarehouseId, variantId: item.variantId }
+                });
+                if (whStock) {
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStock.id },
+                    data: { physicalStock: { increment: item.quantity } }
+                  }).catch((e: any) => console.warn('Could not increment warehouseStock:', e));
+                }
+              }
+            }
+          } catch (itemErr) {
+            console.error('Error processing item inventory update:', itemErr);
+          }
+        }
+      }
+
       summaryCache.clear();
       res.status(201).json({
         ...newOrder,
-        totalAmount: Number(newOrder.totalAmount)
+        totalAmount: Number(newOrder.totalAmount || 0),
+        items: (newOrder.items || []).map((it: any) => ({
+          ...it,
+          lineTotal: Number(it.lineTotal || 0)
+        }))
       });
     } catch (error) {
       console.error('Error creating stock order:', error);

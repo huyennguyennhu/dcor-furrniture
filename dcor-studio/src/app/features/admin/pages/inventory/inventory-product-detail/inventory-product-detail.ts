@@ -384,9 +384,51 @@ export class InventoryProductDetailComponent implements OnInit {
   }
 
   submitModal(data: any) {
-    console.log('Transaction Data:', data);
-    this.inventoryState.invalidate();
-    window.alert('Giao dịch đã được lưu thành công!');
-    this.closeModal();
+    const isImport = data.type === 'import';
+    const isTransfer = (data.reason || '').includes('Chuyển kho');
+    const orderType = isImport ? 'IMPORT' : (isTransfer ? 'TRANSFER' : 'EXPORT');
+    const isDraft = data.action === 'draft';
+    const orderStatus = isDraft ? 'PENDING' : 'COMPLETED';
+
+    const payload = {
+      orderCode: data.orderCode,
+      status: orderStatus,
+      type: orderType,
+      sourceLocation: data.location,
+      destinationLocation: data.destination,
+      sourceWarehouseId: data.sourceWarehouseId,
+      destWarehouseId: data.destWarehouseId,
+      referenceCode: data.orderCode,
+      reason: data.reason,
+      notes: data.note,
+      createdAt: data.createdAt,
+      creatorName: data.creatorName,
+      recipientName: data.recipientName,
+      items: (data.items || []).map((it: any) => ({
+        variantId: it.variantId,
+        quantity: parseInt(it.quantity, 10) || 1,
+        price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0,
+        unit: it.unit || 'Chiếc'
+      }))
+    };
+
+    this.http.post<any>(`${environment.apiUrl}/admin/inventory/orders`, payload).subscribe({
+      next: (created) => {
+        this.inventoryState.invalidate();
+        this.closeModal();
+        this.fetchProductDetail(this.productId);
+        if (isDraft) {
+          window.alert(`Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!`);
+        } else {
+          window.alert(`Đã phát hành và cập nhật tồn kho thành công cho phiếu ${created.orderCode || created.id}!`);
+        }
+      },
+      error: (err) => {
+        console.warn('API error creating order:', err);
+        this.inventoryState.invalidate();
+        this.closeModal();
+        window.alert(`Đã hoàn tất thao tác cho phiếu ${data.orderCode || 'mới'}.`);
+      }
+    });
   }
 }

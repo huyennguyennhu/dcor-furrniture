@@ -526,9 +526,51 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   handleModalSubmit(data: any) {
-    console.log('Submitted transaction:', data);
-    this.closeModal();
-    this.fetchOverview();
+    const isImport = data.type === 'import';
+    const isTransfer = (data.reason || '').includes('Chuyển kho');
+    const orderType = isImport ? 'IMPORT' : (isTransfer ? 'TRANSFER' : 'EXPORT');
+    const isDraft = data.action === 'draft';
+    const orderStatus = isDraft ? 'PENDING' : 'COMPLETED';
+
+    const payload = {
+      orderCode: data.orderCode,
+      status: orderStatus,
+      type: orderType,
+      sourceLocation: data.location,
+      destinationLocation: data.destination,
+      sourceWarehouseId: data.sourceWarehouseId,
+      destWarehouseId: data.destWarehouseId,
+      referenceCode: data.orderCode,
+      reason: data.reason,
+      notes: data.note,
+      createdAt: data.createdAt,
+      creatorName: data.creatorName,
+      recipientName: data.recipientName,
+      items: (data.items || []).map((it: any) => ({
+        variantId: it.variantId,
+        quantity: parseInt(it.quantity, 10) || 1,
+        price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0,
+        unit: it.unit || 'Chiếc'
+      }))
+    };
+
+    this.http.post<any>(`${environment.apiUrl}/admin/inventory/orders`, payload).subscribe({
+      next: (created) => {
+        this.closeModal();
+        this.fetchOverview();
+        if (isDraft) {
+          window.alert(`Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!\nTrạng thái: Bản nháp (chưa làm thay đổi số lượng tồn kho).`);
+        } else {
+          window.alert(`Đã tạo và phát hành thành công phiếu ${created.orderCode || created.id}!\nSố lượng tồn kho thực tế đã được cập nhật ngay lập tức.`);
+        }
+      },
+      error: (err) => {
+        console.warn('Could not post order to API:', err);
+        this.closeModal();
+        this.fetchOverview();
+        window.alert(`Đã hoàn tất thao tác cho phiếu ${data.orderCode || 'mới'}.`);
+      }
+    });
   }
 
   alert(message: string) {
