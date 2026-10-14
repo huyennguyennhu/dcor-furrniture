@@ -23,6 +23,7 @@ router.post('/orders', inventoryController.createStockOrder);
 // Stock Audits (Tab 2)
 router.get('/audits', inventoryController.getStockAudits);
 router.post('/audits', inventoryController.createStockAudit);
+router.put('/audits/:id', inventoryController.updateStockAudit);
 
 // Stock History Ledger (Tab 4)
 router.get('/history', inventoryController.getStockTransactions);

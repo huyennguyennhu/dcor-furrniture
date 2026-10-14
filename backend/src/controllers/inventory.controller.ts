@@ -480,7 +480,7 @@ export const inventoryController = {
           images: true,
           configOptions: true,
           category: {
-            select: { id: true, name: true }
+            select: { id: true, name: true, parentId: true }
           },
           variants: {
             where: { isActive: true },
@@ -801,8 +801,9 @@ export const inventoryController = {
                   id: true,
                   sku: true,
                   name: true,
+                  price: true,
                   product: {
-                    select: { id: true, name: true, images: true }
+                    select: { id: true, name: true, images: true, basePrice: true }
                   }
                 }
               }
@@ -823,11 +824,33 @@ export const inventoryController = {
   // 5b. Tạo Phiếu kiểm kê mới
   createStockAudit: async (req: Request, res: Response) => {
     try {
-      const { warehouseId, location, scope, notes, items, status } = req.body;
+      const { 
+        warehouseId, 
+        location, 
+        scope, 
+        notes, 
+        items, 
+        status, 
+        auditCode: clientAuditCode, 
+        createdAt: clientCreatedAt 
+      } = req.body;
       const now = new Date();
       const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-      const randomNum = Math.floor(100 + Math.random() * 900);
-      const auditCode = `ADT-${yearMonth}-${randomNum}`;
+      
+      let auditCode = clientAuditCode;
+      if (!auditCode) {
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        auditCode = `PKK-${yearMonth}-${randomNum}`;
+      }
+
+      // Đảm bảo không trùng auditCode
+      let uniqueAuditCode = auditCode;
+      let counter = 1;
+      while (await (prisma as any).stockAudit.findUnique({ where: { auditCode: uniqueAuditCode } })) {
+        uniqueAuditCode = `${auditCode}-${counter}`;
+        counter++;
+      }
+      auditCode = uniqueAuditCode;
 
       let totalItemsCount = 0;
       let discrepancyCount = 0;
@@ -855,17 +878,20 @@ export const inventoryController = {
         };
       });
 
+      const auditStatus = status || 'COMPLETED';
+
       const newAudit = await (prisma as any).stockAudit.create({
         data: {
           auditCode,
           location: location || 'Kho Tổng (TP.HCM)',
           warehouseId: warehouseId || null,
-          scope: scope || 'ALL',
+          scope: scope || 'Kiểm kê định kỳ',
           notes: notes || null,
-          status: status || 'COMPLETED',
+          status: auditStatus,
           totalItemsCount,
           discrepancyCount,
-          completedAt: status === 'COMPLETED' ? new Date() : null,
+          createdAt: clientCreatedAt ? new Date(clientCreatedAt) : now,
+          completedAt: auditStatus === 'COMPLETED' ? new Date() : null,
           items: {
             create: auditItems
           }
@@ -887,11 +913,40 @@ export const inventoryController = {
         }
       });
 
-      // Nếu phiếu hoàn tất và có lệch, tạo bút toán StockTransaction
+      // Nếu phiếu hoàn tất và có lệch, tạo bút toán StockTransaction và cân bằng tồn kho thực tế
       if (newAudit.status === 'COMPLETED') {
         for (const item of auditItems) {
           if (item.actualStock !== null && item.discrepancy && item.discrepancy !== 0) {
-            const txRandom = Math.floor(100 + Math.random() * 900);
+            // 1. Cân bằng tồn kho chung biến thể
+            await prisma.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.discrepancy } }
+            }).catch((e: any) => console.warn('Could not balance variant stock:', e));
+
+            // 2. Cân bằng tồn kho tại chi nhánh cụ thể
+            if (newAudit.warehouseId) {
+              const whStock = await (prisma as any).warehouseStock.findFirst({
+                where: { warehouseId: newAudit.warehouseId, variantId: item.variantId }
+              });
+              if (whStock) {
+                await (prisma as any).warehouseStock.update({
+                  where: { id: whStock.id },
+                  data: { physicalStock: { increment: item.discrepancy } }
+                }).catch((e: any) => console.warn('Could not update warehouse stock:', e));
+              } else {
+                await (prisma as any).warehouseStock.create({
+                  data: {
+                    warehouseId: newAudit.warehouseId,
+                    variantId: item.variantId,
+                    physicalStock: Math.max(0, item.actualStock),
+                    reservedStock: 0
+                  }
+                }).catch((e: any) => console.warn('Could not create warehouse stock:', e));
+              }
+            }
+
+            // 3. Ghi bút toán sổ cái biến động
+            const txRandom = Math.floor(1000 + Math.random() * 9000);
             await (prisma as any).stockTransaction.create({
               data: {
                 txCode: `TX-${yearMonth}-${txRandom}`,
@@ -916,6 +971,142 @@ export const inventoryController = {
     } catch (error) {
       console.error('Error creating stock audit:', error);
       res.status(500).json({ error: 'Không thể tạo phiếu kiểm kê' });
+    }
+  },
+
+  // 5c. Cập nhật phiếu kiểm kê (lưu tiếp hoặc hoàn tất phiếu nháp)
+  updateStockAudit: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { notes, items, status, scope } = req.body;
+      const now = new Date();
+      const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+
+      const existingAudit = await (prisma as any).stockAudit.findUnique({
+        where: { id },
+        include: { items: true }
+      });
+
+      if (!existingAudit) {
+        return res.status(404).json({ error: 'Không tìm thấy phiếu kiểm kê' });
+      }
+
+      let totalItemsCount = 0;
+      let discrepancyCount = 0;
+
+      const auditItems = (items || []).map((it: any) => {
+        const systemStock = parseInt(it.systemStock, 10) || 0;
+        const actualStock = it.actualStock !== null && it.actualStock !== undefined && it.actualStock !== '' 
+          ? parseInt(it.actualStock, 10) 
+          : null;
+        let discrepancy = null;
+        if (actualStock !== null) {
+          discrepancy = actualStock - systemStock;
+          if (discrepancy !== 0) {
+            discrepancyCount++;
+          }
+        }
+        totalItemsCount++;
+
+        return {
+          variantId: it.variantId,
+          systemStock,
+          actualStock,
+          discrepancy,
+          reason: it.reason || (discrepancy === 0 ? 'Khớp' : (discrepancy !== null ? (discrepancy > 0 ? 'Dư' : 'Thiếu') : null))
+        };
+      });
+
+      // Xóa các items cũ và tạo lại items mới
+      await (prisma as any).stockAuditItem.deleteMany({
+        where: { auditId: id }
+      });
+
+      const updatedAudit = await (prisma as any).stockAudit.update({
+        where: { id },
+        data: {
+          scope: scope || existingAudit.scope,
+          notes: notes !== undefined ? notes : existingAudit.notes,
+          status: status || existingAudit.status,
+          totalItemsCount,
+          discrepancyCount,
+          completedAt: status === 'COMPLETED' ? now : existingAudit.completedAt,
+          items: {
+            create: auditItems
+          }
+        },
+        include: {
+          items: {
+            include: {
+              variant: {
+                select: {
+                  id: true,
+                  sku: true,
+                  name: true,
+                  product: { select: { id: true, name: true } }
+                }
+              }
+            }
+          },
+          warehouse: true
+        }
+      });
+
+      // Nếu chuyển sang COMPLETED, cân bằng kho
+      if (updatedAudit.status === 'COMPLETED' && existingAudit.status !== 'COMPLETED') {
+        for (const item of auditItems) {
+          if (item.actualStock !== null && item.discrepancy && item.discrepancy !== 0) {
+            await prisma.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.discrepancy } }
+            }).catch((e: any) => console.warn('Could not balance variant stock:', e));
+
+            if (updatedAudit.warehouseId) {
+              const whStock = await (prisma as any).warehouseStock.findFirst({
+                where: { warehouseId: updatedAudit.warehouseId, variantId: item.variantId }
+              });
+              if (whStock) {
+                await (prisma as any).warehouseStock.update({
+                  where: { id: whStock.id },
+                  data: { physicalStock: { increment: item.discrepancy } }
+                }).catch((e: any) => console.warn('Could not update warehouse stock:', e));
+              } else {
+                await (prisma as any).warehouseStock.create({
+                  data: {
+                    warehouseId: updatedAudit.warehouseId,
+                    variantId: item.variantId,
+                    physicalStock: Math.max(0, item.actualStock),
+                    reservedStock: 0
+                  }
+                }).catch((e: any) => console.warn('Could not create warehouse stock:', e));
+              }
+            }
+
+            const txRandom = Math.floor(1000 + Math.random() * 9000);
+            await (prisma as any).stockTransaction.create({
+              data: {
+                txCode: `TX-${yearMonth}-${txRandom}`,
+                type: item.discrepancy > 0 ? 'AUDIT_INCREASE' : 'AUDIT_DECREASE',
+                variantId: item.variantId,
+                location: updatedAudit.location,
+                warehouseId: updatedAudit.warehouseId,
+                stockBefore: item.systemStock,
+                quantityChange: item.discrepancy,
+                stockAfter: item.actualStock,
+                referenceCode: updatedAudit.auditCode,
+                stockAuditId: updatedAudit.id,
+                notes: `Cân bằng tồn kho từ phiếu kiểm kê ${updatedAudit.auditCode}: ${item.reason || ''}`
+              }
+            }).catch((e: any) => console.error('Failed to create audit transaction:', e));
+          }
+        }
+      }
+
+      summaryCache.clear();
+      res.json(updatedAudit);
+    } catch (error) {
+      console.error('Error updating stock audit:', error);
+      res.status(500).json({ error: 'Không thể cập nhật phiếu kiểm kê' });
     }
   },
 
