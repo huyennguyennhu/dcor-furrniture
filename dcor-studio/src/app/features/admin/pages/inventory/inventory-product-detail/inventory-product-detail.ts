@@ -86,6 +86,114 @@ interface StockHistory {
       background-color: #ffffff;
       color: var(--text-primary);
     }
+    .filter-dropdown-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .filter-trigger-btn {
+      width: 100%;
+      height: 38px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary, #ffffff);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .filter-trigger-btn:hover {
+      border-color: var(--accent);
+      background: var(--bg-secondary, #faf7f2);
+    }
+    .filter-trigger-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(118, 83, 55, 0.06);
+      font-weight: 500;
+    }
+    .trigger-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .trigger-icon {
+      flex-shrink: 0;
+      color: var(--text-secondary);
+    }
+    .filter-trigger-btn.active .trigger-icon {
+      color: var(--accent);
+    }
+    .truncate-label {
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+    }
+    .filter-menu-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      width: max-content;
+      max-width: 320px;
+      background: var(--bg-primary, #ffffff);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+      z-index: 1000;
+      padding: 4px;
+      max-height: 280px;
+      overflow-y: auto;
+      animation: fadeInDown 0.15s ease;
+    }
+    .filter-menu-item {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.12s ease;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .filter-menu-item:hover {
+      background: #F3E5D3;
+    }
+    .filter-menu-item.selected {
+      color: var(--accent);
+      font-weight: 600;
+      background: rgba(118, 83, 55, 0.1);
+    }
+    .custom-dropdown-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #b0a8a0 var(--bg-secondary, #f4f4f5);
+    }
+    .custom-dropdown-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-dropdown-scrollbar::-webkit-scrollbar-track {
+      background: var(--bg-secondary, #f4f4f5);
+      border-radius: 4px;
+    }
+    .custom-dropdown-scrollbar::-webkit-scrollbar-thumb {
+      background: #b0a8a0;
+      border-radius: 4px;
+    }
   `],
   template: `
     <div style="display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px;">
@@ -171,9 +279,9 @@ interface StockHistory {
         </div>
 
         <!-- TABS CONTENT -->
-        <div style="background: white; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
+        <div style="background: white; border-radius: 12px; border: 1px solid var(--border-color); position: relative;">
           <!-- TABS -->
-          <div style="display: flex; border-bottom: 1px solid var(--border-color);">
+          <div style="display: flex; border-bottom: 1px solid var(--border-color); border-top-left-radius: 12px; border-top-right-radius: 12px; overflow: hidden;">
             <button 
               (click)="activeTab = 'variants'"
               [ngStyle]="{
@@ -252,18 +360,49 @@ interface StockHistory {
             </div>
 
             <div *ngIf="activeTab === 'history'" style="display: flex; flex-direction: column; gap: 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                <!-- Bên trái: Lọc theo biến thể -->
-                <div style="display: flex; gap: 12px; align-items: center;">
-                  <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">Lọc theo biến thể:</span>
-                  <select class="admin-select" style="min-width: 220px; max-width: 320px;" [(ngModel)]="historyFilterVariant" aria-label="Lọc theo biến thể">
-                    <option value="Tất cả">Tất cả biến thể</option>
-                    <option *ngFor="let name of getUniqueVariantNames()" [value]="name">{{ name }}</option>
-                  </select>
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 16px; position: relative; z-index: 50;">
+                <!-- Bên trái: Lọc theo biến thể (Custom Dropdown chuẩn như Tổng quan kho) -->
+                <div style="display: inline-flex; gap: 10px; align-items: center; flex-shrink: 0; white-space: nowrap;">
+                  <span style="font-size: 13.5px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0;">Lọc theo biến thể:</span>
+                  
+                  <div class="filter-dropdown-wrapper variant-filter-wrapper" style="position: relative; min-width: 200px; max-width: 320px; flex-shrink: 0;">
+                    <button 
+                      type="button"
+                      (click)="showVariantDropdown = !showVariantDropdown; showTimeDropdown = false; $event.stopPropagation()"
+                      class="filter-trigger-btn"
+                      [class.active]="historyFilterVariant !== 'Tất cả'"
+                      title="Lọc theo biến thể"
+                    >
+                      <div class="trigger-label">
+                        <lucide-angular [img]="icons.Package" size="15" class="trigger-icon"></lucide-angular>
+                        <span class="truncate-label">{{ historyFilterVariant === 'Tất cả' ? 'Tất cả biến thể' : historyFilterVariant }}</span>
+                      </div>
+                      <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showVariantDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}" style="flex-shrink: 0; color: var(--text-muted);"></lucide-angular>
+                    </button>
+
+                    <div *ngIf="showVariantDropdown" class="filter-menu-dropdown custom-dropdown-scrollbar" (click)="$event.stopPropagation()">
+                      <div 
+                        (click)="selectVariantFilter('Tất cả')"
+                        class="filter-menu-item"
+                        [class.selected]="historyFilterVariant === 'Tất cả'"
+                      >
+                        <span>Tất cả biến thể</span>
+                        <lucide-angular *ngIf="historyFilterVariant === 'Tất cả'" [img]="icons.Check" size="14" color="var(--accent)"></lucide-angular>
+                      </div>
+                      <div *ngFor="let name of getUniqueVariantNames()"
+                        (click)="selectVariantFilter(name)"
+                        class="filter-menu-item"
+                        [class.selected]="historyFilterVariant === name"
+                      >
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ name }}</span>
+                        <lucide-angular *ngIf="historyFilterVariant === name" [img]="icons.Check" size="14" color="var(--accent)"></lucide-angular>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Bên phải: Lọc thời gian (Dropdown + Lịch chọn từ ngày - đến ngày) -->
-                <div class="time-filter-wrapper" style="display: flex; align-items: center; position: relative;">
+                <div class="time-filter-wrapper" style="display: inline-flex; align-items: center; position: relative; flex-shrink: 0; white-space: nowrap;">
                   <button 
                     type="button"
                     (click)="showTimeDropdown = !showTimeDropdown; $event.stopPropagation()"
@@ -280,7 +419,7 @@ interface StockHistory {
                   <!-- Popup Menu Dropdown các mốc thời gian -->
                   <div *ngIf="showTimeDropdown" 
                        (click)="$event.stopPropagation()"
-                       style="position: absolute; top: calc(100% + 4px); right: 0; min-width: 180px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); z-index: 50; padding: 4px; animation: fadeInDown 0.15s ease;">
+                       style="position: absolute; top: calc(100% + 4px); right: 0; min-width: 180px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,0.18); z-index: 1000; padding: 4px; animation: fadeInDown 0.15s ease;">
                     <div *ngFor="let key of timeLabelKeys"
                          (click)="selectTimeRange(key)"
                          [style.background]="timeRange === key ? 'rgba(118, 83, 55, 0.1)' : 'transparent'"
@@ -406,6 +545,7 @@ export class InventoryProductDetailComponent implements OnInit {
   startDate: string = '';
   endDate: string = '';
   showTimeDropdown: boolean = false;
+  showVariantDropdown: boolean = false;
 
   TIME_LABELS: Record<string, string> = {
     all: 'Tất cả thời gian',
@@ -425,6 +565,14 @@ export class InventoryProductDetailComponent implements OnInit {
     if (!target.closest('.time-filter-wrapper')) {
       this.showTimeDropdown = false;
     }
+    if (!target.closest('.variant-filter-wrapper')) {
+      this.showVariantDropdown = false;
+    }
+  }
+
+  selectVariantFilter(name: string) {
+    this.historyFilterVariant = name;
+    this.showVariantDropdown = false;
   }
 
   selectTimeRange(key: 'all' | 'today' | '7days' | '30days' | 'this_month' | 'custom') {

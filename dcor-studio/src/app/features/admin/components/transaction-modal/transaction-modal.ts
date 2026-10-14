@@ -175,9 +175,64 @@ export interface LineItem {
         opacity: 1;
       }
     }
+    @keyframes toastSlideDown {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -24px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+    @keyframes toastProgress {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
   `],
   template: `
     <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px);">
+      
+      <!-- Floating Toast Cảnh Báo Tồn Kho Khả Dụng = 0 (Phiếu Xuất) -->
+      <div *ngIf="showToast" 
+        style="position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 380px; max-width: 620px; width: max-content; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 20px 45px -8px rgba(0,0,0,0.25), 0 0 0 1px rgba(239, 68, 68, 0.25); border-left: 5px solid #ef4444; padding: 14px 18px 12px; animation: toastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; display: flex; flex-direction: column; gap: 10px; pointer-events: auto;">
+        
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #ef4444;">
+            <lucide-angular [img]="icons.AlertCircle" size="22"></lucide-angular>
+          </div>
+          
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <span style="font-size: 13.5px; font-weight: 700; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                {{ toastMessage }}
+                <span style="font-size: 11px; font-weight: 600; padding: 1.5px 7px; border-radius: 4px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); white-space: nowrap;">
+                  Tồn khả dụng = 0
+                </span>
+              </span>
+              <button 
+                type="button" 
+                (click)="closeToast()" 
+                style="background: transparent; border: none; cursor: pointer; color: var(--text-muted, #9ca3af); padding: 2px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.15s;"
+                onmouseover="this.style.color='var(--text-primary, #1f2937)'"
+                onmouseout="this.style.color='var(--text-muted, #9ca3af)'"
+                title="Đóng thông báo"
+              >
+                <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+              </button>
+            </div>
+            <p style="margin: 0; font-size: 12.5px; color: var(--text-secondary, #4b5563); line-height: 1.45; word-break: break-word;">
+              {{ toastSubMessage }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Countdown Progress Bar -->
+        <div style="width: 100%; height: 3px; background: rgba(239, 68, 68, 0.15); border-radius: 2px; overflow: hidden;">
+          <div style="height: 100%; background: #ef4444; border-radius: 2px; animation: toastProgress 5s linear forwards;"></div>
+        </div>
+      </div>
+
       <div style="background: var(--bg-primary); border-radius: 14px; width: 1040px; max-width: 96vw; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid var(--border-color); overflow: hidden; position: relative;">
         
         <!-- Header -->
@@ -1544,6 +1599,33 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return [];
   }
 
+  // Quản lý cảnh báo Toast
+  toastMessage = '';
+  toastSubMessage = '';
+  toastType: 'warning' | 'error' | 'info' = 'warning';
+  showToast = false;
+  toastTimer: any = null;
+
+  triggerToast(message: string, subMessage = '', type: 'warning' | 'error' | 'info' = 'warning', durationMs = 5000) {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastMessage = message;
+    this.toastSubMessage = subMessage;
+    this.toastType = type;
+    this.showToast = true;
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+    }, durationMs);
+  }
+
+  closeToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.showToast = false;
+  }
+
   // Quản lý thông tin chứng từ
   orderCode = '';
   orderSequence = '';
@@ -1801,6 +1883,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         this.lineItems[0].price = new Intl.NumberFormat('vi-VN').format(v.price || 0);
       }
     }
+
+    this.closeToast();
+    if (this.type === 'export' && this.lineItems[0]?.productId && this.lineItems[0]?.variantId) {
+      this.checkVariantStockAndToast(this.lineItems[0].productId, this.lineItems[0].variantId);
+    }
   }
 
   // --- LOGIC TÍNH TOÁN AUTO DROPUP / DROPDOWN ---
@@ -1901,6 +1988,26 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   getVariantStock(item: LineItem): number {
     return this.getVariantStockInfo(item.productId, item.variantId).available;
+  }
+
+  checkVariantStockAndToast(productId: string, variantId: string) {
+    if (this.type !== 'export' || !productId || !variantId) return;
+
+    const stockInfo = this.getVariantStockInfo(productId, variantId);
+    if (stockInfo.available <= 0) {
+      const prodName = this.getProductName(productId);
+      const varName = this.getVariantName(productId, variantId);
+      
+      const wh = this.activeWarehouses.find((w: any) => w.id === this.transactionLocation || w.name === this.transactionLocation);
+      const whName = wh ? wh.name : this.transactionLocation;
+
+      const title = `Cảnh báo: Sản phẩm đã hết tồn kho!`;
+      const desc = whName 
+        ? `Biến thể "${varName}" (${prodName}) hiện có số lượng tồn khả dụng = 0 tại kho "${whName}". Vui lòng kiểm tra lại trước khi xuất kho!`
+        : `Biến thể "${varName}" (${prodName}) hiện có số lượng tồn khả dụng = 0. Vui lòng kiểm tra lại trước khi xuất kho!`;
+
+      this.triggerToast(title, desc, 'warning', 5000);
+    }
   }
 
   isQuantityExceeded(item: LineItem): boolean {
@@ -2029,6 +2136,17 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (this.transactionDestination === id) {
       this.transactionDestination = '';
     }
+    if (this.type === 'export') {
+      for (const item of this.lineItems) {
+        if (item.productId && item.variantId) {
+          const s = this.getVariantStock(item);
+          if (s <= 0) {
+            this.checkVariantStockAndToast(item.productId, item.variantId);
+            break;
+          }
+        }
+      }
+    }
   }
 
   toggleReasonDropdown(event: Event) {
@@ -2147,6 +2265,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     event.stopPropagation();
     this.updateLineItem(item.id, 'variantId', variantId);
     this.openVariantDropdownId = null;
+    this.checkVariantStockAndToast(item.productId, variantId);
   }
 
   toggleUnitDropdown(item: LineItem, event: Event) {
@@ -2376,6 +2495,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         item.variantId = variants[0].id;
         item.unit = this.inferUnit(this.getProductName(value));
         item.price = new Intl.NumberFormat('vi-VN').format(variants[0].price ?? 0);
+        this.checkVariantStockAndToast(value, variants[0].id);
       } else {
         item.variantId = '';
         item.unit = '';
@@ -2391,6 +2511,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       if (v) {
         item.price = new Intl.NumberFormat('vi-VN').format(v.price ?? 0);
       }
+      this.checkVariantStockAndToast(item.productId, value);
     } else if (field === 'price') {
       let rawValue = value.replace(/[^0-9]/g, '');
       const num = parseInt(rawValue, 10);

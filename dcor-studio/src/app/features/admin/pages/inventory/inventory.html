@@ -560,19 +560,8 @@
                   </div>
                 </td>
 
-                <!-- Col 9: Nút ">" mở trang chi tiết sản phẩm -->
-                <td style="padding: 16px 8px; text-align: center; width: 44px;" (click)="$event.stopPropagation()">
-                  <button 
-                    type="button" 
-                    (click)="goToProductDetail(item.id, $event, v.name)"
-                    style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: color 0.15s ease;"
-                    onmouseover="this.style.color='var(--accent)';"
-                    onmouseout="this.style.color='var(--text-muted)';"
-                    [title]="'Xem chi tiết sản phẩm (' + v.name + ')'"
-                  >
-                    <lucide-angular [img]="icons.ChevronRight" size="18"></lucide-angular>
-                  </button>
-                </td>
+                <!-- Col 9: Bỏ nút > ở dòng biến thể, chỉ giữ > ở sản phẩm cha -->
+                <td style="padding: 16px 8px; text-align: center; width: 44px;"></td>
               </tr>
             </ng-container>
           </ng-container>
