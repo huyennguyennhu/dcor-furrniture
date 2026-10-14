@@ -23,8 +23,10 @@ export interface InventoryItem {
   physicalStock: number;
   reservedStock: number;
   availableStock: number;
-  threshold: number;
+  threshold: number | string;
   status: string;
+  statusCategory?: string;
+  statusBadges?: { text: string; type: string }[];
   variants: InventoryVariant[];
 }
 

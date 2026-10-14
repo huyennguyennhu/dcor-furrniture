@@ -150,6 +150,31 @@ export interface LineItem {
         transform: translate(-50%, 0);
       }
     }
+    .tax-dropdown-menu {
+      position: absolute;
+      left: 0 !important;
+      right: auto !important;
+      transform: none !important;
+      min-width: 104px;
+      width: 104px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+      z-index: 1050;
+      padding: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      animation: fadeInSimple 0.12s ease-out !important;
+    }
+    @keyframes fadeInSimple {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
   `],
   template: `
     <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px);">
@@ -864,7 +889,7 @@ export interface LineItem {
                       [attr.title]="!item.productId ? 'Vui lòng chọn sản phẩm trước' : ''"
                     >
                       <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ !item.productId ? 'Chọn sản phẩm trước' : getVariantDisplay(item) }}
+                        {{ getVariantDisplay(item) }}
                       </span>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
                         [ngStyle]="{
@@ -1216,8 +1241,7 @@ export interface LineItem {
                       </button>
 
                       <div *ngIf="showTaxDropdown" 
-                        class="filter-menu-dropdown custom-dropdown-scrollbar"
-                        style="width: 78px; min-width: 78px; padding: 3px;"
+                        class="tax-dropdown-menu custom-dropdown-scrollbar"
                         [ngStyle]="{
                           'bottom': dropdownPositions['tax'] === 'up' ? 'calc(100% + 4px)' : 'auto',
                           'top': dropdownPositions['tax'] === 'up' ? 'auto' : 'calc(100% + 4px)'
@@ -1226,10 +1250,42 @@ export interface LineItem {
                         <div *ngFor="let rate of taxRateOptions"
                           (click)="selectTaxRate(rate, $event)"
                           class="filter-menu-item"
-                          style="padding: 5px 8px; font-size: 12px;"
+                          style="padding: 5px 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;"
                           [class.selected]="taxRate === rate"
                         >
                           <span>{{ rate }}%</span>
+                          <lucide-angular *ngIf="taxRate === rate" [img]="icons.CheckCircle2" size="12" style="color: var(--accent); flex-shrink: 0;"></lucide-angular>
+                        </div>
+
+                        <!-- Ô nhập & Nút + thêm mức thuế VAT mới (chỉ nhận số nguyên, tự động gắn %) -->
+                        <div style="border-top: 1px dashed var(--border-color); padding: 5px 2px 2px 2px; margin-top: 3px;" (click)="$event.stopPropagation()">
+                          <div style="display: flex; align-items: center; gap: 4px;">
+                            <div style="position: relative; display: flex; align-items: center; flex: 1;">
+                              <input 
+                                type="text" 
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                [value]="customTaxInput"
+                                (keydown)="onCustomTaxKeydown($event)"
+                                (input)="onCustomTaxInput($event)"
+                                placeholder="0"
+                                maxlength="3"
+                                title="Nhập số nguyên (0-100)"
+                                style="width: 100%; height: 26px; padding: 0 16px 0 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 11.5px; background: var(--bg-primary); color: var(--text-primary); text-align: right; outline: none; box-sizing: border-box;"
+                              />
+                              <span style="position: absolute; right: 4px; font-size: 11px; color: var(--text-muted); pointer-events: none; font-weight: 600;">%</span>
+                            </div>
+                            <button 
+                              type="button"
+                              (click)="confirmAddCustomTax($event)"
+                              title="Thêm mức thuế (%)"
+                              style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--accent, #765337); color: #ffffff; border: none; border-radius: 4px; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s;"
+                              onmouseover="this.style.opacity='0.85'"
+                              onmouseout="this.style.opacity='1'"
+                            >
+                              <lucide-angular [img]="icons.Plus" size="13"></lucide-angular>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1506,6 +1562,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   taxRate = 0;
   showTaxDropdown = false;
   taxRateOptions: number[] = [0, 8, 10];
+  customTaxInput = '';
   shippingFee = '';
 
   supplierOptions = [
@@ -1528,7 +1585,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   productSearchTerm = '';
 
   // Vị trí auto dropup/dropdown
-  dropdownPositions: { [key: string]: 'up' | 'down' } = {};
+  dropdownPositions: { [key: string]: 'up' | 'down' } = { tax: 'down' };
 
   exportReasonOptions = [
     'Bán hàng',
@@ -1678,6 +1735,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.discountAmount = '';
     this.taxRate = 0;
     this.showTaxDropdown = false;
+    this.customTaxInput = '';
     this.shippingFee = '';
 
     // Người lập phiếu: hệ thống tự điền vào từ phiên đăng nhập
@@ -1705,7 +1763,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.openVariantDropdownId = null;
     this.openUnitDropdownId = null;
     this.productSearchTerm = '';
-    this.dropdownPositions = {};
+    this.dropdownPositions = { tax: 'down' };
 
     // Khởi tạo mã phiếu ban đầu
     this.generateOrderCode();
@@ -2020,8 +2078,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getVariantDisplay(item: LineItem): string {
-    if (!item.productId) return 'Chọn sản phẩm trước';
-    if (!item.variantId) return 'Chọn biến thể...';
+    if (!item.productId || !item.variantId) return 'Chọn biến thể';
     const vars = this.getVariantsForProduct(item.productId);
     const v = vars.find((x: any) => x.id === item.variantId);
     return v ? v.name : item.variantId;
@@ -2125,17 +2182,73 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     event.stopPropagation();
     if (this.showTaxDropdown) {
       this.showTaxDropdown = false;
+      this.customTaxInput = '';
     } else {
       this.closeAllDropdowns();
-      this.showTaxDropdown = true;
+      this.customTaxInput = '';
       const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
       this.checkDropdownPosition(target, 'tax');
+      this.showTaxDropdown = true;
     }
   }
 
   selectTaxRate(rate: number, event: Event) {
     event.stopPropagation();
     this.taxRate = rate;
+    this.customTaxInput = '';
+    this.showTaxDropdown = false;
+  }
+
+  onCustomTaxKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.confirmAddCustomTax(event);
+      return;
+    }
+    if (event.key === 'Escape') {
+      this.showTaxDropdown = false;
+      return;
+    }
+    // Cho phép các phím chức năng và điều hướng
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (allowedKeys.includes(event.key)) {
+      return;
+    }
+    // Chỉ cho phép nhập số nguyên 0-9
+    if (!/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  onCustomTaxInput(event: any) {
+    const inputEl = event.target as HTMLInputElement;
+    const raw = inputEl ? inputEl.value : event;
+    let clean = String(raw || '').replace(/[^0-9]/g, '');
+    if (clean) {
+      const num = parseInt(clean, 10);
+      if (num > 100) {
+        clean = '100';
+      }
+    }
+    this.customTaxInput = clean;
+    if (inputEl) {
+      inputEl.value = clean;
+    }
+  }
+
+  confirmAddCustomTax(event: Event) {
+    event.stopPropagation();
+    const clean = String(this.customTaxInput || '').trim();
+    if (!clean) return;
+    const rate = parseInt(clean, 10);
+    if (isNaN(rate) || rate < 0 || rate > 100) return;
+
+    if (!this.taxRateOptions.includes(rate)) {
+      this.taxRateOptions.push(rate);
+      this.taxRateOptions.sort((a, b) => a - b);
+    }
+    this.taxRate = rate;
+    this.customTaxInput = '';
     this.showTaxDropdown = false;
   }
 
@@ -2145,6 +2258,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showReasonDropdown = false;
     this.showDestDropdown = false;
     this.showTaxDropdown = false;
+    this.customTaxInput = '';
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
     this.openUnitDropdownId = null;

@@ -115,14 +115,53 @@ function mapProductToInventoryItem(prod: any, warehouseId?: string) {
   });
 
   const prodAvailable = Math.max(0, prodPhysical - prodReserved);
-  const threshold = 15;
+  const isSingleVariant = variants.length <= 1;
+
+  // 1. Cột Cảnh báo:
+  // - Nếu chỉ có 1 biến thể: cảnh báo cha = cảnh báo con (variants[0].threshold || 5)
+  // - Nếu nhiều biến thể: cột cảnh báo để '-' vì từng biến thể có ngưỡng cảnh báo độc lập
+  const threshold: string | number = isSingleVariant ? (variants[0]?.threshold ?? 5) : '-';
+
+  // 2. Tag Trạng thái:
+  const outOfStockCount = variants.filter((v: any) => v.available <= 0).length;
+  const lowStockCount = variants.filter((v: any) => v.available > 0 && v.available <= (v.threshold ?? 5)).length;
+
   let status = 'Còn hàng';
-  if (prodAvailable <= 0) {
-    status = 'Hết hàng';
-  } else if (prodAvailable <= threshold) {
-    status = 'Sắp hết hàng';
+  let statusCategory = 'Còn hàng';
+  const statusBadges: { text: string; type: 'in' | 'low' | 'out' }[] = [];
+
+  if (isSingleVariant) {
+    status = variants[0]?.status || 'Còn hàng';
+    statusCategory = status;
+    statusBadges.push({
+      text: status,
+      type: status === 'Hết hàng' ? 'out' : (status === 'Sắp hết hàng' ? 'low' : 'in')
+    });
   } else {
-    status = 'Còn hàng';
+    // Sản phẩm nhiều biến thể:
+    if (outOfStockCount === 0 && lowStockCount === 0) {
+      status = 'Còn hàng';
+      statusCategory = 'Còn hàng';
+      statusBadges.push({ text: 'Còn hàng', type: 'in' });
+    } else {
+      if (outOfStockCount > 0) {
+        statusBadges.push({ text: `${outOfStockCount} hết hàng`, type: 'out' });
+      }
+      if (lowStockCount > 0) {
+        statusBadges.push({ text: `${lowStockCount} sắp hết`, type: 'low' });
+      }
+
+      if (outOfStockCount > 0 && lowStockCount > 0) {
+        status = `${outOfStockCount} hết hàng, ${lowStockCount} sắp hết`;
+        statusCategory = 'Hết hàng';
+      } else if (outOfStockCount > 0) {
+        status = `${outOfStockCount} hết hàng`;
+        statusCategory = 'Hết hàng';
+      } else {
+        status = `${lowStockCount} sắp hết`;
+        statusCategory = 'Sắp hết hàng';
+      }
+    }
   }
 
   let image = '';
@@ -149,6 +188,8 @@ function mapProductToInventoryItem(prod: any, warehouseId?: string) {
     availableStock: prodAvailable,
     threshold,
     status,
+    statusCategory,
+    statusBadges,
     variants
   };
 }
@@ -249,6 +290,8 @@ export const inventoryController = {
         for (const prod of allProductsForSummary) {
           let prodPhysical = 0;
           let prodReserved = 0;
+          let prodOutCount = 0;
+          let prodLowCount = 0;
 
           for (const v of prod.variants) {
             let vPhysical = v.stock || 0;
@@ -268,16 +311,16 @@ export const inventoryController = {
             }
             prodPhysical += vPhysical;
             prodReserved += vReserved;
-          }
 
-          const prodAvailable = Math.max(0, prodPhysical - prodReserved);
-          const threshold = 15;
-          if (prodAvailable <= 0) {
-            outOfStockCount++;
-          } else if (prodAvailable <= threshold) {
-            lowStockCount++;
-          } else {
-            inStockCount++;
+            const vAvail = Math.max(0, vPhysical - vReserved);
+            const vThreshold = 5;
+            if (vAvail <= 0) {
+              outOfStockCount++;
+            } else if (vAvail <= vThreshold) {
+              lowStockCount++;
+            } else {
+              inStockCount++;
+            }
           }
 
           totalPhysicalStock += prodPhysical;
@@ -364,7 +407,18 @@ export const inventoryController = {
         });
 
         const allMapped = matchedProducts.map(p => mapProductToInventoryItem(p, warehouseId));
-        const filtered = allMapped.filter(item => item.status === stockStatus);
+        const filtered = allMapped.filter(item => {
+          if (stockStatus === 'Còn hàng') {
+            return item.variants.some((v: any) => v.status === 'Còn hàng');
+          }
+          if (stockStatus === 'Sắp hết hàng' || stockStatus === 'Sắp hết') {
+            return item.variants.some((v: any) => v.status === 'Sắp hết hàng');
+          }
+          if (stockStatus === 'Hết hàng') {
+            return item.variants.some((v: any) => v.status === 'Hết hàng');
+          }
+          return item.status === stockStatus;
+        });
         totalItems = filtered.length;
         items = filtered.slice(skip, skip + limit);
       } else {

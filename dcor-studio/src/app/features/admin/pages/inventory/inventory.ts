@@ -277,6 +277,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.fetchOverview();
   }
 
+  onCardStatusFilter(status: string) {
+    if (this.statusFilter === status) {
+      this.onSelectStatus('Tất cả trạng thái');
+    } else {
+      this.onSelectStatus(status);
+    }
+  }
+
   get filteredCategories(): any[] {
     if (!this.categorySearchTerm.trim()) {
       return this.categoriesTree;
@@ -480,8 +488,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
       this.expandedRows.delete(id);
     } else {
       this.expandedRows.add(id);
+      // Khi xổ biến thể ra: Nếu sản phẩm cha đang được chọn -> tự động chọn toàn bộ biến thể vừa xổ
+      const item = this.data.find(p => p.id === id);
+      if (item && this.selectedIds.has(id) && Array.isArray(item.variants)) {
+        item.variants.forEach(v => {
+          this.selectedIds.add(this.getVariantIdKey(item, v));
+        });
+      }
     }
     this.syncToStateService();
+    this.cdr.markForCheck();
   }
 
   getVariants(item: InventoryItem): InventoryVariant[] {
@@ -499,6 +515,67 @@ export class InventoryComponent implements OnInit, OnDestroy {
     if (this.isLowStock(status)) return false;
     const s = status.toLowerCase();
     return s.includes('hết hàng') || s.includes('het hang') || s.includes('out');
+  }
+
+  getStatusBadges(item: InventoryItem): { text: string; type: string }[] {
+    if (item.statusBadges && item.statusBadges.length > 0) {
+      return item.statusBadges;
+    }
+    const s = item.status || 'Còn hàng';
+    if (this.isOutOfStock(s) && this.isLowStock(s)) {
+      const parts = s.split(',').map(p => p.trim());
+      return parts.map(p => ({
+        text: p,
+        type: this.isOutOfStock(p) ? 'out' : (this.isLowStock(p) ? 'low' : 'in')
+      }));
+    }
+    if (this.isOutOfStock(s)) {
+      return [{ text: s, type: 'out' }];
+    }
+    if (this.isLowStock(s)) {
+      return [{ text: s, type: 'low' }];
+    }
+    return [{ text: s, type: 'in' }];
+  }
+
+  getBadgeStyleByType(type: string): { [key: string]: string } {
+    if (type === 'out') {
+      return {
+        'padding': '4px 10px',
+        'border-radius': '6px',
+        'font-size': '12px',
+        'font-weight': '600',
+        'display': 'inline-block',
+        'background': 'rgba(239, 68, 68, 0.12)',
+        'color': '#b91c1c',
+        'border': 'none',
+        'white-space': 'nowrap'
+      };
+    }
+    if (type === 'low') {
+      return {
+        'padding': '4px 10px',
+        'border-radius': '6px',
+        'font-size': '12px',
+        'font-weight': '600',
+        'display': 'inline-block',
+        'background': 'rgba(245, 158, 11, 0.15)',
+        'color': '#b45309',
+        'border': 'none',
+        'white-space': 'nowrap'
+      };
+    }
+    return {
+      'padding': '4px 10px',
+      'border-radius': '6px',
+      'font-size': '12px',
+      'font-weight': '600',
+      'display': 'inline-block',
+      'background': 'rgba(16, 185, 129, 0.12)',
+      'color': '#047857',
+      'border': 'none',
+      'white-space': 'nowrap'
+    };
   }
 
   getStatusBadgeStyle(status: string): { [key: string]: string } {
@@ -546,13 +623,28 @@ export class InventoryComponent implements OnInit, OnDestroy {
     return 'Còn hàng';
   }
 
-  toggleSelection(id: string, event: Event) {
+  toggleSelection(target: InventoryItem | string, event: Event) {
     event.stopPropagation();
-    if (this.selectedIds.has(id)) {
-      this.selectedIds.delete(id);
-    } else {
+    const item = typeof target === 'string' ? this.data.find(p => p.id === target) : target;
+    const id = typeof target === 'string' ? target : target.id;
+
+    const willSelect = !this.selectedIds.has(id);
+    if (willSelect) {
       this.selectedIds.add(id);
+      if (item && Array.isArray(item.variants)) {
+        item.variants.forEach(v => {
+          this.selectedIds.add(this.getVariantIdKey(item, v));
+        });
+      }
+    } else {
+      this.selectedIds.delete(id);
+      if (item && Array.isArray(item.variants)) {
+        item.variants.forEach(v => {
+          this.selectedIds.delete(this.getVariantIdKey(item, v));
+        });
+      }
     }
+    this.cdr.markForCheck();
   }
 
   getVariantIdKey(item: InventoryItem, v: InventoryVariant): string {
@@ -572,19 +664,43 @@ export class InventoryComponent implements OnInit, OnDestroy {
     } else {
       this.selectedIds.add(key);
     }
+
+    // Tự động đồng bộ trạng thái tick của sản phẩm cha:
+    // Nếu tất cả biến thể của sản phẩm đều được chọn -> tick chọn sản phẩm cha
+    // Nếu có ít nhất 1 biến thể bị bỏ chọn -> bỏ tick sản phẩm cha
+    const variants = item.variants || [];
+    if (variants.length > 0) {
+      const allVariantsSelected = variants.every(varItem => 
+        this.selectedIds.has(this.getVariantIdKey(item, varItem))
+      );
+      if (allVariantsSelected) {
+        this.selectedIds.add(item.id);
+      } else {
+        this.selectedIds.delete(item.id);
+      }
+    }
+    this.cdr.markForCheck();
   }
 
   toggleSelectAll(event: Event) {
     event.stopPropagation();
-    if (this.selectedIds.size === this.data.length && this.data.length > 0) {
+    if (this.isAllSelected()) {
       this.selectedIds.clear();
     } else {
-      this.data.forEach(p => this.selectedIds.add(p.id));
+      this.data.forEach(p => {
+        this.selectedIds.add(p.id);
+        if (Array.isArray(p.variants)) {
+          p.variants.forEach(v => {
+            this.selectedIds.add(this.getVariantIdKey(p, v));
+          });
+        }
+      });
     }
+    this.cdr.markForCheck();
   }
 
-  isAllSelected() {
-    return this.data.length > 0 && this.selectedIds.size === this.data.length;
+  isAllSelected(): boolean {
+    return this.data.length > 0 && this.data.every(p => this.selectedIds.has(p.id));
   }
 
   openModal(type: 'import' | 'export', productId: string = '', variantId: string = '', isProductFixed: boolean = false, isVariantFixed: boolean = false) {
