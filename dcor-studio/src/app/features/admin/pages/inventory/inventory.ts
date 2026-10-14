@@ -1,5 +1,5 @@
 import { IconComponent } from '../../../../shared/components/icon/icon';
-import { Component, OnInit, HostListener, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -8,36 +8,13 @@ import {
   LucideAngularModule, 
   Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, Image as ImageIcon, X,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
-  Building2, Layers, Tag, RotateCcw
+  Building2, Layers, Tag, RotateCcw, CornerDownRight
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../environments/environment';
+import { InventoryStateService, InventoryVariant, InventoryItem } from '../../../../core/services/inventory-state.service';
 
-export interface InventoryVariant {
-  id: string;
-  sku: string;
-  name: string;
-  price: number;
-  physical: number;
-  reserved: number;
-  available: number;
-  threshold: number;
-}
-
-export interface InventoryItem {
-  id: string;
-  sku: string;
-  productName: string;
-  category: string;
-  image: string;
-  location: string;
-  physicalStock: number;
-  reservedStock: number;
-  availableStock: number;
-  threshold: number;
-  status: string;
-  variants: InventoryVariant[];
-}
+export type { InventoryVariant, InventoryItem };
 
 @Component({
   selector: 'app-inventory',
@@ -46,15 +23,16 @@ export interface InventoryItem {
   templateUrl: './inventory.html',
   styleUrls: ['./inventory.css']
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent implements OnInit, OnDestroy {
   icons = { 
     Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, ImageIcon, X,
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
-    Building2, Layers, Tag, RotateCcw
+    Building2, Layers, Tag, RotateCcw, CornerDownRight
   };
 
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
+  private stateService = inject(InventoryStateService);
 
   data: InventoryItem[] = [];
   rawItems: InventoryItem[] = [];
@@ -128,6 +106,8 @@ export class InventoryComponent implements OnInit {
   selectedCategoryId = '';
   showCategoryDropdown = false;
   categoriesTree: any[] = [];
+  categorySearchTerm = '';
+  expandedCategoryIds = new Set<string>();
 
   // Modal
   modalConfig = {
@@ -146,9 +126,56 @@ export class InventoryComponent implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit() {
-    this.fetchWarehouses();
-    this.fetchCategories();
-    this.fetchOverview();
+    if (this.stateService.hasLoaded) {
+      // Khôi phục trạng thái tức thì không cần tải lại, tránh giật màn hình
+      this.data = this.stateService.data;
+      this.rawItems = this.stateService.rawItems;
+      this.summary = this.stateService.summary;
+      this.totalItems = this.stateService.totalItems;
+      this.totalPages = this.stateService.totalPages;
+      this.currentPage = this.stateService.currentPage;
+      this.pageSize = this.stateService.pageSize;
+      this.searchTerm = this.stateService.searchTerm;
+      this.locationFilter = this.stateService.locationFilter;
+      this.statusFilter = this.stateService.statusFilter;
+      this.selectedCategoryId = this.stateService.selectedCategoryId;
+      this.categoryFilter = this.stateService.selectedCategoryName;
+      this.expandedRows = new Set(this.stateService.expandedRows);
+      this.locationOptions = this.stateService.locationOptions;
+      this.categoriesTree = this.stateService.categoriesTree;
+      this.columnVisibility = { ...this.stateService.columnVisibility };
+      this.isLoading = false;
+      this.cdr.markForCheck();
+    } else {
+      this.fetchWarehouses();
+      this.fetchCategories();
+      this.fetchOverview();
+    }
+  }
+
+  ngOnDestroy() {
+    this.syncToStateService();
+  }
+
+  syncToStateService() {
+    this.stateService.saveState({
+      data: this.data,
+      rawItems: this.rawItems,
+      summary: this.summary,
+      totalItems: this.totalItems,
+      totalPages: this.totalPages,
+      currentPage: this.currentPage,
+      pageSize: this.pageSize,
+      searchTerm: this.searchTerm,
+      locationFilter: this.locationFilter,
+      statusFilter: this.statusFilter,
+      selectedCategoryId: this.selectedCategoryId,
+      selectedCategoryName: this.categoryFilter,
+      expandedRows: new Set(this.expandedRows),
+      locationOptions: this.locationOptions,
+      categoriesTree: this.categoriesTree,
+      columnVisibility: { ...this.columnVisibility }
+    });
   }
 
   fetchWarehouses() {
@@ -159,6 +186,7 @@ export class InventoryComponent implements OnInit {
           // Đảm bảo các tùy chọn theo yêu cầu và thêm kho từ DB nếu có mới
           const merged = new Set(['Tất cả chi nhánh', 'Kho Tổng (TP.HCM)', 'Kho Hà Nội', 'Showroom Quận 1', 'Showroom Thủ Đức', ...names]);
           this.locationOptions = Array.from(merged);
+          this.stateService.locationOptions = this.locationOptions;
           this.cdr.markForCheck();
         }
       },
@@ -173,6 +201,7 @@ export class InventoryComponent implements OnInit {
       next: (cats) => {
         if (Array.isArray(cats)) {
           this.categoriesTree = cats;
+          this.stateService.categoriesTree = this.categoriesTree;
           this.cdr.markForCheck();
         }
       },
@@ -215,11 +244,13 @@ export class InventoryComponent implements OnInit {
             this.totalItems = res.items.length;
             this.totalPages = Math.ceil(this.totalItems / this.pageSize) || 1;
           }
+          this.syncToStateService();
         } else {
           this.rawItems = [];
           this.data = [];
           this.totalItems = 0;
           this.totalPages = 1;
+          this.syncToStateService();
         }
         this.isLoading = false;
         this.cdr.markForCheck();
@@ -246,14 +277,76 @@ export class InventoryComponent implements OnInit {
     this.fetchOverview();
   }
 
-  onSelectCategory(cat: any, parentName?: string) {
+  get filteredCategories(): any[] {
+    if (!this.categorySearchTerm.trim()) {
+      return this.categoriesTree;
+    }
+    const term = this.removeVietnameseTones(this.categorySearchTerm.trim().toLowerCase());
+    
+    return this.categoriesTree
+      .map(cat => {
+        const catName = this.removeVietnameseTones(cat.name?.toLowerCase() || '');
+        const parentMatches = catName.includes(term);
+        
+        const matchingChildren = (cat.children || []).filter((sub: any) => {
+          const subName = this.removeVietnameseTones(sub.name?.toLowerCase() || '');
+          return subName.includes(term);
+        });
+
+        if (parentMatches) {
+          return {
+            ...cat,
+            children: matchingChildren.length > 0 ? matchingChildren : cat.children
+          };
+        } else if (matchingChildren.length > 0) {
+          return {
+            ...cat,
+            children: matchingChildren
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  isCategoryExpanded(cat: any): boolean {
+    if (this.categorySearchTerm.trim()) {
+      return true; // Tự động mở rộng khi tìm kiếm để nhìn thấy kết quả khớp
+    }
+    return this.expandedCategoryIds.has(cat.id);
+  }
+
+  toggleCategoryExpand(catId: string, event: Event) {
+    event.stopPropagation();
+    if (this.expandedCategoryIds.has(catId)) {
+      this.expandedCategoryIds.delete(catId);
+    } else {
+      this.expandedCategoryIds.add(catId);
+    }
+    this.cdr.markForCheck();
+  }
+
+  removeVietnameseTones(str: string): string {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  }
+
+  onSelectCategory(cat: any, parent?: any) {
     if (!cat) {
       this.categoryFilter = 'Tất cả danh mục';
       this.selectedCategoryId = '';
     } else {
+      const parentName = typeof parent === 'string' ? parent : parent?.name;
       this.categoryFilter = parentName ? `${parentName} > ${cat.name}` : cat.name;
       this.selectedCategoryId = cat.id;
+      if (parent && typeof parent === 'object' && parent.id) {
+        this.expandedCategoryIds.add(parent.id);
+      }
     }
+    this.categorySearchTerm = '';
     this.showCategoryDropdown = false;
     this.currentPage = 1;
     this.fetchOverview();
@@ -274,6 +367,8 @@ export class InventoryComponent implements OnInit {
     this.statusFilter = 'Tất cả trạng thái';
     this.categoryFilter = 'Tất cả danh mục';
     this.selectedCategoryId = '';
+    this.categorySearchTerm = '';
+    this.expandedCategoryIds.clear();
     this.currentPage = 1;
     this.fetchOverview();
   }
@@ -350,6 +445,7 @@ export class InventoryComponent implements OnInit {
     if (event) event.stopPropagation();
     if (colKey === 'product') return; // Không cho phép bỏ chọn cột Tên sản phẩm
     this.columnVisibility[colKey] = !this.columnVisibility[colKey];
+    this.syncToStateService();
   }
 
   resetColumns(event?: Event) {
@@ -357,6 +453,7 @@ export class InventoryComponent implements OnInit {
     this.columnsConfig.forEach(col => {
       this.columnVisibility[col.key] = true;
     });
+    this.syncToStateService();
   }
 
   getVisibleColumnCount(): number {
@@ -374,10 +471,19 @@ export class InventoryComponent implements OnInit {
     } else {
       this.expandedRows.add(id);
     }
+    this.syncToStateService();
   }
 
   getVariants(item: InventoryItem): InventoryVariant[] {
     return item.variants || [];
+  }
+
+  getVariantStatus(v: InventoryVariant): string {
+    if (v.status) return v.status;
+    const thresh = v.threshold != null ? v.threshold : 5;
+    if (v.available <= 0) return 'Hết hàng';
+    if (v.available <= thresh) return 'Sắp hết';
+    return 'Còn hàng';
   }
 
   toggleSelection(id: string, event: Event) {
@@ -430,6 +536,7 @@ export class InventoryComponent implements OnInit {
   }
 
   goToDetail(id: string) {
+    this.syncToStateService();
     this.router.navigate(['/admin/inventory/product', id]);
   }
 }

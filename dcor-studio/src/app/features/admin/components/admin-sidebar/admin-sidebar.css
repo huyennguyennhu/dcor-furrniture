@@ -110,11 +110,43 @@
 .sidebar-chevron {
   flex: 0 0 auto;
   opacity: 0.75;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.sidebar-chevron.open {
+  transform: rotate(90deg);
+  opacity: 1;
 }
 
 .sidebar-link:hover .sidebar-chevron {
   opacity: 1;
+}
+
+/* Accordion transition for submenus */
+.sidebar-submenu-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.28s step-end;
+}
+
+.sidebar-submenu-wrapper.open {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s step-start;
+}
+
+.sidebar-submenu-inner {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-submenu-wrapper.open .sidebar-submenu-inner {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .sidebar-submenu {
@@ -123,6 +155,7 @@
   flex-direction: column;
   gap: 3px;
   margin-top: 3px;
+  padding-bottom: 4px;
 }
 
 .admin-sub-item {
@@ -187,6 +220,18 @@
   border-radius: 8px;
   background: #3b2819;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  animation: hoverMenuFadeIn 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes hoverMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .sidebar-hover-title {

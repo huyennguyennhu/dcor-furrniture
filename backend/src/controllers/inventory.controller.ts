@@ -48,6 +48,15 @@ function mapProductToInventoryItem(prod: any, warehouseId?: string) {
     const vAvailable = Math.max(0, vPhysical - vReserved);
     prodPhysical += vPhysical;
     prodReserved += vReserved;
+    const vThreshold = 5;
+    let vStatus = 'Còn hàng';
+    if (vAvailable <= 0) {
+      vStatus = 'Hết hàng';
+    } else if (vAvailable <= vThreshold) {
+      vStatus = 'Sắp hết';
+    } else {
+      vStatus = 'Còn hàng';
+    }
 
     return {
       id: v.id,
@@ -57,7 +66,8 @@ function mapProductToInventoryItem(prod: any, warehouseId?: string) {
       physical: vPhysical,
       reserved: vReserved,
       available: vAvailable,
-      threshold: 5
+      threshold: vThreshold,
+      status: vStatus
     };
   });
 

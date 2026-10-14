@@ -154,37 +154,84 @@
       </button>
       
       <div *ngIf="showCategoryDropdown" class="filter-menu-dropdown category-menu-dropdown">
-        <!-- Tất cả danh mục -->
-        <div 
-          (click)="onSelectCategory(null)"
-          class="filter-menu-item root-cat-item"
-          [class.selected]="categoryFilter === 'Tất cả danh mục'"
-        >
-          <span>Tất cả danh mục</span>
+        <!-- Khung tìm kiếm trong dropdown -->
+        <div class="cat-search-box" (click)="$event.stopPropagation()">
+          <lucide-angular [img]="icons.Search" size="14" class="cat-search-icon"></lucide-angular>
+          <input 
+            type="text" 
+            [(ngModel)]="categorySearchTerm"
+            (click)="$event.stopPropagation()"
+            (keydown.enter)="$event.preventDefault()"
+            placeholder="Tìm danh mục..." 
+            class="cat-search-input"
+          />
+          <button 
+            *ngIf="categorySearchTerm" 
+            type="button" 
+            (click)="categorySearchTerm = ''; $event.stopPropagation()"
+            class="cat-search-clear"
+            title="Xóa tìm kiếm"
+          >
+            <lucide-angular [img]="icons.X" size="13"></lucide-angular>
+          </button>
         </div>
 
-        <!-- Cấp 1 & Cấp 2 -->
-        <ng-container *ngFor="let cat of categoriesTree">
-          <!-- Cấp 1 -->
+        <!-- Danh sách danh mục cuộn -->
+        <div class="cat-menu-body">
+          <!-- Tất cả danh mục -->
           <div 
-            (click)="onSelectCategory(cat)"
+            *ngIf="!categorySearchTerm.trim()"
+            (click)="onSelectCategory(null)"
             class="filter-menu-item root-cat-item"
-            [class.selected]="selectedCategoryId === cat.id"
+            [class.selected]="categoryFilter === 'Tất cả danh mục'"
           >
-            <span style="font-weight: 600;">{{ cat.name }}</span>
-            <span *ngIf="cat.children?.length" style="font-size: 11px; color: var(--text-muted);">({{ cat.children.length }})</span>
+            <span>Tất cả danh mục</span>
           </div>
 
-          <!-- Cấp 2 -->
-          <div 
-            *ngFor="let sub of cat.children"
-            (click)="onSelectCategory(sub, cat.name)"
-            class="filter-menu-item sub-cat-item"
-            [class.selected]="selectedCategoryId === sub.id"
-          >
-            <span>— {{ sub.name }}</span>
+          <!-- Trạng thái không tìm thấy khi search -->
+          <div *ngIf="filteredCategories.length === 0" class="cat-empty-state">
+            <span>Không tìm thấy danh mục phù hợp</span>
           </div>
-        </ng-container>
+
+          <!-- Cấp 1 & Cấp 2 -->
+          <ng-container *ngFor="let cat of filteredCategories">
+            <!-- Dòng danh mục cha cấp 1: Nhấn vào row thì chọn cha, nhấn vào nút > thì xổ con -->
+            <div 
+              (click)="onSelectCategory(cat)"
+              class="filter-menu-item root-cat-item has-expandable"
+              [class.selected]="selectedCategoryId === cat.id"
+            >
+              <div class="cat-info">
+                <span class="cat-name">{{ cat.name }}</span>
+                <span *ngIf="cat.children?.length" class="cat-count">({{ cat.children.length }})</span>
+              </div>
+
+              <!-- Nút > bên phải danh mục cha: Nhấn > thì chỉ xổ danh mục con, không chọn cha -->
+              <button 
+                *ngIf="cat.children?.length" 
+                type="button"
+                class="cat-expand-toggle"
+                [class.expanded]="isCategoryExpanded(cat)"
+                (click)="toggleCategoryExpand(cat.id, $event)"
+                [title]="isCategoryExpanded(cat) ? 'Thu gọn danh mục con' : 'Xem danh mục con'"
+              >
+                <lucide-angular [img]="icons.ChevronRight" size="14"></lucide-angular>
+              </button>
+            </div>
+
+            <!-- Danh mục con cấp 2: Chỉ xổ ra khi cha được mở -->
+            <div *ngIf="isCategoryExpanded(cat) && cat.children?.length" class="sub-cat-container">
+              <div 
+                *ngFor="let sub of cat.children"
+                (click)="onSelectCategory(sub, cat)"
+                class="filter-menu-item sub-cat-item"
+                [class.selected]="selectedCategoryId === sub.id"
+              >
+                <span class="sub-cat-name">{{ sub.name }}</span>
+              </div>
+            </div>
+          </ng-container>
+        </div>
       </div>
     </div>
 
@@ -364,18 +411,24 @@
               <td [attr.colspan]="getVisibleColumnCount()" style="padding: 16px;">
                 <div style="display: flex; flex-direction: column; gap: 12px; background: white; padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Chi tiết biến thể - {{ item.productName }}</h4>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <h4 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Chi tiết biến thể - {{ item.productName }}</h4>
+                      <span style="font-size: 12px; color: var(--text-muted); background: var(--bg-secondary); padding: 2px 8px; border-radius: 12px;">{{ getVariants(item).length }} biến thể</span>
+                    </div>
                     <button (click)="goToDetail(item.id)" style="background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-primary);" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='white'">Xem chi tiết</button>
                   </div>
                   
                   <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                       <tr style="background: #EAE1D7;">
-                        <th style="padding: 12px; text-align: left; font-size: 13px; color: var(--text-secondary); font-weight: 600;">Biến thể</th>
-                        <th style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600;">Tồn thực tế</th>
-                        <th style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600;">Đang giữ chỗ</th>
-                        <th style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600;">Có thể bán</th>
-                        <th style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600;">Thao tác</th>
+                        <th style="width: 44px; padding: 12px 8px; text-align: center;"></th>
+                        <th *ngIf="columnVisibility['product']" style="padding: 12px 16px; text-align: left; font-size: 13px; color: var(--text-secondary); font-weight: 600;">Biến thể</th>
+                        <th *ngIf="columnVisibility['physicalStock']" style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; width: 105px;">Tồn thực tế</th>
+                        <th *ngIf="columnVisibility['reservedStock']" style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; width: 110px;">Đang giữ chỗ</th>
+                        <th *ngIf="columnVisibility['availableStock']" style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; width: 105px;">Có thể bán</th>
+                        <th *ngIf="columnVisibility['threshold']" style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; width: 90px;">Cảnh báo</th>
+                        <th *ngIf="columnVisibility['status']" style="padding: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; width: 110px;">Trạng thái</th>
+                        <th style="padding: 12px 8px; text-align: center; font-size: 13px; color: var(--text-secondary); font-weight: 600; width: 48px;">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -383,25 +436,49 @@
                           [ngStyle]="{'border-bottom': last ? 'none' : '1px solid var(--border-color)'}"
                           onmouseover="this.style.background='#F3E5D3'" 
                           onmouseout="this.style.background='transparent'">
-                        <td style="font-size: 13px; padding: 12px; color: var(--text-primary);">{{ v.name }}</td>
-                        <td style="font-size: 13px; text-align: center; padding: 12px; color: var(--text-primary);">{{ v.physical }}</td>
-                        <td style="font-size: 13px; text-align: center; padding: 12px; color: #f59e0b;">{{ v.reserved }}</td>
-                        <td style="font-size: 13px; text-align: center; padding: 12px; font-weight: 600; color: #10b981;">{{ v.available }}</td>
-                        <td style="text-align: center; padding: 12px;">
+                        <td style="width: 44px; padding: 12px 8px; text-align: center; color: var(--text-muted);">
+                          <lucide-angular [img]="icons.CornerDownRight" size="14"></lucide-angular>
+                        </td>
+                        <td *ngIf="columnVisibility['product']" style="font-size: 13px; padding: 12px 16px; color: var(--text-primary);">
+                          <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: 600; color: var(--text-primary);">{{ v.name }}</span>
+                            <span style="font-size: 11px; color: var(--text-secondary);" *ngIf="v.sku">SKU: {{ v.sku }}</span>
+                          </div>
+                        </td>
+                        <td *ngIf="columnVisibility['physicalStock']" style="font-size: 13px; text-align: center; padding: 12px; color: var(--text-primary); white-space: nowrap; width: 105px;">{{ v.physical }}</td>
+                        <td *ngIf="columnVisibility['reservedStock']" style="font-size: 13px; text-align: center; padding: 12px; color: #f59e0b; white-space: nowrap; width: 110px;">{{ v.reserved }}</td>
+                        <td *ngIf="columnVisibility['availableStock']" style="font-size: 13px; text-align: center; padding: 12px; font-weight: 600; color: #10b981; white-space: nowrap; width: 105px;">{{ v.available }}</td>
+                        <td *ngIf="columnVisibility['threshold']" style="font-size: 13px; text-align: center; padding: 12px; color: var(--text-primary); white-space: nowrap; width: 90px;">{{ v.threshold != null ? v.threshold : 5 }}</td>
+                        <td *ngIf="columnVisibility['status']" style="padding: 12px; text-align: center; white-space: nowrap; width: 110px;">
+                          <span [ngStyle]="{
+                            'padding': '4px 8px', 'border-radius': '4px', 'font-size': '12px', 'font-weight': 500, 'display': 'inline-block',
+                            'background': getVariantStatus(v) === 'Sắp hết' ? 'rgba(234, 179, 8, 0.1)' : getVariantStatus(v) === 'Hết hàng' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                            'color': getVariantStatus(v) === 'Sắp hết' ? 'rgb(234, 179, 8)' : getVariantStatus(v) === 'Hết hàng' ? 'rgb(239, 68, 68)' : 'rgb(34, 197, 94)'
+                          }">
+                            {{ getVariantStatus(v) }}
+                          </span>
+                        </td>
+                        <td style="text-align: center; padding: 12px 8px; width: 48px;">
                           <div class="variant-dropdown-wrapper" style="position: relative; display: inline-block;">
                             <button 
                               (click)="openVariantDropdown = openVariantDropdown === item.id + '-' + idx ? null : item.id + '-' + idx"
-                              style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;"
+                              style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px;"
+                              onmouseover="this.style.background='var(--bg-primary)'" 
+                              onmouseout="this.style.background='transparent'"
                             >
                               <lucide-angular [img]="icons.MoreHorizontal" size="18"></lucide-angular>
                             </button>
                             
                             <div *ngIf="openVariantDropdown === item.id + '-' + idx" style="position: absolute; right: 0; top: 100%; z-index: 50; margin-top: 2px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
-                              <div (click)="openModal('import', item.id, v.name, true, false)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                              <div (click)="openModal('import', item.id, v.id || v.name, true, true)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
                                 <lucide-angular [img]="icons.Plus" size="14"></lucide-angular> Nhập kho
                               </div>
-                              <div (click)="openModal('export', item.id, v.name, true, false)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                              <div (click)="openModal('export', item.id, v.id || v.name, true, true)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
                                 <lucide-angular [img]="icons.ArrowRightLeft" size="14"></lucide-angular> Xuất kho
+                              </div>
+                              <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
+                              <div (click)="openVariantDropdown = null; alert('Tính năng đang phát triển')" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                                <lucide-angular [img]="icons.Filter" size="14"></lucide-angular> Chỉnh sửa cảnh báo
                               </div>
                             </div>
                           </div>

@@ -31,7 +31,8 @@
             <app-icon
               *ngIf="!isCollapsed"
               class="sidebar-chevron"
-              [name]="isMenuOpen(item.href) ? 'ChevronDown' : 'ChevronRight'"
+              [class.open]="isMenuOpen(item.href)"
+              name="ChevronRight"
               size="16">
             </app-icon>
           </button>
@@ -51,16 +52,21 @@
         </ng-template>
 
         <div
-          *ngIf="!isCollapsed && item.subItems && isMenuOpen(item.href)"
-          class="sidebar-submenu">
-          <a
-            *ngFor="let sub of item.subItems"
-            class="admin-sub-item"
-            [class.active]="sub.href === activeHref"
-            [routerLink]="sub.href"
-            (click)="selectSubItem(item.href)">
-            {{ sub.title }}
-          </a>
+          *ngIf="!isCollapsed && item.subItems"
+          class="sidebar-submenu-wrapper"
+          [class.open]="isMenuOpen(item.href)">
+          <div class="sidebar-submenu-inner">
+            <div class="sidebar-submenu">
+              <a
+                *ngFor="let sub of item.subItems"
+                class="admin-sub-item"
+                [class.active]="sub.href === activeHref"
+                [routerLink]="sub.href"
+                (click)="selectSubItem(item.href)">
+                {{ sub.title }}
+              </a>
+            </div>
+          </div>
         </div>
 
         <div

@@ -9,6 +9,7 @@ import {
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
+import { InventoryStateService } from '../../../../../core/services/inventory-state.service';
 
 interface VariantStock {
   id: string;
@@ -247,6 +248,7 @@ interface StockHistory {
   `
 })
 export class InventoryProductDetailComponent implements OnInit {
+  private inventoryState = inject(InventoryStateService);
   icons = { ArrowLeft, Package, Clock, Filter, Search, Plus, ArrowRightLeft, RefreshCcw, X };
 
   product: any = null;
@@ -383,6 +385,7 @@ export class InventoryProductDetailComponent implements OnInit {
 
   submitModal(data: any) {
     console.log('Transaction Data:', data);
+    this.inventoryState.invalidate();
     window.alert('Giao dịch đã được lưu thành công!');
     this.closeModal();
   }
