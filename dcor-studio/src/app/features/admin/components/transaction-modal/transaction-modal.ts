@@ -189,9 +189,86 @@ export interface LineItem {
       from { width: 100%; }
       to { width: 0%; }
     }
+    /* Confirm Discard Modal */
+    .confirm-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3100;
+      padding: 16px;
+      backdrop-filter: blur(2px);
+      animation: fadeInSimple 0.15s ease-out;
+    }
+    .confirm-modal-card {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      animation: modalScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalScaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    .confirm-modal-header {
+      padding: 20px 20px 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .confirm-modal-icon-wrapper.warning {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .confirm-close-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .confirm-close-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+    .confirm-modal-footer {
+      padding: 14px 20px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
   `],
   template: `
-    <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px);">
+    <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; backdrop-filter: blur(2px);">
       
       <!-- Floating Toast Cảnh Báo Tồn Kho Khả Dụng = 0 (Phiếu Xuất) -->
       <div *ngIf="showToast" 
@@ -233,7 +310,7 @@ export interface LineItem {
         </div>
       </div>
 
-      <div style="background: var(--bg-primary); border-radius: 14px; width: 1040px; max-width: 96vw; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid var(--border-color); overflow: hidden; position: relative;">
+      <div style="background: var(--bg-primary); border-radius: 14px; width: 1260px; max-width: 96vw; height: 88vh; min-height: 580px; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid var(--border-color); overflow: hidden; position: relative;">
         
         <!-- Header -->
         <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); z-index: 20; position: relative;">
@@ -247,7 +324,7 @@ export interface LineItem {
               </h2>
             </div>
           </div>
-          <button (click)="onClose.emit()" class="admin-close-btn" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px;" title="Đóng">
+          <button type="button" (click)="requestClose()" class="admin-close-btn" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px;" title="Đóng">
             <lucide-angular [img]="icons.X" size="20"></lucide-angular>
           </button>
         </div>
@@ -846,29 +923,34 @@ export interface LineItem {
                      'z-index': (openProductDropdownId === item.id || openVariantDropdownId === item.id || openUnitDropdownId === item.id) ? 100 : 1
                    }">
                 
-                <!-- 1. Sản phẩm -->
+                <!-- 1. Sản phẩm: Khóa khi chưa chọn kho -->
                 <div style="position: relative;">
                   <div *ngIf="item.isProductFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ getProductLabel(item.productId) }}
                   </div>
-                  <div *ngIf="!item.isProductFixed" style="position: relative; width: 100%;">
+                  <div *ngIf="!item.isProductFixed" 
+                       (click)="!transactionLocation && focusLocationDropdown($event)"
+                       style="position: relative; width: 100%;">
                     <button 
                       type="button"
                       (click)="toggleProductDropdown(item.id, $event)"
                       [disabled]="!transactionLocation"
                       style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
                       [ngStyle]="{
-                        'background': !transactionLocation ? '#f4f4f5' : 'var(--bg-primary)',
+                        'background': !transactionLocation ? 'var(--bg-secondary)' : 'var(--bg-primary)',
                         'cursor': !transactionLocation ? 'not-allowed' : 'pointer',
-                        'opacity': !transactionLocation ? '0.65' : '1',
-                        'color': !transactionLocation ? '#a1a1aa' : (item.productId ? 'var(--text-primary)' : 'var(--text-muted)'),
-                        'border': !transactionLocation ? '1px dashed #d4d4d8' : '1px solid var(--border-color)'
+                        'opacity': !transactionLocation ? '0.7' : '1',
+                        'color': !transactionLocation ? 'var(--text-muted)' : (item.productId ? 'var(--text-primary)' : 'var(--text-muted)'),
+                        'border': !transactionLocation ? '1px dashed var(--border-color)' : '1px solid var(--border-color)'
                       }"
                       [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm' : ''"
                     >
-                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ !transactionLocation ? 'Chọn kho trước' : getProductLabel(item.productId) }}
-                      </span>
+                      <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
+                        <lucide-angular *ngIf="!transactionLocation" [img]="icons.Lock" size="13" style="color: var(--text-muted); flex-shrink: 0;"></lucide-angular>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          {{ !transactionLocation ? 'Chọn sản phẩm' : getProductLabel(item.productId) }}
+                        </span>
+                      </div>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
                         [ngStyle]="{
                           'transform': openProductDropdownId === item.id ? 'rotate(180deg)' : 'none', 
@@ -939,29 +1021,34 @@ export interface LineItem {
                   </div>
                 </div>
 
-                <!-- 2. Biến thể & Tồn kho hiện tại: ĐÃ DISABLE RÕ RÀNG KHI CHƯA CHỌN SẢN PHẨM -->
+                <!-- 2. Biến thể & Tồn kho hiện tại: ĐÃ DISABLE RÕ RÀNG KHI CHƯA CHỌN SẢN PHẨM HOẶC KHO -->
                 <div style="position: relative; display: flex; flex-direction: column; gap: 4px;">
                   <div *ngIf="item.isVariantFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ getVariantName(item.productId, item.variantId) }}
                   </div>
-                  <div *ngIf="!item.isVariantFixed" style="position: relative; width: 100%;">
+                  <div *ngIf="!item.isVariantFixed" 
+                       (click)="!transactionLocation && focusLocationDropdown($event)"
+                       style="position: relative; width: 100%;">
                     <button 
                       type="button"
                       (click)="toggleVariantDropdown(item, $event)"
                       [disabled]="!transactionLocation || !item.productId"
                       style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
                       [ngStyle]="{
-                        'background': (!transactionLocation || !item.productId) ? '#f4f4f5' : 'var(--bg-primary)',
+                        'background': (!transactionLocation || !item.productId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
                         'cursor': (!transactionLocation || !item.productId) ? 'not-allowed' : 'pointer',
-                        'opacity': (!transactionLocation || !item.productId) ? '0.65' : '1',
-                        'color': (!transactionLocation || !item.productId) ? '#a1a1aa' : (item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'),
-                        'border': (!transactionLocation || !item.productId) ? '1px dashed #d4d4d8' : '1px solid var(--border-color)'
+                        'opacity': (!transactionLocation || !item.productId) ? '0.7' : '1',
+                        'color': (!transactionLocation || !item.productId) ? 'var(--text-muted)' : (item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'),
+                        'border': (!transactionLocation || !item.productId) ? '1px dashed var(--border-color)' : '1px solid var(--border-color)'
                       }"
                       [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : (!item.productId ? 'Vui lòng chọn sản phẩm trước' : '')"
                     >
-                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ !transactionLocation ? 'Chọn kho trước' : getVariantDisplay(item) }}
-                      </span>
+                      <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
+                        <lucide-angular *ngIf="!transactionLocation || !item.productId" [img]="icons.Lock" size="13" style="color: var(--text-muted); flex-shrink: 0;"></lucide-angular>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          {{ !transactionLocation ? 'Chọn biến thể' : getVariantDisplay(item) }}
+                        </span>
+                      </div>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
                         [ngStyle]="{
                           'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 
@@ -1067,13 +1154,13 @@ export interface LineItem {
                       type="button" 
                       class="filter-trigger-btn"
                       [class.active]="!!item.unit"
-                      [disabled]="!item.productId || !item.variantId"
-                      [title]="(!item.productId || !item.variantId) ? 'Vui lòng chọn sản phẩm và biến thể trước' : ('Đơn vị tính: ' + (item.unit || 'Chưa chọn'))"
+                      [disabled]="!transactionLocation || !item.productId || !item.variantId"
+                      [title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : ((!item.productId || !item.variantId) ? 'Vui lòng chọn sản phẩm và biến thể trước' : ('Đơn vị tính: ' + (item.unit || 'Chưa chọn')))"
                       (click)="toggleUnitDropdown(item, $event)"
                       [ngStyle]="{
-                        'opacity': (!item.productId || !item.variantId) ? '0.6' : '1',
-                        'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'pointer',
-                        'background': (!item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)'
+                        'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.6' : '1',
+                        'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'pointer',
+                        'background': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)'
                       }"
                     >
                       <div class="trigger-label">
@@ -1088,7 +1175,7 @@ export interface LineItem {
                       ></lucide-angular>
                     </button>
 
-                    <div *ngIf="openUnitDropdownId === item.id && item.productId && item.variantId" 
+                    <div *ngIf="openUnitDropdownId === item.id && transactionLocation && item.productId && item.variantId" 
                       class="filter-menu-dropdown custom-dropdown-scrollbar"
                       [ngStyle]="{
                         'bottom': dropdownPositions['unit_' + item.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
@@ -1108,25 +1195,25 @@ export interface LineItem {
 
                 <!-- 5. Số lượng (kèm Validation cảnh báo vượt tồn) -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                  <div style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 68px; background: var(--bg-primary); transition: all 0.15s ease;"
+                  <div style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 76px; background: var(--bg-primary); transition: all 0.15s ease;"
                        [ngStyle]="{
-                         'opacity': (!item.productId || !item.variantId) ? '0.5' : '1',
+                         'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.5' : '1',
                          'border-color': isQuantityExceeded(item) ? '#ef4444' : 'var(--border-color)',
-                         'background': isQuantityExceeded(item) ? '#fef2f2' : ((!item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)')
+                         'background': isQuantityExceeded(item) ? '#fef2f2' : ((!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)')
                        }">
                     <!-- Input Nhập số lượng -->
                     <input 
                       type="text" 
                       inputmode="numeric"
                       pattern="[0-9]*"
-                      [disabled]="!item.productId || !item.variantId"
+                      [disabled]="!transactionLocation || !item.productId || !item.variantId"
                       [value]="item.quantity" 
                       (keydown)="onQuantityKeydown($event)"
                       (input)="onQuantityInput(item, $event)"
                       placeholder="0"
                       style="flex: 1; min-width: 0; width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-primary); padding: 0 2px;"
                       [ngStyle]="{
-                        'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'text',
+                        'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'text',
                         'color': isQuantityExceeded(item) ? '#dc2626' : 'var(--text-primary)'
                       }"
                     />
@@ -1136,8 +1223,9 @@ export interface LineItem {
                       <button 
                         type="button"
                         (click)="increaseQuantity(item)"
-                        [disabled]="!item.productId || !item.variantId"
-                        style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-bottom: 1px solid var(--border-color); padding: 0; transition: all 0.12s ease; cursor: pointer;"
+                        [disabled]="!transactionLocation || !item.productId || !item.variantId"
+                        style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-bottom: 1px solid var(--border-color); padding: 0; transition: all 0.12s ease;"
+                        [style.cursor]="(!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'pointer'"
                         title="Tăng"
                       >
                         <lucide-angular [img]="icons.ChevronUp" size="10"></lucide-angular>
@@ -1146,8 +1234,9 @@ export interface LineItem {
                       <button 
                         type="button"
                         (click)="decreaseQuantity(item)"
-                        [disabled]="!item.productId || !item.variantId || getQuantity(item) <= 0"
-                        style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; padding: 0; transition: all 0.12s ease; cursor: pointer;"
+                        [disabled]="!transactionLocation || !item.productId || !item.variantId || getQuantity(item) <= 0"
+                        style="flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: none; padding: 0; transition: all 0.12s ease;"
+                        [style.cursor]="(!transactionLocation || !item.productId || !item.variantId || getQuantity(item) <= 0) ? 'not-allowed' : 'pointer'"
                         title="Giảm"
                       >
                         <lucide-angular [img]="icons.ChevronDown" size="10"></lucide-angular>
@@ -1168,18 +1257,18 @@ export interface LineItem {
                     inputmode="numeric"
                     pattern="[0-9]*"
                     placeholder="0" 
-                    [disabled]="!item.productId || !item.variantId"
+                    [disabled]="!transactionLocation || !item.productId || !item.variantId"
                     [value]="item.price" 
                     (keydown)="onNumberKeydown($event)"
                     (input)="onPriceInput(item, $event)" 
                     style="height: 38px; width: 100%; box-sizing: border-box; font-size: 13px; text-align: right; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-color); outline: none; transition: all 0.15s ease;" 
                     [ngStyle]="{
-                      'background': (!item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                      'color': (!item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)',
-                      'cursor': (!item.productId || !item.variantId) ? 'not-allowed' : 'text',
-                      'opacity': (!item.productId || !item.variantId) ? '0.6' : '1'
+                      'background': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'text',
+                      'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.6' : '1'
                     }"
-                    [title]="(!item.productId || !item.variantId) ? 'Vui lòng chọn sản phẩm và biến thể trước khi chỉnh sửa đơn giá' : ''"
+                    [title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : ((!item.productId || !item.variantId) ? 'Vui lòng chọn sản phẩm và biến thể trước khi chỉnh sửa đơn giá' : '')"
                   />
                 </div>
 
@@ -1188,20 +1277,34 @@ export interface LineItem {
                   {{ getFormattedLineSubtotal(item) }}
                 </div>
 
-                <!-- 8. Số Lô / HSD -->
+                <!-- 8. Số Lô / HSD: Khóa khi chưa chọn kho hoặc sản phẩm -->
                 <div style="display: flex; flex-direction: column; gap: 3px; justify-content: center; height: 38px;">
                   <input 
                     type="text" 
                     [(ngModel)]="item.lotNumber" 
+                    [disabled]="!transactionLocation || !item.productId || !item.variantId"
                     placeholder="Số Lô..." 
                     title="Số Lô / Batch No."
-                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 11px; padding: 0 5px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;" 
+                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 11px; padding: 0 5px; border-radius: 4px; border: 1px solid var(--border-color); outline: none;" 
+                    [ngStyle]="{
+                      'background': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'text',
+                      'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.6' : '1'
+                    }"
                   />
                   <input 
                     type="date" 
                     [(ngModel)]="item.expiryDate" 
+                    [disabled]="!transactionLocation || !item.productId || !item.variantId"
                     title="Hạn sử dụng (Expiry Date)"
-                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 10px; padding: 0 2px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); outline: none;" 
+                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 10px; padding: 0 2px; border-radius: 4px; border: 1px solid var(--border-color); outline: none;" 
+                    [ngStyle]="{
+                      'background': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'text',
+                      'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.6' : '1'
+                    }"
                   />
                 </div>
 
@@ -1209,14 +1312,15 @@ export interface LineItem {
                 <div style="display: flex; justify-content: center; align-items: center; height: 38px;">
                   <button 
                     (click)="handleRemoveLineItem(item.id)"
-                    [disabled]="lineItems.length === 1"
+                    [disabled]="!transactionLocation || lineItems.length === 1"
                     [ngStyle]="{
-                      'background': 'none', 'border': 'none', 'cursor': lineItems.length === 1 ? 'not-allowed' : 'pointer',
-                      'color': lineItems.length === 1 ? 'var(--border-color)' : '#ef4444',
+                      'background': 'none', 'border': 'none', 
+                      'cursor': (!transactionLocation || lineItems.length === 1) ? 'not-allowed' : 'pointer',
+                      'color': (!transactionLocation || lineItems.length === 1) ? 'var(--border-color)' : '#ef4444',
                       'padding': '4px',
                       'display': 'flex', 'align-items': 'center', 'justify-content': 'center'
                     }"
-                    title="Xóa dòng"
+                    [title]="!transactionLocation ? 'Chọn biến thể' : (lineItems.length === 1 ? 'Không thể xóa dòng duy nhất' : 'Xóa dòng')"
                   >
                     <lucide-angular [img]="icons.Trash2" size="18"></lucide-angular>
                   </button>
@@ -1227,22 +1331,24 @@ export interface LineItem {
               </div>
             </div>
 
-            <!-- Add item button -->
-            <div style="margin-top: 4px;">
+            <!-- Add item button: Khóa kèm hướng dẫn khi chưa chọn kho -->
+            <div (click)="!transactionLocation && focusLocationDropdown($event)" style="margin-top: 4px; display: inline-block;">
               <button 
                 type="button"
                 (click)="handleAddLineItem()"
                 [disabled]="!canAddNewLine()"
                 [ngStyle]="{
                   'display': 'inline-flex', 'align-items': 'center', 'gap': '6px',
-                  'background': 'none', 'border': '1px dashed var(--accent)', 'color': 'var(--accent)',
+                  'background': 'none', 
+                  'border': !transactionLocation ? '1px dashed var(--border-color)' : '1px dashed var(--accent)', 
+                  'color': !transactionLocation ? 'var(--text-muted)' : 'var(--accent)',
                   'padding': '8px 16px', 'border-radius': '6px', 'font-size': '13px', 'font-weight': 600,
                   'cursor': canAddNewLine() ? 'pointer' : 'not-allowed',
                   'opacity': canAddNewLine() ? 1 : 0.5
                 }"
                 [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi thêm sản phẩm' : (!canAddNewLine() ? 'Vui lòng hoàn thành thông tin dòng sản phẩm hiện tại trước' : '')"
               >
-                <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Thêm sản phẩm
+                {{ !transactionLocation ? 'Thêm sản phẩm' : 'Thêm sản phẩm' }}
               </button>
             </div>
 
@@ -1411,7 +1517,7 @@ export interface LineItem {
             <!-- Nút 1: HỦY (Hủy bỏ) -->
             <button 
               type="button"
-              (click)="onClose.emit()" 
+              (click)="requestClose()" 
               style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
               onmouseover="this.style.background='var(--bg-secondary)'"
               onmouseout="this.style.background='var(--bg-primary)'"
@@ -1576,6 +1682,49 @@ export interface LineItem {
 
       </div>
     </div>
+
+    <!-- Modal Popup Xác nhận Hủy bỏ Nhập/Xuất kho -->
+    <div *ngIf="showDiscardConfirmModal" class="confirm-modal-backdrop" (click)="cancelDiscard()">
+      <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+        <div class="confirm-modal-header">
+          <div class="confirm-modal-icon-wrapper warning">
+            <lucide-angular [img]="icons.AlertCircle" size="22"></lucide-angular>
+          </div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0;">
+              Xác nhận hủy bỏ
+            </h3>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0; line-height: 1.5;">
+              Bạn có chắc chắn muốn hủy bỏ? Các dữ liệu đã nhập chưa lưu sẽ bị mất.
+            </p>
+          </div>
+          <button type="button" (click)="cancelDiscard()" class="confirm-close-btn" title="Đóng">
+            <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+          </button>
+        </div>
+
+        <div class="confirm-modal-footer">
+          <button 
+            type="button" 
+            (click)="cancelDiscard()" 
+            class="admin-btn admin-btn-secondary"
+            style="padding: 8px 18px; font-size: 13px; border-radius: 8px;"
+          >
+            Tiếp tục tạo phiếu
+          </button>
+          <button 
+            type="button" 
+            (click)="confirmDiscard()" 
+            style="background: #ef4444; color: #ffffff; border: none; padding: 8px 18px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;"
+            onmouseover="this.style.background='#dc2626'"
+            onmouseout="this.style.background='#ef4444'"
+          >
+            <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+            Xác nhận hủy
+          </button>
+        </div>
+      </div>
+    </div>
   `
 })
 export class TransactionModalComponent implements OnInit, OnChanges {
@@ -1589,6 +1738,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   @Input() isOpen = false;
   @Input() type: 'import' | 'export' = 'export';
   @Input() products: any[] = [];
+  @Input() initialLocationId = '';
   @Input() initialProductId = '';
   @Input() initialVariantId = '';
   @Input() isProductFixed = false;
@@ -1616,12 +1766,13 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return [];
   }
 
-  // Quản lý cảnh báo Toast
+  // Quản lý cảnh báo Toast & Xác nhận hủy
   toastMessage = '';
   toastSubMessage = '';
   toastType: 'warning' | 'error' | 'info' = 'warning';
   showToast = false;
   toastTimer: any = null;
+  showDiscardConfirmModal = false;
 
   triggerToast(message: string, subMessage = '', type: 'warning' | 'error' | 'info' = 'warning', durationMs = 5000) {
     if (this.toastTimer) {
@@ -1850,7 +2001,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       this.creatorName = 'Admin Quản Trị';
     }
     this.recipientName = '';
-    this.transactionLocation = '';
+    this.transactionLocation = this.initialLocationId || '';
     this.transactionReason = '';
     this.transactionDestination = '';
     this.transactionNote = '';
@@ -1863,6 +2014,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.openUnitDropdownId = null;
     this.productSearchTerm = '';
     this.dropdownPositions = { tax: 'down' };
+    this.showDiscardConfirmModal = false;
 
     // Khởi tạo mã phiếu ban đầu
     this.generateOrderCode();
@@ -2139,6 +2291,23 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return 'Đơn vị nhận hàng';
   }
 
+  focusLocationDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.closeAllDropdowns();
+    this.showLocationDropdown = true;
+    const targetEl = document.querySelector('.location-filter-wrapper button') as HTMLElement;
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetEl.focus();
+    }
+    this.triggerToast(
+      'Vui lòng chọn kho trước!',
+      this.type === 'import' ? 'Hãy chọn Kho đích nhập về để mở khóa danh sách sản phẩm.' : 'Hãy chọn Chi nhánh / Kho xuất để mở khóa danh sách sản phẩm.',
+      'info',
+      4000
+    );
+  }
+
   toggleLocationDropdown(event: Event) {
     event.stopPropagation();
     this.showLocationDropdown = !this.showLocationDropdown;
@@ -2251,7 +2420,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   toggleProductDropdown(itemId: string, event: Event) {
     event.stopPropagation();
     if (!this.transactionLocation) {
-      this.triggerToast('Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm!', '', 'warning');
+      this.focusLocationDropdown(event);
       return;
     }
     if (this.openProductDropdownId === itemId) {
@@ -2275,7 +2444,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   toggleVariantDropdown(item: LineItem, event: Event) {
     event.stopPropagation();
     if (!this.transactionLocation) {
-      this.triggerToast('Vui lòng chọn chi nhánh / kho trước!', '', 'warning');
+      this.focusLocationDropdown(event);
       return;
     }
     if (!item.productId) return; // Chặn tuyệt đối khi chưa chọn sản phẩm
@@ -2411,8 +2580,62 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.openUnitDropdownId = null;
   }
 
+  hasProductData(): boolean {
+    if (this.lineItems.length > 1) {
+      return true;
+    }
+    return this.lineItems.some(it => 
+      !!it.productId || 
+      !!it.variantId || 
+      (!!it.quantity && String(it.quantity).trim() !== '' && Number(it.quantity) > 0)
+    );
+  }
+
+  requestClose() {
+    if (this.hasProductData()) {
+      this.showDiscardConfirmModal = true;
+    } else {
+      this.showDiscardConfirmModal = false;
+      this.onClose.emit();
+    }
+  }
+
+  cancelDiscard() {
+    this.showDiscardConfirmModal = false;
+  }
+
+  confirmDiscard() {
+    this.showDiscardConfirmModal = false;
+    this.onClose.emit();
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      if (this.showDiscardConfirmModal) {
+        this.cancelDiscard();
+        event.stopPropagation();
+        return;
+      }
+      if (this.showAddReasonModal) {
+        this.closeAddReasonModal();
+        event.stopPropagation();
+        return;
+      }
+      if (this.isOpen) {
+        const hasOpenDropdown = this.showLocationDropdown || this.showReasonDropdown || this.showDestDropdown || this.showTaxDropdown || !!this.openProductDropdownId || !!this.openVariantDropdownId || !!this.openUnitDropdownId;
+        if (hasOpenDropdown) {
+          this.closeAllDropdowns();
+          event.stopPropagation();
+          return;
+        }
+        this.requestClose();
+      }
+    }
+  }
+
   getGridColumns() {
-    return 'minmax(170px, 1.4fr) minmax(130px, 1.1fr) 70px 85px 70px 110px 115px 110px 36px';
+    return 'minmax(210px, 1.5fr) minmax(180px, 1.3fr) 75px 75px 76px 125px 130px 120px 36px';
   }
 
   getQuantity(item: LineItem): number {
@@ -2494,7 +2717,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   handleAddLineItem() {
     if (!this.transactionLocation) {
-      this.triggerToast('Vui lòng chọn chi nhánh / kho trước khi thêm sản phẩm!', '', 'warning');
+      this.focusLocationDropdown();
       return;
     }
     if (!this.canAddNewLine()) return;

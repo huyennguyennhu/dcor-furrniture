@@ -1061,50 +1061,56 @@ export const inventoryController = {
         return res.status(404).json({ error: 'Không tìm thấy phiếu kiểm kê' });
       }
 
-      let totalItemsCount = 0;
-      let discrepancyCount = 0;
+      let updateData: any = {
+        scope: scope || existingAudit.scope,
+        notes: notes !== undefined ? notes : existingAudit.notes,
+        status: status || existingAudit.status,
+        completedAt: status === 'COMPLETED' ? now : existingAudit.completedAt,
+      };
 
-      const auditItems = (items || []).map((it: any) => {
-        const systemStock = parseInt(it.systemStock, 10) || 0;
-        const actualStock = it.actualStock !== null && it.actualStock !== undefined && it.actualStock !== '' 
-          ? parseInt(it.actualStock, 10) 
-          : null;
-        let discrepancy = null;
-        if (actualStock !== null) {
-          discrepancy = actualStock - systemStock;
-          if (discrepancy !== 0) {
-            discrepancyCount++;
+      let auditItems: any[] = [];
+      if (items !== undefined) {
+        let totalItemsCount = 0;
+        let discrepancyCount = 0;
+
+        auditItems = (items || []).map((it: any) => {
+          const systemStock = parseInt(it.systemStock, 10) || 0;
+          const actualStock = it.actualStock !== null && it.actualStock !== undefined && it.actualStock !== '' 
+            ? parseInt(it.actualStock, 10) 
+            : null;
+          let discrepancy = null;
+          if (actualStock !== null) {
+            discrepancy = actualStock - systemStock;
+            if (discrepancy !== 0) {
+              discrepancyCount++;
+            }
           }
-        }
-        totalItemsCount++;
+          totalItemsCount++;
 
-        return {
-          variantId: it.variantId,
-          systemStock,
-          actualStock,
-          discrepancy,
-          reason: it.reason || (discrepancy === 0 ? 'Khớp' : (discrepancy !== null ? (discrepancy > 0 ? 'Dư' : 'Thiếu') : null))
+          return {
+            variantId: it.variantId,
+            systemStock,
+            actualStock,
+            discrepancy,
+            reason: it.reason || (discrepancy === 0 ? 'Khớp' : (discrepancy !== null ? (discrepancy > 0 ? 'Dư' : 'Thiếu') : null))
+          };
+        });
+
+        // Xóa các items cũ và tạo lại items mới
+        await (prisma as any).stockAuditItem.deleteMany({
+          where: { auditId: id }
+        });
+
+        updateData.totalItemsCount = totalItemsCount;
+        updateData.discrepancyCount = discrepancyCount;
+        updateData.items = {
+          create: auditItems
         };
-      });
-
-      // Xóa các items cũ và tạo lại items mới
-      await (prisma as any).stockAuditItem.deleteMany({
-        where: { auditId: id }
-      });
+      }
 
       const updatedAudit = await (prisma as any).stockAudit.update({
         where: { id },
-        data: {
-          scope: scope || existingAudit.scope,
-          notes: notes !== undefined ? notes : existingAudit.notes,
-          status: status || existingAudit.status,
-          totalItemsCount,
-          discrepancyCount,
-          completedAt: status === 'COMPLETED' ? now : existingAudit.completedAt,
-          items: {
-            create: auditItems
-          }
-        },
+        data: updateData,
         include: {
           items: {
             include: {
@@ -1177,6 +1183,32 @@ export const inventoryController = {
     } catch (error) {
       console.error('Error updating stock audit:', error);
       res.status(500).json({ error: 'Không thể cập nhật phiếu kiểm kê' });
+    }
+  },
+
+  // 5d. Xóa phiếu kiểm kê (chỉ cho phiếu DRAFT/PENDING hoặc theo yêu cầu)
+  deleteStockAudit: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const existingAudit = await (prisma as any).stockAudit.findUnique({
+        where: { id }
+      });
+      if (!existingAudit) {
+        return res.status(404).json({ error: 'Không tìm thấy phiếu kiểm kê' });
+      }
+
+      await (prisma as any).stockAuditItem.deleteMany({
+        where: { auditId: id }
+      });
+      await (prisma as any).stockAudit.delete({
+        where: { id }
+      });
+
+      clearInventoryCaches();
+      res.json({ message: 'Đã xóa phiếu kiểm kê thành công' });
+    } catch (error) {
+      console.error('Error deleting stock audit:', error);
+      res.status(500).json({ error: 'Không thể xóa phiếu kiểm kê' });
     }
   },
 

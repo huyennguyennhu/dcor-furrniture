@@ -8,7 +8,7 @@ import {
   LucideAngularModule, 
   ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
   ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock
+  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -40,11 +40,11 @@ export interface AuditItemRow {
   templateUrl: './inventory-audit.html',
   styleUrls: ['./inventory-audit.css']
 })
-export class InventoryAuditComponent implements OnInit {
+export class InventoryAuditComponent implements OnInit, OnDestroy {
   icons = { 
     ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
     ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock
+    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle
   };
 
   private http = inject(HttpClient);
@@ -84,7 +84,7 @@ export class InventoryAuditComponent implements OnInit {
   selectedStatusFilter = 'Tất cả trạng thái';
   showWarehouseFilterDropdown = false;
   showStatusFilterDropdown = false;
-  statusFilterOptions = ['Tất cả trạng thái', 'Hoàn tất', 'Đang kiểm', 'Chờ kiểm', 'Đã hủy'];
+  statusFilterOptions = ['Tất cả trạng thái', 'Đã kiểm kê', 'Đang kiểm kê', 'Lên kế hoạch', 'Nháp', 'Đã hủy'];
 
   // Pagination (10 rows per page)
   currentPage = 1;
@@ -135,15 +135,19 @@ export class InventoryAuditComponent implements OnInit {
   }
 
   get completedCount(): number {
-    return this.rawAudits.filter(a => a.status === 'Hoàn tất' || a.rawStatus === 'COMPLETED').length;
+    return this.rawAudits.filter(a => a.status === 'Đã kiểm kê' || a.rawStatus === 'COMPLETED').length;
   }
 
   get inProgressCount(): number {
-    return this.rawAudits.filter(a => a.status === 'Đang kiểm' || a.rawStatus === 'IN_PROGRESS').length;
+    return this.rawAudits.filter(a => a.status === 'Đang kiểm kê' || a.rawStatus === 'IN_PROGRESS').length;
   }
 
-  get pendingCount(): number {
-    return this.rawAudits.filter(a => a.status === 'Chờ kiểm' || a.rawStatus === 'DRAFT' || a.rawStatus === 'PENDING').length;
+  get plannedCount(): number {
+    return this.rawAudits.filter(a => a.status === 'Lên kế hoạch' || a.rawStatus === 'PLANNED' || a.rawStatus === 'PENDING').length;
+  }
+
+  get draftCount(): number {
+    return this.rawAudits.filter(a => a.status === 'Nháp' || a.rawStatus === 'DRAFT').length;
   }
 
   get cancelledCount(): number {
@@ -161,8 +165,28 @@ export class InventoryAuditComponent implements OnInit {
 
   // Modal State
   showModal: boolean | any = false;
+  currentAuditStatus: 'CREATE' | 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' = 'CREATE';
   isEditingExistingDraft = false;
   existingDraftId = '';
+
+  // Delete & Cancel Popups State
+  showDeleteConfirmModal = false;
+  isDeletingAudit = false;
+  showCancelAuditModal = false;
+  isCancellingAudit = false;
+  cancelReasonInput = '';
+
+  get canEditInitialFields(): boolean {
+    return this.currentAuditStatus === 'CREATE' || this.currentAuditStatus === 'DRAFT';
+  }
+
+  get isCountingMode(): boolean {
+    return this.currentAuditStatus === 'IN_PROGRESS' || this.currentAuditStatus === 'COMPLETED';
+  }
+
+  get isReadOnlyView(): boolean {
+    return this.currentAuditStatus === 'COMPLETED' || this.currentAuditStatus === 'CANCELLED';
+  }
   
   modalAuditCode = '';
   modalAuditDate = '';
@@ -173,10 +197,23 @@ export class InventoryAuditComponent implements OnInit {
   modalCreator = 'Admin';
   
   showModalWarehouseDropdown = false;
+  warehouseSelectorHighlighted = false;
+  private warehouseHighlightTimeout: any = null;
   showModalScopeDropdown = false;
   showLoadStockDropdown = false;
   showClearConfirmModal = false;
   showDiscardConfirmModal = false;
+  showLoadStockConfirmModal = false;
+  isLoadingStock = false;
+  loadedCategoryIds: Set<string> = new Set<string>();
+  pendingLoadStockPayload: {
+    categoryId: string;
+    categoryName?: string;
+    categoryObj?: any;
+    parentCat?: any;
+    displayName: string;
+    targetVariants: any[];
+  } | null = null;
   auditScopeOptions = [
     'Kiểm kê định kỳ',
     'Kiểm kê đột xuất',
@@ -202,6 +239,13 @@ export class InventoryAuditComponent implements OnInit {
     this.fetchCategories();
     this.fetchProducts();
     this.fetchAudits();
+  }
+
+  ngOnDestroy() {
+    if (this.warehouseHighlightTimeout) {
+      clearTimeout(this.warehouseHighlightTimeout);
+      this.warehouseHighlightTimeout = null;
+    }
   }
 
   fetchCategories() {
@@ -294,6 +338,7 @@ export class InventoryAuditComponent implements OnInit {
     if (event) event.stopPropagation();
     this.showModalWarehouseDropdown = !this.showModalWarehouseDropdown;
     if (this.showModalWarehouseDropdown) {
+      this.warehouseSelectorHighlighted = false;
       this.showModalScopeDropdown = false;
       this.showLoadStockDropdown = false;
       this.closeAllRowDropdowns();
@@ -314,12 +359,42 @@ export class InventoryAuditComponent implements OnInit {
 
   toggleLoadStockDropdown(event?: Event) {
     if (event) event.stopPropagation();
+    if (!this.modalWarehouseId) {
+      this.promptSelectWarehouse(event);
+      return;
+    }
     this.showLoadStockDropdown = !this.showLoadStockDropdown;
     if (this.showLoadStockDropdown) {
       this.showModalWarehouseDropdown = false;
       this.showModalScopeDropdown = false;
       this.closeAllRowDropdowns();
     }
+    this.cdr.markForCheck();
+  }
+
+  promptSelectWarehouse(event?: Event) {
+    if (event) event.stopPropagation();
+    this.closeAllRowDropdowns();
+    this.showLoadStockDropdown = false;
+    this.showModalScopeDropdown = false;
+    this.showModalWarehouseDropdown = true;
+
+    this.warehouseSelectorHighlighted = true;
+    if (this.warehouseHighlightTimeout) {
+      clearTimeout(this.warehouseHighlightTimeout);
+    }
+    this.warehouseHighlightTimeout = setTimeout(() => {
+      this.warehouseSelectorHighlighted = false;
+      this.cdr.markForCheck();
+    }, 2500);
+
+    setTimeout(() => {
+      const el = document.querySelector('.modal-warehouse-wrapper');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 50);
+
     this.cdr.markForCheck();
   }
 
@@ -377,9 +452,11 @@ export class InventoryAuditComponent implements OnInit {
       next: (res) => {
         const raw = res || [];
         this.rawAudits = raw.map((a: any) => {
-          let statusText = 'Chờ kiểm';
-          if (a.status === 'COMPLETED') statusText = 'Hoàn tất';
-          else if (a.status === 'IN_PROGRESS') statusText = 'Đang kiểm';
+          let statusText = 'Lên kế hoạch';
+          if (a.status === 'COMPLETED') statusText = 'Đã kiểm kê';
+          else if (a.status === 'IN_PROGRESS') statusText = 'Đang kiểm kê';
+          else if (a.status === 'DRAFT') statusText = 'Nháp';
+          else if (a.status === 'PLANNED' || a.status === 'PENDING') statusText = 'Lên kế hoạch';
           else if (a.status === 'CANCELLED') statusText = 'Đã hủy';
 
           return {
@@ -493,27 +570,63 @@ export class InventoryAuditComponent implements OnInit {
     this.modalWarehouseId = w.id;
     this.modalLocation = w.name;
     this.showModalWarehouseDropdown = false;
+    this.warehouseSelectorHighlighted = false;
+    if (this.warehouseHighlightTimeout) {
+      clearTimeout(this.warehouseHighlightTimeout);
+      this.warehouseHighlightTimeout = null;
+    }
+    this.cdr.detectChanges();
 
-    // Recalculate system stock for all rows currently loaded
-    this.auditItems.forEach(row => {
-      if (row.variantId) {
-        const v = this.allVariants.find(p => p.id === row.variantId);
-        if (v) {
-          row.systemStock = this.getSystemStockForWarehouse(v, this.modalWarehouseId);
-          this.recalcRow(row);
+    // Nếu đang là Kiểm kê toàn bộ và chưa có sản phẩm thì tự động nạp tất cả sản phẩm của kho này luôn
+    if (this.modalAuditScope === 'Kiểm kê toàn bộ' && !this.hasActiveAuditItems) {
+      this.isLoadingStock = true;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        this.loadWarehouseStockByCategory('ALL', 'Tất cả sản phẩm');
+        this.isLoadingStock = false;
+        this.cdr.markForCheck();
+      }, 50);
+      return;
+    } else {
+      // Recalculate system stock for all rows currently loaded
+      this.auditItems.forEach(row => {
+        if (row.variantId) {
+          const v = this.allVariants.find(p => p.id === row.variantId);
+          if (v) {
+            row.systemStock = this.getSystemStockForWarehouse(v, this.modalWarehouseId);
+            this.recalcRow(row);
+          }
         }
-      }
-    });
+      });
+    }
+    this.cdr.markForCheck();
   }
 
   onModalScopeSelect(scope: string) {
     this.modalAuditScope = scope;
     this.showModalScopeDropdown = false;
+    this.closeAllRowDropdowns();
+    // Đóng ngay dropdown trên giao diện trước khi tải dữ liệu lớn
+    this.cdr.detectChanges();
+
+    // Nếu chọn 'Kiểm kê toàn bộ' và đã có kho nhưng chưa có sản phẩm: tự động nạp luôn
+    if (scope === 'Kiểm kê toàn bộ' && this.modalWarehouseId && !this.hasActiveAuditItems) {
+      this.isLoadingStock = true;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        this.loadWarehouseStockByCategory('ALL', 'Tất cả sản phẩm');
+        this.isLoadingStock = false;
+        this.cdr.markForCheck();
+      }, 50);
+      return;
+    }
+    this.cdr.markForCheck();
   }
 
   openModal(item?: any) {
     if (!item) {
       // Create new audit
+      this.currentAuditStatus = 'CREATE';
       this.isEditingExistingDraft = false;
       this.existingDraftId = '';
       this.modalAuditCode = this.generateAuditCode();
@@ -534,58 +647,78 @@ export class InventoryAuditComponent implements OnInit {
 
       this.modalWarehouseId = '';
       this.modalLocation = '';
+      this.modalNotes = '';
+      this.warehouseSelectorHighlighted = false;
+      this.loadedCategoryIds.clear();
+      this.showLoadStockConfirmModal = false;
+      this.pendingLoadStockPayload = null;
 
       this.auditItems = [this.createEmptyRow()];
       this.showModal = true;
     } else {
       // View or Edit existing audit
-      if (item.rawStatus === 'IN_PROGRESS') {
-        // Can resume draft audit
-        this.isEditingExistingDraft = true;
-        this.existingDraftId = item.rawId;
-        this.modalAuditCode = item.auditCode || item.id;
-        this.modalAuditDate = item.createdAt ? new Date(item.createdAt).toISOString().slice(0, 16) : this.getCurrentDateTimeLocal();
-        this.modalAuditScope = item.scope || '';
-        this.modalWarehouseId = item.warehouseId || '';
-        this.modalLocation = item.location || '';
-        this.modalCreator = item.creator || 'Admin';
-        this.modalNotes = item.notes || '';
+      this.existingDraftId = item.rawId;
+      this.modalAuditCode = item.auditCode || item.id;
+      this.modalAuditDate = item.createdAt ? new Date(item.createdAt).toISOString().slice(0, 16) : this.getCurrentDateTimeLocal();
+      this.modalAuditScope = item.scope || '';
+      this.modalWarehouseId = item.warehouseId || '';
+      this.modalLocation = item.location || '';
+      this.modalCreator = item.creator || 'Admin';
+      this.modalNotes = item.notes || '';
 
-        this.auditItems = (item.items || []).map((it: any, index: number) => {
-          const v = this.allVariants.find(p => p.id === it.variantId) || it.variant || {};
-          const row: AuditItemRow = {
-            id: `${Date.now()}_${index}`,
-            productId: (v as any).productId || it.variant?.product?.id,
-            productName: v.productName || it.variant?.product?.name || 'Sản phẩm',
-            variantId: it.variantId,
-            sku: v.sku || it.variant?.sku || '',
-            variantName: v.name || it.variant?.name || 'Tiêu chuẩn',
-            unit: (v as any).unit || 'Cái',
-            price: v.price || it.variant?.price || 0,
-            systemStock: it.systemStock,
-            actualStock: it.actualStock !== null ? it.actualStock : '',
-            discrepancy: it.discrepancy !== null ? it.discrepancy : '',
-            discrepancyAmount: '',
-            reason: it.reason || '',
-            customReason: '',
-            productSearchTerm: '',
-            showProductDropdown: false,
-            showVariantDropdown: false
-          };
-          this.recalcRow(row);
-          return row;
-        });
-
-        if (this.auditItems.length === 0) {
-          this.auditItems = [this.createEmptyRow()];
-        }
-        this.showModal = true;
+      const rawSt = item.rawStatus || 'PLANNED';
+      if (rawSt === 'DRAFT') {
+        this.currentAuditStatus = 'DRAFT';
+      } else if (rawSt === 'PLANNED' || rawSt === 'PENDING') {
+        this.currentAuditStatus = 'PLANNED';
+      } else if (rawSt === 'IN_PROGRESS') {
+        this.currentAuditStatus = 'IN_PROGRESS';
+      } else if (rawSt === 'COMPLETED') {
+        this.currentAuditStatus = 'COMPLETED';
+      } else if (rawSt === 'CANCELLED') {
+        this.currentAuditStatus = 'CANCELLED';
       } else {
-        // Completed: read-only modal view
-        this.isEditingExistingDraft = false;
-        this.showModal = item;
+        this.currentAuditStatus = 'PLANNED';
       }
+
+      this.isEditingExistingDraft = (this.currentAuditStatus === 'DRAFT' || this.currentAuditStatus === 'IN_PROGRESS');
+
+      this.auditItems = (item.items || []).map((it: any, index: number) => {
+        const v = this.allVariants.find(p => p.id === it.variantId) || it.variant || {};
+        const row: AuditItemRow = {
+          id: `${Date.now()}_${index}`,
+          productId: (v as any).productId || it.variant?.product?.id,
+          productName: v.productName || it.variant?.product?.name || 'Sản phẩm',
+          variantId: it.variantId,
+          sku: v.sku || it.variant?.sku || '',
+          variantName: v.name || it.variant?.name || 'Tiêu chuẩn',
+          unit: (v as any).unit || 'Cái',
+          price: v.price || it.variant?.price || (v as any).product?.basePrice || 0,
+          systemStock: it.systemStock !== null && it.systemStock !== undefined ? it.systemStock : 0,
+          actualStock: it.actualStock !== null && it.actualStock !== undefined ? it.actualStock : (this.currentAuditStatus === 'IN_PROGRESS' ? 0 : ''),
+          discrepancy: it.discrepancy !== null && it.discrepancy !== undefined ? it.discrepancy : '',
+          discrepancyAmount: '',
+          reason: it.reason || '',
+          customReason: (it.reason && !this.predefinedReasons.includes(it.reason) && it.reason !== 'Khớp') ? it.reason : '',
+          productSearchTerm: '',
+          showProductDropdown: false,
+          showVariantDropdown: false,
+          showReasonDropdown: false
+        };
+        if (row.customReason) {
+          row.reason = 'Khác';
+        }
+        this.recalcRow(row);
+        return row;
+      });
+
+      if (this.currentAuditStatus === 'DRAFT' && this.auditItems.length === 0) {
+        this.auditItems = [this.createEmptyRow()];
+      }
+
+      this.showModal = true;
     }
+    this.cdr.markForCheck();
   }
 
   closeModal(confirmDiscard: boolean = false) {
@@ -594,8 +727,16 @@ export class InventoryAuditComponent implements OnInit {
       return;
     }
     this.showModal = false;
+    this.currentAuditStatus = 'CREATE';
+    this.warehouseSelectorHighlighted = false;
     this.showClearConfirmModal = false;
     this.showDiscardConfirmModal = false;
+    this.showLoadStockConfirmModal = false;
+    this.showDeleteConfirmModal = false;
+    this.showCancelAuditModal = false;
+    this.pendingLoadStockPayload = null;
+    this.isLoadingStock = false;
+    this.cdr.markForCheck();
   }
 
   cancelDiscard() {
@@ -605,18 +746,31 @@ export class InventoryAuditComponent implements OnInit {
   confirmDiscard() {
     this.showDiscardConfirmModal = false;
     this.showModal = false;
+    this.currentAuditStatus = 'CREATE';
     this.showClearConfirmModal = false;
+    this.showLoadStockConfirmModal = false;
+    this.showDeleteConfirmModal = false;
+    this.showCancelAuditModal = false;
+    this.pendingLoadStockPayload = null;
+    this.isLoadingStock = false;
+    this.cdr.markForCheck();
   }
 
   isDirty(): boolean {
-    return this.showModal === true && (
-      !!this.modalWarehouseId || 
-      !!this.modalAuditScope || 
-      this.auditItems.some(it => !!it.variantId || it.actualStock !== '' || !!it.productId)
-    );
+    if (this.currentAuditStatus === 'CREATE') {
+      return !!this.modalWarehouseId || (this.auditItems.length > 0 && !!this.auditItems[0].productId);
+    }
+    if (this.currentAuditStatus === 'DRAFT') {
+      return true;
+    }
+    return false;
   }
 
   handleAddRow() {
+    if (!this.modalWarehouseId) {
+      this.promptSelectWarehouse();
+      return;
+    }
     this.auditItems.push(this.createEmptyRow());
   }
 
@@ -627,7 +781,16 @@ export class InventoryAuditComponent implements OnInit {
   }
 
   get canClearAllItems(): boolean {
-    return this.auditItems.length > 1 || this.auditItems.some(it => !!it.variantId || !!it.productId || it.actualStock !== '');
+    if (!this.modalWarehouseId) return false;
+    if (this.modalAuditScope === 'Kiểm kê toàn bộ' || this.modalAuditScope === 'Kiểm kê theo nhóm hàng') {
+      return this.auditItems.length > 0 && this.hasActiveAuditItems;
+    }
+    if (this.auditItems.length > 1) return true;
+    if (this.auditItems.length === 1) {
+      const it = this.auditItems[0];
+      return !!it.variantId || !!it.productId || (it.actualStock !== '' && it.actualStock !== null);
+    }
+    return false;
   }
 
   handleClearAllItems() {
@@ -637,11 +800,18 @@ export class InventoryAuditComponent implements OnInit {
   }
 
   confirmClearAllItems() {
-    this.auditItems = [this.createEmptyRow()];
+    if (this.modalAuditScope === 'Kiểm kê toàn bộ' || this.modalAuditScope === 'Kiểm kê theo nhóm hàng') {
+      this.auditItems = [];
+    } else {
+      this.auditItems = [this.createEmptyRow()];
+    }
+    this.loadedCategoryIds.clear();
     this.closeAllRowDropdowns();
     this.showLoadStockDropdown = false;
     this.showClearConfirmModal = false;
-    this.cdr.markForCheck();
+    this.showLoadStockConfirmModal = false;
+    this.pendingLoadStockPayload = null;
+    this.cdr.detectChanges();
   }
 
   cancelClearAllItems() {
@@ -685,6 +855,10 @@ export class InventoryAuditComponent implements OnInit {
 
   toggleProductDropdown(row: AuditItemRow, event: Event) {
     event.stopPropagation();
+    if (!this.modalWarehouseId) {
+      this.promptSelectWarehouse(event);
+      return;
+    }
     const willOpen = !row.showProductDropdown;
     this.closeAllRowDropdowns();
     this.showModalWarehouseDropdown = false;
@@ -702,6 +876,10 @@ export class InventoryAuditComponent implements OnInit {
 
   selectProductForRow(row: AuditItemRow, product: any, event?: Event) {
     if (event) event.stopPropagation();
+    if (!this.modalWarehouseId) {
+      this.promptSelectWarehouse(event);
+      return;
+    }
     row.productId = product.id;
     row.productName = product.name;
     row.productSearchTerm = '';
@@ -734,6 +912,10 @@ export class InventoryAuditComponent implements OnInit {
 
   toggleVariantDropdown(row: AuditItemRow, event: Event) {
     event.stopPropagation();
+    if (!this.modalWarehouseId) {
+      this.promptSelectWarehouse(event);
+      return;
+    }
     if (!row.productId) return;
     const willOpen = !row.showVariantDropdown;
     this.closeAllRowDropdowns();
@@ -751,6 +933,10 @@ export class InventoryAuditComponent implements OnInit {
 
   selectVariantForRow(row: AuditItemRow, v: any, event?: Event) {
     if (event) event.stopPropagation();
+    if (!this.modalWarehouseId) {
+      this.promptSelectWarehouse(event);
+      return;
+    }
     row.variantId = v.id;
     row.sku = v.sku || 'SKU-N/A';
     row.variantName = v.name || 'Tiêu chuẩn';
@@ -878,25 +1064,77 @@ export class InventoryAuditComponent implements OnInit {
       .replace(/Đ/g, 'D');
   }
 
+  get hasActiveAuditItems(): boolean {
+    return this.auditItems.some(it => !!it.variantId);
+  }
+
+  get totalActiveAuditItems(): number {
+    return this.auditItems.filter(it => !!it.variantId).length;
+  }
+
+  isAllCategoriesChecked(): boolean {
+    if (this.loadedCategoryIds.has('ALL')) return true;
+    if (this.allVariants.length === 0) return false;
+    const currentVariantIds = new Set(this.auditItems.map(it => it.variantId).filter(Boolean));
+    return this.allVariants.length > 0 && currentVariantIds.size >= this.allVariants.length;
+  }
+
+  isCategoryChecked(catId: string, catObj?: any): boolean {
+    if (this.loadedCategoryIds.has('ALL')) return true;
+    if (this.loadedCategoryIds.has(catId)) return true;
+
+    // Check if any product in current audit items belongs to this category or its subcategories
+    const activeVariants = this.auditItems
+      .map(it => it.variantId ? this.allVariants.find(v => v.id === it.variantId) : null)
+      .filter((v): v is any => !!v);
+
+    if (activeVariants.length === 0) return false;
+
+    const childCatIds = new Set<string>();
+    childCatIds.add(catId);
+    if (catObj && Array.isArray(catObj.children)) {
+      catObj.children.forEach((c: any) => {
+        if (c.id) childCatIds.add(c.id);
+      });
+    }
+
+    return activeVariants.some(v => 
+      !!v && (
+        (!!v.categoryId && childCatIds.has(v.categoryId)) || 
+        (!!v.categoryParentId && childCatIds.has(v.categoryParentId))
+      )
+    );
+  }
+
+  handleLoadAllStockDirectly() {
+    if (!this.modalWarehouseId) {
+      this.promptSelectWarehouse();
+      return;
+    }
+    this.isLoadingStock = true;
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.loadWarehouseStockByCategory('ALL', 'Tất cả sản phẩm');
+      this.isLoadingStock = false;
+      this.cdr.markForCheck();
+    }, 50);
+  }
+
+  trackByRowId(index: number, row: AuditItemRow): string {
+    return row.id;
+  }
+
   loadWarehouseStockByCategory(categoryId: string, categoryName?: string, categoryObj?: any, parentCat?: any) {
     this.showLoadStockDropdown = false;
     this.categorySearchTerm = '';
+    this.cdr.detectChanges();
 
     if (!this.modalWarehouseId) {
-      alert('Vui lòng chọn Chi nhánh / Kho trước khi nạp tồn kho.');
+      this.promptSelectWarehouse();
       return;
     }
 
-    const displayName = parentCat ? `${parentCat.name} > ${categoryName}` : (categoryName || 'Tất cả sản phẩm');
-
-    if (this.auditItems.some(it => it.variantId)) {
-      const confirmMsg = categoryId === 'ALL'
-        ? 'Nạp tất cả sản phẩm sẽ thay thế danh sách sản phẩm hiện tại trong phiếu. Bạn có muốn tiếp tục?'
-        : `Nạp tồn kho danh mục "${displayName}" sẽ thay thế danh sách sản phẩm hiện tại trong phiếu. Bạn có muốn tiếp tục?`;
-      if (!confirm(confirmMsg)) {
-        return;
-      }
-    }
+    const displayName = parentCat ? `${parentCat.name} > ${categoryName}` : (categoryName || (categoryId === 'ALL' ? 'Tất cả sản phẩm' : 'Danh mục'));
 
     // Lọc danh sách biến thể theo yêu cầu
     let targetVariants: any[] = [];
@@ -929,18 +1167,51 @@ export class InventoryAuditComponent implements OnInit {
       return;
     }
 
-    // Cập nhật loại kiểm kê ở header
-    if (categoryId === 'ALL') {
-      this.modalAuditScope = 'Kiểm kê toàn bộ';
-    } else {
-      this.modalAuditScope = `Kiểm kê theo nhóm: ${displayName}`;
+    // Nếu ĐÃ CÓ sản phẩm trong phiếu -> Mở modal popup 3 nút [Hủy] [Thay thế] [Thêm vào]
+    if (this.hasActiveAuditItems) {
+      this.pendingLoadStockPayload = {
+        categoryId,
+        categoryName,
+        categoryObj,
+        parentCat,
+        displayName,
+        targetVariants
+      };
+      this.showLoadStockConfirmModal = true;
+      this.cdr.markForCheck();
+      return;
     }
 
-    const items: AuditItemRow[] = [];
-    targetVariants.forEach((v, index) => {
+    // Nếu chưa có sản phẩm nào -> Nạp trực tiếp
+    this.applyLoadStock(targetVariants, categoryId, displayName, 'REPLACE');
+  }
+
+  applyLoadStock(targetVariants: any[], categoryId: string, displayName: string, mode: 'REPLACE' | 'APPEND') {
+    let variantsToLoad = targetVariants;
+
+    if (mode === 'APPEND') {
+      const existingVariantIds = new Set(this.auditItems.map(it => it.variantId).filter(Boolean));
+      variantsToLoad = targetVariants.filter(v => !existingVariantIds.has(v.id));
+
+      if (variantsToLoad.length === 0) {
+        alert(`Tất cả sản phẩm trong danh mục "${displayName}" đã có trong danh sách.`);
+        return;
+      }
+    }
+
+    // Cập nhật loại kiểm kê ở header nếu đang trống
+    if (!this.modalAuditScope) {
+      if (categoryId === 'ALL') {
+        this.modalAuditScope = 'Kiểm kê toàn bộ';
+      } else {
+        this.modalAuditScope = 'Kiểm kê theo nhóm hàng';
+      }
+    }
+
+    const newRows: AuditItemRow[] = variantsToLoad.map((v, index) => {
       const sysStock = this.getSystemStockForWarehouse(v, this.modalWarehouseId);
-      items.push({
-        id: `${Date.now()}_${index}`,
+      return {
+        id: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 4)}`,
         productId: v.productId,
         productName: v.productName,
         variantId: v.id,
@@ -957,15 +1228,47 @@ export class InventoryAuditComponent implements OnInit {
         productSearchTerm: '',
         showProductDropdown: false,
         showVariantDropdown: false
-      });
+      };
     });
 
-    this.auditItems = items;
+    if (mode === 'REPLACE') {
+      this.auditItems = newRows;
+      this.loadedCategoryIds.clear();
+      this.loadedCategoryIds.add(categoryId);
+    } else {
+      // Giữ các dòng hợp lệ đã có, loại bỏ dòng trống chưa chọn gì
+      const validExisting = this.auditItems.filter(it => !!it.variantId);
+      this.auditItems = [...validExisting, ...newRows];
+      this.loadedCategoryIds.add(categoryId);
+    }
+
+    this.cdr.markForCheck();
+  }
+
+  confirmLoadStock(mode: 'REPLACE' | 'APPEND') {
+    if (!this.pendingLoadStockPayload) return;
+    const { targetVariants, categoryId, displayName } = this.pendingLoadStockPayload;
+    this.showLoadStockConfirmModal = false;
+    this.pendingLoadStockPayload = null;
+    this.cdr.detectChanges();
+
+    this.isLoadingStock = true;
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.applyLoadStock(targetVariants, categoryId, displayName, mode);
+      this.isLoadingStock = false;
+      this.cdr.markForCheck();
+    }, 50);
+  }
+
+  cancelLoadStockConfirm() {
+    this.showLoadStockConfirmModal = false;
+    this.pendingLoadStockPayload = null;
     this.cdr.markForCheck();
   }
 
   loadAllWarehouseStock() {
-    this.loadWarehouseStockByCategory('ALL');
+    this.loadWarehouseStockByCategory('ALL', 'Tất cả sản phẩm');
   }
 
 
@@ -998,15 +1301,21 @@ export class InventoryAuditComponent implements OnInit {
 
   // --- Validation for Complete & Close Audit ---
 
+  // --- Validation for Audit Lifecycle ---
+
   get canSaveDraftAudit(): boolean {
-    return !!this.modalWarehouseId && this.auditItems.length > 0 && this.auditItems.some(it => !!it.productId || !!it.variantId);
+    if (!this.modalWarehouseId) return false;
+    if (!this.auditItems || this.auditItems.length === 0) return false;
+    return this.auditItems.some(it => !!it.variantId);
+  }
+
+  get canCreateOrPlanAudit(): boolean {
+    if (!this.modalWarehouseId || !this.modalAuditScope) return false;
+    if (!this.auditItems || this.auditItems.length === 0) return false;
+    return this.auditItems.every(it => !!it.productId && !!it.variantId);
   }
 
   get canCompleteAudit(): boolean {
-    if (!this.modalAuditCode || !this.modalAuditDate || !this.modalWarehouseId || !this.modalAuditScope) {
-      return false;
-    }
-
     if (!this.auditItems || this.auditItems.length === 0) {
       return false;
     }
@@ -1042,8 +1351,6 @@ export class InventoryAuditComponent implements OnInit {
 
   getCompleteAuditButtonTitle(): string {
     if (this.isSubmitting) return 'Hệ thống đang xử lý lưu dữ liệu...';
-    if (!this.modalWarehouseId) return 'Vui lòng chọn chi nhánh/kho kiểm kê';
-    if (!this.modalAuditScope) return 'Vui lòng chọn loại kiểm kê';
     if (!this.auditItems || this.auditItems.length === 0) return 'Vui lòng thêm sản phẩm vào phiếu kiểm kê';
     
     for (const it of this.auditItems) {
@@ -1066,19 +1373,187 @@ export class InventoryAuditComponent implements OnInit {
         }
       }
     }
-    return 'Hoàn tất kiểm kê và cập nhật số liệu tồn kho';
+    return 'Lưu kết quả kiểm kê và chốt sổ tồn kho';
   }
 
-  // --- Submit Audit (Draft vs Completed) ---
+  // --- Modal Helpers: Title, Label & Badge ---
 
-  handleSubmitAudit(status: 'IN_PROGRESS' | 'COMPLETED') {
+  getModalTitle(): string {
+    switch (this.currentAuditStatus) {
+      case 'CREATE': return 'Tạo phiếu kiểm kê';
+      case 'DRAFT': return `Phiếu kiểm kê (Nháp) - ${this.modalAuditCode}`;
+      case 'PLANNED': return `Kế hoạch kiểm kê - ${this.modalAuditCode}`;
+      case 'IN_PROGRESS': return `Đang kiểm kê thực tế - ${this.modalAuditCode}`;
+      case 'COMPLETED': return `Chi tiết phiếu kiểm kê - ${this.modalAuditCode}`;
+      case 'CANCELLED': return `Phiếu kiểm kê (Đã hủy) - ${this.modalAuditCode}`;
+      default: return `Phiếu kiểm kê ${this.modalAuditCode}`;
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'CREATE': return 'Tạo mới';
+      case 'DRAFT': return 'Nháp';
+      case 'PLANNED': return 'Lên kế hoạch';
+      case 'IN_PROGRESS': return 'Đang kiểm kê';
+      case 'COMPLETED': return 'Đã kiểm kê';
+      case 'CANCELLED': return 'Đã hủy';
+      default: return status;
+    }
+  }
+
+  getStatusBadgeStyle(status: string): any {
+    switch (status) {
+      case 'CREATE':
+        return { 'background': 'rgba(245, 128, 37, 0.1)', 'color': 'var(--accent)' };
+      case 'DRAFT':
+        return { 'background': 'rgba(217, 119, 6, 0.12)', 'color': '#d97706' };
+      case 'PLANNED':
+      case 'PENDING':
+        return { 'background': 'rgba(124, 58, 237, 0.12)', 'color': '#7c3aed' };
+      case 'IN_PROGRESS':
+        return { 'background': 'rgba(37, 99, 235, 0.12)', 'color': '#2563eb' };
+      case 'COMPLETED':
+        return { 'background': 'rgba(16, 185, 129, 0.12)', 'color': '#10b981' };
+      case 'CANCELLED':
+        return { 'background': 'rgba(107, 114, 128, 0.12)', 'color': '#6b7280' };
+      default:
+        return { 'background': 'rgba(107, 114, 128, 0.12)', 'color': '#6b7280' };
+    }
+  }
+
+  // --- Planned Audit -> In Progress Action ---
+
+  startAuditExecution() {
+    if (!this.existingDraftId) return;
+    this.isSubmitting = true;
+    this.http.put<any>(`${environment.apiUrl}/admin/inventory/audits/${this.existingDraftId}`, {
+      status: 'IN_PROGRESS'
+    }).subscribe({
+      next: (res) => {
+        this.isSubmitting = false;
+        this.currentAuditStatus = 'IN_PROGRESS';
+        // Initialize actualStock = 0 for counting if empty
+        this.auditItems.forEach(row => {
+          if (row.actualStock === '' || row.actualStock === null || row.actualStock === undefined) {
+            row.actualStock = 0;
+            this.recalcRow(row);
+          }
+        });
+        this.fetchAudits();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Error starting audit execution:', err);
+        this.isSubmitting = false;
+        alert('Không thể bắt đầu kiểm kê. Vui lòng thử lại!');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  // --- Draft Audit: Delete Action ---
+
+  handleDeleteDraftAudit() {
+    this.showDeleteConfirmModal = true;
+  }
+
+  cancelDeleteDraftAudit() {
+    this.showDeleteConfirmModal = false;
+  }
+
+  confirmDeleteDraftAudit() {
+    if (!this.existingDraftId) return;
+    this.isDeletingAudit = true;
+    this.http.delete<any>(`${environment.apiUrl}/admin/inventory/audits/${this.existingDraftId}`).subscribe({
+      next: () => {
+        this.isDeletingAudit = false;
+        this.showDeleteConfirmModal = false;
+        this.closeModal(false);
+        this.fetchAudits();
+      },
+      error: (err) => {
+        console.error('Error deleting audit:', err);
+        this.isDeletingAudit = false;
+        alert('Không thể xóa phiếu kiểm kê. Vui lòng thử lại!');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  // --- Planned Audit: Cancel Action ---
+
+  handleCancelPlannedAudit() {
+    this.cancelReasonInput = '';
+    this.showCancelAuditModal = true;
+  }
+
+  cancelCancelAudit() {
+    this.showCancelAuditModal = false;
+    this.cancelReasonInput = '';
+  }
+
+  confirmCancelAudit() {
+    if (!this.existingDraftId) return;
+    const reason = (this.cancelReasonInput || '').trim();
+    if (!reason) {
+      alert('Vui lòng nhập lý do hủy phiếu kiểm kê!');
+      return;
+    }
+
+    this.isCancellingAudit = true;
+    const updatedNotes = this.modalNotes 
+      ? `${this.modalNotes}\n[Lý do hủy: ${reason}]` 
+      : `[Lý do hủy: ${reason}]`;
+
+    this.http.put<any>(`${environment.apiUrl}/admin/inventory/audits/${this.existingDraftId}`, {
+      status: 'CANCELLED',
+      notes: updatedNotes
+    }).subscribe({
+      next: () => {
+        this.isCancellingAudit = false;
+        this.showCancelAuditModal = false;
+        this.modalNotes = updatedNotes;
+        this.currentAuditStatus = 'CANCELLED';
+        this.closeModal(false);
+        this.fetchAudits();
+      },
+      error: (err) => {
+        console.error('Error cancelling audit:', err);
+        this.isCancellingAudit = false;
+        alert('Không thể hủy phiếu kiểm kê. Vui lòng thử lại!');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  // --- Submit Audit (Draft, Planned, In Progress, Completed) ---
+
+  handleSubmitAudit(targetStatus: 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED') {
     const validItems = this.auditItems.filter(it => it.variantId);
     if (validItems.length === 0) {
       alert('Vui lòng thêm ít nhất 1 sản phẩm vào phiếu kiểm kê!');
       return;
     }
 
-    if (status === 'COMPLETED' && !this.canCompleteAudit) {
+    if (targetStatus === 'PLANNED') {
+      if (!this.modalWarehouseId) {
+        alert('Vui lòng chọn Chi nhánh / Kho kiểm kê!');
+        return;
+      }
+      if (!this.modalAuditScope) {
+        alert('Vui lòng chọn Loại kiểm kê!');
+        return;
+      }
+      for (const it of this.auditItems) {
+        if (!it.productId || !it.variantId) {
+          alert('Vui lòng chọn đầy đủ sản phẩm và biến thể cho tất cả các dòng!');
+          return;
+        }
+      }
+    }
+
+    if (targetStatus === 'COMPLETED' && !this.canCompleteAudit) {
       alert(this.getCompleteAuditButtonTitle());
       return;
     }
@@ -1091,34 +1566,43 @@ export class InventoryAuditComponent implements OnInit {
       location: this.modalLocation,
       scope: this.modalAuditScope,
       notes: this.modalNotes || null,
-      status,
+      status: targetStatus,
       items: validItems.map(it => ({
         variantId: it.variantId,
         systemStock: Number(it.systemStock) || 0,
-        actualStock: it.actualStock !== '' ? Number(it.actualStock) : null,
+        actualStock: it.actualStock !== '' && it.actualStock !== null && it.actualStock !== undefined ? Number(it.actualStock) : null,
         reason: it.reason === 'Khác' && it.customReason ? it.customReason : it.reason
       }))
     };
 
-    const request$ = this.isEditingExistingDraft && this.existingDraftId
+    const isUpdate = (this.currentAuditStatus === 'DRAFT' || this.currentAuditStatus === 'IN_PROGRESS' || this.currentAuditStatus === 'PLANNED') && !!this.existingDraftId;
+    const request$ = isUpdate
       ? this.http.put<any>(`${environment.apiUrl}/admin/inventory/audits/${this.existingDraftId}`, payload)
       : this.http.post<any>(`${environment.apiUrl}/admin/inventory/audits`, payload);
 
     request$.subscribe({
       next: (res) => {
         this.isSubmitting = false;
-        if (status === 'COMPLETED') {
+        if (targetStatus === 'COMPLETED') {
           alert(`Phiếu kiểm kê ${res.auditCode || this.modalAuditCode} đã hoàn tất và cân bằng tồn kho thành công!`);
-        } else {
+          this.closeModal();
+        } else if (targetStatus === 'PLANNED') {
+          alert(`Đã lưu phiếu kiểm kê ${res.auditCode || this.modalAuditCode} ở trạng thái Lên kế hoạch!`);
+          this.closeModal();
+        } else if (targetStatus === 'DRAFT') {
           alert(`Đã lưu nháp phiếu kiểm kê ${res.auditCode || this.modalAuditCode}!`);
+          this.closeModal();
+        } else if (targetStatus === 'IN_PROGRESS') {
+          alert(`Đã lưu tiến độ kiểm đếm!`);
         }
-        this.closeModal();
         this.fetchAudits();
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Error saving audit:', err);
         this.isSubmitting = false;
         alert('Có lỗi xảy ra khi lưu phiếu kiểm kê. Vui lòng thử lại!');
+        this.cdr.markForCheck();
       }
     });
   }

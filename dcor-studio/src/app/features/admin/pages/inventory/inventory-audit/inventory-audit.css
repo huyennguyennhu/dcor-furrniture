@@ -3,11 +3,11 @@
 /* KPI Metric Grid */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
 }
 
-@media (max-width: 1300px) {
+@media (max-width: 1400px) {
   .kpi-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -187,8 +187,8 @@
 .audit-modal-container {
   background: var(--bg-primary);
   border-radius: 14px;
-  width: 1150px;
-  max-width: 98vw;
+  width: 1240px;
+  max-width: 96vw;
   height: 88vh;
   min-height: 580px;
   max-height: 92vh;
@@ -444,6 +444,7 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--bg-primary);
+  box-sizing: border-box;
 }
 
 .audit-table {
@@ -453,6 +454,7 @@
   border-spacing: 0;
   font-size: 13px;
   color: var(--text-primary);
+  box-sizing: border-box;
 }
 
 .audit-table thead tr {
@@ -469,6 +471,14 @@
   white-space: nowrap;
 }
 
+.audit-table thead tr th:first-child {
+  border-top-left-radius: 7px;
+}
+
+.audit-table thead tr th:last-child {
+  border-top-right-radius: 7px;
+}
+
 .audit-table td {
   box-sizing: border-box;
   padding: 10px 12px;
@@ -478,6 +488,18 @@
 
 .audit-table tbody tr:hover {
   background: rgba(0, 0, 0, 0.015);
+}
+
+.audit-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.audit-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 7px;
+}
+
+.audit-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 7px;
 }
 
 /* Smart Search Input in Row */
@@ -1021,4 +1043,60 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* Pulsing effect when warehouse selection is required */
+.filter-trigger-btn.highlight-pulse {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35) !important;
+  animation: pulseGlow 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  from {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+  }
+  to {
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.55);
+  }
+}
+
+.row-dropdown-trigger.locked-selector {
+  background: var(--bg-secondary) !important;
+  border-style: dashed !important;
+  border-color: var(--border-color) !important;
+  cursor: not-allowed !important;
+  opacity: 0.85;
+}
+
+/* Close Button with Rotation matching transaction modal */
+.admin-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.admin-close-btn:hover {
+  transform: rotate(180deg);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 

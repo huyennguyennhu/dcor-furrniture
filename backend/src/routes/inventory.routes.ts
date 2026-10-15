@@ -25,6 +25,7 @@ router.put('/orders/:id/status', inventoryController.updateStockOrderStatus);
 router.get('/audits', inventoryController.getStockAudits);
 router.post('/audits', inventoryController.createStockAudit);
 router.put('/audits/:id', inventoryController.updateStockAudit);
+router.delete('/audits/:id', inventoryController.deleteStockAudit);
 
 // Stock History Ledger (Tab 4)
 router.get('/history', inventoryController.getStockTransactions);

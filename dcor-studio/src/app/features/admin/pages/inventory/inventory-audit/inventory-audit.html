@@ -10,104 +10,124 @@
     </button>
   </div>
 
-  <!-- Metric KPI Cards (5 trạng thái phiếu kiểm kê) -->
+  <!-- Metric KPI Cards (6 trạng thái phiếu kiểm kê) -->
   <div class="kpi-grid">
     <!-- Stat 1: Tất cả -->
     <div (click)="setCardStatusFilter('Tất cả trạng thái')"
-         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
          [style.border-color]="selectedStatusFilter === 'Tất cả trạng thái' ? 'var(--accent)' : 'var(--border-color)'"
          [style.background]="selectedStatusFilter === 'Tất cả trạng thái' ? 'rgba(245, 128, 37, 0.05)' : 'var(--bg-secondary)'"
          onmouseover="this.style.transform='translateY(-2px)'"
          onmouseout="this.style.transform='translateY(0)'"
          title="Bấm để xem tất cả phiếu kiểm kê">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tất cả</span>
-        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245, 128, 37, 0.12); color: var(--accent); display: flex; align-items: center; justify-content: center;">
-          <lucide-angular [img]="icons.ClipboardCheck" size="18"></lucide-angular>
+        <span style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary);">Tất cả</span>
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245, 128, 37, 0.12); color: var(--accent); display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.ClipboardCheck" size="17"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ totalCount }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+      <div style="font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ totalCount }}</div>
+      <div style="font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
         Toàn bộ phiếu kiểm kê
       </div>
     </div>
 
-    <!-- Stat 2: Đã hoàn tất -->
-    <div (click)="setCardStatusFilter('Hoàn tất')"
-         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
-         [style.border-color]="selectedStatusFilter === 'Hoàn tất' ? '#10b981' : 'var(--border-color)'"
-         [style.background]="selectedStatusFilter === 'Hoàn tất' ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-secondary)'"
+    <!-- Stat 2: Đã kiểm kê -->
+    <div (click)="setCardStatusFilter('Đã kiểm kê')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
+         [style.border-color]="selectedStatusFilter === 'Đã kiểm kê' ? '#10b981' : 'var(--border-color)'"
+         [style.background]="selectedStatusFilter === 'Đã kiểm kê' ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-secondary)'"
          onmouseover="this.style.transform='translateY(-2px)'"
          onmouseout="this.style.transform='translateY(0)'"
-         title="Bấm để lọc phiếu đã hoàn tất">
+         title="Bấm để lọc phiếu đã kiểm kê">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Đã hoàn tất</span>
-        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); color: #059669; display: flex; align-items: center; justify-content: center;">
-          <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
+        <span style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary);">Đã kiểm kê</span>
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); color: #059669; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.CheckCircle2" size="17"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ completedCount }}</div>
-      <div style="font-size: 12px; color: #059669; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+      <div style="font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ completedCount }}</div>
+      <div style="font-size: 11.5px; color: #059669; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
         Đã cân bằng tồn kho
       </div>
     </div>
 
-    <!-- Stat 3: Đang kiểm -->
-    <div (click)="setCardStatusFilter('Đang kiểm')"
-         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
-         [style.border-color]="selectedStatusFilter === 'Đang kiểm' ? '#3b82f6' : 'var(--border-color)'"
-         [style.background]="selectedStatusFilter === 'Đang kiểm' ? 'rgba(59, 130, 246, 0.06)' : 'var(--bg-secondary)'"
+    <!-- Stat 3: Đang kiểm kê -->
+    <div (click)="setCardStatusFilter('Đang kiểm kê')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
+         [style.border-color]="selectedStatusFilter === 'Đang kiểm kê' ? '#3b82f6' : 'var(--border-color)'"
+         [style.background]="selectedStatusFilter === 'Đang kiểm kê' ? 'rgba(59, 130, 246, 0.06)' : 'var(--bg-secondary)'"
          onmouseover="this.style.transform='translateY(-2px)'"
          onmouseout="this.style.transform='translateY(0)'"
          title="Bấm để lọc phiếu đang kiểm kê">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Đang kiểm</span>
-        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
-          <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
+        <span style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary);">Đang kiểm kê</span>
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.Clock" size="17"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ inProgressCount }}</div>
-      <div style="font-size: 12px; color: #2563eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+      <div style="font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ inProgressCount }}</div>
+      <div style="font-size: 11.5px; color: #2563eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
         Đang đối chiếu thực tế
       </div>
     </div>
 
-    <!-- Stat 4: Chờ kiểm -->
-    <div (click)="setCardStatusFilter('Chờ kiểm')"
-         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
-         [style.border-color]="selectedStatusFilter === 'Chờ kiểm' ? '#f59e0b' : 'var(--border-color)'"
-         [style.background]="selectedStatusFilter === 'Chờ kiểm' ? 'rgba(245, 158, 11, 0.06)' : 'var(--bg-secondary)'"
+    <!-- Stat 4: Lên kế hoạch -->
+    <div (click)="setCardStatusFilter('Lên kế hoạch')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
+         [style.border-color]="selectedStatusFilter === 'Lên kế hoạch' ? '#7c3aed' : 'var(--border-color)'"
+         [style.background]="selectedStatusFilter === 'Lên kế hoạch' ? 'rgba(124, 58, 237, 0.06)' : 'var(--bg-secondary)'"
          onmouseover="this.style.transform='translateY(-2px)'"
          onmouseout="this.style.transform='translateY(0)'"
-         title="Bấm để lọc phiếu chờ kiểm đếm">
+         title="Bấm để lọc phiếu đã lên kế hoạch">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chờ kiểm</span>
-        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center;">
-          <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+        <span style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary);">Lên kế hoạch</span>
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(124, 58, 237, 0.12); color: #7c3aed; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.Calendar" size="17"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ pendingCount }}</div>
-      <div style="font-size: 12px; color: #d97706; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
-        Bản nháp / Chưa kiểm
+      <div style="font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ plannedCount }}</div>
+      <div style="font-size: 11.5px; color: #7c3aed; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+        Chờ bắt đầu kiểm
       </div>
     </div>
 
-    <!-- Stat 5: Đã hủy -->
+    <!-- Stat 5: Nháp -->
+    <div (click)="setCardStatusFilter('Nháp')"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
+         [style.border-color]="selectedStatusFilter === 'Nháp' ? '#f59e0b' : 'var(--border-color)'"
+         [style.background]="selectedStatusFilter === 'Nháp' ? 'rgba(245, 158, 11, 0.06)' : 'var(--bg-secondary)'"
+         onmouseover="this.style.transform='translateY(-2px)'"
+         onmouseout="this.style.transform='translateY(0)'"
+         title="Bấm để lọc phiếu nháp">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary);">Nháp</span>
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.AlertCircle" size="17"></lucide-angular>
+        </div>
+      </div>
+      <div style="font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ draftCount }}</div>
+      <div style="font-size: 11.5px; color: #d97706; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+        Bản nháp đang soạn
+      </div>
+    </div>
+
+    <!-- Stat 6: Đã hủy -->
     <div (click)="setCardStatusFilter('Đã hủy')"
-         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
+         style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s; user-select: none;"
          [style.border-color]="selectedStatusFilter === 'Đã hủy' ? '#9ca3af' : 'var(--border-color)'"
          [style.background]="selectedStatusFilter === 'Đã hủy' ? 'rgba(107, 114, 128, 0.06)' : 'var(--bg-secondary)'"
          onmouseover="this.style.transform='translateY(-2px)'"
          onmouseout="this.style.transform='translateY(0)'"
          title="Bấm để lọc phiếu đã hủy">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Đã hủy</span>
-        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(107, 114, 128, 0.12); color: #4b5563; display: flex; align-items: center; justify-content: center;">
-          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        <span style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary);">Đã hủy</span>
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(107, 114, 128, 0.12); color: #4b5563; display: flex; align-items: center; justify-content: center;">
+          <lucide-angular [img]="icons.X" size="17"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ cancelledCount }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+      <div style="font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ cancelledCount }}</div>
+      <div style="font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
         Phiếu bị hủy bỏ
       </div>
     </div>
@@ -258,15 +278,7 @@
               </span>
             </td>
             <td style="padding: 16px;">
-              <span [ngStyle]="{
-                'padding': '4px 10px', 'border-radius': '6px', 'font-size': '12px', 'font-weight': 600,
-                'background': item.status === 'Hoàn tất' ? 'rgba(16, 185, 129, 0.12)' : 
-                              item.status === 'Đang kiểm' ? 'rgba(59, 130, 246, 0.12)' : 
-                              item.status === 'Đã hủy' ? 'rgba(107, 114, 128, 0.12)' : 'rgba(234, 179, 8, 0.12)',
-                'color': item.status === 'Hoàn tất' ? '#10b981' : 
-                         item.status === 'Đang kiểm' ? '#3b82f6' : 
-                         item.status === 'Đã hủy' ? '#6b7280' : '#eab308'
-              }">
+              <span [ngStyle]="getStatusBadgeStyle(item.rawStatus)" style="padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">
                 {{ item.status }}
               </span>
             </td>
@@ -359,19 +371,56 @@
   <div *ngIf="showModal !== false" class="audit-modal-backdrop" (click)="onBackdropClick($event)">
     <div class="audit-modal-container">
       <!-- Modal Header -->
+      <!-- Modal Header -->
       <div class="audit-modal-header">
-        <div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">
-            {{ showModal === true ? (isEditingExistingDraft ? 'Tiếp tục kiểm kê ' + modalAuditCode : 'Tạo phiếu kiểm kê') : 'Chi tiết phiếu kiểm kê ' + (showModal.auditCode || showModal.id) }}
+            {{ getModalTitle() }}
           </h2>
+          <span 
+            *ngIf="currentAuditStatus !== 'CREATE'" 
+            class="admin-badge" 
+            [ngStyle]="getStatusBadgeStyle(currentAuditStatus)"
+            style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 6px;"
+          >
+            {{ getStatusLabel(currentAuditStatus) }}
+          </span>
         </div>
-        <button (click)="closeModal(true)" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px;">
+        <button 
+          type="button"
+          (click)="closeModal(true)" 
+          class="admin-close-btn" 
+          style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px;" 
+          title="Đóng"
+        >
           <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
 
       <!-- Modal Body -->
       <div class="audit-modal-body">
+        <!-- Status Banners for Cancelled, Planned, In Progress -->
+        <div *ngIf="currentAuditStatus === 'CANCELLED'" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; color: #ef4444; font-size: 13px; margin-bottom: 12px;">
+          <lucide-angular [img]="icons.XCircle" size="18"></lucide-angular>
+          <div style="flex: 1;">
+            <strong>Phiếu kiểm kê đã bị hủy.</strong> {{ modalNotes || 'Không có lý do chi tiết' }}
+          </div>
+        </div>
+
+        <div *ngIf="currentAuditStatus === 'PLANNED'" style="background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; color: #7c3aed; font-size: 13px; margin-bottom: 12px;">
+          <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+          <div style="flex: 1;">
+            <strong>Phiếu đã lên kế hoạch kiểm kê.</strong> Danh sách sản phẩm và kho đã được khóa. Nhấn <strong>[Bắt đầu kiểm kê]</strong> để tiến hành kiểm đếm tại kho.
+          </div>
+        </div>
+
+        <div *ngIf="currentAuditStatus === 'IN_PROGRESS'" style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; color: #2563eb; font-size: 13px; margin-bottom: 12px;">
+          <lucide-angular [img]="icons.Play" size="18"></lucide-angular>
+          <div style="flex: 1;">
+            <strong>Đang trong tiến trình kiểm kê thực tế.</strong> Nhập số lượng thực đếm vào cột <strong>Tồn đếm</strong>. Sau khi hoàn tất, nhấn <strong>[Lưu kết quả]</strong> để cân bằng tồn kho.
+          </div>
+        </div>
+
         <!-- 1. Header Information (2-row layout: Hàng 1 (3 cột) & Hàng 2 (2 cột)) -->
         <div class="audit-info-container">
           <!-- HÀNG 1: Mã phiếu * | Người tạo phiếu * | Ngày giờ kiểm kê * -->
@@ -381,7 +430,7 @@
               <label class="info-field-label">Mã phiếu <span class="required-mark" style="color: #ef4444;">*</span></label>
               <input 
                 type="text" 
-                [value]="showModal === true ? modalAuditCode : (showModal.auditCode || showModal.id)" 
+                [value]="modalAuditCode" 
                 disabled 
                 class="info-field-readonly code-badge" 
               />
@@ -392,7 +441,7 @@
               <label class="info-field-label">Người tạo phiếu <span class="required-mark" style="color: #ef4444;">*</span></label>
               <input 
                 type="text" 
-                [value]="showModal === true ? modalCreator : (showModal.creator || modalCreator)" 
+                [value]="modalCreator" 
                 disabled 
                 class="info-field-readonly" 
               />
@@ -401,7 +450,7 @@
             <!-- 3. Ngày giờ kiểm kê -->
             <div class="info-field-group">
               <label class="info-field-label">Ngày giờ kiểm kê <span class="required-mark" style="color: #ef4444;">*</span></label>
-              <ng-container *ngIf="showModal === true">
+              <ng-container *ngIf="canEditInitialFields">
                 <input 
                   type="datetime-local" 
                   [(ngModel)]="modalAuditDate" 
@@ -409,10 +458,10 @@
                   style="height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; outline: none; width: 100%;" 
                 />
               </ng-container>
-              <ng-container *ngIf="showModal !== true">
+              <ng-container *ngIf="!canEditInitialFields">
                 <input 
                   type="text" 
-                  [value]="showModal.date || showModal.createdAt" 
+                  [value]="modalAuditDate" 
                   disabled 
                   class="info-field-readonly" 
                 />
@@ -425,11 +474,12 @@
             <!-- 1. Chi nhánh / Kho kiểm kê -->
             <div class="info-field-group">
               <label class="info-field-label">Chi nhánh / Kho <span class="required-mark" style="color: #ef4444;">*</span></label>
-              <ng-container *ngIf="showModal === true">
+              <ng-container *ngIf="canEditInitialFields">
                 <div class="filter-dropdown-wrapper modal-warehouse-wrapper" style="min-width: 100%;">
                   <button 
                     type="button" 
                     class="filter-trigger-btn"
+                    [class.highlight-pulse]="warehouseSelectorHighlighted"
                     (click)="toggleModalWarehouseDropdown($event)"
                     [title]="modalLocation || 'Chọn Chi nhánh/ Kho'"
                   >
@@ -455,15 +505,15 @@
                   </div>
                 </div>
               </ng-container>
-              <ng-container *ngIf="showModal !== true">
-                <input type="text" [value]="showModal.location" disabled class="info-field-readonly" />
+              <ng-container *ngIf="!canEditInitialFields">
+                <input type="text" [value]="modalLocation || 'Kho mặc định'" disabled class="info-field-readonly" />
               </ng-container>
             </div>
 
             <!-- 2. Loại / Mục đích kiểm kê -->
             <div class="info-field-group">
               <label class="info-field-label">Loại kiểm kê <span class="required-mark" style="color: #ef4444;">*</span></label>
-              <ng-container *ngIf="showModal === true">
+              <ng-container *ngIf="canEditInitialFields">
                 <div class="filter-dropdown-wrapper modal-scope-wrapper" style="min-width: 100%;">
                   <button 
                     type="button" 
@@ -493,8 +543,8 @@
                   </div>
                 </div>
               </ng-container>
-              <ng-container *ngIf="showModal !== true">
-                <input type="text" [value]="showModal.scope || 'Kiểm kê định kỳ'" disabled class="info-field-readonly" />
+              <ng-container *ngIf="!canEditInitialFields">
+                <input type="text" [value]="modalAuditScope || 'Kiểm kê định kỳ'" disabled class="info-field-readonly" />
               </ng-container>
             </div>
           </div>
@@ -511,30 +561,63 @@
               </span>
             </div>
 
-            <div *ngIf="showModal === true" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div *ngIf="canEditInitialFields" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <!-- Nút Xóa toàn bộ danh sách mặt hàng vừa nạp -->
               <button 
                 type="button" 
                 (click)="handleClearAllItems()" 
                 [disabled]="!canClearAllItems"
-                class="admin-btn admin-btn-secondary" 
-                style="font-size: 12.5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; color: #ef4444; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.04);"
-                [style.opacity]="canClearAllItems ? '1' : '0.45'"
-                [style.cursor]="canClearAllItems ? 'pointer' : 'not-allowed'"
-                title="Xóa toàn bộ các mặt hàng trong danh sách sản phẩm vừa nạp"
+                class="admin-btn" 
+                [ngStyle]="{
+                  'font-size': '12.5px',
+                  'padding': '6px 12px',
+                  'display': 'inline-flex',
+                  'align-items': 'center',
+                  'gap': '6px',
+                  'border-radius': '8px',
+                  'border': '1px solid ' + (canClearAllItems ? 'rgba(239, 68, 68, 0.35)' : 'var(--border-color)'),
+                  'background': canClearAllItems ? 'rgba(239, 68, 68, 0.04)' : 'var(--bg-secondary)',
+                  'color': canClearAllItems ? '#ef4444' : 'var(--text-muted)',
+                  'opacity': canClearAllItems ? '1' : '0.45',
+                  'cursor': canClearAllItems ? 'pointer' : 'not-allowed',
+                  'pointer-events': canClearAllItems ? 'auto' : 'none',
+                  'transition': 'all 0.15s ease'
+                }"
+                onmouseover="if (!this.disabled) { this.style.background='rgba(239, 68, 68, 0.1)'; }"
+                onmouseout="if (!this.disabled) { this.style.background='rgba(239, 68, 68, 0.04)'; }"
+                [title]="canClearAllItems ? 'Xóa toàn bộ các mặt hàng trong danh sách sản phẩm vừa nạp' : 'Chưa có mặt hàng nào trong danh sách để xóa'"
               >
                 <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
                 <span>Xóa danh sách</span>
               </button>
 
-              <!-- Dropdown Nạp tồn kho theo tất cả hoặc theo danh mục -->
-              <div class="filter-dropdown-wrapper load-stock-wrapper" style="min-width: auto; position: relative;">
+              <!-- TRƯỜNG HỢP 1: modalAuditScope === 'Kiểm kê toàn bộ' -> Nút bấm thông thường (không phải dropdown) -->
+              <button 
+                *ngIf="modalAuditScope === 'Kiểm kê toàn bộ'"
+                type="button" 
+                (click)="handleLoadAllStockDirectly()" 
+                class="admin-btn admin-btn-secondary" 
+                [disabled]="!modalWarehouseId"
+                [style.opacity]="!modalWarehouseId ? '0.5' : '1'"
+                [style.cursor]="!modalWarehouseId ? 'not-allowed' : 'pointer'"
+                style="font-size: 12.5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;"
+                [title]="!modalWarehouseId ? 'Vui lòng chọn Chi nhánh / Kho trước' : 'Nạp toàn bộ sản phẩm tồn kho theo kho này'"
+              >
+                <lucide-angular [img]="icons.Package" size="14"></lucide-angular>
+                <span>Nạp tồn kho hiện tại</span>
+              </button>
+
+              <!-- TRƯỜNG HỢP 2: modalAuditScope !== 'Kiểm kê toàn bộ' -> Dropdown Nạp tồn kho theo danh mục -->
+              <div *ngIf="modalAuditScope !== 'Kiểm kê toàn bộ'" class="filter-dropdown-wrapper load-stock-wrapper" style="min-width: auto; position: relative;">
                 <button 
                   type="button" 
                   (click)="toggleLoadStockDropdown($event)" 
                   class="admin-btn admin-btn-secondary" 
+                  [disabled]="!modalWarehouseId"
+                  [style.opacity]="!modalWarehouseId ? '0.5' : '1'"
+                  [style.cursor]="!modalWarehouseId ? 'not-allowed' : 'pointer'"
                   style="font-size: 12.5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;"
-                  title="Nạp sản phẩm tồn kho vào bảng kiểm kê"
+                  [title]="!modalWarehouseId ? 'Vui lòng chọn Chi nhánh / Kho trước' : 'Nạp sản phẩm tồn kho vào bảng kiểm kê'"
                 >
                   <lucide-angular [img]="icons.Package" size="14"></lucide-angular>
                   <span>Nạp tồn kho hiện tại</span>
@@ -565,21 +648,27 @@
 
                   <!-- Danh sách danh mục cuộn -->
                   <div class="cat-menu-body">
-                    <!-- Tùy chọn 1: Tất cả sản phẩm -->
+                    <!-- Tùy chọn 1: Tất cả sản phẩm (chỉ hiện khi KHÔNG PHẢI 'Kiểm kê theo nhóm hàng') -->
                     <div 
-                      *ngIf="!categorySearchTerm.trim()"
-                      (click)="loadWarehouseStockByCategory('ALL')"
+                      *ngIf="!categorySearchTerm.trim() && modalAuditScope !== 'Kiểm kê theo nhóm hàng'"
+                      (click)="loadWarehouseStockByCategory('ALL', 'Tất cả sản phẩm')"
                       class="filter-menu-item root-cat-item"
                       style="font-weight: 600;"
                     >
                       <div class="cat-info">
+                        <lucide-angular 
+                          [img]="isAllCategoriesChecked() ? icons.CheckSquare : icons.Square" 
+                          size="15" 
+                          [style.color]="isAllCategoriesChecked() ? 'var(--accent)' : 'var(--text-muted)'"
+                          style="flex-shrink: 0;"
+                        ></lucide-angular>
                         <lucide-angular [img]="icons.Layers" size="14" color="var(--accent)"></lucide-angular>
                         <span class="cat-name">Tất cả sản phẩm</span>
                         <span class="cat-count">({{ allVariants.length }})</span>
                       </div>
                     </div>
 
-                    <div *ngIf="!categorySearchTerm.trim()" style="height: 1px; background: var(--border-color); margin: 3px 0;"></div>
+                    <div *ngIf="!categorySearchTerm.trim() && modalAuditScope !== 'Kiểm kê theo nhóm hàng'" style="height: 1px; background: var(--border-color); margin: 3px 0;"></div>
 
                     <!-- Trạng thái không tìm thấy khi search -->
                     <div *ngIf="filteredCategories.length === 0" class="cat-empty-state">
@@ -594,6 +683,12 @@
                         (click)="loadWarehouseStockByCategory(cat.id, cat.name, cat)"
                       >
                         <div class="cat-info">
+                          <lucide-angular 
+                            [img]="isCategoryChecked(cat.id, cat) ? icons.CheckSquare : icons.Square" 
+                            size="15" 
+                            [style.color]="isCategoryChecked(cat.id, cat) ? 'var(--accent)' : 'var(--text-muted)'"
+                            style="flex-shrink: 0;"
+                          ></lucide-angular>
                           <span class="cat-name">{{ cat.name }}</span>
                           <span *ngIf="cat.children?.length" class="cat-count">({{ cat.children.length }})</span>
                         </div>
@@ -617,7 +712,14 @@
                           *ngFor="let sub of cat.children"
                           (click)="loadWarehouseStockByCategory(sub.id, sub.name, sub, cat)"
                           class="filter-menu-item sub-cat-item"
+                          style="display: flex; align-items: center; gap: 8px;"
                         >
+                          <lucide-angular 
+                            [img]="isCategoryChecked(sub.id, sub) ? icons.CheckSquare : icons.Square" 
+                            size="14" 
+                            [style.color]="isCategoryChecked(sub.id, sub) ? 'var(--accent)' : 'var(--text-muted)'"
+                            style="flex-shrink: 0;"
+                          ></lucide-angular>
                           <span class="sub-cat-name">{{ sub.name }}</span>
                         </div>
                       </div>
@@ -626,11 +728,17 @@
                 </div>
               </div>
 
+              <!-- Nút Thêm sản phẩm: Ẩn khi 'Kiểm kê toàn bộ' hoặc 'Kiểm kê theo nhóm hàng' -->
               <button 
+                *ngIf="modalAuditScope !== 'Kiểm kê toàn bộ' && modalAuditScope !== 'Kiểm kê theo nhóm hàng'"
                 type="button" 
                 (click)="handleAddRow()" 
                 class="admin-btn admin-btn-primary" 
+                [disabled]="!modalWarehouseId"
+                [style.opacity]="!modalWarehouseId ? '0.5' : '1'"
+                [style.cursor]="!modalWarehouseId ? 'not-allowed' : 'pointer'"
                 style="font-size: 12.5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;"
+                [title]="!modalWarehouseId ? 'Vui lòng chọn Chi nhánh / Kho trước' : 'Thêm dòng kiểm kê'"
               >
                 <lucide-angular [img]="icons.Plus" size="14"></lucide-angular> Thêm sản phẩm
               </button>
@@ -641,314 +749,331 @@
           <div class="audit-table-scroll">
             <table class="audit-table">
               <colgroup>
-                <col style="width: 260px;">
-                <col style="width: 220px;">
-                <col style="width: 55px;">
-                <col style="width: 70px;">
+                <col style="width: 50%; min-width: 180px;">
+                <col style="width: 50%; min-width: 180px;">
+                <col style="width: 60px;">
                 <col style="width: 80px;">
-                <col style="width: 80px;">
-                <col style="width: 110px;">
-                <col [style.width]="showModal === true ? '170px' : '195px'">
-                <col *ngIf="showModal === true" style="width: 45px;">
+                <ng-container *ngIf="isCountingMode">
+                  <col style="width: 85px;">
+                  <col style="width: 85px;">
+                  <col style="width: 110px;">
+                  <col style="width: 170px;">
+                </ng-container>
+                <col *ngIf="canEditInitialFields" style="width: 44px;">
               </colgroup>
               <thead>
                 <tr>
-                  <th style="width: 260px;">Sản phẩm</th>
-                  <th style="width: 220px;">Biến thể / SKU</th>
-                  <th style="width: 55px; text-align: center;">ĐVT</th>
-                  <th style="width: 70px; text-align: center;">Tồn HT</th>
-                  <th style="width: 80px; text-align: center;">Tồn đếm</th>
-                  <th style="width: 80px; text-align: center;">Chênh lệch</th>
-                  <th style="width: 110px; text-align: right;">Giá trị lệch</th>
-                  <th [style.width]="showModal === true ? '170px' : '195px'" style="text-align: left;">Lý do chênh lệch</th>
-                  <th *ngIf="showModal === true" style="width: 45px; text-align: center;"></th>
+                  <th style="min-width: 180px;">Sản phẩm</th>
+                  <th style="min-width: 180px;">Biến thể / SKU</th>
+                  <th style="width: 60px; text-align: center;">ĐVT</th>
+                  <th style="width: 80px; text-align: center;">Tồn HT</th>
+                  <ng-container *ngIf="isCountingMode">
+                    <th style="width: 85px; text-align: center;">Tồn đếm</th>
+                    <th style="width: 85px; text-align: center;">Chênh lệch</th>
+                    <th style="width: 110px; text-align: right;">Giá trị lệch</th>
+                    <th style="width: 170px; text-align: left;">Lý do chênh lệch</th>
+                  </ng-container>
+                  <th *ngIf="canEditInitialFields" style="width: 44px; text-align: center;"></th>
                 </tr>
               </thead>
               <tbody>
-                <!-- View Mode: Read-only existing completed audit items -->
-                <ng-container *ngIf="showModal !== true">
-                  <tr *ngFor="let it of (showModal.items || [])">
-                    <!-- 1. Tên sản phẩm -->
-                    <td style="font-weight: 600; font-size: 13px; color: var(--text-primary);">
-                      {{ it.variant?.product?.name || 'Sản phẩm' }}
-                    </td>
+                <!-- Loading state when loading all stock or category stock -->
+                <tr *ngIf="isLoadingStock">
+                  <td [attr.colspan]="isCountingMode ? (canEditInitialFields ? 9 : 8) : (canEditInitialFields ? 5 : 4)" style="text-align: center; padding: 48px 16px; background: var(--bg-primary);">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: var(--text-secondary);">
+                      <lucide-angular [img]="icons.Loader2" size="20" style="animation: spin 1s linear infinite; color: var(--accent);"></lucide-angular>
+                      <span>Đang nạp dữ liệu tồn kho sản phẩm...</span>
+                    </div>
+                  </td>
+                </tr>
 
-                    <!-- 2. Biến thể / SKU -->
-                    <td>
-                      <div style="display: flex; flex-direction: column; gap: 2px;">
-                        <span class="product-sku-tag">{{ it.variant?.sku || 'SKU-N/A' }}</span>
-                        <span style="font-size: 12px; color: var(--text-secondary);">{{ it.variant?.name || 'Tiêu chuẩn' }}</span>
+                <ng-container *ngIf="!isLoadingStock">
+                  <!-- Trạng thái trống khi chưa có mặt hàng nào -->
+                  <tr *ngIf="auditItems.length === 0">
+                    <td [attr.colspan]="isCountingMode ? (canEditInitialFields ? 9 : 8) : (canEditInitialFields ? 5 : 4)" style="text-align: center; padding: 48px 16px; background: var(--bg-primary); color: var(--text-muted);">
+                      <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                        <lucide-angular [img]="icons.Package" size="30" style="color: var(--text-muted); opacity: 0.5;"></lucide-angular>
+                        <span style="font-size: 13.5px; font-weight: 500;">Chưa có mặt hàng nào trong danh sách kiểm kê</span>
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                          {{ modalAuditScope === 'Kiểm kê toàn bộ' ? 'Vui lòng nhấn [Nạp tồn kho hiện tại] để tải danh sách sản phẩm' : 'Vui lòng nạp tồn kho hoặc thêm sản phẩm để chuẩn bị kiểm kê' }}
+                        </span>
                       </div>
                     </td>
-
-                    <td style="text-align: center; font-size: 13px;">{{ it.variant?.unit || 'Cái' }}</td>
-                    <td style="text-align: center; font-weight: 700;">{{ it.systemStock }}</td>
-                    <td style="text-align: center; font-weight: 700;">{{ it.actualStock !== null ? it.actualStock : '-' }}</td>
-                    <td style="text-align: center;">
-                      <span *ngIf="it.discrepancy < 0" class="text-diff-negative">{{ it.discrepancy }}</span>
-                      <span *ngIf="it.discrepancy > 0" class="text-diff-positive">+{{ it.discrepancy }}</span>
-                      <span *ngIf="it.discrepancy === 0" class="text-diff-match">0</span>
-                      <span *ngIf="it.discrepancy === null" style="color: var(--text-muted);">-</span>
-                    </td>
-                    <td style="text-align: right; font-weight: 600;">
-                      <span [ngClass]="{
-                        'text-diff-negative': it.discrepancy < 0,
-                        'text-diff-positive': it.discrepancy > 0,
-                        'text-diff-match': it.discrepancy === 0 || it.discrepancy === null
-                      }">
-                        {{ formatCurrency(it.discrepancy !== null ? (it.discrepancy * (it.variant?.price || it.variant?.product?.basePrice || 0)) : '') }}
-                      </span>
-                    </td>
-                    <td>
-                      <span style="font-size: 12.5px; color: var(--text-primary);">
-                        {{ it.reason || (it.discrepancy === 0 ? 'Khớp' : '-') }}
-                      </span>
-                    </td>
                   </tr>
-                  <tr *ngIf="!showModal.items || showModal.items.length === 0">
-                    <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">Phiếu kiểm chưa có chi tiết mặt hàng</td>
-                  </tr>
-                </ng-container>
 
-                <!-- Edit / Create Mode -->
-                <ng-container *ngIf="showModal === true">
                   <tr 
-                    *ngFor="let row of auditItems" 
+                    *ngFor="let row of auditItems; trackBy: trackByRowId" 
                     [style.position]="(row.showProductDropdown || row.showVariantDropdown || row.showReasonDropdown) ? 'relative' : 'static'" 
                     [style.z-index]="(row.showProductDropdown || row.showVariantDropdown || row.showReasonDropdown) ? '120' : '1'"
                   >
-                    <!-- 1. Dropdown Chọn Sản phẩm -->
+                    <!-- 1. Dropdown Chọn Sản phẩm (khi canEditInitialFields) / Text (khi khóa) -->
                     <td 
                       [style.position]="(row.showProductDropdown || row.showVariantDropdown) ? 'relative' : 'static'" 
                       [style.z-index]="row.showProductDropdown ? '130' : '1'"
                     >
-                      <div class="row-dropdown-container product-dropdown-container" [id]="'prod_dropdown_' + row.id" [style.z-index]="row.showProductDropdown ? '140' : '1'">
-                        <button 
-                          type="button" 
-                          class="row-dropdown-trigger"
-                          [class.has-value]="row.productId"
-                          (click)="toggleProductDropdown(row, $event)"
-                          title="Chọn sản phẩm"
-                        >
-                          <span class="truncate-label" style="flex: 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            {{ row.productName || 'Chọn sản phẩm...' }}
-                          </span>
-                          <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showProductDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-                        </button>
-
-                        <!-- Product Popup Menu: Tự động tính toán dropup/dropdown & z-index cao -->
-                        <div 
-                          *ngIf="row.showProductDropdown" 
-                          class="row-popup-menu" 
-                          [ngStyle]="{
-                            'bottom': dropdownPositions['prod_' + row.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
-                            'top': dropdownPositions['prod_' + row.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
-                          }"
-                          (click)="$event.stopPropagation()"
-                        >
-                          <!-- Search Box -->
-                          <div class="row-search-box">
-                            <lucide-angular [img]="icons.Search" size="13" color="var(--text-muted)"></lucide-angular>
-                            <input 
-                              type="text" 
-                              placeholder="Tìm kiếm sản phẩm..." 
-                              [(ngModel)]="row.productSearchTerm" 
-                              class="row-search-input" 
-                            />
-                            <button *ngIf="row.productSearchTerm" (click)="row.productSearchTerm = ''" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--text-muted);">
-                              <lucide-angular [img]="icons.X" size="12"></lucide-angular>
-                            </button>
-                          </div>
-
-                          <!-- Product List -->
-                          <div class="row-menu-list">
-                            <div 
-                              *ngFor="let p of getFilteredProducts(row)"
-                              class="row-menu-item"
-                              [class.selected]="row.productId === p.id"
-                              (click)="selectProductForRow(row, p, $event)"
-                            >
-                              <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                {{ p.name }}
-                              </div>
-                              <div *ngIf="p.variants?.length" style="font-size: 11px; color: var(--text-muted);">
-                                {{ p.variants.length }} biến thể
-                              </div>
+                      <ng-container *ngIf="canEditInitialFields">
+                        <div class="row-dropdown-container product-dropdown-container" [id]="'prod_dropdown_' + row.id" [style.z-index]="row.showProductDropdown ? '140' : '1'">
+                          <button 
+                            type="button" 
+                            class="row-dropdown-trigger"
+                            [class.has-value]="row.productId"
+                            [class.locked-selector]="!modalWarehouseId"
+                            [disabled]="!modalWarehouseId"
+                            (click)="toggleProductDropdown(row, $event)"
+                            [title]="!modalWarehouseId ? 'Vui lòng chọn Chi nhánh / Kho trước khi chọn sản phẩm' : (row.productName || 'Chọn sản phẩm')"
+                          >
+                            <div *ngIf="!modalWarehouseId" style="display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; flex: 1; min-width: 0;">
+                              <span class="truncate-label">Chọn sản phẩm</span>
                             </div>
-                            <div *ngIf="getFilteredProducts(row).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
-                              Không tìm thấy sản phẩm phù hợp
+                            <span *ngIf="modalWarehouseId" class="truncate-label" style="flex: 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                              {{ row.productName || 'Chọn sản phẩm...' }}
+                            </span>
+                            <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showProductDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': !modalWarehouseId ? '0.35' : '1'}"></lucide-angular>
+                          </button>
+
+                          <!-- Product Popup Menu -->
+                          <div 
+                            *ngIf="row.showProductDropdown" 
+                            class="row-popup-menu" 
+                            [ngStyle]="{
+                              'bottom': dropdownPositions['prod_' + row.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
+                              'top': dropdownPositions['prod_' + row.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
+                            }"
+                            (click)="$event.stopPropagation()"
+                          >
+                            <div class="row-search-box">
+                              <lucide-angular [img]="icons.Search" size="13" color="var(--text-muted)"></lucide-angular>
+                              <input 
+                                type="text" 
+                                placeholder="Tìm kiếm sản phẩm..." 
+                                [(ngModel)]="row.productSearchTerm" 
+                                class="row-search-input" 
+                              />
+                              <button *ngIf="row.productSearchTerm" (click)="row.productSearchTerm = ''" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--text-muted);">
+                                <lucide-angular [img]="icons.X" size="12"></lucide-angular>
+                              </button>
+                            </div>
+
+                            <div class="row-menu-list">
+                              <div 
+                                *ngFor="let p of getFilteredProducts(row)"
+                                class="row-menu-item"
+                                [class.selected]="row.productId === p.id"
+                                (click)="selectProductForRow(row, p, $event)"
+                              >
+                                <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                  {{ p.name }}
+                                </div>
+                                <div *ngIf="p.variants?.length" style="font-size: 11px; color: var(--text-muted);">
+                                  {{ p.variants.length }} biến thể
+                                </div>
+                              </div>
+                              <div *ngIf="getFilteredProducts(row).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
+                                Không tìm thấy sản phẩm phù hợp
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </ng-container>
+
+                      <ng-container *ngIf="!canEditInitialFields">
+                        <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">
+                          {{ row.productName || 'Sản phẩm' }}
+                        </span>
+                      </ng-container>
                     </td>
 
-                    <!-- 2. Dropdown Chọn Biến thể / SKU -->
+                    <!-- 2. Dropdown Chọn Biến thể / SKU (khi canEditInitialFields) / Text (khi khóa) -->
                     <td 
                       [style.position]="(row.showProductDropdown || row.showVariantDropdown) ? 'relative' : 'static'" 
                       [style.z-index]="row.showVariantDropdown ? '130' : '1'"
                     >
-                      <div class="row-dropdown-container variant-dropdown-container" [id]="'var_dropdown_' + row.id" [style.z-index]="row.showVariantDropdown ? '140' : '1'">
-                        <button 
-                          type="button" 
-                          class="row-dropdown-trigger"
-                          [disabled]="!row.productId"
-                          (click)="toggleVariantDropdown(row, $event)"
-                          [title]="!row.productId ? 'Vui lòng chọn sản phẩm trước' : 'Chọn biến thể'"
-                        >
-                          <div *ngIf="row.variantId" style="display: flex; flex-direction: column; gap: 2px; text-align: left; overflow: hidden; min-width: 0; flex: 1;">
-                            <span class="product-sku-tag" style="font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.sku }}</span>
-                            <span class="truncate-label" style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">{{ row.variantName }}</span>
-                          </div>
-                          <span *ngIf="!row.variantId" style="color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
-                            {{ row.productId ? 'Chọn biến thể...' : 'Chọn biến thể trước' }}
-                          </span>
-                          <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showVariantDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': !row.productId ? '0.4' : '1'}"></lucide-angular>
-                        </button>
-
-                        <!-- Variant Popup Menu: Tự động tính toán dropup/dropdown & z-index cao -->
-                        <div 
-                          *ngIf="row.showVariantDropdown && row.productId" 
-                          class="row-popup-menu" 
-                          style="min-width: 280px;" 
-                          [ngStyle]="{
-                            'bottom': dropdownPositions['var_' + row.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
-                            'top': dropdownPositions['var_' + row.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
-                          }"
-                          (click)="$event.stopPropagation()"
-                        >
-                          <div class="row-menu-list">
-                            <div 
-                              *ngFor="let v of getVariantsForProduct(row.productId)"
-                              class="row-menu-item"
-                              [class.selected]="row.variantId === v.id"
-                              (click)="selectVariantForRow(row, v, $event)"
-                            >
-                              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                                <span class="product-sku-tag">{{ v.sku }}</span>
-                                <span style="font-size: 11.5px; color: var(--text-muted);">
-                                  Tồn: <strong>{{ getSystemStockForWarehouse(v, modalWarehouseId) }}</strong>
-                                </span>
-                              </div>
-                              <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">{{ v.name }}</span>
+                      <ng-container *ngIf="canEditInitialFields">
+                        <div class="row-dropdown-container variant-dropdown-container" [id]="'var_dropdown_' + row.id" [style.z-index]="row.showVariantDropdown ? '140' : '1'">
+                          <button 
+                            type="button" 
+                            class="row-dropdown-trigger"
+                            [class.locked-selector]="!modalWarehouseId"
+                            [disabled]="!modalWarehouseId || !row.productId"
+                            (click)="toggleVariantDropdown(row, $event)"
+                            [title]="!modalWarehouseId ? 'Vui lòng chọn Chi nhánh / Kho trước' : (!row.productId ? 'Vui lòng chọn sản phẩm trước' : 'Chọn biến thể')"
+                          >
+                            <div *ngIf="row.variantId && modalWarehouseId" style="display: flex; flex-direction: column; gap: 2px; text-align: left; overflow: hidden; min-width: 0; flex: 1;">
+                              <span class="product-sku-tag" style="font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.sku }}</span>
+                              <span class="truncate-label" style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">{{ row.variantName }}</span>
                             </div>
-                            <div *ngIf="getVariantsForProduct(row.productId).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
-                              Sản phẩm chưa có biến thể
+                            <span *ngIf="!row.variantId || !modalWarehouseId" style="color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-size: 12px;">
+                              {{ !modalWarehouseId ? 'Chọn biến thể' : (row.productId ? 'Chọn biến thể...' : 'Chọn sản phẩm trước') }}
+                            </span>
+                            <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showVariantDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': (!modalWarehouseId || !row.productId) ? '0.35' : '1'}"></lucide-angular>
+                          </button>
+
+                          <!-- Variant Popup Menu -->
+                          <div 
+                            *ngIf="row.showVariantDropdown && row.productId" 
+                            class="row-popup-menu" 
+                            style="min-width: 280px;" 
+                            [ngStyle]="{
+                              'bottom': dropdownPositions['var_' + row.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
+                              'top': dropdownPositions['var_' + row.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
+                            }"
+                            (click)="$event.stopPropagation()"
+                          >
+                            <div class="row-menu-list">
+                              <div 
+                                *ngFor="let v of getVariantsForProduct(row.productId)"
+                                class="row-menu-item"
+                                [class.selected]="row.variantId === v.id"
+                                (click)="selectVariantForRow(row, v, $event)"
+                              >
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                                  <span class="product-sku-tag">{{ v.sku }}</span>
+                                  <span style="font-size: 11.5px; color: var(--text-muted);">
+                                    Tồn: <strong>{{ getSystemStockForWarehouse(v, modalWarehouseId) }}</strong>
+                                  </span>
+                                </div>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">{{ v.name }}</span>
+                              </div>
+                              <div *ngIf="getVariantsForProduct(row.productId).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
+                                Sản phẩm chưa có biến thể
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </ng-container>
+
+                      <ng-container *ngIf="!canEditInitialFields">
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                          <span class="product-sku-tag">{{ row.sku || 'SKU-N/A' }}</span>
+                          <span style="font-size: 12px; color: var(--text-secondary);">{{ row.variantName || 'Tiêu chuẩn' }}</span>
+                        </div>
+                      </ng-container>
                     </td>
 
-                    <!-- 2. Đơn vị tính (ĐVT) -->
+                    <!-- 3. Đơn vị tính (ĐVT) -->
                     <td style="text-align: center; font-size: 13px; color: var(--text-secondary);">
                       {{ row.unit || 'Cái' }}
                     </td>
 
-                    <!-- 3. Tồn HT (Read-only) -->
+                    <!-- 4. Tồn HT (Read-only) -->
                     <td style="text-align: center; font-weight: 700; color: var(--text-primary);">
-                      {{ row.systemStock !== '' ? row.systemStock : '-' }}
+                      {{ (modalWarehouseId && row.systemStock !== '') ? row.systemStock : (row.systemStock || 0) }}
                     </td>
 
-                    <!-- 4. Tồn đếm (Editable numeric input) -->
-                    <td style="text-align: center;">
-                      <input 
-                        type="text" 
-                        [ngModel]="row.actualStock" 
-                        (ngModelChange)="handleUpdateRow(row, 'actualStock', $event)" 
-                        [disabled]="!row.variantId"
-                        placeholder="0" 
-                        class="stock-count-input" 
-                      />
-                    </td>
-
-                    <!-- 5. Chênh lệch (Read-only, color-coded) -->
-                    <td style="text-align: center;">
-                      <ng-container *ngIf="row.discrepancy !== ''">
-                        <span *ngIf="row.discrepancy < 0" class="text-diff-negative">{{ row.discrepancy }}</span>
-                        <span *ngIf="row.discrepancy > 0" class="text-diff-positive">+{{ row.discrepancy }}</span>
-                        <span *ngIf="row.discrepancy === 0" class="text-diff-match">0</span>
-                      </ng-container>
-                      <ng-container *ngIf="row.discrepancy === ''">
-                        <span style="color: var(--text-muted);">-</span>
-                      </ng-container>
-                    </td>
-
-                    <!-- 6. Giá trị chênh lệch (Read-only, format VND) -->
-                    <td style="text-align: right; font-weight: 600;">
-                      <span [ngClass]="{
-                        'text-diff-negative': row.discrepancy !== '' && row.discrepancy < 0,
-                        'text-diff-positive': row.discrepancy !== '' && row.discrepancy > 0,
-                        'text-diff-match': row.discrepancy === 0 || row.discrepancy === ''
-                      }">
-                        {{ formatCurrency(row.discrepancyAmount) }}
-                      </span>
-                    </td>
-
-                    <!-- 7. Lý do chênh lệch -->
-                    <td 
-                      [style.position]="row.showReasonDropdown ? 'relative' : 'static'" 
-                      [style.z-index]="row.showReasonDropdown ? '130' : '1'"
-                    >
-                      <ng-container *ngIf="row.discrepancy === ''">
-                        <span style="color: var(--text-muted); font-size: 12px;">-</span>
-                      </ng-container>
-
-                      <ng-container *ngIf="row.discrepancy !== '' && row.discrepancy === 0">
-                        <span class="text-diff-match" style="font-size: 12.5px;">Khớp</span>
-                      </ng-container>
-
-                      <ng-container *ngIf="row.discrepancy !== '' && row.discrepancy !== 0">
-                        <div class="filter-dropdown-wrapper reason-dropdown-wrapper" [id]="'reason_dropdown_' + row.id" style="width: 100%; min-width: 150px;">
-                          <button 
-                            type="button" 
-                            class="filter-trigger-btn table-reason-btn"
-                            [class.active]="row.showReasonDropdown"
-                            (click)="toggleReasonDropdown(row, $event)"
-                            [title]="row.reason || 'Chọn lý do'"
-                          >
-                            <div class="trigger-label">
-                              <lucide-angular [img]="icons.AlertCircle" size="14" class="trigger-icon"></lucide-angular>
-                              <span class="truncate-label" [style.color]="row.reason ? 'var(--text-primary)' : 'var(--text-muted)'" style="font-size: 12px; max-width: 95px;">
-                                {{ row.reason || 'Chọn lý do' }}
-                              </span>
-                            </div>
-                            <app-icon name="ChevronDown" size="14" [ngStyle]="{'transform': row.showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></app-icon>
-                          </button>
-
-                          <div 
-                            *ngIf="row.showReasonDropdown" 
-                            class="filter-menu-dropdown table-reason-menu" 
-                            [ngStyle]="{
-                              'bottom': dropdownPositions['reason_' + row.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
-                              'top': dropdownPositions['reason_' + row.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
-                            }"
-                            (click)="$event.stopPropagation()"
-                          >
-                            <div 
-                              *ngFor="let r of predefinedReasons"
-                              class="filter-menu-item"
-                              [class.selected]="row.reason === r"
-                              (click)="selectReason(row, r, $event)"
-                            >
-                              <span>{{ r }}</span>
-                              <lucide-angular *ngIf="row.reason === r" [img]="icons.Check" size="14"></lucide-angular>
-                            </div>
-                          </div>
-                        </div>
-
+                    <!-- 4 CỘT KIỂM ĐẾM (Chỉ hiện khi isCountingMode) -->
+                    <ng-container *ngIf="isCountingMode">
+                      <!-- 5. Tồn đếm -->
+                      <td style="text-align: center;">
                         <input 
-                          *ngIf="row.reason === 'Khác'" 
-                          [(ngModel)]="row.customReason" 
-                          (ngModelChange)="handleUpdateRow(row, 'customReason', $event)"
-                          placeholder="Ghi rõ lý do..." 
-                          class="custom-reason-input" 
+                          *ngIf="currentAuditStatus === 'IN_PROGRESS'"
+                          type="text" 
+                          [ngModel]="row.actualStock" 
+                          (ngModelChange)="handleUpdateRow(row, 'actualStock', $event)" 
+                          placeholder="0" 
+                          class="stock-count-input" 
+                          title="Nhập số lượng thực đếm"
                         />
-                      </ng-container>
-                    </td>
+                        <span *ngIf="currentAuditStatus !== 'IN_PROGRESS'" style="font-weight: 700; font-size: 13px;">
+                          {{ row.actualStock !== null && row.actualStock !== '' ? row.actualStock : '-' }}
+                        </span>
+                      </td>
 
-                    <!-- 8. Thao tác xóa dòng -->
-                    <td style="text-align: center;">
+                      <!-- 6. Chênh lệch -->
+                      <td style="text-align: center;">
+                        <ng-container *ngIf="row.discrepancy !== '' && row.discrepancy !== null">
+                          <span *ngIf="row.discrepancy < 0" class="text-diff-negative">{{ row.discrepancy }}</span>
+                          <span *ngIf="row.discrepancy > 0" class="text-diff-positive">+{{ row.discrepancy }}</span>
+                          <span *ngIf="row.discrepancy === 0" class="text-diff-match">0</span>
+                        </ng-container>
+                        <ng-container *ngIf="row.discrepancy === '' || row.discrepancy === null">
+                          <span style="color: var(--text-muted);">-</span>
+                        </ng-container>
+                      </td>
+
+                      <!-- 7. Giá trị chênh lệch -->
+                      <td style="text-align: right; font-weight: 600;">
+                        <span [ngClass]="{
+                          'text-diff-negative': row.discrepancy !== '' && row.discrepancy < 0,
+                          'text-diff-positive': row.discrepancy !== '' && row.discrepancy > 0,
+                          'text-diff-match': row.discrepancy === 0 || row.discrepancy === '' || row.discrepancy === null
+                        }">
+                          {{ formatCurrency(row.discrepancyAmount) }}
+                        </span>
+                      </td>
+
+                      <!-- 8. Lý do chênh lệch -->
+                      <td 
+                        [style.position]="row.showReasonDropdown ? 'relative' : 'static'" 
+                        [style.z-index]="row.showReasonDropdown ? '130' : '1'"
+                      >
+                        <ng-container *ngIf="currentAuditStatus === 'IN_PROGRESS'">
+                          <ng-container *ngIf="row.discrepancy === '' || row.discrepancy === null">
+                            <span style="color: var(--text-muted); font-size: 12px;">-</span>
+                          </ng-container>
+
+                          <ng-container *ngIf="row.discrepancy !== '' && row.discrepancy === 0">
+                            <span class="text-diff-match" style="font-size: 12.5px;">Khớp</span>
+                          </ng-container>
+
+                          <ng-container *ngIf="row.discrepancy !== '' && row.discrepancy !== null && row.discrepancy !== 0">
+                            <div class="filter-dropdown-wrapper reason-dropdown-wrapper" [id]="'reason_dropdown_' + row.id" style="width: 100%; min-width: 150px;">
+                              <button 
+                                type="button" 
+                                class="filter-trigger-btn table-reason-btn"
+                                [class.active]="row.showReasonDropdown"
+                                (click)="toggleReasonDropdown(row, $event)"
+                                [title]="row.reason || 'Chọn lý do'"
+                              >
+                                <div class="trigger-label">
+                                  <lucide-angular [img]="icons.AlertCircle" size="14" class="trigger-icon"></lucide-angular>
+                                  <span class="truncate-label" [style.color]="row.reason ? 'var(--text-primary)' : 'var(--text-muted)'" style="font-size: 12px; max-width: 95px;">
+                                    {{ row.reason || 'Chọn lý do' }}
+                                  </span>
+                                </div>
+                                <app-icon name="ChevronDown" size="14" [ngStyle]="{'transform': row.showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></app-icon>
+                              </button>
+
+                              <div 
+                                *ngIf="row.showReasonDropdown" 
+                                class="filter-menu-dropdown table-reason-menu" 
+                                [ngStyle]="{
+                                  'bottom': dropdownPositions['reason_' + row.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
+                                  'top': dropdownPositions['reason_' + row.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
+                                }"
+                                (click)="$event.stopPropagation()"
+                              >
+                                <div 
+                                  *ngFor="let r of predefinedReasons"
+                                  class="filter-menu-item"
+                                  [class.selected]="row.reason === r"
+                                  (click)="selectReason(row, r, $event)"
+                                >
+                                  <span>{{ r }}</span>
+                                  <lucide-angular *ngIf="row.reason === r" [img]="icons.Check" size="14"></lucide-angular>
+                                </div>
+                              </div>
+                            </div>
+
+                            <input 
+                              *ngIf="row.reason === 'Khác'" 
+                              [(ngModel)]="row.customReason" 
+                              (ngModelChange)="handleUpdateRow(row, 'customReason', $event)"
+                              placeholder="Ghi rõ lý do..." 
+                              class="custom-reason-input" 
+                            />
+                          </ng-container>
+                        </ng-container>
+
+                        <ng-container *ngIf="currentAuditStatus !== 'IN_PROGRESS'">
+                          <span style="font-size: 12.5px; color: var(--text-primary);">
+                            {{ row.reason || (row.discrepancy === 0 ? 'Khớp' : '-') }}
+                          </span>
+                        </ng-container>
+                      </td>
+                    </ng-container>
+
+                    <!-- 9. Thao tác xóa dòng -->
+                    <td *ngIf="canEditInitialFields" style="text-align: center; width: 44px;">
                       <button 
                         type="button" 
                         (click)="handleRemoveRow(row.id)" 
@@ -977,9 +1102,8 @@
             placeholder="Nhập ghi chú nguyên nhân, hiện trạng..." 
             class="admin-input" 
             style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); outline: none; background: var(--bg-primary); color: var(--text-primary); font-size: 13px;"
-            [ngModel]="showModal !== true ? showModal.notes : modalNotes"
-            (ngModelChange)="modalNotes = $event"
-            [disabled]="showModal !== true"
+            [(ngModel)]="modalNotes"
+            [disabled]="isReadOnlyView"
           ></textarea>
         </div>
       </div>
@@ -988,39 +1112,48 @@
       <div class="audit-modal-footer">
         <!-- Summary Stats on the Left -->
         <div style="display: flex; align-items: center; gap: 16px; font-size: 13px;">
-          <span style="color: var(--text-secondary);">
-            Đã đếm: <strong style="color: var(--text-primary);">{{ totalAuditedItems }}</strong>/{{ auditItems.length }}
-          </span>
-          <span style="color: var(--text-secondary);">
-            Lệch: <strong [style.color]="totalDiscrepancyItems > 0 ? '#ef4444' : '#10b981'">{{ totalDiscrepancyItems }} SP</strong>
-          </span>
-          <span style="color: var(--text-secondary);">
-            Tổng tiền lệch: 
-            <strong [style.color]="totalDiscrepancyAmount < 0 ? '#ef4444' : (totalDiscrepancyAmount > 0 ? '#10b981' : 'var(--text-primary)')">
-              {{ formatCurrency(totalDiscrepancyAmount) }}
-            </strong>
-          </span>
+          <ng-container *ngIf="isCountingMode">
+            <span style="color: var(--text-secondary);">
+              Đã đếm: <strong style="color: var(--text-primary);">{{ totalAuditedItems }}</strong>/{{ auditItems.length }}
+            </span>
+            <span style="color: var(--text-secondary);">
+              Lệch: <strong [style.color]="totalDiscrepancyItems > 0 ? '#ef4444' : '#10b981'">{{ totalDiscrepancyItems }} SP</strong>
+            </span>
+            <span style="color: var(--text-secondary);">
+              Tổng tiền lệch: 
+              <strong [style.color]="totalDiscrepancyAmount < 0 ? '#ef4444' : (totalDiscrepancyAmount > 0 ? '#10b981' : 'var(--text-primary)')">
+                {{ formatCurrency(totalDiscrepancyAmount) }}
+              </strong>
+            </span>
+          </ng-container>
+          <ng-container *ngIf="!isCountingMode">
+            <span style="color: var(--text-secondary);">
+              Tổng mặt hàng dự kiến: <strong style="color: var(--text-primary);">{{ auditItems.length }}</strong>
+            </span>
+            <span style="color: var(--text-secondary);">
+              Đã chọn: <strong style="color: var(--accent);">{{ totalActiveAuditItems }}</strong> SP
+            </span>
+          </ng-container>
         </div>
 
         <!-- Action Buttons on the Right -->
         <div style="display: flex; align-items: center; gap: 10px;">
-          <ng-container *ngIf="showModal === true">
-            <!-- Nút 1: HỦY -->
+          <!-- 1. Trạng thái CREATE (Tạo mới) -->
+          <ng-container *ngIf="currentAuditStatus === 'CREATE'">
             <button 
               type="button" 
               (click)="closeModal(true)"
               [disabled]="isSubmitting"
-              onmouseover="this.style.background='var(--bg-secondary)'"
-              onmouseout="this.style.background='var(--bg-primary)'"
-              style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
+              class="admin-btn admin-btn-secondary"
+              style="padding: 9px 18px; font-size: 13px; border-radius: 8px;"
             >
               Hủy
             </button>
 
-            <!-- Nút 2: LƯU NHÁP (Draft) - Đồng bộ màu vàng cam khi active, xám khi disabled -->
+            <!-- Nút [Lưu nháp] -> Status: Draft -->
             <button 
               type="button"
-              (click)="handleSubmitAudit('IN_PROGRESS')" 
+              (click)="handleSubmitAudit('DRAFT')" 
               [disabled]="isSubmitting || !canSaveDraftAudit"
               [ngStyle]="{
                 'display': 'flex',
@@ -1037,16 +1170,192 @@
                 'opacity': (!canSaveDraftAudit || isSubmitting) ? '0.45' : '1',
                 'transition': 'all 0.15s ease'
               }"
-              onmouseover="if(!this.disabled) { this.style.background='#fef3c7'; }"
-              onmouseout="if(!this.disabled) { this.style.background='#fffbeb'; }"
-              [title]="!canSaveDraftAudit ? 'Vui lòng chọn chi nhánh/kho và thêm sản phẩm trước khi lưu nháp' : 'Lưu lại danh sách đếm dở dang để hôm sau kiểm tiếp mà chưa cân bằng tồn kho'"
+              title="Lưu phiếu ở trạng thái Nháp (Draft)"
             >
               <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
               <lucide-angular *ngIf="!isSubmitting" [img]="icons.Save" size="15"></lucide-angular>
               Lưu nháp
             </button>
 
-            <!-- Nút 3: HOÀN TẤT KIỂM KÊ & CHỐT SỔ - Đồng bộ màu nâu thương hiệu cao cấp -->
+            <!-- Nút [Tạo phiếu] -> Status: Planned -->
+            <button 
+              type="button"
+              (click)="handleSubmitAudit('PLANNED')" 
+              [disabled]="isSubmitting || !canCreateOrPlanAudit" 
+              [ngStyle]="{
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'padding': '9px 24px',
+                'border-radius': '8px',
+                'border': 'none',
+                'background': (!canCreateOrPlanAudit || isSubmitting) ? 'var(--border-color)' : '#765337',
+                'color': (!canCreateOrPlanAudit || isSubmitting) ? 'var(--text-muted)' : '#ffffff',
+                'font-size': '13px',
+                'font-weight': '600',
+                'cursor': (!canCreateOrPlanAudit || isSubmitting) ? 'not-allowed' : 'pointer',
+                'opacity': (!canCreateOrPlanAudit || isSubmitting) ? '0.55' : '1',
+                'box-shadow': (!canCreateOrPlanAudit || isSubmitting) ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
+                'transition': 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }"
+              title="Lập kế hoạch kiểm kê (Planned)"
+            >
+              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isSubmitting" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+              {{ isSubmitting ? 'Đang tạo...' : 'Tạo phiếu' }}
+            </button>
+          </ng-container>
+
+          <!-- 2. Trạng thái DRAFT (Nháp) -->
+          <ng-container *ngIf="currentAuditStatus === 'DRAFT'">
+            <!-- Nút [Xóa phiếu] (bên cạnh nút chuyển sang Planned) -->
+            <button 
+              type="button" 
+              (click)="handleDeleteDraftAudit()"
+              [disabled]="isSubmitting"
+              style="display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.05); color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
+              onmouseover="this.style.background='rgba(239, 68, 68, 0.12)'"
+              onmouseout="this.style.background='rgba(239, 68, 68, 0.05)'"
+              title="Xóa vĩnh viễn phiếu kiểm kê nháp này"
+            >
+              <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+              Xóa phiếu
+            </button>
+
+            <!-- Nút [Đóng] -->
+            <button 
+              type="button" 
+              (click)="closeModal(true)"
+              class="admin-btn admin-btn-secondary"
+              style="padding: 9px 18px; font-size: 13px; border-radius: 8px;"
+            >
+              Đóng
+            </button>
+
+            <!-- Nút [Lưu thay đổi] -->
+            <button 
+              type="button"
+              (click)="handleSubmitAudit('DRAFT')" 
+              [disabled]="isSubmitting || !canSaveDraftAudit"
+              class="admin-btn admin-btn-secondary"
+              style="padding: 9px 18px; font-size: 13px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 6px;"
+              title="Lưu lại các thông tin đã chỉnh sửa ở trạng thái Nháp"
+            >
+              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Save" size="15"></lucide-angular>
+              Lưu thay đổi
+            </button>
+
+            <!-- Nút [Lên kế hoạch] -> Chuyển sang Planned -->
+            <button 
+              type="button"
+              (click)="handleSubmitAudit('PLANNED')" 
+              [disabled]="isSubmitting || !canCreateOrPlanAudit" 
+              [ngStyle]="{
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'padding': '9px 22px',
+                'border-radius': '8px',
+                'border': 'none',
+                'background': (!canCreateOrPlanAudit || isSubmitting) ? 'var(--border-color)' : '#765337',
+                'color': (!canCreateOrPlanAudit || isSubmitting) ? 'var(--text-muted)' : '#ffffff',
+                'font-size': '13px',
+                'font-weight': '600',
+                'cursor': (!canCreateOrPlanAudit || isSubmitting) ? 'not-allowed' : 'pointer',
+                'opacity': (!canCreateOrPlanAudit || isSubmitting) ? '0.55' : '1',
+                'box-shadow': (!canCreateOrPlanAudit || isSubmitting) ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
+                'transition': 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }"
+              title="Chuyển trạng thái phiếu sang Lên kế hoạch (Planned)"
+            >
+              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isSubmitting" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+              {{ isSubmitting ? 'Đang xử lý...' : 'Lên kế hoạch' }}
+            </button>
+          </ng-container>
+
+          <!-- 3. Trạng thái PLANNED (Lên kế hoạch) -->
+          <ng-container *ngIf="currentAuditStatus === 'PLANNED'">
+            <!-- Nút [Hủy phiếu] kèm popup lý do -->
+            <button 
+              type="button" 
+              (click)="handleCancelPlannedAudit()"
+              [disabled]="isSubmitting"
+              style="display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.05); color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
+              onmouseover="this.style.background='rgba(239, 68, 68, 0.12)'"
+              onmouseout="this.style.background='rgba(239, 68, 68, 0.05)'"
+              title="Hủy kế hoạch kiểm kê này"
+            >
+              <lucide-angular [img]="icons.XCircle" size="15"></lucide-angular>
+              Hủy phiếu
+            </button>
+
+            <!-- Nút [Đóng] -->
+            <button 
+              type="button" 
+              (click)="closeModal(false)"
+              class="admin-btn admin-btn-secondary"
+              style="padding: 9px 18px; font-size: 13px; border-radius: 8px;"
+            >
+              Đóng
+            </button>
+
+            <!-- Nút [Bắt đầu kiểm kê] -> Chuyển sang In Progress -->
+            <button 
+              type="button"
+              (click)="startAuditExecution()" 
+              [disabled]="isSubmitting" 
+              style="display: flex; align-items: center; gap: 6px; padding: 9px 24px; border-radius: 8px; border: none; background: #765337; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(118, 83, 55, 0.28); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);"
+              onmouseover="this.style.background='#5a3d26'; this.style.transform='translateY(-1px)';"
+              onmouseout="this.style.background='#765337'; this.style.transform='translateY(0)';"
+              title="Bắt đầu kiểm kê thực tế tại kho"
+            >
+              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Play" size="15"></lucide-angular>
+              {{ isSubmitting ? 'Đang kích hoạt...' : 'Bắt đầu kiểm kê' }}
+            </button>
+          </ng-container>
+
+          <!-- 4. Trạng thái IN_PROGRESS (Đang kiểm kê) -->
+          <ng-container *ngIf="currentAuditStatus === 'IN_PROGRESS'">
+            <!-- Nút [Đóng] -->
+            <button 
+              type="button" 
+              (click)="closeModal(true)"
+              class="admin-btn admin-btn-secondary"
+              style="padding: 9px 18px; font-size: 13px; border-radius: 8px;"
+            >
+              Đóng
+            </button>
+
+            <!-- Nút [Lưu tiến độ] -->
+            <button 
+              type="button"
+              (click)="handleSubmitAudit('IN_PROGRESS')" 
+              [disabled]="isSubmitting"
+              [ngStyle]="{
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'padding': '9px 18px',
+                'border-radius': '8px',
+                'border': '1px solid #d97706',
+                'background': '#fffbeb',
+                'color': '#b45309',
+                'font-size': '13px',
+                'font-weight': '600',
+                'cursor': isSubmitting ? 'not-allowed' : 'pointer',
+                'transition': 'all 0.15s ease'
+              }"
+              title="Lưu lại tiến độ kiểm đếm hiện tại để tiếp tục sau"
+            >
+              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Save" size="15"></lucide-angular>
+              Lưu tiến độ
+            </button>
+
+            <!-- Nút [Lưu kết quả] -> Chuyển sang Completed -->
             <button 
               type="button"
               (click)="handleSubmitAudit('COMPLETED')" 
@@ -1067,29 +1376,88 @@
                 'box-shadow': (!canCompleteAudit || isSubmitting) ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
                 'transition': 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }"
-              onmouseover="if(!this.disabled) { this.style.background='#5a3d26'; this.style.boxShadow='0 4px 14px rgba(90, 61, 38, 0.4)'; this.style.transform='translateY(-1px)'; }"
-              onmouseout="if(!this.disabled) { this.style.background='#765337'; this.style.boxShadow='0 2px 8px rgba(118, 83, 55, 0.28)'; this.style.transform='translateY(0)'; }"
               [title]="getCompleteAuditButtonTitle()"
             >
               <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
               <lucide-angular *ngIf="!isSubmitting" [img]="icons.CheckCircle2" size="15"></lucide-angular>
-              {{ isSubmitting ? 'Đang lưu...' : 'Hoàn tất kiểm kê & Chốt sổ' }}
+              {{ isSubmitting ? 'Đang chốt sổ...' : 'Lưu kết quả' }}
             </button>
           </ng-container>
 
-          <ng-container *ngIf="showModal !== true">
+          <!-- 5. Trạng thái COMPLETED hoặc CANCELLED -->
+          <ng-container *ngIf="isReadOnlyView">
             <button 
               type="button" 
               (click)="closeModal(false)"
-              style="padding: 9px 20px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
-              onmouseover="this.style.background='var(--bg-secondary)'"
-              onmouseout="this.style.background='var(--bg-primary)'"
+              class="admin-btn admin-btn-secondary"
+              style="padding: 9px 24px; font-size: 13px; border-radius: 8px; font-weight: 500;"
             >
               Đóng
             </button>
           </ng-container>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Popup Xác nhận Nạp Tồn Kho Danh Mục (Thay thế hoặc Thêm vào) -->
+  <div *ngIf="showLoadStockConfirmModal && pendingLoadStockPayload" class="confirm-modal-backdrop" (click)="cancelLoadStockConfirm()">
+    <div class="confirm-modal-card" style="max-width: 480px;" (click)="$event.stopPropagation()">
+      <div class="confirm-modal-header">
+        <div class="confirm-modal-icon-wrapper warning">
+          <lucide-angular [img]="icons.AlertCircle" size="22"></lucide-angular>
+        </div>
+        <div style="flex: 1;">
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0;">
+            Xác nhận nạp tồn kho
+          </h3>
+          <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0; line-height: 1.55;">
+            Nạp tồn kho danh mục "<strong>{{ pendingLoadStockPayload.displayName }}</strong>" sẽ thay thế danh sách sản phẩm hiện tại trong phiếu. Bạn có muốn tiếp tục?
+          </p>
+          <div style="margin-top: 8px; font-size: 12.5px; color: var(--text-muted); background: var(--bg-secondary); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+            Danh sách hiện có: <strong>{{ totalActiveAuditItems }}</strong> mặt hàng. Danh mục mới có: <strong>{{ pendingLoadStockPayload.targetVariants.length }}</strong> sản phẩm.
+          </div>
+        </div>
+        <button type="button" (click)="cancelLoadStockConfirm()" class="confirm-close-btn" title="Đóng">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="confirm-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button 
+          type="button" 
+          (click)="cancelLoadStockConfirm()" 
+          class="admin-btn admin-btn-secondary"
+          style="padding: 8px 16px; font-size: 13px; border-radius: 8px;"
+        >
+          Hủy
+        </button>
+        <button 
+          type="button" 
+          (click)="confirmLoadStock('REPLACE')" 
+          style="background: #ef4444; color: #ffffff; border: none; padding: 8px 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;"
+          onmouseover="this.style.background='#dc2626'"
+          onmouseout="this.style.background='#ef4444'"
+          title="Xóa danh sách hiện tại và thay thế bằng danh mục mới"
+        >
+          <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+          Thay thế
+        </button>
+        <button 
+          type="button" 
+          (click)="confirmLoadStock('APPEND')" 
+          style="background: #765337; color: #ffffff; border: none; padding: 8px 18px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease; box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25);"
+          onmouseover="this.style.background='#5a3d26'"
+          onmouseout="this.style.background='#765337'"
+          title="Giữ danh sách hiện tại và thêm các sản phẩm mới vào phiếu"
+        >
+          <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
+          Thêm vào
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Popup Xác nhận Xóa toàn bộ danh sách sản phẩm -->
   <div *ngIf="showClearConfirmModal" class="confirm-modal-backdrop" (click)="cancelClearAllItems()">
     <div class="confirm-modal-card" (click)="$event.stopPropagation()">
@@ -1133,7 +1501,7 @@
     </div>
   </div>
 
-  <!-- Modal Popup Xác nhận Hủy bỏ Kiểm kê -->
+  <!-- Modal Popup Xác nhận Hủy bỏ Kiểm kê khi thoát form có dữ liệu -->
   <div *ngIf="showDiscardConfirmModal" class="confirm-modal-backdrop" (click)="cancelDiscard()">
     <div class="confirm-modal-card" (click)="$event.stopPropagation()">
       <div class="confirm-modal-header">
@@ -1171,6 +1539,124 @@
         >
           <lucide-angular [img]="icons.X" size="14"></lucide-angular>
           Xác nhận hủy
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Popup Xác nhận Xóa phiếu kiểm kê (Draft) -->
+  <div *ngIf="showDeleteConfirmModal" class="confirm-modal-backdrop" (click)="cancelDeleteDraftAudit()">
+    <div class="confirm-modal-card" style="max-width: 480px;" (click)="$event.stopPropagation()">
+      <div class="confirm-modal-header">
+        <div class="confirm-modal-icon-wrapper danger">
+          <lucide-angular [img]="icons.Trash2" size="22"></lucide-angular>
+        </div>
+        <div style="flex: 1;">
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0;">
+            Xác nhận xóa phiếu kiểm kê
+          </h3>
+          <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0; line-height: 1.55;">
+            Bạn có chắc chắn muốn xóa phiếu kiểm kê <strong>{{ modalAuditCode }}</strong> (Trạng thái: Nháp) không? Thao tác này không thể hoàn tác.
+          </p>
+        </div>
+        <button type="button" (click)="cancelDeleteDraftAudit()" class="confirm-close-btn" title="Đóng">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="confirm-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button 
+          type="button" 
+          (click)="cancelDeleteDraftAudit()" 
+          [disabled]="isDeletingAudit"
+          class="admin-btn admin-btn-secondary"
+          style="padding: 8px 16px; font-size: 13px; border-radius: 8px;"
+        >
+          Hủy bỏ
+        </button>
+        <button 
+          type="button" 
+          (click)="confirmDeleteDraftAudit()" 
+          [disabled]="isDeletingAudit"
+          style="background: #ef4444; color: #ffffff; border: none; padding: 8px 18px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;"
+          onmouseover="if(!this.disabled) { this.style.background='#dc2626'; }"
+          onmouseout="if(!this.disabled) { this.style.background='#ef4444'; }"
+        >
+          <lucide-angular *ngIf="isDeletingAudit" [img]="icons.Loader2" size="14" style="animation: spin 1s linear infinite;"></lucide-angular>
+          <lucide-angular *ngIf="!isDeletingAudit" [img]="icons.Trash2" size="14"></lucide-angular>
+          {{ isDeletingAudit ? 'Đang xóa...' : 'Xác nhận xóa' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Popup Hủy phiếu kiểm kê (Planned) kèm nhập lý do -->
+  <div *ngIf="showCancelAuditModal" class="confirm-modal-backdrop" (click)="cancelCancelAudit()">
+    <div class="confirm-modal-card" style="max-width: 500px;" (click)="$event.stopPropagation()">
+      <div class="confirm-modal-header">
+        <div class="confirm-modal-icon-wrapper danger">
+          <lucide-angular [img]="icons.XCircle" size="22"></lucide-angular>
+        </div>
+        <div style="flex: 1;">
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0;">
+            Hủy phiếu kiểm kê
+          </h3>
+          <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0; line-height: 1.55;">
+            Bạn đang yêu cầu hủy phiếu kiểm kê <strong>{{ modalAuditCode }}</strong>. Vui lòng nhập lý do hủy phiếu bên dưới:
+          </p>
+        </div>
+        <button type="button" (click)="cancelCancelAudit()" class="confirm-close-btn" title="Đóng">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div style="padding: 0 20px 16px 20px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+          Lý do hủy phiếu <span style="color: #ef4444;">*</span>
+        </label>
+        <textarea 
+          rows="3"
+          [(ngModel)]="cancelReasonInput"
+          placeholder="Nhập lý do hủy phiếu (ví dụ: Thay đổi kế hoạch kiểm đếm, trùng lịch kiểm kê...)" 
+          class="admin-input" 
+          style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); outline: none; background: var(--bg-primary); color: var(--text-primary); font-size: 13px; resize: vertical;"
+        ></textarea>
+      </div>
+
+      <div class="confirm-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button 
+          type="button" 
+          (click)="cancelCancelAudit()" 
+          [disabled]="isCancellingAudit"
+          class="admin-btn admin-btn-secondary"
+          style="padding: 8px 16px; font-size: 13px; border-radius: 8px;"
+        >
+          Bỏ qua
+        </button>
+        <button 
+          type="button" 
+          (click)="confirmCancelAudit()" 
+          [disabled]="isCancellingAudit || !cancelReasonInput.trim()"
+          [ngStyle]="{
+            'background': (!cancelReasonInput.trim() || isCancellingAudit) ? 'var(--border-color)' : '#ef4444',
+            'color': (!cancelReasonInput.trim() || isCancellingAudit) ? 'var(--text-muted)' : '#ffffff',
+            'border': 'none',
+            'padding': '8px 18px',
+            'font-size': '13px',
+            'font-weight': '600',
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'gap': '6px',
+            'border-radius': '8px',
+            'cursor': (!cancelReasonInput.trim() || isCancellingAudit) ? 'not-allowed' : 'pointer',
+            'transition': 'background 0.15s ease'
+          }"
+          onmouseover="if(!this.disabled) { this.style.background='#dc2626'; }"
+          onmouseout="if(!this.disabled) { this.style.background='#ef4444'; }"
+        >
+          <lucide-angular *ngIf="isCancellingAudit" [img]="icons.Loader2" size="14" style="animation: spin 1s linear infinite;"></lucide-angular>
+          <lucide-angular *ngIf="!isCancellingAudit" [img]="icons.XCircle" size="14"></lucide-angular>
+          {{ isCancellingAudit ? 'Đang hủy...' : 'Xác nhận hủy phiếu' }}
         </button>
       </div>
     </div>
