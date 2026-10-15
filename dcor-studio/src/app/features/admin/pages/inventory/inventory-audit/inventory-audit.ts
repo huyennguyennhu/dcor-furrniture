@@ -8,7 +8,7 @@ import {
   LucideAngularModule, 
   ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
   ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-  ChevronRight, Tag
+  ChevronRight, Tag, Save
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -43,7 +43,7 @@ export class InventoryAuditComponent implements OnInit {
   icons = { 
     ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
     ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-    ChevronRight, Tag
+    ChevronRight, Tag, Save
   };
 
   private http = inject(HttpClient);
@@ -143,32 +143,115 @@ export class InventoryAuditComponent implements OnInit {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.filter-dropdown-wrapper')) {
-      this.showWarehouseFilterDropdown = false;
-      this.showStatusFilterDropdown = false;
+    if (!target) return;
+
+    // 1. Chi nhánh / Kho trong modal
+    if (this.showModalWarehouseDropdown && !target.closest('.modal-warehouse-wrapper')) {
       this.showModalWarehouseDropdown = false;
+    }
+
+    // 2. Loại kiểm kê trong modal
+    if (this.showModalScopeDropdown && !target.closest('.modal-scope-wrapper')) {
       this.showModalScopeDropdown = false;
+    }
+
+    // 3. Nạp tồn kho hiện tại trong modal
+    if (this.showLoadStockDropdown && !target.closest('.load-stock-wrapper')) {
       this.showLoadStockDropdown = false;
     }
-    if (!target.closest('.row-dropdown-container')) {
-      this.auditItems.forEach(row => {
-        row.showProductDropdown = false;
-        row.showVariantDropdown = false;
-      });
+
+    // 4. Dropdown Sản phẩm & Biến thể trên từng dòng bảng
+    this.auditItems.forEach(row => {
+      if (row.showProductDropdown) {
+        const prodEl = document.getElementById('prod_dropdown_' + row.id);
+        if (!prodEl || !prodEl.contains(target)) {
+          row.showProductDropdown = false;
+        }
+      }
+      if (row.showVariantDropdown) {
+        const varEl = document.getElementById('var_dropdown_' + row.id);
+        if (!varEl || !varEl.contains(target)) {
+          row.showVariantDropdown = false;
+        }
+      }
+    });
+
+    // 5. Dropdown bộ lọc ngoài trang chính
+    if (this.showWarehouseFilterDropdown && !target.closest('.page-warehouse-filter-wrapper')) {
+      this.showWarehouseFilterDropdown = false;
     }
-    if (!target.closest('.action-menu-container')) {
+    if (this.showStatusFilterDropdown && !target.closest('.page-status-filter-wrapper')) {
+      this.showStatusFilterDropdown = false;
+    }
+    if (this.activeActionMenu && !target.closest('.action-menu-container')) {
       this.activeActionMenu = null;
     }
+
+    this.cdr.markForCheck();
+  }
+
+  onBackdropClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      const hasOpenDropdown = this.showModalWarehouseDropdown || 
+                              this.showModalScopeDropdown || 
+                              this.showLoadStockDropdown || 
+                              this.auditItems.some(r => r.showProductDropdown || r.showVariantDropdown);
+      if (hasOpenDropdown) {
+        this.showModalWarehouseDropdown = false;
+        this.showModalScopeDropdown = false;
+        this.showLoadStockDropdown = false;
+        this.closeAllRowDropdowns();
+        this.cdr.markForCheck();
+        return;
+      }
+      this.closeModal(true);
+    }
+  }
+
+  toggleModalWarehouseDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.showModalWarehouseDropdown = !this.showModalWarehouseDropdown;
+    if (this.showModalWarehouseDropdown) {
+      this.showModalScopeDropdown = false;
+      this.showLoadStockDropdown = false;
+      this.closeAllRowDropdowns();
+    }
+    this.cdr.markForCheck();
+  }
+
+  toggleModalScopeDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.showModalScopeDropdown = !this.showModalScopeDropdown;
+    if (this.showModalScopeDropdown) {
+      this.showModalWarehouseDropdown = false;
+      this.showLoadStockDropdown = false;
+      this.closeAllRowDropdowns();
+    }
+    this.cdr.markForCheck();
+  }
+
+  toggleLoadStockDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.showLoadStockDropdown = !this.showLoadStockDropdown;
+    if (this.showLoadStockDropdown) {
+      this.showModalWarehouseDropdown = false;
+      this.showModalScopeDropdown = false;
+      this.closeAllRowDropdowns();
+    }
+    this.cdr.markForCheck();
+  }
+
+  closeAllRowDropdowns() {
+    this.auditItems.forEach(r => {
+      r.showProductDropdown = false;
+      r.showVariantDropdown = false;
+    });
   }
 
   fetchWarehouses() {
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/warehouses`).subscribe({
       next: (res) => {
         this.warehouses = res || [];
-        if (this.warehouses.length > 0 && !this.modalWarehouseId) {
-          this.modalWarehouseId = this.warehouses[0].id;
-          this.modalLocation = this.warehouses[0].name;
-        }
         this.cdr.markForCheck();
       },
       error: (err) => console.error('Error fetching warehouses:', err)
@@ -352,12 +435,9 @@ export class InventoryAuditComponent implements OnInit {
       this.modalAuditDate = this.getCurrentDateTimeLocal();
       this.modalAuditScope = 'Kiểm kê định kỳ';
       this.modalCreator = 'Admin';
-      this.modalNotes = '';
+      this.modalWarehouseId = '';
+      this.modalLocation = '';
 
-      if (this.warehouses.length > 0) {
-        this.modalWarehouseId = this.warehouses[0].id;
-        this.modalLocation = this.warehouses[0].name;
-      }
       this.auditItems = [this.createEmptyRow()];
       this.showModal = true;
     } else {
@@ -369,8 +449,8 @@ export class InventoryAuditComponent implements OnInit {
         this.modalAuditCode = item.auditCode || item.id;
         this.modalAuditDate = item.createdAt ? new Date(item.createdAt).toISOString().slice(0, 16) : this.getCurrentDateTimeLocal();
         this.modalAuditScope = item.scope || 'Kiểm kê định kỳ';
-        this.modalWarehouseId = item.warehouseId || (this.warehouses[0]?.id || '');
-        this.modalLocation = item.location;
+        this.modalWarehouseId = item.warehouseId || '';
+        this.modalLocation = item.location || '';
         this.modalCreator = item.creator || 'Admin';
         this.modalNotes = item.notes || '';
 
@@ -434,6 +514,22 @@ export class InventoryAuditComponent implements OnInit {
     }
   }
 
+  get canClearAllItems(): boolean {
+    return this.auditItems.length > 1 || this.auditItems.some(it => !!it.variantId || !!it.productId || it.actualStock !== '');
+  }
+
+  handleClearAllItems() {
+    if (!this.canClearAllItems) return;
+    const count = this.auditItems.length;
+    const confirmMsg = `Bạn có chắc chắn muốn xóa toàn bộ ${count} mặt hàng trong danh sách sản phẩm không?`;
+    if (window.confirm(confirmMsg)) {
+      this.auditItems = [this.createEmptyRow()];
+      this.closeAllRowDropdowns();
+      this.showLoadStockDropdown = false;
+      this.cdr.markForCheck();
+    }
+  }
+
   // --- Dropdown Sản phẩm & Biến thể (giống phiếu nhập xuất kho) ---
 
   dropdownPositions: { [key: string]: 'up' | 'down' } = {};
@@ -464,16 +560,18 @@ export class InventoryAuditComponent implements OnInit {
   toggleProductDropdown(row: AuditItemRow, event: Event) {
     event.stopPropagation();
     const willOpen = !row.showProductDropdown;
-    this.auditItems.forEach(r => {
-      r.showProductDropdown = false;
-      r.showVariantDropdown = false;
-    });
+    this.closeAllRowDropdowns();
+    this.showModalWarehouseDropdown = false;
+    this.showModalScopeDropdown = false;
+    this.showLoadStockDropdown = false;
+
     row.showProductDropdown = willOpen;
     if (willOpen) {
       row.productSearchTerm = '';
       const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
       this.checkDropdownPosition(target, 'prod_' + row.id);
     }
+    this.cdr.markForCheck();
   }
 
   selectProductForRow(row: AuditItemRow, product: any, event?: Event) {
@@ -509,15 +607,17 @@ export class InventoryAuditComponent implements OnInit {
     event.stopPropagation();
     if (!row.productId) return;
     const willOpen = !row.showVariantDropdown;
-    this.auditItems.forEach(r => {
-      r.showProductDropdown = false;
-      r.showVariantDropdown = false;
-    });
+    this.closeAllRowDropdowns();
+    this.showModalWarehouseDropdown = false;
+    this.showModalScopeDropdown = false;
+    this.showLoadStockDropdown = false;
+
     row.showVariantDropdown = willOpen;
     if (willOpen) {
       const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
       this.checkDropdownPosition(target, 'var_' + row.id);
     }
+    this.cdr.markForCheck();
   }
 
   selectVariantForRow(row: AuditItemRow, v: any, event?: Event) {
@@ -630,6 +730,11 @@ export class InventoryAuditComponent implements OnInit {
     this.showLoadStockDropdown = false;
     this.categorySearchTerm = '';
 
+    if (!this.modalWarehouseId) {
+      alert('Vui lòng chọn Chi nhánh / Kho trước khi nạp tồn kho.');
+      return;
+    }
+
     const displayName = parentCat ? `${parentCat.name} > ${categoryName}` : (categoryName || 'Tất cả sản phẩm');
 
     if (this.auditItems.some(it => it.variantId)) {
@@ -740,6 +845,10 @@ export class InventoryAuditComponent implements OnInit {
   }
 
   // --- Validation for Complete & Close Audit ---
+
+  get canSaveDraftAudit(): boolean {
+    return !!this.modalWarehouseId && this.auditItems.length > 0 && this.auditItems.some(it => !!it.productId || !!it.variantId);
+  }
 
   get canCompleteAudit(): boolean {
     if (!this.modalAuditCode || !this.modalAuditDate || !this.modalWarehouseId || !this.modalAuditScope) {

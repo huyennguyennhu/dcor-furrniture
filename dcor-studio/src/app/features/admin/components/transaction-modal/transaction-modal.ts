@@ -1991,6 +1991,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   checkVariantStockAndToast(productId: string, variantId: string) {
+    // Comment toast cảnh báo sản phẩm đã hết tồn kho theo yêu cầu
+    /*
     if (this.type !== 'export' || !productId || !variantId) return;
 
     const stockInfo = this.getVariantStockInfo(productId, variantId);
@@ -2008,6 +2010,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
       this.triggerToast(title, desc, 'warning', 5000);
     }
+    */
   }
 
   isQuantityExceeded(item: LineItem): boolean {

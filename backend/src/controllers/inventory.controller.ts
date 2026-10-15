@@ -789,6 +789,59 @@ export const inventoryController = {
     }
   },
 
+  // 4b. Cập nhật trạng thái Lệnh xuất - nhập kho (Ví dụ từ PENDING sang COMPLETED)
+  updateStockOrderStatus: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const order = await (prisma as any).stockOrder.findFirst({
+        where: { OR: [{ id }, { orderCode: id }] },
+        include: { items: true }
+      });
+
+      if (!order) {
+        return res.status(404).json({ error: 'Không tìm thấy lệnh kho' });
+      }
+
+      const prevStatus = order.status;
+      const updated = await (prisma as any).stockOrder.update({
+        where: { id: order.id },
+        data: {
+          status,
+          completedAt: status === 'COMPLETED' ? new Date() : (status === 'PENDING' ? null : order.completedAt)
+        }
+      });
+
+      // Nếu chuyển từ PENDING/PROCESSING sang COMPLETED, cập nhật tồn kho & ghi nhận biến động
+      if (prevStatus !== 'COMPLETED' && status === 'COMPLETED') {
+        for (const item of order.items) {
+          try {
+            if (order.type === 'EXPORT') {
+              await prisma.productVariant.update({
+                where: { id: item.variantId },
+                data: { stock: { decrement: item.quantity } }
+              }).catch(e => console.warn('Could not decrement variant stock:', e));
+            } else if (order.type === 'IMPORT') {
+              await prisma.productVariant.update({
+                where: { id: item.variantId },
+                data: { stock: { increment: item.quantity } }
+              }).catch(e => console.warn('Could not increment variant stock:', e));
+            }
+          } catch (e) {
+            console.warn('Error adjusting stock on status complete:', e);
+          }
+        }
+        summaryCache.clear();
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating stock order status:', error);
+      res.status(500).json({ error: 'Không thể cập nhật trạng thái lệnh kho' });
+    }
+  },
+
   // 5. Lấy danh sách Phiếu kiểm kê (Tab 2)
   getStockAudits: async (req: Request, res: Response) => {
     try {

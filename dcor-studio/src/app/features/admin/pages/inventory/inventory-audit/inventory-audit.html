@@ -19,7 +19,7 @@
     </div>
     
     <!-- Warehouse Dropdown -->
-    <div class="filter-dropdown-wrapper">
+    <div class="filter-dropdown-wrapper page-warehouse-filter-wrapper">
       <button 
         type="button" 
         class="filter-trigger-btn"
@@ -56,7 +56,7 @@
     </div>
 
     <!-- Status Dropdown -->
-    <div class="filter-dropdown-wrapper">
+    <div class="filter-dropdown-wrapper page-status-filter-wrapper">
       <button 
         type="button" 
         class="filter-trigger-btn"
@@ -183,8 +183,8 @@
   </div>
 
   <!-- Modal Tạo / Sửa / Xem Phiếu Kiểm Kê -->
-  <div *ngIf="showModal !== false" class="audit-modal-backdrop" (click)="closeModal(true)">
-    <div class="audit-modal-container" (click)="$event.stopPropagation()">
+  <div *ngIf="showModal !== false" class="audit-modal-backdrop" (click)="onBackdropClick($event)">
+    <div class="audit-modal-container">
       <!-- Modal Header -->
       <div class="audit-modal-header">
         <div>
@@ -203,7 +203,7 @@
         <div class="audit-info-grid">
           <!-- Mã phiếu kiểm kê -->
           <div class="info-field-group">
-            <label class="info-field-label">Mã phiếu</label>
+            <label class="info-field-label">Mã phiếu <span class="required-mark" style="color: #ef4444;">*</span></label>
             <input 
               type="text" 
               [value]="showModal === true ? modalAuditCode : (showModal.auditCode || showModal.id)" 
@@ -214,7 +214,7 @@
 
           <!-- Ngày giờ kiểm kê -->
           <div class="info-field-group">
-            <label class="info-field-label">Ngày giờ kiểm kê</label>
+            <label class="info-field-label">Ngày giờ kiểm kê <span class="required-mark" style="color: #ef4444;">*</span></label>
             <ng-container *ngIf="showModal === true">
               <input 
                 type="datetime-local" 
@@ -235,18 +235,20 @@
 
           <!-- Chi nhánh / Kho kiểm kê -->
           <div class="info-field-group">
-            <label class="info-field-label">Chi nhánh / Kho</label>
+            <label class="info-field-label">Chi nhánh / Kho <span class="required-mark" style="color: #ef4444;">*</span></label>
             <ng-container *ngIf="showModal === true">
-              <div class="filter-dropdown-wrapper" style="min-width: 100%;">
+              <div class="filter-dropdown-wrapper modal-warehouse-wrapper" style="min-width: 100%;">
                 <button 
                   type="button" 
                   class="filter-trigger-btn"
-                  (click)="showModalWarehouseDropdown = !showModalWarehouseDropdown; showModalScopeDropdown = false"
-                  title="Chọn chi nhánh/kho"
+                  (click)="toggleModalWarehouseDropdown($event)"
+                  [title]="modalLocation || 'Chọn Chi nhánh/ Kho'"
                 >
                   <div class="trigger-label">
                     <lucide-angular [img]="icons.Building2" size="15" class="trigger-icon"></lucide-angular>
-                    <span class="truncate-label">{{ modalLocation }}</span>
+                    <span class="truncate-label" [style.color]="modalLocation ? 'var(--text-primary)' : 'var(--text-muted)'">
+                      {{ modalLocation || 'Chọn Chi nhánh/ Kho' }}
+                    </span>
                   </div>
                   <app-icon name="ChevronDown" size="14" [ngStyle]="{'transform': showModalWarehouseDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></app-icon>
                 </button>
@@ -271,13 +273,13 @@
 
           <!-- Loại / Mục đích kiểm kê -->
           <div class="info-field-group">
-            <label class="info-field-label">Loại kiểm kê</label>
+            <label class="info-field-label">Loại kiểm kê <span class="required-mark" style="color: #ef4444;">*</span></label>
             <ng-container *ngIf="showModal === true">
-              <div class="filter-dropdown-wrapper" style="min-width: 100%;">
+              <div class="filter-dropdown-wrapper modal-scope-wrapper" style="min-width: 100%;">
                 <button 
                   type="button" 
                   class="filter-trigger-btn"
-                  (click)="showModalScopeDropdown = !showModalScopeDropdown; showModalWarehouseDropdown = false"
+                  (click)="toggleModalScopeDropdown($event)"
                   title="Chọn loại kiểm kê"
                 >
                   <div class="trigger-label">
@@ -318,11 +320,26 @@
             </div>
 
             <div *ngIf="showModal === true" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <!-- Nút Xóa toàn bộ danh sách mặt hàng vừa nạp -->
+              <button 
+                type="button" 
+                (click)="handleClearAllItems()" 
+                [disabled]="!canClearAllItems"
+                class="admin-btn admin-btn-secondary" 
+                style="font-size: 12.5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; color: #ef4444; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.04);"
+                [style.opacity]="canClearAllItems ? '1' : '0.45'"
+                [style.cursor]="canClearAllItems ? 'pointer' : 'not-allowed'"
+                title="Xóa toàn bộ các mặt hàng trong danh sách sản phẩm vừa nạp"
+              >
+                <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+                <span>Xóa danh sách</span>
+              </button>
+
               <!-- Dropdown Nạp tồn kho theo tất cả hoặc theo danh mục -->
-              <div class="filter-dropdown-wrapper" style="min-width: auto; position: relative;">
+              <div class="filter-dropdown-wrapper load-stock-wrapper" style="min-width: auto; position: relative;">
                 <button 
                   type="button" 
-                  (click)="showLoadStockDropdown = !showLoadStockDropdown" 
+                  (click)="toggleLoadStockDropdown($event)" 
                   class="admin-btn admin-btn-secondary" 
                   style="font-size: 12.5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;"
                   title="Nạp sản phẩm tồn kho vào bảng kiểm kê"
@@ -431,17 +448,28 @@
           <!-- Product Table Scroll -->
           <div class="audit-table-scroll">
             <table class="audit-table">
+              <colgroup>
+                <col style="width: 260px;">
+                <col style="width: 220px;">
+                <col style="width: 55px;">
+                <col style="width: 70px;">
+                <col style="width: 80px;">
+                <col style="width: 80px;">
+                <col style="width: 110px;">
+                <col [style.width]="showModal === true ? '150px' : '195px'">
+                <col *ngIf="showModal === true" style="width: 45px;">
+              </colgroup>
               <thead>
                 <tr>
-                  <th style="min-width: 200px;">Sản phẩm</th>
-                  <th style="min-width: 230px;">Biến thể / SKU</th>
-                  <th style="width: 70px; text-align: center;">ĐVT</th>
-                  <th style="width: 85px; text-align: center;">Tồn HT</th>
-                  <th style="width: 100px; text-align: center;">Tồn đếm</th>
-                  <th style="width: 95px; text-align: center;">Chênh lệch</th>
-                  <th style="width: 125px; text-align: right;">Giá trị lệch</th>
-                  <th style="width: 160px; text-align: left;">Lý do chênh lệch</th>
-                  <th *ngIf="showModal === true" style="width: 44px; text-align: center;"></th>
+                  <th style="width: 260px;">Sản phẩm</th>
+                  <th style="width: 220px;">Biến thể / SKU</th>
+                  <th style="width: 55px; text-align: center;">ĐVT</th>
+                  <th style="width: 70px; text-align: center;">Tồn HT</th>
+                  <th style="width: 80px; text-align: center;">Tồn đếm</th>
+                  <th style="width: 80px; text-align: center;">Chênh lệch</th>
+                  <th style="width: 110px; text-align: right;">Giá trị lệch</th>
+                  <th [style.width]="showModal === true ? '150px' : '195px'" style="text-align: left;">Lý do chênh lệch</th>
+                  <th *ngIf="showModal === true" style="width: 45px; text-align: center;"></th>
                 </tr>
               </thead>
               <tbody>
@@ -502,7 +530,7 @@
                       [style.position]="(row.showProductDropdown || row.showVariantDropdown) ? 'relative' : 'static'" 
                       [style.z-index]="row.showProductDropdown ? '130' : '1'"
                     >
-                      <div class="row-dropdown-container" [style.z-index]="row.showProductDropdown ? '140' : '1'">
+                      <div class="row-dropdown-container product-dropdown-container" [id]="'prod_dropdown_' + row.id" [style.z-index]="row.showProductDropdown ? '140' : '1'">
                         <button 
                           type="button" 
                           class="row-dropdown-trigger"
@@ -510,10 +538,10 @@
                           (click)="toggleProductDropdown(row, $event)"
                           title="Chọn sản phẩm"
                         >
-                          <span class="truncate-label" style="max-width: 180px;">
+                          <span class="truncate-label" style="flex: 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             {{ row.productName || 'Chọn sản phẩm...' }}
                           </span>
-                          <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': row.showProductDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+                          <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showProductDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
                         </button>
 
                         <!-- Product Popup Menu: Tự động tính toán dropup/dropdown & z-index cao -->
@@ -568,7 +596,7 @@
                       [style.position]="(row.showProductDropdown || row.showVariantDropdown) ? 'relative' : 'static'" 
                       [style.z-index]="row.showVariantDropdown ? '130' : '1'"
                     >
-                      <div class="row-dropdown-container" [style.z-index]="row.showVariantDropdown ? '140' : '1'">
+                      <div class="row-dropdown-container variant-dropdown-container" [id]="'var_dropdown_' + row.id" [style.z-index]="row.showVariantDropdown ? '140' : '1'">
                         <button 
                           type="button" 
                           class="row-dropdown-trigger"
@@ -576,14 +604,14 @@
                           (click)="toggleVariantDropdown(row, $event)"
                           [title]="!row.productId ? 'Vui lòng chọn sản phẩm trước' : 'Chọn biến thể'"
                         >
-                          <div *ngIf="row.variantId" style="display: flex; flex-direction: column; gap: 2px; text-align: left; overflow: hidden;">
-                            <span class="product-sku-tag" style="font-size: 11px;">{{ row.sku }}</span>
-                            <span class="truncate-label" style="max-width: 190px; font-size: 12px;">{{ row.variantName }}</span>
+                          <div *ngIf="row.variantId" style="display: flex; flex-direction: column; gap: 2px; text-align: left; overflow: hidden; min-width: 0; flex: 1;">
+                            <span class="product-sku-tag" style="font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.sku }}</span>
+                            <span class="truncate-label" style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">{{ row.variantName }}</span>
                           </div>
-                          <span *ngIf="!row.variantId" style="color: var(--text-muted);">
-                            {{ row.productId ? 'Chọn biến thể...' : 'Chọn biến thể' }}
+                          <span *ngIf="!row.variantId" style="color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
+                            {{ row.productId ? 'Chọn biến thể...' : 'Chọn biến thể trước' }}
                           </span>
-                          <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': row.showVariantDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': !row.productId ? '0.4' : '1'}"></lucide-angular>
+                          <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showVariantDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': !row.productId ? '0.4' : '1'}"></lucide-angular>
                         </button>
 
                         <!-- Variant Popup Menu: Tự động tính toán dropup/dropdown & z-index cao -->
@@ -750,45 +778,86 @@
         <!-- Action Buttons on the Right -->
         <div style="display: flex; align-items: center; gap: 10px;">
           <ng-container *ngIf="showModal === true">
-            <!-- Hủy bỏ -->
+            <!-- Nút 1: HỦY -->
             <button 
               type="button" 
-              (click)="closeModal(true)" 
-              class="admin-btn admin-btn-secondary" 
+              (click)="closeModal(true)"
               [disabled]="isSubmitting"
+              onmouseover="this.style.background='var(--bg-secondary)'"
+              onmouseout="this.style.background='var(--bg-primary)'"
+              style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
             >
-              Hủy bỏ
+              Hủy
             </button>
 
-            <!-- Lưu nháp / Đang kiểm kê -->
+            <!-- Nút 2: LƯU NHÁP (Draft) - Đồng bộ màu vàng cam khi active, xám khi disabled -->
             <button 
-              type="button" 
+              type="button"
               (click)="handleSubmitAudit('IN_PROGRESS')" 
-              class="admin-btn admin-btn-secondary" 
-              [disabled]="isSubmitting"
-              style="display: flex; align-items: center; gap: 6px;"
-              title="Lưu lại danh sách đếm dở dang để hôm sau kiểm tiếp mà chưa cân bằng tồn kho"
+              [disabled]="isSubmitting || !canSaveDraftAudit"
+              [ngStyle]="{
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'padding': '9px 18px',
+                'border-radius': '8px',
+                'border': '1px solid ' + (!canSaveDraftAudit ? 'var(--border-color)' : '#d97706'),
+                'background': !canSaveDraftAudit ? 'var(--bg-secondary)' : '#fffbeb',
+                'color': !canSaveDraftAudit ? 'var(--text-muted)' : '#b45309',
+                'font-size': '13px',
+                'font-weight': '600',
+                'cursor': (!canSaveDraftAudit || isSubmitting) ? 'not-allowed' : 'pointer',
+                'opacity': (!canSaveDraftAudit || isSubmitting) ? '0.45' : '1',
+                'transition': 'all 0.15s ease'
+              }"
+              onmouseover="if(!this.disabled) { this.style.background='#fef3c7'; }"
+              onmouseout="if(!this.disabled) { this.style.background='#fffbeb'; }"
+              [title]="!canSaveDraftAudit ? 'Vui lòng chọn chi nhánh/kho và thêm sản phẩm trước khi lưu nháp' : 'Lưu lại danh sách đếm dở dang để hôm sau kiểm tiếp mà chưa cân bằng tồn kho'"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="14" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Save" size="15"></lucide-angular>
               Lưu nháp
             </button>
 
-            <!-- Hoàn tất kiểm kê & Chốt sổ -->
+            <!-- Nút 3: HOÀN TẤT KIỂM KÊ & CHỐT SỔ - Đồng bộ màu nâu thương hiệu cao cấp -->
             <button 
-              type="button" 
+              type="button"
               (click)="handleSubmitAudit('COMPLETED')" 
-              class="admin-btn admin-btn-primary" 
               [disabled]="isSubmitting || !canCompleteAudit" 
+              [ngStyle]="{
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '6px',
+                'padding': '9px 24px',
+                'border-radius': '8px',
+                'border': 'none',
+                'background': (!canCompleteAudit || isSubmitting) ? 'var(--border-color)' : '#765337',
+                'color': (!canCompleteAudit || isSubmitting) ? 'var(--text-muted)' : '#ffffff',
+                'font-size': '13px',
+                'font-weight': '600',
+                'cursor': (!canCompleteAudit || isSubmitting) ? 'not-allowed' : 'pointer',
+                'opacity': (!canCompleteAudit || isSubmitting) ? '0.55' : '1',
+                'box-shadow': (!canCompleteAudit || isSubmitting) ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
+                'transition': 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }"
+              onmouseover="if(!this.disabled) { this.style.background='#5a3d26'; this.style.boxShadow='0 4px 14px rgba(90, 61, 38, 0.4)'; this.style.transform='translateY(-1px)'; }"
+              onmouseout="if(!this.disabled) { this.style.background='#765337'; this.style.boxShadow='0 2px 8px rgba(118, 83, 55, 0.28)'; this.style.transform='translateY(0)'; }"
               [title]="getCompleteAuditButtonTitle()"
-              style="display: flex; align-items: center; gap: 8px;"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="14" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isSubmitting" [img]="icons.CheckCircle2" size="15"></lucide-angular>
               {{ isSubmitting ? 'Đang lưu...' : 'Hoàn tất kiểm kê & Chốt sổ' }}
             </button>
           </ng-container>
 
           <ng-container *ngIf="showModal !== true">
-            <button type="button" (click)="closeModal(false)" class="admin-btn admin-btn-secondary">
+            <button 
+              type="button" 
+              (click)="closeModal(false)"
+              style="padding: 9px 20px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
+              onmouseover="this.style.background='var(--bg-secondary)'"
+              onmouseout="this.style.background='var(--bg-primary)'"
+            >
               Đóng
             </button>
           </ng-container>

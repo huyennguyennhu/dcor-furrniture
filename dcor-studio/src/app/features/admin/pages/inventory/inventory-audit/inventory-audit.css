@@ -239,6 +239,12 @@
   color: var(--text-primary);
 }
 
+.required-mark {
+  color: #ef4444;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
 .info-field-readonly {
   padding: 9px 12px;
   border-radius: 8px;
@@ -266,6 +272,7 @@
 
 .row-dropdown-trigger {
   width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -394,11 +401,11 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--bg-primary);
-  min-height: 280px;
 }
 
 .audit-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13px;
@@ -411,6 +418,7 @@
 }
 
 .audit-table th {
+  box-sizing: border-box;
   padding: 11px 12px;
   font-weight: 600;
   color: var(--text-primary);
@@ -419,6 +427,7 @@
 }
 
 .audit-table td {
+  box-sizing: border-box;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;

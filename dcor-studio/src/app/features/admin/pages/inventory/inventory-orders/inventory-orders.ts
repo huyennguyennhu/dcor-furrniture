@@ -514,8 +514,20 @@ export class InventoryOrdersComponent implements OnInit {
 
   updateOrderStatus(order: StockOrder, newStatus: 'COMPLETED' | 'PROCESSING' | 'PENDING' | 'CANCELLED', event?: Event) {
     if (event) event.stopPropagation();
+    const prevStatus = order.status;
     order.status = newStatus;
     this.activeActionMenu = null;
+
+    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${order.id}/status`, { status: newStatus }).subscribe({
+      next: () => {
+        if (newStatus === 'COMPLETED') {
+          window.alert(`Lệnh kho ${order.id} đã hoàn tất thành công và cập nhật tồn kho!`);
+        }
+      },
+      error: (err) => {
+        console.warn('API error updating order status:', err);
+      }
+    });
   }
 
   deleteOrder(id: string, event?: Event) {
@@ -532,12 +544,20 @@ export class InventoryOrdersComponent implements OnInit {
 
   batchUpdateStatus(status: 'COMPLETED' | 'PROCESSING' | 'CANCELLED') {
     if (this.selectedIds.size === 0) return;
+    const ids = Array.from(this.selectedIds);
     this.data.forEach(o => {
       if (this.selectedIds.has(o.id)) {
         o.status = status;
       }
     });
     this.selectedIds.clear();
+
+    ids.forEach(id => {
+      this.http.put(`${environment.apiUrl}/admin/inventory/orders/${id}/status`, { status }).subscribe({
+        error: (err) => console.warn(`Error batch updating order ${id}:`, err)
+      });
+    });
+
     window.alert(`Đã cập nhật trạng thái các lệnh đã chọn.`);
   }
 
