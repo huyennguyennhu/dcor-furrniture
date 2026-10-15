@@ -1,90 +1,34 @@
-import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { ChartConfiguration, ChartData } from 'chart.js';
 import { 
   LucideAngularModule, 
-  Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square 
+  Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square, Check, Clock 
 } from 'lucide-angular';
+import { IconComponent } from '../../../../shared/components/icon/icon';
+import { ReportService, OverviewReportData } from '../../../../core/services/report.service';
 
-const PIE_COLORS = ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71'];
-
-const REVENUE_DATA_MAP: Record<string, any[]> = {
-  'today': [
-    { name: '00:00', current: 1500, previous: 1200 },
-    { name: '06:00', current: 2000, previous: 1800 },
-    { name: '12:00', current: 4000, previous: 3500 },
-    { name: '18:00', current: 3000, previous: 2800 },
-  ],
-  '7_days': [
-    { name: '01/08', current: 4000, previous: 2400 },
-    { name: '02/08', current: 3000, previous: 1398 },
-    { name: '03/08', current: 2000, previous: 9800 },
-    { name: '04/08', current: 2780, previous: 3908 },
-    { name: '05/08', current: 1890, previous: 4800 },
-    { name: '06/08', current: 2390, previous: 3800 },
-    { name: '07/08', current: 3490, previous: 4300 },
-  ],
-  'month': [
-    { name: 'Tuần 1', current: 15000, previous: 12000 },
-    { name: 'Tuần 2', current: 20000, previous: 18000 },
-    { name: 'Tuần 3', current: 18000, previous: 15000 },
-    { name: 'Tuần 4', current: 25000, previous: 20000 },
-  ]
-};
-
-const ORDER_STATUS_DATA = [
-  { name: 'Hoàn thành', value: 400 },
-  { name: 'Đang xử lý', value: 300 },
-  { name: 'Đã hủy', value: 50 },
-  { name: 'Chờ xác nhận', value: 100 },
-];
-
-const CATEGORY_REVENUE_DATA = [
-  { name: 'Sofa', value: 4000 },
-  { name: 'Giường', value: 3000 },
-  { name: 'Bàn ghế ăn', value: 2000 },
-  { name: 'Tủ kệ', value: 2780 },
-  { name: 'Đồ trang trí', value: 1890 },
-];
-
-const FUNNEL_DATA = [
-  { value: 1000, name: 'Lượt truy cập', fill: '#8884d8' },
-  { value: 800, name: 'Xem sản phẩm', fill: '#83a6ed' },
-  { value: 400, name: 'Thêm vào giỏ', fill: '#8dd1e1' },
-  { value: 200, name: 'Thanh toán', fill: '#82ca9d' },
-  { value: 50, name: 'Thành công', fill: '#a4de6c' },
-];
-
-const TOP_PRODUCTS = [
-  { id: 1, name: 'Sofa Indivi 2,5 chỗ', sku: 'SF-IND-01', sales: 124, revenue: '1,240,000,000 ₫', stock: 12 },
-  { id: 2, name: 'Giường ngủ Osaka', sku: 'BD-OSK-02', sales: 85, revenue: '850,000,000 ₫', stock: 5 },
-  { id: 3, name: 'Bàn ăn Milano', sku: 'TB-MIL-03', sales: 64, revenue: '480,000,000 ₫', stock: 0 },
-  { id: 4, name: 'Ghế lười Ottawa', sku: 'CH-OTT-04', sales: 42, revenue: '210,000,000 ₫', stock: 24 },
-  { id: 5, name: 'Tủ tivi Lugano', sku: 'CB-LUG-05', sales: 38, revenue: '342,000,000 ₫', stock: 8 },
-];
-
-const TOP_CUSTOMERS = [
-  { id: 1, name: 'Nguyễn Văn A', phone: '0901234567', orders: 15, totalSpent: '450,000,000 ₫', rank: 'VIP' },
-  { id: 2, name: 'Trần Thị B', phone: '0912345678', orders: 8, totalSpent: '320,000,000 ₫', rank: 'Gold' },
-  { id: 3, name: 'Lê Văn C', phone: '0923456789', orders: 12, totalSpent: '280,000,000 ₫', rank: 'Gold' },
-  { id: 4, name: 'Phạm Thị D', phone: '0934567890', orders: 5, totalSpent: '150,000,000 ₫', rank: 'Silver' },
-  { id: 5, name: 'Hoàng Văn E', phone: '0945678901', orders: 3, totalSpent: '85,000,000 ₫', rank: 'Member' },
-];
+const PIE_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e74c3c'];
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterModule, BaseChartDirective, LucideAngularModule, IconComponent],
   providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './reports.html',
   styleUrls: ['./reports.css']
 })
 export class ReportsComponent implements OnInit {
   // Lucide Icons
-  icons = { Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square };
+  icons = { Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square, Check, Clock };
 
+  private reportService = inject(ReportService);
+  private cdr = inject(ChangeDetectorRef);
+
+  isLoading = true;
   compare = false;
   timeRange = '7_days';
   showroom = 'all';
@@ -111,9 +55,22 @@ export class ReportsComponent implements OnInit {
 
   intervals = ['Giờ', 'Ngày', 'Tuần', 'Tháng'];
 
-  topProducts = TOP_PRODUCTS;
-  topCustomers = TOP_CUSTOMERS;
-  funnelData = FUNNEL_DATA;
+  kpi = {
+    totalRevenue: 0,
+    revenueGrowth: 0,
+    totalOrders: 0,
+    ordersGrowth: 0,
+    totalCustomers: 0,
+    newCustomers: 0,
+    totalProducts: 0,
+    lowStockProducts: 0,
+    totalAppointments: 8,
+    upcomingAppointments: 3
+  };
+
+  topProducts: any[] = [];
+  topCustomers: any[] = [];
+  funnelData: any[] = [];
 
   // --- Line Chart: Revenue ---
   public lineChartData: ChartData<'line'> = { labels: [], datasets: [] };
@@ -187,12 +144,12 @@ export class ReportsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.updateCharts();
+    this.loadOverviewData();
   }
 
   toggleCompare() {
     this.compare = !this.compare;
-    this.updateCharts();
+    this.loadOverviewData();
   }
 
   toggleDropdown(name: string, event: Event) {
@@ -205,12 +162,13 @@ export class ReportsComponent implements OnInit {
   setTimeRange(key: string) {
     this.timeRange = key;
     this.showTimeDropdown = false;
-    this.updateCharts();
+    this.loadOverviewData();
   }
 
   setShowroom(key: string) {
     this.showroom = key;
     this.showShowroomDropdown = false;
+    this.loadOverviewData();
   }
 
   setIntervalOpt(opt: string) {
@@ -218,60 +176,91 @@ export class ReportsComponent implements OnInit {
     this.showIntervalDropdown = false;
   }
 
-  updateCharts() {
-    const revenueData = REVENUE_DATA_MAP[this.timeRange] || REVENUE_DATA_MAP['7_days'];
-    
-    // Line Chart
-    this.lineChartData = {
-      labels: revenueData.map(d => d.name),
-      datasets: [
-        {
-          data: revenueData.map(d => d.current),
-          label: 'Kỳ này',
-          borderColor: '#bc5f13', // var(--accent)
-          backgroundColor: '#bc5f13',
-          borderWidth: 3,
-          pointBackgroundColor: '#bc5f13',
-        }
-      ]
-    };
-
-    if (this.compare) {
-      this.lineChartData.datasets.push({
-        data: revenueData.map(d => d.previous),
-        label: 'Kỳ trước',
-        borderColor: '#9ca3af',
-        backgroundColor: '#9ca3af',
-        borderWidth: 2,
-        borderDash: [5, 5],
-        pointBackgroundColor: '#9ca3af',
-      });
+  formatCurrencyShort(val: number): string {
+    if (!val) return '0 ₫';
+    if (val >= 1000000000) {
+      return (val / 1000000000).toFixed(2) + ' tỷ ₫';
     }
+    if (val >= 1000000) {
+      return (val / 1000000).toFixed(1) + ' tr ₫';
+    }
+    return val.toLocaleString() + ' ₫';
+  }
 
-    // Pie Chart
-    this.pieChartData = {
-      labels: ORDER_STATUS_DATA.map(d => d.name),
-      datasets: [{
-        data: ORDER_STATUS_DATA.map(d => d.value),
-        backgroundColor: PIE_COLORS,
-        borderWidth: 0
-      }]
-    };
+  loadOverviewData() {
+    this.isLoading = true;
+    this.reportService.getOverviewReport({
+      timeRange: this.timeRange,
+      showroom: this.showroom !== 'all' ? this.showroom : undefined
+    }).subscribe({
+      next: (data) => {
+        this.kpi = data.kpi;
+        this.topProducts = data.topProducts || [];
+        this.topCustomers = data.topCustomers || [];
+        this.funnelData = data.funnelData || [];
 
-    // Bar Chart
-    this.barChartData = {
-      labels: CATEGORY_REVENUE_DATA.map(d => d.name),
-      datasets: [{
-        data: CATEGORY_REVENUE_DATA.map(d => d.value),
-        label: 'Doanh thu',
-        backgroundColor: '#3498db',
-        borderRadius: 4,
-        barPercentage: 0.6
-      }]
-    };
+        // Line Chart: Doanh thu theo thời gian
+        this.lineChartData = {
+          labels: data.revenueChart.labels,
+          datasets: [
+            {
+              data: data.revenueChart.current,
+              label: 'Kỳ này',
+              borderColor: '#bc5f13',
+              backgroundColor: '#bc5f13',
+              borderWidth: 3,
+              pointBackgroundColor: '#bc5f13',
+            }
+          ]
+        };
+
+        if (this.compare) {
+          this.lineChartData.datasets.push({
+            data: data.revenueChart.previous,
+            label: 'Kỳ trước',
+            borderColor: '#9ca3af',
+            backgroundColor: '#9ca3af',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointBackgroundColor: '#9ca3af',
+          });
+        }
+
+        // Pie Chart: Trạng thái đơn hàng
+        this.pieChartData = {
+          labels: data.orderStatusData.map(d => d.name),
+          datasets: [{
+            data: data.orderStatusData.map(d => d.value),
+            backgroundColor: PIE_COLORS,
+            borderWidth: 0
+          }]
+        };
+
+        // Bar Chart: Doanh thu theo danh mục
+        this.barChartData = {
+          labels: data.categoryRevenueData.map(d => d.name),
+          datasets: [{
+            data: data.categoryRevenueData.map(d => d.value),
+            label: 'Doanh thu',
+            backgroundColor: '#3498db',
+            borderRadius: 4,
+            barPercentage: 0.6
+          }]
+        };
+
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Lỗi tải dữ liệu báo cáo tổng quan từ Supabase:', err);
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   getMaxFunnelValue() {
+    if (!this.funnelData || this.funnelData.length === 0) return 1000;
     return Math.max(...this.funnelData.map(d => d.value));
   }
 }

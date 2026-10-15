@@ -142,8 +142,15 @@
     </div>
   </div>
 
-  <!-- KPI Cards -->
-  <div class="kpi-grid">
+  <!-- Loading State (Animated Spinner) -->
+  <div *ngIf="isLoading" class="loading-state-container">
+    <div class="spinning-loader"></div>
+    <p class="loading-text">Đang tải dữ liệu doanh thu...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng doanh thu</div>
       <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.totalRevenue) }}</div>
@@ -191,30 +198,30 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Doanh thu theo thời gian</h3>
         
-        <div style="position: relative;">
-          <div (click)="toggleDropdown('interval', $event)" style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted);">
-            Theo {{ interval | lowercase }} <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
-          </div>
-          <div [ngStyle]="{
-                 'opacity': showIntervalDropdown ? 1 : 0, 
-                 'visibility': showIntervalDropdown ? 'visible' : 'hidden', 
-                 'transform': showIntervalDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-                 'transition': 'all 0.2s ease', 'pointer-events': showIntervalDropdown ? 'auto' : 'none',  
-                 'position': 'absolute', 'top': '100%', 'right': '0', 'margin-top': '4px', 
-                 'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-                 'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100px', 'overflow': 'hidden'
-               }">
-              <div *ngFor="let opt of intervals" 
-                   (click)="setDropdownValue('interval', opt)" 
-                   [ngStyle]="{
-                     'padding': '8px 12px', 'font-size': '12px', 'cursor': 'pointer', 
-                     'border-bottom': '1px solid var(--border-color)', 
-                     'background': interval === opt ? 'var(--bg-tertiary)' : 'transparent', 
-                     'color': interval === opt ? 'var(--accent)' : 'var(--text-primary)'
-                   }">
-                {{ opt }}
-              </div>
+        <!-- (1) Dropdown Chu kỳ thời gian -->
+        <div class="filter-dropdown-wrapper interval-filter-wrapper" style="min-width: 125px;">
+          <button 
+            type="button" 
+            title="Chọn chu kỳ hiển thị" 
+            class="filter-trigger-btn" 
+            style="padding: 6px 12px; font-size: 12px;"
+            (click)="toggleDropdown('interval', $event)"
+          >
+            <div class="trigger-label">
+              <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
+              <span class="truncate-label">Theo {{ interval | lowercase }}</span>
             </div>
+            <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+          </button>
+          <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 125px;">
+            <div *ngFor="let opt of intervals" 
+                 (click)="setDropdownValue('interval', opt)" 
+                 class="filter-menu-item" 
+                 [class.selected]="interval === opt">
+              <span>{{ opt }}</span>
+              <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
+            </div>
+          </div>
         </div>
       </div>
       <div style="width: 100%; height: 300px; position: relative;">
@@ -256,5 +263,6 @@
       </div>
     </div>
   </div>
+  </ng-container>
 
 </div>

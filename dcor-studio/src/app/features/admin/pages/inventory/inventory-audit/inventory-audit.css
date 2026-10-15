@@ -1,5 +1,24 @@
 /* Inventory Audit Styles */
 
+/* KPI Metric Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1300px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 1. Custom Table Checkbox with Lucide CheckSquare / Square */
 .table-checkbox-btn {
   background: transparent;
@@ -170,6 +189,8 @@
   border-radius: 14px;
   width: 1150px;
   max-width: 98vw;
+  height: 88vh;
+  min-height: 580px;
   max-height: 92vh;
   display: flex;
   flex-direction: column;
@@ -189,6 +210,7 @@
 
 .audit-modal-body {
   padding: 24px;
+  padding-bottom: 60px;
   overflow-y: auto;
   overflow-x: auto;
   display: flex;
@@ -208,21 +230,41 @@
   gap: 12px;
 }
 
-/* Header Info Grid */
-.audit-info-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+/* Header Info Layout (2 Rows: Hàng 1 (3 cột), Hàng 2 (2 cột)) */
+.audit-info-container {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
-@media (max-width: 1024px) {
-  .audit-info-grid {
-    grid-template-columns: repeat(2, 1fr);
+.audit-info-row-1 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  position: relative;
+  z-index: 5;
+}
+
+.audit-info-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  position: relative;
+  z-index: 20;
+}
+
+@media (max-width: 900px) {
+  .audit-info-row-1 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .audit-info-row-2 {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 600px) {
-  .audit-info-grid {
+  .audit-info-row-1,
+  .audit-info-row-2 {
     grid-template-columns: 1fr;
   }
 }
@@ -347,7 +389,7 @@
 }
 
 .row-menu-list {
-  max-height: 220px;
+  max-height: 200px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -385,6 +427,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: visible;
 }
 
 .audit-toolbar {
@@ -623,33 +666,45 @@
   font-weight: 500;
 }
 
-.reason-select {
-  padding: 6px 8px;
+/* Reason Dropdown inside table */
+.reason-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.table-reason-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  min-height: 34px;
+  height: 34px;
+  box-sizing: border-box;
+}
+
+.table-reason-menu {
+  min-width: 170px;
+  width: 100%;
+  max-width: 220px;
+  z-index: 160;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.custom-reason-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 12.5px;
-  outline: none;
-  width: 140px;
-}
-
-.reason-select:disabled {
-  background: var(--bg-secondary);
-  color: var(--text-muted);
-  cursor: not-allowed;
-}
-
-.custom-reason-input {
-  width: 140px;
-  padding: 5px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
   font-size: 12px;
-  margin-top: 4px;
+  margin-top: 6px;
   outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.custom-reason-input:focus {
+  border-color: var(--accent);
 }
 
 /* Category Hierarchy Dropdown in Load Stock Button */
@@ -831,3 +886,139 @@
   opacity: 0.55;
   filter: grayscale(0.2);
 }
+
+/* Confirm Modal Backdrop & Card */
+.confirm-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3100;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.confirm-modal-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  animation: modalScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.confirm-modal-header {
+  padding: 20px 20px 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.confirm-modal-icon-wrapper.danger {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-modal-icon-wrapper.warning {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.confirm-close-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.confirm-modal-footer {
+  padding: 14px 20px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Pagination Buttons */
+.admin-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.admin-pagination-btn:hover:not(.disabled):not(.active) {
+  background: var(--bg-tertiary);
+  border-color: #bc5f13;
+  color: #bc5f13;
+}
+
+.admin-pagination-btn.active {
+  background: #bc5f13;
+  border-color: #bc5f13;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.admin-pagination-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+

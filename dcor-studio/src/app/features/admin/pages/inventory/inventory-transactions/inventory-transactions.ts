@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { Component, OnInit, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -5,9 +6,10 @@ import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
-  Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, 
+  Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
   Download, CheckCircle2, Clock, AlertCircle, X, Eye, Printer, Trash2, 
-  Calendar as CalendarIcon, FileText, ChevronDown, Check, MoreVertical
+  Calendar as CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
+  Square, CheckSquare
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
@@ -41,15 +43,16 @@ export interface StockOrder {
 @Component({
   selector: 'app-inventory-transactions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, TransactionModalComponent],
+  imports: [IconComponent, CommonModule, FormsModule, RouterModule, LucideAngularModule, TransactionModalComponent],
   templateUrl: './inventory-transactions.html',
   styleUrls: ['./inventory-transactions.css']
 })
 export class InventoryTransactionsComponent implements OnInit {
   icons = {
-    Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight,
+    Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
     Download, CheckCircle2, Clock, AlertCircle, X, Eye, Printer, Trash2,
-    CalendarIcon, FileText, ChevronDown, Check, MoreVertical
+    CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
+    Square, CheckSquare
   };
 
   private http = inject(HttpClient);
@@ -60,8 +63,12 @@ export class InventoryTransactionsComponent implements OnInit {
   // Filter state
   searchTerm = '';
   typeFilter: 'all' | 'import' | 'export' | 'transfer' = 'all';
-  locationFilter = 'all';
+  locationFilter = 'Tất cả chi nhánh';
   statusFilter = 'all';
+
+  // Dropdown states
+  showLocationDropdown = false;
+  showStatusDropdown = false;
 
   // Available locations
   locations = [
@@ -71,6 +78,35 @@ export class InventoryTransactionsComponent implements OnInit {
     'Showroom Quận 1',
     'Showroom Thủ Đức'
   ];
+
+  get statusOptionsWithCount() {
+    return [
+      { value: 'all', label: 'Tất cả', count: this.totalCount, color: 'var(--text-muted)' },
+      { value: 'COMPLETED', label: 'Đã hoàn tất', count: this.completedCount, color: '#10b981' },
+      { value: 'PROCESSING', label: 'Đang xử lý', count: this.processingCount, color: '#3b82f6' },
+      { value: 'PENDING', label: 'Chờ duyệt', count: this.pendingApprovalCount, color: '#f59e0b' },
+      { value: 'CANCELLED', label: 'Đã hủy', count: this.cancelledCount, color: '#9ca3af' }
+    ];
+  }
+
+  getStatusLabel(): string {
+    const opt = this.statusOptionsWithCount.find(o => o.value === this.statusFilter);
+    return opt ? `${opt.label} (${opt.count})` : `Tất cả (${this.totalCount})`;
+  }
+
+  onSelectStatus(status: string) {
+    this.statusFilter = status;
+    this.showStatusDropdown = false;
+  }
+
+  setTypeFilter(type: 'all' | 'import' | 'export' | 'transfer') {
+    this.typeFilter = this.typeFilter === type ? 'all' : type;
+  }
+
+  onSelectLocation(location: string) {
+    this.locationFilter = location;
+    this.showLocationDropdown = false;
+  }
 
   // Transaction Modal (Nhập / Xuất)
   modalConfig = {
@@ -88,6 +124,20 @@ export class InventoryTransactionsComponent implements OnInit {
 
   ngOnInit() {
     this.fetchOrders();
+    this.fetchWarehouses();
+  }
+
+  fetchWarehouses() {
+    this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/warehouses`).subscribe({
+      next: (warehouses) => {
+        if (Array.isArray(warehouses) && warehouses.length > 0) {
+          const names = warehouses.map(w => w.name);
+          const merged = new Set(['Tất cả chi nhánh', 'Kho Tổng (TP.HCM)', 'Kho Hà Nội', 'Showroom Quận 1', 'Showroom Thủ Đức', ...names]);
+          this.locations = Array.from(merged);
+        }
+      },
+      error: () => {}
+    });
   }
 
   fetchOrders() {
@@ -343,6 +393,22 @@ export class InventoryTransactionsComponent implements OnInit {
     return this.data.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING').length;
   }
 
+  get completedCount(): number {
+    return this.data.filter(o => o.status === 'COMPLETED').length;
+  }
+
+  get processingCount(): number {
+    return this.data.filter(o => o.status === 'PROCESSING').length;
+  }
+
+  get pendingApprovalCount(): number {
+    return this.data.filter(o => o.status === 'PENDING').length;
+  }
+
+  get cancelledCount(): number {
+    return this.data.filter(o => o.status === 'CANCELLED').length;
+  }
+
   get totalImportValue(): number {
     return this.data.filter(o => o.type === 'import').reduce((acc, cur) => acc + cur.totalAmount, 0);
   }
@@ -381,9 +447,18 @@ export class InventoryTransactionsComponent implements OnInit {
     this.activeActionMenu = this.activeActionMenu === id ? null : id;
   }
 
-  @HostListener('document:click')
-  closeActionMenu() {
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event?: MouseEvent) {
     this.activeActionMenu = null;
+    if (event) {
+      const target = event.target as HTMLElement;
+      if (target && !target.closest('.location-filter-wrapper')) {
+        this.showLocationDropdown = false;
+      }
+      if (target && !target.closest('.status-filter-wrapper')) {
+        this.showStatusDropdown = false;
+      }
+    }
   }
 
   // Modal handlers
@@ -547,11 +622,34 @@ export class InventoryTransactionsComponent implements OnInit {
     window.alert(`Đang trích xuất dữ liệu danh sách lệnh kho ra file Excel...`);
   }
 
-  setTypeFilter(type: 'all' | 'import' | 'export' | 'transfer') {
-    this.typeFilter = type;
-  }
 
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+  }
+
+  getOrderTime(dateStr: string): string {
+    if (!dateStr) return '';
+    const timeMatch = dateStr.match(/\b\d{1,2}:\d{2}\b/);
+    if (timeMatch) return timeMatch[0];
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch {}
+    return dateStr;
+  }
+
+  getOrderDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const dateMatch = dateStr.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/);
+    if (dateMatch) return dateMatch[0];
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+    } catch {}
+    return '';
   }
 }

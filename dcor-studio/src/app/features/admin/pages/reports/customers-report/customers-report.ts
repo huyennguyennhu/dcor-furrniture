@@ -5,8 +5,9 @@ import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { 
   LucideAngularModule, 
-  Calendar, Download, ChevronDown, Users, Award, MapPin 
+  Calendar, Download, ChevronDown, Users, Award, MapPin, Clock, Check 
 } from 'lucide-angular';
+import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { ReportService, CustomersReportData } from '../../../../../core/services/report.service';
 
 const PIE_COLORS = ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71', '#9b59b6'];
@@ -14,18 +15,18 @@ const PIE_COLORS = ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71', '#9b59b6'];
 @Component({
   selector: 'app-customers-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule],
+  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule, IconComponent],
   providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './customers-report.html',
   styleUrls: ['./customers-report.css']
 })
 export class CustomersReportComponent implements OnInit {
-  icons = { Calendar, Download, ChevronDown, Users, Award, MapPin };
+  icons = { Calendar, Download, ChevronDown, Users, Award, MapPin, Clock, Check };
 
   private reportService = inject(ReportService);
   private cdr = inject(ChangeDetectorRef);
 
-  isLoading = false;
+  isLoading = true;
   timeRange = '7_days';
   showTimeDropdown = false;
   

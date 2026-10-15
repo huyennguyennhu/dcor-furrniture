@@ -855,17 +855,33 @@ export interface LineItem {
                     <button 
                       type="button"
                       (click)="toggleProductDropdown(item.id, $event)"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                      [style.color]="item.productId ? 'var(--text-primary)' : 'var(--text-muted)'"
+                      [disabled]="!transactionLocation"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
+                      [ngStyle]="{
+                        'background': !transactionLocation ? '#f4f4f5' : 'var(--bg-primary)',
+                        'cursor': !transactionLocation ? 'not-allowed' : 'pointer',
+                        'opacity': !transactionLocation ? '0.65' : '1',
+                        'color': !transactionLocation ? '#a1a1aa' : (item.productId ? 'var(--text-primary)' : 'var(--text-muted)'),
+                        'border': !transactionLocation ? '1px dashed #d4d4d8' : '1px solid var(--border-color)'
+                      }"
+                      [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm' : ''"
                     >
                       <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ getProductLabel(item.productId) }}
+                        {{ !transactionLocation ? 'Chọn kho trước' : getProductLabel(item.productId) }}
                       </span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [ngStyle]="{'transform': openProductDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'flex-shrink': '0'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                        [ngStyle]="{
+                          'transform': openProductDropdownId === item.id ? 'rotate(180deg)' : 'none', 
+                          'transition': 'transform 0.2s', 
+                          'flex-shrink': '0',
+                          'opacity': !transactionLocation ? '0.35' : '1'
+                        }">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
                     </button>
                     
                     <!-- Product Popup with Search: Tự động Dropup/Dropdown theo vị trí -->
-                    <div *ngIf="openProductDropdownId === item.id" 
+                    <div *ngIf="openProductDropdownId === item.id && transactionLocation" 
                       [ngStyle]="{
                         'position': 'absolute',
                         'left': '0',
@@ -932,33 +948,33 @@ export interface LineItem {
                     <button 
                       type="button"
                       (click)="toggleVariantDropdown(item, $event)"
-                      [disabled]="!item.productId"
+                      [disabled]="!transactionLocation || !item.productId"
                       style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
                       [ngStyle]="{
-                        'background': !item.productId ? '#f4f4f5' : 'var(--bg-primary)',
-                        'cursor': !item.productId ? 'not-allowed' : 'pointer',
-                        'opacity': !item.productId ? '0.65' : '1',
-                        'color': !item.productId ? '#a1a1aa' : (item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'),
-                        'border': !item.productId ? '1px dashed #d4d4d8' : '1px solid var(--border-color)'
+                        'background': (!transactionLocation || !item.productId) ? '#f4f4f5' : 'var(--bg-primary)',
+                        'cursor': (!transactionLocation || !item.productId) ? 'not-allowed' : 'pointer',
+                        'opacity': (!transactionLocation || !item.productId) ? '0.65' : '1',
+                        'color': (!transactionLocation || !item.productId) ? '#a1a1aa' : (item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'),
+                        'border': (!transactionLocation || !item.productId) ? '1px dashed #d4d4d8' : '1px solid var(--border-color)'
                       }"
-                      [attr.title]="!item.productId ? 'Vui lòng chọn sản phẩm trước' : ''"
+                      [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : (!item.productId ? 'Vui lòng chọn sản phẩm trước' : '')"
                     >
                       <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ getVariantDisplay(item) }}
+                        {{ !transactionLocation ? 'Chọn kho trước' : getVariantDisplay(item) }}
                       </span>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
                         [ngStyle]="{
                           'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 
                           'transition': 'transform 0.2s', 
                           'flex-shrink': '0',
-                          'opacity': !item.productId ? '0.35' : '1'
+                          'opacity': (!transactionLocation || !item.productId) ? '0.35' : '1'
                         }">
                         <polyline points="6 9 12 15 18 9"></polyline>
                       </svg>
                     </button>
 
                     <!-- Variant Popup Menu: Tự động Dropup/Dropdown theo vị trí -->
-                    <div *ngIf="openVariantDropdownId === item.id && item.productId"
+                    <div *ngIf="openVariantDropdownId === item.id && transactionLocation && item.productId"
                       class="custom-dropdown-scrollbar"
                       [ngStyle]="{
                         'position': 'absolute',
@@ -1224,6 +1240,7 @@ export interface LineItem {
                   'cursor': canAddNewLine() ? 'pointer' : 'not-allowed',
                   'opacity': canAddNewLine() ? 1 : 0.5
                 }"
+                [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi thêm sản phẩm' : (!canAddNewLine() ? 'Vui lòng hoàn thành thông tin dòng sản phẩm hiện tại trước' : '')"
               >
                 <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Thêm sản phẩm
               </button>
@@ -2233,6 +2250,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   toggleProductDropdown(itemId: string, event: Event) {
     event.stopPropagation();
+    if (!this.transactionLocation) {
+      this.triggerToast('Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm!', '', 'warning');
+      return;
+    }
     if (this.openProductDropdownId === itemId) {
       this.openProductDropdownId = null;
     } else {
@@ -2253,6 +2274,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   toggleVariantDropdown(item: LineItem, event: Event) {
     event.stopPropagation();
+    if (!this.transactionLocation) {
+      this.triggerToast('Vui lòng chọn chi nhánh / kho trước!', '', 'warning');
+      return;
+    }
     if (!item.productId) return; // Chặn tuyệt đối khi chưa chọn sản phẩm
     if (this.openVariantDropdownId === item.id) {
       this.openVariantDropdownId = null;
@@ -2468,6 +2493,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handleAddLineItem() {
+    if (!this.transactionLocation) {
+      this.triggerToast('Vui lòng chọn chi nhánh / kho trước khi thêm sản phẩm!', '', 'warning');
+      return;
+    }
+    if (!this.canAddNewLine()) return;
     this.lineItems.push({
       id: Date.now().toString() + Math.random(),
       productId: '',
@@ -2527,7 +2557,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   canAddNewLine() {
-    return this.lineItems.every((item: any) => item.productId && item.variantId);
+    return !!this.transactionLocation && this.lineItems.every((item: any) => item.productId && item.variantId);
   }
 
   buildFormData(status: 'PENDING' | 'COMPLETED', action: 'draft' | 'confirm') {

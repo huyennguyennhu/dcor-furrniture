@@ -15,4 +15,7 @@ router.get('/products', reportController.getProductsReport);
 // 4. Báo cáo khách hàng
 router.get('/customers', reportController.getCustomersReport);
 
+// 5. Báo cáo tổng quan
+router.get('/overview', reportController.getOverviewReport);
+
 export default router;

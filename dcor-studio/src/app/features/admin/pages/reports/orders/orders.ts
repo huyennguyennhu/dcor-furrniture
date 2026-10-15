@@ -5,8 +5,9 @@ import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { 
   LucideAngularModule, 
-  Calendar, Download, ChevronDown, Filter, Truck, CreditCard, Activity 
+  Calendar, Download, ChevronDown, Filter, Truck, CreditCard, Activity, Clock, Check 
 } from 'lucide-angular';
+import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { ReportService, OrdersReportData } from '../../../../../core/services/report.service';
 
 const PIE_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e74c3c'];
@@ -14,18 +15,18 @@ const PIE_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e74c3c'];
 @Component({
   selector: 'app-orders-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule],
+  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule, IconComponent],
   providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './orders.html',
   styleUrls: ['./orders.css']
 })
 export class OrdersComponent implements OnInit {
-  icons = { Calendar, Download, ChevronDown, Filter, Truck, CreditCard, Activity };
+  icons = { Calendar, Download, ChevronDown, Filter, Truck, CreditCard, Activity, Clock, Check };
 
   private reportService = inject(ReportService);
   private cdr = inject(ChangeDetectorRef);
 
-  isLoading = false;
+  isLoading = true;
   timeRange = '7_days';
   showTimeDropdown = false;
   

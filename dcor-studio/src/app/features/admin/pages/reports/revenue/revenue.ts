@@ -5,8 +5,9 @@ import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { 
   LucideAngularModule, 
-  Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square, Filter, Tag, Layers 
+  Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square, Filter, Tag, Layers, Clock, Check 
 } from 'lucide-angular';
+import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { ReportService, RevenueReportData } from '../../../../../core/services/report.service';
 
 const PIE_COLORS = ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71', '#9b59b6', '#e67e22'];
@@ -14,18 +15,18 @@ const PIE_COLORS = ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71', '#9b59b6', '#e67
 @Component({
   selector: 'app-revenue',
   standalone: true,
-  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule],
+  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule, IconComponent],
   providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './revenue.html',
   styleUrls: ['./revenue.css']
 })
 export class RevenueComponent implements OnInit {
-  icons = { Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square, Filter, Tag, Layers };
+  icons = { Calendar, MapPin, Download, RefreshCw, ChevronDown, CheckSquare, Square, Filter, Tag, Layers, Clock, Check };
 
   private reportService = inject(ReportService);
   private cdr = inject(ChangeDetectorRef);
 
-  isLoading = false;
+  isLoading = true;
   compare = false;
   timeRange = '7_days';
   showTimeDropdown = false;

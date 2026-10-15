@@ -167,4 +167,57 @@ export class ReportService {
     });
     return this.http.get<CustomersReportData>(`${this.baseUrl}/customers`, { params: httpParams });
   }
+
+  getOverviewReport(params: {
+    timeRange?: string;
+    showroom?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Observable<OverviewReportData> {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val) httpParams = httpParams.set(key, val);
+    });
+    return this.http.get<OverviewReportData>(`${this.baseUrl}/overview`, { params: httpParams });
+  }
 }
+
+export interface OverviewReportData {
+  kpi: {
+    totalRevenue: number;
+    revenueGrowth: number;
+    totalOrders: number;
+    ordersGrowth: number;
+    totalCustomers: number;
+    newCustomers: number;
+    totalProducts: number;
+    lowStockProducts: number;
+    totalAppointments: number;
+    upcomingAppointments: number;
+  };
+  revenueChart: {
+    labels: string[];
+    current: number[];
+    previous: number[];
+  };
+  orderStatusData: { name: string; value: number }[];
+  categoryRevenueData: { name: string; value: number }[];
+  funnelData: { value: number; name: string; fill: string }[];
+  topProducts: {
+    id: number | string;
+    name: string;
+    sku: string;
+    sales: number;
+    revenue: string;
+    stock: number;
+  }[];
+  topCustomers: {
+    id: string;
+    name: string;
+    phone: string;
+    orders: number;
+    totalSpent: string;
+    rank: string;
+  }[];
+}
+

@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma, { withDbRetry } from '../lib/prisma';
 
 let cachedWarehouses: any[] = [
   { id: '24114aab-767b-4877-b256-dc775fa88f66', code: 'KHO_TONG_HCM', name: 'Kho Tổng (TP.HCM)', type: 'CENTRAL_WAREHOUSE' },
@@ -23,6 +21,13 @@ interface OverviewSummary {
 }
 
 const summaryCache = new Map<string, { data: OverviewSummary; timestamp: number }>();
+let productsWithOptionsCache: { data: any[]; timestamp: number } | null = null;
+const PRODUCTS_CACHE_TTL = 60 * 1000; // 60 seconds
+
+function clearInventoryCaches() {
+  summaryCache.clear();
+  productsWithOptionsCache = null;
+}
 
 function resolveVariantNameAndImage(v: any, prod: any) {
   let nameParts: string[] = [];
@@ -470,44 +475,50 @@ export const inventoryController = {
   // 2. Lấy danh sách Sản phẩm kèm đầy đủ Biến thể & Tồn kho theo từng kho thực tế cho Form
   getProductsWithOptions: async (req: Request, res: Response) => {
     try {
-      const products = await prisma.product.findMany({
-        where: { isActive: true },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          basePrice: true,
-          images: true,
-          configOptions: true,
-          category: {
-            select: { id: true, name: true, parentId: true }
-          },
-          variants: {
-            where: { isActive: true },
-            select: {
-              id: true,
-              sku: true,
-              name: true,
-              price: true,
-              stock: true,
-              reservedStock: true,
-              optionValues: true,
-              warehouseStocks: {
-                select: {
-                  warehouseId: true,
-                  physicalStock: true,
-                  reservedStock: true,
-                  warehouse: {
-                    select: { id: true, name: true, code: true }
+      if (productsWithOptionsCache && (Date.now() - productsWithOptionsCache.timestamp < PRODUCTS_CACHE_TTL)) {
+        return res.json(productsWithOptionsCache.data);
+      }
+
+      const products = await withDbRetry(() =>
+        prisma.product.findMany({
+          where: { isActive: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            basePrice: true,
+            images: true,
+            configOptions: true,
+            category: {
+              select: { id: true, name: true, parentId: true }
+            },
+            variants: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                sku: true,
+                name: true,
+                price: true,
+                stock: true,
+                reservedStock: true,
+                optionValues: true,
+                warehouseStocks: {
+                  select: {
+                    warehouseId: true,
+                    physicalStock: true,
+                    reservedStock: true,
+                    warehouse: {
+                      select: { id: true, name: true, code: true }
+                    }
                   }
                 }
-              }
-            },
-            orderBy: { name: 'asc' }
-          }
-        },
-        orderBy: { name: 'asc' }
-      });
+              },
+              orderBy: { name: 'asc' }
+            }
+          },
+          orderBy: { name: 'asc' }
+        })
+      );
       const formatted = products.map((p: any) => ({
         ...p,
         sku: p.variants?.[0]?.sku || `SKU-${p.id.slice(0, 8).toUpperCase()}`,
@@ -520,6 +531,12 @@ export const inventoryController = {
           };
         })
       }));
+
+      productsWithOptionsCache = {
+        data: formatted,
+        timestamp: Date.now()
+      };
+
       res.json(formatted);
     } catch (error) {
       console.error('Error fetching products with options:', error);
@@ -774,7 +791,7 @@ export const inventoryController = {
         }
       }
 
-      summaryCache.clear();
+      clearInventoryCaches();
       res.status(201).json({
         ...newOrder,
         totalAmount: Number(newOrder.totalAmount || 0),
@@ -832,7 +849,7 @@ export const inventoryController = {
             console.warn('Error adjusting stock on status complete:', e);
           }
         }
-        summaryCache.clear();
+        clearInventoryCaches();
       }
 
       res.json(updated);
@@ -1019,7 +1036,7 @@ export const inventoryController = {
         }
       }
 
-      summaryCache.clear();
+      clearInventoryCaches();
       res.status(201).json(newAudit);
     } catch (error) {
       console.error('Error creating stock audit:', error);
@@ -1155,7 +1172,7 @@ export const inventoryController = {
         }
       }
 
-      summaryCache.clear();
+      clearInventoryCaches();
       res.json(updatedAudit);
     } catch (error) {
       console.error('Error updating stock audit:', error);

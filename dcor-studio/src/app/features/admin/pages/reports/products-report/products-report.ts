@@ -5,8 +5,9 @@ import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { 
   LucideAngularModule, 
-  Calendar, Download, ChevronDown, Package, Star, Link as LinkIcon, Search, Tag, Layers, Filter, Activity 
+  Calendar, Download, ChevronDown, Package, Star, Link as LinkIcon, Search, Tag, Layers, Filter, Activity, Clock, Check 
 } from 'lucide-angular';
+import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { ReportService, ProductsReportData } from '../../../../../core/services/report.service';
 
 const PIE_COLORS = ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71', '#9b59b6'];
@@ -22,18 +23,18 @@ const MATRIX_ROWS: { name: string, values: Record<string, number> }[] = [
 @Component({
   selector: 'app-products-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule],
+  imports: [CommonModule, FormsModule, BaseChartDirective, LucideAngularModule, IconComponent],
   providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './products-report.html',
   styleUrls: ['./products-report.css']
 })
 export class ProductsReportComponent implements OnInit {
-  icons = { Calendar, Download, ChevronDown, Package, Star, LinkIcon, Search, Tag, Layers, Filter, Activity };
+  icons = { Calendar, Download, ChevronDown, Package, Star, LinkIcon, Search, Tag, Layers, Filter, Activity, Clock, Check };
 
   private reportService = inject(ReportService);
   private cdr = inject(ChangeDetectorRef);
 
-  isLoading = false;
+  isLoading = true;
   timeRange = '7_days';
   showTimeDropdown = false;
   
