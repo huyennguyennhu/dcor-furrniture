@@ -255,7 +255,7 @@
       <tbody>
         <tr 
           *ngFor="let order of filteredOrders" 
-          (click)="viewOrderDetail(order)"
+          (click)="viewOrderInModal(order, $event)"
           style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s;"
           [style.background]="selectedIds.has(order.id) ? 'rgba(var(--accent-rgb), 0.04)' : 'transparent'"
           onmouseover="this.style.background='#F3E5D3'"
@@ -334,18 +334,15 @@
           <td style="padding: 12px 14px;">
             <span 
               style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;"
-              [style.background]="order.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : (order.status === 'PROCESSING' ? 'rgba(59,130,246,0.12)' : (order.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.12)'))"
-              [style.color]="order.status === 'COMPLETED' ? '#059669' : (order.status === 'PROCESSING' ? '#2563eb' : (order.status === 'PENDING' ? '#d97706' : '#4b5563'))"
+              [style.background]="getStatusBg(order.status)"
+              [style.color]="getStatusColor(order.status)"
             >
-              <lucide-angular *ngIf="order.status === 'COMPLETED'" [img]="icons.CheckCircle2" size="12"></lucide-angular>
-              <lucide-angular *ngIf="order.status === 'PROCESSING'" [img]="icons.Clock" size="12"></lucide-angular>
-              <lucide-angular *ngIf="order.status === 'PENDING'" [img]="icons.AlertCircle" size="12"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'COMPLETED' || order.status === 'EXPORTED' || order.status === 'IMPORTED'" [img]="icons.CheckCircle2" size="12"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'PROCESSING' || order.status === 'PLANNED'" [img]="icons.Clock" size="12"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'PENDING' || order.status === 'DRAFT'" [img]="icons.AlertCircle" size="12"></lucide-angular>
               <lucide-angular *ngIf="order.status === 'CANCELLED'" [img]="icons.X" size="12"></lucide-angular>
               
-              <span *ngIf="order.status === 'COMPLETED'">Hoàn tất</span>
-              <span *ngIf="order.status === 'PROCESSING'">Đang xử lý</span>
-              <span *ngIf="order.status === 'PENDING'">Chờ duyệt</span>
-              <span *ngIf="order.status === 'CANCELLED'">Đã hủy</span>
+              <span>{{ getStatusBadgeLabel(order.status, order.type) }}</span>
             </span>
           </td>
 
@@ -363,14 +360,14 @@
 
               <!-- Dropdown Action Menu -->
               <div *ngIf="activeActionMenu === order.id" style="position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); min-width: 155px; z-index: 50; padding: 4px; display: flex; flex-direction: column;">
-                <button (click)="viewOrderDetail(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
+                <button (click)="viewOrderInModal(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
                   <lucide-angular [img]="icons.Eye" size="14"></lucide-angular> Xem chi tiết
                 </button>
                 <button (click)="printOrder(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
                   <lucide-angular [img]="icons.Printer" size="14"></lucide-angular> In phiếu lệnh
                 </button>
                 <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--border-color);" />
-                <button *ngIf="order.status !== 'COMPLETED'" (click)="updateOrderStatus(order, 'COMPLETED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #059669; cursor: pointer; text-align: left;">
+                <button *ngIf="order.status !== 'COMPLETED' && order.status !== 'EXPORTED' && order.status !== 'IMPORTED'" (click)="updateOrderStatus(order, 'COMPLETED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #059669; cursor: pointer; text-align: left;">
                   <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular> Đã hoàn tất
                 </button>
                 <button *ngIf="order.status !== 'CANCELLED'" (click)="updateOrderStatus(order, 'CANCELLED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #d97706; cursor: pointer; text-align: left;">
@@ -532,7 +529,11 @@
     [initialVariantId]="modalConfig.initialVariantId"
     [isProductFixed]="modalConfig.isProductFixed"
     [isVariantFixed]="modalConfig.isVariantFixed"
+    [viewOrderData]="modalConfig.viewOrderData"
     (onClose)="closeModal()"
     (onSubmit)="handleModalSubmit($event)"
+    (onStatusChange)="handleOrderStatusChange($event)"
+    (onDeleteOrder)="handleDeleteOrder($event)"
+    (onUpdateOrder)="handleUpdateOrder($event)"
   ></app-transaction-modal>
 </div>

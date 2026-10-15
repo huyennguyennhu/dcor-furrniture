@@ -20,6 +20,8 @@ router.get('/product/:id', inventoryController.getProductInventoryDetail);
 router.get('/orders', inventoryController.getStockOrders);
 router.post('/orders', inventoryController.createStockOrder);
 router.put('/orders/:id/status', inventoryController.updateStockOrderStatus);
+router.put('/orders/:id', inventoryController.updateStockOrder);
+router.delete('/orders/:id', inventoryController.deleteStockOrder);
 
 // Stock Audits (Tab 2)
 router.get('/audits', inventoryController.getStockAudits);

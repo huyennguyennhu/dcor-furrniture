@@ -6,7 +6,7 @@ import {
   LucideAngularModule, 
   X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
   Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-  CheckSquare, Square, Package, Percent
+  CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw
 } from 'lucide-angular';
 import { environment } from '../../../../../environments/environment';
 
@@ -21,6 +21,9 @@ export interface LineItem {
   expiryDate?: string;
   isProductFixed: boolean;
   isVariantFixed: boolean;
+  productNameDisplay?: string;
+  variantNameDisplay?: string;
+  skuDisplay?: string;
 }
 
 @Component({
@@ -320,8 +323,18 @@ export interface LineItem {
             </div>
             <div>
               <h2 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                {{ type === 'import' ? 'Tạo phiếu Nhập kho' : 'Tạo phiếu Xuất kho' }}
+                <ng-container *ngIf="!isViewMode">
+                  {{ type === 'import' ? 'Tạo phiếu Nhập kho' : 'Tạo phiếu Xuất kho' }}
+                </ng-container>
+                <ng-container *ngIf="isViewMode">
+                  <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary); margin-right: 4px;">{{ type === 'import' ? 'Phiếu nhập kho' : 'Phiếu xuất kho' }}</span>
+                  <span style="font-family: monospace; color: var(--accent); font-size: 17px;">{{ viewOrderData?.auditCode || viewOrderData?.id }}</span>
+                </ng-container>
               </h2>
+              <div *ngIf="isViewMode" style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <span [ngStyle]="{'background': getViewStatusBg(), 'color': getViewStatusColor()}" style="font-size: 11.5px; font-weight: 600; padding: 2px 10px; border-radius: 20px; letter-spacing: 0.3px;">{{ getViewStatusLabel() }}</span>
+                <span style="font-size: 12px; color: var(--text-muted);">{{ viewOrderData?.date || viewOrderData?.createdAt }}</span>
+              </div>
             </div>
           </div>
           <button type="button" (click)="requestClose()" class="admin-close-btn" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px;" title="Đóng">
@@ -332,8 +345,47 @@ export interface LineItem {
         <!-- Body: scrollable container with clean padding -->
         <div class="modal-body-scroll" style="flex: 1; min-height: 0; padding: 20px 24px; overflow-y: auto; overflow-x: auto; display: flex; flex-direction: column; gap: 20px;">
           
+          <!-- View-mode Lifecycle Banners -->
+          <div *ngIf="isViewMode && isPlanned" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 8px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.25); color: #6d28d9; font-size: 13px;">
+            <lucide-angular [img]="icons.AlertCircle" size="18" style="flex-shrink: 0; color: #7c3aed;"></lucide-angular>
+            <div *ngIf="type === 'export'">
+              <strong>Cơ chế Tạm giữ hàng (Reserved):</strong> Hệ thống đang tạm giữ số lượng sản phẩm cho phiếu xuất này. Tồn kho thực tế trên sổ sách chưa bị trừ cho đến khi bấm [Xác nhận Xuất kho]. Danh sách hàng hóa đã được khóa cố định.
+            </div>
+            <div *ngIf="type === 'import'">
+              <strong>Cơ chế Hàng đang về (On-Order / Incoming Stock):</strong> Hệ thống ghi nhận số lượng hàng này đang trên đường về kho / chờ kiểm đếm. Tồn kho thực tế (Physical Stock) chưa cộng, nhưng hệ thống biết trước để lên kế hoạch xếp kệ. Danh sách hàng hóa đã được khóa cố định.
+            </div>
+          </div>
+
+          <div *ngIf="isViewMode && isCompletedStock" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); color: #047857; font-size: 13px;">
+            <lucide-angular [img]="icons.CheckCircle2" size="18" style="flex-shrink: 0; color: #10b981;"></lucide-angular>
+            <div *ngIf="type === 'export'">
+              <strong>Đã xuất kho thành công:</strong> Hàng hóa đã bàn giao, tồn kho thực tế của chi nhánh đã được trừ chính thức và chứng từ đã khóa vĩnh viễn (Read-only).
+            </div>
+            <div *ngIf="type === 'import'">
+              <strong>Đã nhập kho thành công:</strong> Hàng hóa đã kiểm đếm đủ, tồn kho thực tế của kho nhận đã được cộng chính thức và chứng từ đã khóa vĩnh viễn (Read-only).
+            </div>
+          </div>
+
+          <div *ngIf="isViewMode && isCancelled" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #b91c1c; font-size: 13px;">
+            <lucide-angular [img]="icons.Ban" size="18" style="flex-shrink: 0; color: #ef4444; margin-top: 1px;"></lucide-angular>
+            <div>
+              <strong>Phiếu đã bị hủy:</strong> {{ getCancelReasonText() ? ('Lý do: ' + getCancelReasonText()) : 'Phiếu đã hủy và không còn hiệu lực trên hệ thống.' }}
+            </div>
+          </div>
+
+          <div *ngIf="isViewMode && isDraft && !isEditingDraft" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-radius: 8px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); color: #b45309; font-size: 13px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <lucide-angular [img]="icons.AlertCircle" size="16" style="flex-shrink: 0; color: #d97706;"></lucide-angular>
+              <span>Phiếu đang ở trạng thái <strong>Nháp</strong>. Hàng hóa {{ type === 'import' ? 'chưa được cộng vào' : 'chưa bị trừ khỏi' }} kho. Bấm <strong>[Sửa]</strong> để thay đổi nội dung phiếu.</span>
+            </div>
+            <button type="button" (click)="startEditDraft()" style="padding: 5px 12px; border-radius: 6px; border: 1px solid #d97706; background: #fff; color: #b45309; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <lucide-angular [img]="icons.Pencil" size="13"></lucide-angular>
+              Chỉnh sửa phiếu
+            </button>
+          </div>
+
           <!-- General Info Card -->
-          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+          <div [style.pointer-events]="isFormDisabled ? 'none' : 'auto'" [style.opacity]="isFormDisabled ? '0.95' : '1'" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
             
             <!-- FORM BỐ TRÍ DÀNH RIÊNG CHO PHIẾU XUẤT KHO -->
             <ng-container *ngIf="type === 'export'">
@@ -910,6 +962,7 @@ export interface LineItem {
             <!-- Rows: Có z-index phân tầng để dropdown không bị các dòng bên dưới đè -->
             <div style="display: flex; flex-direction: column; gap: 10px; overflow: visible;">
               <div *ngFor="let item of lineItems; let i = index" 
+                   [style.pointer-events]="isFormDisabled ? 'none' : 'auto'"
                    [ngStyle]="{
                      'display': 'grid', 
                      'grid-template-columns': getGridColumns(), 
@@ -926,29 +979,29 @@ export interface LineItem {
                 <!-- 1. Sản phẩm: Khóa khi chưa chọn kho -->
                 <div style="position: relative;">
                   <div *ngIf="item.isProductFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ getProductLabel(item.productId) }}
+                    {{ getProductLabel(item.productId, item) }}
                   </div>
                   <div *ngIf="!item.isProductFixed" 
                        (click)="!transactionLocation && focusLocationDropdown($event)"
                        style="position: relative; width: 100%;">
                     <button 
-                      type="button"
-                      (click)="toggleProductDropdown(item.id, $event)"
-                      [disabled]="!transactionLocation"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
-                      [ngStyle]="{
-                        'background': !transactionLocation ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'cursor': !transactionLocation ? 'not-allowed' : 'pointer',
-                        'opacity': !transactionLocation ? '0.7' : '1',
-                        'color': !transactionLocation ? 'var(--text-muted)' : (item.productId ? 'var(--text-primary)' : 'var(--text-muted)'),
-                        'border': !transactionLocation ? '1px dashed var(--border-color)' : '1px solid var(--border-color)'
-                      }"
-                      [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm' : ''"
+                       type="button"
+                       (click)="toggleProductDropdown(item.id, $event)"
+                       [disabled]="!transactionLocation || isFormDisabled"
+                       style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
+                       [ngStyle]="{
+                         'background': (!transactionLocation || isFormDisabled) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                         'cursor': (!transactionLocation || isFormDisabled) ? 'not-allowed' : 'pointer',
+                         'opacity': (!transactionLocation) ? '0.7' : '1',
+                         'color': !transactionLocation ? 'var(--text-muted)' : (item.productId ? 'var(--text-primary)' : 'var(--text-muted)'),
+                         'border': !transactionLocation ? '1px dashed var(--border-color)' : '1px solid var(--border-color)'
+                       }"
+                       [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm' : ''"
                     >
                       <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
                         <lucide-angular *ngIf="!transactionLocation" [img]="icons.Lock" size="13" style="color: var(--text-muted); flex-shrink: 0;"></lucide-angular>
                         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                          {{ !transactionLocation ? 'Chọn sản phẩm' : getProductLabel(item.productId) }}
+                          {{ !transactionLocation ? 'Chọn sản phẩm' : getProductLabel(item.productId, item) }}
                         </span>
                       </div>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
@@ -1311,6 +1364,7 @@ export interface LineItem {
                 <!-- 9. Delete Row -->
                 <div style="display: flex; justify-content: center; align-items: center; height: 38px;">
                   <button 
+                    *ngIf="!isFormDisabled"
                     (click)="handleRemoveLineItem(item.id)"
                     [disabled]="!transactionLocation || lineItems.length === 1"
                     [ngStyle]="{
@@ -1332,7 +1386,7 @@ export interface LineItem {
             </div>
 
             <!-- Add item button: Khóa kèm hướng dẫn khi chưa chọn kho -->
-            <div (click)="!transactionLocation && focusLocationDropdown($event)" style="margin-top: 4px; display: inline-block;">
+            <div *ngIf="!isFormDisabled" (click)="!transactionLocation && focusLocationDropdown($event)" style="margin-top: 4px; display: inline-block;">
               <button 
                 type="button"
                 (click)="handleAddLineItem()"
@@ -1501,23 +1555,25 @@ export interface LineItem {
           </div>
         </div>
 
-        <!-- Footer với 3 nút chức năng (z-index: 20 để không che dropdown khi dropup) -->
+
+        <!-- Footer: create mode vs view mode -->
         <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); z-index: 20; position: relative;">
-          <!-- Left info: Tóm tắt trạng thái -->
-          <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+
+          <!-- Left summary (only in create mode) -->
+          <div *ngIf="!isViewMode" style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
             <span>Mã phiếu: <strong style="font-family: monospace; color: var(--text-primary);">{{ orderCode }}</strong></span>
             <span>•</span>
             <span>Tổng SP: <strong style="color: var(--text-primary);">{{ getTotalQuantity() }}</strong></span>
             <span>•</span>
             <span>Tổng tiền: <strong style="color: #059669; font-size: 13px;">{{ formatCurrency(getFinalTotal()) }}</strong></span>
           </div>
+          <!-- Close button in view mode (left) -->
+          <button *ngIf="isViewMode" type="button" (click)="requestClose()" class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">Đóng</button>
 
-          <!-- 3 Nút hành động cốt lõi -->
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <!-- Nút 1: HỦY (Hủy bỏ) -->
-            <button 
-              type="button"
-              (click)="requestClose()" 
+          <!-- CREATE MODE: Hủy + Lưu nháp + Tạo phiếu -->
+          <div *ngIf="!isViewMode" style="display: flex; align-items: center; gap: 10px;">
+            <!-- Nút 1: HỦY -->
+            <button type="button" (click)="requestClose()"
               style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
               onmouseover="this.style.background='var(--bg-secondary)'"
               onmouseout="this.style.background='var(--bg-primary)'"
@@ -1525,22 +1581,15 @@ export interface LineItem {
               Hủy
             </button>
 
-            <!-- Nút 2: LƯU NHÁP (Draft) - Bị khóa khi chưa điền đủ các trường bắt buộc -->
-            <button 
-              type="button"
-              (click)="handleSaveDraft()" 
-              [disabled]="!canSaveDraft()"
+            <!-- Nút 2: LƯU NHÁP -->
+            <button type="button" (click)="handleSaveDraft()" [disabled]="!canSaveDraft()"
               [ngStyle]="{
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '6px',
-                'padding': '9px 18px',
-                'border-radius': '8px',
+                'display': 'flex', 'align-items': 'center', 'gap': '6px',
+                'padding': '9px 18px', 'border-radius': '8px',
                 'border': '1px solid ' + (!canSaveDraft() ? 'var(--border-color)' : '#d97706'),
                 'background': !canSaveDraft() ? 'var(--bg-secondary)' : '#fffbeb',
                 'color': !canSaveDraft() ? 'var(--text-muted)' : '#b45309',
-                'font-size': '13px',
-                'font-weight': '600',
+                'font-size': '13px', 'font-weight': '600',
                 'cursor': !canSaveDraft() ? 'not-allowed' : 'pointer',
                 'opacity': !canSaveDraft() ? '0.45' : '1',
                 'transition': 'all 0.15s ease'
@@ -1553,22 +1602,14 @@ export interface LineItem {
               Lưu nháp
             </button>
 
-            <!-- Nút 3: TẠO PHIẾU (Hoàn thành) - Bị khóa khi chưa điền đủ các trường bắt buộc hoặc vượt tồn kho -->
-            <button 
-              type="button"
-              (click)="handleSubmitConfirmed()" 
-              [disabled]="!canSubmitOrder()"
+            <!-- Nút 3: TẠO PHIẾU XUẤT (PLANNED) -->
+            <button type="button" (click)="handleSubmitConfirmed()" [disabled]="!canSubmitOrder()"
               [ngStyle]="{
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '6px',
-                'padding': '9px 24px',
-                'border-radius': '8px',
-                'border': 'none',
+                'display': 'flex', 'align-items': 'center', 'gap': '6px',
+                'padding': '9px 24px', 'border-radius': '8px', 'border': 'none',
                 'background': !canSubmitOrder() ? 'var(--border-color)' : '#765337',
                 'color': !canSubmitOrder() ? 'var(--text-muted)' : '#ffffff',
-                'font-size': '13px',
-                'font-weight': '600',
+                'font-size': '13px', 'font-weight': '600',
                 'cursor': !canSubmitOrder() ? 'not-allowed' : 'pointer',
                 'opacity': !canSubmitOrder() ? '0.55' : '1',
                 'box-shadow': !canSubmitOrder() ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
@@ -1579,12 +1620,102 @@ export interface LineItem {
               [title]="getSubmitButtonTitle()"
             >
               <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
-              {{ type === 'import' ? 'Tạo phiếu nhập' : 'Tạo phiếu xuất' }}
+              {{ type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho' }}
             </button>
+          </div>
+
+          <!-- VIEW MODE: action buttons based on status -->
+          <div *ngIf="isViewMode" style="display: flex; gap: 10px; align-items: center;">
+
+            <!-- DRAFT: If not editing: [Xóa phiếu] [Sửa] [Lên kế hoạch nhập/xuất] -->
+            <ng-container *ngIf="isDraft && !isEditingDraft">
+              <button type="button" (click)="openDeleteOrderModal()"
+                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+                onmouseover="this.style.background='#ef4444'; this.style.color='#fff';"
+                onmouseout="this.style.background='transparent'; this.style.color='#ef4444';"
+              >
+                <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                Xóa phiếu
+              </button>
+              <button type="button" (click)="startEditDraft()"
+                style="display:flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+                onmouseover="this.style.background='var(--bg-secondary)';"
+                onmouseout="this.style.background='var(--bg-primary)';"
+              >
+                <lucide-angular [img]="icons.Pencil" size="14"></lucide-angular>
+                Sửa
+              </button>
+              <button type="button" (click)="handlePlanOrder()"
+                style="display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,0.25);transition:all 0.2s;"
+                onmouseover="this.style.background='#6d28d9'; this.style.boxShadow='0 4px 14px rgba(109,40,217,0.4)'; this.style.transform='translateY(-1px)';"
+                onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 2px 8px rgba(124,58,237,0.25)'; this.style.transform='translateY(0)';"
+              >
+                <lucide-angular [img]="icons.Play" size="14"></lucide-angular>
+                {{ type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất' }}
+              </button>
+            </ng-container>
+
+            <!-- DRAFT: If editing: [Hủy bỏ] [Lưu thay đổi] -->
+            <ng-container *ngIf="isDraft && isEditingDraft">
+              <button type="button" (click)="cancelEditDraft()"
+                style="padding:9px 16px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-weight:500;cursor:pointer;"
+              >
+                Hủy bỏ
+              </button>
+              <button type="button" (click)="saveEditDraft()"
+                style="display:flex;align-items:center;gap:6px;padding:9px 22px;border-radius:8px;border:none;background:#765337;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(118,83,55,0.28);"
+              >
+                <lucide-angular [img]="icons.Save" size="14"></lucide-angular>
+                Lưu thay đổi
+              </button>
+            </ng-container>
+
+            <!-- PLANNED: [Hủy phiếu] [Xác nhận Xuất kho / Nhập kho] -->
+            <ng-container *ngIf="isPlanned">
+              <button type="button" (click)="openCancelOrderModal()"
+                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #9ca3af;background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+                onmouseover="this.style.borderColor='#ef4444'; this.style.color='#ef4444';"
+                onmouseout="this.style.borderColor='#9ca3af'; this.style.color='var(--text-secondary)';"
+              >
+                <lucide-angular [img]="icons.Ban" size="15"></lucide-angular>
+                Hủy phiếu
+              </button>
+              <button type="button" (click)="handleConfirmExecution()"
+                style="display:flex;align-items:center;gap:6px;padding:9px 22px;border-radius:8px;border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;"
+                [style.background]="type === 'import' ? '#059669' : '#ef4444'"
+                [style.box-shadow]="type === 'import' ? '0 2px 8px rgba(5,150,105,0.25)' : '0 2px 8px rgba(239,68,68,0.25)'"
+                onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)';"
+                onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)';"
+              >
+                <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+                {{ type === 'import' ? 'Xác nhận Nhập kho' : 'Xác nhận Xuất kho' }}
+              </button>
+            </ng-container>
+
+            <!-- COMPLETED (read-only): [In phiếu] [Tải PDF] -->
+            <ng-container *ngIf="isCompletedStock">
+              <button type="button" onclick="window.print()"
+                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;"
+              >
+                <lucide-angular [img]="icons.Printer" size="15"></lucide-angular>
+                {{ type === 'import' ? 'In phiếu nhập' : 'In phiếu xuất' }}
+              </button>
+              <button type="button" onclick="alert('Đang xuất PDF...')"
+                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:none;background:#765337;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+              >
+                Tải PDF
+              </button>
+            </ng-container>
+
+            <!-- CANCELLED: read-only note -->
+            <ng-container *ngIf="isCancelled">
+              <span style="font-size:13px;color:var(--text-muted);font-style:italic;">Phiếu đã bị hủy — chỉ xem</span>
+            </ng-container>
           </div>
         </div>
       </div>
     </div>
+
 
     <!-- POPUP THÊM LÝ DO XUẤT MỚI -->
     <div *ngIf="showAddReasonModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 2500; backdrop-filter: blur(3px);" (click)="closeAddReasonModal()">
@@ -1725,13 +1856,92 @@ export interface LineItem {
         </div>
       </div>
     </div>
+
+    <!-- POPUP HỦY PHIẾU (yêu cầu nhập lý do) -->
+    <div *ngIf="showCancelOrderModal" class="confirm-modal-backdrop" (click)="closeCancelOrderModal()">
+      <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+        <div class="confirm-modal-header">
+          <div class="confirm-modal-icon-wrapper warning">
+            <lucide-angular [img]="icons.AlertCircle" size="22"></lucide-angular>
+          </div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px 0;">Hủy phiếu {{ type === 'import' ? 'nhập kho' : 'xuất kho' }}</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5;">Vui lòng nhập lý do hủy phiếu. Hành động này không thể hoàn tác.</p>
+          </div>
+          <button type="button" (click)="closeCancelOrderModal()" class="confirm-close-btn" title="Đóng">
+            <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+          </button>
+        </div>
+        <div style="padding: 16px 20px;">
+          <label style="font-size: 13px; font-weight: 500; color: var(--text-primary); display: block; margin-bottom: 6px;">
+            Lý do hủy <span style="color: #ef4444;">*</span>
+          </label>
+          <textarea
+            [(ngModel)]="cancelOrderReasonInput"
+            [placeholder]="'Nhập lý do hủy phiếu ' + (type === 'import' ? 'nhập kho' : 'xuất kho') + '...'"
+            rows="3"
+            style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none; resize: vertical; font-family: inherit;"
+            [style.border-color]="cancelOrderReasonInput.trim() ? 'var(--border-color)' : '#f59e0b'"
+          ></textarea>
+        </div>
+        <div class="confirm-modal-footer">
+          <button type="button" (click)="closeCancelOrderModal()" class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">
+            Quay lại
+          </button>
+          <button type="button" (click)="confirmCancelOrder()"
+            [disabled]="!cancelOrderReasonInput.trim() || isCancellingOrder"
+            style="background: #ef4444; color: #ffffff; border: none; padding: 8px 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;"
+            [style.opacity]="(!cancelOrderReasonInput.trim() || isCancellingOrder) ? '0.5' : '1'"
+            [style.cursor]="(!cancelOrderReasonInput.trim() || isCancellingOrder) ? 'not-allowed' : 'pointer'"
+            onmouseover="if(!this.disabled) this.style.background='#dc2626'"
+            onmouseout="if(!this.disabled) this.style.background='#ef4444'"
+          >
+            <lucide-angular [img]="icons.Ban" size="14"></lucide-angular>
+            Xác nhận hủy phiếu
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- POPUP XÓA PHIẾU (xác nhận) -->
+    <div *ngIf="showDeleteOrderModal" class="confirm-modal-backdrop" (click)="closeDeleteOrderModal()">
+      <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+        <div class="confirm-modal-header">
+          <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <lucide-angular [img]="icons.Trash2" size="22"></lucide-angular>
+          </div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px 0;">Xóa phiếu {{ type === 'import' ? 'nhập kho' : 'xuất kho' }}</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5;">Bạn có chắc chắn muốn xóa phiếu nháp này? Hành động này không thể hoàn tác.</p>
+          </div>
+          <button type="button" (click)="closeDeleteOrderModal()" class="confirm-close-btn" title="Đóng">
+            <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+          </button>
+        </div>
+        <div class="confirm-modal-footer">
+          <button type="button" (click)="closeDeleteOrderModal()" class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">
+            Hủy bỏ
+          </button>
+          <button type="button" (click)="confirmDeleteOrder()"
+            [disabled]="isDeletingOrder"
+            style="background: #ef4444; color: #ffffff; border: none; padding: 8px 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;"
+            onmouseover="if(!this.disabled) this.style.background='#dc2626'"
+            onmouseout="if(!this.disabled) this.style.background='#ef4444'"
+          >
+            <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+            Xóa phiếu
+          </button>
+        </div>
+      </div>
+    </div>
   `
+
 })
 export class TransactionModalComponent implements OnInit, OnChanges {
   icons = { 
     X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
     Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-    CheckSquare, Square, Package, Percent
+    CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw
   };
   private http = inject(HttpClient);
 
@@ -1743,9 +1953,274 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   @Input() initialVariantId = '';
   @Input() isProductFixed = false;
   @Input() isVariantFixed = false;
-  
+  /** When set, modal opens in VIEW mode for an existing order */
+  @Input() viewOrderData: any = null;
+
   @Output() onClose = new EventEmitter<void>();
   @Output() onSubmit = new EventEmitter<any>();
+  @Output() onStatusChange = new EventEmitter<{ orderId: string; newStatus: string; reason?: string }>();
+  @Output() onDeleteOrder = new EventEmitter<string>();
+  @Output() onUpdateOrder = new EventEmitter<any>();
+
+  // ── View-mode state ──
+  /** True when showing an existing order (not creating) */
+  get isViewMode(): boolean { return !!this.viewOrderData; }
+  get viewStatus(): string { return this.viewOrderData?.rawStatus || this.viewOrderData?.status || ''; }
+  /** Canonical statuses: DRAFT | PLANNED | EXPORTED | IMPORTED | CANCELLED */
+  get isDraft(): boolean    { return this.viewStatus === 'DRAFT'; }
+  get isPlanned(): boolean  { return this.viewStatus === 'PLANNED'; }
+  get isExported(): boolean { return this.type === 'export' && (this.viewStatus === 'EXPORTED' || this.viewStatus === 'COMPLETED'); }
+  get isImported(): boolean { return this.type === 'import' && (this.viewStatus === 'IMPORTED' || this.viewStatus === 'COMPLETED'); }
+  get isCompletedStock(): boolean { return this.isExported || this.isImported; }
+  get isCancelled(): boolean{ return this.viewStatus === 'CANCELLED'; }
+  get isReadOnlyOrder(): boolean { return this.isCompletedStock || this.isCancelled; }
+
+  // Draft editing state
+  isEditingDraft = false;
+  backupOrderData: any = null;
+
+  get isFormDisabled(): boolean {
+    if (!this.isViewMode) return false;
+    if (this.isDraft && this.isEditingDraft) return false;
+    return true;
+  }
+
+  // Cancel-order popup state
+  showCancelOrderModal = false;
+  cancelOrderReasonInput = '';
+  isCancellingOrder = false;
+
+  // Delete-order popup state
+  showDeleteOrderModal = false;
+  isDeletingOrder = false;
+
+  getViewStatusLabel(): string {
+    switch (this.viewStatus) {
+      case 'DRAFT':     return 'Nháp';
+      case 'PLANNED':   return this.type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất';
+      case 'EXPORTED':  return 'Đã xuất kho';
+      case 'IMPORTED':  return 'Đã nhập kho';
+      case 'COMPLETED': return this.type === 'import' ? 'Đã nhập kho' : 'Đã xuất kho';
+      case 'CANCELLED': return 'Đã hủy';
+      default:          return this.viewStatus;
+    }
+  }
+
+  getViewStatusColor(): string {
+    switch (this.viewStatus) {
+      case 'DRAFT':     return '#f59e0b';
+      case 'PLANNED':   return '#7c3aed';
+      case 'EXPORTED':  case 'IMPORTED': case 'COMPLETED': return '#10b981';
+      case 'CANCELLED': return '#9ca3af';
+      default:          return 'var(--text-muted)';
+    }
+  }
+
+  getViewStatusBg(): string {
+    switch (this.viewStatus) {
+      case 'DRAFT':     return 'rgba(245,158,11,0.10)';
+      case 'PLANNED':   return 'rgba(124,58,237,0.10)';
+      case 'EXPORTED':  case 'IMPORTED': case 'COMPLETED': return 'rgba(16,185,129,0.10)';
+      case 'CANCELLED': return 'rgba(107,114,128,0.10)';
+      default:          return 'var(--bg-secondary)';
+    }
+  }
+
+  getCancelReasonText(): string {
+    const n = this.viewOrderData?.notes || this.transactionNote || '';
+    const m = n.match(/\[Lý do hủy:\s*([^\]]+)\]/i);
+    return m ? m[1] : '';
+  }
+
+  // ── View-mode actions ──
+  startEditDraft() {
+    this.backupOrderData = {
+      location: this.transactionLocation,
+      reason: this.transactionReason,
+      destination: this.transactionDestination,
+      recipient: this.recipientName,
+      notes: this.transactionNote,
+      items: JSON.parse(JSON.stringify(this.lineItems))
+    };
+    this.isEditingDraft = true;
+  }
+
+  cancelEditDraft() {
+    if (this.backupOrderData) {
+      this.transactionLocation = this.backupOrderData.location;
+      this.transactionReason = this.backupOrderData.reason;
+      this.transactionDestination = this.backupOrderData.destination;
+      this.recipientName = this.backupOrderData.recipient;
+      this.transactionNote = this.backupOrderData.notes;
+      this.lineItems = JSON.parse(JSON.stringify(this.backupOrderData.items));
+    }
+    this.isEditingDraft = false;
+  }
+
+  saveEditDraft() {
+    if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    const isImport = this.type === 'import';
+    const payload = {
+      orderId,
+      orderData: {
+        sourceLocation: isImport ? (this.recipientName || 'Nhà cung cấp') : this.getLocationLabel(),
+        destinationLocation: isImport ? this.getLocationLabel() : (this.transactionDestination || this.recipientName),
+        sourceWarehouseId: isImport ? null : this.transactionLocation,
+        destWarehouseId: isImport ? this.transactionLocation : this.transactionDestination,
+        reason: this.transactionReason,
+        notes: this.transactionNote,
+        items: this.lineItems.map(it => ({
+          variantId: it.variantId,
+          quantity: parseInt(it.quantity, 10) || 1,
+          price: it.price ? parseInt(it.price.replace(/\D/g, ''), 10) : 0,
+          unit: it.unit || 'Chiếc',
+          lotNumber: it.lotNumber,
+          expiryDate: it.expiryDate
+        }))
+      }
+    };
+    this.onUpdateOrder.emit(payload);
+    this.isEditingDraft = false;
+  }
+
+  handlePlanOrder() {
+    if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    this.onStatusChange.emit({ orderId, newStatus: 'PLANNED' });
+  }
+
+  handleConfirmExecution() {
+    if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    const newStatus = this.type === 'import' ? 'IMPORTED' : 'EXPORTED';
+    this.onStatusChange.emit({ orderId, newStatus });
+  }
+
+  handleExportOrder() {
+    this.handleConfirmExecution();
+  }
+
+  openDeleteOrderModal() { this.showDeleteOrderModal = true; }
+  closeDeleteOrderModal() { this.showDeleteOrderModal = false; }
+  confirmDeleteOrder() {
+    if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    this.isDeletingOrder = true;
+    this.onDeleteOrder.emit(orderId);
+  }
+
+  openCancelOrderModal() {
+    this.cancelOrderReasonInput = '';
+    this.showCancelOrderModal = true;
+  }
+  closeCancelOrderModal() { this.showCancelOrderModal = false; this.cancelOrderReasonInput = ''; }
+  confirmCancelOrder() {
+    if (!this.cancelOrderReasonInput.trim()) return;
+    if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    this.isCancellingOrder = true;
+    this.onStatusChange.emit({ orderId, newStatus: 'CANCELLED', reason: this.cancelOrderReasonInput.trim() });
+  }
+
+  populateFromViewOrder() {
+    if (!this.viewOrderData) return;
+    const v = this.viewOrderData;
+    this.orderCode = v.orderCode || v.auditCode || v.id || this.orderCode;
+    this.creatorName = v.creatorName || v.creator || 'Admin Quản Trị';
+    if (v.createdAt || v.date) {
+      try {
+        const d = new Date(v.createdAt || v.date);
+        if (!isNaN(d.getTime())) {
+          this.transactionDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        }
+      } catch {}
+    }
+    this.transactionReason = v.reason || '';
+    this.transactionNote = (v.notes || '').replace(/\[STATUS:[^\]]+\]\s*/g, '').trim();
+    this.referenceCode = v.referenceCode || '';
+    if (v.taxRate !== undefined && v.taxRate !== null) {
+      this.taxRate = Number(v.taxRate);
+    }
+    if (v.discount) {
+      this.discountAmount = String(v.discount);
+    }
+
+    if (this.type === 'import') {
+      this.recipientName = v.sourceLocation || '';
+      this.transactionDestination = v.sourceWarehouseId || '';
+      const targetWhStr = v.destinationLocation || v.destWarehouse?.name;
+      const targetWhId = v.destWarehouseId || v.sourceWarehouseId;
+      if (targetWhId) {
+        this.transactionLocation = targetWhId;
+      } else if (targetWhStr) {
+        const matchWh = this.activeWarehouses.find(w => 
+          w.name === targetWhStr || 
+          targetWhStr.includes(w.name) || 
+          (w.code && targetWhStr.includes(w.code))
+        );
+        if (matchWh) {
+          this.transactionLocation = matchWh.id;
+        }
+      }
+    } else {
+      this.recipientName = v.destinationLocation || '';
+      this.transactionDestination = v.destWarehouseId || '';
+      const targetWhStr = v.sourceLocation || v.sourceWarehouse?.name;
+      const targetWhId = v.sourceWarehouseId;
+      if (targetWhId) {
+        this.transactionLocation = targetWhId;
+      } else if (targetWhStr) {
+        const matchWh = this.activeWarehouses.find(w => 
+          w.name === targetWhStr || 
+          targetWhStr.includes(w.name) || 
+          (w.code && targetWhStr.includes(w.code))
+        );
+        if (matchWh) {
+          this.transactionLocation = matchWh.id;
+        }
+      }
+    }
+
+    if (Array.isArray(v.items) && v.items.length > 0) {
+      this.lineItems = v.items.map((it: any, idx: number) => {
+        let matchedProdId = it.productId || '';
+        let matchedVarId = it.variantId || '';
+        let matchedUnit = it.unit || 'Chiếc';
+        let priceStr = new Intl.NumberFormat('vi-VN').format(it.unitPrice || it.price || 0);
+
+        if (this.availableProducts.length > 0) {
+          for (const p of this.availableProducts) {
+            const fv = (p.variants || []).find((vx: any) => vx.id === matchedVarId || vx.sku === it.sku || vx.name === it.variant || vx.name === it.variantName);
+            if (fv) {
+              matchedProdId = p.id;
+              matchedVarId = fv.id;
+              if (!it.unitPrice && !it.price) {
+                priceStr = new Intl.NumberFormat('vi-VN').format(fv.price || 0);
+              }
+              break;
+            }
+          }
+        }
+
+        return {
+          id: (Date.now() + idx).toString(),
+          productId: matchedProdId,
+          variantId: matchedVarId,
+          quantity: String(it.quantity || 1),
+          price: priceStr,
+          unit: matchedUnit,
+          lotNumber: it.lotNumber || '',
+          expiryDate: it.expiryDate || '',
+          isProductFixed: false,
+          isVariantFixed: false,
+          productNameDisplay: it.productName,
+          variantNameDisplay: it.variant || it.variantName,
+          skuDisplay: it.sku
+        };
+      });
+    }
+  }
 
   warehouses: any[] = [];
   fetchedProducts: any[] = [];
@@ -1949,6 +2424,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       next: (data) => {
         if (Array.isArray(data) && data.length > 0) {
           this.warehouses = data;
+          if (this.isViewMode) {
+            this.populateFromViewOrder();
+          }
         }
       },
       error: (err) => console.warn('Could not fetch warehouses:', err)
@@ -1958,6 +2436,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       next: (data) => {
         if (Array.isArray(data)) {
           this.fetchedProducts = data;
+          if (this.isViewMode) {
+            this.populateFromViewOrder();
+          }
         }
       },
       error: (err) => console.warn('Could not fetch products options:', err)
@@ -1967,8 +2448,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['isOpen'] && this.isOpen) {
       this.resetState();
+      this.isEditingDraft = false;
+      // Reset view-mode popup states
+      this.showCancelOrderModal = false;
+      this.showDeleteOrderModal = false;
+      this.cancelOrderReasonInput = '';
+      this.isDeletingOrder = false;
+      this.isCancellingOrder = false;
       if (this.warehouses.length === 0 || this.fetchedProducts.length === 0) {
         this.loadBackendData();
+      }
+      if (this.isViewMode) {
+        this.populateFromViewOrder();
       }
     }
   }
@@ -2378,17 +2869,19 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showDestDropdown = false;
   }
 
-  getProductLabel(productId: string): string {
-    if (!productId) return 'Chọn sản phẩm...';
+  getProductLabel(productId: string, item?: LineItem): string {
+    if (!productId) return item?.productNameDisplay || 'Chọn sản phẩm...';
     const p = this.availableProducts.find((x: any) => x.id === productId);
-    return p ? (p.name || p.productName) : 'N/A';
+    if (p) return p.name || p.productName;
+    return item?.productNameDisplay || 'N/A';
   }
 
   getVariantDisplay(item: LineItem): string {
-    if (!item.productId || !item.variantId) return 'Chọn biến thể';
+    if (!item.productId || !item.variantId) return item.variantNameDisplay || 'Chọn biến thể';
     const vars = this.getVariantsForProduct(item.productId);
     const v = vars.find((x: any) => x.id === item.variantId);
-    return v ? v.name : item.variantId;
+    if (v) return v.name;
+    return item.variantNameDisplay || item.variantId;
   }
 
   getProductDisplaySku(p: any): string {

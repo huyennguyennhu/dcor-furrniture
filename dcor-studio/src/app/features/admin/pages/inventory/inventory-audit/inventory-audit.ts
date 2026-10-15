@@ -8,7 +8,7 @@ import {
   LucideAngularModule, 
   ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
   ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle
+  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -44,7 +44,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   icons = { 
     ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
     ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle
+    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw
   };
 
   private http = inject(HttpClient);
@@ -509,6 +509,23 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  hasActiveFilters(): boolean {
+    return (
+      (this.searchQuery || '').trim() !== '' ||
+      this.selectedWarehouseFilter !== 'Tất cả chi nhánh' ||
+      this.selectedStatusFilter !== 'Tất cả trạng thái'
+    );
+  }
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.selectedWarehouseFilter = 'Tất cả chi nhánh';
+    this.selectedStatusFilter = 'Tất cả trạng thái';
+    this.showWarehouseFilterDropdown = false;
+    this.showStatusFilterDropdown = false;
+    this.filterData();
+  }
+
   onSelectWarehouseFilter(whName: string) {
     this.selectedWarehouseFilter = whName;
     this.showWarehouseFilterDropdown = false;
@@ -698,16 +715,13 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
           actualStock: it.actualStock !== null && it.actualStock !== undefined ? it.actualStock : (this.currentAuditStatus === 'IN_PROGRESS' ? 0 : ''),
           discrepancy: it.discrepancy !== null && it.discrepancy !== undefined ? it.discrepancy : '',
           discrepancyAmount: '',
-          reason: it.reason || '',
-          customReason: (it.reason && !this.predefinedReasons.includes(it.reason) && it.reason !== 'Khớp') ? it.reason : '',
+          reason: it.reason || (it.discrepancy === 0 ? 'Khớp' : ''),
+          customReason: '',
           productSearchTerm: '',
           showProductDropdown: false,
           showVariantDropdown: false,
           showReasonDropdown: false
         };
-        if (row.customReason) {
-          row.reason = 'Khác';
-        }
         this.recalcRow(row);
         return row;
       });
@@ -1340,9 +1354,6 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
         if (!it.reason || !it.reason.trim()) {
           return false;
         }
-        if (it.reason === 'Khác' && (!it.customReason || !it.customReason.trim())) {
-          return false;
-        }
       }
     }
 
@@ -1366,10 +1377,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       }
       if (it.discrepancy !== '' && it.discrepancy !== 0) {
         if (!it.reason || !it.reason.trim()) {
-          return 'Vui lòng chọn lý do chênh lệch cho các sản phẩm có chênh lệch';
-        }
-        if (it.reason === 'Khác' && (!it.customReason || !it.customReason.trim())) {
-          return 'Vui lòng ghi rõ lý do chênh lệch cụ thể';
+          return 'Vui lòng nhập lý do chênh lệch cho các sản phẩm có chênh lệch';
         }
       }
     }
@@ -1571,7 +1579,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
         variantId: it.variantId,
         systemStock: Number(it.systemStock) || 0,
         actualStock: it.actualStock !== '' && it.actualStock !== null && it.actualStock !== undefined ? Number(it.actualStock) : null,
-        reason: it.reason === 'Khác' && it.customReason ? it.customReason : it.reason
+        reason: it.reason || (it.discrepancy === 0 ? 'Khớp' : null)
       }))
     };
 

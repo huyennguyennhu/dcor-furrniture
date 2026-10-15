@@ -573,15 +573,29 @@ export const inventoryController = {
         orderBy: { createdAt: 'desc' }
       });
 
-      // Format format BigInt to string/number for JSON response
-      const formatted = orders.map((o: any) => ({
-        ...o,
-        totalAmount: Number(o.totalAmount || 0),
-        items: (o.items || []).map((it: any) => ({
-          ...it,
-          lineTotal: Number(it.lineTotal || 0)
-        }))
-      }));
+      // Format BigInt to string/number and resolve status
+      const formatted = orders.map((o: any) => {
+        let displayStatus = o.status;
+        if (o.notes?.includes('[STATUS:DRAFT]')) displayStatus = 'DRAFT';
+        else if (o.notes?.includes('[STATUS:PLANNED]')) displayStatus = 'PLANNED';
+        else if (o.notes?.includes('[STATUS:IMPORTED]')) displayStatus = 'IMPORTED';
+        else if (o.notes?.includes('[STATUS:EXPORTED]')) displayStatus = 'EXPORTED';
+        else if (o.notes?.includes('[STATUS:CANCELLED]') || o.status === 'CANCELLED') displayStatus = 'CANCELLED';
+        else if (o.status === 'COMPLETED') displayStatus = o.type === 'IMPORT' ? 'IMPORTED' : 'EXPORTED';
+        else if (o.status === 'PENDING') displayStatus = 'DRAFT';
+        else if (o.status === 'PROCESSING') displayStatus = 'PLANNED';
+
+        return {
+          ...o,
+          status: displayStatus,
+          rawStatus: displayStatus,
+          totalAmount: Number(o.totalAmount || 0),
+          items: (o.items || []).map((it: any) => ({
+            ...it,
+            lineTotal: Number(it.lineTotal || 0)
+          }))
+        };
+      });
 
       res.json(formatted);
     } catch (error) {
@@ -639,10 +653,30 @@ export const inventoryController = {
       }
       orderCode = uniqueOrderCode;
 
-      const finalStatus = customStatus || 'PENDING';
+      let dbStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' = 'PENDING';
+      let statusTag = '[STATUS:DRAFT]';
+      if (customStatus === 'PLANNED') {
+        dbStatus = 'PROCESSING';
+        statusTag = '[STATUS:PLANNED]';
+      } else if (customStatus === 'IMPORTED') {
+        dbStatus = 'COMPLETED';
+        statusTag = '[STATUS:IMPORTED]';
+      } else if (customStatus === 'EXPORTED' || customStatus === 'COMPLETED') {
+        dbStatus = 'COMPLETED';
+        statusTag = type === 'IMPORT' ? '[STATUS:IMPORTED]' : '[STATUS:EXPORTED]';
+      } else if (customStatus === 'CANCELLED') {
+        dbStatus = 'CANCELLED';
+        statusTag = '[STATUS:CANCELLED]';
+      } else {
+        dbStatus = 'PENDING';
+        statusTag = '[STATUS:DRAFT]';
+      }
+
+      const finalStatus = dbStatus;
       const createdDate = customCreatedAt ? new Date(customCreatedAt) : now;
       const finalDestination = destinationLocation || recipientName || (type === 'TRANSFER' ? 'Chi nhánh điều chuyển' : 'Khách hàng / Đối tác');
-      const extraNotes = recipientName ? `[Người nhận: ${recipientName}] ${notes || ''}` : (notes || null);
+      const baseNotes = recipientName ? `[Người nhận: ${recipientName}] ${notes || ''}` : (notes || '');
+      const extraNotes = `${statusTag} ${baseNotes}`.trim() || null;
 
       let totalQty = 0;
       let totalAmt = BigInt(0);
@@ -688,8 +722,8 @@ export const inventoryController = {
         }
       });
 
-      // Nếu trạng thái là COMPLETED (Tạo phiếu xuất chính thức), cập nhật ngay lập tức tồn kho & ghi sổ cái biến động
-      if (finalStatus === 'COMPLETED') {
+      // Chỉ cập nhật tồn kho khi thực sự hoàn tất (IMPORTED, EXPORTED hoặc COMPLETED)
+      if (customStatus === 'IMPORTED' || customStatus === 'EXPORTED' || customStatus === 'COMPLETED') {
         for (const item of lineItems) {
           try {
             if (type === 'EXPORT') {
@@ -750,10 +784,11 @@ export const inventoryController = {
 
               let stockBefore = 0;
               let stockAfter = item.quantity;
+              const targetWhId = destWarehouseId || sourceWarehouseId;
 
-              if (destWarehouseId) {
+              if (targetWhId) {
                 const whStock = await (prisma as any).warehouseStock.findFirst({
-                  where: { warehouseId: destWarehouseId, variantId: item.variantId }
+                  where: { warehouseId: targetWhId, variantId: item.variantId }
                 });
                 if (whStock) {
                   stockBefore = whStock.physicalStock;
@@ -806,11 +841,11 @@ export const inventoryController = {
     }
   },
 
-  // 4b. Cập nhật trạng thái Lệnh xuất - nhập kho (Ví dụ từ PENDING sang COMPLETED)
+  // 4b. Cập nhật trạng thái Lệnh xuất - nhập kho (Ví dụ từ DRAFT sang PLANNED hoặc sang EXPORTED)
   updateStockOrderStatus: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status: newStatus, cancelReason } = req.body;
 
       const order = await (prisma as any).stockOrder.findFirst({
         where: { OR: [{ id }, { orderCode: id }] },
@@ -822,16 +857,49 @@ export const inventoryController = {
       }
 
       const prevStatus = order.status;
+      let dbStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' = 'PENDING';
+      let statusTag = '';
+
+      if (newStatus === 'DRAFT') {
+        dbStatus = 'PENDING';
+        statusTag = '[STATUS:DRAFT]';
+      } else if (newStatus === 'PLANNED') {
+        dbStatus = 'PROCESSING';
+        statusTag = '[STATUS:PLANNED]';
+      } else if (newStatus === 'IMPORTED') {
+        dbStatus = 'COMPLETED';
+        statusTag = '[STATUS:IMPORTED]';
+      } else if (newStatus === 'EXPORTED' || newStatus === 'COMPLETED') {
+        dbStatus = 'COMPLETED';
+        statusTag = order.type === 'IMPORT' ? '[STATUS:IMPORTED]' : '[STATUS:EXPORTED]';
+      } else if (newStatus === 'CANCELLED') {
+        dbStatus = 'CANCELLED';
+        statusTag = '[STATUS:CANCELLED]';
+      } else {
+        dbStatus = 'PROCESSING';
+        statusTag = `[STATUS:${newStatus}]`;
+      }
+
+      let updatedNotes = order.notes || '';
+      updatedNotes = updatedNotes.replace(/\[STATUS:[^\]]+\]\s*/g, '').trim();
+      if (statusTag) {
+        updatedNotes = `${statusTag} ${updatedNotes}`.trim();
+      }
+      if (cancelReason) {
+        updatedNotes = `${updatedNotes} [Lý do hủy: ${cancelReason}]`.trim();
+      }
+
       const updated = await (prisma as any).stockOrder.update({
         where: { id: order.id },
         data: {
-          status,
-          completedAt: status === 'COMPLETED' ? new Date() : (status === 'PENDING' ? null : order.completedAt)
+          status: dbStatus,
+          notes: updatedNotes,
+          completedAt: (dbStatus === 'COMPLETED') ? new Date() : (dbStatus === 'PENDING' ? null : order.completedAt)
         }
       });
 
-      // Nếu chuyển từ PENDING/PROCESSING sang COMPLETED, cập nhật tồn kho & ghi nhận biến động
-      if (prevStatus !== 'COMPLETED' && status === 'COMPLETED') {
+      // Nếu chuyển sang COMPLETED / EXPORTED / IMPORTED và trước đó chưa COMPLETED: cập nhật tồn kho thực tế
+      if (prevStatus !== 'COMPLETED' && (newStatus === 'IMPORTED' || newStatus === 'EXPORTED' || newStatus === 'COMPLETED' || dbStatus === 'COMPLETED')) {
         for (const item of order.items) {
           try {
             if (order.type === 'EXPORT') {
@@ -839,11 +907,36 @@ export const inventoryController = {
                 where: { id: item.variantId },
                 data: { stock: { decrement: item.quantity } }
               }).catch(e => console.warn('Could not decrement variant stock:', e));
+
+              if (order.sourceWarehouseId) {
+                const whStock = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: order.sourceWarehouseId, variantId: item.variantId }
+                });
+                if (whStock) {
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStock.id },
+                    data: { physicalStock: { decrement: item.quantity } }
+                  }).catch((e: any) => console.warn('Could not decrement warehouseStock:', e));
+                }
+              }
             } else if (order.type === 'IMPORT') {
               await prisma.productVariant.update({
                 where: { id: item.variantId },
                 data: { stock: { increment: item.quantity } }
               }).catch(e => console.warn('Could not increment variant stock:', e));
+
+              const targetWhId = order.destWarehouseId || order.sourceWarehouseId;
+              if (targetWhId) {
+                const whStock = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: targetWhId, variantId: item.variantId }
+                });
+                if (whStock) {
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStock.id },
+                    data: { physicalStock: { increment: item.quantity } }
+                  }).catch((e: any) => console.warn('Could not increment warehouseStock:', e));
+                }
+              }
             }
           } catch (e) {
             console.warn('Error adjusting stock on status complete:', e);
@@ -852,10 +945,117 @@ export const inventoryController = {
         clearInventoryCaches();
       }
 
-      res.json(updated);
+      res.json({
+        ...updated,
+        status: newStatus,
+        rawStatus: newStatus
+      });
     } catch (error) {
       console.error('Error updating stock order status:', error);
       res.status(500).json({ error: 'Không thể cập nhật trạng thái lệnh kho' });
+    }
+  },
+
+  // 4c. Chỉnh sửa chi tiết phiếu (Dành cho phiếu nháp Draft)
+  updateStockOrder: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const {
+        sourceLocation,
+        destinationLocation,
+        sourceWarehouseId,
+        destWarehouseId,
+        reason,
+        notes,
+        items
+      } = req.body;
+
+      const order = await (prisma as any).stockOrder.findFirst({
+        where: { OR: [{ id }, { orderCode: id }] }
+      });
+      if (!order) {
+        return res.status(404).json({ error: 'Không tìm thấy phiếu' });
+      }
+
+      let totalQty = 0;
+      let totalAmt = BigInt(0);
+      const lineItems = (items || []).map((it: any) => {
+        const qty = parseInt(it.quantity, 10) || 1;
+        const price = parseInt(it.price, 10) || 0;
+        const lineTotal = BigInt(qty * price);
+        totalQty += qty;
+        totalAmt += lineTotal;
+        return {
+          stockOrderId: order.id,
+          variantId: it.variantId,
+          quantity: qty,
+          unitPrice: price,
+          lineTotal: lineTotal,
+          notes: it.notes || (it.unit ? `ĐVT: ${it.unit}` : null)
+        };
+      });
+
+      await (prisma as any).stockOrderItem.deleteMany({
+        where: { stockOrderId: order.id }
+      });
+      if (lineItems.length > 0) {
+        await (prisma as any).stockOrderItem.createMany({
+          data: lineItems
+        });
+      }
+
+      let baseNotes = notes !== undefined ? notes : (order.notes || '');
+      if (!baseNotes.includes('[STATUS:')) {
+        baseNotes = `[STATUS:DRAFT] ${baseNotes}`.trim();
+      }
+
+      const updated = await (prisma as any).stockOrder.update({
+        where: { id: order.id },
+        data: {
+          sourceLocation: sourceLocation || order.sourceLocation,
+          destinationLocation: destinationLocation || order.destinationLocation,
+          sourceWarehouseId: sourceWarehouseId || order.sourceWarehouseId,
+          destWarehouseId: destWarehouseId || order.destWarehouseId,
+          reason: reason || order.reason,
+          notes: baseNotes,
+          totalQuantity: totalQty,
+          totalAmount: totalAmt
+        },
+        include: { items: true }
+      });
+
+      res.json({
+        ...updated,
+        status: 'DRAFT',
+        rawStatus: 'DRAFT',
+        totalAmount: Number(updated.totalAmount || 0)
+      });
+    } catch (error) {
+      console.error('Error updating stock order:', error);
+      res.status(500).json({ error: 'Không thể cập nhật phiếu' });
+    }
+  },
+
+  // 4d. Xóa phiếu kho (Dành cho phiếu nháp Draft)
+  deleteStockOrder: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const order = await (prisma as any).stockOrder.findFirst({
+        where: { OR: [{ id }, { orderCode: id }] }
+      });
+      if (!order) {
+        return res.status(404).json({ error: 'Không tìm thấy phiếu' });
+      }
+      await (prisma as any).stockOrderItem.deleteMany({
+        where: { stockOrderId: order.id }
+      });
+      await (prisma as any).stockOrder.delete({
+        where: { id: order.id }
+      });
+      res.json({ message: 'Xóa phiếu thành công' });
+    } catch (error) {
+      console.error('Error deleting stock order:', error);
+      res.status(500).json({ error: 'Không thể xóa phiếu' });
     }
   },
 
