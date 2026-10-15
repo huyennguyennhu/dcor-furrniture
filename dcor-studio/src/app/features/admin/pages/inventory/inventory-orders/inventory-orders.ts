@@ -633,7 +633,9 @@ export class InventoryOrdersComponent implements OnInit {
         reason: order.reason,
         creator: order.creator,
         creatorName: order.creator,
-        notes: order.notes,
+        recipientName: (order as any).recipientName,
+        notes: (order as any).cleanNotes || order.notes,
+        rawNotes: order.notes,
         taxRate: (order as any).taxRate,
         discount: (order as any).discount,
         items: (order.items || []).map((it: any) => ({
@@ -837,15 +839,13 @@ export class InventoryOrdersComponent implements OnInit {
     });
   }
 
-  // Detail Modal
+  // Detail Modal -> Open full transaction modal
   viewOrderDetail(order: StockOrder, event?: Event) {
-    if (event) event.stopPropagation();
-    this.selectedOrder = order;
-    this.activeActionMenu = null;
+    this.viewOrderInModal(order, event);
   }
 
   closeOrderDetail() {
-    this.selectedOrder = null;
+    this.closeModal();
   }
 
   updateOrderStatus(order: StockOrder, newStatus: 'COMPLETED' | 'PROCESSING' | 'PENDING' | 'CANCELLED', event?: Event) {

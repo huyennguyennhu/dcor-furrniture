@@ -544,7 +544,9 @@ export class InventoryTransactionsComponent implements OnInit {
         reason: order.reason,
         creator: order.creator,
         creatorName: order.creator,
-        notes: order.notes,
+        recipientName: (order as any).recipientName,
+        notes: order.cleanNotes || order.notes,
+        rawNotes: order.notes,
         taxRate: order.taxRate,
         discount: order.discount,
         shippingFee: order.shippingFee,
@@ -639,7 +641,8 @@ export class InventoryTransactionsComponent implements OnInit {
     const isTransfer = (formData.reason || '').includes('Chuyển kho');
     const orderType = isImport ? 'IMPORT' : (isTransfer ? 'TRANSFER' : 'EXPORT');
     const isDraft = formData.action === 'draft';
-    const orderStatus = isDraft ? 'DRAFT' : 'COMPLETED';
+    // [Lưu nháp] -> DRAFT, [Tạo phiếu xuất kho] -> PLANNED
+    const orderStatus = isDraft ? 'DRAFT' : (formData.status || 'PLANNED');
 
     const payload = {
       orderCode: formData.orderCode,
@@ -680,8 +683,8 @@ export class InventoryTransactionsComponent implements OnInit {
           );
         } else {
           this.triggerToast(
-            `Đã tạo và phát hành thành công phiếu ${created.orderCode || created.id}!`,
-            'Số lượng tồn kho thực tế đã được cập nhật ngay lập tức.',
+            `Đã tạo thành công phiếu ${created.orderCode || created.id}!`,
+            `Trạng thái: Đang lên kế hoạch ${isImport ? 'nhập' : 'xuất'} kho.`,
             'success'
           );
         }

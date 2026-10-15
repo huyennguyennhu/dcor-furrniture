@@ -296,12 +296,18 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
           <tr *ngIf="isLoading">
-            <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
-              Đang tải danh sách kiểm kê...
+            <td colspan="8" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải danh sách kiểm kê...</span>
+              </div>
             </td>
           </tr>
-          <tr *ngIf="!isLoading && data.length === 0">
+
+          <ng-container *ngIf="!isLoading">
+          <tr *ngIf="data.length === 0">
             <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
               Chưa có phiếu kiểm kê nào trong hệ thống.
             </td>
@@ -353,6 +359,7 @@
               </div>
             </td>
           </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>

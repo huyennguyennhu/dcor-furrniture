@@ -307,9 +307,7 @@
         <tr *ngIf="isLoading">
           <td colspan="10" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
-              <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(118, 83, 55, 0.08); display: flex; align-items: center; justify-content: center;">
-                <lucide-angular [img]="icons.Loader2" size="24" color="var(--accent)" style="animation: spin 0.8s linear infinite;"></lucide-angular>
-              </div>
+              <div class="spinning-loader"></div>
               <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải danh sách lệnh kho...</span>
             </div>
           </td>
@@ -465,126 +463,6 @@
     </table>
   </div>
 
-  <!-- Detail Modal -->
-  <div *ngIf="selectedOrder" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; backdrop-filter: blur(2px);" (click)="closeOrderDetail()">
-    <div style="background: var(--bg-primary); border-radius: 12px; width: 850px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 16px 36px rgba(0,0,0,0.25); overflow: hidden;" (click)="$event.stopPropagation()">
-      <!-- Header -->
-      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <h2 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary);">Chi tiết {{ selectedOrder.typeLabel }}: {{ selectedOrder.id }}</h2>
-            <span 
-              style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;"
-              [style.background]="selectedOrder.type === 'import' ? 'rgba(16,185,129,0.12)' : (selectedOrder.type === 'export' ? 'rgba(239,68,68,0.12)' : 'rgba(139,92,246,0.12)')"
-              [style.color]="selectedOrder.type === 'import' ? '#059669' : (selectedOrder.type === 'export' ? '#dc2626' : '#7c3aed')"
-            >
-              {{ selectedOrder.typeLabel }}
-            </span>
-            <span 
-              style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;"
-              [style.background]="selectedOrder.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : (selectedOrder.status === 'PROCESSING' ? 'rgba(59,130,246,0.12)' : (selectedOrder.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.12)'))"
-              [style.color]="selectedOrder.status === 'COMPLETED' ? '#059669' : (selectedOrder.status === 'PROCESSING' ? '#2563eb' : (selectedOrder.status === 'PENDING' ? '#d97706' : '#4b5563'))"
-            >
-              {{ selectedOrder.status === 'COMPLETED' ? 'Hoàn tất' : (selectedOrder.status === 'PROCESSING' ? 'Đang xử lý' : (selectedOrder.status === 'PENDING' ? 'Chờ duyệt' : 'Đã hủy')) }}
-            </span>
-          </div>
-          <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">Thời gian tạo: {{ selectedOrder.createdAt }} &bull; Người lập: <strong>{{ selectedOrder.creator }}</strong></p>
-        </div>
-        <button (click)="closeOrderDetail()" class="admin-close-btn">
-          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
-        </button>
-      </div>
-
-      <!-- Body -->
-      <div style="padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Kho / Nguồn xuất</span>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.sourceLocation }}</span>
-          </div>
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Kho / Nơi nhận</span>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.destinationLocation }}</span>
-          </div>
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Chứng từ tham chiếu</span>
-            <span style="font-size: 13px; font-weight: 600; font-family: monospace; color: var(--accent);">{{ selectedOrder.referenceCode || 'Không có' }}</span>
-          </div>
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Lý do thực hiện</span>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.reason }}</span>
-          </div>
-        </div>
-
-        <div *ngIf="selectedOrder.notes" style="padding: 10px 12px; border-radius: 6px; background: rgba(var(--accent-rgb), 0.05); border-left: 3px solid var(--accent); font-size: 12px; color: var(--text-primary);">
-          <strong>Ghi chú:</strong> {{ selectedOrder.notes }}
-        </div>
-
-        <!-- Products Table -->
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text-primary);">Danh sách sản phẩm trong lệnh ({{ selectedOrder.items.length }} mặt hàng)</h3>
-          <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-              <thead>
-                <tr style="background: #EAE1D7;">
-                  <th style="padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border-color); width: 40px;">STT</th>
-                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Mã SKU</th>
-                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Tên sản phẩm</th>
-                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Biến thể / Màu sắc</th>
-                  <th style="padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border-color); width: 50px;">ĐVT</th>
-                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color); width: 70px;">Số lượng</th>
-                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color);">Đơn giá</th>
-                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color);">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let it of selectedOrder.items; let idx = index" 
-                    style="border-bottom: 1px solid var(--border-color);"
-                    onmouseover="this.style.background='#F3E5D3'"
-                    onmouseout="this.style.background='transparent'">
-                  <td style="padding: 8px 10px; text-align: center;">{{ idx + 1 }}</td>
-                  <td style="padding: 8px 10px;"><span style="font-family: monospace; font-size: 11px; padding: 2px 4px; border-radius: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-color);">{{ it.sku }}</span></td>
-                  <td style="padding: 8px 10px;"><strong>{{ it.productName }}</strong></td>
-                  <td style="padding: 8px 10px; color: var(--text-secondary);">{{ it.variant }}</td>
-                  <td style="padding: 8px 10px; text-align: center;">{{ it.unit }}</td>
-                  <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: var(--accent);">{{ it.quantity }}</td>
-                  <td style="padding: 8px 10px; text-align: right;">{{ formatCurrency(it.unitPrice) }}</td>
-                  <td style="padding: 8px 10px; text-align: right; font-weight: 700;">{{ formatCurrency(it.quantity * it.unitPrice) }}</td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr style="background: #EAE1D7; font-weight: 700;">
-                  <td colspan="5" style="padding: 10px; text-align: right;">TỔNG CỘNG:</td>
-                  <td style="padding: 10px; text-align: right; color: var(--accent);">{{ selectedOrder.totalQuantity }}</td>
-                  <td></td>
-                  <td style="padding: 10px; text-align: right; color: #10b981; font-size: 14px;">{{ formatCurrency(selectedOrder.totalAmount) }}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
-        <button (click)="printOrder(selectedOrder)" class="admin-btn admin-btn-secondary">
-          <lucide-angular [img]="icons.Printer" size="16"></lucide-angular> In phiếu lệnh
-        </button>
-        <div style="display: flex; gap: 8px;">
-          <button 
-            *ngIf="selectedOrder.status !== 'COMPLETED'" 
-            (click)="updateOrderStatus(selectedOrder, 'COMPLETED')" 
-            class="admin-btn admin-btn-primary"
-          >
-            <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular> Hoàn tất lệnh
-          </button>
-          <button (click)="closeOrderDetail()" class="admin-btn admin-btn-secondary">
-            Đóng
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Reusable Transaction Modal (Nhập/Xuất kho) -->
   <app-transaction-modal

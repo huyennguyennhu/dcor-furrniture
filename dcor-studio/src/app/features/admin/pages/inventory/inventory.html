@@ -425,6 +425,17 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
+          <tr *ngIf="isLoading">
+            <td [attr.colspan]="getVisibleColumnCount()" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu tổng quan kho...</span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
           <ng-container *ngFor="let item of data">
             <tr style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
                 (click)="toggleExpand(item.id, $event)"
@@ -619,6 +630,7 @@
           <tr *ngIf="data.length === 0">
             <td [attr.colspan]="getVisibleColumnCount()" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">Không tìm thấy sản phẩm nào phù hợp.</td>
           </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>

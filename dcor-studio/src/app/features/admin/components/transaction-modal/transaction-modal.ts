@@ -2047,8 +2047,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   get isViewMode(): boolean { return !!this.viewOrderData; }
   get viewStatus(): string { return this.viewOrderData?.rawStatus || this.viewOrderData?.status || ''; }
   /** Canonical statuses: DRAFT | PLANNED | EXPORTED | IMPORTED | CANCELLED */
-  get isDraft(): boolean    { return this.viewStatus === 'DRAFT'; }
-  get isPlanned(): boolean  { return this.viewStatus === 'PLANNED'; }
+  get isDraft(): boolean    { return this.viewStatus === 'DRAFT' || this.viewStatus === 'PENDING'; }
+  get isPlanned(): boolean  { return this.viewStatus === 'PLANNED' || this.viewStatus === 'PROCESSING'; }
   get isExported(): boolean { return this.type === 'export' && (this.viewStatus === 'EXPORTED' || this.viewStatus === 'COMPLETED'); }
   get isImported(): boolean { return this.type === 'import' && (this.viewStatus === 'IMPORTED' || this.viewStatus === 'COMPLETED'); }
   get isCompletedStock(): boolean { return this.isExported || this.isImported; }
@@ -2229,32 +2229,32 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   getViewStatusLabel(): string {
     switch (this.viewStatus) {
-      case 'DRAFT':     return 'Nháp';
-      case 'PLANNED':   return this.type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất';
+      case 'DRAFT':     case 'PENDING':    return 'Bản nháp';
+      case 'PLANNED':   case 'PROCESSING': return this.type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất';
       case 'EXPORTED':  return 'Đã xuất kho';
       case 'IMPORTED':  return 'Đã nhập kho';
       case 'COMPLETED': return this.type === 'import' ? 'Đã nhập kho' : 'Đã xuất kho';
       case 'CANCELLED': return 'Đã hủy';
-      default:          return this.viewStatus;
+      default:          return this.viewStatus || 'Đang xử lý';
     }
   }
 
   getViewStatusColor(): string {
     switch (this.viewStatus) {
-      case 'DRAFT':     return '#f59e0b';
-      case 'PLANNED':   return '#7c3aed';
-      case 'EXPORTED':  case 'IMPORTED': case 'COMPLETED': return '#10b981';
-      case 'CANCELLED': return '#9ca3af';
+      case 'DRAFT':     case 'PENDING':    return '#d97706';
+      case 'PLANNED':   case 'PROCESSING': return '#7c3aed';
+      case 'EXPORTED':  case 'IMPORTED': case 'COMPLETED': return '#059669';
+      case 'CANCELLED': return '#ef4444';
       default:          return 'var(--text-muted)';
     }
   }
 
   getViewStatusBg(): string {
     switch (this.viewStatus) {
-      case 'DRAFT':     return 'rgba(245,158,11,0.10)';
-      case 'PLANNED':   return 'rgba(124,58,237,0.10)';
-      case 'EXPORTED':  case 'IMPORTED': case 'COMPLETED': return 'rgba(16,185,129,0.10)';
-      case 'CANCELLED': return 'rgba(107,114,128,0.10)';
+      case 'DRAFT':     case 'PENDING':    return 'rgba(245, 158, 11, 0.12)';
+      case 'PLANNED':   case 'PROCESSING': return 'rgba(124, 58, 237, 0.12)';
+      case 'EXPORTED':  case 'IMPORTED': case 'COMPLETED': return 'rgba(16, 185, 129, 0.12)';
+      case 'CANCELLED': return 'rgba(239, 68, 68, 0.12)';
       default:          return 'var(--bg-secondary)';
     }
   }
@@ -2392,8 +2392,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         }
       } catch {}
     }
-    this.transactionReason = v.reason || '';
-    const existingLogs = this.extractLogsFromNotes(v.notes);
+    const noteSource = v.rawNotes || v.notes;
+    const existingLogs = this.extractLogsFromNotes(noteSource);
     this.actionLogs = existingLogs || this.generateOrderBaselineLogs(v);
     this.transactionNote = this.cleanNotesForDisplay(v.notes);
     this.referenceCode = v.referenceCode || '';
@@ -3618,7 +3618,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return !!this.transactionLocation && this.lineItems.every((item: any) => item.productId && item.variantId);
   }
 
-  buildFormData(status: 'PENDING' | 'COMPLETED', action: 'draft' | 'confirm') {
+  buildFormData(status: 'PENDING' | 'COMPLETED' | 'PLANNED' | 'DRAFT', action: 'draft' | 'confirm') {
     const selectedWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionLocation || w.name === this.transactionLocation);
     const transferWarehouse = this.activeWarehouses.find((w: any) => w.id === this.transactionDestination || w.name === this.transactionDestination);
 
@@ -3848,7 +3848,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         toStatus: 'PLANNED'
       });
     }
-    const data = this.buildFormData('COMPLETED', 'confirm');
+    const data = this.buildFormData('PLANNED', 'confirm');
     this.onSubmit.emit(data);
   }
 }
