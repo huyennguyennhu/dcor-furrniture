@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChanges, HostListener, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChanges, HostListener, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -6,7 +6,8 @@ import {
   LucideAngularModule, 
   X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
   Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-  CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock
+  CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock,
+  Loader2
 } from 'lucide-angular';
 import { environment } from '../../../../../environments/environment';
 
@@ -214,6 +215,10 @@ export interface LineItem {
         opacity: 1;
         transform: translate(-50%, 0) scale(1);
       }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
     @keyframes toastProgress {
       from { width: 100%; }
@@ -1071,6 +1076,7 @@ export interface LineItem {
                       <!-- Product Options List -->
                       <div class="custom-dropdown-scrollbar" style="max-height: 220px; overflow-y: scroll; display: flex; flex-direction: column; gap: 2px; padding-right: 4px;">
                         <div *ngFor="let p of getFilteredProducts()"
+                          (mousedown)="selectProduct(item, p.id, $event)"
                           (click)="selectProduct(item, p.id, $event)"
                           style="padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; flex-direction: column; gap: 3px; transition: all 0.12s ease;"
                           [ngStyle]="{'background': item.productId === p.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'}"
@@ -1115,8 +1121,8 @@ export interface LineItem {
                       [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : (!item.productId ? 'Vui lòng chọn sản phẩm trước' : 'Chọn biến thể')"
                     >
                       <div *ngIf="item.variantId && transactionLocation" style="display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0; flex: 1;">
-                        <span *ngIf="getVariantSku(item)" style="font-family: monospace; font-weight: 700; font-size: 11px; color: var(--accent, #765337); line-height: 1.2;">{{ getVariantSku(item) }}</span>
-                        <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ getVariantDisplay(item) }}</span>
+                        <span *ngIf="item.skuDisplay || getVariantSku(item)" style="font-family: monospace; font-weight: 700; font-size: 11px; color: var(--accent, #765337); line-height: 1.2;">{{ item.skuDisplay || getVariantSku(item) }}</span>
+                        <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ item.variantNameDisplay || getVariantDisplay(item) }}</span>
                       </div>
                       <span *ngIf="!item.variantId || !transactionLocation" style="color: var(--text-muted); white-space: normal; word-break: break-word; line-height: 1.35; flex: 1; min-width: 0; font-size: 12px;">
                         {{ !transactionLocation ? 'Chọn biến thể' : (item.productId ? 'Chọn biến thể...' : 'Chọn sản phẩm trước') }}
@@ -1148,9 +1154,10 @@ export interface LineItem {
                         'top': dropdownPositions['var_' + item.id] === 'up' ? 'auto' : 'calc(100% + 6px)'
                       }"
                     >
-                      <div *ngFor="let v of getVariantsForProduct(item.productId)"
+                      <div *ngFor="let v of getVariantsForProduct(item.productId); trackBy: trackByVariantId"
                         class="dropdown-option-item"
                         [class.selected]="item.variantId == v.id"
+                        (mousedown)="selectVariant(item, v, $event)"
                         (click)="selectVariant(item, v, $event)"
                       >
                         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
@@ -1635,54 +1642,58 @@ export interface LineItem {
           <!-- CREATE MODE: Hủy + Lưu nháp + Tạo phiếu -->
           <div *ngIf="!isViewMode" style="display: flex; align-items: center; gap: 10px;">
             <!-- Nút 1: HỦY -->
-            <button type="button" (click)="requestClose()"
-              style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
-              onmouseover="this.style.background='var(--bg-secondary)'"
-              onmouseout="this.style.background='var(--bg-primary)'"
+            <button type="button" (click)="requestClose()" [disabled]="isSubmitting"
+              [style.opacity]="isSubmitting ? '0.5' : '1'"
+              [style.cursor]="isSubmitting ? 'not-allowed' : 'pointer'"
+              style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; transition: all 0.15s ease;"
+              onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)'"
+              onmouseout="if(!this.disabled) this.style.background='var(--bg-primary)'"
             >
               Hủy
             </button>
 
             <!-- Nút 2: LƯU NHÁP -->
-            <button type="button" (click)="handleSaveDraft()" [disabled]="!canSaveDraft()"
+            <button type="button" (click)="handleSaveDraft()" [disabled]="!canSaveDraft() || isSubmitting"
               [ngStyle]="{
                 'display': 'flex', 'align-items': 'center', 'gap': '6px',
                 'padding': '9px 18px', 'border-radius': '8px',
-                'border': '1px solid ' + (!canSaveDraft() ? 'var(--border-color)' : '#d97706'),
-                'background': !canSaveDraft() ? 'var(--bg-secondary)' : '#fffbeb',
-                'color': !canSaveDraft() ? 'var(--text-muted)' : '#b45309',
+                'border': '1px solid ' + ((!canSaveDraft() || isSubmitting) ? 'var(--border-color)' : '#d97706'),
+                'background': (!canSaveDraft() || isSubmitting) ? 'var(--bg-secondary)' : '#fffbeb',
+                'color': (!canSaveDraft() || isSubmitting) ? 'var(--text-muted)' : '#b45309',
                 'font-size': '13px', 'font-weight': '600',
-                'cursor': !canSaveDraft() ? 'not-allowed' : 'pointer',
-                'opacity': !canSaveDraft() ? '0.45' : '1',
+                'cursor': (!canSaveDraft() || isSubmitting) ? 'not-allowed' : 'pointer',
+                'opacity': (!canSaveDraft() || isSubmitting) ? '0.45' : '1',
                 'transition': 'all 0.15s ease'
               }"
               onmouseover="if(!this.disabled) { this.style.background='#fef3c7'; }"
               onmouseout="if(!this.disabled) { this.style.background='#fffbeb'; }"
-              [title]="!canSaveDraft() ? 'Vui lòng hoàn thiện các trường dữ liệu bắt buộc trước khi lưu nháp' : 'Lưu lại dạng bản nháp để duyệt sau, chưa thay đổi số lượng tồn kho'"
+              [title]="!canSaveDraft() ? 'Vui lòng hoàn thiện các trường dữ liệu bắt buộc trước khi lưu nháp' : (isSubmitting ? 'Đang xử lý...' : 'Lưu lại dạng bản nháp để duyệt sau, chưa thay đổi số lượng tồn kho')"
             >
-              <lucide-angular [img]="icons.Save" size="15"></lucide-angular>
-              Lưu nháp
+              <lucide-angular *ngIf="!isSubmittingDraft" [img]="icons.Save" size="15"></lucide-angular>
+              <lucide-angular *ngIf="isSubmittingDraft" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+              <span>{{ isSubmittingDraft ? 'Đang lưu nháp...' : 'Lưu nháp' }}</span>
             </button>
 
-            <!-- Nút 3: TẠO PHIẾU XUẤT (PLANNED) -->
-            <button type="button" (click)="handleSubmitConfirmed()" [disabled]="!canSubmitOrder()"
+            <!-- Nút 3: TẠO PHIẾU XUẤT / NHẬP (PLANNED) -->
+            <button type="button" (click)="handleSubmitConfirmed()" [disabled]="!canSubmitOrder() || isSubmitting"
               [ngStyle]="{
                 'display': 'flex', 'align-items': 'center', 'gap': '6px',
                 'padding': '9px 24px', 'border-radius': '8px', 'border': 'none',
-                'background': !canSubmitOrder() ? 'var(--border-color)' : '#765337',
-                'color': !canSubmitOrder() ? 'var(--text-muted)' : '#ffffff',
+                'background': (!canSubmitOrder() || isSubmitting) ? 'var(--border-color)' : '#765337',
+                'color': (!canSubmitOrder() || isSubmitting) ? 'var(--text-muted)' : '#ffffff',
                 'font-size': '13px', 'font-weight': '600',
-                'cursor': !canSubmitOrder() ? 'not-allowed' : 'pointer',
-                'opacity': !canSubmitOrder() ? '0.55' : '1',
-                'box-shadow': !canSubmitOrder() ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
+                'cursor': (!canSubmitOrder() || isSubmitting) ? 'not-allowed' : 'pointer',
+                'opacity': (!canSubmitOrder() || isSubmitting) ? '0.55' : '1',
+                'box-shadow': (!canSubmitOrder() || isSubmitting) ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
                 'transition': 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }"
               onmouseover="if(!this.disabled) { this.style.background='#5a3d26'; this.style.boxShadow='0 4px 14px rgba(90, 61, 38, 0.4)'; this.style.transform='translateY(-1px)'; }"
               onmouseout="if(!this.disabled) { this.style.background='#765337'; this.style.boxShadow='0 2px 8px rgba(118, 83, 55, 0.28)'; this.style.transform='translateY(0)'; }"
-              [title]="getSubmitButtonTitle()"
+              [title]="isSubmitting ? 'Hệ thống đang xử lý...' : getSubmitButtonTitle()"
             >
-              <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
-              {{ type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho' }}
+              <lucide-angular *ngIf="!isSubmittingOrder" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+              <lucide-angular *ngIf="isSubmittingOrder" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+              <span>{{ isSubmittingOrder ? 'Đang xử lý...' : (type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho') }}</span>
             </button>
           </div>
 
@@ -2003,9 +2014,16 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   icons = { 
     X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
     Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-    CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock
+    CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock,
+    Loader2
   };
   private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+
+  // Trạng thái khóa nút khi đang submit form
+  isSubmitting = false;
+  isSubmittingDraft = false;
+  isSubmittingOrder = false;
 
   @Input() isOpen = false;
   @Input() type: 'import' | 'export' = 'export';
@@ -2153,6 +2171,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return notes
       .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
       .replace(/\[STATUS:[^\]]+\]/g, '')
+      .replace(/\[Người lập:[^\]]+\]/g, '')
+      .replace(/\[Người nhận:[^\]]+\]/g, '')
+      .replace(/\[Lý do hủy:[^\]]+\]/g, '')
       .trim();
   }
 
@@ -2382,9 +2403,12 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (v.discount) {
       this.discountAmount = String(v.discount);
     }
+    if (v.shippingFee) {
+      this.shippingFee = String(v.shippingFee);
+    }
 
     if (this.type === 'import') {
-      this.recipientName = v.sourceLocation || '';
+      this.recipientName = v.recipientName || v.sourceLocation || '';
       this.transactionDestination = v.sourceWarehouseId || '';
       const targetWhStr = v.destinationLocation || v.destWarehouse?.name;
       const targetWhId = v.destWarehouseId || v.sourceWarehouseId;
@@ -2401,7 +2425,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         }
       }
     } else {
-      this.recipientName = v.destinationLocation || '';
+      let rec = v.recipientName || v.destinationLocation || '';
+      if (rec.startsWith('Khách hàng: ')) rec = rec.replace('Khách hàng: ', '');
+      this.recipientName = rec;
       this.transactionDestination = v.destWarehouseId || '';
       const targetWhStr = v.sourceLocation || v.sourceWarehouse?.name;
       const targetWhId = v.sourceWarehouseId;
@@ -2702,6 +2728,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   resetState() {
+    this.isSubmitting = false;
+    this.isSubmittingDraft = false;
+    this.isSubmittingOrder = false;
+
     // Ngày giờ mặc định hiện tại
     const now = new Date();
     const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -2856,15 +2886,15 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   // --- TỒN KHO & VALIDATION ---
   getVariantStockInfo(productId: string, variantId: string): { available: number; physical: number; reserved: number } {
     if (!productId || !variantId) return { available: 0, physical: 0, reserved: 0 };
-    const p = this.availableProducts.find((x: any) => x.id === productId);
+    const p = this.availableProducts.find((x: any) => String(x.id) === String(productId));
     if (!p || !p.variants) return { available: 0, physical: 0, reserved: 0 };
-    const v = p.variants.find((x: any) => x.id === variantId);
+    const v = p.variants.find((x: any) => String(x.id) === String(variantId));
     if (!v) return { available: 0, physical: 0, reserved: 0 };
 
     if (this.transactionLocation) {
       if (v.warehouseStocks && Array.isArray(v.warehouseStocks) && v.warehouseStocks.length > 0) {
         const ws = v.warehouseStocks.find((w: any) => 
-          w.warehouseId === this.transactionLocation || 
+          String(w.warehouseId) === String(this.transactionLocation) || 
           w.warehouse?.name === this.transactionLocation ||
           w.warehouse?.code === this.transactionLocation
         );
@@ -3186,6 +3216,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.updateLineItem(item.id, 'productId', pId);
     this.openProductDropdownId = null;
     this.productSearchTerm = '';
+    this.cdr.detectChanges();
   }
 
   toggleVariantDropdown(item: LineItem, event: Event) {
@@ -3237,6 +3268,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
     // Kiểm tra cảnh báo tồn kho nếu cần
     this.checkVariantStockAndToast(item.productId, variantId);
+
+    // Cập nhật giao diện tức thì
+    this.cdr.detectChanges();
   }
 
   toggleUnitDropdown(item: LineItem, event: Event) {
@@ -3366,6 +3400,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   requestClose() {
+    if (this.isSubmitting) return;
     if (this.hasProductData()) {
       this.showDiscardConfirmModal = true;
     } else {
@@ -3379,6 +3414,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   confirmDiscard() {
+    if (this.isSubmitting) return;
+    this.isSubmitting = false;
+    this.isSubmittingDraft = false;
+    this.isSubmittingOrder = false;
     this.showDiscardConfirmModal = false;
     this.onClose.emit();
   }
@@ -3468,21 +3507,31 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return v ? v.name : (variantId || 'N/A');
   }
 
-  getVariantsForProduct(productId: string) {
+  getVariantsForProduct(productId: string): any[] {
     if (!productId) return [];
     const p = this.availableProducts.find((x: any) => String(x.id) === String(productId));
-    if (p && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
-      return p.variants.map((v: any) => ({
-        id: String(v.id),
-        name: v.name || v.color || v.material || 'Bản tiêu chuẩn',
-        sku: v.sku || '',
-        price: v.price || p?.price || 0,
-        warehouseStocks: v.warehouseStocks || []
-      }));
+    if (!p) return [];
+
+    if (!p._normalizedVariants) {
+      if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+        p._normalizedVariants = p.variants.map((v: any) => ({
+          id: String(v.id),
+          name: v.name || v.color || v.material || 'Bản tiêu chuẩn',
+          sku: v.sku || '',
+          price: v.price || p?.price || 0,
+          warehouseStocks: v.warehouseStocks || []
+        }));
+      } else {
+        p._normalizedVariants = [
+          { id: 'v_default', name: 'Tiêu chuẩn', sku: p?.sku || 'SKU-STD', price: p?.price || 0, warehouseStocks: [] }
+        ];
+      }
     }
-    return [
-      { id: 'v_default', name: 'Tiêu chuẩn', sku: p?.sku || 'SKU-STD', price: p?.price || 0, warehouseStocks: [] }
-    ];
+    return p._normalizedVariants;
+  }
+
+  trackByVariantId(index: number, v: any): string {
+    return v?.id || String(index);
   }
 
   formatPrice(price: number): string {
@@ -3743,9 +3792,22 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   // --- NÚT 2: LƯU NHÁP (Draft) ---
   handleSaveDraft() {
-    if (!this.canSaveDraft()) {
+    if (!this.canSaveDraft() || this.isSubmitting) {
       return;
     }
+    this.isSubmitting = true;
+    this.isSubmittingDraft = true;
+    this.cdr.markForCheck();
+
+    // Tự động mở khóa sau 12s phòng trường hợp lỗi mạng
+    setTimeout(() => {
+      if (this.isSubmitting) {
+        this.isSubmitting = false;
+        this.isSubmittingDraft = false;
+        this.cdr.markForCheck();
+      }
+    }, 12000);
+
     if (!this.actionLogs.length) {
       this.actionLogs.push({
         timestamp: new Date().toISOString(),
@@ -3761,9 +3823,22 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   // --- NÚT 3: TẠO PHIẾU (Hoàn thành / Xác nhận ghi nhận kho) ---
   handleSubmitConfirmed() {
-    if (!this.canSubmitOrder()) {
+    if (!this.canSubmitOrder() || this.isSubmitting) {
       return;
     }
+    this.isSubmitting = true;
+    this.isSubmittingOrder = true;
+    this.cdr.markForCheck();
+
+    // Tự động mở khóa sau 12s phòng trường hợp lỗi mạng
+    setTimeout(() => {
+      if (this.isSubmitting) {
+        this.isSubmitting = false;
+        this.isSubmittingOrder = false;
+        this.cdr.markForCheck();
+      }
+    }, 12000);
+
     if (!this.actionLogs.length) {
       this.actionLogs.push({
         timestamp: new Date().toISOString(),

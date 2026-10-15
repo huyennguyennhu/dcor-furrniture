@@ -5,7 +5,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
-  ArrowLeft, Package, Clock, Filter, Search, Plus, ArrowRightLeft, RefreshCcw, X, Loader2, Calendar, ChevronDown, Check 
+  ArrowLeft, Package, Clock, Filter, Search, Plus, ArrowRightLeft, RefreshCcw, X, Loader2, Calendar, ChevronDown, Check,
+  CheckCircle2, AlertCircle, XCircle 
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
@@ -198,6 +199,56 @@ interface StockHistory {
   template: `
     <div style="display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px;">
       
+      <!-- Floating Toast Notification (Góc dưới bên phải) -->
+      <div *ngIf="showToast" 
+        class="inventory-toast-container"
+        style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; width: max-content; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; animation: toastSlideUpRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;"
+        [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
+      >
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <!-- Icon -->
+          <div 
+            style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
+            [style.background]="toastType === 'success' ? 'rgba(16, 185, 129, 0.12)' : (toastType === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(59, 130, 246, 0.12)')"
+            [style.color]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#2563eb')"
+          >
+            <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+            <lucide-angular *ngIf="toastType === 'error'" [img]="icons.XCircle" size="20"></lucide-angular>
+            <lucide-angular *ngIf="toastType === 'info'" [img]="icons.AlertCircle" size="20"></lucide-angular>
+          </div>
+
+          <!-- Text -->
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; word-break: break-word;">
+              {{ toastMessage }}
+            </span>
+            <span *ngIf="toastSubMessage" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; word-break: break-word;">
+              {{ toastSubMessage }}
+            </span>
+          </div>
+
+          <!-- Close btn -->
+          <button 
+            type="button" 
+            (click)="closeToast()" 
+            style="background: transparent; border: none; cursor: pointer; color: var(--text-muted, #9ca3af); padding: 2px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.15s;"
+            onmouseover="this.style.color='var(--text-primary)'"
+            onmouseout="this.style.color='var(--text-muted)'"
+            title="Đóng thông báo"
+          >
+            <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+          </button>
+        </div>
+
+        <!-- Countdown Progress Bar -->
+        <div style="width: 100%; height: 3px; background: rgba(0, 0, 0, 0.06); border-radius: 2px; overflow: hidden; margin-top: 2px;">
+          <div 
+            style="height: 100%; border-radius: 2px; animation: toastProgress 4.5s linear forwards;"
+            [style.background]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#3b82f6')"
+          ></div>
+        </div>
+      </div>
+
       <!-- BREADCRUMB / BACK BUTTON -->
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <button 
@@ -528,7 +579,38 @@ interface StockHistory {
 })
 export class InventoryProductDetailComponent implements OnInit {
   private inventoryState = inject(InventoryStateService);
-  icons = { ArrowLeft, Package, Clock, Filter, Search, Plus, ArrowRightLeft, RefreshCcw, X, Loader2, Calendar, ChevronDown, Check };
+  private cdr = inject(ChangeDetectorRef);
+  icons = { ArrowLeft, Package, Clock, Filter, Search, Plus, ArrowRightLeft, RefreshCcw, X, Loader2, Calendar, ChevronDown, Check, CheckCircle2, AlertCircle, XCircle };
+
+  // Toast Notification
+  toastMessage = '';
+  toastSubMessage = '';
+  toastType: 'success' | 'warning' | 'error' | 'info' = 'success';
+  showToast = false;
+  toastTimer: any = null;
+
+  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 4500) {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastMessage = message;
+    this.toastSubMessage = subMessage;
+    this.toastType = type;
+    this.showToast = true;
+    this.cdr.markForCheck();
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+      this.cdr.markForCheck();
+    }, durationMs);
+  }
+
+  closeToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.showToast = false;
+    this.cdr.markForCheck();
+  }
 
   productId: string = '';
   product: any = null;
@@ -591,7 +673,6 @@ export class InventoryProductDetailComponent implements OnInit {
   };
 
   private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef);
 
   constructor(private route: ActivatedRoute, private router: Router) {}
 
@@ -838,16 +919,24 @@ export class InventoryProductDetailComponent implements OnInit {
         this.closeModal();
         this.fetchProductDetail(this.productId);
         if (isDraft) {
-          window.alert(`Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!`);
+          this.triggerToast(
+            `Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!`,
+            'Trạng thái: Bản nháp (chưa làm thay đổi số lượng tồn kho).',
+            'info'
+          );
         } else {
-          window.alert(`Đã phát hành và cập nhật tồn kho thành công cho phiếu ${created.orderCode || created.id}!`);
+          this.triggerToast(
+            `Đã phát hành và cập nhật tồn kho thành công cho phiếu ${created.orderCode || created.id}!`,
+            'Số lượng tồn kho thực tế đã được cập nhật ngay lập tức.',
+            'success'
+          );
         }
       },
       error: (err) => {
         console.warn('API error creating order:', err);
         this.inventoryState.invalidate();
         this.closeModal();
-        window.alert(`Đã hoàn tất thao tác cho phiếu ${data.orderCode || 'mới'}.`);
+        this.triggerToast(`Đã hoàn tất thao tác cho phiếu ${data.orderCode || 'mới'}.`, '', 'info');
       }
     });
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, inject } from '@angular/core';
+import { Component, OnInit, HostListener, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -6,9 +6,9 @@ import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
   Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
-  Download, CheckCircle2, Clock, AlertCircle, X, Eye, Printer, Trash2, 
+  Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2, 
   Calendar as CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
-  Square, CheckSquare
+  Square, CheckSquare, Loader2
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
@@ -51,13 +51,45 @@ export interface StockOrder {
 export class InventoryOrdersComponent implements OnInit {
   icons = {
     Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
-    Download, CheckCircle2, Clock, AlertCircle, X, Eye, Printer, Trash2,
+    Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2,
     CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
-    Square, CheckSquare
+    Square, CheckSquare, Loader2
   };
 
   private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
 
+  // Toast Notification
+  toastMessage = '';
+  toastSubMessage = '';
+  toastType: 'success' | 'warning' | 'error' | 'info' = 'success';
+  showToast = false;
+  toastTimer: any = null;
+
+  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 4500) {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastMessage = message;
+    this.toastSubMessage = subMessage;
+    this.toastType = type;
+    this.showToast = true;
+    this.cdr.markForCheck();
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+      this.cdr.markForCheck();
+    }, durationMs);
+  }
+
+  closeToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.showToast = false;
+    this.cdr.markForCheck();
+  }
+
+  isLoading = true;
   data: StockOrder[] = [];
   selectedIds = new Set<string>();
 
@@ -216,6 +248,7 @@ export class InventoryOrdersComponent implements OnInit {
   }
 
   fetchOrders() {
+    this.isLoading = true;
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/orders`).subscribe({
       next: (orders) => {
         if (Array.isArray(orders) && orders.length > 0) {
@@ -256,10 +289,14 @@ export class InventoryOrdersComponent implements OnInit {
         } else {
           this.data = [];
         }
+        this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.warn('Could not fetch orders from API:', err);
         this.data = [];
+        this.isLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -635,7 +672,7 @@ export class InventoryOrdersComponent implements OnInit {
           CANCELLED: 'Đã hủy'
         };
         const label = labels[newStatus] || newStatus;
-        alert(`Phiếu ${isImport ? 'nhập kho' : 'xuất kho'} đã chuyển sang trạng thái: ${label}`);
+        this.triggerToast(`Cập nhật trạng thái`, `Phiếu ${isImport ? 'nhập kho' : 'xuất kho'} đã chuyển sang trạng thái: ${label}`, 'success');
       },
       error: (err) => {
         console.warn('API error updating order status:', err);
@@ -657,7 +694,7 @@ export class InventoryOrdersComponent implements OnInit {
       next: () => {
         this.closeModal();
         this.fetchOrders();
-        alert(`Phiếu ${isImport ? 'nhập kho' : 'xuất kho'} đã được xóa thành công.`);
+        this.triggerToast(`Xóa phiếu thành công`, `Phiếu ${isImport ? 'nhập kho' : 'xuất kho'} đã được xóa thành công.`, 'success');
       },
       error: (err) => {
         console.warn('API error deleting order, removing locally:', err);
@@ -675,13 +712,13 @@ export class InventoryOrdersComponent implements OnInit {
       next: () => {
         this.closeModal();
         this.fetchOrders();
-        alert(`Cập nhật phiếu ${isImport ? 'nhập kho' : 'xuất kho'} thành công!`);
+        this.triggerToast(`Cập nhật phiếu ${isImport ? 'nhập kho' : 'xuất kho'} thành công!`, '', 'success');
       },
       error: (err) => {
         console.warn('API error updating order:', err);
         this.closeModal();
         this.fetchOrders();
-        alert(`Đã cập nhật thông tin phiếu ${isImport ? 'nhập kho' : 'xuất kho'}.`);
+        this.triggerToast(`Đã cập nhật thông tin phiếu ${isImport ? 'nhập kho' : 'xuất kho'}.`, '', 'info');
       }
     });
   }
@@ -726,10 +763,18 @@ export class InventoryOrdersComponent implements OnInit {
         this.closeModal();
         this.fetchOrders();
         if (isDraft) {
-          window.alert(`Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!\nTrạng thái: Nháp (chưa làm thay đổi số lượng tồn kho).`);
+          this.triggerToast(
+            `Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!`,
+            'Trạng thái: Nháp (chưa làm thay đổi số lượng tồn kho).',
+            'info'
+          );
         } else {
           const typeName = isImport ? 'nhập kho (Chờ nhập kho)' : 'xuất kho (Lên kế hoạch xuất)';
-          window.alert(`Đã tạo thành công phiếu ${typeName} ${created.orderCode || created.id}!\nTrạng thái: Lên kế hoạch (hàng chưa cộng/trừ tồn kho thực tế).`);
+          this.triggerToast(
+            `Đã tạo thành công phiếu ${typeName} ${created.orderCode || created.id}!`,
+            'Trạng thái: Lên kế hoạch (hàng chưa cộng/trừ tồn kho thực tế).',
+            'success'
+          );
         }
       },
       error: (err) => {
@@ -776,9 +821,17 @@ export class InventoryOrdersComponent implements OnInit {
         this.data.unshift(newOrder);
         this.closeModal();
         if (isDraft) {
-          window.alert(`Đã lưu nháp thành công ${newOrder.typeLabel}: ${newOrder.id}`);
+          this.triggerToast(
+            `Đã lưu nháp thành công ${newOrder.typeLabel}: ${newOrder.id}`,
+            'Trạng thái: Nháp (chưa làm thay đổi số lượng tồn kho).',
+            'info'
+          );
         } else {
-          window.alert(`Đã phát hành thành công ${newOrder.typeLabel}: ${newOrder.id}`);
+          this.triggerToast(
+            `Đã phát hành thành công ${newOrder.typeLabel}: ${newOrder.id}`,
+            'Số lượng tồn kho thực tế đã được cập nhật ngay lập tức.',
+            'success'
+          );
         }
       }
     });
@@ -804,7 +857,7 @@ export class InventoryOrdersComponent implements OnInit {
     this.http.put(`${environment.apiUrl}/admin/inventory/orders/${order.id}/status`, { status: newStatus }).subscribe({
       next: () => {
         if (newStatus === 'COMPLETED') {
-          window.alert(`Lệnh kho ${order.id} đã hoàn tất thành công và cập nhật tồn kho!`);
+          this.triggerToast(`Lệnh kho ${order.id} đã hoàn tất thành công và cập nhật tồn kho!`, '', 'success');
         }
       },
       error: (err) => {
@@ -841,7 +894,7 @@ export class InventoryOrdersComponent implements OnInit {
       });
     });
 
-    window.alert(`Đã cập nhật trạng thái các lệnh đã chọn.`);
+    this.triggerToast('Cập nhật trạng thái thành công', 'Đã cập nhật trạng thái các lệnh đã chọn.', 'success');
   }
 
   printOrder(order: StockOrder, event?: Event) {
@@ -850,7 +903,7 @@ export class InventoryOrdersComponent implements OnInit {
   }
 
   exportExcel() {
-    window.alert(`Đang trích xuất dữ liệu danh sách lệnh kho ra file Excel...`);
+    this.triggerToast('Xuất file Excel', 'Đang trích xuất dữ liệu danh sách lệnh kho ra file Excel...', 'info');
   }
 
 

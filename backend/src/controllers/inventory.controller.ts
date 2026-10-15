@@ -585,10 +585,49 @@ export const inventoryController = {
         else if (o.status === 'PENDING') displayStatus = 'DRAFT';
         else if (o.status === 'PROCESSING') displayStatus = 'PLANNED';
 
+        let creatorName = o.creator?.fullName || o.creator?.name;
+        if (!creatorName && o.notes) {
+          const match = o.notes.match(/\[Người lập:\s*([^\]]+)\]/);
+          if (match) creatorName = match[1].trim();
+        }
+        if (!creatorName && o.notes && o.notes.includes('ACTION_LOGS:')) {
+          try {
+            const logsMatch = o.notes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || o.notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+            if (logsMatch) {
+              const logs = JSON.parse(logsMatch[1]);
+              if (Array.isArray(logs) && logs.length > 0 && logs[0].operator) {
+                creatorName = logs[0].operator;
+              }
+            }
+          } catch {}
+        }
+        if (!creatorName) creatorName = 'Admin Quản Trị';
+
+        let recipientName = '';
+        if (o.notes) {
+          const matchRec = o.notes.match(/\[Người nhận:\s*([^\]]+)\]/);
+          if (matchRec) recipientName = matchRec[1].trim();
+        }
+
+        // Clean user notes so technical tags never appear on UI
+        const rawNotes = o.notes || '';
+        const cleanUserNotes = rawNotes
+          .replace(/\[ACTION_LOGS:[\s\S]*?\]\]/g, '')
+          .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
+          .replace(/\[STATUS:[^\]]+\]/g, '')
+          .replace(/\[Người lập:[^\]]+\]/g, '')
+          .replace(/\[Người nhận:[^\]]+\]/g, '')
+          .replace(/\[Lý do hủy:[^\]]+\]/g, '')
+          .trim();
+
         return {
           ...o,
           status: displayStatus,
           rawStatus: displayStatus,
+          creatorName,
+          recipientName,
+          notes: cleanUserNotes,
+          rawNotes: rawNotes,
           totalAmount: Number(o.totalAmount || 0),
           items: (o.items || []).map((it: any) => ({
             ...it,
@@ -675,7 +714,9 @@ export const inventoryController = {
       const finalStatus = dbStatus;
       const createdDate = customCreatedAt ? new Date(customCreatedAt) : now;
       const finalDestination = destinationLocation || recipientName || (type === 'TRANSFER' ? 'Chi nhánh điều chuyển' : 'Khách hàng / Đối tác');
-      const baseNotes = recipientName ? `[Người nhận: ${recipientName}] ${notes || ''}` : (notes || '');
+      const creatorTag = creatorName ? `[Người lập: ${creatorName}]` : '';
+      const recipientTag = recipientName ? `[Người nhận: ${recipientName}]` : '';
+      const baseNotes = [creatorTag, recipientTag, notes || ''].filter(Boolean).join(' ');
       const extraNotes = `${statusTag} ${baseNotes}`.trim() || null;
 
       let totalQty = 0;

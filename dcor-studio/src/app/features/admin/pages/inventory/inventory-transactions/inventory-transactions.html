@@ -1,4 +1,54 @@
 <div class="inventory-orders-container">
+  <!-- Floating Toast Notification (Góc dưới bên phải) -->
+  <div *ngIf="showToast" 
+    class="inventory-toast-container"
+    style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; width: max-content; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; animation: toastSlideUpRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;"
+    [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
+  >
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+      <!-- Icon -->
+      <div 
+        style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
+        [style.background]="toastType === 'success' ? 'rgba(16, 185, 129, 0.12)' : (toastType === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(59, 130, 246, 0.12)')"
+        [style.color]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#2563eb')"
+      >
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.XCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.AlertCircle" size="20"></lucide-angular>
+      </div>
+
+      <!-- Text -->
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+        <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; word-break: break-word;">
+          {{ toastMessage }}
+        </span>
+        <span *ngIf="toastSubMessage" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; word-break: break-word;">
+          {{ toastSubMessage }}
+        </span>
+      </div>
+
+      <!-- Close btn -->
+      <button 
+        type="button" 
+        (click)="closeToast()" 
+        style="background: transparent; border: none; cursor: pointer; color: var(--text-muted, #9ca3af); padding: 2px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.15s;"
+        onmouseover="this.style.color='var(--text-primary)'"
+        onmouseout="this.style.color='var(--text-muted)'"
+        title="Đóng thông báo"
+      >
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- Countdown Progress Bar -->
+    <div style="width: 100%; height: 3px; background: rgba(0, 0, 0, 0.06); border-radius: 2px; overflow: hidden; margin-top: 2px;">
+      <div 
+        style="height: 100%; border-radius: 2px; animation: toastProgress 4.5s linear forwards;"
+        [style.background]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#3b82f6')"
+      ></div>
+    </div>
+  </div>
+
   <!-- Page Header -->
   <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
     <div>
@@ -15,7 +65,7 @@
     </div>
   </div>
 
-  <!-- Metric KPI Cards (5 trạng thái: Tất cả (10), Đã hoàn tất (3), Đang xử lý (1), Chờ duyệt (6), Đã hủy (0)) -->
+  <!-- Metric KPI Cards (5 trạng thái chuẩn từ phiếu xuất nhập kho: Tất cả, Đã hoàn tất, Lên kế hoạch, Bản nháp, Đã hủy) -->
   <div class="kpi-grid">
     <!-- Stat 1: Tất cả -->
     <div (click)="statusFilter = 'all'"
@@ -30,7 +80,7 @@
       </div>
       <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ totalCount }}</div>
       <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-        Toàn bộ giao dịch kho
+        Toàn bộ giao dịch phiếu kho
       </div>
     </div>
 
@@ -45,67 +95,67 @@
           <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ completedCount }}</div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ completedStockCount }}</div>
       <div style="font-size: 12px; color: #059669; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
-        Đã cập nhật tồn kho
+        Đã cập nhật tồn kho thực tế
       </div>
     </div>
 
-    <!-- Stat 3: Đang xử lý -->
-    <div (click)="statusFilter = statusFilter === 'PROCESSING' ? 'all' : 'PROCESSING'"
+    <!-- Stat 3: Lên kế hoạch / Đang xử lý -->
+    <div (click)="statusFilter = statusFilter === 'PLANNED' ? 'all' : 'PLANNED'"
          style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
-         [style.border-color]="statusFilter === 'PROCESSING' ? '#3b82f6' : 'var(--border-color)'"
-         [style.background]="statusFilter === 'PROCESSING' ? 'rgba(59,130,246,0.06)' : 'var(--bg-secondary)'">
+         [style.border-color]="statusFilter === 'PLANNED' ? '#7c3aed' : 'var(--border-color)'"
+         [style.background]="statusFilter === 'PLANNED' ? 'rgba(124,58,237,0.06)' : 'var(--bg-secondary)'">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Đang xử lý</span>
-        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(59,130,246,0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Lên kế hoạch</span>
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(124,58,237,0.12); color: #7c3aed; display: flex; align-items: center; justify-content: center;">
           <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ processingCount }}</div>
-      <div style="font-size: 12px; color: #2563eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
-        Đang đóng gói & luân chuyển
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ plannedCount }}</div>
+      <div style="font-size: 12px; color: #7c3aed; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+        Chờ thực xuất / thực nhập
       </div>
     </div>
 
-    <!-- Stat 4: Chờ duyệt -->
-    <div (click)="statusFilter = statusFilter === 'PENDING' ? 'all' : 'PENDING'"
+    <!-- Stat 4: Bản nháp -->
+    <div (click)="statusFilter = statusFilter === 'DRAFT' ? 'all' : 'DRAFT'"
          style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
-         [style.border-color]="statusFilter === 'PENDING' ? '#f59e0b' : 'var(--border-color)'"
-         [style.background]="statusFilter === 'PENDING' ? 'rgba(245,158,11,0.06)' : 'var(--bg-secondary)'">
+         [style.border-color]="statusFilter === 'DRAFT' ? '#f59e0b' : 'var(--border-color)'"
+         [style.background]="statusFilter === 'DRAFT' ? 'rgba(245,158,11,0.06)' : 'var(--bg-secondary)'">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chờ duyệt</span>
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Bản nháp</span>
         <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245,158,11,0.12); color: #d97706; display: flex; align-items: center; justify-content: center;">
           <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
         </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ pendingApprovalCount }}</div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ draftCount }}</div>
       <div style="font-size: 12px; color: #d97706; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
-        Cần thủ kho phê duyệt
+        Đang soạn thảo & chỉnh sửa
       </div>
     </div>
 
     <!-- Stat 5: Đã hủy -->
     <div (click)="statusFilter = statusFilter === 'CANCELLED' ? 'all' : 'CANCELLED'"
          style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;"
-         [style.border-color]="statusFilter === 'CANCELLED' ? '#9ca3af' : 'var(--border-color)'"
-         [style.background]="statusFilter === 'CANCELLED' ? 'rgba(107,114,128,0.06)' : 'var(--bg-secondary)'">
+         [style.border-color]="statusFilter === 'CANCELLED' ? '#ef4444' : 'var(--border-color)'"
+         [style.background]="statusFilter === 'CANCELLED' ? 'rgba(239,68,68,0.06)' : 'var(--bg-secondary)'">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Đã hủy</span>
-        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(107,114,128,0.12); color: #4b5563; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(239,68,68,0.12); color: #dc2626; display: flex; align-items: center; justify-content: center;">
           <lucide-angular [img]="icons.X" size="18"></lucide-angular>
         </div>
       </div>
       <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1;">{{ cancelledCount }}</div>
       <div style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-        Lệnh bị hủy bỏ giao dịch
+        Phiếu bị hủy bỏ
       </div>
     </div>
   </div>
 
   <!-- Filter & Search Toolbar -->
   <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; flex-wrap: wrap;">
-    <!-- Type Pills: Nhập kho & Xuất kho (rút gọn theo yêu cầu) -->
+    <!-- Type Pills: Nhập kho & Xuất kho -->
     <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-tertiary); padding: 4px; border-radius: 10px;">
       <button 
         type="button" 
@@ -131,13 +181,13 @@
 
     <!-- Filter Controls -->
     <div style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end; flex-wrap: wrap;">
-      <!-- Search Box (Format chuẩn Tổng quan kho) -->
+      <!-- Search Box -->
       <div class="filter-search-box" style="max-width: 320px;">
         <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
         <input 
           type="text" 
           [(ngModel)]="searchTerm" 
-          placeholder="Tìm mã lệnh, tham chiếu, kho hàng..." 
+          placeholder="Tìm mã phiếu, tham chiếu, hàng hóa..." 
           class="filter-search-input" 
         />
         <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear-btn" title="Xóa tìm kiếm">
@@ -145,7 +195,7 @@
         </button>
       </div>
 
-      <!-- Dropdown Chi nhánh/Kho (Format chuẩn Tổng quan kho) -->
+      <!-- Dropdown Chi nhánh/Kho -->
       <div class="filter-dropdown-wrapper location-filter-wrapper">
         <button 
           type="button"
@@ -158,7 +208,7 @@
             <lucide-angular [img]="icons.Building2" size="15" class="trigger-icon"></lucide-angular>
             <span class="truncate-label">{{ locationFilter }}</span>
           </div>
-          <app-icon name="ChevronDown" size="14" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></app-icon>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
         </button>
         
         <div *ngIf="showLocationDropdown" class="filter-menu-dropdown">
@@ -173,20 +223,20 @@
         </div>
       </div>
 
-      <!-- Dropdown Trạng thái (Tất cả (10), Đã hoàn tất (3), Đang xử lý (1), Chờ duyệt (6), Đã hủy (0)) -->
+      <!-- Dropdown Trạng thái -->
       <div class="filter-dropdown-wrapper status-filter-wrapper">
         <button 
           type="button"
           (click)="showStatusDropdown = !showStatusDropdown; showLocationDropdown = false"
           class="filter-trigger-btn"
           [class.active]="statusFilter !== 'all'"
-          title="Chọn trạng thái lệnh"
+          title="Chọn trạng thái phiếu"
         >
           <div class="trigger-label">
             <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
             <span class="truncate-label">{{ getStatusLabel() }}</span>
           </div>
-          <app-icon name="ChevronDown" size="14" [ngStyle]="{'transform': showStatusDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></app-icon>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showStatusDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
         </button>
         
         <div *ngIf="showStatusDropdown" class="filter-menu-dropdown">
@@ -209,7 +259,7 @@
   <!-- Bulk Action Bar -->
   <div *ngIf="selectedIds.size > 0" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(var(--accent-rgb), 0.08); border: 1px solid var(--accent); border-radius: 10px; font-size: 13px;">
     <div>
-      Đã chọn <strong style="color: var(--accent);">{{ selectedIds.size }}</strong> lệnh kho
+      Đã chọn <strong style="color: var(--accent);">{{ selectedIds.size }}</strong> phiếu kho
     </div>
     <div style="display: flex; gap: 8px;">
       <button (click)="batchUpdateStatus('COMPLETED')" class="admin-btn admin-btn-secondary" style="color: #059669;">
@@ -241,11 +291,11 @@
               <lucide-angular *ngIf="!isAllSelected()" [img]="icons.Square" size="18"></lucide-angular>
             </button>
           </th>
-          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Mã lệnh</th>
-          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Loại lệnh</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Mã phiếu</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Loại phiếu</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Thời gian</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Lý do & Tham chiếu</th>
-          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Thủ kho</th>
+          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Người lập / Thủ kho</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap;">Số lượng</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Tổng giá trị</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Trạng thái</th>
@@ -253,9 +303,23 @@
         </tr>
       </thead>
       <tbody>
+        <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
+        <tr *ngIf="isLoading">
+          <td colspan="10" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+              <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(118, 83, 55, 0.08); display: flex; align-items: center; justify-content: center;">
+                <lucide-angular [img]="icons.Loader2" size="24" color="var(--accent)" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+              </div>
+              <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải danh sách lệnh kho...</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Danh sách lệnh kho & Empty State (Chỉ hiển thị khi đã tải xong) -->
+        <ng-container *ngIf="!isLoading">
         <tr 
           *ngFor="let order of filteredOrders" 
-          (click)="viewOrderDetail(order)"
+          (click)="viewOrderInModal(order, $event)"
           style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s;"
           [style.background]="selectedIds.has(order.id) ? 'rgba(var(--accent-rgb), 0.04)' : 'transparent'"
           onmouseover="this.style.background='#F3E5D3'"
@@ -302,21 +366,22 @@
             </div>
           </td>
 
-          <!-- Reason -->
+          <!-- Reason & Clean Notes -->
+          <!-- Reason & Clean Notes -->
           <td style="padding: 12px 14px;">
-            <div style="max-width: 240px;">
+            <div style="max-width: 250px;">
               <div style="font-weight: 500; line-height: 1.3; font-size: 13px; color: var(--text-primary);">{{ order.reason }}</div>
-              <div *ngIf="order.notes" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ order.notes }}</div>
+              <div *ngIf="order.cleanNotes" style="font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="order.cleanNotes">{{ order.cleanNotes }}</div>
             </div>
           </td>
 
           <!-- Creator -->
           <td style="padding: 12px 14px;">
-            <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-              <div style="width: 22px; height: 22px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">
-                {{ order.creator.charAt(0) }}
+            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+              <div style="width: 26px; height: 26px; border-radius: 50%; background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.25); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent);">
+                {{ getInitials(order.creator) }}
               </div>
-              <span style="font-size: 13px;">{{ order.creator }}</span>
+              <span style="font-size: 13px; font-weight: 500; color: var(--text-primary);">{{ order.creator }}</span>
             </div>
           </td>
 
@@ -330,22 +395,20 @@
             {{ formatCurrency(order.totalAmount) }}
           </td>
 
-          <!-- Status -->
+          <!-- Status Badge (Hiển thị chuẩn từ phiếu xuất nhập kho) -->
           <td style="padding: 12px 14px;">
             <span 
-              style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;"
-              [style.background]="order.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : (order.status === 'PROCESSING' ? 'rgba(59,130,246,0.12)' : (order.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.12)'))"
-              [style.color]="order.status === 'COMPLETED' ? '#059669' : (order.status === 'PROCESSING' ? '#2563eb' : (order.status === 'PENDING' ? '#d97706' : '#4b5563'))"
+              style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;"
+              [style.background]="getStatusBg(order.status)"
+              [style.color]="getStatusColor(order.status)"
+              [style.border]="getStatusBorder(order.status)"
             >
-              <lucide-angular *ngIf="order.status === 'COMPLETED'" [img]="icons.CheckCircle2" size="12"></lucide-angular>
-              <lucide-angular *ngIf="order.status === 'PROCESSING'" [img]="icons.Clock" size="12"></lucide-angular>
-              <lucide-angular *ngIf="order.status === 'PENDING'" [img]="icons.AlertCircle" size="12"></lucide-angular>
-              <lucide-angular *ngIf="order.status === 'CANCELLED'" [img]="icons.X" size="12"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'COMPLETED' || order.status === 'EXPORTED' || order.status === 'IMPORTED'" [img]="icons.CheckCircle2" size="13"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'PROCESSING' || order.status === 'PLANNED'" [img]="icons.Clock" size="13"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'PENDING' || order.status === 'DRAFT'" [img]="icons.AlertCircle" size="13"></lucide-angular>
+              <lucide-angular *ngIf="order.status === 'CANCELLED'" [img]="icons.X" size="13"></lucide-angular>
               
-              <span *ngIf="order.status === 'COMPLETED'">Hoàn tất</span>
-              <span *ngIf="order.status === 'PROCESSING'">Đang xử lý</span>
-              <span *ngIf="order.status === 'PENDING'">Chờ duyệt</span>
-              <span *ngIf="order.status === 'CANCELLED'">Đã hủy</span>
+              <span>{{ getStatusBadgeLabel(order.status, order.type) }}</span>
             </span>
           </td>
 
@@ -363,14 +426,14 @@
 
               <!-- Dropdown Action Menu -->
               <div *ngIf="activeActionMenu === order.id" style="position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); min-width: 155px; z-index: 50; padding: 4px; display: flex; flex-direction: column;">
-                <button (click)="viewOrderDetail(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
-                  <lucide-angular [img]="icons.Eye" size="14"></lucide-angular> Xem chi tiết
+                <button (click)="viewOrderInModal(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
+                  <lucide-angular [img]="icons.Eye" size="14"></lucide-angular> Xem chi tiết phiếu
                 </button>
                 <button (click)="printOrder(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
                   <lucide-angular [img]="icons.Printer" size="14"></lucide-angular> In phiếu lệnh
                 </button>
                 <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--border-color);" />
-                <button *ngIf="order.status !== 'COMPLETED'" (click)="updateOrderStatus(order, 'COMPLETED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #059669; cursor: pointer; text-align: left;">
+                <button *ngIf="order.status !== 'COMPLETED' && order.status !== 'EXPORTED' && order.status !== 'IMPORTED'" (click)="updateOrderStatus(order, order.type === 'import' ? 'IMPORTED' : 'EXPORTED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #059669; cursor: pointer; text-align: left;">
                   <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular> Đã hoàn tất
                 </button>
                 <button *ngIf="order.status !== 'CANCELLED'" (click)="updateOrderStatus(order, 'CANCELLED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #d97706; cursor: pointer; text-align: left;">
@@ -384,7 +447,7 @@
           </td>
         </tr>
 
-        <!-- Empty State -->
+        <!-- Empty State: Chỉ hiển thị khi đã tải xong mà không có dữ liệu -->
         <tr *ngIf="filteredOrders.length === 0">
           <td colspan="10" style="padding: 40px 16px; text-align: center;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
@@ -399,132 +462,12 @@
             </div>
           </td>
         </tr>
+        </ng-container>
       </tbody>
     </table>
   </div>
 
-  <!-- Detail Modal -->
-  <div *ngIf="selectedOrder" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; backdrop-filter: blur(2px);" (click)="closeOrderDetail()">
-    <div style="background: var(--bg-primary); border-radius: 12px; width: 850px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 16px 36px rgba(0,0,0,0.25); overflow: hidden;" (click)="$event.stopPropagation()">
-      <!-- Header -->
-      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <h2 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary);">Chi tiết {{ selectedOrder.typeLabel }}: {{ selectedOrder.id }}</h2>
-            <span 
-              style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;"
-              [style.background]="selectedOrder.type === 'import' ? 'rgba(16,185,129,0.12)' : (selectedOrder.type === 'export' ? 'rgba(239,68,68,0.12)' : 'rgba(139,92,246,0.12)')"
-              [style.color]="selectedOrder.type === 'import' ? '#059669' : (selectedOrder.type === 'export' ? '#dc2626' : '#7c3aed')"
-            >
-              {{ selectedOrder.typeLabel }}
-            </span>
-            <span 
-              style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;"
-              [style.background]="selectedOrder.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : (selectedOrder.status === 'PROCESSING' ? 'rgba(59,130,246,0.12)' : (selectedOrder.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.12)'))"
-              [style.color]="selectedOrder.status === 'COMPLETED' ? '#059669' : (selectedOrder.status === 'PROCESSING' ? '#2563eb' : (selectedOrder.status === 'PENDING' ? '#d97706' : '#4b5563'))"
-            >
-              {{ selectedOrder.status === 'COMPLETED' ? 'Hoàn tất' : (selectedOrder.status === 'PROCESSING' ? 'Đang xử lý' : (selectedOrder.status === 'PENDING' ? 'Chờ duyệt' : 'Đã hủy')) }}
-            </span>
-          </div>
-          <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">Thời gian tạo: {{ selectedOrder.createdAt }} &bull; Người lập: <strong>{{ selectedOrder.creator }}</strong></p>
-        </div>
-        <button (click)="closeOrderDetail()" class="admin-close-btn">
-          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
-        </button>
-      </div>
-
-      <!-- Body -->
-      <div style="padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Kho / Nguồn xuất</span>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.sourceLocation }}</span>
-          </div>
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Kho / Nơi nhận</span>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.destinationLocation }}</span>
-          </div>
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Chứng từ tham chiếu</span>
-            <span style="font-size: 13px; font-weight: 600; font-family: monospace; color: var(--accent);">{{ selectedOrder.referenceCode || 'Không có' }}</span>
-          </div>
-          <div style="padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 11px; color: var(--text-secondary);">Lý do thực hiện</span>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ selectedOrder.reason }}</span>
-          </div>
-        </div>
-
-        <div *ngIf="selectedOrder.notes" style="padding: 10px 12px; border-radius: 6px; background: rgba(var(--accent-rgb), 0.05); border-left: 3px solid var(--accent); font-size: 12px; color: var(--text-primary);">
-          <strong>Ghi chú:</strong> {{ selectedOrder.notes }}
-        </div>
-
-        <!-- Products Table -->
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text-primary);">Danh sách sản phẩm trong lệnh ({{ selectedOrder.items.length }} mặt hàng)</h3>
-          <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-              <thead>
-                <tr style="background: #EAE1D7;">
-                  <th style="padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border-color); width: 40px;">STT</th>
-                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Mã SKU</th>
-                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Tên sản phẩm</th>
-                  <th style="padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color);">Biến thể / Màu sắc</th>
-                  <th style="padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border-color); width: 50px;">ĐVT</th>
-                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color); width: 70px;">Số lượng</th>
-                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color);">Đơn giá</th>
-                  <th style="padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color);">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let it of selectedOrder.items; let idx = index" 
-                    style="border-bottom: 1px solid var(--border-color);"
-                    onmouseover="this.style.background='#F3E5D3'"
-                    onmouseout="this.style.background='transparent'">
-                  <td style="padding: 8px 10px; text-align: center;">{{ idx + 1 }}</td>
-                  <td style="padding: 8px 10px;"><span style="font-family: monospace; font-size: 11px; padding: 2px 4px; border-radius: 4px; background: var(--bg-tertiary); border: 1px solid var(--border-color);">{{ it.sku }}</span></td>
-                  <td style="padding: 8px 10px;"><strong>{{ it.productName }}</strong></td>
-                  <td style="padding: 8px 10px; color: var(--text-secondary);">{{ it.variant }}</td>
-                  <td style="padding: 8px 10px; text-align: center;">{{ it.unit }}</td>
-                  <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: var(--accent);">{{ it.quantity }}</td>
-                  <td style="padding: 8px 10px; text-align: right;">{{ formatCurrency(it.unitPrice) }}</td>
-                  <td style="padding: 8px 10px; text-align: right; font-weight: 700;">{{ formatCurrency(it.quantity * it.unitPrice) }}</td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr style="background: #EAE1D7; font-weight: 700;">
-                  <td colspan="5" style="padding: 10px; text-align: right;">TỔNG CỘNG:</td>
-                  <td style="padding: 10px; text-align: right; color: var(--accent);">{{ selectedOrder.totalQuantity }}</td>
-                  <td></td>
-                  <td style="padding: 10px; text-align: right; color: #10b981; font-size: 14px;">{{ formatCurrency(selectedOrder.totalAmount) }}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
-        <button (click)="printOrder(selectedOrder)" class="admin-btn admin-btn-secondary">
-          <lucide-angular [img]="icons.Printer" size="16"></lucide-angular> In phiếu lệnh
-        </button>
-        <div style="display: flex; gap: 8px;">
-          <button 
-            *ngIf="selectedOrder.status !== 'COMPLETED'" 
-            (click)="updateOrderStatus(selectedOrder, 'COMPLETED')" 
-            class="admin-btn admin-btn-primary"
-          >
-            <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular> Hoàn tất lệnh
-          </button>
-          <button (click)="closeOrderDetail()" class="admin-btn admin-btn-secondary">
-            Đóng
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Reusable Transaction Modal (Nhập/Xuất kho) -->
+  <!-- Reusable Transaction Modal (Nhập/Xuất kho & Xem chi tiết phiếu) -->
   <app-transaction-modal
     [isOpen]="modalConfig.isOpen"
     [type]="modalConfig.type"
@@ -532,7 +475,11 @@
     [initialVariantId]="modalConfig.initialVariantId"
     [isProductFixed]="modalConfig.isProductFixed"
     [isVariantFixed]="modalConfig.isVariantFixed"
+    [viewOrderData]="modalConfig.viewOrderData"
     (onClose)="closeModal()"
     (onSubmit)="handleModalSubmit($event)"
+    (onStatusChange)="handleOrderStatusChange($event)"
+    (onDeleteOrder)="handleDeleteOrder($event)"
+    (onUpdateOrder)="handleUpdateOrder($event)"
   ></app-transaction-modal>
 </div>

@@ -8,7 +8,7 @@ import {
   LucideAngularModule, 
   Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, Image as ImageIcon, X,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
-  Building2, Layers, Tag, RotateCcw, CornerDownRight
+  Building2, Layers, Tag, RotateCcw, CornerDownRight, CheckCircle2, AlertCircle, XCircle
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../environments/environment';
@@ -27,12 +27,42 @@ export class InventoryComponent implements OnInit, OnDestroy {
   icons = { 
     Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, ImageIcon, X,
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
-    Building2, Layers, Tag, RotateCcw, CornerDownRight
+    Building2, Layers, Tag, RotateCcw, CornerDownRight, CheckCircle2, AlertCircle, XCircle
   };
 
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private stateService = inject(InventoryStateService);
+
+  // Toast Notification
+  toastMessage = '';
+  toastSubMessage = '';
+  toastType: 'success' | 'warning' | 'error' | 'info' = 'success';
+  showToast = false;
+  toastTimer: any = null;
+
+  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 4500) {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastMessage = message;
+    this.toastSubMessage = subMessage;
+    this.toastType = type;
+    this.showToast = true;
+    this.cdr.markForCheck();
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+      this.cdr.markForCheck();
+    }, durationMs);
+  }
+
+  closeToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.showToast = false;
+    this.cdr.markForCheck();
+  }
 
   data: InventoryItem[] = [];
   rawItems: InventoryItem[] = [];
@@ -759,22 +789,30 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.closeModal();
         this.fetchOverview();
         if (isDraft) {
-          window.alert(`Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!\nTrạng thái: Bản nháp (chưa làm thay đổi số lượng tồn kho).`);
+          this.triggerToast(
+            `Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!`,
+            'Trạng thái: Bản nháp (chưa làm thay đổi số lượng tồn kho).',
+            'info'
+          );
         } else {
-          window.alert(`Đã tạo và phát hành thành công phiếu ${created.orderCode || created.id}!\nSố lượng tồn kho thực tế đã được cập nhật ngay lập tức.`);
+          this.triggerToast(
+            `Đã tạo và phát hành thành công phiếu ${created.orderCode || created.id}!`,
+            'Số lượng tồn kho thực tế đã được cập nhật ngay lập tức.',
+            'success'
+          );
         }
       },
       error: (err) => {
         console.warn('Could not post order to API:', err);
         this.closeModal();
         this.fetchOverview();
-        window.alert(`Đã hoàn tất thao tác cho phiếu ${data.orderCode || 'mới'}.`);
+        this.triggerToast(`Đã hoàn tất thao tác cho phiếu ${data.orderCode || 'mới'}.`, '', 'info');
       }
     });
   }
 
   alert(message: string) {
-    window.alert(message);
+    this.triggerToast(message, '', 'info');
   }
 
   goToDetail(id: string) {
