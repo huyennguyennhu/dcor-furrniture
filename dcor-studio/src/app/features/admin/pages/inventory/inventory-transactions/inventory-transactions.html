@@ -253,6 +253,18 @@
           </div>
         </div>
       </div>
+
+      <!-- Nút Xóa bộ lọc (chỉ hiện khi có filter đang bật) -->
+      <button 
+        *ngIf="hasActiveFilters()" 
+        type="button" 
+        (click)="resetFilters()" 
+        class="reset-filters-btn" 
+        title="Đặt lại toàn bộ bộ lọc về mặc định"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+        <span>Xóa bộ lọc</span>
+      </button>
     </div>
   </div>
 
@@ -295,7 +307,6 @@
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Loại phiếu</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Thời gian</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Lý do & Tham chiếu</th>
-          <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Người lập / Thủ kho</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap;">Số lượng</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Tổng giá trị</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Trạng thái</th>
@@ -304,7 +315,7 @@
       </thead>
       <tbody>
         <tr *ngIf="isLoading">
-          <td colspan="10" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+          <td colspan="9" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
               <div class="spinning-loader"></div>
               <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải danh sách lệnh kho...</span>
@@ -372,16 +383,6 @@
             </div>
           </td>
 
-          <!-- Creator -->
-          <td style="padding: 12px 14px;">
-            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
-              <div style="width: 26px; height: 26px; border-radius: 50%; background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.25); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent);">
-                {{ getInitials(order.creator) }}
-              </div>
-              <span style="font-size: 13px; font-weight: 500; color: var(--text-primary);">{{ order.creator }}</span>
-            </div>
-          </td>
-
           <!-- Items Quantity -->
           <td style="padding: 12px 14px; text-align: center; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--text-primary);">
             {{ order.totalQuantity }}
@@ -423,21 +424,11 @@
 
               <!-- Dropdown Action Menu -->
               <div *ngIf="activeActionMenu === order.id" style="position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); min-width: 155px; z-index: 50; padding: 4px; display: flex; flex-direction: column;">
-                <button (click)="viewOrderInModal(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
-                  <lucide-angular [img]="icons.Eye" size="14"></lucide-angular> Xem chi tiết phiếu
-                </button>
                 <button (click)="printOrder(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
                   <lucide-angular [img]="icons.Printer" size="14"></lucide-angular> In phiếu lệnh
                 </button>
-                <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--border-color);" />
                 <button *ngIf="order.status !== 'COMPLETED' && order.status !== 'EXPORTED' && order.status !== 'IMPORTED'" (click)="updateOrderStatus(order, order.type === 'import' ? 'IMPORTED' : 'EXPORTED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #059669; cursor: pointer; text-align: left;">
                   <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular> Đã hoàn tất
-                </button>
-                <button *ngIf="order.status !== 'CANCELLED'" (click)="updateOrderStatus(order, 'CANCELLED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #d97706; cursor: pointer; text-align: left;">
-                  <lucide-angular [img]="icons.X" size="14"></lucide-angular> Hủy lệnh này
-                </button>
-                <button (click)="deleteOrder(order.id, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #dc2626; cursor: pointer; text-align: left;">
-                  <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular> Xóa lệnh
                 </button>
               </div>
             </div>
@@ -446,14 +437,14 @@
 
         <!-- Empty State: Chỉ hiển thị khi đã tải xong mà không có dữ liệu -->
         <tr *ngIf="filteredOrders.length === 0">
-          <td colspan="10" style="padding: 40px 16px; text-align: center;">
+          <td colspan="9" style="padding: 40px 16px; text-align: center;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
               <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
                 <lucide-angular [img]="icons.Package" size="24" color="var(--text-muted)"></lucide-angular>
               </div>
               <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary);">Không tìm thấy lệnh kho nào</h3>
               <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">Không có kết quả phù hợp với các tiêu chí tìm kiếm hoặc bộ lọc hiện tại.</p>
-              <button (click)="searchTerm = ''; typeFilter = 'all'; locationFilter = 'Tất cả chi nhánh'; statusFilter = 'all';" class="admin-btn admin-btn-secondary" style="margin-top: 8px;">
+              <button (click)="resetFilters()" class="admin-btn admin-btn-secondary" style="margin-top: 8px;">
                 Đặt lại bộ lọc
               </button>
             </div>

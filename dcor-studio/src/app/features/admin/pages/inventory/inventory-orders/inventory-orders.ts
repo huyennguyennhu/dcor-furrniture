@@ -8,7 +8,7 @@ import {
   Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
   Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2, 
   Calendar as CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
-  Square, CheckSquare, Loader2
+  Square, CheckSquare, Loader2, RotateCcw
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
@@ -53,7 +53,7 @@ export class InventoryOrdersComponent implements OnInit {
     Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
     Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2,
     CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
-    Square, CheckSquare, Loader2
+    Square, CheckSquare, Loader2, RotateCcw
   };
 
   private http = inject(HttpClient);
@@ -212,6 +212,25 @@ export class InventoryOrdersComponent implements OnInit {
   onSelectLocation(location: string) {
     this.locationFilter = location;
     this.showLocationDropdown = false;
+  }
+
+  hasActiveFilters(): boolean {
+    return Boolean(
+      this.searchTerm.trim() ||
+      this.typeFilter !== 'all' ||
+      this.locationFilter !== 'Tất cả chi nhánh' ||
+      this.statusFilter !== 'all'
+    );
+  }
+
+  resetFilters() {
+    this.searchTerm = '';
+    this.typeFilter = 'all';
+    this.locationFilter = 'Tất cả chi nhánh';
+    this.statusFilter = 'all';
+    this.showLocationDropdown = false;
+    this.showStatusDropdown = false;
+    this.cdr.markForCheck();
   }
 
   // Transaction Modal (Nhập / Xuất)
