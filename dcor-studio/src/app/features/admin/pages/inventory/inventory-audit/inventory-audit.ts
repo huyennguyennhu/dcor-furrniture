@@ -8,7 +8,7 @@ import {
   LucideAngularModule, 
   ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
   ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw
+  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw, Printer
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -32,6 +32,18 @@ export interface AuditItemRow {
   showVariantDropdown?: boolean;
   showReasonDropdown?: boolean;
 }
+ 
+export interface AuditActionLog {
+  id?: string;
+  timestamp: string;
+  operator: string;
+  actionType: 'CREATE' | 'STATUS_CHANGE' | 'SAVE_PROGRESS' | 'CANCEL' | 'UPDATE';
+  actionLabel?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  reason?: string;
+  details?: string;
+}
 
 @Component({
   selector: 'app-inventory-audit',
@@ -44,7 +56,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   icons = { 
     ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
     ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw
+    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw, Printer
   };
 
   private http = inject(HttpClient);
@@ -75,7 +87,6 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   expandedCategoryIds = new Set<string>();
 
   isLoading = true;
-  isSubmitting = false;
   selectedIds = new Set<string>();
   
   // Page Filters
@@ -168,6 +179,15 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   currentAuditStatus: 'CREATE' | 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' = 'CREATE';
   isEditingExistingDraft = false;
   existingDraftId = '';
+  submittingAction: 'DRAFT' | 'PLAN' | 'START_AUDIT' | 'SAVE_PROGRESS' | 'COMPLETE' | null = null;
+  get isSubmitting(): boolean {
+    return this.submittingAction !== null;
+  }
+  set isSubmitting(val: boolean) {
+    if (!val) {
+      this.submittingAction = null;
+    }
+  }
 
   // Delete & Cancel Popups State
   showDeleteConfirmModal = false;
@@ -195,6 +215,93 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   modalLocation = '';
   modalNotes = '';
   modalCreator = 'Admin';
+  actionLogs: AuditActionLog[] = [];
+
+  getInitials(name: string): string {
+    if (!name) return 'A';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  extractLogsFromNotes(notes: string | null | undefined): AuditActionLog[] | null {
+    if (!notes) return null;
+    const match = notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+    if (match && match[1]) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  cleanNotesForDisplay(notes: string | null | undefined): string {
+    if (!notes) return '';
+    return notes
+      .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
+      .replace(/\[STATUS:[^\]]+\]/g, '')
+      .trim();
+  }
+
+  generateAuditBaselineLogs(item: any): AuditActionLog[] {
+    const logs: AuditActionLog[] = [];
+    const operator = item.creator?.fullName || item.creator || this.modalCreator || 'Admin Quản Trị';
+    const createdAt = item.createdAt || new Date().toISOString();
+    const rawStatus = item.rawStatus || item.status || 'DRAFT';
+
+    if (rawStatus === 'DRAFT') {
+      logs.push({
+        timestamp: createdAt,
+        operator,
+        actionType: 'CREATE',
+        toStatus: 'DRAFT',
+        actionLabel: 'Tạo bản nháp'
+      });
+    } else {
+      logs.push({
+        timestamp: createdAt,
+        operator,
+        actionType: 'CREATE',
+        toStatus: 'PLANNED',
+        actionLabel: 'Tạo phiếu kiểm kê'
+      });
+    }
+
+    if (rawStatus === 'IN_PROGRESS' || rawStatus === 'COMPLETED') {
+      logs.push({
+        timestamp: createdAt,
+        operator,
+        actionType: 'STATUS_CHANGE',
+        fromStatus: 'PLANNED',
+        toStatus: 'IN_PROGRESS'
+      });
+    }
+
+    if (rawStatus === 'COMPLETED') {
+      logs.push({
+        timestamp: item.completedAt || item.updatedAt || createdAt,
+        operator,
+        actionType: 'STATUS_CHANGE',
+        fromStatus: 'IN_PROGRESS',
+        toStatus: 'COMPLETED'
+      });
+    }
+
+    if (rawStatus === 'CANCELLED') {
+      const reasonMatch = (item.notes || '').match(/\[Lý do hủy:\s*([^\]]+)\]/);
+      logs.push({
+        timestamp: item.updatedAt || createdAt,
+        operator,
+        actionType: 'CANCEL',
+        fromStatus: 'PLANNED',
+        toStatus: 'CANCELLED',
+        reason: reasonMatch ? reasonMatch[1] : (this.cleanNotesForDisplay(item.notes) || 'Hủy theo kế hoạch')
+      });
+    }
+
+    return logs;
+  }
   
   showModalWarehouseDropdown = false;
   warehouseSelectorHighlighted = false;
@@ -232,6 +339,34 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   auditItems: AuditItemRow[] = [];
   activeActionMenu: string | null = null;
 
+  // Toast Notification
+  toastMessage = '';
+  toastType: 'success' | 'warning' | 'error' | 'info' = 'success';
+  showToast = false;
+  toastTimer: any = null;
+
+  triggerToast(message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 4500) {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastMessage = message;
+    this.toastType = type;
+    this.showToast = true;
+    this.cdr.markForCheck();
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+      this.cdr.markForCheck();
+    }, durationMs);
+  }
+
+  closeToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.showToast = false;
+    this.cdr.markForCheck();
+  }
+
   constructor(private router: Router) {}
 
   ngOnInit() {
@@ -245,6 +380,10 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     if (this.warehouseHighlightTimeout) {
       clearTimeout(this.warehouseHighlightTimeout);
       this.warehouseHighlightTimeout = null;
+    }
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
     }
   }
 
@@ -465,7 +604,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
             auditCode: a.auditCode || a.id,
             scope: a.scope || 'Kiểm kê định kỳ',
             createdAt: a.createdAt,
-            date: a.createdAt ? new Date(a.createdAt).toLocaleString('vi-VN') : '',
+            date: a.createdAt ? this.formatDisplayDate(a.createdAt) : '',
             location: a.warehouse?.name || a.location || 'Kho Tổng (TP.HCM)',
             warehouseId: a.warehouseId,
             creator: a.creator?.fullName || 'Admin',
@@ -551,6 +690,33 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  }
+
+  formatDateTimeLocal(dateInput: any): string {
+    if (!dateInput) return this.getCurrentDateTimeLocal();
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return this.getCurrentDateTimeLocal();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  formatDisplayDate(dateInput: any): string {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    const year = d.getFullYear();
+
+    let hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const hoursStr = hours.toString().padStart(2, '0');
+
+    return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
   }
 
   createEmptyRow(): AuditItemRow {
@@ -665,6 +831,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       this.modalWarehouseId = '';
       this.modalLocation = '';
       this.modalNotes = '';
+      this.actionLogs = [];
       this.warehouseSelectorHighlighted = false;
       this.loadedCategoryIds.clear();
       this.showLoadStockConfirmModal = false;
@@ -676,12 +843,14 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       // View or Edit existing audit
       this.existingDraftId = item.rawId;
       this.modalAuditCode = item.auditCode || item.id;
-      this.modalAuditDate = item.createdAt ? new Date(item.createdAt).toISOString().slice(0, 16) : this.getCurrentDateTimeLocal();
+      this.modalAuditDate = item.createdAt ? this.formatDateTimeLocal(item.createdAt) : this.getCurrentDateTimeLocal();
       this.modalAuditScope = item.scope || '';
       this.modalWarehouseId = item.warehouseId || '';
       this.modalLocation = item.location || '';
       this.modalCreator = item.creator || 'Admin';
-      this.modalNotes = item.notes || '';
+      const existingLogs = this.extractLogsFromNotes(item.notes);
+      this.actionLogs = existingLogs || this.generateAuditBaselineLogs(item);
+      this.modalNotes = this.cleanNotesForDisplay(item.notes);
 
       const rawSt = item.rawStatus || 'PLANNED';
       if (rawSt === 'DRAFT') {
@@ -742,6 +911,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
     this.showModal = false;
     this.currentAuditStatus = 'CREATE';
+    this.submittingAction = null;
     this.warehouseSelectorHighlighted = false;
     this.showClearConfirmModal = false;
     this.showDiscardConfirmModal = false;
@@ -761,6 +931,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     this.showDiscardConfirmModal = false;
     this.showModal = false;
     this.currentAuditStatus = 'CREATE';
+    this.submittingAction = null;
     this.showClearConfirmModal = false;
     this.showLoadStockConfirmModal = false;
     this.showDeleteConfirmModal = false;
@@ -1177,7 +1348,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
 
     if (targetVariants.length === 0) {
-      alert(`Không có sản phẩm nào thuộc danh mục ${displayName}.`);
+      this.triggerToast(`Không có sản phẩm nào thuộc danh mục ${displayName}.`, 'warning');
       return;
     }
 
@@ -1208,7 +1379,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       variantsToLoad = targetVariants.filter(v => !existingVariantIds.has(v.id));
 
       if (variantsToLoad.length === 0) {
-        alert(`Tất cả sản phẩm trong danh mục "${displayName}" đã có trong danh sách.`);
+        this.triggerToast(`Tất cả sản phẩm trong danh mục "${displayName}" đã có trong danh sách.`, 'info');
         return;
       }
     }
@@ -1398,7 +1569,8 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
   }
 
-  getStatusLabel(status: string): string {
+  getStatusLabel(status?: string): string {
+    if (!status) return '';
     switch (status) {
       case 'CREATE': return 'Tạo mới';
       case 'DRAFT': return 'Nháp';
@@ -1410,23 +1582,24 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
   }
 
-  getStatusBadgeStyle(status: string): any {
+  getStatusBadgeStyle(status?: string): any {
+    if (!status) return {};
     switch (status) {
       case 'CREATE':
-        return { 'background': 'rgba(245, 128, 37, 0.1)', 'color': 'var(--accent)' };
+        return { 'background': 'rgba(245, 128, 37, 0.1)', 'color': 'var(--accent)', 'border': '1px solid rgba(245, 128, 37, 0.25)' };
       case 'DRAFT':
-        return { 'background': 'rgba(217, 119, 6, 0.12)', 'color': '#d97706' };
+        return { 'background': 'rgba(217, 119, 6, 0.12)', 'color': '#d97706', 'border': '1px solid rgba(217, 119, 6, 0.25)' };
       case 'PLANNED':
       case 'PENDING':
-        return { 'background': 'rgba(124, 58, 237, 0.12)', 'color': '#7c3aed' };
+        return { 'background': 'rgba(124, 58, 237, 0.12)', 'color': '#7c3aed', 'border': '1px solid rgba(124, 58, 237, 0.25)' };
       case 'IN_PROGRESS':
-        return { 'background': 'rgba(37, 99, 235, 0.12)', 'color': '#2563eb' };
+        return { 'background': 'rgba(37, 99, 235, 0.12)', 'color': '#2563eb', 'border': '1px solid rgba(37, 99, 235, 0.25)' };
       case 'COMPLETED':
-        return { 'background': 'rgba(16, 185, 129, 0.12)', 'color': '#10b981' };
+        return { 'background': 'rgba(16, 185, 129, 0.12)', 'color': '#10b981', 'border': '1px solid rgba(16, 185, 129, 0.25)' };
       case 'CANCELLED':
-        return { 'background': 'rgba(107, 114, 128, 0.12)', 'color': '#6b7280' };
+        return { 'background': 'rgba(239, 68, 68, 0.12)', 'color': '#ef4444', 'border': '1px solid rgba(239, 68, 68, 0.25)' };
       default:
-        return { 'background': 'rgba(107, 114, 128, 0.12)', 'color': '#6b7280' };
+        return { 'background': 'rgba(107, 114, 128, 0.12)', 'color': '#6b7280', 'border': '1px solid rgba(107, 114, 128, 0.25)' };
     }
   }
 
@@ -1434,12 +1607,24 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
   startAuditExecution() {
     if (!this.existingDraftId) return;
-    this.isSubmitting = true;
+    this.submittingAction = 'START_AUDIT';
+    this.actionLogs.push({
+      timestamp: new Date().toISOString(),
+      operator: this.modalCreator || 'Admin Quản Trị',
+      actionType: 'STATUS_CHANGE',
+      fromStatus: 'PLANNED',
+      toStatus: 'IN_PROGRESS'
+    });
+    const cleanNotes = this.cleanNotesForDisplay(this.modalNotes);
+    const logsPayload = `[ACTION_LOGS:${JSON.stringify(this.actionLogs)}]`;
+    const finalNotes = cleanNotes ? `${cleanNotes}\n${logsPayload}` : logsPayload;
+
     this.http.put<any>(`${environment.apiUrl}/admin/inventory/audits/${this.existingDraftId}`, {
-      status: 'IN_PROGRESS'
+      status: 'IN_PROGRESS',
+      notes: finalNotes
     }).subscribe({
       next: (res) => {
-        this.isSubmitting = false;
+        this.submittingAction = null;
         this.currentAuditStatus = 'IN_PROGRESS';
         // Initialize actualStock = 0 for counting if empty
         this.auditItems.forEach(row => {
@@ -1453,8 +1638,8 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error starting audit execution:', err);
-        this.isSubmitting = false;
-        alert('Không thể bắt đầu kiểm kê. Vui lòng thử lại!');
+        this.submittingAction = null;
+        this.triggerToast('Không thể bắt đầu kiểm kê. Vui lòng thử lại!', 'error');
         this.cdr.markForCheck();
       }
     });
@@ -1483,7 +1668,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Error deleting audit:', err);
         this.isDeletingAudit = false;
-        alert('Không thể xóa phiếu kiểm kê. Vui lòng thử lại!');
+        this.triggerToast('Không thể xóa phiếu kiểm kê. Vui lòng thử lại!', 'error');
         this.cdr.markForCheck();
       }
     });
@@ -1505,14 +1690,24 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     if (!this.existingDraftId) return;
     const reason = (this.cancelReasonInput || '').trim();
     if (!reason) {
-      alert('Vui lòng nhập lý do hủy phiếu kiểm kê!');
+      this.triggerToast('Vui lòng nhập lý do hủy phiếu kiểm kê!', 'warning');
       return;
     }
 
     this.isCancellingAudit = true;
-    const updatedNotes = this.modalNotes 
-      ? `${this.modalNotes}\n[Lý do hủy: ${reason}]` 
-      : `[Lý do hủy: ${reason}]`;
+    this.actionLogs.push({
+      timestamp: new Date().toISOString(),
+      operator: this.modalCreator || 'Admin Quản Trị',
+      actionType: 'CANCEL',
+      fromStatus: 'PLANNED',
+      toStatus: 'CANCELLED',
+      reason
+    });
+    const cleanNotes = this.cleanNotesForDisplay(this.modalNotes);
+    const logsPayload = `[ACTION_LOGS:${JSON.stringify(this.actionLogs)}]`;
+    const updatedNotes = cleanNotes 
+      ? `${cleanNotes}\n[Lý do hủy: ${reason}]\n${logsPayload}` 
+      : `[Lý do hủy: ${reason}]\n${logsPayload}`;
 
     this.http.put<any>(`${environment.apiUrl}/admin/inventory/audits/${this.existingDraftId}`, {
       status: 'CANCELLED',
@@ -1524,12 +1719,13 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
         this.modalNotes = updatedNotes;
         this.currentAuditStatus = 'CANCELLED';
         this.closeModal(false);
+        this.triggerToast(`Phiếu kiểm kê ${this.modalAuditCode} đã được hủy thành công!`, 'info');
         this.fetchAudits();
       },
       error: (err) => {
         console.error('Error cancelling audit:', err);
         this.isCancellingAudit = false;
-        alert('Không thể hủy phiếu kiểm kê. Vui lòng thử lại!');
+        this.triggerToast('Không thể hủy phiếu kiểm kê. Vui lòng thử lại!', 'error');
         this.cdr.markForCheck();
       }
     });
@@ -1540,40 +1736,96 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   handleSubmitAudit(targetStatus: 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED') {
     const validItems = this.auditItems.filter(it => it.variantId);
     if (validItems.length === 0) {
-      alert('Vui lòng thêm ít nhất 1 sản phẩm vào phiếu kiểm kê!');
+      this.triggerToast('Vui lòng thêm ít nhất 1 sản phẩm vào phiếu kiểm kê!', 'warning');
       return;
     }
 
     if (targetStatus === 'PLANNED') {
       if (!this.modalWarehouseId) {
-        alert('Vui lòng chọn Chi nhánh / Kho kiểm kê!');
+        this.triggerToast('Vui lòng chọn Chi nhánh / Kho kiểm kê!', 'warning');
         return;
       }
       if (!this.modalAuditScope) {
-        alert('Vui lòng chọn Loại kiểm kê!');
+        this.triggerToast('Vui lòng chọn Loại kiểm kê!', 'warning');
         return;
       }
       for (const it of this.auditItems) {
         if (!it.productId || !it.variantId) {
-          alert('Vui lòng chọn đầy đủ sản phẩm và biến thể cho tất cả các dòng!');
+          this.triggerToast('Vui lòng chọn đầy đủ sản phẩm và biến thể cho tất cả các dòng!', 'warning');
           return;
         }
       }
     }
 
     if (targetStatus === 'COMPLETED' && !this.canCompleteAudit) {
-      alert(this.getCompleteAuditButtonTitle());
+      this.triggerToast(this.getCompleteAuditButtonTitle(), 'warning');
       return;
     }
 
-    this.isSubmitting = true;
+    const actionMap: Record<string, 'DRAFT' | 'PLAN' | 'SAVE_PROGRESS' | 'COMPLETE'> = {
+      DRAFT: 'DRAFT',
+      PLANNED: 'PLAN',
+      IN_PROGRESS: 'SAVE_PROGRESS',
+      COMPLETED: 'COMPLETE'
+    };
+    this.submittingAction = actionMap[targetStatus] || 'DRAFT';
+
+    if (targetStatus === 'DRAFT') {
+      if (!this.actionLogs.length) {
+        this.actionLogs.push({
+          timestamp: new Date().toISOString(),
+          operator: this.modalCreator || 'Admin Quản Trị',
+          actionType: 'CREATE',
+          toStatus: 'DRAFT',
+          actionLabel: 'Tạo bản nháp'
+        });
+      }
+    } else if (targetStatus === 'PLANNED') {
+      if (this.currentAuditStatus === 'DRAFT') {
+        this.actionLogs.push({
+          timestamp: new Date().toISOString(),
+          operator: this.modalCreator || 'Admin Quản Trị',
+          actionType: 'STATUS_CHANGE',
+          fromStatus: 'DRAFT',
+          toStatus: 'PLANNED'
+        });
+      } else if (!this.actionLogs.length) {
+        this.actionLogs.push({
+          timestamp: new Date().toISOString(),
+          operator: this.modalCreator || 'Admin Quản Trị',
+          actionType: 'CREATE',
+          toStatus: 'PLANNED',
+          actionLabel: 'Tạo phiếu kiểm kê'
+        });
+      }
+    } else if (targetStatus === 'IN_PROGRESS') {
+      this.actionLogs.push({
+        timestamp: new Date().toISOString(),
+        operator: this.modalCreator || 'Admin Quản Trị',
+        actionType: 'SAVE_PROGRESS',
+        details: `Đã kiểm ${validItems.filter(it => it.actualStock !== null && it.actualStock !== '').length}/${validItems.length} sản phẩm`
+      });
+    } else if (targetStatus === 'COMPLETED') {
+      this.actionLogs.push({
+        timestamp: new Date().toISOString(),
+        operator: this.modalCreator || 'Admin Quản Trị',
+        actionType: 'STATUS_CHANGE',
+        fromStatus: 'IN_PROGRESS',
+        toStatus: 'COMPLETED'
+      });
+    }
+
+    const cleanNotes = this.cleanNotesForDisplay(this.modalNotes);
+    const logsPayload = `[ACTION_LOGS:${JSON.stringify(this.actionLogs)}]`;
+    const finalNotes = cleanNotes ? `${cleanNotes}\n${logsPayload}` : logsPayload;
+
     const payload = {
       auditCode: this.modalAuditCode,
       createdAt: this.modalAuditDate ? new Date(this.modalAuditDate).toISOString() : new Date().toISOString(),
       warehouseId: this.modalWarehouseId || null,
       location: this.modalLocation,
       scope: this.modalAuditScope,
-      notes: this.modalNotes || null,
+      notes: finalNotes,
       status: targetStatus,
       items: validItems.map(it => ({
         variantId: it.variantId,
@@ -1591,17 +1843,21 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     request$.subscribe({
       next: (res) => {
         this.isSubmitting = false;
+        if (res?.id) {
+          this.existingDraftId = res.id;
+        }
+        const auditCode = res?.auditCode || this.modalAuditCode || 'ADT-2410-002';
         if (targetStatus === 'COMPLETED') {
-          alert(`Phiếu kiểm kê ${res.auditCode || this.modalAuditCode} đã hoàn tất và cân bằng tồn kho thành công!`);
-          this.closeModal();
+          this.closeModal(false);
+          this.triggerToast(`Phiếu kiểm kê ${auditCode} đã hoàn tất và cân bằng tồn kho thành công!`, 'success');
         } else if (targetStatus === 'PLANNED') {
-          alert(`Đã lưu phiếu kiểm kê ${res.auditCode || this.modalAuditCode} ở trạng thái Lên kế hoạch!`);
-          this.closeModal();
+          this.closeModal(false);
+          this.triggerToast(`Đã lưu phiếu kiểm kê ${auditCode} ở trạng thái Lên kế hoạch!`, 'info');
         } else if (targetStatus === 'DRAFT') {
-          alert(`Đã lưu nháp phiếu kiểm kê ${res.auditCode || this.modalAuditCode}!`);
-          this.closeModal();
+          this.closeModal(false);
+          this.triggerToast(`Đã lưu nháp phiếu kiểm kê ${auditCode}!`, 'info');
         } else if (targetStatus === 'IN_PROGRESS') {
-          alert(`Đã lưu tiến độ kiểm đếm!`);
+          this.triggerToast('Đã lưu tiến độ kiểm đếm!', 'success');
         }
         this.fetchAudits();
         this.cdr.markForCheck();
@@ -1609,7 +1865,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Error saving audit:', err);
         this.isSubmitting = false;
-        alert('Có lỗi xảy ra khi lưu phiếu kiểm kê. Vui lòng thử lại!');
+        this.triggerToast('Có lỗi xảy ra khi lưu phiếu kiểm kê. Vui lòng thử lại!', 'error');
         this.cdr.markForCheck();
       }
     });
@@ -1644,5 +1900,9 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
   alert(msg: string) {
     window.alert(msg);
+  }
+
+  handlePrintAudit() {
+    window.print();
   }
 }

@@ -6,9 +6,21 @@ import {
   LucideAngularModule, 
   X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
   Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-  CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw
+  CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock
 } from 'lucide-angular';
 import { environment } from '../../../../../environments/environment';
+
+export interface ActionLogItem {
+  id?: string;
+  timestamp: string;
+  operator: string;
+  actionType: 'CREATE' | 'STATUS_CHANGE' | 'SAVE_PROGRESS' | 'CANCEL' | 'UPDATE';
+  actionLabel?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  reason?: string;
+  details?: string;
+}
 
 export interface LineItem {
   id: string;
@@ -49,6 +61,21 @@ export interface LineItem {
     }
     .custom-dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
       background: #765337;
+    }
+    .dropdown-option-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      transition: background 0.12s ease;
+    }
+    .dropdown-option-item:hover {
+      background: var(--bg-secondary) !important;
+    }
+    .dropdown-option-item.selected {
+      background: rgba(194, 154, 107, 0.15) !important;
     }
     .filter-dropdown-wrapper {
       position: relative;
@@ -955,7 +982,6 @@ export interface LineItem {
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; text-transform: uppercase;">Số lượng</div>
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; text-transform: uppercase; white-space: nowrap;">{{ type === 'import' ? 'Đơn giá nhập (₫)' : 'Đơn giá xuất (₫)' }}</div>
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; text-transform: uppercase; white-space: nowrap;">Thành tiền (₫)</div>
-                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; text-transform: uppercase;">Số Lô / HSD</div>
                   <div></div>
                 </div>
 
@@ -978,41 +1004,33 @@ export interface LineItem {
                 
                 <!-- 1. Sản phẩm: Khóa khi chưa chọn kho -->
                 <div style="position: relative;">
-                  <div *ngIf="item.isProductFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <div *ngIf="item.isProductFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; white-space: normal; word-break: break-word; line-height: 1.35;">
                     {{ getProductLabel(item.productId, item) }}
                   </div>
                   <div *ngIf="!item.isProductFixed" 
                        (click)="!transactionLocation && focusLocationDropdown($event)"
                        style="position: relative; width: 100%;">
                     <button 
-                       type="button"
-                       (click)="toggleProductDropdown(item.id, $event)"
-                       [disabled]="!transactionLocation || isFormDisabled"
-                       style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
-                       [ngStyle]="{
-                         'background': (!transactionLocation || isFormDisabled) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                         'cursor': (!transactionLocation || isFormDisabled) ? 'not-allowed' : 'pointer',
-                         'opacity': (!transactionLocation) ? '0.7' : '1',
-                         'color': !transactionLocation ? 'var(--text-muted)' : (item.productId ? 'var(--text-primary)' : 'var(--text-muted)'),
-                         'border': !transactionLocation ? '1px dashed var(--border-color)' : '1px solid var(--border-color)'
-                       }"
-                       [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm' : ''"
+                        type="button"
+                        (click)="toggleProductDropdown(item.id, $event)"
+                        [disabled]="!transactionLocation || isFormDisabled"
+                        style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
+                        [ngStyle]="{
+                          'background': (!transactionLocation || isFormDisabled) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'cursor': (!transactionLocation || isFormDisabled) ? 'not-allowed' : 'pointer',
+                          'opacity': (!transactionLocation) ? '0.7' : '1',
+                          'color': !transactionLocation ? 'var(--text-muted)' : (item.productId ? 'var(--text-primary)' : 'var(--text-muted)'),
+                          'border': !transactionLocation ? '1px dashed var(--border-color)' : '1px solid var(--border-color)'
+                        }"
+                        [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước khi chọn sản phẩm' : ''"
                     >
-                      <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
+                      <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
                         <lucide-angular *ngIf="!transactionLocation" [img]="icons.Lock" size="13" style="color: var(--text-muted); flex-shrink: 0;"></lucide-angular>
-                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <span style="white-space: normal; word-break: break-word; line-height: 1.35; text-align: left;">
                           {{ !transactionLocation ? 'Chọn sản phẩm' : getProductLabel(item.productId, item) }}
                         </span>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
-                        [ngStyle]="{
-                          'transform': openProductDropdownId === item.id ? 'rotate(180deg)' : 'none', 
-                          'transition': 'transform 0.2s', 
-                          'flex-shrink': '0',
-                          'opacity': !transactionLocation ? '0.35' : '1'
-                        }">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
+                      <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': openProductDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': !transactionLocation ? '0.35' : '1'}"></lucide-angular>
                     </button>
                     
                     <!-- Product Popup with Search: Tự động Dropup/Dropdown theo vị trí -->
@@ -1054,16 +1072,16 @@ export interface LineItem {
                       <div class="custom-dropdown-scrollbar" style="max-height: 220px; overflow-y: scroll; display: flex; flex-direction: column; gap: 2px; padding-right: 4px;">
                         <div *ngFor="let p of getFilteredProducts()"
                           (click)="selectProduct(item, p.id, $event)"
-                          style="padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; flex-direction: column; gap: 2px;"
+                          style="padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; flex-direction: column; gap: 3px; transition: all 0.12s ease;"
                           [ngStyle]="{'background': item.productId === p.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'}"
                           onmouseover="this.style.background='var(--bg-secondary)'"
                           onmouseout="this.style.background=item.productId === p.id ? 'var(--bg-secondary)' : 'transparent'"
                         >
-                          <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          <div style="font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">
                             {{ p.name || p.productName }}
                           </div>
-                          <div *ngIf="p.variants?.length" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
-                            <span>{{ p.variants.length }} biến thể</span>
+                          <div *ngIf="p.variants?.length" style="font-size: 11px; color: var(--text-muted);">
+                            {{ p.variants.length }} biến thể
                           </div>
                         </div>
                         <div *ngIf="getFilteredProducts().length === 0" style="padding: 16px; text-align: center; font-size: 12px; color: var(--text-muted);">
@@ -1074,10 +1092,11 @@ export interface LineItem {
                   </div>
                 </div>
 
-                <!-- 2. Biến thể & Tồn kho hiện tại: ĐÃ DISABLE RÕ RÀNG KHI CHƯA CHỌN SẢN PHẨM HOẶC KHO -->
+                <!-- 2. Biến thể: Bố trí giống form Kiểm kê -->
                 <div style="position: relative; display: flex; flex-direction: column; gap: 4px;">
-                  <div *ngIf="item.isVariantFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ getVariantName(item.productId, item.variantId) }}
+                  <div *ngIf="item.isVariantFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px;">
+                    <div *ngIf="getVariantSku(item)" style="font-family: monospace; font-weight: 700; font-size: 11px; color: var(--accent, #765337); line-height: 1.2;">{{ getVariantSku(item) }}</div>
+                    <div style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ getVariantDisplay(item) }}</div>
                   </div>
                   <div *ngIf="!item.isVariantFixed" 
                        (click)="!transactionLocation && focusLocationDropdown($event)"
@@ -1085,37 +1104,30 @@ export interface LineItem {
                     <button 
                       type="button"
                       (click)="toggleVariantDropdown(item, $event)"
-                      [disabled]="!transactionLocation || !item.productId"
-                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
+                      [disabled]="!transactionLocation || !item.productId || isFormDisabled"
+                      style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: 13px; text-align: left; transition: all 0.2s;"
                       [ngStyle]="{
-                        'background': (!transactionLocation || !item.productId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'cursor': (!transactionLocation || !item.productId) ? 'not-allowed' : 'pointer',
+                        'background': (!transactionLocation || !item.productId || isFormDisabled) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'cursor': (!transactionLocation || !item.productId || isFormDisabled) ? 'not-allowed' : 'pointer',
                         'opacity': (!transactionLocation || !item.productId) ? '0.7' : '1',
-                        'color': (!transactionLocation || !item.productId) ? 'var(--text-muted)' : (item.variantId ? 'var(--text-primary)' : 'var(--text-muted)'),
                         'border': (!transactionLocation || !item.productId) ? '1px dashed var(--border-color)' : '1px solid var(--border-color)'
                       }"
-                      [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : (!item.productId ? 'Vui lòng chọn sản phẩm trước' : '')"
+                      [attr.title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : (!item.productId ? 'Vui lòng chọn sản phẩm trước' : 'Chọn biến thể')"
                     >
-                      <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
-                        <lucide-angular *ngIf="!transactionLocation || !item.productId" [img]="icons.Lock" size="13" style="color: var(--text-muted); flex-shrink: 0;"></lucide-angular>
-                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                          {{ !transactionLocation ? 'Chọn biến thể' : getVariantDisplay(item) }}
-                        </span>
+                      <div *ngIf="item.variantId && transactionLocation" style="display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0; flex: 1;">
+                        <span *ngIf="getVariantSku(item)" style="font-family: monospace; font-weight: 700; font-size: 11px; color: var(--accent, #765337); line-height: 1.2;">{{ getVariantSku(item) }}</span>
+                        <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ getVariantDisplay(item) }}</span>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
-                        [ngStyle]="{
-                          'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 
-                          'transition': 'transform 0.2s', 
-                          'flex-shrink': '0',
-                          'opacity': (!transactionLocation || !item.productId) ? '0.35' : '1'
-                        }">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
+                      <span *ngIf="!item.variantId || !transactionLocation" style="color: var(--text-muted); white-space: normal; word-break: break-word; line-height: 1.35; flex: 1; min-width: 0; font-size: 12px;">
+                        {{ !transactionLocation ? 'Chọn biến thể' : (item.productId ? 'Chọn biến thể...' : 'Chọn sản phẩm trước') }}
+                      </span>
+                      <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': (!transactionLocation || !item.productId) ? '0.35' : '1'}"></lucide-angular>
                     </button>
 
-                    <!-- Variant Popup Menu: Tự động Dropup/Dropdown theo vị trí -->
+                    <!-- Variant Popup Menu: Bố trí Option giống form Kiểm kê -->
                     <div *ngIf="openVariantDropdownId === item.id && transactionLocation && item.productId"
                       class="custom-dropdown-scrollbar"
+                      (click)="$event.stopPropagation()"
                       [ngStyle]="{
                         'position': 'absolute',
                         'left': '0',
@@ -1131,45 +1143,29 @@ export interface LineItem {
                         'overflow-y': 'scroll',
                         'display': 'flex',
                         'flex-direction': 'column',
-                        'gap': '2px',
+                        'gap': '3px',
                         'bottom': dropdownPositions['var_' + item.id] === 'up' ? 'calc(100% + 6px)' : 'auto',
                         'top': dropdownPositions['var_' + item.id] === 'up' ? 'auto' : 'calc(100% + 6px)'
                       }"
                     >
                       <div *ngFor="let v of getVariantsForProduct(item.productId)"
-                        (click)="selectVariant(item, v.id, $event)"
-                        style="padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px;"
-                        [ngStyle]="{'background': item.variantId === v.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.variantId === v.id ? 'var(--accent)' : 'var(--text-primary)'}"
-                        onmouseover="this.style.background='var(--bg-secondary)'"
-                        onmouseout="this.style.background=item.variantId === v.id ? 'var(--bg-secondary)' : 'transparent'"
+                        class="dropdown-option-item"
+                        [class.selected]="item.variantId == v.id"
+                        (click)="selectVariant(item, v, $event)"
                       >
-                        <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
-                          <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ v.name }}</span>
-                          <span *ngIf="v.sku" style="font-size: 11px; color: var(--text-muted);">{{ v.sku }}</span>
-                        </div>
-                        <!-- Hiển thị Tồn kho khả dụng (Available Stock) thay vì giá tiền -->
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0;">
-                          <span 
-                            style="font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; white-space: nowrap; display: inline-flex; align-items: center;"
-                            [ngStyle]="{
-                              'color': getVariantStockInfo(item.productId, v.id).available > 5 ? '#059669' : (getVariantStockInfo(item.productId, v.id).available > 0 ? '#d97706' : '#dc2626'),
-                              'background': getVariantStockInfo(item.productId, v.id).available > 5 ? '#ecfdf5' : (getVariantStockInfo(item.productId, v.id).available > 0 ? '#fffbeb' : '#fef2f2'),
-                              'border': getVariantStockInfo(item.productId, v.id).available > 5 ? '1px solid #a7f3d0' : (getVariantStockInfo(item.productId, v.id).available > 0 ? '1px solid #fde68a' : '1px solid #fecaca')
-                            }"
-                          >
-                            {{ type === 'export' ? 'Khả dụng: ' : 'Tồn kho: ' }}{{ getVariantStockInfo(item.productId, v.id).available }}
-                          </span>
-                          <span *ngIf="transactionLocation && getVariantStockInfo(item.productId, v.id).reserved > 0" style="font-size: 10px; color: var(--text-muted); white-space: nowrap;">
-                            (Thực tế: {{ getVariantStockInfo(item.productId, v.id).physical }} | Giữ: {{ getVariantStockInfo(item.productId, v.id).reserved }})
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                          <span style="font-family: monospace; font-weight: 700; font-size: 11.5px; color: var(--accent, #765337); flex-shrink: 0;">{{ v.sku || 'SKU-AUTO' }}</span>
+                          <span style="font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; white-space: nowrap;">
+                            Tồn: <strong style="color: var(--text-primary); font-weight: 600;">{{ getVariantStockInfo(item.productId, v.id).available }}</strong>
                           </span>
                         </div>
+                        <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ v.name }}</span>
                       </div>
-                      <div *ngIf="getVariantsForProduct(item.productId).length === 0" style="padding: 12px; text-align: center; font-size: 12px; color: var(--text-muted);">
-                        Không có biến thể
+                      <div *ngIf="getVariantsForProduct(item.productId).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
+                        Sản phẩm chưa có biến thể
                       </div>
                     </div>
                   </div>
-
                 </div>
 
                 <!-- 3. Cột Tồn kho: Hiển thị sau khi chọn biến thể -->
@@ -1330,38 +1326,7 @@ export interface LineItem {
                   {{ getFormattedLineSubtotal(item) }}
                 </div>
 
-                <!-- 8. Số Lô / HSD: Khóa khi chưa chọn kho hoặc sản phẩm -->
-                <div style="display: flex; flex-direction: column; gap: 3px; justify-content: center; height: 38px;">
-                  <input 
-                    type="text" 
-                    [(ngModel)]="item.lotNumber" 
-                    [disabled]="!transactionLocation || !item.productId || !item.variantId"
-                    placeholder="Số Lô..." 
-                    title="Số Lô / Batch No."
-                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 11px; padding: 0 5px; border-radius: 4px; border: 1px solid var(--border-color); outline: none;" 
-                    [ngStyle]="{
-                      'background': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                      'color': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)',
-                      'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'text',
-                      'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.6' : '1'
-                    }"
-                  />
-                  <input 
-                    type="date" 
-                    [(ngModel)]="item.expiryDate" 
-                    [disabled]="!transactionLocation || !item.productId || !item.variantId"
-                    title="Hạn sử dụng (Expiry Date)"
-                    style="height: 18px; width: 100%; box-sizing: border-box; font-size: 10px; padding: 0 2px; border-radius: 4px; border: 1px solid var(--border-color); outline: none;" 
-                    [ngStyle]="{
-                      'background': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                      'color': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--text-muted)' : 'var(--text-primary)',
-                      'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'text',
-                      'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.6' : '1'
-                    }"
-                  />
-                </div>
-
-                <!-- 9. Delete Row -->
+                <!-- 8. Delete Row -->
                 <div style="display: flex; justify-content: center; align-items: center; height: 38px;">
                   <button 
                     *ngIf="!isFormDisabled"
@@ -1550,6 +1515,103 @@ export interface LineItem {
                 </div>
               </div>
 
+            </div>
+
+            <!-- ── BẢNG LỊCH SỬ THAO TÁC TRÊN PHIẾU (Chỉ hiện khi mở xem / sau khi đã lưu nháp hoặc tạo phiếu) ── -->
+            <div *ngIf="isViewMode || actionLogs.length > 0" class="order-history-section" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <lucide-angular [img]="icons.Clock" size="16" style="color: #765337;"></lucide-angular>
+                  <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0;">
+                    Lịch sử thao tác trên phiếu
+                  </h4>
+                  <span style="font-size: 11.5px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 1px 8px; border-radius: 10px; font-weight: 600;">
+                    {{ actionLogs.length }} thao tác
+                  </span>
+                </div>
+              </div>
+
+              <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: var(--bg-primary);">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                  <thead>
+                    <tr style="background: var(--bg-secondary, #FAF7F2); border-bottom: 1px solid var(--border-color);">
+                      <th style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); width: 190px;">Thời gian</th>
+                      <th style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); width: 220px;">Người thao tác</th>
+                      <th style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary);">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let log of actionLogs; let last = last" 
+                        style="border-bottom: 1px solid var(--border-color); transition: background 0.15s ease;"
+                        [style.border-bottom]="last ? 'none' : '1px solid var(--border-color)'"
+                        onmouseover="this.style.background='var(--bg-secondary)'"
+                        onmouseout="this.style.background='transparent'">
+                      <!-- 1. Thời gian -->
+                      <td style="padding: 12px 16px; color: var(--text-primary); font-family: monospace; font-size: 12.5px; white-space: nowrap;">
+                        {{ formatDisplayDate(log.timestamp) }}
+                      </td>
+
+                      <!-- 2. Người thao tác -->
+                      <td style="padding: 12px 16px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <div style="width: 26px; height: 26px; border-radius: 50%; background: #EAE1D7; color: #765337; font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; flex-shrink: 0;">
+                            {{ getInitials(log.operator) }}
+                          </div>
+                          <span style="font-weight: 500; color: var(--text-primary); line-height: 1.3;">
+                            {{ log.operator }}
+                          </span>
+                        </div>
+                      </td>
+
+                      <!-- 3. Hành động -->
+                      <td style="padding: 12px 16px;">
+                        <!-- Chuyển trạng thái: A -> B -->
+                        <div *ngIf="log.actionType === 'STATUS_CHANGE'" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                          <span style="color: var(--text-primary); font-size: 13px;">Cập nhật trạng thái:</span>
+                          <span [ngStyle]="getStatusBadgeStyle(log.fromStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">
+                            {{ getStatusLabel(log.fromStatus) }}
+                          </span>
+                          <span style="color: var(--text-muted); font-size: 12px; font-weight: 600;">→</span>
+                          <span [ngStyle]="getStatusBadgeStyle(log.toStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">
+                            {{ getStatusLabel(log.toStatus) }}
+                          </span>
+                        </div>
+
+                        <!-- Hủy phiếu (ghi trên 2 dòng) -->
+                        <div *ngIf="log.actionType === 'CANCEL'" style="display: flex; flex-direction: column; gap: 3px;">
+                          <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-weight: 700; color: #ef4444; font-size: 13px;">Hủy phiếu</span>
+                            <span *ngIf="log.fromStatus" [ngStyle]="getStatusBadgeStyle(log.fromStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                              {{ getStatusLabel(log.fromStatus) }}
+                            </span>
+                            <span *ngIf="log.fromStatus" style="color: var(--text-muted); font-size: 11px;">→</span>
+                            <span [ngStyle]="getStatusBadgeStyle('CANCELLED')" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                              Đã hủy
+                            </span>
+                          </div>
+                          <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4;">
+                            Lý do: <span style="color: var(--text-primary); font-style: italic;">{{ log.reason || 'Không có lý do cụ thể' }}</span>
+                          </div>
+                        </div>
+
+                        <!-- Khởi tạo phiếu ban đầu -->
+                        <div *ngIf="log.actionType === 'CREATE'" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                          <span style="color: var(--text-primary); font-size: 13px;">{{ log.actionLabel || (type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho') }}</span>
+                          <span *ngIf="log.toStatus" [ngStyle]="getStatusBadgeStyle(log.toStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">
+                            {{ getStatusLabel(log.toStatus) }}
+                          </span>
+                        </div>
+
+                        <!-- Cập nhật / Hành động khác -->
+                        <div *ngIf="log.actionType === 'UPDATE' || (!['STATUS_CHANGE', 'CANCEL', 'CREATE'].includes(log.actionType))" style="display: flex; align-items: center; gap: 8px;">
+                          <span style="color: var(--text-primary); font-size: 13px;">{{ log.actionLabel || 'Cập nhật thông tin phiếu' }}</span>
+                          <span *ngIf="log.details" style="font-size: 12px; color: var(--text-muted);">({{ log.details }})</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
             
           </div>
@@ -1941,7 +2003,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   icons = { 
     X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
     Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
-    CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw
+    CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock
   };
   private http = inject(HttpClient);
 
@@ -1993,6 +2055,156 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   // Delete-order popup state
   showDeleteOrderModal = false;
   isDeletingOrder = false;
+
+  actionLogs: ActionLogItem[] = [];
+
+  getInitials(name: string): string {
+    if (!name) return 'A';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  formatDisplayDate(timestamp?: string): string {
+    if (!timestamp) return '—';
+    try {
+      const d = new Date(timestamp);
+      if (isNaN(d.getTime())) return timestamp;
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const year = d.getFullYear();
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const strHours = String(hours).padStart(2, '0');
+      return `${month}/${day}/${year} ${strHours}:${minutes} ${ampm}`;
+    } catch {
+      return timestamp;
+    }
+  }
+
+  getStatusLabel(status?: string): string {
+    if (!status) return '';
+    switch (status) {
+      case 'DRAFT': return 'Nháp';
+      case 'PLANNED': return this.type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất';
+      case 'EXPORTED': return 'Đã xuất kho';
+      case 'IMPORTED': return 'Đã nhập kho';
+      case 'COMPLETED': return this.type === 'import' ? 'Đã nhập kho' : 'Đã xuất kho';
+      case 'CANCELLED': return 'Đã hủy';
+      default: return status;
+    }
+  }
+
+  getStatusBadgeStyle(status?: string): Record<string, string> {
+    if (!status) return {};
+    switch (status) {
+      case 'DRAFT':
+        return {
+          'background': 'rgba(245, 158, 11, 0.12)',
+          'color': '#d97706',
+          'border': '1px solid rgba(245, 158, 11, 0.3)'
+        };
+      case 'PLANNED':
+        return {
+          'background': 'rgba(124, 58, 237, 0.12)',
+          'color': '#7c3aed',
+          'border': '1px solid rgba(124, 58, 237, 0.3)'
+        };
+      case 'EXPORTED':
+      case 'IMPORTED':
+      case 'COMPLETED':
+        return {
+          'background': 'rgba(16, 185, 129, 0.12)',
+          'color': '#059669',
+          'border': '1px solid rgba(16, 185, 129, 0.3)'
+        };
+      case 'CANCELLED':
+        return {
+          'background': 'rgba(239, 68, 68, 0.12)',
+          'color': '#ef4444',
+          'border': '1px solid rgba(239, 68, 68, 0.3)'
+        };
+      default:
+        return {
+          'background': 'var(--bg-secondary)',
+          'color': 'var(--text-muted)',
+          'border': '1px solid var(--border-color)'
+        };
+    }
+  }
+
+  extractLogsFromNotes(notes: string | null | undefined): ActionLogItem[] | null {
+    if (!notes) return null;
+    const match = notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+    if (match && match[1]) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  cleanNotesForDisplay(notes: string | null | undefined): string {
+    if (!notes) return '';
+    return notes
+      .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
+      .replace(/\[STATUS:[^\]]+\]/g, '')
+      .trim();
+  }
+
+  generateOrderBaselineLogs(v: any): ActionLogItem[] {
+    const logs: ActionLogItem[] = [];
+    const operator = v.creatorName || v.creator || this.creatorName || 'Admin Quản Trị';
+    const createdAt = v.createdAt || v.date || new Date().toISOString();
+    const rawStatus = v.rawStatus || v.status || 'DRAFT';
+
+    if (rawStatus === 'DRAFT') {
+      logs.push({
+        timestamp: createdAt,
+        operator,
+        actionType: 'CREATE',
+        toStatus: 'DRAFT',
+        actionLabel: 'Tạo bản nháp'
+      });
+    } else {
+      logs.push({
+        timestamp: createdAt,
+        operator,
+        actionType: 'CREATE',
+        toStatus: 'PLANNED',
+        actionLabel: this.type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho'
+      });
+    }
+
+    if (rawStatus === 'EXPORTED' || rawStatus === 'IMPORTED' || rawStatus === 'COMPLETED') {
+      const completedStatus = this.type === 'import' ? 'IMPORTED' : 'EXPORTED';
+      logs.push({
+        timestamp: v.updatedAt || createdAt,
+        operator,
+        actionType: 'STATUS_CHANGE',
+        fromStatus: 'PLANNED',
+        toStatus: completedStatus
+      });
+    }
+
+    if (rawStatus === 'CANCELLED') {
+      const reasonMatch = (v.notes || '').match(/\[Lý do hủy:\s*([^\]]+)\]/);
+      logs.push({
+        timestamp: v.updatedAt || createdAt,
+        operator,
+        actionType: 'CANCEL',
+        fromStatus: 'PLANNED',
+        toStatus: 'CANCELLED',
+        reason: reasonMatch ? reasonMatch[1] : (this.cleanNotesForDisplay(v.notes) || 'Hủy theo yêu cầu')
+      });
+    }
+
+    return logs;
+  }
 
   getViewStatusLabel(): string {
     switch (this.viewStatus) {
@@ -2087,6 +2299,13 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   handlePlanOrder() {
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    this.actionLogs.push({
+      timestamp: new Date().toISOString(),
+      operator: this.creatorName || 'Admin Quản Trị',
+      actionType: 'STATUS_CHANGE',
+      fromStatus: 'DRAFT',
+      toStatus: 'PLANNED'
+    });
     this.onStatusChange.emit({ orderId, newStatus: 'PLANNED' });
   }
 
@@ -2094,6 +2313,13 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
     const newStatus = this.type === 'import' ? 'IMPORTED' : 'EXPORTED';
+    this.actionLogs.push({
+      timestamp: new Date().toISOString(),
+      operator: this.creatorName || 'Admin Quản Trị',
+      actionType: 'STATUS_CHANGE',
+      fromStatus: 'PLANNED',
+      toStatus: newStatus
+    });
     this.onStatusChange.emit({ orderId, newStatus });
   }
 
@@ -2119,8 +2345,17 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!this.cancelOrderReasonInput.trim()) return;
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    const reason = this.cancelOrderReasonInput.trim();
+    this.actionLogs.push({
+      timestamp: new Date().toISOString(),
+      operator: this.creatorName || 'Admin Quản Trị',
+      actionType: 'CANCEL',
+      fromStatus: this.viewStatus || 'PLANNED',
+      toStatus: 'CANCELLED',
+      reason
+    });
     this.isCancellingOrder = true;
-    this.onStatusChange.emit({ orderId, newStatus: 'CANCELLED', reason: this.cancelOrderReasonInput.trim() });
+    this.onStatusChange.emit({ orderId, newStatus: 'CANCELLED', reason });
   }
 
   populateFromViewOrder() {
@@ -2137,7 +2372,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       } catch {}
     }
     this.transactionReason = v.reason || '';
-    this.transactionNote = (v.notes || '').replace(/\[STATUS:[^\]]+\]\s*/g, '').trim();
+    const existingLogs = this.extractLogsFromNotes(v.notes);
+    this.actionLogs = existingLogs || this.generateOrderBaselineLogs(v);
+    this.transactionNote = this.cleanNotesForDisplay(v.notes);
     this.referenceCode = v.referenceCode || '';
     if (v.taxRate !== undefined && v.taxRate !== null) {
       this.taxRate = Number(v.taxRate);
@@ -2478,6 +2715,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showTaxDropdown = false;
     this.customTaxInput = '';
     this.shippingFee = '';
+    this.actionLogs = [];
 
     // Người lập phiếu: hệ thống tự điền vào từ phiên đăng nhập
     try {
@@ -2871,7 +3109,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   getProductLabel(productId: string, item?: LineItem): string {
     if (!productId) return item?.productNameDisplay || 'Chọn sản phẩm...';
-    const p = this.availableProducts.find((x: any) => x.id === productId);
+    const p = this.availableProducts.find((x: any) => String(x.id) === String(productId));
     if (p) return p.name || p.productName;
     return item?.productNameDisplay || 'N/A';
   }
@@ -2879,9 +3117,16 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   getVariantDisplay(item: LineItem): string {
     if (!item.productId || !item.variantId) return item.variantNameDisplay || 'Chọn biến thể';
     const vars = this.getVariantsForProduct(item.productId);
-    const v = vars.find((x: any) => x.id === item.variantId);
+    const v = vars.find((x: any) => String(x.id) === String(item.variantId));
     if (v) return v.name;
     return item.variantNameDisplay || item.variantId;
+  }
+
+  getVariantSku(item: LineItem): string {
+    if (!item.productId || !item.variantId) return item.skuDisplay || '';
+    const vars = this.getVariantsForProduct(item.productId);
+    const v = vars.find((x: any) => String(x.id) === String(item.variantId));
+    return v?.sku || item.skuDisplay || '';
   }
 
   getProductDisplaySku(p: any): string {
@@ -2927,9 +3172,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     }
   }
 
-  selectProduct(item: LineItem, productId: string, event: Event) {
-    event.stopPropagation();
-    this.updateLineItem(item.id, 'productId', productId);
+  selectProduct(item: LineItem, productId: string, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    const pId = String(productId);
+    item.productId = pId;
+    const p = this.availableProducts.find((x: any) => String(x.id) === pId);
+    if (p) {
+      item.productNameDisplay = p.name || p.productName;
+    }
+    this.updateLineItem(item.id, 'productId', pId);
     this.openProductDropdownId = null;
     this.productSearchTerm = '';
   }
@@ -2951,10 +3205,37 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     }
   }
 
-  selectVariant(item: LineItem, variantId: string, event: Event) {
-    event.stopPropagation();
+  selectVariant(item: LineItem, v: any, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    const variantId = String(typeof v === 'string' ? v : (v?.id ?? ''));
+    const vars = this.getVariantsForProduct(item.productId);
+    const variantObj = (typeof v === 'object' && v !== null)
+      ? v
+      : vars.find((x: any) => String(x.id) === variantId);
+
+    // Cập nhật trực tiếp lên dòng sản phẩm để template hiển thị ngay lập tức
+    item.variantId = variantId;
+    if (variantObj) {
+      item.variantNameDisplay = variantObj.name;
+      item.skuDisplay = variantObj.sku;
+      if (variantObj.price !== undefined && variantObj.price !== null) {
+        item.price = new Intl.NumberFormat('vi-VN').format(Number(variantObj.price) || 0);
+      }
+    }
+    if (!item.unit) {
+      item.unit = this.inferUnit(this.getProductName(item.productId));
+    }
+
+    // Đồng thời gọi updateLineItem để đồng bộ logic chung
     this.updateLineItem(item.id, 'variantId', variantId);
+
+    // Đóng dropdown biến thể
     this.openVariantDropdownId = null;
+
+    // Kiểm tra cảnh báo tồn kho nếu cần
     this.checkVariantStockAndToast(item.productId, variantId);
   }
 
@@ -3128,7 +3409,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getGridColumns() {
-    return 'minmax(210px, 1.5fr) minmax(180px, 1.3fr) 75px 75px 76px 125px 130px 120px 36px';
+    return 'minmax(220px, 1.5fr) minmax(190px, 1.3fr) 80px 80px 90px 140px 145px 36px';
   }
 
   getQuantity(item: LineItem): number {
@@ -3177,22 +3458,22 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getProductName(id: string) {
-    const p = this.availableProducts.find((x: any) => x.id === id);
+    const p = this.availableProducts.find((x: any) => String(x.id) === String(id));
     return p ? (p.name || p.productName) : 'N/A';
   }
 
   getVariantName(productId: string, variantId: string): string {
     const vars = this.getVariantsForProduct(productId);
-    const v = vars.find((x: any) => x.id === variantId);
+    const v = vars.find((x: any) => String(x.id) === String(variantId));
     return v ? v.name : (variantId || 'N/A');
   }
 
   getVariantsForProduct(productId: string) {
     if (!productId) return [];
-    const p = this.availableProducts.find((x: any) => x.id === productId);
+    const p = this.availableProducts.find((x: any) => String(x.id) === String(productId));
     if (p && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
       return p.variants.map((v: any) => ({
-        id: v.id,
+        id: String(v.id),
         name: v.name || v.color || v.material || 'Bản tiêu chuẩn',
         sku: v.sku || '',
         price: v.price || p?.price || 0,
@@ -3230,43 +3511,55 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   handleRemoveLineItem(id: string) {
     if (this.lineItems.length === 1) return;
-    this.lineItems = this.lineItems.filter((item: any) => item.id !== id);
+    this.lineItems = this.lineItems.filter((item: any) => String(item.id) !== String(id));
   }
 
   updateLineItem(id: string, field: keyof LineItem, value: any) {
-    const item = this.lineItems.find((x: any) => x.id === id);
+    const item = this.lineItems.find((x: any) => String(x.id) === String(id));
     if (!item) return;
 
     if (field === 'productId') {
-      item.productId = value;
-      const variants = this.getVariantsForProduct(value);
+      const pId = String(value);
+      item.productId = pId;
+      const prod = this.availableProducts.find((p: any) => String(p.id) === pId);
+      if (prod) {
+        item.productNameDisplay = prod.name || prod.productName;
+      }
+      const variants = this.getVariantsForProduct(pId);
       if (variants.length === 1) {
-        item.variantId = variants[0].id;
-        item.unit = this.inferUnit(this.getProductName(value));
-        item.price = new Intl.NumberFormat('vi-VN').format(variants[0].price ?? 0);
-        this.checkVariantStockAndToast(value, variants[0].id);
+        item.variantId = String(variants[0].id);
+        item.variantNameDisplay = variants[0].name;
+        item.skuDisplay = variants[0].sku;
+        item.unit = this.inferUnit(this.getProductName(pId));
+        item.price = new Intl.NumberFormat('vi-VN').format(Number(variants[0].price) || 0);
+        this.checkVariantStockAndToast(pId, variants[0].id);
       } else {
         item.variantId = '';
+        item.variantNameDisplay = '';
+        item.skuDisplay = '';
         item.unit = '';
         item.price = '';
       }
     } else if (field === 'variantId') {
-      item.variantId = value;
+      const vId = String(value);
+      item.variantId = vId;
       if (!item.unit) {
         item.unit = this.inferUnit(this.getProductName(item.productId));
       }
       const variants = this.getVariantsForProduct(item.productId);
-      const v = variants.find((x: any) => x.id === value);
+      const v = variants.find((x: any) => String(x.id) === vId);
       if (v) {
-        item.price = new Intl.NumberFormat('vi-VN').format(v.price ?? 0);
+        item.variantNameDisplay = v.name;
+        item.skuDisplay = v.sku;
+        item.price = new Intl.NumberFormat('vi-VN').format(Number(v.price) || 0);
       }
-      this.checkVariantStockAndToast(item.productId, value);
+      this.checkVariantStockAndToast(item.productId, vId);
     } else if (field === 'price') {
-      let rawValue = value.replace(/[^0-9]/g, '');
+      let rawValue = String(value || '').replace(/[^0-9]/g, '');
       const num = parseInt(rawValue, 10);
       item.price = rawValue ? new Intl.NumberFormat('vi-VN').format(num) : '';
     } else if (field === 'quantity') {
-      item.quantity = value.replace(/[^0-9]/g, '');
+      item.quantity = String(value || '').replace(/[^0-9]/g, '');
     } else {
       (item as any)[field] = value;
     }
@@ -3325,7 +3618,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       sourceWarehouseId,
       destWarehouseId,
       reason: this.transactionReason,
-      note: this.transactionNote,
+      note: (() => {
+        const cleanNote = this.cleanNotesForDisplay(this.transactionNote);
+        const logsPayload = `[ACTION_LOGS:${JSON.stringify(this.actionLogs)}]`;
+        return cleanNote ? `${cleanNote}\n${logsPayload}` : logsPayload;
+      })(),
       financials: {
         subtotal,
         discount,
@@ -3449,6 +3746,15 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!this.canSaveDraft()) {
       return;
     }
+    if (!this.actionLogs.length) {
+      this.actionLogs.push({
+        timestamp: new Date().toISOString(),
+        operator: this.creatorName || 'Admin Quản Trị',
+        actionType: 'CREATE',
+        actionLabel: 'Tạo bản nháp',
+        toStatus: 'DRAFT'
+      });
+    }
     const data = this.buildFormData('PENDING', 'draft');
     this.onSubmit.emit(data);
   }
@@ -3457,6 +3763,15 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   handleSubmitConfirmed() {
     if (!this.canSubmitOrder()) {
       return;
+    }
+    if (!this.actionLogs.length) {
+      this.actionLogs.push({
+        timestamp: new Date().toISOString(),
+        operator: this.creatorName || 'Admin Quản Trị',
+        actionType: 'CREATE',
+        actionLabel: this.type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho',
+        toStatus: 'PLANNED'
+      });
     }
     const data = this.buildFormData('COMPLETED', 'confirm');
     this.onSubmit.emit(data);

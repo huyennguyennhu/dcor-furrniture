@@ -1,4 +1,51 @@
 <div style="display: flex; flex-direction: column; gap: 24px;">
+  <!-- Floating Toast Notification (Góc dưới bên phải) -->
+  <div *ngIf="showToast" 
+    class="audit-toast-container"
+    style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; width: max-content; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto;"
+    [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
+  >
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+      <!-- Icon -->
+      <div 
+        style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
+        [style.background]="toastType === 'success' ? 'rgba(16, 185, 129, 0.12)' : (toastType === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(59, 130, 246, 0.12)')"
+        [style.color]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#2563eb')"
+      >
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.XCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.AlertCircle" size="20"></lucide-angular>
+      </div>
+
+      <!-- Text -->
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+        <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; word-break: break-word;">
+          {{ toastMessage }}
+        </span>
+      </div>
+
+      <!-- Close btn -->
+      <button 
+        type="button" 
+        (click)="closeToast()" 
+        style="background: transparent; border: none; cursor: pointer; color: var(--text-muted, #9ca3af); padding: 2px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.15s;"
+        onmouseover="this.style.color='var(--text-primary)'"
+        onmouseout="this.style.color='var(--text-muted)'"
+        title="Đóng thông báo"
+      >
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- Countdown Progress Bar -->
+    <div style="width: 100%; height: 3px; background: rgba(0, 0, 0, 0.06); border-radius: 2px; overflow: hidden; margin-top: 2px;">
+      <div 
+        style="height: 100%; border-radius: 2px; animation: toastProgress 4.5s linear forwards;"
+        [style.background]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#3b82f6')"
+      ></div>
+    </div>
+  </div>
+
   <!-- Header Title -->
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div>
@@ -226,7 +273,7 @@
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-            <th style="padding: 16px; width: 44px; text-align: center;">
+            <!-- <th style="padding: 16px; width: 44px; text-align: center;">
               <button 
                 type="button" 
                 class="table-checkbox-btn" 
@@ -237,7 +284,7 @@
                 <lucide-angular *ngIf="isAllSelected()" [img]="icons.CheckSquare" size="18"></lucide-angular>
                 <lucide-angular *ngIf="!isAllSelected()" [img]="icons.Square" size="18"></lucide-angular>
               </button>
-            </th>
+            </th> -->
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Mã kiểm kê</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Ngày tạo</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chi nhánh / Kho</th>
@@ -250,12 +297,12 @@
         </thead>
         <tbody>
           <tr *ngIf="isLoading">
-            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
+            <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
               Đang tải danh sách kiểm kê...
             </td>
           </tr>
           <tr *ngIf="!isLoading && data.length === 0">
-            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
+            <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
               Chưa có phiếu kiểm kê nào trong hệ thống.
             </td>
           </tr>
@@ -263,7 +310,7 @@
               (click)="openModal(item)"
               onmouseover="this.style.background='#F3E5D3'" 
               onmouseout="this.style.background='transparent'">
-            <td style="padding: 16px; text-align: center;" (click)="$event.stopPropagation()">
+            <!-- <td style="padding: 16px; text-align: center;" (click)="$event.stopPropagation()">
               <button 
                 type="button" 
                 class="table-checkbox-btn" 
@@ -273,7 +320,7 @@
                 <lucide-angular *ngIf="selectedIds.has(item.id)" [img]="icons.CheckSquare" size="18"></lucide-angular>
                 <lucide-angular *ngIf="!selectedIds.has(item.id)" [img]="icons.Square" size="18"></lucide-angular>
               </button>
-            </td>
+            </td> -->
             <td style="padding: 16px;">
               <span style="font-weight: 600; color: var(--accent); font-family: monospace;">{{ item.id }}</span>
             </td>
@@ -300,8 +347,8 @@
               </button>
 
               <div *ngIf="activeActionMenu === item.id" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); position: absolute; right: 0; top: 40px; z-index: 10; display: flex; flex-direction: column;">
-                <div (click)="activeActionMenu = null; alert('Đang chuẩn bị phiếu in')" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
-                  <lucide-angular [img]="icons.FileText" size="14"></lucide-angular> In phiếu kiểm
+                <div (click)="activeActionMenu = null; handlePrintAudit()" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                  <lucide-angular [img]="icons.Printer" size="14"></lucide-angular> In phiếu kiểm
                 </div>
               </div>
             </td>
@@ -401,8 +448,11 @@
         <button 
           type="button"
           (click)="closeModal(true)" 
+          [disabled]="isSubmitting"
           class="admin-close-btn" 
           style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px;" 
+          [style.cursor]="isSubmitting ? 'not-allowed' : 'pointer'"
+          [style.opacity]="isSubmitting ? '0.4' : '1'"
           title="Đóng"
         >
           <lucide-angular [img]="icons.X" size="20"></lucide-angular>
@@ -473,7 +523,7 @@
               <ng-container *ngIf="!canEditInitialFields">
                 <input 
                   type="text" 
-                  [value]="modalAuditDate" 
+                  [value]="formatDisplayDate(modalAuditDate)" 
                   disabled 
                   class="info-field-readonly" 
                 />
@@ -835,9 +885,9 @@
                             [title]="!modalWarehouseId ? 'Vui lòng chọn Chi nhánh / Kho trước khi chọn sản phẩm' : (row.productName || 'Chọn sản phẩm')"
                           >
                             <div *ngIf="!modalWarehouseId" style="display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; flex: 1; min-width: 0;">
-                              <span class="truncate-label">Chọn sản phẩm</span>
+                              <span>Chọn sản phẩm</span>
                             </div>
-                            <span *ngIf="modalWarehouseId" class="truncate-label" style="flex: 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            <span *ngIf="modalWarehouseId" style="flex: 1; min-width: 0; font-size: 13px; font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35; text-align: left;">
                               {{ row.productName || 'Chọn sản phẩm...' }}
                             </span>
                             <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showProductDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': !modalWarehouseId ? '0.35' : '1'}"></lucide-angular>
@@ -873,7 +923,7 @@
                                 [class.selected]="row.productId === p.id"
                                 (click)="selectProductForRow(row, p, $event)"
                               >
-                                <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <div style="font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">
                                   {{ p.name }}
                                 </div>
                                 <div *ngIf="p.variants?.length" style="font-size: 11px; color: var(--text-muted);">
@@ -889,7 +939,7 @@
                       </ng-container>
 
                       <ng-container *ngIf="!canEditInitialFields">
-                        <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">
+                        <span style="font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: normal; word-break: break-word; line-height: 1.35;">
                           {{ row.productName || 'Sản phẩm' }}
                         </span>
                       </ng-container>
@@ -910,11 +960,11 @@
                             (click)="toggleVariantDropdown(row, $event)"
                             [title]="!modalWarehouseId ? 'Vui lòng chọn Chi nhánh / Kho trước' : (!row.productId ? 'Vui lòng chọn sản phẩm trước' : 'Chọn biến thể')"
                           >
-                            <div *ngIf="row.variantId && modalWarehouseId" style="display: flex; flex-direction: column; gap: 2px; text-align: left; overflow: hidden; min-width: 0; flex: 1;">
-                              <span class="product-sku-tag" style="font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.sku }}</span>
-                              <span class="truncate-label" style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">{{ row.variantName }}</span>
+                            <div *ngIf="row.variantId && modalWarehouseId" style="display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0; flex: 1;">
+                              <span class="product-sku-tag" style="font-size: 11px; align-self: flex-start;">{{ row.sku }}</span>
+                              <span style="font-size: 12px; font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ row.variantName }}</span>
                             </div>
-                            <span *ngIf="!row.variantId || !modalWarehouseId" style="color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-size: 12px;">
+                            <span *ngIf="!row.variantId || !modalWarehouseId" style="color: var(--text-muted); white-space: normal; word-break: break-word; line-height: 1.35; flex: 1; min-width: 0; font-size: 12px;">
                               {{ !modalWarehouseId ? 'Chọn biến thể' : (row.productId ? 'Chọn biến thể...' : 'Chọn sản phẩm trước') }}
                             </span>
                             <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': row.showVariantDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': (!modalWarehouseId || !row.productId) ? '0.35' : '1'}"></lucide-angular>
@@ -940,11 +990,11 @@
                               >
                                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                                   <span class="product-sku-tag">{{ v.sku }}</span>
-                                  <span style="font-size: 11.5px; color: var(--text-muted);">
+                                  <span style="font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; white-space: nowrap;">
                                     Tồn: <strong>{{ getSystemStockForWarehouse(v, modalWarehouseId) }}</strong>
                                   </span>
                                 </div>
-                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">{{ v.name }}</span>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ v.name }}</span>
                               </div>
                               <div *ngIf="getVariantsForProduct(row.productId).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
                                 Sản phẩm chưa có biến thể
@@ -956,8 +1006,8 @@
 
                       <ng-container *ngIf="!canEditInitialFields">
                         <div style="display: flex; flex-direction: column; gap: 2px;">
-                          <span class="product-sku-tag">{{ row.sku || 'SKU-N/A' }}</span>
-                          <span style="font-size: 12px; color: var(--text-secondary);">{{ row.variantName || 'Tiêu chuẩn' }}</span>
+                          <span class="product-sku-tag" style="align-self: flex-start;">{{ row.sku || 'SKU-N/A' }}</span>
+                          <span style="font-size: 12px; color: var(--text-secondary); white-space: normal; word-break: break-word; line-height: 1.35;">{{ row.variantName || 'Tiêu chuẩn' }}</span>
                         </div>
                       </ng-container>
                     </td>
@@ -1089,6 +1139,109 @@
             [disabled]="isReadOnlyView"
           ></textarea>
         </div>
+
+        <!-- 4. Lịch sử thao tác trên phiếu (Chỉ hiện sau khi đã lưu nháp hoặc tạo phiếu) -->
+        <div *ngIf="currentAuditStatus !== 'CREATE' || actionLogs.length > 0" class="audit-history-section" style="margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <lucide-angular [img]="icons.Clock" size="16" style="color: #765337;"></lucide-angular>
+              <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0;">
+                Lịch sử thao tác trên phiếu
+              </h4>
+              <span style="font-size: 11.5px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 1px 8px; border-radius: 10px; font-weight: 600;">
+                {{ actionLogs.length }} thao tác
+              </span>
+            </div>
+          </div>
+
+          <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: var(--bg-primary);">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+              <thead>
+                <tr style="background: var(--bg-secondary, #FAF7F2); border-bottom: 1px solid var(--border-color);">
+                  <th style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); width: 190px;">Thời gian</th>
+                  <th style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); width: 220px;">Người thao tác</th>
+                  <th style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary);">Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let log of actionLogs; let last = last" 
+                    style="border-bottom: 1px solid var(--border-color); transition: background 0.15s ease;"
+                    [style.border-bottom]="last ? 'none' : '1px solid var(--border-color)'"
+                    onmouseover="this.style.background='var(--bg-secondary)'"
+                    onmouseout="this.style.background='transparent'">
+                  <!-- 1. Thời gian -->
+                  <td style="padding: 12px 16px; color: var(--text-primary); font-family: monospace; font-size: 12.5px; white-space: nowrap;">
+                    {{ formatDisplayDate(log.timestamp) }}
+                  </td>
+
+                  <!-- 2. Người thao tác -->
+                  <td style="padding: 12px 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="width: 26px; height: 26px; border-radius: 50%; background: #EAE1D7; color: #765337; font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; flex-shrink: 0;">
+                        {{ getInitials(log.operator) }}
+                      </div>
+                      <span style="font-weight: 500; color: var(--text-primary); line-height: 1.3;">
+                        {{ log.operator }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- 3. Hành động -->
+                  <td style="padding: 12px 16px;">
+                    <!-- Chuyển trạng thái A -> B -->
+                    <div *ngIf="log.actionType === 'STATUS_CHANGE'" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span style="color: var(--text-primary); font-size: 13px;">Cập nhật trạng thái:</span>
+                      <span [ngStyle]="getStatusBadgeStyle(log.fromStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">
+                        {{ getStatusLabel(log.fromStatus) }}
+                      </span>
+                      <span style="color: var(--text-muted); font-size: 12px; font-weight: 600;">→</span>
+                      <span [ngStyle]="getStatusBadgeStyle(log.toStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">
+                        {{ getStatusLabel(log.toStatus) }}
+                      </span>
+                    </div>
+
+                    <!-- Hủy phiếu (ghi trên 2 dòng) -->
+                    <div *ngIf="log.actionType === 'CANCEL'" style="display: flex; flex-direction: column; gap: 3px;">
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: 700; color: #ef4444; font-size: 13px;">Hủy phiếu</span>
+                        <span *ngIf="log.fromStatus" [ngStyle]="getStatusBadgeStyle(log.fromStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                          {{ getStatusLabel(log.fromStatus) }}
+                        </span>
+                        <span *ngIf="log.fromStatus" style="color: var(--text-muted); font-size: 11px;">→</span>
+                        <span [ngStyle]="getStatusBadgeStyle('CANCELLED')" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                          Đã hủy
+                        </span>
+                      </div>
+                      <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4;">
+                        Lý do: <span style="color: var(--text-primary); font-style: italic;">{{ log.reason || 'Không có lý do cụ thể' }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Khởi tạo phiếu ban đầu -->
+                    <div *ngIf="log.actionType === 'CREATE'" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span style="color: var(--text-primary); font-size: 13px;">{{ log.actionLabel || 'Tạo phiếu' }}</span>
+                      <span *ngIf="log.toStatus" [ngStyle]="getStatusBadgeStyle(log.toStatus)" style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">
+                        {{ getStatusLabel(log.toStatus) }}
+                      </span>
+                    </div>
+
+                    <!-- Lưu tiến độ kiểm đếm -->
+                    <div *ngIf="log.actionType === 'SAVE_PROGRESS'" style="display: flex; align-items: center; gap: 8px;">
+                      <span style="color: var(--text-primary); font-size: 13px; font-weight: 500;">Lưu tiến độ kiểm đếm</span>
+                      <span *ngIf="log.details" style="font-size: 12px; color: var(--text-muted);">({{ log.details }})</span>
+                    </div>
+
+                    <!-- Hành động khác -->
+                    <div *ngIf="log.actionType === 'UPDATE' || (!['STATUS_CHANGE', 'CANCEL', 'CREATE', 'SAVE_PROGRESS'].includes(log.actionType))" style="display: flex; align-items: center; gap: 8px;">
+                      <span style="color: var(--text-primary); font-size: 13px;">{{ log.actionLabel || 'Cập nhật thông tin phiếu' }}</span>
+                      <span *ngIf="log.details" style="font-size: 12px; color: var(--text-muted);">({{ log.details }})</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- Modal Footer -->
@@ -1155,9 +1308,9 @@
               }"
               title="Lưu phiếu ở trạng thái Nháp (Draft)"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Save" size="15"></lucide-angular>
-              Lưu nháp
+              <lucide-angular *ngIf="submittingAction === 'DRAFT'" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="submittingAction !== 'DRAFT'" [img]="icons.Save" size="15"></lucide-angular>
+              {{ submittingAction === 'DRAFT' ? 'Đang lưu...' : 'Lưu nháp' }}
             </button>
 
             <!-- Nút [Tạo phiếu] -> Status: Planned -->
@@ -1183,9 +1336,9 @@
               }"
               title="Lập kế hoạch kiểm kê (Planned)"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <lucide-angular *ngIf="!isSubmitting" [img]="icons.CheckCircle2" size="15"></lucide-angular>
-              {{ isSubmitting ? 'Đang tạo...' : 'Tạo phiếu' }}
+              <lucide-angular *ngIf="submittingAction === 'PLAN'" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="submittingAction !== 'PLAN'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+              {{ submittingAction === 'PLAN' ? 'Đang tạo...' : 'Tạo phiếu' }}
             </button>
           </ng-container>
 
@@ -1195,20 +1348,22 @@
             <button 
               type="button" 
               (click)="handleDeleteDraftAudit()"
-              [disabled]="isSubmitting"
+              [disabled]="isSubmitting || isDeletingAudit"
               style="display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.05); color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
-              onmouseover="this.style.background='rgba(239, 68, 68, 0.12)'"
-              onmouseout="this.style.background='rgba(239, 68, 68, 0.05)'"
+              [style.opacity]="(isSubmitting || isDeletingAudit) ? '0.45' : '1'"
+              [style.cursor]="(isSubmitting || isDeletingAudit) ? 'not-allowed' : 'pointer'"
               title="Xóa vĩnh viễn phiếu kiểm kê nháp này"
             >
-              <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
-              Xóa phiếu
+              <lucide-angular *ngIf="isDeletingAudit" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="!isDeletingAudit" [img]="icons.Trash2" size="15"></lucide-angular>
+              {{ isDeletingAudit ? 'Đang xóa...' : 'Xóa phiếu' }}
             </button>
 
             <!-- Nút [Đóng] -->
             <button 
               type="button" 
               (click)="closeModal(true)"
+              [disabled]="isSubmitting"
               class="admin-btn admin-btn-secondary"
               style="padding: 9px 18px; font-size: 13px; border-radius: 8px;"
             >
@@ -1224,9 +1379,9 @@
               style="padding: 9px 18px; font-size: 13px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 6px;"
               title="Lưu lại các thông tin đã chỉnh sửa ở trạng thái Nháp"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Save" size="15"></lucide-angular>
-              Lưu thay đổi
+              <lucide-angular *ngIf="submittingAction === 'DRAFT'" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="submittingAction !== 'DRAFT'" [img]="icons.Save" size="15"></lucide-angular>
+              {{ submittingAction === 'DRAFT' ? 'Đang lưu...' : 'Lưu thay đổi' }}
             </button>
 
             <!-- Nút [Lên kế hoạch] -> Chuyển sang Planned -->
@@ -1252,9 +1407,9 @@
               }"
               title="Chuyển trạng thái phiếu sang Lên kế hoạch (Planned)"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <lucide-angular *ngIf="!isSubmitting" [img]="icons.CheckCircle2" size="15"></lucide-angular>
-              {{ isSubmitting ? 'Đang xử lý...' : 'Lên kế hoạch' }}
+              <lucide-angular *ngIf="submittingAction === 'PLAN'" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="submittingAction !== 'PLAN'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+              {{ submittingAction === 'PLAN' ? 'Đang xử lý...' : 'Lên kế hoạch' }}
             </button>
           </ng-container>
 
@@ -1266,8 +1421,8 @@
               (click)="handleCancelPlannedAudit()"
               [disabled]="isSubmitting"
               style="display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.05); color: #ef4444; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
-              onmouseover="this.style.background='rgba(239, 68, 68, 0.12)'"
-              onmouseout="this.style.background='rgba(239, 68, 68, 0.05)'"
+              [style.opacity]="isSubmitting ? '0.45' : '1'"
+              [style.cursor]="isSubmitting ? 'not-allowed' : 'pointer'"
               title="Hủy kế hoạch kiểm kê này"
             >
               <lucide-angular [img]="icons.XCircle" size="15"></lucide-angular>
@@ -1278,6 +1433,7 @@
             <button 
               type="button" 
               (click)="closeModal(false)"
+              [disabled]="isSubmitting"
               class="admin-btn admin-btn-secondary"
               style="padding: 9px 18px; font-size: 13px; border-radius: 8px;"
             >
@@ -1289,14 +1445,14 @@
               type="button"
               (click)="startAuditExecution()" 
               [disabled]="isSubmitting" 
-              style="display: flex; align-items: center; gap: 6px; padding: 9px 24px; border-radius: 8px; border: none; background: #765337; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(118, 83, 55, 0.28); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);"
-              onmouseover="this.style.background='#5a3d26'; this.style.transform='translateY(-1px)';"
-              onmouseout="this.style.background='#765337'; this.style.transform='translateY(0)';"
+              style="display: flex; align-items: center; gap: 6px; padding: 9px 24px; border-radius: 8px; border: none; background: #765337; color: #ffffff; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(118, 83, 55, 0.28); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);"
+              [style.opacity]="isSubmitting ? '0.55' : '1'"
+              [style.cursor]="isSubmitting ? 'not-allowed' : 'pointer'"
               title="Bắt đầu kiểm kê thực tế tại kho"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Play" size="15"></lucide-angular>
-              {{ isSubmitting ? 'Đang kích hoạt...' : 'Bắt đầu kiểm kê' }}
+              <lucide-angular *ngIf="submittingAction === 'START_AUDIT'" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="submittingAction !== 'START_AUDIT'" [img]="icons.Play" size="15"></lucide-angular>
+              {{ submittingAction === 'START_AUDIT' ? 'Đang kích hoạt...' : 'Bắt đầu kiểm kê' }}
             </button>
           </ng-container>
 
@@ -1306,6 +1462,7 @@
             <button 
               type="button" 
               (click)="closeModal(true)"
+              [disabled]="isSubmitting"
               class="admin-btn admin-btn-secondary"
               style="padding: 9px 18px; font-size: 13px; border-radius: 8px;"
             >
@@ -1329,13 +1486,14 @@
                 'font-size': '13px',
                 'font-weight': '600',
                 'cursor': isSubmitting ? 'not-allowed' : 'pointer',
+                'opacity': isSubmitting ? '0.45' : '1',
                 'transition': 'all 0.15s ease'
               }"
               title="Lưu lại tiến độ kiểm đếm hiện tại để tiếp tục sau"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <lucide-angular *ngIf="!isSubmitting" [img]="icons.Save" size="15"></lucide-angular>
-              Lưu tiến độ
+              <lucide-angular *ngIf="submittingAction === 'SAVE_PROGRESS'" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="submittingAction !== 'SAVE_PROGRESS'" [img]="icons.Save" size="15"></lucide-angular>
+              {{ submittingAction === 'SAVE_PROGRESS' ? 'Đang lưu...' : 'Lưu tiến độ' }}
             </button>
 
             <!-- Nút [Lưu kết quả] -> Chuyển sang Completed -->
@@ -1361,14 +1519,29 @@
               }"
               [title]="getCompleteAuditButtonTitle()"
             >
-              <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
-              <lucide-angular *ngIf="!isSubmitting" [img]="icons.CheckCircle2" size="15"></lucide-angular>
-              {{ isSubmitting ? 'Đang chốt sổ...' : 'Lưu kết quả' }}
+              <lucide-angular *ngIf="submittingAction === 'COMPLETE'" [img]="icons.Loader2" size="15" style="animation: spin 1s linear infinite;"></lucide-angular>
+              <lucide-angular *ngIf="submittingAction !== 'COMPLETE'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+              {{ submittingAction === 'COMPLETE' ? 'Đang chốt sổ...' : 'Lưu kết quả' }}
             </button>
           </ng-container>
 
-          <!-- 5. Trạng thái COMPLETED hoặc CANCELLED -->
-          <ng-container *ngIf="isReadOnlyView">
+          <!-- 5. Trạng thái COMPLETED (Đã kiểm kê) -->
+          <ng-container *ngIf="currentAuditStatus === 'COMPLETED'">
+            <button 
+              type="button" 
+              (click)="handlePrintAudit()"
+              style="display: flex; align-items: center; gap: 6px; padding: 9px 22px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
+              onmouseover="this.style.background='var(--bg-secondary)'; this.style.borderColor='#765337'; this.style.color='#765337';"
+              onmouseout="this.style.background='var(--bg-primary)'; this.style.borderColor='var(--border-color)'; this.style.color='var(--text-primary)';"
+              title="In phiếu kiểm kê này"
+            >
+              <lucide-angular [img]="icons.Printer" size="15"></lucide-angular>
+              In phiếu kiểm
+            </button>
+          </ng-container>
+
+          <!-- 6. Trạng thái CANCELLED (Đã hủy) -->
+          <ng-container *ngIf="currentAuditStatus === 'CANCELLED'">
             <button 
               type="button" 
               (click)="closeModal(false)"
