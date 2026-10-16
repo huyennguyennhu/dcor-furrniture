@@ -1,4 +1,7 @@
-<div style="display: flex; flex-direction: column; gap: 24px;">
+<div style="display: flex; flex-direction: column; gap: 24px;"
+     [style.pointer-events]="isLoading ? 'none' : 'auto'"
+     [style.user-select]="isLoading ? 'none' : 'auto'"
+     [style.cursor]="isLoading ? 'wait' : 'default'">
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div>
       <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Lịch sử biến động kho</h1>
@@ -98,18 +101,18 @@
       </div>
     </div>
 
-    <!-- Type Dropdown: Mọi loại biến động -->
+    <!-- Type Dropdown: Mọi loại đơn -->
     <div class="filter-dropdown-wrapper">
       <button 
         type="button" 
         class="filter-trigger-btn"
         [class.active]="!!selectedType"
         (click)="toggleTypeDropdown($event)"
-        title="Chọn loại biến động"
+        title="Chọn loại đơn"
       >
         <div class="trigger-label">
           <lucide-angular [img]="icons.Filter" size="15" class="trigger-icon"></lucide-angular>
-          <span class="truncate-label">{{ selectedType || 'Mọi loại biến động' }}</span>
+          <span class="truncate-label">{{ selectedType || 'Mọi loại đơn' }}</span>
         </div>
         <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTypeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
       </button>
@@ -118,11 +121,11 @@
         <div 
           *ngFor="let t of typeOptions"
           class="filter-menu-item"
-          [class.selected]="(!selectedType && t === 'Mọi loại biến động') || selectedType === t"
+          [class.selected]="(!selectedType && (t === 'Mọi loại đơn' || t === 'Mọi loại biến động')) || selectedType === t"
           (click)="onSelectType(t)"
         >
           <span>{{ t }}</span>
-          <lucide-angular *ngIf="(!selectedType && t === 'Mọi loại biến động') || selectedType === t" [img]="icons.Check" size="14"></lucide-angular>
+          <lucide-angular *ngIf="(!selectedType && (t === 'Mọi loại đơn' || t === 'Mọi loại biến động')) || selectedType === t" [img]="icons.Check" size="14"></lucide-angular>
         </div>
       </div>
     </div>
@@ -149,17 +152,18 @@
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Thời gian</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ viewBy === 'variant' ? 'Biến thể' : 'Sản phẩm' }}</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Kho/Showroom</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Loại biến động</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center;">Thay đổi</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center;">Tồn sau</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tham chiếu</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Loại đơn</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Trạng thái</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Biến động tồn kho</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chứng từ</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Người thực hiện</th>
+            <th style="padding: 16px 14px; text-align: center; width: 48px;"></th>
           </tr>
         </thead>
         <tbody>
           <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
           <tr *ngIf="isLoading">
-            <td colspan="9" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+            <td colspan="10" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
                 <div class="spinning-loader"></div>
                 <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu lịch sử biến động kho...</span>
@@ -167,7 +171,7 @@
             </td>
           </tr>
           <tr *ngIf="!isLoading && data.length === 0">
-            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
+            <td colspan="10" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
               Chưa có ghi nhận biến động kho nào phù hợp.
             </td>
           </tr>
@@ -192,25 +196,91 @@
             <td style="padding: 16px;">{{ item.location }}</td>
             <td style="padding: 16px;">
               <span [ngStyle]="{
-                'padding': '4px 8px', 'border-radius': '4px', 'font-size': '12px', 'font-weight': 500, 'white-space': 'nowrap',
-                'color': item.type.includes('Nhập') || item.type.includes('Điều chỉnh tăng') || item.type === 'Hoàn hàng' ? 'rgb(34, 197, 94)' : 
-                         item.type.includes('Xuất') || item.type.includes('Điều chỉnh giảm') ? 'rgb(239, 68, 68)' : 'rgb(59, 130, 246)',
-                'background': item.type.includes('Nhập') || item.type.includes('Điều chỉnh tăng') || item.type === 'Hoàn hàng' ? 'rgba(34, 197, 94, 0.1)' : 
-                         item.type.includes('Xuất') || item.type.includes('Điều chỉnh giảm') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)'
+                'padding': '4px 10px',
+                'border-radius': '6px',
+                'font-size': '12px',
+                'font-weight': '600',
+                'white-space': 'nowrap',
+                'display': 'inline-block',
+                'color': item.orderTypeColor,
+                'background': item.orderTypeBg,
+                'border': item.orderTypeBorder
               }">
+                {{ item.orderTypeLabel }}
+              </span>
+              <div *ngIf="item.type && item.type !== item.orderTypeLabel" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
                 {{ item.type }}
+              </div>
+            </td>
+            <td style="padding: 16px;">
+              <span [ngStyle]="{
+                'padding': '4px 10px',
+                'border-radius': '20px',
+                'font-size': '11.5px',
+                'font-weight': '600',
+                'white-space': 'nowrap',
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'gap': '5px',
+                'color': item.statusColor,
+                'background': item.statusBg,
+                'border': item.statusBorder
+              }">
+                <span style="width: 6px; height: 6px; border-radius: 50%;" [style.background]="item.statusColor"></span>
+                {{ item.statusLabel }}
               </span>
             </td>
-            <td style="padding: 16px; text-align: center;">
-              <span [ngStyle]="{'font-weight': 700, 'font-size': '15px', 'color': item.quantity.startsWith('+') ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'}">
-                {{ item.quantity }}
-              </span>
+            <!-- Biến động tồn kho: 2 hàng (Hàng trên a -> b, Hàng dưới "Khả dụng" hoặc "Thực tế") -->
+            <td style="padding: 16px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <!-- Hàng trên: a -> b, tăng thì xanh lá, giảm thì đỏ -->
+                <div style="font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;"
+                     [style.color]="item.quantityChange > 0 ? '#10b981' : (item.quantityChange < 0 ? '#ef4444' : 'var(--text-secondary)')">
+                  <span>{{ item.stockBefore }}</span>
+                  <span style="font-size: 11px; opacity: 0.75;">→</span>
+                  <span>{{ item.stockAfter }}</span>
+                  <span style="font-size: 12px; font-weight: 600;">
+                    ({{ item.quantityChange > 0 ? '+' + item.quantityChange : item.quantityChange }})
+                  </span>
+                </div>
+                <!-- Hàng dưới: "Khả dụng" hoặc "Thực tế" -->
+                <div>
+                  <span [ngStyle]="{
+                    'font-size': '11px',
+                    'font-weight': '600',
+                    'padding': '1px 7px',
+                    'border-radius': '4px',
+                    'background': item.stockImpactType === 'Thực tế' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                    'color': item.stockImpactType === 'Thực tế' ? '#2563eb' : '#d97706',
+                    'border': item.stockImpactType === 'Thực tế' ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)'
+                  }">
+                    {{ item.stockImpactType }}
+                  </span>
+                </div>
+              </div>
             </td>
-            <td style="padding: 16px; text-align: center; font-weight: 600;">{{ item.stockAfter }}</td>
             <td style="padding: 16px;">
               <span style="color: var(--text-secondary); font-weight: 500;">{{ item.reference }}</span>
             </td>
-            <td style="padding: 16px; color: var(--text-secondary);">{{ item.creator }}</td>
+            <td style="padding: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 26px; height: 26px; border-radius: 50%; background: rgba(118, 83, 55, 0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">
+                  {{ getInitials(item.creator) }}
+                </div>
+                <span style="font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap;">{{ item.creator }}</span>
+              </div>
+            </td>
+            <!-- Nút chuyển sang trang chi tiết chứng từ (Kiểm kê hoặc Lệnh xuất-nhập kho) -->
+            <td style="padding: 12px 14px; text-align: center;">
+              <button 
+                type="button" 
+                class="history-action-btn"
+                [title]="item.orderTypeLabel === 'Kiểm kê' ? 'Mở phiếu kiểm kê' : 'Mở lệnh xuất - nhập kho'"
+                (click)="navigateToDocument(item, $event)"
+              >
+                <lucide-angular [img]="icons.ChevronRight" size="18"></lucide-angular>
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>

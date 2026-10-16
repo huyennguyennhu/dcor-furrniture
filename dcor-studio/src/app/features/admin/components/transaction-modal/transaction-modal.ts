@@ -353,25 +353,42 @@ export interface LineItem {
             <div [ngStyle]="{'background': type === 'export' ? '#fef2f2' : '#f0fdf4', 'color': type === 'export' ? '#ef4444' : '#10b981'}" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
               <lucide-angular [img]="icons.FileText" size="20"></lucide-angular>
             </div>
-            <div>
-              <h2 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h2 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                 <ng-container *ngIf="!isViewMode">
                   {{ type === 'import' ? 'Tạo phiếu Nhập kho' : 'Tạo phiếu Xuất kho' }}
                 </ng-container>
                 <ng-container *ngIf="isViewMode">
-                  <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary); margin-right: 4px;">{{ type === 'import' ? 'Phiếu nhập kho' : 'Phiếu xuất kho' }}</span>
-                  <span style="font-family: monospace; color: var(--accent); font-size: 17px;">{{ viewOrderData?.auditCode || viewOrderData?.id }}</span>
+                  <span>{{ type === 'import' ? 'Phiếu nhập kho' : 'Phiếu xuất kho' }}</span>
+                  <span style="font-family: monospace; color: var(--accent); font-size: 16px;">{{ viewOrderData?.auditCode || viewOrderData?.id }}</span>
                 </ng-container>
               </h2>
-              <div *ngIf="isViewMode" style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+              <ng-container *ngIf="isViewMode">
+                <span style="color: var(--text-muted); font-size: 14px; font-weight: 400; margin: 0 2px;">-</span>
                 <span [ngStyle]="{'background': getViewStatusBg(), 'color': getViewStatusColor()}" style="font-size: 11.5px; font-weight: 600; padding: 2px 10px; border-radius: 20px; letter-spacing: 0.3px;">{{ getViewStatusLabel() }}</span>
                 <span style="font-size: 12px; color: var(--text-muted);">{{ formatDisplayDate(viewOrderData?.date || viewOrderData?.createdAt) }}</span>
-              </div>
+              </ng-container>
             </div>
           </div>
-          <button type="button" (click)="requestClose()" class="admin-close-btn" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px;" title="Đóng">
-            <lucide-angular [img]="icons.X" size="20"></lucide-angular>
-          </button>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <!-- Nút [Sửa] trên header khi là bản nháp và chưa bấm sửa -->
+            <button *ngIf="isViewMode && isDraft && !isEditingDraft" type="button" (click)="startEditDraft()"
+              [disabled]="isAnyActionProcessing"
+              [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
+              [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+              style="display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 600; transition: all 0.15s; cursor: pointer;"
+              onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)';"
+              onmouseout="if(!this.disabled) this.style.background='var(--bg-primary)';"
+              title="Chỉnh sửa thông tin phiếu nháp"
+            >
+              <lucide-angular [img]="icons.Pencil" size="14"></lucide-angular>
+              Sửa
+            </button>
+
+            <button type="button" (click)="requestClose()" [disabled]="isAnyActionProcessing" [style.opacity]="isAnyActionProcessing ? '0.4' : '1'" [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'" class="admin-close-btn" style="background: transparent; border: none; color: var(--text-muted); padding: 6px; border-radius: 6px;" title="Đóng">
+              <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+            </button>
+          </div>
         </div>
         
         <!-- Body: scrollable container with clean padding -->
@@ -422,8 +439,8 @@ export interface LineItem {
           </div>
           -->
 
-          <!-- General Info Card -->
-          <div [style.pointer-events]="isFormDisabled ? 'none' : 'auto'" [style.opacity]="isFormDisabled ? '0.95' : '1'" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+          <!-- General Info Section -->
+          <div [style.pointer-events]="isFormDisabled ? 'none' : 'auto'" [style.opacity]="isFormDisabled ? '0.95' : '1'" style="display: flex; flex-direction: column; gap: 16px;">
             
             <!-- FORM BỐ TRÍ DÀNH RIÊNG CHO PHIẾU XUẤT KHO -->
             <ng-container *ngIf="type === 'export'">
@@ -475,17 +492,26 @@ export interface LineItem {
                       type="text" 
                       [value]="getFormattedTransactionDate()" 
                       readonly 
-                      (click)="openDatePicker(exportDatePicker)"
+                      [disabled]="isFormDisabled"
+                      (click)="!isFormDisabled && openDatePicker(exportDatePicker)"
                       placeholder="Chọn ngày giờ xuất kho"
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none; cursor: pointer;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;"
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer'
+                      }"
                     />
                     <input 
                       #exportDatePicker
                       type="datetime-local" 
                       [(ngModel)]="transactionDate" 
+                      [disabled]="isFormDisabled"
                       (change)="onDateChange()"
-                      (click)="openDatePicker(exportDatePicker)"
-                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;"
+                      (click)="!isFormDisabled && openDatePicker(exportDatePicker)"
+                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: 2;"
+                      [style.cursor]="isFormDisabled ? 'not-allowed' : 'pointer'"
+                      [style.pointer-events]="isFormDisabled ? 'none' : 'auto'"
                     />
                     <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); display: flex; align-items: center; z-index: 1;">
                       <lucide-angular [img]="icons.Calendar" size="15"></lucide-angular>
@@ -505,9 +531,15 @@ export interface LineItem {
                     <button 
                       type="button"
                       (click)="toggleLocationDropdown($event)"
+                      [disabled]="isFormDisabled"
                       [title]="getLocationLabel()"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                      [style.color]="transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)'"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
+                        'opacity': isFormDisabled ? '0.75' : '1'
+                      }"
+                      [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
                       <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
                         <lucide-angular [img]="icons.Filter" size="14" style="flex-shrink: 0;"></lucide-angular>
@@ -541,9 +573,15 @@ export interface LineItem {
                     <button 
                       type="button"
                       (click)="toggleReasonDropdown($event)"
+                      [disabled]="isFormDisabled"
                       [title]="transactionReason || 'Chọn lý do xuất'"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                      [style.color]="transactionReason ? 'var(--text-primary)' : 'var(--text-muted)'"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
+                        'opacity': isFormDisabled ? '0.75' : '1'
+                      }"
+                      [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionReason ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
                       <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
                         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
@@ -593,9 +631,15 @@ export interface LineItem {
                       <button 
                         type="button"
                         (click)="toggleDestDropdown($event)"
+                        [disabled]="isFormDisabled"
                         [title]="getDestLabel()"
-                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                        [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
+                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                        [ngStyle]="{
+                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
+                          'opacity': isFormDisabled ? '0.75' : '1'
+                        }"
+                        [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)')"
                       >
                         <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
                           <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
@@ -649,9 +693,16 @@ export interface LineItem {
                       <input 
                         type="text" 
                         [(ngModel)]="recipientName" 
+                        [disabled]="isFormDisabled"
+                        [readonly]="isFormDisabled"
                         list="supplierListSuggestionsExport"
                         placeholder="VD: BoConcept VN, Gỗ An Cường, Hafele..." 
-                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                        [ngStyle]="{
+                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                          'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                        }"
                       />
                       <datalist id="supplierListSuggestionsExport">
                         <option *ngFor="let s of supplierOptions" [value]="s"></option>
@@ -667,8 +718,15 @@ export interface LineItem {
                     <input 
                       type="text" 
                       [(ngModel)]="recipientName" 
+                      [disabled]="isFormDisabled"
+                      [readonly]="isFormDisabled"
                       placeholder="VD: Anh Minh, Công ty CP Kiến trúc ABC..." 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                      }"
                     />
                   </ng-container>
 
@@ -680,8 +738,15 @@ export interface LineItem {
                     <input 
                       type="text" 
                       [(ngModel)]="recipientName" 
+                      [disabled]="isFormDisabled"
+                      [readonly]="isFormDisabled"
                       placeholder="VD: Showroom Quận 1, Showroom Thủ Đức, Triển lãm VietBuild..." 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                      }"
                     />
                   </ng-container>
 
@@ -693,8 +758,15 @@ export interface LineItem {
                     <input 
                       type="text" 
                       [(ngModel)]="recipientName" 
+                      [disabled]="isFormDisabled"
+                      [readonly]="isFormDisabled"
                       placeholder="VD: Nhập tên đối tác, đơn vị hoặc người nhận..." 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                      }"
                     />
                   </ng-container>
                 </div>
@@ -710,8 +782,15 @@ export interface LineItem {
                   <input 
                     type="text" 
                     [(ngModel)]="referenceCode" 
+                    [disabled]="isFormDisabled"
+                    [readonly]="isFormDisabled"
                     placeholder="Nhập số hóa đơn / Mã SO / Chứng từ gốc (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    [ngStyle]="{
+                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                    }"
                   />
                 </div>
 
@@ -721,8 +800,15 @@ export interface LineItem {
                   <input 
                     type="text" 
                     [(ngModel)]="transactionNote" 
+                    [disabled]="isFormDisabled"
+                    [readonly]="isFormDisabled"
                     placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    [ngStyle]="{
+                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                    }"
                   />
                 </div>
               </div>
@@ -778,17 +864,26 @@ export interface LineItem {
                       type="text" 
                       [value]="getFormattedTransactionDate()" 
                       readonly 
-                      (click)="openDatePicker(importDatePicker)"
+                      [disabled]="isFormDisabled"
+                      (click)="!isFormDisabled && openDatePicker(importDatePicker)"
                       placeholder="Chọn ngày giờ nhập kho"
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none; cursor: pointer;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;"
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer'
+                      }"
                     />
                     <input 
                       #importDatePicker
                       type="datetime-local" 
                       [(ngModel)]="transactionDate" 
+                      [disabled]="isFormDisabled"
                       (change)="onDateChange()"
-                      (click)="openDatePicker(importDatePicker)"
-                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;"
+                      (click)="!isFormDisabled && openDatePicker(importDatePicker)"
+                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: 2;"
+                      [style.cursor]="isFormDisabled ? 'not-allowed' : 'pointer'"
+                      [style.pointer-events]="isFormDisabled ? 'none' : 'auto'"
                     />
                     <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); display: flex; align-items: center; z-index: 1;">
                       <lucide-angular [img]="icons.Calendar" size="15"></lucide-angular>
@@ -808,9 +903,15 @@ export interface LineItem {
                     <button 
                       type="button"
                       (click)="toggleLocationDropdown($event)"
+                      [disabled]="isFormDisabled"
                       [title]="getLocationLabel()"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                      [style.color]="transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)'"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
+                        'opacity': isFormDisabled ? '0.75' : '1'
+                      }"
+                      [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
                       <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
                         <lucide-angular [img]="icons.Filter" size="14" style="flex-shrink: 0;"></lucide-angular>
@@ -844,9 +945,15 @@ export interface LineItem {
                     <button 
                       type="button"
                       (click)="toggleReasonDropdown($event)"
+                      [disabled]="isFormDisabled"
                       [title]="transactionReason || 'Chọn lý do nhập'"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                      [style.color]="transactionReason ? 'var(--text-primary)' : 'var(--text-muted)'"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
+                        'opacity': isFormDisabled ? '0.75' : '1'
+                      }"
+                      [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionReason ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
                       <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
                         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
@@ -896,9 +1003,15 @@ export interface LineItem {
                       <button 
                         type="button"
                         (click)="toggleDestDropdown($event)"
+                        [disabled]="isFormDisabled"
                         [title]="getDestLabel()"
-                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px; text-align: left;"
-                        [style.color]="transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)'"
+                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                        [ngStyle]="{
+                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
+                          'opacity': isFormDisabled ? '0.75' : '1'
+                        }"
+                        [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)')"
                       >
                         <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; min-width: 0;">
                           <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
@@ -952,9 +1065,16 @@ export interface LineItem {
                     <input 
                       type="text" 
                       [(ngModel)]="recipientName" 
+                      [disabled]="isFormDisabled"
+                      [readonly]="isFormDisabled"
                       [attr.list]="isImportCustomerReturn() ? null : 'supplierListSuggestions'"
                       [placeholder]="isImportCustomerReturn() ? 'VD: Khách hàng Trần Tuấn, Đơn #ORD-092...' : 'VD: BoConcept VN, Gỗ An Cường, Hafele...'" 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                      [ngStyle]="{
+                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                      }"
                     />
                     <datalist id="supplierListSuggestions">
                       <option *ngFor="let s of supplierOptions" [value]="s"></option>
@@ -973,8 +1093,15 @@ export interface LineItem {
                   <input 
                     type="text" 
                     [(ngModel)]="referenceCode" 
+                    [disabled]="isFormDisabled"
+                    [readonly]="isFormDisabled"
                     placeholder="Nhập số hóa đơn VAT / Mã PO (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    [ngStyle]="{
+                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                    }"
                   />
                 </div>
 
@@ -984,8 +1111,15 @@ export interface LineItem {
                   <input 
                     type="text" 
                     [(ngModel)]="transactionNote" 
+                    [disabled]="isFormDisabled"
+                    [readonly]="isFormDisabled"
                     placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    [ngStyle]="{
+                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                      'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                    }"
                   />
                 </div>
               </div>
@@ -1007,7 +1141,7 @@ export interface LineItem {
             </div>
             
             <!-- Khối Bảng Sản phẩm: Thiết lập overflow: visible để dropdown Sản phẩm & Biến thể không bị cắt/khuất -->
-            <div style="width: 100%; overflow: visible; position: relative;">
+            <div [style.pointer-events]="isFormDisabled ? 'none' : 'auto'" style="width: 100%; overflow: visible; position: relative;">
               <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: visible;">
                 
                 <!-- Table Headers -->
@@ -1023,28 +1157,29 @@ export interface LineItem {
                 </div>
 
             <!-- Rows: Có z-index phân tầng để dropdown không bị các dòng bên dưới đè -->
-            <div style="display: flex; flex-direction: column; gap: 10px; overflow: visible;">
-              <div *ngFor="let item of lineItems; let i = index" 
+            <div [style.gap]="isFormDisabled ? '0px' : '10px'" style="display: flex; flex-direction: column; overflow: visible;">
+              <div *ngFor="let item of lineItems; let i = index; let last = last" 
                    [style.pointer-events]="isFormDisabled ? 'none' : 'auto'"
                    [ngStyle]="{
                      'display': 'grid', 
                      'grid-template-columns': getGridColumns(), 
                      'gap': '10px', 
                      'align-items': 'start', 
-                     'padding': '10px 14px', 
-                     'border-radius': '8px', 
-                     'background': 'var(--bg-primary)', 
-                     'border': isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)',
+                     'padding': isFormDisabled ? '12px 14px' : '10px 14px', 
+                     'border-radius': isFormDisabled ? '0' : '8px', 
+                     'background': isFormDisabled ? 'transparent' : 'var(--bg-primary)', 
+                     'border': isFormDisabled ? 'none' : (isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)'),
+                     'border-bottom': (isFormDisabled && lineItems.length > 1 && !last) ? '1px solid var(--border-color)' : (isFormDisabled ? 'none' : (isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)')),
                      'position': 'relative',
                      'z-index': (openProductDropdownId === item.id || openVariantDropdownId === item.id || openUnitDropdownId === item.id) ? 100 : 1
                    }">
                 
                 <!-- 1. Sản phẩm: Khóa khi chưa chọn kho -->
                 <div style="position: relative;">
-                  <div *ngIf="item.isProductFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px; white-space: normal; word-break: break-word; line-height: 1.35;">
+                  <div *ngIf="item.isProductFixed || isFormDisabled" style="min-height: 38px; display: flex; align-items: center; color: var(--text-primary); font-size: 13px; font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.4;">
                     {{ getProductLabel(item.productId, item) }}
                   </div>
-                  <div *ngIf="!item.isProductFixed" 
+                  <div *ngIf="!item.isProductFixed && !isFormDisabled" 
                        (click)="!transactionLocation && focusLocationDropdown($event)"
                        style="position: relative; width: 100%;">
                     <button 
@@ -1132,11 +1267,11 @@ export interface LineItem {
 
                 <!-- 2. Biến thể: Bố trí giống form Kiểm kê -->
                 <div style="position: relative; display: flex; flex-direction: column; gap: 4px;">
-                  <div *ngIf="item.isVariantFixed" style="padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); font-size: 13px;">
+                  <div *ngIf="item.isVariantFixed || isFormDisabled" style="min-height: 38px; display: flex; flex-direction: column; justify-content: center; gap: 3px; color: var(--text-primary); font-size: 13px;">
                     <div *ngIf="getVariantSku(item)" style="font-family: monospace; font-weight: 700; font-size: 11px; color: var(--accent, #765337); line-height: 1.2;">{{ getVariantSku(item) }}</div>
                     <div style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ getVariantDisplay(item) }}</div>
                   </div>
-                  <div *ngIf="!item.isVariantFixed" 
+                  <div *ngIf="!item.isVariantFixed && !isFormDisabled" 
                        (click)="!transactionLocation && focusLocationDropdown($event)"
                        style="position: relative; width: 100%;">
                     <button 
@@ -1237,7 +1372,10 @@ export interface LineItem {
 
                 <!-- 4. Đơn vị tính (ĐVT) -->
                 <div style="display: flex; justify-content: center; width: 100%;">
-                  <div class="filter-dropdown-wrapper location-filter-wrapper" style="width: 100%; position: relative;">
+                  <div *ngIf="isFormDisabled" style="display: flex; align-items: center; justify-content: center; height: 38px; font-size: 13px; color: var(--text-primary); font-weight: 500;">
+                    {{ (item.productId && item.variantId) ? (item.unit || '-') : '-' }}
+                  </div>
+                  <div *ngIf="!isFormDisabled" class="filter-dropdown-wrapper location-filter-wrapper" style="width: 100%; position: relative;">
                     <button 
                       type="button" 
                       class="filter-trigger-btn"
@@ -1252,7 +1390,6 @@ export interface LineItem {
                       }"
                     >
                       <div class="trigger-label">
-                        <lucide-angular [img]="icons.Package" size="13" class="trigger-icon"></lucide-angular>
                         <span class="truncate-label">{{ (item.productId && item.variantId) ? (item.unit || '-') : '-' }}</span>
                       </div>
                       <lucide-angular 
@@ -1283,7 +1420,10 @@ export interface LineItem {
 
                 <!-- 5. Số lượng (kèm Validation cảnh báo vượt tồn) -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                  <div style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 76px; background: var(--bg-primary); transition: all 0.15s ease;"
+                  <div *ngIf="isFormDisabled" style="display: flex; align-items: center; justify-content: center; height: 38px; font-size: 13.5px; font-weight: 700; color: var(--text-primary);">
+                    {{ item.quantity || 0 }}
+                  </div>
+                  <div *ngIf="!isFormDisabled" style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 76px; background: var(--bg-primary); transition: all 0.15s ease;"
                        [ngStyle]="{
                          'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.5' : '1',
                          'border-color': isQuantityExceeded(item) ? '#ef4444' : 'var(--border-color)',
@@ -1333,14 +1473,17 @@ export interface LineItem {
                   </div>
 
                   <!-- Cảnh báo lỗi vượt quá tồn kho -->
-                  <div *ngIf="isQuantityExceeded(item)" style="color: #ef4444; font-size: 10px; font-weight: 600; text-align: center; line-height: 1.2;">
+                  <div *ngIf="!isFormDisabled && isQuantityExceeded(item)" style="color: #ef4444; font-size: 10px; font-weight: 600; text-align: center; line-height: 1.2;">
                     ⚠️ Quá tồn (Max {{ getVariantStock(item) }})
                   </div>
                 </div>
 
                 <!-- 6. Đơn giá xuất / nhập -->
                 <div>
-                  <input 
+                  <div *ngIf="isFormDisabled" style="display: flex; align-items: center; justify-content: flex-end; height: 38px; font-size: 13px; font-weight: 500; color: var(--text-primary); padding-right: 8px;">
+                    {{ item.price ? (item.price + ' ₫') : '0 ₫' }}
+                  </div>
+                  <input *ngIf="!isFormDisabled"
                     type="text" 
                     inputmode="numeric"
                     pattern="[0-9]*"
@@ -1405,7 +1548,7 @@ export interface LineItem {
             </div>
 
             <!-- Bảng tổng kết tài chính phiếu nhập/xuất (Financial Summary) -->
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 6px;">
+            <div [style.pointer-events]="isFormDisabled ? 'none' : 'auto'" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 6px;">
               
               <!-- Cột trái: Tóm tắt thông số -->
               <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -1433,109 +1576,133 @@ export interface LineItem {
                 <!-- Chiết khấu -->
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                   <span style="color: var(--text-secondary);">Chiết khấu (₫):</span>
-                  <input 
-                    type="text" 
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    [value]="discountAmount" 
-                    (keydown)="onNumberKeydown($event)"
-                    (input)="onCurrencyInput('discount', $event)" 
-                    placeholder="0" 
-                    style="width: 190px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
-                  />
+                  <ng-container *ngIf="!isFormDisabled">
+                    <input 
+                      type="text" 
+                      inputmode="numeric"
+                      pattern="[0-9]*"
+                      [value]="discountAmount" 
+                      (keydown)="onNumberKeydown($event)"
+                      (input)="onCurrencyInput('discount', $event)" 
+                      placeholder="0" 
+                      style="width: 190px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 12.5px; text-align: right; outline: none; background: var(--bg-primary); color: var(--text-primary);" 
+                    />
+                  </ng-container>
+                  <ng-container *ngIf="isFormDisabled">
+                    <span style="font-weight: 600; color: var(--text-primary); font-size: 13px; text-align: right;">
+                      {{ getDiscountValue() > 0 ? ('-' + formatCurrency(getDiscountValue())) : '0 ₫' }}
+                    </span>
+                  </ng-container>
                 </div>
 
                 <!-- Thuế VAT -->
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                   <span style="color: var(--text-secondary);">Thuế VAT:</span>
-                  <div style="display: flex; align-items: center; justify-content: space-between; width: 190px; gap: 6px;">
-                    <div class="filter-dropdown-wrapper location-filter-wrapper" style="position: relative; width: 78px; flex-shrink: 0;">
-                      <button 
-                        type="button" 
-                        class="filter-trigger-btn"
-                        style="width: 100%; height: 28px; padding: 0 6px; font-size: 12px; border-radius: 6px; gap: 4px;"
-                        [class.active]="taxRate > 0"
-                        [title]="'Thuế VAT: ' + taxRate + '%'"
-                        (click)="toggleTaxDropdown($event)"
-                      >
-                        <div class="trigger-label" style="gap: 4px;">
-                          <lucide-angular [img]="icons.Percent" size="12" class="trigger-icon"></lucide-angular>
-                          <span class="truncate-label" style="font-size: 12px; font-weight: 500;">{{ taxRate }}%</span>
-                        </div>
-                        <lucide-angular 
-                          [img]="icons.ChevronDown" 
-                          size="12" 
-                          [style.transform]="showTaxDropdown ? 'rotate(180deg)' : 'none'" 
-                          style="transition: transform 0.2s; flex-shrink: 0;"
-                        ></lucide-angular>
-                      </button>
-
-                      <div *ngIf="showTaxDropdown" 
-                        class="tax-dropdown-menu custom-dropdown-scrollbar"
-                        [ngStyle]="{
-                          'bottom': dropdownPositions['tax'] === 'up' ? 'calc(100% + 4px)' : 'auto',
-                          'top': dropdownPositions['tax'] === 'up' ? 'auto' : 'calc(100% + 4px)'
-                        }"
-                      >
-                        <div *ngFor="let rate of taxRateOptions"
-                          (click)="selectTaxRate(rate, $event)"
-                          class="filter-menu-item"
-                          style="padding: 5px 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;"
-                          [class.selected]="taxRate === rate"
+                  <ng-container *ngIf="!isFormDisabled">
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 190px; gap: 6px;">
+                      <div class="filter-dropdown-wrapper location-filter-wrapper" style="position: relative; width: 78px; flex-shrink: 0;">
+                        <button 
+                          type="button" 
+                          class="filter-trigger-btn"
+                          style="width: 100%; height: 28px; padding: 0 6px; font-size: 12px; border-radius: 6px; gap: 4px;"
+                          [class.active]="taxRate > 0"
+                          [title]="'Thuế VAT: ' + taxRate + '%'"
+                          (click)="toggleTaxDropdown($event)"
                         >
-                          <span>{{ rate }}%</span>
-                          <lucide-angular *ngIf="taxRate === rate" [img]="icons.CheckCircle2" size="12" style="color: var(--accent); flex-shrink: 0;"></lucide-angular>
-                        </div>
+                          <div class="trigger-label" style="gap: 4px;">
+                            <lucide-angular [img]="icons.Percent" size="12" class="trigger-icon"></lucide-angular>
+                            <span class="truncate-label" style="font-size: 12px; font-weight: 500;">{{ taxRate }}%</span>
+                          </div>
+                          <lucide-angular 
+                            [img]="icons.ChevronDown" 
+                            size="12" 
+                            [style.transform]="showTaxDropdown ? 'rotate(180deg)' : 'none'" 
+                            style="transition: transform 0.2s; flex-shrink: 0;"
+                          ></lucide-angular>
+                        </button>
 
-                        <!-- Ô nhập & Nút + thêm mức thuế VAT mới (chỉ nhận số nguyên, tự động gắn %) -->
-                        <div style="border-top: 1px dashed var(--border-color); padding: 5px 2px 2px 2px; margin-top: 3px;" (click)="$event.stopPropagation()">
-                          <div style="display: flex; align-items: center; gap: 4px;">
-                            <div style="position: relative; display: flex; align-items: center; flex: 1;">
-                              <input 
-                                type="text" 
-                                inputmode="numeric"
-                                pattern="[0-9]*"
-                                [value]="customTaxInput"
-                                (keydown)="onCustomTaxKeydown($event)"
-                                (input)="onCustomTaxInput($event)"
-                                placeholder="0"
-                                maxlength="3"
-                                title="Nhập số nguyên (0-100)"
-                                style="width: 100%; height: 26px; padding: 0 16px 0 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 11.5px; background: var(--bg-primary); color: var(--text-primary); text-align: right; outline: none; box-sizing: border-box;"
-                              />
-                              <span style="position: absolute; right: 4px; font-size: 11px; color: var(--text-muted); pointer-events: none; font-weight: 600;">%</span>
+                        <div *ngIf="showTaxDropdown" 
+                          class="tax-dropdown-menu custom-dropdown-scrollbar"
+                          [ngStyle]="{
+                            'bottom': dropdownPositions['tax'] === 'up' ? 'calc(100% + 4px)' : 'auto',
+                            'top': dropdownPositions['tax'] === 'up' ? 'auto' : 'calc(100% + 4px)'
+                          }"
+                        >
+                          <div *ngFor="let rate of taxRateOptions"
+                            (click)="selectTaxRate(rate, $event)"
+                            class="filter-menu-item"
+                            style="padding: 5px 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;"
+                            [class.selected]="taxRate === rate"
+                          >
+                            <span>{{ rate }}%</span>
+                            <lucide-angular *ngIf="taxRate === rate" [img]="icons.CheckCircle2" size="12" style="color: var(--accent); flex-shrink: 0;"></lucide-angular>
+                          </div>
+
+                          <!-- Ô nhập & Nút + thêm mức thuế VAT mới (chỉ nhận số nguyên, tự động gắn %) -->
+                          <div style="border-top: 1px dashed var(--border-color); padding: 5px 2px 2px 2px; margin-top: 3px;" (click)="$event.stopPropagation()">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                              <div style="position: relative; display: flex; align-items: center; flex: 1;">
+                                <input 
+                                  type="text" 
+                                  inputmode="numeric"
+                                  pattern="[0-9]*"
+                                  [value]="customTaxInput"
+                                  (keydown)="onCustomTaxKeydown($event)"
+                                  (input)="onCustomTaxInput($event)"
+                                  placeholder="0"
+                                  maxlength="3"
+                                  title="Nhập số nguyên (0-100)"
+                                  style="width: 100%; height: 26px; padding: 0 16px 0 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 11.5px; background: var(--bg-primary); color: var(--text-primary); text-align: right; outline: none; box-sizing: border-box;"
+                                />
+                                <span style="position: absolute; right: 4px; font-size: 11px; color: var(--text-muted); pointer-events: none; font-weight: 600;">%</span>
+                              </div>
+                              <button 
+                                type="button"
+                                (click)="confirmAddCustomTax($event)"
+                                title="Thêm mức thuế (%)"
+                                style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--accent, #765337); color: #ffffff; border: none; border-radius: 4px; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s;"
+                                onmouseover="this.style.opacity='0.85'"
+                                onmouseout="this.style.opacity='1'"
+                              >
+                                <lucide-angular [img]="icons.Plus" size="13"></lucide-angular>
+                              </button>
                             </div>
-                            <button 
-                              type="button"
-                              (click)="confirmAddCustomTax($event)"
-                              title="Thêm mức thuế (%)"
-                              style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--accent, #765337); color: #ffffff; border: none; border-radius: 4px; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s;"
-                              onmouseover="this.style.opacity='0.85'"
-                              onmouseout="this.style.opacity='1'"
-                            >
-                              <lucide-angular [img]="icons.Plus" size="13"></lucide-angular>
-                            </button>
                           </div>
                         </div>
                       </div>
+                      <span style="font-weight: 500; text-align: right; color: var(--text-primary); font-size: 12.5px; flex: 1; white-space: nowrap;">+{{ formatCurrency(getTaxValue()) }}</span>
                     </div>
-                    <span style="font-weight: 500; text-align: right; color: var(--text-primary); font-size: 12.5px; flex: 1; white-space: nowrap;">+{{ formatCurrency(getTaxValue()) }}</span>
-                  </div>
+                  </ng-container>
+                  <ng-container *ngIf="isFormDisabled">
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                      <span *ngIf="taxRate > 0" style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(118, 83, 55, 0.1); color: var(--accent); font-weight: 600;">{{ taxRate }}%</span>
+                      <span style="font-weight: 600; color: var(--text-primary); font-size: 13px;">
+                        {{ taxRate > 0 ? ('+' + formatCurrency(getTaxValue())) : '0 ₫' }}
+                      </span>
+                    </div>
+                  </ng-container>
                 </div>
 
                 <!-- Chi phí vận chuyển -->
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                   <span style="color: var(--text-secondary);">Phí vận chuyển (₫):</span>
-                  <input 
-                    type="text" 
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    [value]="shippingFee" 
-                    (keydown)="onNumberKeydown($event)"
-                    (input)="onCurrencyInput('shipping', $event)" 
-                    placeholder="0" 
-                    style="width: 190px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 12.5px; text-align: right; outline: none;" 
-                  />
+                  <ng-container *ngIf="!isFormDisabled">
+                    <input 
+                      type="text" 
+                      inputmode="numeric"
+                      pattern="[0-9]*"
+                      [value]="shippingFee" 
+                      (keydown)="onNumberKeydown($event)"
+                      (input)="onCurrencyInput('shipping', $event)" 
+                      placeholder="0" 
+                      style="width: 190px; height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 12.5px; text-align: right; outline: none; background: var(--bg-primary); color: var(--text-primary);" 
+                    />
+                  </ng-container>
+                  <ng-container *ngIf="isFormDisabled">
+                    <span style="font-weight: 600; color: var(--text-primary); font-size: 13px; text-align: right;">
+                      {{ getShippingValue() > 0 ? ('+' + formatCurrency(getShippingValue())) : '0 ₫' }}
+                    </span>
+                  </ng-container>
                 </div>
 
                 <!-- Đường kẻ phân cách -->
@@ -1662,15 +1829,15 @@ export interface LineItem {
             <span>•</span>
             <span>Tổng tiền: <strong style="color: #059669; font-size: 13px;">{{ formatCurrency(getFinalTotal()) }}</strong></span>
           </div>
-          <!-- Close button in view mode (left) -->
-          <button *ngIf="isViewMode" type="button" (click)="requestClose()" class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">Đóng</button>
+          <!-- Left spacer in view mode -->
+          <div *ngIf="isViewMode"></div>
 
           <!-- CREATE MODE: Hủy + Lưu nháp + Tạo phiếu -->
           <div *ngIf="!isViewMode" style="display: flex; align-items: center; gap: 10px;">
             <!-- Nút 1: HỦY -->
-            <button type="button" (click)="requestClose()" [disabled]="isSubmitting"
-              [style.opacity]="isSubmitting ? '0.5' : '1'"
-              [style.cursor]="isSubmitting ? 'not-allowed' : 'pointer'"
+            <button type="button" (click)="requestClose()" [disabled]="isAnyActionProcessing"
+              [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
+              [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
               style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; transition: all 0.15s ease;"
               onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)'"
               onmouseout="if(!this.disabled) this.style.background='var(--bg-primary)'"
@@ -1679,21 +1846,21 @@ export interface LineItem {
             </button>
 
             <!-- Nút 2: LƯU NHÁP -->
-            <button type="button" (click)="handleSaveDraft()" [disabled]="!canSaveDraft() || isSubmitting"
+            <button type="button" (click)="handleSaveDraft()" [disabled]="!canSaveDraft() || isAnyActionProcessing"
               [ngStyle]="{
                 'display': 'flex', 'align-items': 'center', 'gap': '6px',
                 'padding': '9px 18px', 'border-radius': '8px',
-                'border': '1px solid ' + ((!canSaveDraft() || isSubmitting) ? 'var(--border-color)' : '#d97706'),
-                'background': (!canSaveDraft() || isSubmitting) ? 'var(--bg-secondary)' : '#fffbeb',
-                'color': (!canSaveDraft() || isSubmitting) ? 'var(--text-muted)' : '#b45309',
+                'border': '1px solid ' + ((!canSaveDraft() || isAnyActionProcessing) ? 'var(--border-color)' : '#d97706'),
+                'background': (!canSaveDraft() || isAnyActionProcessing) ? 'var(--bg-secondary)' : '#fffbeb',
+                'color': (!canSaveDraft() || isAnyActionProcessing) ? 'var(--text-muted)' : '#b45309',
                 'font-size': '13px', 'font-weight': '600',
-                'cursor': (!canSaveDraft() || isSubmitting) ? 'not-allowed' : 'pointer',
-                'opacity': (!canSaveDraft() || isSubmitting) ? '0.45' : '1',
+                'cursor': (!canSaveDraft() || isAnyActionProcessing) ? 'not-allowed' : 'pointer',
+                'opacity': (!canSaveDraft() || isAnyActionProcessing) ? '0.45' : '1',
                 'transition': 'all 0.15s ease'
               }"
               onmouseover="if(!this.disabled) { this.style.background='#fef3c7'; }"
               onmouseout="if(!this.disabled) { this.style.background='#fffbeb'; }"
-              [title]="!canSaveDraft() ? 'Vui lòng hoàn thiện các trường dữ liệu bắt buộc trước khi lưu nháp' : (isSubmitting ? 'Đang xử lý...' : 'Lưu lại dạng bản nháp để duyệt sau, chưa thay đổi số lượng tồn kho')"
+              [title]="!canSaveDraft() ? 'Vui lòng hoàn thiện các trường dữ liệu bắt buộc trước khi lưu nháp' : (isAnyActionProcessing ? 'Đang xử lý...' : 'Lưu lại dạng bản nháp để duyệt sau, chưa thay đổi số lượng tồn kho')"
             >
               <lucide-angular *ngIf="!isSubmittingDraft" [img]="icons.Save" size="15"></lucide-angular>
               <lucide-angular *ngIf="isSubmittingDraft" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
@@ -1701,21 +1868,21 @@ export interface LineItem {
             </button>
 
             <!-- Nút 3: TẠO PHIẾU XUẤT / NHẬP (PLANNED) -->
-            <button type="button" (click)="handleSubmitConfirmed()" [disabled]="!canSubmitOrder() || isSubmitting"
+            <button type="button" (click)="handleSubmitConfirmed()" [disabled]="!canSubmitOrder() || isAnyActionProcessing"
               [ngStyle]="{
                 'display': 'flex', 'align-items': 'center', 'gap': '6px',
                 'padding': '9px 24px', 'border-radius': '8px', 'border': 'none',
-                'background': (!canSubmitOrder() || isSubmitting) ? 'var(--border-color)' : '#765337',
-                'color': (!canSubmitOrder() || isSubmitting) ? 'var(--text-muted)' : '#ffffff',
+                'background': (!canSubmitOrder() || isAnyActionProcessing) ? 'var(--border-color)' : '#765337',
+                'color': (!canSubmitOrder() || isAnyActionProcessing) ? 'var(--text-muted)' : '#ffffff',
                 'font-size': '13px', 'font-weight': '600',
-                'cursor': (!canSubmitOrder() || isSubmitting) ? 'not-allowed' : 'pointer',
-                'opacity': (!canSubmitOrder() || isSubmitting) ? '0.55' : '1',
-                'box-shadow': (!canSubmitOrder() || isSubmitting) ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
+                'cursor': (!canSubmitOrder() || isAnyActionProcessing) ? 'not-allowed' : 'pointer',
+                'opacity': (!canSubmitOrder() || isAnyActionProcessing) ? '0.55' : '1',
+                'box-shadow': (!canSubmitOrder() || isAnyActionProcessing) ? 'none' : '0 2px 8px rgba(118, 83, 55, 0.28)',
                 'transition': 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }"
               onmouseover="if(!this.disabled) { this.style.background='#5a3d26'; this.style.boxShadow='0 4px 14px rgba(90, 61, 38, 0.4)'; this.style.transform='translateY(-1px)'; }"
               onmouseout="if(!this.disabled) { this.style.background='#765337'; this.style.boxShadow='0 2px 8px rgba(118, 83, 55, 0.28)'; this.style.transform='translateY(0)'; }"
-              [title]="isSubmitting ? 'Hệ thống đang xử lý...' : getSubmitButtonTitle()"
+              [title]="isAnyActionProcessing ? 'Hệ thống đang xử lý...' : getSubmitButtonTitle()"
             >
               <lucide-angular *ngIf="!isSubmittingOrder" [img]="icons.CheckCircle2" size="15"></lucide-angular>
               <lucide-angular *ngIf="isSubmittingOrder" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
@@ -1726,68 +1893,93 @@ export interface LineItem {
           <!-- VIEW MODE: action buttons based on status -->
           <div *ngIf="isViewMode" style="display: flex; gap: 10px; align-items: center;">
 
-            <!-- DRAFT: If not editing: [Xóa phiếu] [Sửa] [Lên kế hoạch nhập/xuất] -->
+            <!-- Nút [Đóng] xuất hiện trong view mode (khi không sửa nháp) -->
+            <button *ngIf="!isEditingDraft" type="button" (click)="requestClose()"
+              [disabled]="isAnyActionProcessing"
+              [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
+              [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+              style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; transition: all 0.15s ease;"
+              onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)'"
+              onmouseout="if(!this.disabled) this.style.background='var(--bg-primary)'"
+            >
+              Đóng
+            </button>
+
+            <!-- DRAFT: If not editing: [Xóa phiếu] [Lên kế hoạch nhập/xuất] (Nút [Sửa] đã đưa lên Header) -->
             <ng-container *ngIf="isDraft && !isEditingDraft">
               <button type="button" (click)="openDeleteOrderModal()"
-                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;"
-                onmouseover="this.style.background='#ef4444'; this.style.color='#fff';"
-                onmouseout="this.style.background='transparent'; this.style.color='#ef4444';"
+                [disabled]="isAnyActionProcessing"
+                [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
+                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:13px;font-weight:600;transition:all 0.15s;"
+                onmouseover="if(!this.disabled) { this.style.background='#ef4444'; this.style.color='#fff'; }"
+                onmouseout="if(!this.disabled) { this.style.background='transparent'; this.style.color='#ef4444'; }"
               >
                 <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
                 Xóa phiếu
               </button>
-              <button type="button" (click)="startEditDraft()"
-                style="display:flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;"
-                onmouseover="this.style.background='var(--bg-secondary)';"
-                onmouseout="this.style.background='var(--bg-primary)';"
-              >
-                <lucide-angular [img]="icons.Pencil" size="14"></lucide-angular>
-                Sửa
-              </button>
               <button type="button" (click)="handlePlanOrder()"
-                style="display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,0.25);transition:all 0.2s;"
-                onmouseover="this.style.background='#6d28d9'; this.style.boxShadow='0 4px 14px rgba(109,40,217,0.4)'; this.style.transform='translateY(-1px)';"
-                onmouseout="this.style.background='#7c3aed'; this.style.boxShadow='0 2px 8px rgba(124,58,237,0.25)'; this.style.transform='translateY(0)';"
+                [disabled]="isAnyActionProcessing"
+                [style.opacity]="isAnyActionProcessing ? '0.6' : '1'"
+                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+                style="display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(124,58,237,0.25);transition:all 0.2s;"
+                onmouseover="if(!this.disabled) { this.style.background='#6d28d9'; this.style.boxShadow='0 4px 14px rgba(109,40,217,0.4)'; this.style.transform='translateY(-1px)'; }"
+                onmouseout="if(!this.disabled) { this.style.background='#7c3aed'; this.style.boxShadow='0 2px 8px rgba(124,58,237,0.25)'; this.style.transform='translateY(0)'; }"
               >
-                <lucide-angular [img]="icons.Play" size="14"></lucide-angular>
-                {{ type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất' }}
+                <lucide-angular *ngIf="!isPlanningOrder" [img]="icons.Play" size="14"></lucide-angular>
+                <lucide-angular *ngIf="isPlanningOrder" [img]="icons.Loader2" size="14" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+                <span>{{ isPlanningOrder ? 'Đang lên kế hoạch...' : (type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất') }}</span>
               </button>
             </ng-container>
 
             <!-- DRAFT: If editing: [Hủy bỏ] [Lưu thay đổi] -->
             <ng-container *ngIf="isDraft && isEditingDraft">
               <button type="button" (click)="cancelEditDraft()"
-                style="padding:9px 16px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-weight:500;cursor:pointer;"
+                [disabled]="isAnyActionProcessing"
+                [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
+                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+                style="padding:9px 16px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-weight:500;"
               >
                 Hủy bỏ
               </button>
               <button type="button" (click)="saveEditDraft()"
-                style="display:flex;align-items:center;gap:6px;padding:9px 22px;border-radius:8px;border:none;background:#765337;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(118,83,55,0.28);"
+                [disabled]="isAnyActionProcessing"
+                [style.opacity]="isAnyActionProcessing ? '0.6' : '1'"
+                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+                style="display:flex;align-items:center;gap:6px;padding:9px 22px;border-radius:8px;border:none;background:#765337;color:#fff;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(118,83,55,0.28);"
               >
-                <lucide-angular [img]="icons.Save" size="14"></lucide-angular>
-                Lưu thay đổi
+                <lucide-angular *ngIf="!isSavingDraftEdit" [img]="icons.Save" size="14"></lucide-angular>
+                <lucide-angular *ngIf="isSavingDraftEdit" [img]="icons.Loader2" size="14" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+                <span>{{ isSavingDraftEdit ? 'Đang lưu thay đổi...' : 'Lưu thay đổi' }}</span>
               </button>
             </ng-container>
 
             <!-- PLANNED: [Hủy phiếu] [Xác nhận Xuất kho / Nhập kho] -->
             <ng-container *ngIf="isPlanned">
               <button type="button" (click)="openCancelOrderModal()"
-                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #9ca3af;background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;"
-                onmouseover="this.style.borderColor='#ef4444'; this.style.color='#ef4444';"
-                onmouseout="this.style.borderColor='#9ca3af'; this.style.color='var(--text-secondary)';"
+                [disabled]="isAnyActionProcessing"
+                [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
+                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+                style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #9ca3af;background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;transition:all 0.15s;"
+                onmouseover="if(!this.disabled) { this.style.borderColor='#ef4444'; this.style.color='#ef4444'; }"
+                onmouseout="if(!this.disabled) { this.style.borderColor='#9ca3af'; this.style.color='var(--text-secondary)'; }"
               >
                 <lucide-angular [img]="icons.Ban" size="15"></lucide-angular>
                 Hủy phiếu
               </button>
               <button type="button" (click)="handleConfirmExecution()"
-                style="display:flex;align-items:center;gap:6px;padding:9px 22px;border-radius:8px;border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;"
+                [disabled]="isAnyActionProcessing"
+                [style.opacity]="isAnyActionProcessing ? '0.6' : '1'"
+                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+                style="display:flex;align-items:center;gap:6px;padding:9px 22px;border-radius:8px;border:none;color:#fff;font-size:13px;font-weight:600;transition:all 0.2s;"
                 [style.background]="type === 'import' ? '#059669' : '#ef4444'"
                 [style.box-shadow]="type === 'import' ? '0 2px 8px rgba(5,150,105,0.25)' : '0 2px 8px rgba(239,68,68,0.25)'"
-                onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)';"
-                onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)';"
+                onmouseover="if(!this.disabled) { this.style.opacity='0.9'; this.style.transform='translateY(-1px)'; }"
+                onmouseout="if(!this.disabled) { this.style.opacity=isAnyActionProcessing ? '0.6' : '1'; this.style.transform='translateY(0)'; }"
               >
-                <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
-                {{ type === 'import' ? 'Xác nhận Nhập kho' : 'Xác nhận Xuất kho' }}
+                <lucide-angular *ngIf="!isExecutingOrder" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+                <lucide-angular *ngIf="isExecutingOrder" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+                <span>{{ isExecutingOrder ? (type === 'import' ? 'Đang nhập kho...' : 'Đang xuất kho...') : (type === 'import' ? 'Xác nhận Nhập kho' : 'Xác nhận Xuất kho') }}</span>
               </button>
             </ng-container>
 
@@ -1984,26 +2176,31 @@ export interface LineItem {
           ></textarea>
         </div>
         <div class="confirm-modal-footer">
-          <button type="button" (click)="closeCancelOrderModal()" class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">
+          <button type="button" (click)="closeCancelOrderModal()" 
+            [disabled]="isCancellingOrder"
+            [style.opacity]="isCancellingOrder ? '0.5' : '1'"
+            [style.cursor]="isCancellingOrder ? 'not-allowed' : 'pointer'"
+            class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">
             Quay lại
           </button>
           <button type="button" (click)="confirmCancelOrder()"
             [disabled]="!cancelOrderReasonInput.trim() || isCancellingOrder"
-            style="background: #ef4444; color: #ffffff; border: none; padding: 8px 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;"
+            style="background: #ef4444; color: #ffffff; border: none; padding: 8px 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; transition: background 0.15s ease;"
             [style.opacity]="(!cancelOrderReasonInput.trim() || isCancellingOrder) ? '0.5' : '1'"
             [style.cursor]="(!cancelOrderReasonInput.trim() || isCancellingOrder) ? 'not-allowed' : 'pointer'"
             onmouseover="if(!this.disabled) this.style.background='#dc2626'"
             onmouseout="if(!this.disabled) this.style.background='#ef4444'"
           >
-            <lucide-angular [img]="icons.Ban" size="14"></lucide-angular>
-            Xác nhận hủy phiếu
+            <lucide-angular *ngIf="!isCancellingOrder" [img]="icons.Ban" size="14"></lucide-angular>
+            <lucide-angular *ngIf="isCancellingOrder" [img]="icons.Loader2" size="14" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+            <span>{{ isCancellingOrder ? 'Đang hủy phiếu...' : 'Xác nhận hủy phiếu' }}</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- POPUP XÓA PHIẾU (xác nhận) -->
-    <div *ngIf="showDeleteOrderModal" class="confirm-modal-backdrop" (click)="closeDeleteOrderModal()">
+    <div *ngIf="showDeleteOrderModal" class="confirm-modal-backdrop" (click)="!isDeletingOrder && closeDeleteOrderModal()">
       <div class="confirm-modal-card" (click)="$event.stopPropagation()">
         <div class="confirm-modal-header">
           <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -2013,22 +2210,32 @@ export interface LineItem {
             <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px 0;">Xóa phiếu {{ type === 'import' ? 'nhập kho' : 'xuất kho' }}</h3>
             <p style="font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5;">Bạn có chắc chắn muốn xóa phiếu nháp này? Hành động này không thể hoàn tác.</p>
           </div>
-          <button type="button" (click)="closeDeleteOrderModal()" class="confirm-close-btn" title="Đóng">
+          <button type="button" (click)="!isDeletingOrder && closeDeleteOrderModal()" [disabled]="isDeletingOrder" class="confirm-close-btn" title="Đóng"
+            [style.opacity]="isDeletingOrder ? '0.4' : '1'"
+            [style.cursor]="isDeletingOrder ? 'not-allowed' : 'pointer'"
+          >
             <lucide-angular [img]="icons.X" size="18"></lucide-angular>
           </button>
         </div>
         <div class="confirm-modal-footer">
-          <button type="button" (click)="closeDeleteOrderModal()" class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">
+          <button type="button" (click)="!isDeletingOrder && closeDeleteOrderModal()" 
+            [disabled]="isDeletingOrder"
+            [style.opacity]="isDeletingOrder ? '0.5' : '1'"
+            [style.cursor]="isDeletingOrder ? 'not-allowed' : 'pointer'"
+            class="admin-btn admin-btn-secondary" style="padding: 8px 18px; font-size: 13px; border-radius: 8px;">
             Hủy bỏ
           </button>
           <button type="button" (click)="confirmDeleteOrder()"
             [disabled]="isDeletingOrder"
-            style="background: #ef4444; color: #ffffff; border: none; padding: 8px 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;"
+            style="background: #ef4444; color: #ffffff; border: none; padding: 8px 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; transition: background 0.15s ease;"
+            [style.opacity]="isDeletingOrder ? '0.5' : '1'"
+            [style.cursor]="isDeletingOrder ? 'not-allowed' : 'pointer'"
             onmouseover="if(!this.disabled) this.style.background='#dc2626'"
             onmouseout="if(!this.disabled) this.style.background='#ef4444'"
           >
-            <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
-            Xóa phiếu
+            <lucide-angular *ngIf="!isDeletingOrder" [img]="icons.Trash2" size="14"></lucide-angular>
+            <lucide-angular *ngIf="isDeletingOrder" [img]="icons.Loader2" size="14" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+            <span>{{ isDeletingOrder ? 'Đang xóa...' : 'Xóa' }}</span>
           </button>
         </div>
       </div>
@@ -2051,6 +2258,22 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   isSubmittingDraft = false;
   isSubmittingOrder = false;
 
+  // Trạng thái khóa nút khi thực hiện hành động trên phiếu ở chế độ xem
+  isPlanningOrder = false;
+  isExecutingOrder = false;
+  isSavingDraftEdit = false;
+
+  get isAnyActionProcessing(): boolean {
+    return this.isSubmitting ||
+           this.isSubmittingDraft ||
+           this.isSubmittingOrder ||
+           this.isPlanningOrder ||
+           this.isExecutingOrder ||
+           this.isSavingDraftEdit ||
+           this.isCancellingOrder ||
+           this.isDeletingOrder;
+  }
+
   @Input() isOpen = false;
   @Input() type: 'import' | 'export' = 'export';
   @Input() products: any[] = [];
@@ -2071,7 +2294,15 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   // ── View-mode state ──
   /** True when showing an existing order (not creating) */
   get isViewMode(): boolean { return !!this.viewOrderData; }
-  get viewStatus(): string { return this.viewOrderData?.rawStatus || this.viewOrderData?.status || ''; }
+  get viewStatus(): string {
+    const raw = String(this.viewOrderData?.rawStatus || this.viewOrderData?.status || '').toUpperCase().trim();
+    if (raw === 'BẢN NHÁP' || raw === 'NHÁP') return 'DRAFT';
+    if (raw === 'LÊN KẾ HOẠCH' || raw === 'CHỜ NHẬP KHO' || raw === 'CHỜ XUẤT KHO') return 'PLANNED';
+    if (raw === 'ĐÃ XUẤT KHO') return 'EXPORTED';
+    if (raw === 'ĐÃ NHẬP KHO') return 'IMPORTED';
+    if (raw === 'ĐÃ HỦY') return 'CANCELLED';
+    return raw;
+  }
   /** Canonical statuses: DRAFT | PLANNED | EXPORTED | IMPORTED | CANCELLED */
   get isDraft(): boolean    { return this.viewStatus === 'DRAFT' || this.viewStatus === 'PENDING'; }
   get isPlanned(): boolean  { return this.viewStatus === 'PLANNED' || this.viewStatus === 'PROCESSING'; }
@@ -2174,6 +2405,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   openDatePicker(picker: HTMLInputElement) {
+    if (this.isFormDisabled) return;
     if (picker && typeof (picker as any).showPicker === 'function') {
       try {
         (picker as any).showPicker();
@@ -2346,13 +2578,44 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   // ── View-mode actions ──
+  openDeleteOrderModal() {
+    if (this.isAnyActionProcessing) return;
+    this.showDeleteOrderModal = true;
+  }
+  closeDeleteOrderModal() {
+    if (this.isDeletingOrder) return;
+    this.showDeleteOrderModal = false;
+  }
+  confirmDeleteOrder() {
+    if (this.isDeletingOrder) return;
+    if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    this.isDeletingOrder = true;
+    this.cdr.markForCheck();
+
+    setTimeout(() => {
+      if (this.isDeletingOrder) {
+        this.isDeletingOrder = false;
+        this.cdr.markForCheck();
+      }
+    }, 12000);
+
+    const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    this.onDeleteOrder.emit(orderId);
+  }
+
   startEditDraft() {
+    if (this.isAnyActionProcessing) return;
     this.backupOrderData = {
       location: this.transactionLocation,
       reason: this.transactionReason,
       destination: this.transactionDestination,
       recipient: this.recipientName,
       notes: this.transactionNote,
+      referenceCode: this.referenceCode,
+      date: this.transactionDate,
+      discountAmount: this.discountAmount,
+      taxRate: this.taxRate,
+      shippingFee: this.shippingFee,
       items: JSON.parse(JSON.stringify(this.lineItems))
     };
     this.isEditingDraft = true;
@@ -2365,13 +2628,29 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       this.transactionDestination = this.backupOrderData.destination;
       this.recipientName = this.backupOrderData.recipient;
       this.transactionNote = this.backupOrderData.notes;
+      this.referenceCode = this.backupOrderData.referenceCode;
+      this.transactionDate = this.backupOrderData.date;
+      this.discountAmount = this.backupOrderData.discountAmount;
+      this.taxRate = this.backupOrderData.taxRate;
+      this.shippingFee = this.backupOrderData.shippingFee;
       this.lineItems = JSON.parse(JSON.stringify(this.backupOrderData.items));
     }
     this.isEditingDraft = false;
   }
 
   saveEditDraft() {
+    if (this.isAnyActionProcessing) return;
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    this.isSavingDraftEdit = true;
+    this.cdr.markForCheck();
+
+    setTimeout(() => {
+      if (this.isSavingDraftEdit) {
+        this.isSavingDraftEdit = false;
+        this.cdr.markForCheck();
+      }
+    }, 12000);
+
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
     const isImport = this.type === 'import';
     const payload = {
@@ -2383,6 +2662,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         destWarehouseId: isImport ? this.transactionLocation : this.transactionDestination,
         reason: this.transactionReason,
         notes: this.transactionNote,
+        referenceCode: this.referenceCode,
+        taxRate: this.taxRate,
+        discount: this.getDiscountValue(),
+        shippingFee: this.getShippingValue(),
         items: this.lineItems.map(it => ({
           variantId: it.variantId,
           quantity: parseInt(it.quantity, 10) || 1,
@@ -2398,7 +2681,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handlePlanOrder() {
+    if (this.isAnyActionProcessing) return;
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    this.isPlanningOrder = true;
+    this.cdr.markForCheck();
+
+    setTimeout(() => {
+      if (this.isPlanningOrder) {
+        this.isPlanningOrder = false;
+        this.cdr.markForCheck();
+      }
+    }, 12000);
+
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
     this.actionLogs.push({
       timestamp: new Date().toISOString(),
@@ -2411,7 +2705,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handleConfirmExecution() {
+    if (this.isAnyActionProcessing) return;
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    this.isExecutingOrder = true;
+    this.cdr.markForCheck();
+
+    setTimeout(() => {
+      if (this.isExecutingOrder) {
+        this.isExecutingOrder = false;
+        this.cdr.markForCheck();
+      }
+    }, 12000);
+
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
     const newStatus = this.type === 'import' ? 'IMPORTED' : 'EXPORTED';
     this.actionLogs.push({
@@ -2428,23 +2733,30 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.handleConfirmExecution();
   }
 
-  openDeleteOrderModal() { this.showDeleteOrderModal = true; }
-  closeDeleteOrderModal() { this.showDeleteOrderModal = false; }
-  confirmDeleteOrder() {
-    if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
-    const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
-    this.isDeletingOrder = true;
-    this.onDeleteOrder.emit(orderId);
-  }
-
   openCancelOrderModal() {
+    if (this.isAnyActionProcessing) return;
     this.cancelOrderReasonInput = '';
     this.showCancelOrderModal = true;
   }
-  closeCancelOrderModal() { this.showCancelOrderModal = false; this.cancelOrderReasonInput = ''; }
+  closeCancelOrderModal() {
+    if (this.isCancellingOrder) return;
+    this.showCancelOrderModal = false;
+    this.cancelOrderReasonInput = '';
+  }
   confirmCancelOrder() {
+    if (this.isCancellingOrder) return;
     if (!this.cancelOrderReasonInput.trim()) return;
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
+    this.isCancellingOrder = true;
+    this.cdr.markForCheck();
+
+    setTimeout(() => {
+      if (this.isCancellingOrder) {
+        this.isCancellingOrder = false;
+        this.cdr.markForCheck();
+      }
+    }, 12000);
+
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
     const reason = this.cancelOrderReasonInput.trim();
     this.actionLogs.push({
@@ -2455,12 +2767,12 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       toStatus: 'CANCELLED',
       reason
     });
-    this.isCancellingOrder = true;
     this.onStatusChange.emit({ orderId, newStatus: 'CANCELLED', reason });
   }
 
   populateFromViewOrder() {
     if (!this.viewOrderData) return;
+    this.isEditingDraft = false;
     const v = this.viewOrderData;
     this.orderCode = v.orderCode || v.auditCode || v.id || this.orderCode;
     this.creatorName = v.creatorName || v.creator || 'Admin Quản Trị';
@@ -2718,6 +3030,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   openAddReasonModal(event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.showReasonDropdown = false;
     this.newReasonText = '';
@@ -2732,6 +3045,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   confirmAddReason() {
+    if (this.isFormDisabled) return;
     const trimmed = this.newReasonText.trim();
     if (!trimmed) {
       return window.alert(this.type === 'import' ? 'Vui lòng nhập lý do nhập kho.' : 'Vui lòng nhập lý do xuất kho.');
@@ -2806,20 +3120,32 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['isOpen'] && this.isOpen) {
-      this.resetState();
-      this.isEditingDraft = false;
-      // Reset view-mode popup states
-      this.showCancelOrderModal = false;
-      this.showDeleteOrderModal = false;
-      this.cancelOrderReasonInput = '';
-      this.isDeletingOrder = false;
-      this.isCancellingOrder = false;
-      if (this.warehouses.length === 0 || this.fetchedProducts.length === 0) {
-        this.loadBackendData();
-      }
-      if (this.isViewMode) {
-        this.populateFromViewOrder();
+    if (changes['isOpen']) {
+      if (this.isOpen) {
+        this.resetState();
+        this.isEditingDraft = false;
+        this.isPlanningOrder = false;
+        this.isExecutingOrder = false;
+        this.isSavingDraftEdit = false;
+        // Reset view-mode popup states
+        this.showCancelOrderModal = false;
+        this.showDeleteOrderModal = false;
+        this.cancelOrderReasonInput = '';
+        this.isDeletingOrder = false;
+        this.isCancellingOrder = false;
+        if (this.warehouses.length === 0 || this.fetchedProducts.length === 0) {
+          this.loadBackendData();
+        }
+        if (this.isViewMode) {
+          this.populateFromViewOrder();
+        }
+      } else {
+        this.showCancelOrderModal = false;
+        this.showDeleteOrderModal = false;
+        this.cancelOrderReasonInput = '';
+        this.isDeletingOrder = false;
+        this.isCancellingOrder = false;
+        this.showDiscardConfirmModal = false;
       }
     }
   }
@@ -2828,6 +3154,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.isSubmitting = false;
     this.isSubmittingDraft = false;
     this.isSubmittingOrder = false;
+    this.isPlanningOrder = false;
+    this.isExecutingOrder = false;
+    this.isSavingDraftEdit = false;
+    this.isCancellingOrder = false;
+    this.isDeletingOrder = false;
 
     // Ngày giờ mặc định hiện tại
     const now = new Date();
@@ -2970,6 +3301,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   onDateChange() {
+    if (this.isFormDisabled) return;
     this.generateOrderCode();
   }
 
@@ -3099,6 +3431,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   onPriceInput(item: LineItem, event: any) {
+    if (this.isFormDisabled) return;
     if (!item.productId || !item.variantId) return;
     const inputEl = event.target as HTMLInputElement;
     const rawValue = inputEl ? inputEl.value : event;
@@ -3111,6 +3444,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   onCurrencyInput(field: 'discount' | 'shipping', event: any) {
+    if (this.isFormDisabled) return;
     const inputEl = event.target as HTMLInputElement;
     const rawValue = inputEl ? inputEl.value : event;
     const clean = String(rawValue || '').replace(/[^0-9]/g, '');
@@ -3148,6 +3482,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   focusLocationDropdown(event?: Event) {
+    if (this.isFormDisabled) return;
     if (event) event.stopPropagation();
     this.closeAllDropdowns();
     this.showLocationDropdown = true;
@@ -3165,6 +3500,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   toggleLocationDropdown(event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.showLocationDropdown = !this.showLocationDropdown;
     this.showReasonDropdown = false;
@@ -3175,6 +3511,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   selectLocation(id: string, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.transactionLocation = id;
     this.showLocationDropdown = false;
@@ -3195,6 +3532,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   toggleReasonDropdown(event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.showReasonDropdown = !this.showReasonDropdown;
     this.showLocationDropdown = false;
@@ -3205,6 +3543,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   selectReason(reason: string, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.transactionReason = reason;
     this.showReasonDropdown = false;
@@ -3219,6 +3558,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   toggleDestDropdown(event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.showDestDropdown = !this.showDestDropdown;
     this.showLocationDropdown = false;
@@ -3229,6 +3569,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   selectDest(id: string, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.transactionDestination = id;
     this.showDestDropdown = false;
@@ -3283,6 +3624,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   toggleProductDropdown(itemId: string, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     if (!this.transactionLocation) {
       this.focusLocationDropdown(event);
@@ -3300,6 +3642,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   selectProduct(item: LineItem, productId: string, event?: Event) {
+    if (this.isFormDisabled) return;
     if (event) {
       event.stopPropagation();
       event.preventDefault();
@@ -3317,6 +3660,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   toggleVariantDropdown(item: LineItem, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     if (!this.transactionLocation) {
       this.focusLocationDropdown(event);
@@ -3334,6 +3678,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   selectVariant(item: LineItem, v: any, event?: Event) {
+    if (this.isFormDisabled) return;
     if (event) {
       event.stopPropagation();
       event.preventDefault();
@@ -3371,6 +3716,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   toggleUnitDropdown(item: LineItem, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     if (!item.productId || !item.variantId) return;
     if (this.openUnitDropdownId === item.id) {
@@ -3384,6 +3730,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   selectUnit(item: LineItem, unit: string, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.updateLineItem(item.id, 'unit', unit);
     this.openUnitDropdownId = null;
@@ -3400,6 +3747,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   toggleTaxDropdown(event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     if (this.showTaxDropdown) {
       this.showTaxDropdown = false;
@@ -3414,6 +3762,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   selectTaxRate(rate: number, event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     this.taxRate = rate;
     this.customTaxInput = '';
@@ -3458,6 +3807,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   confirmAddCustomTax(event: Event) {
+    if (this.isFormDisabled) return;
     event.stopPropagation();
     const clean = String(this.customTaxInput || '').trim();
     if (!clean) return;
@@ -3497,7 +3847,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   requestClose() {
-    if (this.isSubmitting) return;
+    if (this.isAnyActionProcessing) return;
+    this.isEditingDraft = false;
+    this.backupOrderData = null;
     this.showDiscardConfirmModal = false;
     this.onClose.emit();
   }
@@ -3507,10 +3859,17 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   confirmDiscard() {
-    if (this.isSubmitting) return;
+    if (this.isAnyActionProcessing) return;
+    this.isEditingDraft = false;
+    this.backupOrderData = null;
     this.isSubmitting = false;
     this.isSubmittingDraft = false;
     this.isSubmittingOrder = false;
+    this.isPlanningOrder = false;
+    this.isExecutingOrder = false;
+    this.isSavingDraftEdit = false;
+    this.isCancellingOrder = false;
+    this.isDeletingOrder = false;
     this.showDiscardConfirmModal = false;
     this.onClose.emit();
   }
@@ -3549,6 +3908,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   increaseQuantity(item: LineItem) {
+    if (this.isFormDisabled) return;
     if (!item.productId || !item.variantId) return;
     const current = this.getQuantity(item);
     const maxStock = this.getVariantStock(item);
@@ -3559,6 +3919,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   decreaseQuantity(item: LineItem) {
+    if (this.isFormDisabled) return;
     if (!item.productId || !item.variantId) return;
     const current = this.getQuantity(item);
     if (current > 0) {
@@ -3584,6 +3945,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   onQuantityInput(item: LineItem, event: any) {
+    if (this.isFormDisabled) return;
     const rawValue = event.target ? event.target.value : event;
     const cleanValue = String(rawValue || '').replace(/[^0-9]/g, '');
     this.updateLineItem(item.id, 'quantity', cleanValue);
@@ -3632,6 +3994,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handleAddLineItem() {
+    if (this.isFormDisabled) return;
     if (!this.transactionLocation) {
       this.focusLocationDropdown();
       return;
@@ -3652,6 +4015,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handleRemoveLineItem(id: string) {
+    if (this.isFormDisabled) return;
     if (this.lineItems.length <= 1) {
       this.lineItems = [{
         id: Date.now().toString() + Math.random(),
@@ -3675,6 +4039,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   updateLineItem(id: string, field: keyof LineItem, value: any) {
+    if (this.isFormDisabled) return;
     const item = this.lineItems.find((x: any) => String(x.id) === String(id));
     if (!item) return;
 

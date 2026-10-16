@@ -6,7 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
   Search, Filter, Calendar as CalendarIcon, Download, Loader2,
-  Building2, Layers, ChevronDown, Check, X, RotateCcw
+  Building2, Layers, ChevronDown, Check, X, RotateCcw, ChevronRight
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -18,12 +18,26 @@ export interface HistoryItem {
   productName: string;
   variant: string;
   location: string;
+  orderType: string;
+  orderTypeLabel: string;
+  orderTypeColor: string;
+  orderTypeBg: string;
+  orderTypeBorder: string;
   type: string;
   rawType: string;
+  status: string;
+  statusLabel: string;
+  statusColor: string;
+  statusBg: string;
+  statusBorder: string;
   quantity: string;
+  quantityChange: number;
   stockBefore: number;
   stockAfter: number;
+  stockImpactType: 'Thực tế' | 'Khả dụng';
   reference: string;
+  stockOrderCode?: string;
+  stockAuditCode?: string;
   creator: string;
   notes: string;
 }
@@ -38,7 +52,7 @@ export interface HistoryItem {
 export class InventoryHistoryComponent implements OnInit {
   icons = { 
     Search, Filter, CalendarIcon, Download, Loader2,
-    Building2, Layers, ChevronDown, Check, X, RotateCcw
+    Building2, Layers, ChevronDown, Check, X, RotateCcw, ChevronRight
   };
 
   private http = inject(HttpClient);
@@ -59,15 +73,10 @@ export class InventoryHistoryComponent implements OnInit {
   showTypeDropdown = false;
 
   typeOptions: string[] = [
-    'Mọi loại biến động',
-    'Nhập kho',
+    'Mọi loại đơn',
     'Xuất kho',
-    'Điều chỉnh tăng',
-    'Điều chỉnh giảm',
-    'Chuyển kho đến',
-    'Chuyển kho đi',
-    'Hoàn hàng',
-    'Xuất hủy'
+    'Nhập kho',
+    'Kiểm kê'
   ];
 
   @HostListener('document:click', ['$event'])
@@ -116,7 +125,7 @@ export class InventoryHistoryComponent implements OnInit {
   }
 
   onSelectType(t: string) {
-    this.selectedType = t === 'Mọi loại biến động' ? '' : t;
+    this.selectedType = (t === 'Mọi loại đơn' || t === 'Mọi loại biến động') ? '' : t;
     this.showTypeDropdown = false;
     this.filterData();
     this.cdr.markForCheck();
@@ -163,7 +172,133 @@ export class InventoryHistoryComponent implements OnInit {
         this.rawHistory = raw.map((tx: any) => {
           const typeStr = this.formatType(tx.type);
           const dateStr = this.formatDate(tx.createdAt);
-          const qtyStr = tx.quantityChange > 0 ? `+${tx.quantityChange}` : `${tx.quantityChange}`;
+          const qtyChange = Number(tx.quantityChange) || 0;
+          const qtyStr = qtyChange > 0 ? `+${qtyChange}` : `${qtyChange}`;
+
+          let creator = tx.creator || tx.actor?.fullName || tx.actor?.name || tx.creatorName || '';
+          if (!creator && tx.stockOrder) {
+            creator = tx.stockOrder.creator?.fullName || '';
+          }
+          if (!creator && tx.warehouse?.managerName) {
+            creator = tx.warehouse.managerName;
+          }
+          if (!creator || creator === '-') {
+            creator = 'Admin Quản Trị';
+          }
+
+          // 1. Phân loại đơn (Loại đơn XuấtNhập)
+          let orderType = tx.orderType || 'EXPORT';
+          let orderTypeLabel = tx.orderTypeLabel || '';
+          if (!orderTypeLabel) {
+            if (tx.stockOrder?.type === 'IMPORT' || tx.type === 'IMPORT_RECEIPT' || tx.type === 'RETURN_RECEIPT') {
+              orderType = 'IMPORT';
+              orderTypeLabel = 'Nhập kho';
+            } else if (tx.stockOrder?.type === 'TRANSFER' || tx.type.includes('TRANSFER')) {
+              orderType = 'TRANSFER';
+              orderTypeLabel = 'Chuyển kho';
+            } else if (tx.stockAudit || tx.type.includes('AUDIT') || (tx.referenceCode || '').startsWith('ADT') || (tx.referenceCode || '').startsWith('PKK')) {
+              orderType = 'AUDIT';
+              orderTypeLabel = 'Kiểm kê';
+            } else {
+              orderType = 'EXPORT';
+              orderTypeLabel = 'Xuất kho';
+            }
+          }
+
+          // Styling badge loại đơn
+          let orderTypeColor = '#d97706';
+          let orderTypeBg = 'rgba(245, 158, 11, 0.1)';
+          let orderTypeBorder = '1px solid rgba(245, 158, 11, 0.25)';
+
+          if (orderTypeLabel === 'Nhập kho') {
+            orderTypeColor = '#059669';
+            orderTypeBg = 'rgba(16, 185, 129, 0.1)';
+            orderTypeBorder = '1px solid rgba(16, 185, 129, 0.25)';
+          } else if (orderTypeLabel === 'Xuất kho') {
+            orderTypeColor = '#ef4444';
+            orderTypeBg = 'rgba(239, 68, 68, 0.08)';
+            orderTypeBorder = '1px solid rgba(239, 68, 68, 0.22)';
+          } else if (orderTypeLabel === 'Kiểm kê') {
+            orderTypeColor = '#7c3aed';
+            orderTypeBg = 'rgba(124, 58, 237, 0.08)';
+            orderTypeBorder = '1px solid rgba(124, 58, 237, 0.22)';
+          } else if (orderTypeLabel === 'Chuyển kho') {
+            orderTypeColor = '#2563eb';
+            orderTypeBg = 'rgba(37, 99, 235, 0.08)';
+            orderTypeBorder = '1px solid rgba(37, 99, 235, 0.22)';
+          }
+
+          // 2. Trạng thái (chỉ lấy những trạng thái thay đổi tồn kho khả dụng/thực tế)
+          let status = tx.status || 'COMPLETED';
+          let statusLabel = tx.statusLabel || '';
+          let stockImpactType: 'Thực tế' | 'Khả dụng' = tx.stockImpactType || 'Thực tế';
+
+          if (!statusLabel) {
+            if (tx.stockOrder) {
+              const rawS = String(tx.stockOrder.status || '').toUpperCase();
+              if (rawS === 'PROCESSING' || rawS === 'PLANNED') {
+                status = 'PLANNED';
+                statusLabel = 'Lên kế hoạch';
+                stockImpactType = 'Khả dụng';
+              } else if (rawS === 'COMPLETED') {
+                status = 'COMPLETED';
+                statusLabel = orderTypeLabel === 'Nhập kho' ? 'Đã nhập kho' : (orderTypeLabel === 'Chuyển kho' ? 'Đã điều chuyển' : 'Đã xuất kho');
+                stockImpactType = 'Thực tế';
+              } else {
+                status = rawS;
+                statusLabel = orderTypeLabel === 'Nhập kho' ? 'Đã nhập kho' : 'Đã xuất kho';
+                stockImpactType = 'Thực tế';
+              }
+            } else if (tx.stockAudit) {
+              const rawA = String(tx.stockAudit.status || '').toUpperCase();
+              if (rawA === 'COMPLETED') {
+                status = 'COMPLETED';
+                statusLabel = 'Đã cân bằng';
+                stockImpactType = 'Thực tế';
+              } else {
+                status = rawA;
+                statusLabel = 'Đang kiểm kê';
+                stockImpactType = 'Thực tế';
+              }
+            } else {
+              if (tx.type === 'IMPORT_RECEIPT') {
+                statusLabel = 'Đã nhập kho';
+                stockImpactType = 'Thực tế';
+              } else if (tx.type === 'SALES_DISPATCH' || tx.type === 'DISPOSAL_DISPATCH') {
+                statusLabel = 'Đã xuất kho';
+                stockImpactType = 'Thực tế';
+              } else if (tx.type.includes('AUDIT')) {
+                statusLabel = 'Đã cân bằng';
+                stockImpactType = 'Thực tế';
+              } else {
+                statusLabel = 'Hoàn tất';
+                stockImpactType = 'Thực tế';
+              }
+            }
+          }
+
+          // Styling badge trạng thái
+          let statusColor = '#059669';
+          let statusBg = 'rgba(16, 185, 129, 0.1)';
+          let statusBorder = '1px solid rgba(16, 185, 129, 0.25)';
+
+          if (statusLabel === 'Đã xuất kho') {
+            statusColor = '#dc2626';
+            statusBg = 'rgba(239, 68, 68, 0.08)';
+            statusBorder = '1px solid rgba(239, 68, 68, 0.22)';
+          } else if (statusLabel === 'Đã cân bằng') {
+            statusColor = '#7c3aed';
+            statusBg = 'rgba(124, 58, 237, 0.08)';
+            statusBorder = '1px solid rgba(124, 58, 237, 0.22)';
+          } else if (statusLabel === 'Lên kế hoạch') {
+            statusColor = '#d97706';
+            statusBg = 'rgba(245, 158, 11, 0.08)';
+            statusBorder = '1px solid rgba(245, 158, 11, 0.22)';
+          } else if (statusLabel === 'Đã điều chuyển') {
+            statusColor = '#2563eb';
+            statusBg = 'rgba(37, 99, 235, 0.08)';
+            statusBorder = '1px solid rgba(37, 99, 235, 0.22)';
+          }
 
           return {
             id: tx.txCode || tx.id,
@@ -173,13 +308,27 @@ export class InventoryHistoryComponent implements OnInit {
             productName: tx.variant?.product?.name || tx.variant?.name || 'Sản phẩm',
             variant: tx.variant?.name || 'Tiêu chuẩn',
             location: tx.warehouse?.name || tx.location || 'Kho Tổng (TP.HCM)',
+            orderType,
+            orderTypeLabel,
+            orderTypeColor,
+            orderTypeBg,
+            orderTypeBorder,
+            status,
+            statusLabel,
+            statusColor,
+            statusBg,
+            statusBorder,
             type: typeStr,
             rawType: tx.type,
             quantity: qtyStr,
+            quantityChange: qtyChange,
             stockBefore: tx.stockBefore ?? 0,
             stockAfter: tx.stockAfter ?? 0,
-            reference: tx.referenceCode || '-',
-            creator: tx.actor?.fullName || '-',
+            stockImpactType,
+            reference: tx.referenceCode || tx.stockOrder?.referenceCode || tx.stockOrder?.orderCode || tx.stockAudit?.auditCode || '-',
+            stockOrderCode: tx.stockOrder?.orderCode || '',
+            stockAuditCode: tx.stockAudit?.auditCode || '',
+            creator: creator,
             notes: tx.notes || ''
           };
         });
@@ -204,12 +353,16 @@ export class InventoryHistoryComponent implements OnInit {
         item.sku.toLowerCase().includes(q) ||
         item.productName.toLowerCase().includes(q) ||
         item.reference.toLowerCase().includes(q) ||
-        item.location.toLowerCase().includes(q);
+        item.location.toLowerCase().includes(q) ||
+        item.orderTypeLabel.toLowerCase().includes(q) ||
+        item.statusLabel.toLowerCase().includes(q) ||
+        item.creator.toLowerCase().includes(q);
 
       const matchWarehouse = !this.selectedWarehouse ||
         item.location.toLowerCase().includes(this.selectedWarehouse.toLowerCase());
 
       const matchType = !this.selectedType ||
+        item.orderTypeLabel.toLowerCase() === this.selectedType.toLowerCase() ||
         item.type.toLowerCase().includes(this.selectedType.toLowerCase());
 
       return matchQuery && matchWarehouse && matchType;
@@ -248,7 +401,7 @@ export class InventoryHistoryComponent implements OnInit {
       return;
     }
 
-    const headers = ['Mã biến động', 'Thời gian', 'Mã SKU', 'Tên sản phẩm', 'Biến thể', 'Kho/Showroom', 'Loại biến động', 'Thay đổi', 'Tồn sau', 'Chứng từ', 'Người thực hiện'];
+    const headers = ['Mã biến động', 'Thời gian', 'Mã SKU', 'Tên sản phẩm', 'Biến thể', 'Kho/Showroom', 'Loại đơn', 'Trạng thái', 'Tồn trước', 'Thay đổi', 'Tồn sau', 'Tác động tồn kho', 'Tham chiếu', 'Người thực hiện'];
     const rows = this.data.map(item => [
       `"${item.id}"`,
       `"${item.date}"`,
@@ -256,9 +409,12 @@ export class InventoryHistoryComponent implements OnInit {
       `"${item.productName.replace(/"/g, '""')}"`,
       `"${item.variant.replace(/"/g, '""')}"`,
       `"${item.location.replace(/"/g, '""')}"`,
-      `"${item.type}"`,
+      `"${item.orderTypeLabel}"`,
+      `"${item.statusLabel}"`,
+      item.stockBefore,
       `"${item.quantity}"`,
       item.stockAfter,
+      `"${item.stockImpactType}"`,
       `"${item.reference}"`,
       `"${item.creator}"`
     ]);
@@ -272,5 +428,35 @@ export class InventoryHistoryComponent implements OnInit {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  getInitials(name: string): string {
+    if (!name || name === '-') return 'A';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  navigateToDocument(item: HistoryItem, event: Event) {
+    event.stopPropagation();
+
+    // 1. Nếu là đơn Kiểm kê: đi sang trang Kiểm kê kho (/admin/inventory/audit)
+    if (
+      item.orderType === 'AUDIT' || 
+      item.orderTypeLabel === 'Kiểm kê' || 
+      (item.reference && (item.reference.startsWith('ADT') || item.reference.startsWith('PKK')))
+    ) {
+      const searchTarget = item.stockAuditCode || (item.reference !== '-' ? item.reference : '') || item.id;
+      this.router.navigate(['/admin/inventory/audit'], {
+        queryParams: searchTarget ? { search: searchTarget } : {}
+      });
+      return;
+    }
+
+    // 2. Nếu là đơn Xuất kho hoặc Nhập kho: đi sang trang Lệnh xuất - nhập kho (/admin/inventory/transactions)
+    const searchTarget = item.stockOrderCode || (item.reference !== '-' ? item.reference : '') || item.id;
+    this.router.navigate(['/admin/inventory/transactions'], {
+      queryParams: searchTarget ? { search: searchTarget } : {}
+    });
   }
 }

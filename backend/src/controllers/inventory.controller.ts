@@ -492,50 +492,57 @@ export const inventoryController = {
         `)
       );
 
-      const variantRows = await withDbRetry(() =>
+      const variants = await withDbRetry(() =>
         prisma.$queryRawUnsafe<any[]>(`
           SELECT 
-            v.id, v."productId", v.sku, v.name, v.price, v.stock, v."reservedStock", v."optionValues",
-            ws."warehouseId", ws."physicalStock", ws."reservedStock" as "whReservedStock"
+            v.id, v."productId", v.sku, v.name, v.price, v.stock, v."reservedStock", v."optionValues"
           FROM "ProductVariant" v
-          LEFT JOIN "WarehouseStock" ws ON ws."variantId" = v.id
-          WHERE v."isActive" = true
-          ORDER BY v.name ASC;
+          WHERE v."isActive" = true;
         `)
       );
 
-      const variantMap = new Map<string, any>();
-      for (const row of variantRows) {
-        let v = variantMap.get(row.id);
-        if (!v) {
-          v = {
-            id: row.id,
-            productId: row.productId,
-            sku: row.sku,
-            name: row.name,
-            price: Number(row.price || 0),
-            stock: Number(row.stock || 0),
-            reservedStock: Number(row.reservedStock || 0),
-            optionValues: row.optionValues,
-            warehouseStocks: []
-          };
-          variantMap.set(row.id, v);
+      const stocks = await withDbRetry(() =>
+        prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            ws."variantId", ws."warehouseId", ws."physicalStock", ws."reservedStock" as "whReservedStock"
+          FROM "WarehouseStock" ws;
+        `)
+      );
+
+      const stockMap = new Map<string, any[]>();
+      for (const s of stocks) {
+        let list = stockMap.get(s.variantId);
+        if (!list) {
+          list = [];
+          stockMap.set(s.variantId, list);
         }
-        if (row.warehouseId) {
-          v.warehouseStocks.push({
-            warehouseId: row.warehouseId,
-            physicalStock: Number(row.physicalStock || 0),
-            reservedStock: Number(row.whReservedStock || 0)
-          });
-        }
+        list.push({
+          warehouseId: s.warehouseId,
+          physicalStock: Number(s.physicalStock || 0),
+          reservedStock: Number(s.whReservedStock || 0)
+        });
       }
 
       const productVariantMap = new Map<string, any[]>();
-      for (const v of variantMap.values()) {
-        if (!productVariantMap.has(v.productId)) {
-          productVariantMap.set(v.productId, []);
+      for (const v of variants) {
+        const vObj = {
+          id: v.id,
+          productId: v.productId,
+          sku: v.sku,
+          name: v.name,
+          price: Number(v.price || 0),
+          stock: Number(v.stock || 0),
+          reservedStock: Number(v.reservedStock || 0),
+          optionValues: v.optionValues,
+          warehouseStocks: stockMap.get(v.id) || []
+        };
+
+        let list = productVariantMap.get(v.productId);
+        if (!list) {
+          list = [];
+          productVariantMap.set(v.productId, list);
         }
-        productVariantMap.get(v.productId)!.push(v);
+        list.push(vObj);
       }
 
       const formatted = products.map((p: any) => {
@@ -1023,7 +1030,12 @@ export const inventoryController = {
       res.json({
         ...updated,
         status: newStatus,
-        rawStatus: newStatus
+        rawStatus: newStatus,
+        totalAmount: Number(updated.totalAmount || 0),
+        items: (updated.items || []).map((it: any) => ({
+          ...it,
+          lineTotal: Number(it.lineTotal || 0)
+        }))
       });
     } catch (error) {
       console.error('Error updating stock order status:', error);
@@ -1103,7 +1115,11 @@ export const inventoryController = {
         ...updated,
         status: 'DRAFT',
         rawStatus: 'DRAFT',
-        totalAmount: Number(updated.totalAmount || 0)
+        totalAmount: Number(updated.totalAmount || 0),
+        items: (updated.items || []).map((it: any) => ({
+          ...it,
+          lineTotal: Number(it.lineTotal || 0)
+        }))
       });
     } catch (error) {
       console.error('Error updating stock order:', error);
@@ -1497,14 +1513,235 @@ export const inventoryController = {
               id: true,
               sku: true,
               name: true,
-              product: { select: { name: true } }
+              product: { select: { id: true, name: true } }
             }
           },
-          warehouse: true
+          warehouse: true,
+          actor: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          },
+          stockOrder: {
+            select: {
+              id: true,
+              orderCode: true,
+              referenceCode: true,
+              type: true,
+              status: true,
+              notes: true,
+              creator: {
+                select: {
+                  id: true,
+                  fullName: true
+                }
+              }
+            }
+          },
+          stockAudit: {
+            select: {
+              id: true,
+              auditCode: true,
+              status: true,
+              notes: true,
+              creator: { select: { id: true, fullName: true } },
+              auditor: { select: { id: true, fullName: true } }
+            }
+          }
         },
         orderBy: { createdAt: 'desc' }
       });
-      res.json(transactions);
+
+      // Lấy danh sách orders và audits để fallback theo referenceCode nếu stockOrderId hoặc stockAuditId bị null
+      const missingRefCodes = transactions
+        .filter((t: any) => !t.stockOrder && !t.stockAudit && t.referenceCode)
+        .map((t: any) => t.referenceCode);
+
+      let refOrdersMap = new Map<string, any>();
+      let refAuditsMap = new Map<string, any>();
+
+      if (missingRefCodes.length > 0) {
+        const refOrders = await (prisma as any).stockOrder.findMany({
+          where: {
+            OR: [
+              { orderCode: { in: missingRefCodes } },
+              { referenceCode: { in: missingRefCodes } }
+            ]
+          },
+          select: {
+            id: true,
+            orderCode: true,
+            referenceCode: true,
+            type: true,
+            status: true,
+            notes: true,
+            creator: { select: { fullName: true } }
+          }
+        }).catch(() => []);
+
+        refOrders.forEach((o: any) => {
+          if (o.orderCode) refOrdersMap.set(o.orderCode, o);
+          if (o.referenceCode) refOrdersMap.set(o.referenceCode, o);
+        });
+
+        const refAudits = await (prisma as any).stockAudit.findMany({
+          where: { auditCode: { in: missingRefCodes } },
+          select: {
+            id: true,
+            auditCode: true,
+            status: true,
+            notes: true,
+            creator: { select: { fullName: true } },
+            auditor: { select: { fullName: true } }
+          }
+        }).catch(() => []);
+
+        refAudits.forEach((a: any) => {
+          if (a.auditCode) refAuditsMap.set(a.auditCode, a);
+        });
+      }
+
+      const normalized = transactions.map((tx: any) => {
+        let creator = tx.actor?.fullName || '';
+
+        // 1. Kiểm tra từ stockOrder (trực tiếp hoặc qua referenceCode)
+        const order = tx.stockOrder || refOrdersMap.get(tx.referenceCode);
+        if (!creator && order) {
+          creator = order.creator?.fullName || '';
+          if (!creator && order.notes) {
+            const m = order.notes.match(/\[Người lập:\s*([^\]]+)\]/);
+            if (m) {
+              creator = m[1].trim();
+            } else {
+              const logsMatch = order.notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+              if (logsMatch) {
+                try {
+                  const logs = JSON.parse(logsMatch[1]);
+                  if (Array.isArray(logs) && logs.length > 0 && logs[0].operator) {
+                    creator = logs[0].operator;
+                  }
+                } catch {}
+              }
+            }
+          }
+        }
+
+        // 2. Kiểm tra từ stockAudit (trực tiếp hoặc qua referenceCode)
+        const audit = tx.stockAudit || refAuditsMap.get(tx.referenceCode);
+        if (!creator && audit) {
+          creator = audit.auditor?.fullName || audit.creator?.fullName || '';
+        }
+
+        // 3. Trích xuất từ tx.notes nếu có
+        if (!creator && tx.notes) {
+          const m = tx.notes.match(/\[Người lập:\s*([^\]]+)\]/);
+          if (m) creator = m[1].trim();
+        }
+
+        // 4. Fallback theo thủ kho / quản lý của kho phát sinh giao dịch
+        if (!creator && tx.warehouse?.managerName) {
+          creator = tx.warehouse.managerName;
+        }
+
+        // 5. Mặc định quản trị viên nếu vẫn chưa có
+        if (!creator) {
+          creator = 'Admin Quản Trị';
+        }
+
+        // 6. Xác định Loại đơn và Trạng thái thay đổi tồn kho (Thực tế vs Khả dụng)
+        let orderType: 'IMPORT' | 'EXPORT' | 'TRANSFER' | 'AUDIT' = 'EXPORT';
+        let orderTypeLabel = 'Xuất kho';
+        if (order) {
+          if (order.type === 'IMPORT') {
+            orderType = 'IMPORT';
+            orderTypeLabel = 'Nhập kho';
+          } else if (order.type === 'TRANSFER') {
+            orderType = 'TRANSFER';
+            orderTypeLabel = 'Chuyển kho';
+          } else {
+            orderType = 'EXPORT';
+            orderTypeLabel = 'Xuất kho';
+          }
+        } else if (audit || tx.type.includes('AUDIT')) {
+          orderType = 'AUDIT';
+          orderTypeLabel = 'Kiểm kê';
+        } else if (tx.type === 'IMPORT_RECEIPT' || tx.type === 'RETURN_RECEIPT') {
+          orderType = 'IMPORT';
+          orderTypeLabel = 'Nhập kho';
+        } else if (tx.type.includes('TRANSFER')) {
+          orderType = 'TRANSFER';
+          orderTypeLabel = 'Chuyển kho';
+        } else {
+          orderType = 'EXPORT';
+          orderTypeLabel = 'Xuất kho';
+        }
+
+        // Trạng thái phiếu làm thay đổi tồn kho
+        let status = 'COMPLETED';
+        let statusLabel = 'Đã xuất kho';
+        let stockImpactType: 'Thực tế' | 'Khả dụng' = 'Thực tế';
+
+        if (order) {
+          const rawStatus = String(order.status || '').toUpperCase();
+          if (rawStatus === 'PROCESSING' || rawStatus === 'PLANNED') {
+            status = 'PLANNED';
+            statusLabel = 'Lên kế hoạch';
+            stockImpactType = 'Khả dụng';
+          } else if (rawStatus === 'COMPLETED') {
+            status = 'COMPLETED';
+            statusLabel = orderType === 'IMPORT' ? 'Đã nhập kho' : (orderType === 'TRANSFER' ? 'Đã điều chuyển' : 'Đã xuất kho');
+            stockImpactType = 'Thực tế';
+          } else {
+            status = rawStatus;
+            statusLabel = orderType === 'IMPORT' ? 'Đã nhập kho' : 'Đã xuất kho';
+            stockImpactType = 'Thực tế';
+          }
+        } else if (audit) {
+          const rawAuditStatus = String(audit.status || '').toUpperCase();
+          if (rawAuditStatus === 'COMPLETED') {
+            status = 'COMPLETED';
+            statusLabel = 'Đã cân bằng';
+            stockImpactType = 'Thực tế';
+          } else {
+            status = rawAuditStatus;
+            statusLabel = 'Đang kiểm kê';
+            stockImpactType = 'Thực tế';
+          }
+        } else {
+          if (tx.type === 'IMPORT_RECEIPT') {
+            status = 'COMPLETED';
+            statusLabel = 'Đã nhập kho';
+            stockImpactType = 'Thực tế';
+          } else if (tx.type === 'SALES_DISPATCH' || tx.type === 'DISPOSAL_DISPATCH') {
+            status = 'COMPLETED';
+            statusLabel = 'Đã xuất kho';
+            stockImpactType = 'Thực tế';
+          } else if (tx.type.includes('AUDIT')) {
+            status = 'COMPLETED';
+            statusLabel = 'Đã cân bằng';
+            stockImpactType = 'Thực tế';
+          } else {
+            status = 'COMPLETED';
+            statusLabel = 'Hoàn tất';
+            stockImpactType = 'Thực tế';
+          }
+        }
+
+        return {
+          ...tx,
+          orderType,
+          orderTypeLabel,
+          status,
+          statusLabel,
+          stockImpactType,
+          creator,
+          actor: tx.actor || { fullName: creator }
+        };
+      });
+
+      res.json(normalized);
     } catch (error) {
       console.error('Error fetching stock transactions:', error);
       res.status(500).json({ error: 'Không thể lấy lịch sử biến động' });

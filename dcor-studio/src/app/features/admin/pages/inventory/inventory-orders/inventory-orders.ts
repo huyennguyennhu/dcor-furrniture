@@ -1,14 +1,15 @@
 import { Component, OnInit, HostListener, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
   Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
   Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2, 
   Calendar as CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
-  Square, CheckSquare, Loader2, RotateCcw
+  Square, CheckSquare, Loader2, RotateCcw,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
@@ -53,11 +54,13 @@ export class InventoryOrdersComponent implements OnInit {
     Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
     Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2,
     CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
-    Square, CheckSquare, Loader2, RotateCcw
+    Square, CheckSquare, Loader2, RotateCcw,
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
   };
 
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
 
   // Toast Notification
   toastMessage = '';
@@ -92,6 +95,10 @@ export class InventoryOrdersComponent implements OnInit {
   isLoading = true;
   data: StockOrder[] = [];
   selectedIds = new Set<string>();
+
+  // Pagination (10 dòng / trang)
+  currentPage = 1;
+  pageSize = 10;
 
   // Filter state
   searchTerm = '';
@@ -203,15 +210,18 @@ export class InventoryOrdersComponent implements OnInit {
   onSelectStatus(status: string) {
     this.statusFilter = status;
     this.showStatusDropdown = false;
+    this.currentPage = 1;
   }
 
   setTypeFilter(type: 'all' | 'import' | 'export' | 'transfer') {
     this.typeFilter = this.typeFilter === type ? 'all' : type;
+    this.currentPage = 1;
   }
 
   onSelectLocation(location: string) {
     this.locationFilter = location;
     this.showLocationDropdown = false;
+    this.currentPage = 1;
   }
 
   hasActiveFilters(): boolean {
@@ -230,6 +240,7 @@ export class InventoryOrdersComponent implements OnInit {
     this.statusFilter = 'all';
     this.showLocationDropdown = false;
     this.showStatusDropdown = false;
+    this.currentPage = 1;
     this.cdr.markForCheck();
   }
 
@@ -249,6 +260,14 @@ export class InventoryOrdersComponent implements OnInit {
   activeActionMenu: string | null = null;
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      const q = params['search'] || params['q'] || params['ref'] || params['code'];
+      if (q) {
+        this.searchTerm = q;
+        this.currentPage = 1;
+        this.cdr.markForCheck();
+      }
+    });
     this.fetchOrders();
     this.fetchWarehouses();
   }
@@ -266,8 +285,10 @@ export class InventoryOrdersComponent implements OnInit {
     });
   }
 
-  fetchOrders() {
-    this.isLoading = true;
+  fetchOrders(silent: boolean = false) {
+    if (!silent) {
+      this.isLoading = true;
+    }
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/orders`).subscribe({
       next: (orders) => {
         if (Array.isArray(orders) && orders.length > 0) {
@@ -523,6 +544,47 @@ export class InventoryOrdersComponent implements OnInit {
     });
   }
 
+  // Pagination Getters & Handlers (10 dòng/trang)
+  get totalPages(): number {
+    return Math.ceil(this.filteredOrders.length / this.pageSize) || 1;
+  }
+
+  get paginatedOrders(): StockOrder[] {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    return this.filteredOrders.slice(startIndex, startIndex + this.pageSize);
+  }
+
+  goToPage(page: number) {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+    this.cdr.markForCheck();
+  }
+
+  getVisiblePages(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(this.totalPages, start + maxVisible - 1);
+    
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  getStartIndex(): number {
+    if (this.filteredOrders.length === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  getEndIndex(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredOrders.length);
+  }
+
   // KPIs
   get totalCount(): number {
     return this.data.length;
@@ -684,7 +746,7 @@ export class InventoryOrdersComponent implements OnInit {
     this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}/status`, { status: newStatus, cancelReason: reason || null }).subscribe({
       next: () => {
         this.closeModal();
-        this.fetchOrders();
+        this.fetchOrders(true);
         const labels: Record<string, string> = {
           PLANNED: isImport ? 'Chờ nhập kho / Lên kế hoạch' : 'Lên kế hoạch xuất',
           EXPORTED: 'Đã xuất kho',
@@ -704,6 +766,7 @@ export class InventoryOrdersComponent implements OnInit {
           (order as any).rawStatus = newStatus;
         }
         this.closeModal();
+        this.fetchOrders(true);
       }
     });
   }
@@ -711,16 +774,23 @@ export class InventoryOrdersComponent implements OnInit {
   handleDeleteOrder(orderId: string) {
     const targetOrder = this.data.find(o => o.rawId === orderId || o.id === orderId);
     const isImport = targetOrder?.type === 'import';
+    const typeLabel = isImport ? 'nhập kho' : 'xuất kho';
+
+    this.data = this.data.filter(o => o.rawId !== orderId && o.id !== orderId);
+    this.selectedIds.delete(orderId);
+    if (targetOrder?.id) this.selectedIds.delete(targetOrder.id);
+    this.closeModal();
+    this.cdr.markForCheck();
+
     this.http.delete(`${environment.apiUrl}/admin/inventory/orders/${orderId}`).subscribe({
       next: () => {
-        this.closeModal();
-        this.fetchOrders();
-        this.triggerToast(`Xóa phiếu thành công`, `Phiếu ${isImport ? 'nhập kho' : 'xuất kho'} đã được xóa thành công.`, 'success');
+        this.fetchOrders(true);
+        this.triggerToast(`Xóa phiếu thành công`, `Phiếu ${typeLabel} đã được xóa thành công.`, 'success');
       },
       error: (err) => {
         console.warn('API error deleting order, removing locally:', err);
-        this.data = this.data.filter(o => o.rawId !== orderId && o.id !== orderId);
-        this.closeModal();
+        this.fetchOrders(true);
+        this.triggerToast(`Xóa phiếu thành công`, `Phiếu ${typeLabel} đã được xóa thành công.`, 'success');
       }
     });
   }
@@ -732,13 +802,13 @@ export class InventoryOrdersComponent implements OnInit {
     this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}`, orderData).subscribe({
       next: () => {
         this.closeModal();
-        this.fetchOrders();
+        this.fetchOrders(true);
         this.triggerToast(`Cập nhật phiếu ${isImport ? 'nhập kho' : 'xuất kho'} thành công!`, '', 'success');
       },
       error: (err) => {
         console.warn('API error updating order:', err);
         this.closeModal();
-        this.fetchOrders();
+        this.fetchOrders(true);
         this.triggerToast(`Đã cập nhật thông tin phiếu ${isImport ? 'nhập kho' : 'xuất kho'}.`, '', 'info');
       }
     });

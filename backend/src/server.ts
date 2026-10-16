@@ -9,6 +9,12 @@ import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 
+// Fix Prisma BigInt serialization in Express JSON response
+(BigInt.prototype as any).toJSON = function () {
+  const intVal = Number(this);
+  return Number.isSafeInteger(intVal) ? intVal : this.toString();
+};
+
 const app = express();
 const port = process.env.PORT || 3000;
 

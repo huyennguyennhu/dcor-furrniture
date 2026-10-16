@@ -1,16 +1,7 @@
 <div class="inventory-orders-container" style="position: relative;"
      [style.pointer-events]="isLoading ? 'none' : 'auto'"
-     [style.user-select]="isLoading ? 'none' : 'auto'">
-  <!-- Khóa khung nhìn khi chưa tải xong dữ liệu (Ngăn mọi thao tác nút & bộ lọc) -->
-  <div *ngIf="isLoading" class="inventory-view-lock-overlay">
-    <div class="inventory-view-lock-badge">
-      <div class="spinning-loader" style="width: 28px; height: 28px; border-width: 3px;"></div>
-      <div style="display: flex; flex-direction: column; gap: 2px;">
-        <span style="font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.3;">Đang tải danh sách lệnh kho...</span>
-        <span style="font-size: 12px; color: var(--text-secondary); line-height: 1.2;">Vui lòng đợi giây lát, các nút và bộ lọc đang tạm khóa</span>
-      </div>
-    </div>
-  </div>
+     [style.user-select]="isLoading ? 'none' : 'auto'"
+     [style.cursor]="isLoading ? 'wait' : 'default'">
 
   <!-- Floating Toast Notification (Góc dưới bên phải) -->
   <div *ngIf="showToast" 
@@ -203,10 +194,11 @@
         <input 
           type="text" 
           [(ngModel)]="searchTerm" 
+          (ngModelChange)="currentPage = 1"
           placeholder="Tìm mã phiếu, tham chiếu, hàng hóa..." 
           class="filter-search-input" 
         />
-        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear-btn" title="Xóa tìm kiếm">
+        <button *ngIf="searchTerm" (click)="searchTerm = ''; currentPage = 1" class="search-clear-btn" title="Xóa tìm kiếm">
           <lucide-angular [img]="icons.X" size="14"></lucide-angular>
         </button>
       </div>
@@ -345,7 +337,7 @@
         <!-- Danh sách lệnh kho & Empty State (Chỉ hiển thị khi đã tải xong) -->
         <ng-container *ngIf="!isLoading">
         <tr 
-          *ngFor="let order of filteredOrders" 
+          *ngFor="let order of paginatedOrders" 
           (click)="viewOrderInModal(order, $event)"
           style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s;"
           [style.background]="selectedIds.has(order.id) ? 'rgba(var(--accent-rgb), 0.04)' : 'transparent'"
@@ -388,27 +380,26 @@
 
           <!-- Date -->
           <td style="padding: 12px 14px; white-space: nowrap;">
-            <span style="font-weight: 500; color: var(--text-primary); font-size: 13px;">
+            <span style="font-weight: 400; color: var(--text-primary); font-size: 13px;">
               {{ formatDateTime(order.createdAt) }}
             </span>
           </td>
 
           <!-- Reason & Clean Notes -->
-          <!-- Reason & Clean Notes -->
           <td style="padding: 12px 14px;">
             <div style="max-width: 250px;">
-              <div style="font-weight: 500; line-height: 1.3; font-size: 13px; color: var(--text-primary);">{{ order.reason }}</div>
+              <div style="font-weight: 400; line-height: 1.3; font-size: 13px; color: var(--text-primary);">{{ order.reason }}</div>
               <div *ngIf="order.cleanNotes" style="font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="order.cleanNotes">{{ order.cleanNotes }}</div>
             </div>
           </td>
 
           <!-- Items Quantity -->
-          <td style="padding: 12px 14px; text-align: center; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--text-primary);">
+          <td style="padding: 12px 14px; text-align: center; white-space: nowrap; font-size: 13px; font-weight: 400; color: var(--text-primary);">
             {{ order.totalQuantity }}
           </td>
 
           <!-- Amount -->
-          <td style="padding: 12px 14px; font-weight: 600; white-space: nowrap; font-size: 13px; color: var(--text-primary);">
+          <td style="padding: 12px 14px; font-weight: 400; white-space: nowrap; font-size: 13px; color: var(--text-primary);">
             {{ formatCurrency(order.totalAmount) }}
           </td>
 
@@ -469,6 +460,74 @@
         </ng-container>
       </tbody>
     </table>
+
+    <!-- Pagination Footer: Phân trang 10 dòng/trang -->
+    <div *ngIf="!isLoading && filteredOrders.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+      <div style="font-size: 13px; color: var(--text-secondary);">
+        Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ filteredOrders.length }}</span> lệnh kho
+      </div>
+
+      <div *ngIf="totalPages > 1" style="display: flex; align-items: center; gap: 6px;">
+        <!-- First Page -->
+        <button 
+          type="button"
+          (click)="goToPage(1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang đầu"
+        >
+          <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Previous Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage - 1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang trước"
+        >
+          <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Page numbers -->
+        <button 
+          type="button"
+          *ngFor="let p of getVisiblePages()"
+          (click)="goToPage(p)"
+          class="admin-pagination-btn"
+          [class.active]="p === currentPage"
+        >
+          {{ p }}
+        </button>
+
+        <!-- Next Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage + 1)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang sau"
+        >
+          <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+        </button>
+
+        <!-- Last Page -->
+        <button 
+          type="button"
+          (click)="goToPage(totalPages)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang cuối"
+        >
+          <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Reusable Transaction Modal (Nhập/Xuất kho & Xem chi tiết phiếu) -->

@@ -2,7 +2,7 @@ import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { Component, OnInit, OnDestroy, HostListener, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
@@ -61,6 +61,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
 
   data: any[] = [];
   rawAudits: any[] = [];
@@ -370,6 +371,16 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   constructor(private router: Router) {}
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      const q = params['search'] || params['q'] || params['ref'] || params['code'];
+      if (q) {
+        this.searchQuery = q;
+        if (this.rawAudits && this.rawAudits.length > 0) {
+          this.filterData();
+        }
+        this.cdr.markForCheck();
+      }
+    });
     this.fetchWarehouses();
     this.fetchCategories();
     this.fetchProducts();
@@ -632,9 +643,11 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     const q = (this.searchQuery || '').trim().toLowerCase();
     this.data = this.rawAudits.filter(item => {
       const matchQuery = !q || 
-        item.id.toLowerCase().includes(q) ||
-        item.location.toLowerCase().includes(q) ||
-        item.creator.toLowerCase().includes(q);
+        (item.id || '').toLowerCase().includes(q) ||
+        (item.auditCode || '').toLowerCase().includes(q) ||
+        (item.location || '').toLowerCase().includes(q) ||
+        (item.creator || '').toLowerCase().includes(q) ||
+        (item.notes || '').toLowerCase().includes(q);
       
       const matchWarehouse = this.selectedWarehouseFilter === 'Tất cả chi nhánh' || 
         item.location.toLowerCase().includes(this.selectedWarehouseFilter.toLowerCase());

@@ -402,3 +402,38 @@
   background: rgba(255, 255, 255, 0.22);
   color: #ffffff;
 }
+
+/* Pagination Buttons */
+.admin-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-pagination-btn:hover:not(.disabled):not(.active) {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+.admin-pagination-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.admin-pagination-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
