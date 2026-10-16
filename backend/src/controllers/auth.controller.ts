@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { otpService, normalizePhone, isValidPassword, OtpPurpose } from '../services/otp.service';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
@@ -112,79 +113,99 @@ export const authController = {
   // ----------------------------------------
   // CUSTOMER AUTH (KHÁCH HÀNG)
   // ----------------------------------------
-  
-  // Đăng nhập bằng Số điện thoại & Mật khẩu
-  customerLogin: async (req: Request, res: Response): Promise<void> => {
+
+  // 1. Gửi OTP qua SMS (Đăng ký hoặc Quên mật khẩu)
+  customerSendOtp: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { phone, password } = req.body;
+      const { phone, purpose } = req.body;
 
-      if (!phone || !password) {
-        res.status(400).json({ message: 'Vui lòng cung cấp số điện thoại và mật khẩu.' });
+      if (!phone || !purpose) {
+        res.status(400).json({ message: 'Vui lòng cung cấp số điện thoại và mục đích yêu cầu OTP.' });
         return;
       }
 
-      const customer = await prisma.customer.findUnique({ where: { phone } });
-      if (!customer) {
-        res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác.' });
+      if (purpose !== 'REGISTER' && purpose !== 'RESET_PASSWORD') {
+        res.status(400).json({ message: 'Mục đích không hợp lệ (chỉ chấp nhận REGISTER hoặc RESET_PASSWORD).' });
         return;
       }
 
-      if (!customer.passwordHash) {
-        res.status(403).json({ message: 'Tài khoản này chưa có mật khẩu. Vui lòng đăng nhập bằng Google hoặc đăng ký.' });
+      const result = await otpService.sendOtp(phone, purpose as OtpPurpose);
+
+      if (result.status === 429) {
+        res.status(429).json({
+          message: result.message,
+          retryAfter: result.retryAfter
+        });
         return;
       }
 
-      const isPasswordValid = bcrypt.compareSync(password, customer.passwordHash);
-      if (!isPasswordValid) {
-        res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác.' });
+      if (result.status !== 200) {
+        res.status(result.status).json({ message: result.message });
         return;
       }
-
-      const token = jwt.sign(
-        { userId: customer.id, phone: customer.phone, type: 'CUSTOMER' },
-        JWT_SECRET,
-        { expiresIn: '30d' }
-      );
 
       res.status(200).json({
-        message: 'Đăng nhập thành công',
-        token,
-        user: { id: customer.id, fullName: customer.fullName, phone: customer.phone, avatar: customer.avatarUrl }
+        message: result.message,
+        expiresIn: result.expiresIn,
+        resendAfter: result.resendAfter,
+        ...(result.devOtp ? { devOtp: result.devOtp } : {})
       });
     } catch (error) {
-      console.error('Lỗi customerLogin:', error);
+      console.error('Lỗi customerSendOtp:', error);
       res.status(500).json({ message: 'Lỗi server nội bộ' });
     }
   },
 
-  // Đăng ký tài khoản (Khách hàng)
+  // 2. Đăng ký tài khoản (Khách hàng)
   customerRegister: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { fullName, phone, password } = req.body;
-      if (!fullName || !phone || !password) {
-        res.status(400).json({ message: 'Thiếu thông tin đăng ký.' });
+      const { fullName, phone, password, otp } = req.body;
+
+      if (!fullName || !phone || !password || !otp) {
+        res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ họ tên, số điện thoại, mật khẩu và mã OTP.' });
         return;
       }
 
-      const existingCustomer = await prisma.customer.findFirst({ where: { phone } });
+      if (!isValidPassword(password)) {
+        res.status(400).json({ message: 'Mật khẩu phải có tối thiểu 8 ký tự, bao gồm cả chữ cái và số.' });
+        return;
+      }
+
+      const normalizedPhone = normalizePhone(phone);
+
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { phone: normalizedPhone }
+      });
+
       if (existingCustomer) {
         res.status(400).json({ message: 'Số điện thoại này đã được đăng ký.' });
         return;
       }
 
+      // Xác thực OTP
+      const otpValidation = await otpService.verifyOtp(phone, otp);
+      if (!otpValidation.isValid) {
+        res.status(otpValidation.status).json({ message: otpValidation.message });
+        return;
+      }
+
       const hashedPassword = bcrypt.hashSync(password, 10);
 
+      // Tạo Customer (email = null, KHÔNG dùng email giả)
       const customer = await prisma.customer.create({
         data: {
-          fullName,
-          phone,
+          fullName: fullName.trim(),
+          phone: normalizedPhone,
           passwordHash: hashedPassword,
-          // Fake email for schema compliance if needed
-          email: `user_${Date.now()}@dcor.vn`,
+          email: null,
           isPhoneVerified: true
         }
       });
 
+      // Xóa OtpCode của SĐT đó
+      await otpService.clearOtpsForPhone(normalizedPhone);
+
+      // Sinh JWT thời hạn 30 ngày
       const token = jwt.sign(
         { userId: customer.id, phone: customer.phone, type: 'CUSTOMER' },
         JWT_SECRET,
@@ -194,10 +215,215 @@ export const authController = {
       res.status(201).json({
         message: 'Đăng ký thành công',
         token,
-        user: { id: customer.id, fullName: customer.fullName, phone: customer.phone, avatar: customer.avatarUrl }
+        user: {
+          id: customer.id,
+          fullName: customer.fullName,
+          phone: customer.phone,
+          avatar: customer.avatarUrl
+        }
       });
     } catch (error) {
       console.error('Lỗi customerRegister:', error);
+      res.status(500).json({ message: 'Lỗi server nội bộ' });
+    }
+  },
+
+  // 3. Đăng nhập bằng Số điện thoại & Mật khẩu
+  customerLogin: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { phone, password, remember } = req.body;
+
+      if (!phone || !password) {
+        res.status(400).json({ message: 'Vui lòng cung cấp số điện thoại và mật khẩu.' });
+        return;
+      }
+
+      const normalizedPhone = normalizePhone(phone);
+      const customer = await prisma.customer.findUnique({
+        where: { phone: normalizedPhone }
+      });
+
+      // Kiểm tra tài khoản đang bị khóa tạm thời
+      if (customer && customer.lockedUntil) {
+        const now = new Date();
+        if (customer.lockedUntil > now) {
+          const remainingSeconds = Math.ceil((customer.lockedUntil.getTime() - now.getTime()) / 1000);
+          res.status(423).json({
+            message: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần liên tiếp.',
+            remainingSeconds
+          });
+          return;
+        }
+      }
+
+      // Thông báo lỗi chung chung không lộ tài khoản có tồn tại hay không
+      if (!customer || !customer.passwordHash) {
+        res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác.' });
+        return;
+      }
+
+      const isPasswordValid = bcrypt.compareSync(password, customer.passwordHash);
+
+      if (!isPasswordValid) {
+        const nextFailedCount = customer.failedLoginCount + 1;
+
+        if (nextFailedCount >= 5) {
+          const lockDurationSeconds = 15 * 60; // 15 phút
+          const lockedUntil = new Date(Date.now() + lockDurationSeconds * 1000);
+
+          await prisma.customer.update({
+            where: { id: customer.id },
+            data: {
+              failedLoginCount: nextFailedCount,
+              lockedUntil
+            }
+          });
+
+          res.status(423).json({
+            message: 'Tài khoản tạm thời bị khóa 15 phút do nhập sai mật khẩu quá 5 lần liên tiếp.',
+            remainingSeconds: lockDurationSeconds
+          });
+          return;
+        }
+
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: { failedLoginCount: nextFailedCount }
+        });
+
+        res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác.' });
+        return;
+      }
+
+      // Đăng nhập thành công -> Reset failedLoginCount & lockedUntil
+      if (customer.failedLoginCount > 0 || customer.lockedUntil) {
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            failedLoginCount: 0,
+            lockedUntil: null
+          }
+        });
+      }
+
+      // remember = true -> 30 ngày, ngược lại 1 ngày
+      const tokenExpiresIn = remember ? '30d' : '1d';
+      const token = jwt.sign(
+        { userId: customer.id, phone: customer.phone, type: 'CUSTOMER' },
+        JWT_SECRET,
+        { expiresIn: tokenExpiresIn }
+      );
+
+      res.status(200).json({
+        message: 'Đăng nhập thành công',
+        token,
+        user: {
+          id: customer.id,
+          fullName: customer.fullName,
+          phone: customer.phone,
+          avatar: customer.avatarUrl
+        }
+      });
+    } catch (error) {
+      console.error('Lỗi customerLogin:', error);
+      res.status(500).json({ message: 'Lỗi server nội bộ' });
+    }
+  },
+
+  // 4. Quên mật khẩu: Xác thực OTP để nhận Reset Token
+  customerVerifyForgotOtp: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { phone, otp } = req.body;
+
+      if (!phone || !otp) {
+        res.status(400).json({ message: 'Vui lòng cung cấp số điện thoại và mã OTP.' });
+        return;
+      }
+
+      const normalizedPhone = normalizePhone(phone);
+
+      const otpValidation = await otpService.verifyOtp(phone, otp);
+      if (!otpValidation.isValid) {
+        res.status(otpValidation.status).json({ message: otpValidation.message });
+        return;
+      }
+
+      // Sinh resetToken có thời hạn 10 phút, payload { phone, type: "RESET" }
+      const resetToken = jwt.sign(
+        { phone: normalizedPhone, type: 'RESET' },
+        JWT_SECRET,
+        { expiresIn: '10m' }
+      );
+
+      res.status(200).json({
+        message: 'Xác thực OTP thành công.',
+        resetToken
+      });
+    } catch (error) {
+      console.error('Lỗi customerVerifyForgotOtp:', error);
+      res.status(500).json({ message: 'Lỗi server nội bộ' });
+    }
+  },
+
+  // 5. Quên mật khẩu: Đặt lại mật khẩu mới bằng Reset Token
+  customerResetPassword: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { resetToken, newPassword } = req.body;
+
+      if (!resetToken || !newPassword) {
+        res.status(400).json({ message: 'Vui lòng cung cấp mã xác nhận đặt lại mật khẩu và mật khẩu mới.' });
+        return;
+      }
+
+      // Xác thực resetToken
+      let payload: any;
+      try {
+        payload = jwt.verify(resetToken, JWT_SECRET);
+      } catch (err) {
+        res.status(400).json({ message: 'Mã xác nhận đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.' });
+        return;
+      }
+
+      if (!payload || payload.type !== 'RESET' || !payload.phone) {
+        res.status(400).json({ message: 'Mã xác nhận đặt lại mật khẩu không hợp lệ.' });
+        return;
+      }
+
+      // Validate mật khẩu mới
+      if (!isValidPassword(newPassword)) {
+        res.status(400).json({ message: 'Mật khẩu phải có tối thiểu 8 ký tự, bao gồm cả chữ cái và số.' });
+        return;
+      }
+
+      const customer = await prisma.customer.findUnique({
+        where: { phone: payload.phone }
+      });
+
+      if (!customer) {
+        res.status(404).json({ message: 'Không tìm thấy tài khoản người dùng tương ứng.' });
+        return;
+      }
+
+      const passwordHash = bcrypt.hashSync(newPassword, 10);
+
+      // Cập nhật mật khẩu, mở khóa và reset số lần đăng nhập sai
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          passwordHash,
+          failedLoginCount: 0,
+          lockedUntil: null
+        }
+      });
+
+      // Xóa OtpCode của SĐT đó
+      await otpService.clearOtpsForPhone(payload.phone);
+
+      res.status(200).json({
+        message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.'
+      });
+    } catch (error) {
+      console.error('Lỗi customerResetPassword:', error);
       res.status(500).json({ message: 'Lỗi server nội bộ' });
     }
   },
