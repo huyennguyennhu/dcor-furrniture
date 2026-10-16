@@ -1179,3 +1179,18 @@
   100% { transform: rotate(360deg); }
 }
 
+input[type="datetime-local"] {
+  cursor: pointer;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  background: var(--bg-secondary, rgba(0, 0, 0, 0.05));
+}
+

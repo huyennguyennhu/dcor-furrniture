@@ -719,6 +719,18 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
   }
 
+  openDatePicker(picker: any) {
+    if (picker && typeof picker.showPicker === 'function') {
+      try {
+        picker.showPicker();
+      } catch (e) {
+        if (typeof picker.focus === 'function') {
+          picker.focus();
+        }
+      }
+    }
+  }
+
   createEmptyRow(): AuditItemRow {
     return {
       id: `${Date.now()}_${Math.random()}`,

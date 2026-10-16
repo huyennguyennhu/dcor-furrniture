@@ -1369,17 +1369,10 @@ export interface LineItem {
                 <div style="display: flex; justify-content: center; align-items: center; height: 38px;">
                   <button 
                     *ngIf="!isFormDisabled"
+                    type="button"
                     (click)="handleRemoveLineItem(item.id)"
-                    [disabled]="!transactionLocation"
-                    [ngStyle]="{
-                      'background': 'none', 'border': 'none', 
-                      'cursor': !transactionLocation ? 'not-allowed' : 'pointer',
-                      'color': !transactionLocation ? 'var(--border-color)' : '#ef4444',
-                      'padding': '4px',
-                      'display': 'flex', 'align-items': 'center', 'justify-content': 'center',
-                      'border-radius': '4px'
-                    }"
-                    [title]="!transactionLocation ? 'Vui lòng chọn chi nhánh/kho trước' : 'Xóa dòng'"
+                    style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px;"
+                    title="Xóa dòng"
                   >
                     <lucide-angular [img]="icons.Trash2" size="18"></lucide-angular>
                   </button>
@@ -2473,7 +2466,24 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.creatorName = v.creatorName || v.creator || 'Admin Quản Trị';
     if (v.createdAt || v.date) {
       try {
-        const d = new Date(v.createdAt || v.date);
+        const rawDate = v.createdAt || v.date;
+        let d: Date;
+        if (rawDate instanceof Date) {
+          d = rawDate;
+        } else {
+          const str = String(rawDate).trim();
+          const viMatch = str.match(/(\d{1,2}):(\d{2}).*?(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+          const viMatch2 = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}).*?(\d{1,2}):(\d{2})/);
+          if (viMatch) {
+            const [, h, m, day, mon, yr] = viMatch;
+            d = new Date(Number(yr), Number(mon) - 1, Number(day), Number(h), Number(m));
+          } else if (viMatch2) {
+            const [, day, mon, yr, h, m] = viMatch2;
+            d = new Date(Number(yr), Number(mon) - 1, Number(day), Number(h), Number(m));
+          } else {
+            d = new Date(str);
+          }
+        }
         if (!isNaN(d.getTime())) {
           this.transactionDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         }
@@ -3660,6 +3670,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       return;
     }
     this.lineItems = this.lineItems.filter((item: any) => String(item.id) !== String(id));
+    this.closeAllDropdowns();
+    this.cdr.markForCheck();
   }
 
   updateLineItem(id: string, field: keyof LineItem, value: any) {

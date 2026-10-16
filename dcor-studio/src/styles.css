@@ -452,4 +452,48 @@ body.admin-body {
   }
 }
 
+/* Khóa khung nhìn khi chưa tải xong dữ liệu */
+.inventory-view-lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(252, 248, 243, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: wait !important;
+  pointer-events: all !important;
+  user-select: none !important;
+  animation: fadeInLock 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
+.inventory-view-lock-badge {
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #eae1d7);
+  padding: 16px 24px;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+  animation: popInLock 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInLock {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popInLock {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

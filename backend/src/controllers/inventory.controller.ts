@@ -480,57 +480,91 @@ export const inventoryController = {
       }
 
       const products = await withDbRetry(() =>
-        prisma.product.findMany({
-          where: { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            basePrice: true,
-            images: true,
-            configOptions: true,
-            category: {
-              select: { id: true, name: true, parentId: true }
-            },
-            variants: {
-              where: { isActive: true },
-              select: {
-                id: true,
-                sku: true,
-                name: true,
-                price: true,
-                stock: true,
-                reservedStock: true,
-                optionValues: true,
-                warehouseStocks: {
-                  select: {
-                    warehouseId: true,
-                    physicalStock: true,
-                    reservedStock: true,
-                    warehouse: {
-                      select: { id: true, name: true, code: true }
-                    }
-                  }
-                }
-              },
-              orderBy: { name: 'asc' }
-            }
-          },
-          orderBy: { name: 'asc' }
-        })
+        prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            p.id, p.name, p.slug, p."basePrice", p."categoryId",
+            p.images, p."configOptions",
+            c.name as "categoryName", c."parentId" as "categoryParentId"
+          FROM "Product" p
+          LEFT JOIN "Category" c ON p."categoryId" = c.id
+          WHERE p."isActive" = true
+          ORDER BY p.name ASC;
+        `)
       );
-      const formatted = products.map((p: any) => ({
-        ...p,
-        sku: p.variants?.[0]?.sku || `SKU-${p.id.slice(0, 8).toUpperCase()}`,
-        variants: (p.variants || []).map((v: any) => {
+
+      const variantRows = await withDbRetry(() =>
+        prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            v.id, v."productId", v.sku, v.name, v.price, v.stock, v."reservedStock", v."optionValues",
+            ws."warehouseId", ws."physicalStock", ws."reservedStock" as "whReservedStock"
+          FROM "ProductVariant" v
+          LEFT JOIN "WarehouseStock" ws ON ws."variantId" = v.id
+          WHERE v."isActive" = true
+          ORDER BY v.name ASC;
+        `)
+      );
+
+      const variantMap = new Map<string, any>();
+      for (const row of variantRows) {
+        let v = variantMap.get(row.id);
+        if (!v) {
+          v = {
+            id: row.id,
+            productId: row.productId,
+            sku: row.sku,
+            name: row.name,
+            price: Number(row.price || 0),
+            stock: Number(row.stock || 0),
+            reservedStock: Number(row.reservedStock || 0),
+            optionValues: row.optionValues,
+            warehouseStocks: []
+          };
+          variantMap.set(row.id, v);
+        }
+        if (row.warehouseId) {
+          v.warehouseStocks.push({
+            warehouseId: row.warehouseId,
+            physicalStock: Number(row.physicalStock || 0),
+            reservedStock: Number(row.whReservedStock || 0)
+          });
+        }
+      }
+
+      const productVariantMap = new Map<string, any[]>();
+      for (const v of variantMap.values()) {
+        if (!productVariantMap.has(v.productId)) {
+          productVariantMap.set(v.productId, []);
+        }
+        productVariantMap.get(v.productId)!.push(v);
+      }
+
+      const formatted = products.map((p: any) => {
+        const prodVariants = productVariantMap.get(p.id) || [];
+        const mappedVariants = prodVariants.map((v: any) => {
           const resolved = resolveVariantNameAndImage(v, p);
           return {
             ...v,
             name: resolved.name,
             image: resolved.image
           };
-        })
-      }));
+        });
+
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          basePrice: Number(p.basePrice || 0),
+          images: p.images,
+          configOptions: p.configOptions,
+          category: p.categoryId ? {
+            id: p.categoryId,
+            name: p.categoryName,
+            parentId: p.categoryParentId
+          } : null,
+          sku: mappedVariants[0]?.sku || `SKU-${p.id.slice(0, 8).toUpperCase()}`,
+          variants: mappedVariants
+        };
+      });
 
       productsWithOptionsCache = {
         data: formatted,
