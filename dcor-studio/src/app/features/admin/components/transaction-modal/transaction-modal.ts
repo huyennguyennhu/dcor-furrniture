@@ -1370,15 +1370,16 @@ export interface LineItem {
                   <button 
                     *ngIf="!isFormDisabled"
                     (click)="handleRemoveLineItem(item.id)"
-                    [disabled]="!transactionLocation || lineItems.length === 1"
+                    [disabled]="!transactionLocation"
                     [ngStyle]="{
                       'background': 'none', 'border': 'none', 
-                      'cursor': (!transactionLocation || lineItems.length === 1) ? 'not-allowed' : 'pointer',
-                      'color': (!transactionLocation || lineItems.length === 1) ? 'var(--border-color)' : '#ef4444',
+                      'cursor': !transactionLocation ? 'not-allowed' : 'pointer',
+                      'color': !transactionLocation ? 'var(--border-color)' : '#ef4444',
                       'padding': '4px',
-                      'display': 'flex', 'align-items': 'center', 'justify-content': 'center'
+                      'display': 'flex', 'align-items': 'center', 'justify-content': 'center',
+                      'border-radius': '4px'
                     }"
-                    [title]="!transactionLocation ? 'Chọn biến thể' : (lineItems.length === 1 ? 'Không thể xóa dòng duy nhất' : 'Xóa dòng')"
+                    [title]="!transactionLocation ? 'Vui lòng chọn chi nhánh/kho trước' : 'Xóa dòng'"
                   >
                     <lucide-angular [img]="icons.Trash2" size="18"></lucide-angular>
                   </button>
@@ -2117,44 +2118,66 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   formatDisplayDate(timestamp?: string): string {
     if (!timestamp) return '—';
-    const match = timestamp.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    if (match && !timestamp.endsWith('Z')) {
-      const [, yyyy, mm, dd, hh, min] = match;
-      return `${hh}:${min} ${dd}/${mm}/${yyyy}`;
-    }
     try {
-      const d = new Date(timestamp);
-      if (isNaN(d.getTime())) return timestamp;
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      const hours = String(d.getHours()).padStart(2, '0');
-      const minutes = String(d.getMinutes()).padStart(2, '0');
-      return `${hours}:${minutes} ${day}/${month}/${year}`;
-    } catch {
-      return timestamp;
-    }
+      let d: Date;
+      const match = timestamp.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      if (match && !timestamp.endsWith('Z')) {
+        const [, yyyy, mm, dd, hh, min] = match;
+        d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
+      } else {
+        const viMatch = String(timestamp).match(/(\d{1,2}):(\d{2}).*?(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        const viMatch2 = String(timestamp).match(/(\d{1,2})\/(\d{1,2})\/(\d{4}).*?(\d{1,2}):(\d{2})/);
+        if (viMatch) {
+          const [, h, m, day, mon, yr] = viMatch;
+          d = new Date(Number(yr), Number(mon) - 1, Number(day), Number(h), Number(m));
+        } else if (viMatch2) {
+          const [, day, mon, yr, h, m] = viMatch2;
+          d = new Date(Number(yr), Number(mon) - 1, Number(day), Number(h), Number(m));
+        } else {
+          d = new Date(timestamp);
+        }
+      }
+      if (!isNaN(d.getTime())) {
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getFullYear();
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const hoursStr = String(hours).padStart(2, '0');
+        return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
+      }
+    } catch {}
+    return timestamp;
   }
 
   getFormattedTransactionDate(): string {
     if (!this.transactionDate) return '';
-    const match = this.transactionDate.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    if (match) {
-      const [, yyyy, mm, dd, hh, min] = match;
-      return `${hh}:${min} ${dd}/${mm}/${yyyy}`;
-    }
     try {
-      const d = new Date(this.transactionDate);
-      if (isNaN(d.getTime())) return this.transactionDate;
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      const hours = String(d.getHours()).padStart(2, '0');
-      const minutes = String(d.getMinutes()).padStart(2, '0');
-      return `${hours}:${minutes} ${day}/${month}/${year}`;
-    } catch {
-      return this.transactionDate;
-    }
+      let d: Date;
+      const match = this.transactionDate.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      if (match) {
+        const [, yyyy, mm, dd, hh, min] = match;
+        d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
+      } else {
+        d = new Date(this.transactionDate);
+      }
+      if (!isNaN(d.getTime())) {
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getFullYear();
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const hoursStr = String(hours).padStart(2, '0');
+        return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
+      }
+    } catch {}
+    return this.transactionDate;
   }
 
   openDatePicker(picker: HTMLInputElement) {
@@ -3619,7 +3642,23 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handleRemoveLineItem(id: string) {
-    if (this.lineItems.length === 1) return;
+    if (this.lineItems.length <= 1) {
+      this.lineItems = [{
+        id: Date.now().toString() + Math.random(),
+        productId: '',
+        variantId: '',
+        quantity: '',
+        price: '',
+        unit: '',
+        lotNumber: '',
+        expiryDate: '',
+        isProductFixed: false,
+        isVariantFixed: false,
+      }];
+      this.closeAllDropdowns();
+      this.cdr.markForCheck();
+      return;
+    }
     this.lineItems = this.lineItems.filter((item: any) => String(item.id) !== String(id));
   }
 

@@ -374,12 +374,11 @@
             </span>
           </td>
 
-          <!-- Date (2 rows: time on top, date below) -->
+          <!-- Date -->
           <td style="padding: 12px 14px; white-space: nowrap;">
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-              <span style="font-weight: 600; color: var(--text-primary); font-size: 12.5px;">{{ getOrderTime(order.createdAt) }}</span>
-              <span style="font-size: 11.5px; color: var(--text-secondary);">{{ getOrderDate(order.createdAt) }}</span>
-            </div>
+            <span style="font-weight: 500; color: var(--text-primary); font-size: 13px;">
+              {{ formatDateTime(order.createdAt) }}
+            </span>
           </td>
 
           <!-- Reason -->

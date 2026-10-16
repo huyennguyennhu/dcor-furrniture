@@ -1117,12 +1117,8 @@
                       <button 
                         type="button" 
                         (click)="handleRemoveRow(row.id)" 
-                        [disabled]="auditItems.length === 1"
-                        [ngStyle]="{
-                          'background': 'none', 'border': 'none', 'cursor': auditItems.length === 1 ? 'not-allowed' : 'pointer',
-                          'color': auditItems.length === 1 ? 'var(--border-color)' : '#ef4444', 'padding': '4px'
-                        }"
-                        [title]="auditItems.length === 1 ? 'Không thể xóa dòng duy nhất' : 'Xóa dòng này'"
+                        style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px;"
+                        title="Xóa dòng này"
                       >
                         <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular>
                       </button>

@@ -22,6 +22,7 @@ export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 2):
       return await queryFn();
     } catch (error: any) {
       attempt++;
+      const isPoolTimeout = error?.code === 'P2024' || error?.message?.includes('Timed out fetching a new connection');
       const isConnectionError =
         error?.code === 'P1017' ||
         error?.code === 'P1001' ||
@@ -29,6 +30,12 @@ export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 2):
         error?.message?.includes('connection closed') ||
         error?.message?.includes('Connection lost') ||
         error?.message?.includes("Can't reach database server");
+
+      if (isPoolTimeout && attempt <= maxRetries) {
+        console.warn(`[Prisma] Pool timeout (P2024), đang chờ giải phóng kết nối và thử lại (lần ${attempt}/${maxRetries})...`);
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+        continue;
+      }
 
       if (isConnectionError && attempt <= maxRetries) {
         console.warn(`[Prisma] Kết nối DB bị đóng (${error?.code || 'P1017'}), đang reconnect và thử lại (lần ${attempt}/${maxRetries})...`);

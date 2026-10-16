@@ -334,14 +334,7 @@
   </div>
 
   <!-- Data Table -->
-  <div *ngIf="isLoading && data.length === 0" style="padding: 60px 20px; text-align: center; color: var(--text-muted); background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px;">
-    Đang tải dữ liệu tồn kho...
-  </div>
-
-  <div *ngIf="!isLoading || data.length > 0" 
-       [style.opacity]="isLoading ? 0.6 : 1" 
-       [style.pointer-events]="isLoading ? 'none' : 'auto'" 
-       style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; transition: opacity 0.15s ease;">
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
     <div style="width: 100%; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed;">
         <thead>
@@ -636,7 +629,7 @@
     </div>
 
     <!-- Pagination Footer -->
-    <div *ngIf="totalItems > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px;">
+    <div *ngIf="!isLoading && totalItems > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px;">
       <div style="font-size: 13px; color: var(--text-secondary);">
         Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ totalItems }}</span> sản phẩm
       </div>

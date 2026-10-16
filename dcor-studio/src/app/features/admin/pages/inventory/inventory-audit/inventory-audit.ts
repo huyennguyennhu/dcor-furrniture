@@ -962,7 +962,10 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   handleRemoveRow(id: string) {
     if (this.auditItems.length > 1) {
       this.auditItems = this.auditItems.filter(item => item.id !== id);
+    } else {
+      this.auditItems = [this.createEmptyRow()];
     }
+    this.cdr.markForCheck();
   }
 
   get canClearAllItems(): boolean {

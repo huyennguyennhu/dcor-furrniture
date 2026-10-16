@@ -930,34 +930,48 @@ export class InventoryOrdersComponent implements OnInit {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   }
 
-  getOrderTime(dateStr: string): string {
-    if (!dateStr) return '';
+  formatDateTime(dateInput: any): string {
+    if (!dateInput) return '—';
     try {
-      const d = new Date(dateStr);
+      let d: Date;
+      if (dateInput instanceof Date) {
+        d = dateInput;
+      } else {
+        const str = String(dateInput).trim();
+        const viMatch = str.match(/(\d{1,2}):(\d{2}).*?(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        const viMatch2 = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}).*?(\d{1,2}):(\d{2})/);
+        if (viMatch) {
+          const [, h, m, day, mon, yr] = viMatch;
+          d = new Date(Number(yr), Number(mon) - 1, Number(day), Number(h), Number(m));
+        } else if (viMatch2) {
+          const [, day, mon, yr, h, m] = viMatch2;
+          d = new Date(Number(yr), Number(mon) - 1, Number(day), Number(h), Number(m));
+        } else {
+          d = new Date(str);
+        }
+      }
+
       if (!isNaN(d.getTime())) {
-        const hours = String(d.getHours()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getFullYear();
+        let hours = d.getHours();
         const minutes = String(d.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const hoursStr = String(hours).padStart(2, '0');
+        return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
       }
     } catch {}
-    const timeMatch = dateStr.match(/\b\d{1,2}:\d{2}\b/);
-    if (timeMatch) return timeMatch[0];
-    return dateStr;
+    return String(dateInput);
+  }
+
+  getOrderTime(dateStr: string): string {
+    return this.formatDateTime(dateStr);
   }
 
   getOrderDate(dateStr: string): string {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      if (!isNaN(d.getTime())) {
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-      }
-    } catch {}
-    const dateMatch = dateStr.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/);
-    if (dateMatch) return dateMatch[0];
     return '';
   }
 }

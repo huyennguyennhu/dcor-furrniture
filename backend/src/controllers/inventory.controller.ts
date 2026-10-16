@@ -22,7 +22,7 @@ interface OverviewSummary {
 
 const summaryCache = new Map<string, { data: OverviewSummary; timestamp: number }>();
 let productsWithOptionsCache: { data: any[]; timestamp: number } | null = null;
-const PRODUCTS_CACHE_TTL = 60 * 1000; // 60 seconds
+const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
 function clearInventoryCaches() {
   summaryCache.clear();

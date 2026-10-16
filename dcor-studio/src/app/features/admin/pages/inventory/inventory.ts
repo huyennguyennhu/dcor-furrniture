@@ -177,6 +177,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
       this.isLoading = false;
       this.cdr.markForCheck();
     } else {
+      this.isLoading = true;
+      this.cdr.markForCheck();
       this.fetchWarehouses();
       this.fetchCategories();
       this.fetchOverview();
@@ -243,6 +245,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   fetchOverview() {
     this.isLoading = true;
+    this.cdr.markForCheck();
     const params: any = {
       page: this.currentPage,
       limit: this.pageSize
