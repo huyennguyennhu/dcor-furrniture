@@ -156,33 +156,36 @@
   <!-- Filter & Search Toolbar -->
   <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; flex-wrap: wrap;">
     <!-- Type Pills: Nhập kho & Xuất kho -->
-    <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-tertiary); padding: 4px; border-radius: 10px;">
+    <div class="type-filter-group">
       <button 
         type="button" 
         (click)="setTypeFilter('import')"
-        style="display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; transition: all 0.15s;"
-        [style.background]="typeFilter === 'import' ? 'var(--bg-primary)' : 'transparent'"
-        [style.color]="typeFilter === 'import' ? 'var(--text-primary)' : 'var(--text-secondary)'"
-        [style.font-weight]="typeFilter === 'import' ? 600 : 400"
-        [style.box-shadow]="typeFilter === 'import' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'">
-        <lucide-angular [img]="icons.ArrowDownRight" size="14" color="#10b981"></lucide-angular> Nhập kho ({{ importCount }})
+        class="type-filter-btn import"
+        [class.active]="typeFilter === 'import'"
+        title="Lọc các phiếu nhập kho"
+      >
+        <lucide-angular [img]="icons.ArrowDownRight" size="15" [style.color]="typeFilter === 'import' ? '#ffffff' : '#059669'"></lucide-angular>
+        <span>Nhập kho</span>
+        <span class="type-filter-badge">({{ importCount }})</span>
       </button>
+
       <button 
         type="button" 
         (click)="setTypeFilter('export')"
-        style="display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; transition: all 0.15s;"
-        [style.background]="typeFilter === 'export' ? 'var(--bg-primary)' : 'transparent'"
-        [style.color]="typeFilter === 'export' ? 'var(--text-primary)' : 'var(--text-secondary)'"
-        [style.font-weight]="typeFilter === 'export' ? 600 : 400"
-        [style.box-shadow]="typeFilter === 'export' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'">
-        <lucide-angular [img]="icons.ArrowUpRight" size="14" color="#ef4444"></lucide-angular> Xuất kho ({{ exportCount }})
+        class="type-filter-btn export"
+        [class.active]="typeFilter === 'export'"
+        title="Lọc các phiếu xuất kho"
+      >
+        <lucide-angular [img]="icons.ArrowUpRight" size="15" [style.color]="typeFilter === 'export' ? '#ffffff' : '#dc2626'"></lucide-angular>
+        <span>Xuất kho</span>
+        <span class="type-filter-badge">({{ exportCount }})</span>
       </button>
     </div>
 
     <!-- Filter Controls -->
-    <div style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; flex-wrap: wrap;">
       <!-- Search Box -->
-      <div class="filter-search-box" style="max-width: 320px;">
+      <div class="filter-search-box" style="flex: 1; min-width: 200px;">
         <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
         <input 
           type="text" 
@@ -268,7 +271,7 @@
     </div>
   </div>
 
-  <!-- Bulk Action Bar -->
+  <!-- Bulk Action Bar (Đã ẩn theo yêu cầu)
   <div *ngIf="selectedIds.size > 0" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(var(--accent-rgb), 0.08); border: 1px solid var(--accent); border-radius: 10px; font-size: 13px;">
     <div>
       Đã chọn <strong style="color: var(--accent);">{{ selectedIds.size }}</strong> phiếu kho
@@ -285,12 +288,14 @@
       </button>
     </div>
   </div>
+  -->
 
   <!-- Table Container -->
   <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow-x: auto;">
     <table style="width: 100%; border-collapse: collapse; text-align: left;">
       <thead>
         <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+          <!-- Checkbox header (Đã ẩn theo yêu cầu)
           <th style="padding: 12px 14px; width: 44px; text-align: center;">
             <button 
               type="button" 
@@ -303,6 +308,7 @@
               <lucide-angular *ngIf="!isAllSelected()" [img]="icons.Square" size="18"></lucide-angular>
             </button>
           </th>
+          -->
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Mã phiếu</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Loại phiếu</th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Thời gian</th>
@@ -315,7 +321,7 @@
       </thead>
       <tbody>
         <tr *ngIf="isLoading">
-          <td colspan="9" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+          <td colspan="8" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
               <div class="spinning-loader"></div>
               <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải danh sách lệnh kho...</span>
@@ -333,7 +339,7 @@
           onmouseover="this.style.background='#F3E5D3'"
           onmouseout="this.style.background='transparent'"
         >
-          <!-- Checkbox -->
+          <!-- Checkbox row (Đã ẩn theo yêu cầu)
           <td style="padding: 12px 14px; text-align: center;" (click)="$event.stopPropagation()">
             <button 
               type="button" 
@@ -346,6 +352,7 @@
               <lucide-angular *ngIf="!selectedIds.has(order.id)" [img]="icons.Square" size="18"></lucide-angular>
             </button>
           </td>
+          -->
 
           <!-- ID -->
           <td style="padding: 12px 14px; white-space: nowrap;">
@@ -423,12 +430,9 @@
               </button>
 
               <!-- Dropdown Action Menu -->
-              <div *ngIf="activeActionMenu === order.id" style="position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); min-width: 155px; z-index: 50; padding: 4px; display: flex; flex-direction: column;">
-                <button (click)="printOrder(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;">
-                  <lucide-angular [img]="icons.Printer" size="14"></lucide-angular> In phiếu lệnh
-                </button>
-                <button *ngIf="order.status !== 'COMPLETED' && order.status !== 'EXPORTED' && order.status !== 'IMPORTED'" (click)="updateOrderStatus(order, order.type === 'import' ? 'IMPORTED' : 'EXPORTED', $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: #059669; cursor: pointer; text-align: left;">
-                  <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular> Đã hoàn tất
+              <div *ngIf="activeActionMenu === order.id" style="position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); min-width: 135px; z-index: 50; padding: 4px; display: flex; flex-direction: column;">
+                <button (click)="printOrder(order, $event)" style="display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; background: transparent; border: none; border-radius: 4px; font-size: 12px; color: var(--text-primary); cursor: pointer; text-align: left;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                  <lucide-angular [img]="icons.Printer" size="14"></lucide-angular> In phiếu
                 </button>
               </div>
             </div>
@@ -437,7 +441,7 @@
 
         <!-- Empty State: Chỉ hiển thị khi đã tải xong mà không có dữ liệu -->
         <tr *ngIf="filteredOrders.length === 0">
-          <td colspan="9" style="padding: 40px 16px; text-align: center;">
+          <td colspan="8" style="padding: 40px 16px; text-align: center;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
               <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
                 <lucide-angular [img]="icons.Package" size="24" color="var(--text-muted)"></lucide-angular>

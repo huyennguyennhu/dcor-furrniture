@@ -365,7 +365,7 @@ export interface LineItem {
               </h2>
               <div *ngIf="isViewMode" style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
                 <span [ngStyle]="{'background': getViewStatusBg(), 'color': getViewStatusColor()}" style="font-size: 11.5px; font-weight: 600; padding: 2px 10px; border-radius: 20px; letter-spacing: 0.3px;">{{ getViewStatusLabel() }}</span>
-                <span style="font-size: 12px; color: var(--text-muted);">{{ viewOrderData?.date || viewOrderData?.createdAt }}</span>
+                <span style="font-size: 12px; color: var(--text-muted);">{{ formatDisplayDate(viewOrderData?.date || viewOrderData?.createdAt) }}</span>
               </div>
             </div>
           </div>
@@ -378,6 +378,7 @@ export interface LineItem {
         <div class="modal-body-scroll" style="flex: 1; min-height: 0; padding: 20px 24px; overflow-y: auto; overflow-x: auto; display: flex; flex-direction: column; gap: 20px;">
           
           <!-- View-mode Lifecycle Banners -->
+          <!-- Banner Tạm giữ hàng / Hàng đang về (Đã ẩn theo yêu cầu)
           <div *ngIf="isViewMode && isPlanned" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 8px; background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.25); color: #6d28d9; font-size: 13px;">
             <lucide-angular [img]="icons.AlertCircle" size="18" style="flex-shrink: 0; color: #7c3aed;"></lucide-angular>
             <div *ngIf="type === 'export'">
@@ -387,7 +388,9 @@ export interface LineItem {
               <strong>Cơ chế Hàng đang về (On-Order / Incoming Stock):</strong> Hệ thống ghi nhận số lượng hàng này đang trên đường về kho / chờ kiểm đếm. Tồn kho thực tế (Physical Stock) chưa cộng, nhưng hệ thống biết trước để lên kế hoạch xếp kệ. Danh sách hàng hóa đã được khóa cố định.
             </div>
           </div>
+          -->
 
+          <!-- Banner thông báo hoàn tất (Đã ẩn theo yêu cầu)
           <div *ngIf="isViewMode && isCompletedStock" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); color: #047857; font-size: 13px;">
             <lucide-angular [img]="icons.CheckCircle2" size="18" style="flex-shrink: 0; color: #10b981;"></lucide-angular>
             <div *ngIf="type === 'export'">
@@ -397,6 +400,7 @@ export interface LineItem {
               <strong>Đã nhập kho thành công:</strong> Hàng hóa đã kiểm đếm đủ, tồn kho thực tế của kho nhận đã được cộng chính thức và chứng từ đã khóa vĩnh viễn (Read-only).
             </div>
           </div>
+          -->
 
           <div *ngIf="isViewMode && isCancelled" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #b91c1c; font-size: 13px;">
             <lucide-angular [img]="icons.Ban" size="18" style="flex-shrink: 0; color: #ef4444; margin-top: 1px;"></lucide-angular>
@@ -405,6 +409,7 @@ export interface LineItem {
             </div>
           </div>
 
+          <!-- Banner trạng thái Nháp (Đã ẩn theo yêu cầu)
           <div *ngIf="isViewMode && isDraft && !isEditingDraft" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-radius: 8px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); color: #b45309; font-size: 13px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <lucide-angular [img]="icons.AlertCircle" size="16" style="flex-shrink: 0; color: #d97706;"></lucide-angular>
@@ -415,6 +420,7 @@ export interface LineItem {
               Chỉnh sửa phiếu
             </button>
           </div>
+          -->
 
           <!-- General Info Card -->
           <div [style.pointer-events]="isFormDisabled ? 'none' : 'auto'" [style.opacity]="isFormDisabled ? '0.95' : '1'" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
@@ -466,11 +472,24 @@ export interface LineItem {
                   </label>
                   <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
+                      type="text" 
+                      [value]="getFormattedTransactionDate()" 
+                      readonly 
+                      (click)="openDatePicker(exportDatePicker)"
+                      placeholder="Chọn ngày giờ xuất kho"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none; cursor: pointer;"
+                    />
+                    <input 
+                      #exportDatePicker
                       type="datetime-local" 
                       [(ngModel)]="transactionDate" 
                       (change)="onDateChange()"
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;"
+                      (click)="openDatePicker(exportDatePicker)"
+                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;"
                     />
+                    <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); display: flex; align-items: center; z-index: 1;">
+                      <lucide-angular [img]="icons.Calendar" size="15"></lucide-angular>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -756,11 +775,24 @@ export interface LineItem {
                   </label>
                   <div style="position: relative; width: 100%; min-width: 0;">
                     <input 
+                      type="text" 
+                      [value]="getFormattedTransactionDate()" 
+                      readonly 
+                      (click)="openDatePicker(importDatePicker)"
+                      placeholder="Chọn ngày giờ nhập kho"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none; cursor: pointer;"
+                    />
+                    <input 
+                      #importDatePicker
                       type="datetime-local" 
                       [(ngModel)]="transactionDate" 
                       (change)="onDateChange()"
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; color: var(--text-primary); outline: none;"
+                      (click)="openDatePicker(importDatePicker)"
+                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;"
                     />
+                    <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); display: flex; align-items: center; z-index: 1;">
+                      <lucide-angular [img]="icons.Calendar" size="15"></lucide-angular>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2085,21 +2117,53 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   formatDisplayDate(timestamp?: string): string {
     if (!timestamp) return '—';
+    const match = timestamp.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (match && !timestamp.endsWith('Z')) {
+      const [, yyyy, mm, dd, hh, min] = match;
+      return `${hh}:${min} ${dd}/${mm}/${yyyy}`;
+    }
     try {
       const d = new Date(timestamp);
       if (isNaN(d.getTime())) return timestamp;
-      const month = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
-      let hours = d.getHours();
+      const hours = String(d.getHours()).padStart(2, '0');
       const minutes = String(d.getMinutes()).padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      const strHours = String(hours).padStart(2, '0');
-      return `${month}/${day}/${year} ${strHours}:${minutes} ${ampm}`;
+      return `${hours}:${minutes} ${day}/${month}/${year}`;
     } catch {
       return timestamp;
+    }
+  }
+
+  getFormattedTransactionDate(): string {
+    if (!this.transactionDate) return '';
+    const match = this.transactionDate.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (match) {
+      const [, yyyy, mm, dd, hh, min] = match;
+      return `${hh}:${min} ${dd}/${mm}/${yyyy}`;
+    }
+    try {
+      const d = new Date(this.transactionDate);
+      if (isNaN(d.getTime())) return this.transactionDate;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes} ${day}/${month}/${year}`;
+    } catch {
+      return this.transactionDate;
+    }
+  }
+
+  openDatePicker(picker: HTMLInputElement) {
+    if (picker && typeof (picker as any).showPicker === 'function') {
+      try {
+        (picker as any).showPicker();
+      } catch {
+        picker.focus();
+      }
     }
   }
 
@@ -3401,12 +3465,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   requestClose() {
     if (this.isSubmitting) return;
-    if (this.hasProductData()) {
-      this.showDiscardConfirmModal = true;
-    } else {
-      this.showDiscardConfirmModal = false;
-      this.onClose.emit();
-    }
+    this.showDiscardConfirmModal = false;
+    this.onClose.emit();
   }
 
   cancelDiscard() {

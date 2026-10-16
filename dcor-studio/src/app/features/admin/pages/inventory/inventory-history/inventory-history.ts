@@ -1,11 +1,12 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
-  Search, Filter, Calendar as CalendarIcon, Download, Loader2 
+  Search, Filter, Calendar as CalendarIcon, Download, Loader2,
+  Building2, Layers, ChevronDown, Check, X, RotateCcw
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -35,7 +36,10 @@ export interface HistoryItem {
   styleUrls: ['./inventory-history.css']
 })
 export class InventoryHistoryComponent implements OnInit {
-  icons = { Search, Filter, CalendarIcon, Download, Loader2 };
+  icons = { 
+    Search, Filter, CalendarIcon, Download, Loader2,
+    Building2, Layers, ChevronDown, Check, X, RotateCcw
+  };
 
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
@@ -49,6 +53,90 @@ export class InventoryHistoryComponent implements OnInit {
   selectedWarehouse = '';
   selectedType = '';
   isLoading = true;
+
+  showViewByDropdown = false;
+  showWarehouseDropdown = false;
+  showTypeDropdown = false;
+
+  typeOptions: string[] = [
+    'Mọi loại biến động',
+    'Nhập kho',
+    'Xuất kho',
+    'Điều chỉnh tăng',
+    'Điều chỉnh giảm',
+    'Chuyển kho đến',
+    'Chuyển kho đi',
+    'Hoàn hàng',
+    'Xuất hủy'
+  ];
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.filter-dropdown-wrapper')) {
+      this.showViewByDropdown = false;
+      this.showWarehouseDropdown = false;
+      this.showTypeDropdown = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  toggleViewByDropdown(event: Event) {
+    event.stopPropagation();
+    this.showViewByDropdown = !this.showViewByDropdown;
+    this.showWarehouseDropdown = false;
+    this.showTypeDropdown = false;
+  }
+
+  toggleWarehouseDropdown(event: Event) {
+    event.stopPropagation();
+    this.showWarehouseDropdown = !this.showWarehouseDropdown;
+    this.showViewByDropdown = false;
+    this.showTypeDropdown = false;
+  }
+
+  toggleTypeDropdown(event: Event) {
+    event.stopPropagation();
+    this.showTypeDropdown = !this.showTypeDropdown;
+    this.showViewByDropdown = false;
+    this.showWarehouseDropdown = false;
+  }
+
+  onSelectViewBy(val: 'variant' | 'product') {
+    this.viewBy = val;
+    this.showViewByDropdown = false;
+    this.cdr.markForCheck();
+  }
+
+  onSelectWarehouse(wName: string) {
+    this.selectedWarehouse = wName;
+    this.showWarehouseDropdown = false;
+    this.filterData();
+    this.cdr.markForCheck();
+  }
+
+  onSelectType(t: string) {
+    this.selectedType = t === 'Mọi loại biến động' ? '' : t;
+    this.showTypeDropdown = false;
+    this.filterData();
+    this.cdr.markForCheck();
+  }
+
+  hasActiveFilters(): boolean {
+    return !!this.selectedWarehouse || !!this.selectedType || !!this.searchQuery.trim() || this.viewBy !== 'variant';
+  }
+
+  resetFilters() {
+    this.selectedWarehouse = '';
+    this.selectedType = '';
+    this.searchQuery = '';
+    this.viewBy = 'variant';
+    this.showViewByDropdown = false;
+    this.showWarehouseDropdown = false;
+    this.showTypeDropdown = false;
+    this.filterData();
+    this.cdr.markForCheck();
+  }
 
   constructor(private router: Router) {}
 

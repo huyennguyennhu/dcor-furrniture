@@ -774,27 +774,32 @@ export class InventoryTransactionsComponent implements OnInit {
 
   getOrderTime(dateStr: string): string {
     if (!dateStr) return '';
-    const timeMatch = dateStr.match(/\b\d{1,2}:\d{2}\b/);
-    if (timeMatch) return timeMatch[0];
     try {
       const d = new Date(dateStr);
       if (!isNaN(d.getTime())) {
-        return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
       }
     } catch {}
+    const timeMatch = dateStr.match(/\b\d{1,2}:\d{2}\b/);
+    if (timeMatch) return timeMatch[0];
     return dateStr;
   }
 
   getOrderDate(dateStr: string): string {
     if (!dateStr) return '';
-    const dateMatch = dateStr.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/);
-    if (dateMatch) return dateMatch[0];
     try {
       const d = new Date(dateStr);
       if (!isNaN(d.getTime())) {
-        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
       }
     } catch {}
+    const dateMatch = dateStr.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/);
+    if (dateMatch) return dateMatch[0];
     return '';
   }
 }
