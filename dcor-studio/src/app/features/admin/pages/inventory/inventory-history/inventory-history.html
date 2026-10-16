@@ -75,7 +75,7 @@
       >
         <div class="trigger-label">
           <lucide-angular [img]="icons.Building2" size="15" class="trigger-icon"></lucide-angular>
-          <span class="truncate-label">{{ selectedWarehouse || 'Tất cả Kho/Showroom' }}</span>
+          <span class="truncate-label">{{ selectedWarehouse || 'Tất cả kho' }}</span>
         </div>
         <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showWarehouseDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
       </button>
@@ -86,7 +86,7 @@
           [class.selected]="!selectedWarehouse"
           (click)="onSelectWarehouse('')"
         >
-          <span>Tất cả Kho/Showroom</span>
+          <span>Tất cả kho</span>
           <lucide-angular *ngIf="!selectedWarehouse" [img]="icons.Check" size="14"></lucide-angular>
         </div>
         <div 
@@ -151,13 +151,13 @@
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Mã biến động</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Thời gian</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ viewBy === 'variant' ? 'Biến thể' : 'Sản phẩm' }}</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Kho/Showroom</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Kho</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Loại đơn</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Trạng thái</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Biến động tồn kho</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Biến động kho</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Chứng từ</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Người thực hiện</th>
-            <th style="padding: 16px 14px; text-align: center; width: 48px;"></th>
+            <th style="padding: 16px 16px 16px 4px; text-align: center; width: 1%; white-space: nowrap;"></th>
           </tr>
         </thead>
         <tbody>
@@ -260,7 +260,17 @@
               </div>
             </td>
             <td style="padding: 16px;">
-              <span style="color: var(--text-secondary); font-weight: 500;">{{ item.reference }}</span>
+              <span 
+                *ngIf="item.reference && item.reference !== '-'" 
+                (click)="navigateToDocument(item, $event)"
+                style="color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;"
+                [title]="item.orderTypeLabel === 'Kiểm kê' ? ('Nhấn để mở kiểm kê ' + item.reference) : ('Nhấn để mở lệnh kho ' + item.reference)"
+              >
+                {{ item.reference }}
+              </span>
+              <span *ngIf="!item.reference || item.reference === '-'" style="color: var(--text-muted); font-weight: 500;">
+                -
+              </span>
             </td>
             <td style="padding: 16px;">
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -271,11 +281,11 @@
               </div>
             </td>
             <!-- Nút chuyển sang trang chi tiết chứng từ (Kiểm kê hoặc Lệnh xuất-nhập kho) -->
-            <td style="padding: 12px 14px; text-align: center;">
+            <td style="padding: 12px 16px 12px 4px; text-align: center; width: 1%; white-space: nowrap;">
               <button 
                 type="button" 
                 class="history-action-btn"
-                [title]="item.orderTypeLabel === 'Kiểm kê' ? 'Mở phiếu kiểm kê' : 'Mở lệnh xuất - nhập kho'"
+                [title]="item.orderTypeLabel === 'Kiểm kê' ? ('Mở kiểm kê ' + (item.reference !== '-' ? item.reference : '')) : ('Mở lệnh xuất - nhập kho ' + (item.reference !== '-' ? item.reference : ''))"
                 (click)="navigateToDocument(item, $event)"
               >
                 <lucide-angular [img]="icons.ChevronRight" size="18"></lucide-angular>

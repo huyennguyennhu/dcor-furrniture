@@ -401,7 +401,7 @@ export class InventoryHistoryComponent implements OnInit {
       return;
     }
 
-    const headers = ['Mã biến động', 'Thời gian', 'Mã SKU', 'Tên sản phẩm', 'Biến thể', 'Kho/Showroom', 'Loại đơn', 'Trạng thái', 'Tồn trước', 'Thay đổi', 'Tồn sau', 'Tác động tồn kho', 'Tham chiếu', 'Người thực hiện'];
+    const headers = ['Mã biến động', 'Thời gian', 'Mã SKU', 'Tên sản phẩm', 'Biến thể', 'Kho', 'Loại đơn', 'Trạng thái', 'Tồn trước', 'Thay đổi', 'Tồn sau', 'Tác động tồn kho', 'Tham chiếu', 'Người thực hiện'];
     const rows = this.data.map(item => [
       `"${item.id}"`,
       `"${item.date}"`,
@@ -440,23 +440,31 @@ export class InventoryHistoryComponent implements OnInit {
   navigateToDocument(item: HistoryItem, event: Event) {
     event.stopPropagation();
 
-    // 1. Nếu là đơn Kiểm kê: đi sang trang Kiểm kê kho (/admin/inventory/audit)
+    // 1. Xác định mã chứng từ chính xác để điền vào ô tìm kiếm
+    let docCode = '';
+    if (item.reference && item.reference !== '-') {
+      docCode = item.reference;
+    } else if (item.stockOrderCode) {
+      docCode = item.stockOrderCode;
+    } else if (item.stockAuditCode) {
+      docCode = item.stockAuditCode;
+    }
+
+    // 2. Nếu là đơn Kiểm kê: đi sang trang Kiểm kê kho (/admin/inventory/audit)
     if (
       item.orderType === 'AUDIT' || 
       item.orderTypeLabel === 'Kiểm kê' || 
-      (item.reference && (item.reference.startsWith('ADT') || item.reference.startsWith('PKK')))
+      (docCode && (docCode.startsWith('ADT') || docCode.startsWith('PKK')))
     ) {
-      const searchTarget = item.stockAuditCode || (item.reference !== '-' ? item.reference : '') || item.id;
       this.router.navigate(['/admin/inventory/audit'], {
-        queryParams: searchTarget ? { search: searchTarget } : {}
+        queryParams: docCode ? { search: docCode } : {}
       });
       return;
     }
 
-    // 2. Nếu là đơn Xuất kho hoặc Nhập kho: đi sang trang Lệnh xuất - nhập kho (/admin/inventory/transactions)
-    const searchTarget = item.stockOrderCode || (item.reference !== '-' ? item.reference : '') || item.id;
+    // 3. Nếu là đơn Xuất kho hoặc Nhập kho: đi sang trang Lệnh xuất - nhập kho (/admin/inventory/transactions)
     this.router.navigate(['/admin/inventory/transactions'], {
-      queryParams: searchTarget ? { search: searchTarget } : {}
+      queryParams: docCode ? { search: docCode } : {}
     });
   }
 }

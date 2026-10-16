@@ -375,6 +375,9 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       const q = params['search'] || params['q'] || params['ref'] || params['code'];
       if (q) {
         this.searchQuery = q;
+        this.selectedWarehouseFilter = 'Tất cả chi nhánh';
+        this.selectedStatusFilter = 'Tất cả trạng thái';
+        this.currentPage = 1;
         if (this.rawAudits && this.rawAudits.length > 0) {
           this.filterData();
         }

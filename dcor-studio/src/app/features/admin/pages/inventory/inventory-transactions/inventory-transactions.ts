@@ -301,6 +301,9 @@ export class InventoryTransactionsComponent implements OnInit {
       const q = params['search'] || params['q'] || params['ref'] || params['code'];
       if (q) {
         this.searchTerm = q;
+        this.typeFilter = 'all';
+        this.statusFilter = 'all';
+        this.locationFilter = 'Tất cả chi nhánh';
         this.currentPage = 1;
         this.cdr.markForCheck();
       }

@@ -765,7 +765,7 @@ export class InventoryProductDetailComponent implements OnInit {
 
         this.history = (res.history || []).map((h: any) => ({
           id: h.txCode || h.id,
-          date: h.createdAt ? new Date(h.createdAt).toISOString().replace('T', ' ').substring(0, 16) : '',
+          date: h.createdAt ? this.formatDate(h.createdAt) : '',
           type: h.type?.includes('IMPORT') ? 'IMPORT' : (h.type?.includes('EXPORT') ? 'EXPORT' : 'TRANSFER'),
           variantName: h.variant?.name || 'Mặc định',
           quantity: h.quantityChange || 0,
@@ -815,6 +815,24 @@ export class InventoryProductDetailComponent implements OnInit {
     return Array.from(new Set(this.variants.map(v => v.name)));
   }
 
+  formatDate(d: string): string {
+    if (!d) return '';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return String(d);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const mm = pad(date.getMonth() + 1);
+    const dd = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  }
+
+  getLocalDateStr(d: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
   getFilteredHistory() {
     let list = this.history;
 
@@ -829,7 +847,7 @@ export class InventoryProductDetailComponent implements OnInit {
     }
 
     const now = new Date();
-    const todayStr = now.toISOString().substring(0, 10);
+    const todayStr = this.getLocalDateStr(now);
 
     if (this.timeRange === 'today') {
       return list.filter(h => h.date && h.date.substring(0, 10) === todayStr);
@@ -838,14 +856,14 @@ export class InventoryProductDetailComponent implements OnInit {
     if (this.timeRange === '7days') {
       const past7 = new Date();
       past7.setDate(past7.getDate() - 7);
-      const past7Str = past7.toISOString().substring(0, 10);
+      const past7Str = this.getLocalDateStr(past7);
       return list.filter(h => h.date && h.date.substring(0, 10) >= past7Str);
     }
 
     if (this.timeRange === '30days') {
       const past30 = new Date();
       past30.setDate(past30.getDate() - 30);
-      const past30Str = past30.toISOString().substring(0, 10);
+      const past30Str = this.getLocalDateStr(past30);
       return list.filter(h => h.date && h.date.substring(0, 10) >= past30Str);
     }
 
