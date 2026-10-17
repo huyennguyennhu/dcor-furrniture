@@ -41,9 +41,15 @@ export const authController = {
 
       // 3. Kiểm tra trạng thái tài khoản
       if (staff.status !== 'ACTIVE') {
-        res.status(403).json({ message: 'Tài khoản đã bị khóa hoặc chưa kích hoạt.' });
+        res.status(403).json({ message: 'Tài khoản đã bị tạm khóa hoặc chưa được kích hoạt.' });
         return;
       }
+
+      // Cập nhật thời điểm đăng nhập gần nhất
+      await prisma.staffUser.update({
+        where: { id: staff.id },
+        data: { lastLoginAt: new Date(), failedLoginCount: 0 }
+      });
 
       // 4. Sinh JWT Token
       const token = jwt.sign(
@@ -73,39 +79,127 @@ export const authController = {
     }
   },
 
-  // Setup mật khẩu mới từ link Invite
+  // Setup mật khẩu mới từ link Invite & kích hoạt tài khoản
   acceptInvite: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { email, password } = req.body;
+      const { email, token, password, fullName } = req.body;
 
-      if (!email || !password) {
-        res.status(400).json({ message: 'Thiếu thông tin.' });
+      if ((!email && !token) || !password) {
+        res.status(400).json({ message: 'Thiếu thông tin kích hoạt.' });
         return;
       }
 
-      // Giả lập check email có tồn tại không
-      const staff = await prisma.staffUser.findUnique({ where: { email } });
+      // Tìm user theo token hoặc email
+      let staff = null;
+      if (token) {
+        staff = await prisma.staffUser.findFirst({
+          where: { invitationToken: token }
+        });
+      }
+
+      if (!staff && email) {
+        staff = await prisma.staffUser.findUnique({
+          where: { email: email.trim().toLowerCase() }
+        });
+      }
+
       if (!staff) {
-        res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
+        res.status(404).json({ message: 'Không tìm thấy thông tin tài khoản hoặc mã kích hoạt không hợp lệ.' });
+        return;
+      }
+
+      // Kiểm tra thời hạn token nếu có
+      if (staff.invitationTokenExpiry && staff.invitationTokenExpiry < new Date()) {
+        res.status(400).json({ message: 'Liên kết kích hoạt tài khoản đã hết hạn. Vui lòng liên hệ Super Admin gửi lại thư mời mới.' });
         return;
       }
 
       // Mã hóa mật khẩu mới
       const hashedPassword = bcrypt.hashSync(password, 10);
 
-      // Cập nhật pass
-      await prisma.staffUser.update({
-        where: { email },
+      // Cập nhật trạng thái thành ACTIVE và xóa token mời
+      const updatedStaff = await prisma.staffUser.update({
+        where: { id: staff.id },
         data: { 
           passwordHash: hashedPassword,
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          invitationToken: null,
+          invitationTokenExpiry: null,
+          lastLoginAt: new Date(),
+          fullName: fullName && fullName.trim() ? fullName.trim() : staff.fullName
         }
       });
 
-      res.status(200).json({ message: 'Kích hoạt tài khoản thành công.' });
+      // Tự sinh token JWT đăng nhập luôn cho người dùng
+      const authToken = jwt.sign(
+        { 
+          userId: updatedStaff.id, 
+          email: updatedStaff.email, 
+          role: updatedStaff.role,
+          type: 'STAFF' 
+        },
+        JWT_SECRET,
+        { expiresIn: '1d' }
+      );
+
+      res.status(200).json({ 
+        message: 'Kích hoạt tài khoản thành công.',
+        token: authToken,
+        user: {
+          id: updatedStaff.id,
+          fullName: updatedStaff.fullName,
+          email: updatedStaff.email,
+          role: updatedStaff.role
+        }
+      });
     } catch (error) {
       console.error('Lỗi acceptInvite:', error);
       res.status(500).json({ message: 'Lỗi server nội bộ' });
+    }
+  },
+
+  // Quên mật khẩu Admin
+  forgotPassword: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ message: 'Vui lòng cung cấp email.' });
+        return;
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const staff = await prisma.staffUser.findUnique({
+        where: { email: normalizedEmail }
+      });
+
+      if (!staff) {
+        // Bảo mật: không báo chi tiết email có tồn tại hay không
+        res.status(200).json({ message: `Nếu email ${normalizedEmail} tồn tại trong hệ thống, hướng dẫn khôi phục sẽ được gửi.` });
+        return;
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+      const resetToken = jwt.sign(
+        { userId: staff.id, email: staff.email, type: 'PASSWORD_RESET' },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      const resetUrl = `${frontendUrl}/admin-invite?email=${encodeURIComponent(staff.email)}&token=${resetToken}`;
+      const { emailService } = await import('../services/email.service');
+      await emailService.sendPasswordResetEmail({
+        to: staff.email,
+        fullName: staff.fullName,
+        resetUrl
+      });
+
+      res.status(200).json({
+        message: `Đã gửi hướng dẫn khôi phục mật khẩu tới email ${normalizedEmail}. Vui lòng kiểm tra hộp thư!`,
+        resetUrl // Trả về để tiện test nếu cần
+      });
+    } catch (error) {
+      console.error('Lỗi forgotPassword:', error);
+      res.status(500).json({ message: 'Lỗi máy chủ khi xử lý quên mật khẩu.' });
     }
   },
 

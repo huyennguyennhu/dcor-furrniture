@@ -1,0 +1,370 @@
+/* ==========================================================================
+   Staff Permissions Page - DCor UI Style Guide
+   ========================================================================== */
+
+.permissions-page {
+  position: relative;
+}
+
+/* Toast Notification Floating */
+.toast-alert {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: var(--radius-control, 8px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  font-weight: 500;
+  animation: slideToast 0.3s cubic-bezier(0.2, 0, 0, 1);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  color: var(--color-text, #0A0A0A);
+}
+
+.toast-success {
+  border-color: var(--color-success, #00A30B);
+  background: var(--color-success-bg, #E9F8E9);
+  color: var(--color-success, #00A30B);
+}
+
+.toast-warning {
+  border-color: var(--color-warning, #F2BF3D);
+  background: var(--color-warning-bg, #FFF8E5);
+  color: var(--color-warning-ink, #7A5600);
+}
+
+.toast-info {
+  border-color: var(--color-info, #0023DD);
+  background: var(--color-info-bg, #EBEEFF);
+  color: var(--color-info, #0023DD);
+}
+
+.btn-close-toast {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+/* Roles Tabs */
+.roles-tabs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.roles-tabs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.roles-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #616161);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(188, 95, 19, 0.1);
+  color: var(--color-accent, #BC5F13);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.roles-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.role-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-control, 8px);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  color: var(--color-text, #0A0A0A);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast, 120ms ease);
+}
+
+.role-tab-btn:hover {
+  background: var(--color-surface-subtle, #F5F5F5);
+  border-color: var(--color-primary-hover, #BC5F13);
+}
+
+.role-tab-btn.active {
+  background: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25);
+}
+
+.tab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted, #757575);
+}
+
+.role-tab-btn.active .tab-dot {
+  background: #FFFFFF;
+}
+
+.admin-dot {
+  background: var(--color-accent, #BC5F13);
+}
+
+/* Matrix Card */
+.matrix-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-card, 12px);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.matrix-card-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface-subtle, #F5F5F5);
+}
+
+.matrix-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+}
+
+.highlight-role {
+  color: var(--color-accent, #BC5F13);
+}
+
+.matrix-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-secondary, #616161);
+}
+
+/* Table */
+.permissions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.permissions-table th {
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #616161);
+  background: var(--color-surface, #FFFFFF);
+  border-bottom: 2px solid var(--color-border, #E0E0E0);
+}
+
+.permissions-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-subtle, #EDEDED);
+  vertical-align: middle;
+}
+
+.matrix-row {
+  transition: background-color var(--transition-fast, 120ms ease);
+}
+
+.matrix-row:hover {
+  background-color: var(--color-surface-subtle, #F5F5F5);
+}
+
+.col-module {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.module-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.module-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control, 8px);
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.module-name {
+  display: block;
+  font-size: 14px;
+  color: var(--color-text, #0A0A0A);
+}
+
+.module-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+  margin-top: 2px;
+}
+
+/* Checkbox tùy biến bo góc 4px, khi tick đổi màu nâu #765337 */
+.custom-checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.custom-checkbox-wrap.disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.custom-check-input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  width: 0;
+  height: 0;
+}
+
+.check-box-visual {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm, 4px); /* Bo góc 4px */
+  border: 1.5px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast, 120ms ease);
+}
+
+.custom-checkbox-wrap:hover:not(.disabled) .check-box-visual {
+  border-color: var(--color-primary-hover, #BC5F13);
+}
+
+/* Khi tick đổi màu nâu #765337 */
+.custom-check-input:checked + .check-box-visual {
+  background: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
+}
+
+.check-icon {
+  color: #FFFFFF;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.15s ease;
+}
+
+.custom-check-input:checked + .check-box-visual .check-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Toggle All button */
+.btn-toggle-module {
+  background: none;
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-control, 8px);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary, #616161);
+  cursor: pointer;
+  transition: all var(--transition-fast, 120ms ease);
+}
+
+.btn-toggle-module:hover:not(:disabled) {
+  background: var(--color-surface-subtle, #F5F5F5);
+  color: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
+}
+
+.btn-toggle-module:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Matrix Card Footer */
+.matrix-card-footer {
+  padding: 18px 24px;
+  border-top: 1px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface-subtle, #F5F5F5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #616161);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--color-border, #E0E0E0);
+}
+
+.legend-dot.active {
+  background: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
+}
+
+.legend-dot.inactive {
+  background: var(--color-surface, #FFFFFF);
+}
+
+@keyframes slideToast {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

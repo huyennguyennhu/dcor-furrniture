@@ -1,0 +1,395 @@
+/* ==========================================================================
+   Staff Accounts Page - DCor UI Style Guide
+   ========================================================================== */
+
+.staff-accounts-page {
+  position: relative;
+}
+
+/* Toast Notification Floating */
+.toast-alert {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: var(--radius-control, 8px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  font-weight: 500;
+  animation: slideToast 0.3s cubic-bezier(0.2, 0, 0, 1);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  color: var(--color-text, #0A0A0A);
+}
+
+.toast-success {
+  border-color: var(--color-success, #00A30B);
+  background: var(--color-success-bg, #E9F8E9);
+  color: var(--color-success, #00A30B);
+}
+
+.toast-warning {
+  border-color: var(--color-warning, #F2BF3D);
+  background: var(--color-warning-bg, #FFF8E5);
+  color: var(--color-warning-ink, #7A5600);
+}
+
+.toast-info {
+  border-color: var(--color-info, #0023DD);
+  background: var(--color-info-bg, #EBEEFF);
+  color: var(--color-info, #0023DD);
+}
+
+.btn-close-toast {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.btn-close-toast:hover {
+  opacity: 1;
+}
+
+/* Filter Group */
+.filter-select-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-select-group label {
+  font-size: 13px;
+  color: var(--color-text-secondary, #616161);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Staff Table & Row Hover */
+.staff-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.staff-table tbody tr.staff-row {
+  transition: background-color var(--transition-fast, 120ms ease);
+}
+
+/* Hàng hover màu nhẹ #F5F5F5 chuẩn Style Guide */
+.staff-table tbody tr.staff-row:hover {
+  background-color: var(--color-surface-subtle, #F5F5F5) !important;
+}
+
+/* Avatar Styling */
+.staff-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--color-surface-muted, #EDEDED);
+  border: 1px solid var(--color-border, #E0E0E0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.staff-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary, #765337);
+  letter-spacing: -0.02em;
+}
+
+.staff-name {
+  color: var(--color-text, #0A0A0A);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.staff-email {
+  color: var(--color-text-secondary, #616161);
+  font-size: 13px;
+}
+
+.staff-phone {
+  color: var(--color-text-secondary, #616161);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+/* Role Chip */
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-control, 8px);
+  background: var(--color-surface-subtle, #F5F5F5);
+  border: 1px solid var(--color-border, #E0E0E0);
+  color: var(--color-text, #0A0A0A);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.role-chip.role-super-admin {
+  background: rgba(188, 95, 19, 0.1);
+  border-color: rgba(188, 95, 19, 0.3);
+  color: var(--color-accent, #BC5F13);
+  font-weight: 600;
+}
+
+/* Last Login Text & Dot */
+.last-login-text {
+  font-size: 12px;
+  color: var(--color-text-secondary, #616161);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.login-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-success, #00A30B);
+}
+
+.login-dot.never {
+  background-color: var(--color-text-muted, #757575);
+}
+
+/* Action Buttons in Row */
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: var(--radius-control, 8px);
+  border: 1px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #0A0A0A);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast, 120ms ease);
+}
+
+.action-btn:hover {
+  background: var(--color-surface-subtle, #F5F5F5);
+  border-color: var(--color-text-muted, #757575);
+}
+
+.action-resend {
+  color: var(--color-accent, #BC5F13);
+  border-color: rgba(188, 95, 19, 0.3);
+  background: rgba(188, 95, 19, 0.05);
+}
+
+.action-resend:hover {
+  background: rgba(188, 95, 19, 0.15);
+  border-color: var(--color-accent, #BC5F13);
+}
+
+.action-lock {
+  color: var(--color-danger, #C42326);
+}
+
+.action-lock:hover {
+  background: var(--color-danger-bg, #FFE8E8);
+  border-color: var(--color-danger, #C42326);
+}
+
+.action-unlock {
+  color: var(--color-success, #00A30B);
+  border-color: rgba(0, 163, 11, 0.3);
+  background: var(--color-success-bg, #E9F8E9);
+}
+
+.action-unlock:hover {
+  border-color: var(--color-success, #00A30B);
+}
+
+/* Modal Styling */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-modal, 16px);
+  box-shadow: var(--shadow-overlay, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+  width: 520px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: modalScale 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  margin: 0 0 2px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text, #0A0A0A);
+}
+
+.modal-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary, #616161);
+}
+
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+}
+
+.form-field .required {
+  color: var(--color-danger, #C42326);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border, #E0E0E0);
+}
+
+/* Test link box */
+.test-link-box {
+  background: var(--color-sub-bg, #FFF3E3);
+  border: 1px dashed var(--color-accent, #BC5F13);
+  padding: 14px;
+  border-radius: var(--radius-control, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-link-box label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-pressed, #3F2C1B);
+}
+
+.copy-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link-input {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--color-accent, #BC5F13);
+  background: #FFFFFF;
+}
+
+.spinner-icon {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Animations */
+@keyframes slideToast {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalScale {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}

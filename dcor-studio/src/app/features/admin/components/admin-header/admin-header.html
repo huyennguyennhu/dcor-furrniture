@@ -3,7 +3,7 @@
   <!-- Left: Logo -->
   <div style="width: 220px; display: flex; align-items: center;">
     <a routerLink="/admin/reports/overview" style="text-decoration: none;">
-      <img src="/assets/favicon/logo.png" alt="DCor" style="display: block; width: 88px; height: 40px; object-fit: contain;" />
+      <img src="/assets/favicon/logo.png" alt="DCor" width="88" height="40" style="display: block; width: 88px; height: 40px; object-fit: contain;" />
     </a>
   </div>
 
@@ -38,8 +38,8 @@
         (click)="isAccountMenuOpen = !isAccountMenuOpen">
         <app-icon name="CircleUserRound" size="36"></app-icon>
         <span class="account-label">
-          <span class="account-name">Admin User</span>
-          <span class="account-role">Super Admin</span>
+          <span class="account-name">{{ (currentUser$ | async)?.fullName || 'Admin User' }}</span>
+          <span class="account-role">{{ (currentUser$ | async)?.role || 'Super Admin' }}</span>
         </span>
         <app-icon
           class="account-chevron"

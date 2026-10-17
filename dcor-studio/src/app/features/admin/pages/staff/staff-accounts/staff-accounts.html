@@ -1,25 +1,357 @@
-<section class="admin-page">
+<section class="admin-page staff-accounts-page">
+  
+  <!-- Toast Notification -->
+  <div *ngIf="toastMessage" class="toast-alert" [ngClass]="'toast-' + toastType">
+    <app-icon [name]="toastType === 'success' ? 'CircleCheck' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
+    <span>{{ toastMessage }}</span>
+    <button type="button" class="btn-close-toast" (click)="toastMessage = ''">
+      <app-icon name="X" size="14"></app-icon>
+    </button>
+  </div>
+
+  <!-- Heading -->
   <header class="admin-page-heading">
-    <div><h1>Quản lý tài khoản nhân sự</h1><p>Quản lý tài khoản nhân viên, vai trò và trạng thái hoạt động.</p></div>
-    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button><button type="button" class="admin-btn admin-btn-primary">+ Thêm nhân sự</button></div>
+    <div>
+      <h1>Quản lý tài khoản nhân sự</h1>
+      <p>Quản lý phân quyền, vai trò làm việc và trạng thái truy cập của nhân viên.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-btn admin-btn-secondary">
+        <app-icon name="ExternalLink" size="16"></app-icon>
+        <span>Xuất danh sách</span>
+      </button>
+      <button type="button" class="admin-btn admin-btn-primary" (click)="openInviteModal()">
+        <app-icon name="Plus" size="16"></app-icon>
+        <span>+ Mời nhân sự mới</span>
+      </button>
+    </div>
   </header>
+
+  <!-- Stats Grid -->
   <div class="admin-page-stats">
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng nhân sự</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang hoạt động</div><div class="admin-page-stat-value">2</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Tạm khóa</div><div class="admin-page-stat-value">1</div></article>
+    <article class="admin-page-stat">
+      <div class="admin-page-stat-label">Tổng nhân sự</div>
+      <div class="admin-page-stat-value">{{ records.length }}</div>
+    </article>
+    <article class="admin-page-stat">
+      <div class="admin-page-stat-label">Đã kích hoạt</div>
+      <div class="admin-page-stat-value" style="color: var(--color-success, #00A30B);">{{ activeCount }}</div>
+    </article>
+    <article class="admin-page-stat">
+      <div class="admin-page-stat-label">Chờ kích hoạt</div>
+      <div class="admin-page-stat-value" style="color: var(--color-warning-ink, #7A5600);">{{ pendingCount }}</div>
+    </article>
+    <article class="admin-page-stat">
+      <div class="admin-page-stat-label">Tạm khóa</div>
+      <div class="admin-page-stat-value" style="color: var(--color-danger, #C42326);">{{ lockedCount }}</div>
+    </article>
   </div>
+
+  <!-- Filter Bar -->
   <div class="admin-page-filter">
-    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm tên, email nhân viên..." aria-label="Tìm nhân sự">
-    <select class="admin-select" aria-label="Lọc vai trò"><option>Tất cả vai trò</option><option>Quản trị viên</option><option>Tư vấn bán hàng</option><option>Quản lý kho</option></select>
-    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Đang hoạt động</option><option>Tạm khóa</option></select>
+    <!-- Search Box -->
+    <div class="admin-search-wrapper">
+      <app-icon name="Search" size="16" style="color: var(--color-text-muted); margin-right: 8px;"></app-icon>
+      <input 
+        class="admin-search-input" 
+        [(ngModel)]="searchTerm" 
+        placeholder="Tìm kiếm tên, email, SĐT..." 
+        aria-label="Tìm nhân sự">
+    </div>
+
+    <!-- Filter by 7 Roles -->
+    <div class="filter-select-group">
+      <label for="role-filter">Vai trò:</label>
+      <select id="role-filter" class="admin-select" [(ngModel)]="selectedRoleFilter" aria-label="Lọc vai trò">
+        <option value="ALL">Tất cả vai trò (7)</option>
+        <option *ngFor="let role of rolesList" [value]="role">{{ role }}</option>
+      </select>
+    </div>
+
+    <!-- Filter by Status -->
+    <div class="filter-select-group">
+      <label for="status-filter">Trạng thái:</label>
+      <select id="status-filter" class="admin-select" [(ngModel)]="selectedStatusFilter" aria-label="Lọc trạng thái">
+        <option value="ALL">Tất cả trạng thái</option>
+        <option value="Đã kích hoạt">Đã kích hoạt</option>
+        <option value="Chờ kích hoạt">Chờ kích hoạt</option>
+        <option value="Tạm khóa">Tạm khóa</option>
+      </select>
+    </div>
   </div>
-  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
-    <table class="admin-table">
-      <thead><tr><th>Nhân viên</th><th>Email</th><th>Vai trò</th><th>Bộ phận</th><th>Trạng thái</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.name }}</strong></td><td>{{ record.email }}</td><td>{{ record.role }}</td><td>{{ record.team }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
-        <tr *ngIf="filteredRecords.length === 0"><td colspan="5" class="admin-page-table-empty">Không tìm thấy nhân sự phù hợp.</td></tr>
-      </tbody>
-    </table>
-  </div></div>
+
+  <!-- Data Table Card -->
+  <div class="admin-page-table-card">
+    <div class="admin-page-table-scroll">
+      <table class="admin-table staff-table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">Avatar</th>
+            <th>Họ và tên</th>
+            <th>Email công việc</th>
+            <th>Số điện thoại</th>
+            <th>Vai trò</th>
+            <th>Đăng nhập gần nhất</th>
+            <th>Trạng thái</th>
+            <th style="text-align: right; width: 180px;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let record of filteredRecords" class="staff-row">
+            <!-- 1. Avatar -->
+            <td>
+              <div class="staff-avatar">
+                <img *ngIf="record.avatarUrl" [src]="record.avatarUrl" [alt]="record.name" />
+                <span *ngIf="!record.avatarUrl" class="avatar-fallback">{{ getInitials(record.name) }}</span>
+              </div>
+            </td>
+
+            <!-- 2. Họ tên -->
+            <td>
+              <strong class="staff-name">{{ record.name }}</strong>
+            </td>
+
+            <!-- 3. Email -->
+            <td class="staff-email">
+              {{ record.email }}
+            </td>
+
+            <!-- 4. Số điện thoại -->
+            <td class="staff-phone">
+              {{ record.phone }}
+            </td>
+
+            <!-- 5. Vai trò -->
+            <td>
+              <span class="role-chip" [ngClass]="'role-' + record.role.replace(' ', '-').toLowerCase()">
+                {{ record.role }}
+              </span>
+            </td>
+
+            <!-- 6. Đăng nhập gần nhất -->
+            <td class="last-login-text">
+              <span class="login-dot" [class.never]="record.lastLogin === 'Chưa từng'"></span>
+              {{ record.lastLogin }}
+            </td>
+
+            <!-- 7. Badge trạng thái chuẩn Style Guide -->
+            <td>
+              <span 
+                [ngClass]="{
+                  'badge-status-active': record.status === 'Đã kích hoạt',
+                  'badge-status-pending': record.status === 'Chờ kích hoạt',
+                  'badge-status-locked': record.status === 'Tạm khóa'
+                }">
+                {{ record.status }}
+              </span>
+            </td>
+
+            <!-- 8. Thao tác từng dòng -->
+            <td style="text-align: right;">
+              <div class="row-actions">
+                
+                <!-- Nút Sửa vai trò -->
+                <button 
+                  type="button" 
+                  class="action-btn" 
+                  title="Chỉnh sửa vai trò" 
+                  (click)="openEditRoleModal(record)">
+                  <app-icon name="Pencil" size="15"></app-icon>
+                  <span>Sửa</span>
+                </button>
+
+                <!-- Nút Gửi lại lời mời (Chỉ với Chờ kích hoạt) -->
+                <button 
+                  *ngIf="record.status === 'Chờ kích hoạt'"
+                  type="button" 
+                  class="action-btn action-resend" 
+                  title="Gửi lại thư mời" 
+                  (click)="resendInvite(record)">
+                  <app-icon name="Mail" size="15"></app-icon>
+                  <span>Gửi lại</span>
+                </button>
+
+                <!-- Nút Khóa / Mở khóa -->
+                <button 
+                  type="button" 
+                  class="action-btn"
+                  [ngClass]="record.status === 'Tạm khóa' ? 'action-unlock' : 'action-lock'"
+                  [title]="record.status === 'Tạm khóa' ? 'Mở khóa tài khoản' : 'Tạm khóa tài khoản'"
+                  (click)="toggleLockStatus(record)">
+                  <app-icon [name]="record.status === 'Tạm khóa' ? 'CircleCheck' : 'LockKeyhole'" size="15"></app-icon>
+                  <span>{{ record.status === 'Tạm khóa' ? 'Mở' : 'Khóa' }}</span>
+                </button>
+
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredRecords.length === 0">
+            <td colspan="8" class="admin-page-table-empty">
+              <app-icon name="UsersRound" size="40" style="color: var(--color-text-muted); margin-bottom: 8px;"></app-icon>
+              <p>Không tìm thấy tài khoản nhân sự phù hợp với bộ lọc hiện tại.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: + MỜI NHÂN SỰ MỚI
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isInviteModalOpen" (click)="closeInviteModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Mời nhân sự mới</h2>
+          <p class="modal-subtitle">Gửi lời mời tham gia hệ thống quản trị DCor Studio.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeInviteModal()">
+          <app-icon name="X" size="20"></app-icon>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <div class="modal-body">
+        
+        <!-- Success State Message -->
+        <div class="alert-box alert-success" *ngIf="inviteSuccessMessage">
+          <app-icon name="CircleCheck" size="20"></app-icon>
+          <div class="alert-content">
+            <strong>{{ inviteSuccessMessage }}</strong>
+            <p>Hệ thống đã tạo tài khoản ở trạng thái <strong>Chờ kích hoạt</strong>.</p>
+          </div>
+        </div>
+
+        <!-- Generated Test Invite Link Box -->
+        <div class="test-link-box" *ngIf="generatedTestLink">
+          <label>Liên kết thư mời kích hoạt (Dành cho test nhanh):</label>
+          <div class="copy-input-row">
+            <input type="text" readonly [value]="generatedTestLink" class="admin-input link-input">
+            <button type="button" class="admin-btn admin-btn-secondary" (click)="copyLink(generatedTestLink)">
+              <app-icon name="ClipboardList" size="16"></app-icon>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <form *ngIf="!inviteSuccessMessage" (ngSubmit)="handleSendInvite($event)" class="invite-form">
+          
+          <!-- Họ và tên -->
+          <div class="form-field">
+            <label for="inv-name">Họ và tên nhân sự <span class="required">*</span></label>
+            <input 
+              id="inv-name" 
+              name="fullName" 
+              [(ngModel)]="newStaff.fullName" 
+              class="admin-input" 
+              required 
+              placeholder="Ví dụ: Nguyễn Văn An">
+          </div>
+
+          <!-- Email công việc -->
+          <div class="form-field">
+            <label for="inv-email">Email công việc <span class="required">*</span></label>
+            <input 
+              id="inv-email" 
+              name="email" 
+              [(ngModel)]="newStaff.email" 
+              type="email" 
+              class="admin-input" 
+              required 
+              placeholder="an.nguyen@dcor.vn">
+            <span class="field-hint">Thư mời kích hoạt sẽ được gửi tới địa chỉ email này.</span>
+          </div>
+
+          <!-- Số điện thoại -->
+          <div class="form-field">
+            <label for="inv-phone">Số điện thoại liên hệ <span class="required">*</span></label>
+            <input 
+              id="inv-phone" 
+              name="phone" 
+              [(ngModel)]="newStaff.phone" 
+              type="tel" 
+              class="admin-input" 
+              required 
+              placeholder="Ví dụ: 0912345678">
+          </div>
+
+          <!-- Chọn 1 trong 7 vai trò -->
+          <div class="form-field">
+            <label for="inv-role">Vai trò công việc <span class="required">*</span></label>
+            <select id="inv-role" name="role" [(ngModel)]="newStaff.role" class="admin-select" required>
+              <option *ngFor="let r of rolesList" [value]="r">{{ r }}</option>
+            </select>
+            <span class="field-hint">Quyền truy cập và thao tác sẽ tuân theo ma trận phân quyền của vai trò này.</span>
+          </div>
+
+          <!-- Modal Actions -->
+          <div class="modal-footer">
+            <button type="button" class="admin-btn admin-btn-secondary" (click)="closeInviteModal()">
+              Hủy
+            </button>
+            <button 
+              type="submit" 
+              class="admin-btn admin-btn-primary" 
+              [disabled]="!newStaff.fullName || !newStaff.email || !newStaff.phone || inviteLoading">
+              <app-icon name="LoaderCircle" size="16" class="spinner-icon" *ngIf="inviteLoading"></app-icon>
+              <span>{{ inviteLoading ? 'Đang gửi...' : 'Gửi lời mời tham gia' }}</span>
+            </button>
+          </div>
+
+        </form>
+
+        <!-- Nút đóng sau khi gửi thành công -->
+        <div class="modal-footer" *ngIf="inviteSuccessMessage" style="justify-content: flex-end;">
+          <button type="button" class="admin-btn admin-btn-primary" (click)="closeInviteModal()">
+            Hoàn tất & Đóng
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: SỬA VAI TRÒ NHÂN SỰ
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isEditRoleModalOpen" (click)="closeEditRoleModal()">
+    <div class="modal-card" style="max-width: 440px;" (click)="$event.stopPropagation()">
+      
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Cập nhật vai trò</h2>
+          <p class="modal-subtitle">Thay đổi quyền hạn cho nhân sự: <strong>{{ selectedStaffForEdit?.name }}</strong></p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeEditRoleModal()">
+          <app-icon name="X" size="20"></app-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-field">
+          <label for="edit-role-select">Chọn vai trò mới (1 trong 7 vai trò):</label>
+          <select id="edit-role-select" class="admin-select" [(ngModel)]="editedRole">
+            <option *ngFor="let r of rolesList" [value]="r">{{ r }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeEditRoleModal()">
+          Hủy
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveEditedRole()">
+          Lưu thay đổi
+        </button>
+      </div>
+
+    </div>
+  </div>
+
 </section>

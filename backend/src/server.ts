@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.routes';
 import cartRoutes from './routes/cart.routes';
 import inventoryRoutes from './routes/inventory.routes';
+import staffRoutes from './routes/staff.routes';
 
 dotenv.config();
 
@@ -31,6 +32,9 @@ app.get('/api/health', async (req, res) => {
 
 // Gắn router xác thực
 app.use('/api/auth', authRoutes);
+
+// Gắn router quản lý nhân viên & gửi thư kích hoạt
+app.use('/api/admin/staff', staffRoutes);
 
 // Gắn router giỏ hàng
 app.use('/api/store/cart', cartRoutes);
