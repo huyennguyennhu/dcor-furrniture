@@ -70,6 +70,7 @@ export interface LineItem {
       display: flex;
       flex-direction: column;
       gap: 3px;
+      background: transparent;
       transition: background 0.12s ease;
     }
     .dropdown-option-item:hover {
@@ -77,6 +78,21 @@ export interface LineItem {
     }
     .dropdown-option-item.selected {
       background: rgba(194, 154, 107, 0.15) !important;
+    }
+    .dropdown-menu-item {
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      background: transparent;
+      transition: background 0.12s ease;
+    }
+    .dropdown-menu-item:hover {
+      background: var(--bg-secondary) !important;
+    }
+    .dropdown-menu-item.selected {
+      background: rgba(194, 154, 107, 0.15) !important;
+      color: var(--accent) !important;
     }
     .filter-dropdown-wrapper {
       position: relative;
@@ -551,12 +567,11 @@ export interface LineItem {
                     </button>
                     <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                       <div *ngFor="let w of activeWarehouses"
+                        class="dropdown-menu-item"
+                        [class.selected]="transactionLocation === w.id"
                         (click)="selectLocation(w.id, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                         [title]="w.name + ' (' + w.code + ')'"
-                        [ngStyle]="{'color': transactionLocation === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
-                        onmouseover="this.style.background='var(--bg-secondary)'"
-                        onmouseout="this.style.background='transparent'"
+                        [style.color]="transactionLocation === w.id ? 'var(--accent)' : 'var(--text-primary)'"
                       >
                         {{ w.name }} ({{ w.code }})
                       </div>
@@ -592,11 +607,11 @@ export interface LineItem {
                     </button>
                     <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 260px; overflow-y: auto;">
                       <div *ngFor="let r of currentReasonOptions"
+                        class="dropdown-menu-item"
+                        [class.selected]="transactionReason === r"
                         (click)="selectReason(r, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; display: flex; align-items: center; justify-content: space-between; gap: 8px;"
-                        [ngStyle]="{'color': transactionReason === r ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
-                        onmouseover="this.style.background='var(--bg-secondary)'"
-                        onmouseout="this.style.background='transparent'"
+                        [style.color]="transactionReason === r ? 'var(--accent)' : 'var(--text-primary)'"
+                        style="display: flex; align-items: center; justify-content: space-between; gap: 8px;"
                       >
                         <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
                           <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r }}</span>
@@ -608,10 +623,9 @@ export interface LineItem {
 
                       <!-- Nút thêm lý do xuất mới dưới cùng -->
                       <div *ngIf="type === 'export'"
+                        class="dropdown-menu-item"
                         (click)="openAddReasonModal($event)"
-                        style="padding: 9px 12px; border-radius: 4px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--accent); border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 6px; margin-top: 4px;"
-                        onmouseover="this.style.background='var(--bg-secondary)'"
-                        onmouseout="this.style.background='transparent'"
+                        style="color: var(--accent); border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; font-weight: 500;"
                       >
                         <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
                         <span>Thêm lý do xuất</span>
@@ -651,12 +665,11 @@ export interface LineItem {
                       <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                         <ng-container *ngFor="let w of activeWarehouses">
                           <div *ngIf="w.id !== transactionLocation"
+                            class="dropdown-menu-item"
+                            [class.selected]="transactionDestination === w.id"
                             (click)="selectDest(w.id, $event)"
-                            style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                             [title]="w.name + ' (' + w.code + ')'"
-                            [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
-                            onmouseover="this.style.background='var(--bg-secondary)'"
-                            onmouseout="this.style.background='transparent'"
+                            [style.color]="transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)'"
                           >
                             {{ w.name }} ({{ w.code }})
                           </div>
@@ -665,18 +678,19 @@ export interface LineItem {
                     </div>
                   </ng-container>
 
-                  <!-- 2. Hủy hàng hỏng -> Đơn vị nhận hàng (Không áp dụng) -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && isReasonDisposal(transactionReason)">
-                    <label style="font-size: 13px; font-weight: 400; color: var(--text-muted);">
-                      Đơn vị nhận hàng
+                  <!-- 2. Không yêu cầu đối tác (Hủy hàng hỏng hoặc lý do tạo mới không tick yêu cầu đối tác) -> Khóa trường lại -->
+                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && !isReasonRequiringPartner(transactionReason)">
+                    <label style="font-size: 13px; font-weight: 400; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                      Nhà cung cấp / Khách hàng
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
                         type="text" 
-                        value="Không áp dụng" 
+                        value="" 
                         readonly 
                         disabled
-                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; font-style: italic;" 
+                        placeholder="Không áp dụng" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; opacity: 0.75;" 
                       />
                       <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
                         <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
@@ -684,10 +698,10 @@ export interface LineItem {
                     </div>
                   </ng-container>
 
-                  <!-- 3. Trả nhà cung cấp -> Nhà cung cấp * -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && !isReasonDisposal(transactionReason) && isReasonRequiringSupplier(transactionReason)">
+                  <!-- 3. Có yêu cầu đối tác -> Hiển thị trường theo tên gọi phù hợp (Nhà cung ứng / Khách hàng / Tùy chỉnh) -->
+                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && isReasonRequiringPartner(transactionReason)">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      Nhà cung cấp <span style="color: #ef4444;">*</span>
+                      {{ getPartnerLabelForReason(transactionReason) }} <span style="color: #ef4444;">*</span>
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
@@ -695,8 +709,8 @@ export interface LineItem {
                         [(ngModel)]="recipientName" 
                         [disabled]="isFormDisabled"
                         [readonly]="isFormDisabled"
-                        list="supplierListSuggestionsExport"
-                        placeholder="VD: BoConcept VN, Gỗ An Cường, Hafele..." 
+                        [attr.list]="getPartnerLabelForReason(transactionReason).toLowerCase().includes('cung') ? 'supplierListSuggestionsExport' : null"
+                        [placeholder]="'Nhập ' + getPartnerLabelForReason(transactionReason).toLowerCase() + '...'" 
                         style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
                         [ngStyle]="{
                           'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
@@ -708,66 +722,6 @@ export interface LineItem {
                         <option *ngFor="let s of supplierOptions" [value]="s"></option>
                       </datalist>
                     </div>
-                  </ng-container>
-
-                  <!-- 4. Bán hàng -> Khách hàng * -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && !isReasonDisposal(transactionReason) && !isReasonRequiringSupplier(transactionReason) && transactionReason.includes('Bán')">
-                    <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      Khách hàng <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      [(ngModel)]="recipientName" 
-                      [disabled]="isFormDisabled"
-                      [readonly]="isFormDisabled"
-                      placeholder="VD: Anh Minh, Công ty CP Kiến trúc ABC..." 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
-                      [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
-                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
-                      }"
-                    />
-                  </ng-container>
-
-                  <!-- 5. Trưng bày mẫu -> Nơi trưng bày * -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && !isReasonDisposal(transactionReason) && !isReasonRequiringSupplier(transactionReason) && (transactionReason.includes('Trưng bày') || transactionReason.includes('mẫu'))">
-                    <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      Nơi trưng bày <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      [(ngModel)]="recipientName" 
-                      [disabled]="isFormDisabled"
-                      [readonly]="isFormDisabled"
-                      placeholder="VD: Showroom Quận 1, Showroom Thủ Đức, Triển lãm VietBuild..." 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
-                      [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
-                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
-                      }"
-                    />
-                  </ng-container>
-
-                  <!-- 6. Lý do khác (Custom) -> Đơn vị nhận hàng * -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && !isReasonDisposal(transactionReason) && !isReasonRequiringSupplier(transactionReason) && !transactionReason.includes('Bán') && !transactionReason.includes('Trưng bày') && !transactionReason.includes('mẫu')">
-                    <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      Đơn vị nhận hàng <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      [(ngModel)]="recipientName" 
-                      [disabled]="isFormDisabled"
-                      [readonly]="isFormDisabled"
-                      placeholder="VD: Nhập tên đối tác, đơn vị hoặc người nhận..." 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
-                      [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
-                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
-                      }"
-                    />
                   </ng-container>
                 </div>
               </div>
@@ -964,11 +918,11 @@ export interface LineItem {
                     </button>
                     <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 260px; overflow-y: auto;">
                       <div *ngFor="let r of currentReasonOptions"
+                        class="dropdown-menu-item"
+                        [class.selected]="transactionReason === r"
                         (click)="selectReason(r, $event)"
-                        style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; display: flex; align-items: center; justify-content: space-between; gap: 8px;"
-                        [ngStyle]="{'color': transactionReason === r ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
-                        onmouseover="this.style.background='var(--bg-secondary)'"
-                        onmouseout="this.style.background='transparent'"
+                        [style.color]="transactionReason === r ? 'var(--accent)' : 'var(--text-primary)'"
+                        style="display: flex; align-items: center; justify-content: space-between; gap: 8px;"
                       >
                         <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; min-width: 0;">
                           <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r }}</span>
@@ -980,10 +934,9 @@ export interface LineItem {
 
                       <!-- Nút thêm lý do nhập mới dưới cùng -->
                       <div 
+                        class="dropdown-menu-item"
                         (click)="openAddReasonModal($event)"
-                        style="padding: 9px 12px; border-radius: 4px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--accent); border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 6px; margin-top: 4px;"
-                        onmouseover="this.style.background='var(--bg-secondary)'"
-                        onmouseout="this.style.background='transparent'"
+                        style="color: var(--accent); border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; font-weight: 500;"
                       >
                         <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
                         <span>Thêm lý do nhập</span>
@@ -1023,12 +976,11 @@ export interface LineItem {
                       <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
                         <ng-container *ngFor="let w of activeWarehouses">
                           <div *ngIf="w.id !== transactionLocation"
+                            class="dropdown-menu-item"
+                            [class.selected]="transactionDestination === w.id"
                             (click)="selectDest(w.id, $event)"
-                            style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                             [title]="w.name + ' (' + w.code + ')'"
-                            [ngStyle]="{'color': transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
-                            onmouseover="this.style.background='var(--bg-secondary)'"
-                            onmouseout="this.style.background='transparent'"
+                            [style.color]="transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)'"
                           >
                             {{ w.name }} ({{ w.code }})
                           </div>
@@ -1037,10 +989,10 @@ export interface LineItem {
                     </div>
                   </ng-container>
 
-                  <!-- Trường hợp 2: Dư sau kiểm kê -> Không có NCC và khóa trường NCC lại, không cần viết lý do gì hết -->
-                  <ng-container *ngIf="!isImportTransfer() && isImportAuditSurplus()">
+                  <!-- Trường hợp 2: Không yêu cầu đối tác (Dư sau kiểm kê hoặc lý do tạo mới không tick yêu cầu đối tác) -> Khóa trường lại -->
+                  <ng-container *ngIf="!isImportTransfer() && !isReasonRequiringPartner(transactionReason)">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                      Nhà cung cấp
+                      Nhà cung cấp / Khách hàng
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
@@ -1048,7 +1000,7 @@ export interface LineItem {
                         value="" 
                         readonly 
                         disabled
-                        placeholder="Không áp dụng (Dư sau kiểm kê)" 
+                        placeholder="Không áp dụng" 
                         style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; opacity: 0.75;" 
                       />
                       <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
@@ -1057,28 +1009,30 @@ export interface LineItem {
                     </div>
                   </ng-container>
 
-                  <!-- Trường hợp 3: Mua từ nhà cung cấp hoặc Khách trả hàng (hoặc lý do nhập khác) -->
-                  <ng-container *ngIf="!isImportTransfer() && !isImportAuditSurplus()">
+                  <!-- Trường hợp 3: Có yêu cầu đối tác -> Hiển thị trường theo tên gọi phù hợp (Nhà cung ứng / Khách hàng / Tùy chỉnh) -->
+                  <ng-container *ngIf="!isImportTransfer() && isReasonRequiringPartner(transactionReason)">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      {{ isImportCustomerReturn() ? 'Khách hàng' : 'Nhà cung cấp' }} <span style="color: #ef4444;">*</span>
+                      {{ getPartnerLabelForReason(transactionReason) }} <span style="color: #ef4444;">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      [(ngModel)]="recipientName" 
-                      [disabled]="isFormDisabled"
-                      [readonly]="isFormDisabled"
-                      [attr.list]="isImportCustomerReturn() ? null : 'supplierListSuggestions'"
-                      [placeholder]="isImportCustomerReturn() ? 'VD: Khách hàng Trần Tuấn, Đơn #ORD-092...' : 'VD: BoConcept VN, Gỗ An Cường, Hafele...'" 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
-                      [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
-                        'cursor': isFormDisabled ? 'not-allowed' : 'text'
-                      }"
-                    />
-                    <datalist id="supplierListSuggestions">
-                      <option *ngFor="let s of supplierOptions" [value]="s"></option>
-                    </datalist>
+                    <div style="position: relative; width: 100%; min-width: 0;">
+                      <input 
+                        type="text" 
+                        [(ngModel)]="recipientName" 
+                        [disabled]="isFormDisabled"
+                        [readonly]="isFormDisabled"
+                        [attr.list]="getPartnerLabelForReason(transactionReason).toLowerCase().includes('khách') ? null : 'supplierListSuggestions'"
+                        [placeholder]="'Nhập ' + getPartnerLabelForReason(transactionReason).toLowerCase() + '...'" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                        [ngStyle]="{
+                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                          'cursor': isFormDisabled ? 'not-allowed' : 'text'
+                        }"
+                      />
+                      <datalist id="supplierListSuggestions">
+                        <option *ngFor="let s of supplierOptions" [value]="s"></option>
+                      </datalist>
+                    </div>
                   </ng-container>
                 </div>
               </div>
@@ -1243,14 +1197,12 @@ export interface LineItem {
                       <!-- Product Options List -->
                       <div class="custom-dropdown-scrollbar" style="max-height: 220px; overflow-y: scroll; display: flex; flex-direction: column; gap: 2px; padding-right: 4px;">
                         <div *ngFor="let p of getFilteredProducts()"
+                          class="dropdown-option-item"
+                          [class.selected]="item.productId === p.id"
                           (mousedown)="selectProduct(item, p.id, $event)"
                           (click)="selectProduct(item, p.id, $event)"
-                          style="padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; flex-direction: column; gap: 3px; transition: all 0.12s ease;"
-                          [ngStyle]="{'background': item.productId === p.id ? 'var(--bg-secondary)' : 'transparent', 'color': item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'}"
-                          onmouseover="this.style.background='var(--bg-secondary)'"
-                          onmouseout="this.style.background=item.productId === p.id ? 'var(--bg-secondary)' : 'transparent'"
                         >
-                          <div style="font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">
+                          <div style="font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;" [style.color]="item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'">
                             {{ p.name || p.productName }}
                           </div>
                           <div *ngIf="p.variants?.length" style="font-size: 11px; color: var(--text-muted);">
@@ -1297,9 +1249,8 @@ export interface LineItem {
                       <lucide-angular [img]="icons.ChevronDown" size="14" style="flex-shrink: 0;" [ngStyle]="{'transform': openVariantDropdownId === item.id ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s', 'opacity': (!transactionLocation || !item.productId) ? '0.35' : '1'}"></lucide-angular>
                     </button>
 
-                    <!-- Variant Popup Menu: Bố trí Option giống form Kiểm kê -->
+                    <!-- Variant Popup Menu with Search Box: Bố trí Option giống form Kiểm kê -->
                     <div *ngIf="openVariantDropdownId === item.id && transactionLocation && item.productId"
-                      class="custom-dropdown-scrollbar"
                       (click)="$event.stopPropagation()"
                       [ngStyle]="{
                         'position': 'absolute',
@@ -1311,32 +1262,48 @@ export interface LineItem {
                         'border-radius': '10px',
                         'box-shadow': '0 16px 36px rgba(0,0,0,0.22)',
                         'z-index': '1200',
-                        'padding': '6px',
-                        'max-height': '220px',
-                        'overflow-y': 'scroll',
+                        'padding': '8px',
                         'display': 'flex',
                         'flex-direction': 'column',
-                        'gap': '3px',
+                        'gap': '8px',
                         'bottom': dropdownPositions['var_' + item.id] === 'up' ? 'calc(100% + 6px)' : 'auto',
                         'top': dropdownPositions['var_' + item.id] === 'up' ? 'auto' : 'calc(100% + 6px)'
                       }"
                     >
-                      <div *ngFor="let v of getVariantsForProduct(item.productId); trackBy: trackByVariantId"
-                        class="dropdown-option-item"
-                        [class.selected]="item.variantId == v.id"
-                        (mousedown)="selectVariant(item, v, $event)"
-                        (click)="selectVariant(item, v, $event)"
-                      >
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                          <span style="font-family: monospace; font-weight: 700; font-size: 11.5px; color: var(--accent, #765337); flex-shrink: 0;">{{ v.sku || 'SKU-AUTO' }}</span>
-                          <span style="font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; white-space: nowrap;">
-                            Tồn: <strong style="color: var(--text-primary); font-weight: 600;">{{ getVariantStockInfo(item.productId, v.id).available }}</strong>
-                          </span>
-                        </div>
-                        <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ v.name }}</span>
+                      <!-- Search Input Box for Variants -->
+                      <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px;" (click)="$event.stopPropagation()">
+                        <lucide-angular [img]="icons.Search" size="14" color="var(--text-muted)"></lucide-angular>
+                        <input 
+                          type="text" 
+                          placeholder="Tìm kiếm biến thể theo tên, SKU..." 
+                          [(ngModel)]="variantSearchTerm" 
+                          (click)="$event.stopPropagation()"
+                          style="width: 100%; border: none; background: transparent; outline: none; font-size: 12px; color: var(--text-primary);" 
+                        />
+                        <button *ngIf="variantSearchTerm" (click)="variantSearchTerm = ''; $event.stopPropagation()" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--text-muted);">
+                          <lucide-angular [img]="icons.X" size="12"></lucide-angular>
+                        </button>
                       </div>
-                      <div *ngIf="getVariantsForProduct(item.productId).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
-                        Sản phẩm chưa có biến thể
+
+                      <!-- Variant Options List -->
+                      <div class="custom-dropdown-scrollbar" style="max-height: 200px; overflow-y: scroll; display: flex; flex-direction: column; gap: 3px; padding-right: 4px;">
+                        <div *ngFor="let v of getFilteredVariants(item.productId); trackBy: trackByVariantId"
+                          class="dropdown-option-item"
+                          [class.selected]="item.variantId == v.id"
+                          (mousedown)="selectVariant(item, v, $event)"
+                          (click)="selectVariant(item, v, $event)"
+                        >
+                          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                            <span style="font-family: monospace; font-weight: 700; font-size: 11.5px; color: var(--accent, #765337); flex-shrink: 0;">{{ v.sku || 'SKU-AUTO' }}</span>
+                            <span style="font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; white-space: nowrap;">
+                              Tồn: <strong style="color: var(--text-primary); font-weight: 600;">{{ getVariantStockInfo(item.productId, v.id).available }}</strong>
+                            </span>
+                          </div>
+                          <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;">{{ v.name }}</span>
+                        </div>
+                        <div *ngIf="getFilteredVariants(item.productId).length === 0" style="padding: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
+                          {{ getVariantsForProduct(item.productId).length === 0 ? 'Sản phẩm chưa có biến thể' : 'Không tìm thấy biến thể phù hợp' }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1560,7 +1527,7 @@ export interface LineItem {
                   <div>• Tổng số lượng: <strong style="color: var(--text-primary);">{{ getTotalQuantity() }}</strong> đơn vị sản phẩm</div>
                   <div>• Số chủng loại: <strong style="color: var(--text-primary);">{{ lineItems.length }}</strong> mặt hàng</div>
                   <div *ngIf="referenceCode">• Chứng từ kèm theo: <strong style="color: var(--accent); font-family: monospace;">{{ referenceCode }}</strong></div>
-                  <div *ngIf="recipientName && !isReasonDisposal(transactionReason) && !(type === 'import' && isImportAuditSurplus())">• {{ type === 'import' ? (isImportCustomerReturn() ? 'Khách hàng' : 'Nhà cung cấp') : getExportRecipientLabel() }}: <strong style="color: var(--text-primary);">{{ recipientName }}</strong></div>
+                  <div *ngIf="recipientName && isReasonRequiringPartner(transactionReason)">• {{ getPartnerLabelForReason(transactionReason) }}: <strong style="color: var(--text-primary);">{{ recipientName }}</strong></div>
                   <div *ngIf="transactionReason.includes('Chuyển kho') && transactionDestination">• {{ type === 'import' ? 'Kho xuất' : 'Kho đích' }}: <strong style="color: var(--text-primary);">{{ getDestLabel() }}</strong></div>
                 </div>
               </div>
@@ -2053,7 +2020,7 @@ export interface LineItem {
             </div>
           </div>
 
-          <!-- Field 2: Checkbox Có yêu cầu nhà cung cấp không -->
+          <!-- Field 2: Checkbox Có yêu cầu thông tin đối tác / nhà cung cấp không -->
           <div 
             (click)="newReasonRequiresSupplier = !newReasonRequiresSupplier"
             style="padding: 12px 14px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.15s ease;"
@@ -2068,12 +2035,59 @@ export interface LineItem {
                 <lucide-angular *ngIf="!newReasonRequiresSupplier" [img]="icons.Square" size="16"></lucide-angular>
               </div>
               <div style="display: flex; flex-direction: column; gap: 2px;">
-                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Có yêu cầu nhà cung cấp không</span>
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Yêu cầu đối tác (Nhà cung ứng / Khách hàng)</span>
                 <span style="font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
-                  {{ type === 'import' ? 'Bật tùy chọn này nếu lý do nhập cần ghi nhận từ Nhà cung cấp' : 'Bật tùy chọn này nếu lý do xuất cần ghi nhận và trả cho Nhà cung cấp' }}
+                  {{ type === 'import' ? 'Bật nếu đơn nhập cần ghi nhận từ đối tác (Nhà cung ứng hoặc Khách hàng)' : 'Bật nếu đơn xuất cần ghi nhận cho đối tác (Khách hàng hoặc Nhà cung ứng)' }}
                 </span>
               </div>
             </div>
+          </div>
+
+          <!-- Khung cấu hình tên gọi của trường đối tác (Mở ra khi đã tick yêu cầu nhà cung cấp / đối tác) -->
+          <div 
+            *ngIf="newReasonRequiresSupplier"
+            (click)="$event.stopPropagation()"
+            style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: rgba(245, 128, 37, 0.04); border: 1px dashed var(--accent); border-radius: 8px;"
+          >
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <label style="font-size: 12.5px; font-weight: 600; color: var(--text-primary);">
+                Tên gọi của trường đối tác <span style="color: #ef4444;">*</span>
+              </label>
+              <span style="font-size: 11px; color: var(--text-muted);">Hiển thị trên form</span>
+            </div>
+
+            <!-- Nút chọn nhanh: Nhà cung ứng / Khách hàng -->
+            <div style="display: flex; gap: 8px;">
+              <button 
+                type="button" 
+                (click)="newReasonPartnerLabel = 'Nhà cung ứng'"
+                [style.background]="(newReasonPartnerLabel === 'Nhà cung ứng' || newReasonPartnerLabel === 'Nhà cung cấp') ? 'var(--accent)' : 'var(--bg-primary)'"
+                [style.color]="(newReasonPartnerLabel === 'Nhà cung ứng' || newReasonPartnerLabel === 'Nhà cung cấp') ? '#ffffff' : 'var(--text-primary)'"
+                [style.border]="'1px solid ' + ((newReasonPartnerLabel === 'Nhà cung ứng' || newReasonPartnerLabel === 'Nhà cung cấp') ? 'var(--accent)' : 'var(--border-color)')"
+                style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
+              >
+                Nhà cung ứng
+              </button>
+              <button 
+                type="button" 
+                (click)="newReasonPartnerLabel = 'Khách hàng'"
+                [style.background]="newReasonPartnerLabel === 'Khách hàng' ? 'var(--accent)' : 'var(--bg-primary)'"
+                [style.color]="newReasonPartnerLabel === 'Khách hàng' ? '#ffffff' : 'var(--text-primary)'"
+                [style.border]="'1px solid ' + (newReasonPartnerLabel === 'Khách hàng' ? 'var(--accent)' : 'var(--border-color)')"
+                style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
+              >
+                Khách hàng
+              </button>
+            </div>
+
+            <!-- Ô nhập tự do nếu muốn tùy chỉnh thêm tên gọi khác -->
+            <input 
+              type="text" 
+              [(ngModel)]="newReasonPartnerLabel"
+              placeholder="Hoặc nhập tên gọi khác (VD: Đối tác dự án, Nhà máy...)"
+              maxlength="40"
+              style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 12.5px; color: var(--text-primary); outline: none;"
+            />
           </div>
         </div>
 
@@ -2806,6 +2820,20 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.actionLogs = existingLogs || this.generateOrderBaselineLogs(v);
     this.transactionNote = this.cleanNotesForDisplay(v.notes);
     this.referenceCode = v.referenceCode || '';
+    this.transactionReason = v.reason || '';
+    if (this.transactionReason) {
+      if (this.type === 'import') {
+        if (!this.importReasonOptions.includes(this.transactionReason)) {
+          this.importReasonOptions.push(this.transactionReason);
+          this.saveCustomReasons();
+        }
+      } else {
+        if (!this.exportReasonOptions.includes(this.transactionReason)) {
+          this.exportReasonOptions.push(this.transactionReason);
+          this.saveCustomReasons();
+        }
+      }
+    }
     if (v.taxRate !== undefined && v.taxRate !== null) {
       this.taxRate = Number(v.taxRate);
     }
@@ -2980,11 +3008,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   openVariantDropdownId: string | null = null;
   openUnitDropdownId: string | null = null;
   productSearchTerm = '';
+  variantSearchTerm = '';
 
   // Vị trí auto dropup/dropdown
   dropdownPositions: { [key: string]: 'up' | 'down' } = { tax: 'down' };
 
-  exportReasonOptions = [
+  readonly STORAGE_KEY_IMPORT_REASONS = 'dcor_inventory_reasons_import';
+  readonly STORAGE_KEY_EXPORT_REASONS = 'dcor_inventory_reasons_export';
+  readonly STORAGE_KEY_REQUIRING_SUPPLIER = 'dcor_inventory_reasons_requiring_supplier';
+  readonly STORAGE_KEY_NOT_REQUIRING_SUPPLIER = 'dcor_inventory_reasons_not_requiring_supplier';
+  readonly STORAGE_KEY_PARTNER_LABELS = 'dcor_inventory_reasons_partner_labels';
+
+  exportReasonOptions: string[] = [
     'Bán hàng',
     'Chuyển kho',
     'Trả nhà cung cấp',
@@ -2992,16 +3027,142 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     'Trưng bày mẫu'
   ];
 
+  importReasonOptions: string[] = [
+    'Mua hàng từ Nhà cung cấp',
+    'Chuyển kho nội bộ (từ kho khác sang)',
+    'Hàng trả lại từ khách hàng (Trả hàng/Đổi trả)',
+    'Dư sau kiểm kê / Khác'
+  ];
+
   showAddReasonModal = false;
   newReasonText = '';
   newReasonRequiresSupplier = false;
-  reasonsRequiringSupplier: Set<string> = new Set(['Trả nhà cung cấp']);
+  newReasonPartnerLabel = 'Nhà cung ứng';
+
+  reasonsRequiringSupplier: Set<string> = new Set([
+    'Mua hàng từ Nhà cung cấp',
+    'Hàng trả lại từ khách hàng (Trả hàng/Đổi trả)',
+    'Bán hàng',
+    'Trả nhà cung cấp',
+    'Trưng bày mẫu'
+  ]);
+
+  reasonsNotRequiringSupplier: Set<string> = new Set([
+    'Hủy hàng hỏng',
+    'Dư sau kiểm kê / Khác'
+  ]);
+
+  reasonPartnerLabelMap: { [reason: string]: string } = {
+    'Mua hàng từ Nhà cung cấp': 'Nhà cung cấp',
+    'Hàng trả lại từ khách hàng (Trả hàng/Đổi trả)': 'Khách hàng',
+    'Bán hàng': 'Khách hàng',
+    'Trả nhà cung cấp': 'Nhà cung cấp',
+    'Trưng bày mẫu': 'Nơi trưng bày'
+  };
+
+  loadStoredReasons() {
+    try {
+      const storedImport = localStorage.getItem(this.STORAGE_KEY_IMPORT_REASONS);
+      if (storedImport) {
+        const parsed = JSON.parse(storedImport);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((r: string) => {
+            if (r && typeof r === 'string' && !this.importReasonOptions.includes(r.trim())) {
+              this.importReasonOptions.push(r.trim());
+            }
+          });
+        }
+      }
+
+      const storedExport = localStorage.getItem(this.STORAGE_KEY_EXPORT_REASONS);
+      if (storedExport) {
+        const parsed = JSON.parse(storedExport);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((r: string) => {
+            if (r && typeof r === 'string' && !this.exportReasonOptions.includes(r.trim())) {
+              this.exportReasonOptions.push(r.trim());
+            }
+          });
+        }
+      }
+
+      const storedSupplierReq = localStorage.getItem(this.STORAGE_KEY_REQUIRING_SUPPLIER);
+      if (storedSupplierReq) {
+        const parsed = JSON.parse(storedSupplierReq);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((r: string) => {
+            if (r && typeof r === 'string') this.reasonsRequiringSupplier.add(r.trim());
+          });
+        }
+      }
+
+      const storedNotSupplierReq = localStorage.getItem(this.STORAGE_KEY_NOT_REQUIRING_SUPPLIER);
+      if (storedNotSupplierReq) {
+        const parsed = JSON.parse(storedNotSupplierReq);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((r: string) => {
+            if (r && typeof r === 'string') this.reasonsNotRequiringSupplier.add(r.trim());
+          });
+        }
+      }
+
+      const storedLabels = localStorage.getItem(this.STORAGE_KEY_PARTNER_LABELS);
+      if (storedLabels) {
+        const parsed = JSON.parse(storedLabels);
+        if (parsed && typeof parsed === 'object') {
+          this.reasonPartnerLabelMap = { ...this.reasonPartnerLabelMap, ...parsed };
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load custom reasons from localStorage:', e);
+    }
+  }
+
+  saveCustomReasons() {
+    try {
+      localStorage.setItem(this.STORAGE_KEY_IMPORT_REASONS, JSON.stringify(this.importReasonOptions));
+      localStorage.setItem(this.STORAGE_KEY_EXPORT_REASONS, JSON.stringify(this.exportReasonOptions));
+      localStorage.setItem(this.STORAGE_KEY_REQUIRING_SUPPLIER, JSON.stringify(Array.from(this.reasonsRequiringSupplier)));
+      localStorage.setItem(this.STORAGE_KEY_NOT_REQUIRING_SUPPLIER, JSON.stringify(Array.from(this.reasonsNotRequiringSupplier)));
+      localStorage.setItem(this.STORAGE_KEY_PARTNER_LABELS, JSON.stringify(this.reasonPartnerLabelMap));
+    } catch (e) {
+      console.warn('Could not save custom reasons to localStorage:', e);
+    }
+  }
+
+  isReasonRequiringPartner(reason: string): boolean {
+    if (!reason) return false;
+    const r = reason.trim().toLowerCase();
+    if (r.includes('chuyển kho')) return false;
+    if (this.isReasonDisposal(reason) || (this.type === 'import' && this.isImportAuditSurplus())) return false;
+    if (this.reasonsNotRequiringSupplier.has(reason)) return false;
+    if (this.reasonsRequiringSupplier.has(reason)) return true;
+
+    if (this.type === 'export') {
+      return r.includes('bán') || r.includes('trả') || r.includes('trưng bày') || r.includes('mẫu') || r.includes('ncc') || r.includes('nhà cung cấp');
+    } else {
+      return r.includes('nhà cung cấp') || r.includes('ncc') || r.includes('mua') || r.includes('khách') || r.includes('trả lại') || r.includes('đổi trả');
+    }
+  }
 
   isReasonRequiringSupplier(reason: string): boolean {
-    if (!reason) return false;
-    if (this.reasonsRequiringSupplier.has(reason)) return true;
+    return this.isReasonRequiringPartner(reason);
+  }
+
+  getPartnerLabelForReason(reason: string): string {
+    if (!reason) return this.type === 'import' ? 'Nhà cung cấp' : 'Khách hàng';
+    if (this.reasonPartnerLabelMap[reason]) return this.reasonPartnerLabelMap[reason];
     const r = reason.toLowerCase();
-    return r.includes('nhà cung cấp') || r.includes('ncc');
+    if (this.type === 'export') {
+      if (r.includes('bán')) return 'Khách hàng';
+      if (r.includes('trả') || r.includes('ncc') || r.includes('nhà cung cấp')) return 'Nhà cung cấp';
+      if (r.includes('trưng bày') || r.includes('mẫu')) return 'Nơi trưng bày';
+      return 'Khách hàng';
+    } else {
+      if (r.includes('khách') || r.includes('trả lại') || r.includes('đổi trả')) return 'Khách hàng';
+      if (r.includes('nhà cung cấp') || r.includes('ncc') || r.includes('mua')) return 'Nhà cung cấp';
+      return 'Nhà cung cấp';
+    }
   }
 
   isReasonDisposal(reason: string): boolean {
@@ -3035,6 +3196,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showReasonDropdown = false;
     this.newReasonText = '';
     this.newReasonRequiresSupplier = false;
+    this.newReasonPartnerLabel = this.type === 'import' ? 'Nhà cung ứng' : 'Khách hàng';
     this.showAddReasonModal = true;
   }
 
@@ -3042,6 +3204,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.showAddReasonModal = false;
     this.newReasonText = '';
     this.newReasonRequiresSupplier = false;
+    this.newReasonPartnerLabel = this.type === 'import' ? 'Nhà cung ứng' : 'Khách hàng';
   }
 
   confirmAddReason() {
@@ -3054,6 +3217,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (words > 10) {
       return window.alert(`Lý do ${this.type === 'import' ? 'nhập' : 'xuất'} không được vượt quá 10 từ (hiện tại: ${words} từ). Vui lòng rút gọn lại.`);
     }
+
+    const partnerLabel = (this.newReasonPartnerLabel || (this.type === 'import' ? 'Nhà cung ứng' : 'Khách hàng')).trim();
+
     if (this.type === 'import') {
       if (!this.importReasonOptions.includes(trimmed)) {
         this.importReasonOptions.push(trimmed);
@@ -3063,12 +3229,37 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         this.exportReasonOptions.push(trimmed);
       }
     }
+
     if (this.newReasonRequiresSupplier) {
       this.reasonsRequiringSupplier.add(trimmed);
+      this.reasonsNotRequiringSupplier.delete(trimmed);
+      this.reasonPartnerLabelMap[trimmed] = partnerLabel;
+    } else {
+      this.reasonsRequiringSupplier.delete(trimmed);
+      this.reasonsNotRequiringSupplier.add(trimmed);
+      delete this.reasonPartnerLabelMap[trimmed];
     }
+
+    // Lưu LocalStorage
+    this.saveCustomReasons();
+
+    // Lưu xuống CSDL Backend qua endpoint /api/admin/inventory/reasons
+    this.http.post(`${environment.apiUrl}/admin/inventory/reasons`, {
+      type: this.type,
+      reason: trimmed,
+      requiresPartner: this.newReasonRequiresSupplier,
+      partnerLabel: this.newReasonRequiresSupplier ? partnerLabel : null
+    }).subscribe({
+      next: () => {},
+      error: (err) => console.warn('Could not save custom reason to backend:', err)
+    });
+
     this.transactionReason = trimmed;
     if (this.newReasonRequiresSupplier && this.transactionDestination) {
       this.transactionDestination = '';
+    }
+    if (!this.isReasonRequiringPartner(trimmed)) {
+      this.recipientName = '';
     }
     if (this.isReasonDisposal(trimmed)) {
       this.recipientName = '';
@@ -3076,24 +3267,21 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     }
     this.generateOrderCode();
     this.closeAddReasonModal();
+    this.cdr.markForCheck();
   }
-
-  importReasonOptions = [
-    'Mua hàng từ Nhà cung cấp',
-    'Chuyển kho nội bộ (từ kho khác sang)',
-    'Hàng trả lại từ khách hàng (Trả hàng/Đổi trả)',
-    'Dư sau kiểm kê / Khác'
-  ];
 
   get currentReasonOptions(): string[] {
     return this.type === 'export' ? this.exportReasonOptions : this.importReasonOptions;
   }
 
   ngOnInit() {
+    this.loadStoredReasons();
     this.loadBackendData();
   }
 
   loadBackendData() {
+    this.loadStoredReasons();
+
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/warehouses`).subscribe({
       next: (data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -3117,11 +3305,67 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       },
       error: (err) => console.warn('Could not fetch products options:', err)
     });
+
+    // Tải và hợp nhất tất cả lý do đã từng được lưu trong cơ sở dữ liệu
+    this.http.get<{ 
+      importReasons?: string[]; 
+      exportReasons?: string[];
+      customReasons?: Array<{ type: string; reason: string; requiresPartner: boolean; partnerLabel: string | null }>;
+    }>(`${environment.apiUrl}/admin/inventory/reasons`).subscribe({
+      next: (res) => {
+        if (res) {
+          let hasChanges = false;
+          if (Array.isArray(res.importReasons)) {
+            res.importReasons.forEach(r => {
+              if (r && typeof r === 'string' && !this.importReasonOptions.includes(r.trim())) {
+                this.importReasonOptions.push(r.trim());
+                hasChanges = true;
+              }
+            });
+          }
+          if (Array.isArray(res.exportReasons)) {
+            res.exportReasons.forEach(r => {
+              if (r && typeof r === 'string' && !this.exportReasonOptions.includes(r.trim())) {
+                this.exportReasonOptions.push(r.trim());
+                hasChanges = true;
+              }
+            });
+          }
+          if (Array.isArray(res.customReasons)) {
+            res.customReasons.forEach(cr => {
+              if (!cr || !cr.reason) return;
+              const reasonName = cr.reason.trim();
+              if (cr.requiresPartner) {
+                this.reasonsRequiringSupplier.add(reasonName);
+                this.reasonsNotRequiringSupplier.delete(reasonName);
+                if (cr.partnerLabel) {
+                  this.reasonPartnerLabelMap[reasonName] = cr.partnerLabel;
+                }
+              } else {
+                this.reasonsRequiringSupplier.delete(reasonName);
+                this.reasonsNotRequiringSupplier.add(reasonName);
+                delete this.reasonPartnerLabelMap[reasonName];
+              }
+            });
+            hasChanges = true;
+          }
+          if (hasChanges) {
+            this.saveCustomReasons();
+          }
+          if (this.isViewMode && this.viewOrderData?.reason) {
+            this.transactionReason = this.viewOrderData.reason;
+          }
+          this.cdr.markForCheck();
+        }
+      },
+      error: (err) => console.warn('Could not fetch backend inventory reasons:', err)
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['isOpen']) {
       if (this.isOpen) {
+        this.loadStoredReasons();
         this.resetState();
         this.isEditingDraft = false;
         this.isPlanningOrder = false;
@@ -3550,9 +3794,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!reason.includes('Chuyển kho')) {
       this.transactionDestination = '';
     }
-    if (this.isReasonDisposal(reason) || (this.type === 'import' && this.isImportAuditSurplus())) {
+    if (!this.isReasonRequiringPartner(reason) || this.isReasonDisposal(reason) || (this.type === 'import' && this.isImportAuditSurplus())) {
       this.recipientName = '';
-      this.transactionDestination = '';
+      if (!reason.includes('Chuyển kho')) {
+        this.transactionDestination = '';
+      }
     }
     this.generateOrderCode();
   }
@@ -3623,6 +3869,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     );
   }
 
+  getFilteredVariants(productId: string): any[] {
+    const vars = this.getVariantsForProduct(productId);
+    if (!this.variantSearchTerm || !this.variantSearchTerm.trim()) {
+      return vars;
+    }
+    const term = this.variantSearchTerm.toLowerCase().trim();
+    return vars.filter((v: any) => 
+      (v.name && v.name.toLowerCase().includes(term)) ||
+      (v.sku && v.sku.toLowerCase().includes(term))
+    );
+  }
+
   toggleProductDropdown(itemId: string, event: Event) {
     if (this.isFormDisabled) return;
     event.stopPropagation();
@@ -3669,9 +3927,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (!item.productId) return; // Chặn tuyệt đối khi chưa chọn sản phẩm
     if (this.openVariantDropdownId === item.id) {
       this.openVariantDropdownId = null;
+      this.variantSearchTerm = '';
     } else {
       this.closeAllDropdowns();
       this.openVariantDropdownId = item.id;
+      this.variantSearchTerm = '';
       const target = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
       this.checkDropdownPosition(target, 'var_' + item.id);
     }
@@ -3705,8 +3965,9 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     // Đồng thời gọi updateLineItem để đồng bộ logic chung
     this.updateLineItem(item.id, 'variantId', variantId);
 
-    // Đóng dropdown biến thể
+    // Đóng dropdown biến thể & xóa từ khóa tìm kiếm
     this.openVariantDropdownId = null;
+    this.variantSearchTerm = '';
 
     // Kiểm tra cảnh báo tồn kho nếu cần
     this.checkVariantStockAndToast(item.productId, variantId);
@@ -3833,6 +4094,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.openProductDropdownId = null;
     this.openVariantDropdownId = null;
     this.openUnitDropdownId = null;
+    this.productSearchTerm = '';
+    this.variantSearchTerm = '';
   }
 
   hasProductData(): boolean {
@@ -4109,8 +4372,13 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       ? (selectedWarehouse?.id || null)
       : (isTransfer ? (transferWarehouse?.id || null) : null);
 
+    const isPartnerReq = this.isReasonRequiringPartner(this.transactionReason);
+    const recipientNameVal = (isTransfer || !isPartnerReq)
+      ? (this.isReasonDisposal(this.transactionReason) ? 'Tiêu hủy nội bộ' : 'Không áp dụng')
+      : this.recipientName;
+
     const sourceLocationName = isImport
-      ? (isTransfer ? (transferWarehouse?.name || 'Kho chuyển') : (this.recipientName || 'Nhà cung cấp / Đối tác'))
+      ? (isTransfer ? (transferWarehouse?.name || 'Kho chuyển') : (!isPartnerReq ? 'Không áp dụng' : (this.recipientName || 'Nhà cung cấp / Đối tác')))
       : (selectedWarehouse?.name || this.transactionLocation);
 
     const destinationLocationName = isImport
@@ -4119,7 +4387,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
           ? (transferWarehouse?.name || 'Kho nhận') 
           : (this.isReasonDisposal(this.transactionReason) 
               ? 'Tiêu hủy nội bộ' 
-              : (this.recipientName || 'Khách hàng / Đối tác')));
+              : (!isPartnerReq ? 'Không áp dụng' : (this.recipientName || 'Khách hàng / Đối tác'))));
 
     const subtotal = this.getTotalSubtotal();
     const discount = this.getDiscountValue();
@@ -4135,7 +4403,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       referenceCode: this.referenceCode || this.orderCode,
       createdAt: this.transactionDate ? new Date(this.transactionDate).toISOString() : new Date().toISOString(),
       creatorName: this.creatorName,
-      recipientName: (this.type === 'export' && this.isReasonDisposal(this.transactionReason)) ? 'Tiêu hủy nội bộ' : this.recipientName,
+      recipientName: recipientNameVal,
       location: isImport ? destinationLocationName : sourceLocationName,
       sourceLocation: sourceLocationName,
       destination: destinationLocationName,
@@ -4203,7 +4471,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         if (!this.transactionDestination) {
           return false;
         }
-      } else if (!this.isReasonDisposal(this.transactionReason)) {
+      } else if (this.isReasonRequiringPartner(this.transactionReason)) {
         if (!this.recipientName || !this.recipientName.trim()) {
           return false;
         }
@@ -4213,10 +4481,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         if (!this.transactionDestination) {
           return false;
         }
-      } else if (this.isImportAuditSurplus()) {
-        // Dư sau kiểm kê: không có NCC và khóa trường NCC lại -> không bắt buộc điền
-      } else {
-        // Mua từ nhà cung cấp hoặc Khách trả hàng -> bắt buộc điền
+      } else if (this.isReasonRequiringPartner(this.transactionReason)) {
         if (!this.recipientName || !this.recipientName.trim()) {
           return false;
         }

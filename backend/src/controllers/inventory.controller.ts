@@ -684,6 +684,112 @@ export const inventoryController = {
     }
   },
 
+  // Lấy danh sách các lý do xuất/nhập kho đã từng được sử dụng trong hệ thống và cấu hình đối tác
+  getInventoryReasons: async (req: Request, res: Response) => {
+    try {
+      // 1. Lấy từ bảng cấu hình inventory_custom_reasons
+      let customReasons: any[] = [];
+      try {
+        customReasons = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT type, reason, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
+           FROM inventory_custom_reasons ORDER BY created_at ASC`
+        );
+      } catch (err) {
+        console.warn('inventory_custom_reasons query warning:', err);
+      }
+
+      // 2. Lấy các lý do thực tế từ StockOrder
+      const orders = await (prisma as any).stockOrder.findMany({
+        where: {
+          NOT: { reason: '' }
+        },
+        select: {
+          reason: true,
+          type: true
+        }
+      });
+
+      const importReasons: string[] = [];
+      const exportReasons: string[] = [];
+
+      (customReasons || []).forEach((c: any) => {
+        const r = (c.reason || '').trim();
+        if (r) {
+          if (c.type === 'import') {
+            if (!importReasons.includes(r)) importReasons.push(r);
+          } else {
+            if (!exportReasons.includes(r)) exportReasons.push(r);
+          }
+        }
+      });
+
+      (orders || []).forEach((o: any) => {
+        if (o.reason && typeof o.reason === 'string') {
+          const trimmed = o.reason.trim();
+          if (trimmed) {
+            if (o.type === 'IMPORT') {
+              if (!importReasons.includes(trimmed)) importReasons.push(trimmed);
+            } else {
+              if (!exportReasons.includes(trimmed)) exportReasons.push(trimmed);
+            }
+          }
+        }
+      });
+
+      res.json({
+        importReasons,
+        exportReasons,
+        customReasons: customReasons || []
+      });
+    } catch (error) {
+      console.error('Error fetching inventory reasons:', error);
+      res.status(500).json({ error: 'Không thể lấy danh sách lý do xuất nhập kho' });
+    }
+  },
+
+  // Lưu mới hoặc cập nhật lý do xuất/nhập kèm cấu hình trường đối tác vào cơ sở dữ liệu
+  saveInventoryReason: async (req: Request, res: Response) => {
+    try {
+      const { type, reason, requiresPartner, partnerLabel } = req.body;
+      if (!reason || typeof reason !== 'string') {
+        return res.status(400).json({ error: 'Lý do không được để trống' });
+      }
+      const trimmedReason = reason.trim();
+      const normType = (type || 'export').toLowerCase() === 'import' ? 'import' : 'export';
+      const reqPartner = Boolean(requiresPartner);
+      const label = reqPartner 
+        ? ((partnerLabel && typeof partnerLabel === 'string' && partnerLabel.trim()) ? partnerLabel.trim() : (normType === 'import' ? 'Nhà cung ứng' : 'Khách hàng'))
+        : null;
+      const id = 'reason_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO inventory_custom_reasons (id, type, reason, requires_partner, partner_label)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (reason) 
+         DO UPDATE SET requires_partner = EXCLUDED.requires_partner, partner_label = EXCLUDED.partner_label`,
+        id,
+        normType,
+        trimmedReason,
+        reqPartner,
+        label
+      );
+
+      res.json({
+        success: true,
+        reason: {
+          id,
+          type: normType,
+          reason: trimmedReason,
+          requiresPartner: reqPartner,
+          partnerLabel: label
+        }
+      });
+    } catch (error) {
+      console.error('Error saving inventory reason:', error);
+      res.status(500).json({ error: 'Không thể lưu lý do vào cơ sở dữ liệu' });
+    }
+  },
+
   // 4. Tạo Lệnh xuất - nhập kho mới (Hỗ trợ Lưu nháp PENDING và Tạo phiếu xuất COMPLETED trừ kho)
   createStockOrder: async (req: Request, res: Response) => {
     try {

@@ -7,7 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
   Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, Image as ImageIcon, X,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
   Building2, Layers, Tag, RotateCcw, CornerDownRight, CheckCircle2, AlertCircle, XCircle
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../components/transaction-modal/transaction-modal';
@@ -26,7 +26,7 @@ export type { InventoryVariant, InventoryItem };
 export class InventoryComponent implements OnInit, OnDestroy {
   icons = { 
     Package, Plus, Search, Filter, ArrowRightLeft, ArrowUpRight, ArrowDownRight, MoreHorizontal, ImageIcon, X,
-    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
+    ChevronLeft, ChevronRight, ChevronDown, ChevronsLeft, ChevronsRight, CheckSquare, Square, SlidersHorizontal,
     Building2, Layers, Tag, RotateCcw, CornerDownRight, CheckCircle2, AlertCircle, XCircle
   };
 
@@ -517,13 +517,15 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   toggleExpand(id: string, event: Event) {
     event.stopPropagation();
+    const item = this.data.find(p => p.id === id);
+    if (!item || this.getVariants(item).length <= 1) return;
+
     if (this.expandedRows.has(id)) {
       this.expandedRows.delete(id);
     } else {
       this.expandedRows.add(id);
       // Khi xổ biến thể ra: Nếu sản phẩm cha đang được chọn -> tự động chọn toàn bộ biến thể vừa xổ
-      const item = this.data.find(p => p.id === id);
-      if (item && this.selectedIds.has(id) && Array.isArray(item.variants)) {
+      if (this.selectedIds.has(id) && Array.isArray(item.variants)) {
         item.variants.forEach(v => {
           this.selectedIds.add(this.getVariantIdKey(item, v));
         });
@@ -531,6 +533,59 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
     this.syncToStateService();
     this.cdr.markForCheck();
+  }
+
+  getSingleVariant(item: InventoryItem): InventoryVariant | null {
+    if (item.variants && item.variants.length === 1) {
+      return item.variants[0];
+    }
+    return null;
+  }
+
+  getDisplayProductName(item: InventoryItem): string {
+    if (item.variants && item.variants.length === 1) {
+      const v = item.variants[0];
+      if (v && v.name) {
+        const vNameTrim = v.name.trim();
+        const pNameTrim = item.productName.trim();
+        const vNameLower = vNameTrim.toLowerCase();
+        const pNameLower = pNameTrim.toLowerCase();
+        
+        // Nếu tên biến thể không phải từ mặc định/tiêu chuẩn và chưa trùng tên sản phẩm
+        if (
+          vNameLower !== 'tiêu chuẩn' && 
+          vNameLower !== 'mặc định' && 
+          vNameLower !== 'default' && 
+          vNameLower !== 'standard' && 
+          vNameLower !== pNameLower &&
+          !pNameLower.endsWith(vNameLower)
+        ) {
+          return `${pNameTrim} - ${vNameTrim}`;
+        }
+      }
+    }
+    return item.productName;
+  }
+
+  getSingleVariantSku(item: InventoryItem): string {
+    if (item.variants && item.variants.length === 1) {
+      return item.variants[0]?.sku || item.sku || '';
+    }
+    return '';
+  }
+
+  getSingleVariantId(item: InventoryItem): string {
+    if (item.variants && item.variants.length === 1) {
+      return item.variants[0]?.id || '';
+    }
+    return '';
+  }
+
+  getDisplayImage(item: InventoryItem): string {
+    if (item.variants && item.variants.length === 1 && item.variants[0]?.image) {
+      return item.variants[0].image;
+    }
+    return item.image || '';
   }
 
   getVariants(item: InventoryItem): InventoryVariant[] {

@@ -21,6 +21,15 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Middleware xử lý lỗi parse JSON (ví dụ malformed payload, bad escape characters) an toàn không làm crash server
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && 'status' in err && (err as any).status === 400) {
+    console.warn(`[WARN] Bad JSON received on ${req.method} ${req.url}: ${err.message}`);
+    return res.status(400).json({ error: 'Dữ liệu JSON không hợp lệ hoặc chứa ký tự escape sai cú pháp.' });
+  }
+  next(err);
+});
+
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running. See /api/health for health checks.' });
 });
