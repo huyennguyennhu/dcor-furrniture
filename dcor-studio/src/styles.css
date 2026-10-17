@@ -409,6 +409,37 @@ body.admin-body {
 }
 .admin-select {
   cursor: pointer;
+  height: 38px;
+  line-height: 1.4;
+  padding: 8px 36px 8px 14px;
+  border-radius: var(--radius-control, 8px);
+  border: 1px solid var(--border-color, var(--color-border));
+  background-color: var(--bg-primary, var(--color-surface));
+  color: var(--text-primary, var(--color-text));
+  font-size: 13px;
+  font-weight: 500;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23765337' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 15px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+.admin-select:hover {
+  border-color: var(--accent, #765337);
+  background-color: #FAF7F2;
+}
+.admin-select:focus {
+  border-color: var(--accent, #765337);
+  box-shadow: 0 0 0 2px rgba(118, 83, 55, 0.15);
+}
+.admin-select option {
+  padding: 8px 12px;
+  background-color: #ffffff;
+  color: #1e1b18;
 }
 
 /* Admin Search Wrapper */
@@ -619,3 +650,65 @@ body.admin-body {
   animation: fadeInUp 0.6s ease-out forwards;
   opacity: 0;
 }
+
+/* Admin Reports Loading State & Animated Spinner */
+.loading-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+  padding: 60px 24px;
+  gap: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  margin-top: 8px;
+}
+
+.spinning-loader {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(188, 95, 19, 0.15);
+  border-top: 4px solid #bc5f13;
+  border-radius: 50%;
+  animation: reportsSpin 0.85s linear infinite;
+  box-sizing: border-box;
+}
+
+@keyframes reportsSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* Floating Toast Animations */
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@keyframes toastSlideUpRight {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+

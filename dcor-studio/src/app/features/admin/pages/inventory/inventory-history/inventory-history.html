@@ -2,48 +2,141 @@
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div>
       <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Lịch sử biến động kho</h1>
-      <p style="color: var(--text-secondary); font-size: 14px;">Tra cứu lịch sử nhập, xuất, bán hàng và kiểm kê của toàn bộ hệ thống.</p>
+      <p style="color: var(--text-secondary); font-size: 14px;">Tra cứu nhật ký sổ cái biến động kho thực tế của toàn bộ hệ thống.</p>
     </div>
-    <button class="admin-btn admin-btn-secondary" style="display: flex; align-items: center; gap: 8px;">
+    <button (click)="exportExcel()" class="admin-btn admin-btn-secondary" style="display: flex; align-items: center; gap: 8px;">
       <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất Excel
     </button>
   </div>
 
   <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; flex-wrap: wrap;">
-    <div style="position: relative; flex: 1; min-width: 250px;">
-      <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
-      <input type="text" placeholder="Tìm kiếm mã biến động / SKU / mã đơn hàng" style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+    <!-- Search Query Input -->
+    <div class="filter-search-box" style="flex: 1; min-width: 250px;">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        (ngModelChange)="filterData()" 
+        placeholder="Tìm kiếm mã biến động / SKU / tên sản phẩm / chứng từ..." 
+        class="filter-search-input" 
+      />
+      <button *ngIf="searchQuery" (click)="searchQuery = ''; filterData()" class="search-clear-btn" title="Xóa tìm kiếm">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+      </button>
     </div>
     
-    <div style="width: 150px;">
-      <select [(ngModel)]="viewBy" class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-        <option value="variant">Theo biến thể</option>
-        <option value="product">Theo sản phẩm</option>
-      </select>
+    <!-- ViewBy Dropdown: Theo biến thể / Theo sản phẩm -->
+    <div class="filter-dropdown-wrapper">
+      <button 
+        type="button" 
+        class="filter-trigger-btn"
+        [class.active]="viewBy !== 'variant'"
+        (click)="toggleViewByDropdown($event)"
+        title="Chọn chế độ hiển thị"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ viewBy === 'variant' ? 'Theo biến thể' : 'Theo sản phẩm' }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showViewByDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+
+      <div *ngIf="showViewByDropdown" class="filter-menu-dropdown">
+        <div 
+          class="filter-menu-item"
+          [class.selected]="viewBy === 'variant'"
+          (click)="onSelectViewBy('variant')"
+        >
+          <span>Theo biến thể</span>
+          <lucide-angular *ngIf="viewBy === 'variant'" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+        <div 
+          class="filter-menu-item"
+          [class.selected]="viewBy === 'product'"
+          (click)="onSelectViewBy('product')"
+        >
+          <span>Theo sản phẩm</span>
+          <lucide-angular *ngIf="viewBy === 'product'" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
     </div>
 
-    <div style="width: 180px;">
-      <select class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-        <option value="">Tất cả Kho/Showroom</option>
-        <option value="Kho Tổng">Kho Tổng (TP.HCM)</option>
-        <option value="Showroom Thủ Đức">Showroom Thủ Đức</option>
-      </select>
+    <!-- Warehouse Dropdown: Tất cả Kho/Showroom -->
+    <div class="filter-dropdown-wrapper">
+      <button 
+        type="button" 
+        class="filter-trigger-btn"
+        [class.active]="!!selectedWarehouse"
+        (click)="toggleWarehouseDropdown($event)"
+        title="Chọn chi nhánh/kho"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Building2" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ selectedWarehouse || 'Tất cả Kho/Showroom' }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showWarehouseDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+
+      <div *ngIf="showWarehouseDropdown" class="filter-menu-dropdown">
+        <div 
+          class="filter-menu-item"
+          [class.selected]="!selectedWarehouse"
+          (click)="onSelectWarehouse('')"
+        >
+          <span>Tất cả Kho/Showroom</span>
+          <lucide-angular *ngIf="!selectedWarehouse" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+        <div 
+          *ngFor="let w of warehouses"
+          class="filter-menu-item"
+          [class.selected]="selectedWarehouse === w.name"
+          (click)="onSelectWarehouse(w.name)"
+        >
+          <span>{{ w.name }}</span>
+          <lucide-angular *ngIf="selectedWarehouse === w.name" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
     </div>
 
-    <div style="width: 180px;">
-      <select class="admin-input" style="width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-        <option value="">Mọi loại biến động</option>
-        <option value="Nhập kho">Nhập kho</option>
-        <option value="Xuất kho">Xuất kho</option>
-        <option value="Điều chỉnh tăng">Điều chỉnh tăng</option>
-        <option value="Điều chỉnh giảm">Điều chỉnh giảm</option>
-        <option value="Chuyển kho">Chuyển kho</option>
-        <option value="Hoàn hàng">Hoàn hàng</option>
-      </select>
+    <!-- Type Dropdown: Mọi loại biến động -->
+    <div class="filter-dropdown-wrapper">
+      <button 
+        type="button" 
+        class="filter-trigger-btn"
+        [class.active]="!!selectedType"
+        (click)="toggleTypeDropdown($event)"
+        title="Chọn loại biến động"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Filter" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ selectedType || 'Mọi loại biến động' }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTypeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+
+      <div *ngIf="showTypeDropdown" class="filter-menu-dropdown">
+        <div 
+          *ngFor="let t of typeOptions"
+          class="filter-menu-item"
+          [class.selected]="(!selectedType && t === 'Mọi loại biến động') || selectedType === t"
+          (click)="onSelectType(t)"
+        >
+          <span>{{ t }}</span>
+          <lucide-angular *ngIf="(!selectedType && t === 'Mọi loại biến động') || selectedType === t" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
     </div>
 
-    <button style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); cursor: pointer; font-size: 13px; white-space: nowrap;">
-      <lucide-angular [img]="icons.CalendarIcon" size="14"></lucide-angular> Khoảng thời gian
+    <!-- Nút Xóa bộ lọc -->
+    <button 
+      *ngIf="hasActiveFilters()" 
+      type="button" 
+      (click)="resetFilters()" 
+      class="reset-filters-btn" 
+      title="Đặt lại toàn bộ bộ lọc về mặc định"
+    >
+      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+      <span>Xóa bộ lọc</span>
     </button>
   </div>
 
@@ -51,7 +144,7 @@
     <div style="width: 100%; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Mã biến động</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Thời gian</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ viewBy === 'variant' ? 'Biến thể' : 'Sản phẩm' }}</th>
@@ -64,8 +157,22 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
+          <tr *ngIf="isLoading">
+            <td colspan="9" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu lịch sử biến động kho...</span>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!isLoading && data.length === 0">
+            <td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              Chưa có ghi nhận biến động kho nào phù hợp.
+            </td>
+          </tr>
           <tr *ngFor="let item of data" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
-              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseover="this.style.background='#F3E5D3'" 
               onmouseout="this.style.background='transparent'">
             <td style="padding: 16px;">
               <span style="font-weight: 600; color: var(--accent); cursor: pointer;">{{ item.id }}</span>
@@ -99,11 +206,11 @@
                 {{ item.quantity }}
               </span>
             </td>
-            <td style="padding: 16px; text-align: center;">{{ item.stockAfter }}</td>
+            <td style="padding: 16px; text-align: center; font-weight: 600;">{{ item.stockAfter }}</td>
             <td style="padding: 16px;">
-              <span style="color: var(--text-secondary);">{{ item.reference }}</span>
+              <span style="color: var(--text-secondary); font-weight: 500;">{{ item.reference }}</span>
             </td>
-            <td style="padding: 16px;">{{ item.creator }}</td>
+            <td style="padding: 16px; color: var(--text-secondary);">{{ item.creator }}</td>
           </tr>
         </tbody>
       </table>

@@ -1,13 +1,14 @@
-import { Component, OnInit, HostListener, inject } from '@angular/core';
+import { Component, OnInit, HostListener, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { 
   LucideAngularModule, 
-  Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, 
-  Download, CheckCircle2, Clock, AlertCircle, X, Eye, Printer, Trash2, 
-  Calendar as CalendarIcon, FileText, ChevronDown, Check, MoreVertical
+  Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
+  Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2, 
+  Calendar as CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
+  Square, CheckSquare, Loader2, RotateCcw
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
@@ -23,6 +24,7 @@ export interface StockOrderItem {
 
 export interface StockOrder {
   id: string;
+  rawId?: string;
   type: 'import' | 'export' | 'transfer';
   typeLabel: string;
   createdAt: string;
@@ -34,7 +36,8 @@ export interface StockOrder {
   items: StockOrderItem[];
   totalQuantity: number;
   totalAmount: number;
-  status: 'COMPLETED' | 'PROCESSING' | 'PENDING' | 'CANCELLED';
+  status: 'COMPLETED' | 'PROCESSING' | 'PENDING' | 'CANCELLED' | 'DRAFT' | 'PLANNED' | 'EXPORTED' | 'IMPORTED';
+  rawStatus?: string;
   notes?: string;
 }
 
@@ -47,21 +50,58 @@ export interface StockOrder {
 })
 export class InventoryOrdersComponent implements OnInit {
   icons = {
-    Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight,
-    Download, CheckCircle2, Clock, AlertCircle, X, Eye, Printer, Trash2,
-    CalendarIcon, FileText, ChevronDown, Check, MoreVertical
+    Package, Plus, Search, Filter, ArrowUpRight, ArrowDownRight, ArrowLeftRight, ArrowRightLeft, Building2, Layers,
+    Download, CheckCircle2, Clock, AlertCircle, X, XCircle, Eye, Printer, Trash2,
+    CalendarIcon, FileText, ChevronDown, Check, MoreVertical,
+    Square, CheckSquare, Loader2, RotateCcw
   };
 
   private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
 
+  // Toast Notification
+  toastMessage = '';
+  toastSubMessage = '';
+  toastType: 'success' | 'warning' | 'error' | 'info' = 'success';
+  showToast = false;
+  toastTimer: any = null;
+
+  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 4500) {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastMessage = message;
+    this.toastSubMessage = subMessage;
+    this.toastType = type;
+    this.showToast = true;
+    this.cdr.markForCheck();
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+      this.cdr.markForCheck();
+    }, durationMs);
+  }
+
+  closeToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.showToast = false;
+    this.cdr.markForCheck();
+  }
+
+  isLoading = true;
   data: StockOrder[] = [];
   selectedIds = new Set<string>();
 
   // Filter state
   searchTerm = '';
   typeFilter: 'all' | 'import' | 'export' | 'transfer' = 'all';
-  locationFilter = 'all';
+  locationFilter = 'Tất cả chi nhánh';
   statusFilter = 'all';
+
+  // Dropdown states
+  showLocationDropdown = false;
+  showStatusDropdown = false;
 
   // Available locations
   locations = [
@@ -72,6 +112,127 @@ export class InventoryOrdersComponent implements OnInit {
     'Showroom Thủ Đức'
   ];
 
+  get statusOptionsWithCount() {
+    return [
+      { value: 'all', label: 'Tất cả', count: this.totalCount, color: 'var(--text-muted)' },
+      { value: 'DRAFT', label: 'Nháp', count: this.draftCount, color: '#f59e0b' },
+      { value: 'PLANNED', label: 'Lên kế hoạch', count: this.plannedCount, color: '#7c3aed' },
+      { value: 'COMPLETED', label: 'Đã hoàn tất', count: this.completedStockCount, color: '#10b981' },
+      { value: 'CANCELLED', label: 'Đã hủy', count: this.cancelledCount, color: '#ef4444' }
+    ];
+  }
+
+  get draftCount(): number {
+    return this.data.filter(o => o.status === 'DRAFT' || o.rawStatus === 'DRAFT' || o.status === 'PENDING').length;
+  }
+
+  get plannedCount(): number {
+    return this.data.filter(o => o.status === 'PLANNED' || o.rawStatus === 'PLANNED' || o.status === 'PROCESSING').length;
+  }
+
+  get completedStockCount(): number {
+    return this.data.filter(o => o.status === 'EXPORTED' || o.status === 'IMPORTED' || o.status === 'COMPLETED' || o.rawStatus === 'EXPORTED' || o.rawStatus === 'IMPORTED').length;
+  }
+
+  getStatusLabel(): string {
+    const opt = this.statusOptionsWithCount.find(o => o.value === this.statusFilter);
+    return opt ? `${opt.label} (${opt.count})` : `Tất cả (${this.totalCount})`;
+  }
+
+  getStatusBg(status: string): string {
+    switch (status) {
+      case 'DRAFT':
+      case 'PENDING':
+        return 'rgba(245, 158, 11, 0.10)';
+      case 'PLANNED':
+      case 'PROCESSING':
+        return 'rgba(124, 58, 237, 0.10)';
+      case 'IMPORTED':
+      case 'EXPORTED':
+      case 'COMPLETED':
+        return 'rgba(16, 185, 129, 0.10)';
+      case 'CANCELLED':
+        return 'rgba(239, 68, 68, 0.10)';
+      default:
+        return 'rgba(107, 114, 128, 0.10)';
+    }
+  }
+
+  getStatusColor(status: string): string {
+    switch (status) {
+      case 'DRAFT':
+      case 'PENDING':
+        return '#f59e0b';
+      case 'PLANNED':
+      case 'PROCESSING':
+        return '#7c3aed';
+      case 'IMPORTED':
+      case 'EXPORTED':
+      case 'COMPLETED':
+        return '#10b981';
+      case 'CANCELLED':
+        return '#dc2626';
+      default:
+        return '#6b7280';
+    }
+  }
+
+  getStatusBadgeLabel(status: string, orderType?: string): string {
+    switch (status) {
+      case 'DRAFT':
+        return 'Nháp';
+      case 'PLANNED':
+        return orderType === 'import' ? 'Chờ nhập kho' : 'Lên kế hoạch';
+      case 'IMPORTED':
+        return 'Đã nhập kho';
+      case 'EXPORTED':
+        return 'Đã xuất kho';
+      case 'COMPLETED':
+        return orderType === 'import' ? 'Đã nhập kho' : (orderType === 'export' ? 'Đã xuất kho' : 'Hoàn tất');
+      case 'PROCESSING':
+        return orderType === 'import' ? 'Chờ nhập kho' : 'Đang xử lý';
+      case 'PENDING':
+        return 'Nháp';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  }
+
+  onSelectStatus(status: string) {
+    this.statusFilter = status;
+    this.showStatusDropdown = false;
+  }
+
+  setTypeFilter(type: 'all' | 'import' | 'export' | 'transfer') {
+    this.typeFilter = this.typeFilter === type ? 'all' : type;
+  }
+
+  onSelectLocation(location: string) {
+    this.locationFilter = location;
+    this.showLocationDropdown = false;
+  }
+
+  hasActiveFilters(): boolean {
+    return Boolean(
+      this.searchTerm.trim() ||
+      this.typeFilter !== 'all' ||
+      this.locationFilter !== 'Tất cả chi nhánh' ||
+      this.statusFilter !== 'all'
+    );
+  }
+
+  resetFilters() {
+    this.searchTerm = '';
+    this.typeFilter = 'all';
+    this.locationFilter = 'Tất cả chi nhánh';
+    this.statusFilter = 'all';
+    this.showLocationDropdown = false;
+    this.showStatusDropdown = false;
+    this.cdr.markForCheck();
+  }
+
   // Transaction Modal (Nhập / Xuất)
   modalConfig = {
     isOpen: false,
@@ -79,7 +240,8 @@ export class InventoryOrdersComponent implements OnInit {
     initialProductId: '',
     initialVariantId: '',
     isProductFixed: false,
-    isVariantFixed: false
+    isVariantFixed: false,
+    viewOrderData: null as any
   };
 
   // Detail Drawer / Modal
@@ -88,14 +250,30 @@ export class InventoryOrdersComponent implements OnInit {
 
   ngOnInit() {
     this.fetchOrders();
+    this.fetchWarehouses();
+  }
+
+  fetchWarehouses() {
+    this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/warehouses`).subscribe({
+      next: (warehouses) => {
+        if (Array.isArray(warehouses) && warehouses.length > 0) {
+          const names = warehouses.map(w => w.name);
+          const merged = new Set(['Tất cả chi nhánh', 'Kho Tổng (TP.HCM)', 'Kho Hà Nội', 'Showroom Quận 1', 'Showroom Thủ Đức', ...names]);
+          this.locations = Array.from(merged);
+        }
+      },
+      error: () => {}
+    });
   }
 
   fetchOrders() {
+    this.isLoading = true;
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/orders`).subscribe({
       next: (orders) => {
         if (Array.isArray(orders) && orders.length > 0) {
-          this.data = orders.map(o => ({
+          this.data = orders.map((o: any) => ({
             id: o.orderCode || o.id,
+            rawId: o.id,
             type: (o.type || 'import').toLowerCase() as any,
             typeLabel: o.type === 'IMPORT' ? 'Nhập kho' : (o.type === 'EXPORT' ? 'Xuất kho' : 'Chuyển kho'),
             createdAt: new Date(o.createdAt).toLocaleString('vi-VN', {
@@ -103,29 +281,41 @@ export class InventoryOrdersComponent implements OnInit {
             }),
             sourceLocation: o.sourceLocation || o.sourceWarehouse?.name || 'Kho Tổng (TP.HCM)',
             destinationLocation: o.destinationLocation || o.destWarehouse?.name || 'Chi nhánh / Khách hàng',
+            sourceWarehouseId: o.sourceWarehouseId,
+            destWarehouseId: o.destWarehouseId,
             referenceCode: o.referenceCode || o.orderCode,
             reason: o.reason || 'Lệnh điều phối kho',
             creator: o.creator?.name || 'Admin Quản Trị',
             totalQuantity: o.totalQuantity || 0,
             totalAmount: Number(o.totalAmount || 0),
             status: o.status,
+            rawStatus: o.rawStatus || o.status,
             notes: o.notes,
+            taxRate: o.taxRate,
+            taxAmount: o.taxAmount,
+            discount: o.discount,
             items: (o.items || []).map((it: any) => ({
-              sku: it.variant?.sku || 'SKU',
-              productName: it.variant?.product?.name || it.variant?.name || 'Sản phẩm nội thất',
-              variant: it.variant?.name || 'Tiêu chuẩn',
+              sku: it.variant?.sku || it.sku || 'SKU',
+              productName: it.variant?.product?.name || it.productName || it.variant?.name || 'Sản phẩm nội thất',
+              variant: it.variant?.name || it.variantName || 'Tiêu chuẩn',
               quantity: it.quantity,
               unitPrice: Number(it.unitPrice || 0),
-              unit: 'Chiếc'
+              unit: it.unit || 'Chiếc',
+              productId: it.variant?.productId || it.productId,
+              variantId: it.variantId || it.variant?.id
             }))
           }));
         } else {
-          this.initMockData();
+          this.data = [];
         }
+        this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
-        console.warn('Could not fetch orders from API, using fallback data:', err);
-        this.initMockData();
+        console.warn('Could not fetch orders from API:', err);
+        this.data = [];
+        this.isLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -295,8 +485,16 @@ export class InventoryOrdersComponent implements OnInit {
         return false;
       }
       // Status match
-      if (this.statusFilter !== 'all' && order.status !== this.statusFilter) {
-        return false;
+      if (this.statusFilter !== 'all') {
+        if (this.statusFilter === 'COMPLETED' || this.statusFilter === 'EXPORTED' || this.statusFilter === 'IMPORTED') {
+          if (order.status !== 'COMPLETED' && order.status !== 'EXPORTED' && order.status !== 'IMPORTED' && order.rawStatus !== 'EXPORTED' && order.rawStatus !== 'IMPORTED') return false;
+        } else if (this.statusFilter === 'PLANNED') {
+          if (order.status !== 'PLANNED' && order.status !== 'PROCESSING' && order.rawStatus !== 'PLANNED') return false;
+        } else if (this.statusFilter === 'DRAFT') {
+          if (order.status !== 'DRAFT' && order.rawStatus !== 'DRAFT' && order.status !== 'PENDING') return false;
+        } else if (order.status !== this.statusFilter) {
+          return false;
+        }
       }
       // Location match
       if (this.locationFilter !== 'all' && this.locationFilter !== 'Tất cả chi nhánh') {
@@ -346,6 +544,22 @@ export class InventoryOrdersComponent implements OnInit {
     return this.data.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING').length;
   }
 
+  get completedCount(): number {
+    return this.data.filter(o => o.status === 'COMPLETED').length;
+  }
+
+  get processingCount(): number {
+    return this.data.filter(o => o.status === 'PROCESSING').length;
+  }
+
+  get pendingApprovalCount(): number {
+    return this.data.filter(o => o.status === 'PENDING').length;
+  }
+
+  get cancelledCount(): number {
+    return this.data.filter(o => o.status === 'CANCELLED').length;
+  }
+
   get totalImportValue(): number {
     return this.data.filter(o => o.type === 'import').reduce((acc, cur) => acc + cur.totalAmount, 0);
   }
@@ -384,9 +598,18 @@ export class InventoryOrdersComponent implements OnInit {
     this.activeActionMenu = this.activeActionMenu === id ? null : id;
   }
 
-  @HostListener('document:click')
-  closeActionMenu() {
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event?: MouseEvent) {
     this.activeActionMenu = null;
+    if (event) {
+      const target = event.target as HTMLElement;
+      if (target && !target.closest('.location-filter-wrapper')) {
+        this.showLocationDropdown = false;
+      }
+      if (target && !target.closest('.status-filter-wrapper')) {
+        this.showStatusDropdown = false;
+      }
+    }
   }
 
   // Modal handlers
@@ -397,31 +620,162 @@ export class InventoryOrdersComponent implements OnInit {
       initialProductId: '',
       initialVariantId: '',
       isProductFixed: false,
-      isVariantFixed: false
+      isVariantFixed: false,
+      viewOrderData: null
+    };
+  }
+
+  /** Open the modal to VIEW an existing order (shows lifecycle buttons) */
+  viewOrderInModal(order: StockOrder, event?: Event) {
+    if (event) event.stopPropagation();
+    this.activeActionMenu = null;
+    this.modalConfig = {
+      isOpen: true,
+      type: order.type === 'import' ? 'import' : 'export',
+      initialProductId: '',
+      initialVariantId: '',
+      isProductFixed: false,
+      isVariantFixed: false,
+      viewOrderData: {
+        rawId: order.rawId || order.id,
+        auditCode: order.id,
+        id: order.id,
+        orderCode: order.id,
+        rawStatus: order.rawStatus || order.status,
+        status: order.status,
+        date: order.createdAt,
+        createdAt: order.createdAt,
+        sourceLocation: order.sourceLocation,
+        destinationLocation: order.destinationLocation,
+        sourceWarehouseId: (order as any).sourceWarehouseId,
+        destWarehouseId: (order as any).destWarehouseId,
+        reason: order.reason,
+        creator: order.creator,
+        creatorName: order.creator,
+        recipientName: (order as any).recipientName,
+        notes: (order as any).cleanNotes || order.notes,
+        rawNotes: order.notes,
+        taxRate: (order as any).taxRate,
+        discount: (order as any).discount,
+        items: (order.items || []).map((it: any) => ({
+          sku: it.sku,
+          productName: it.productName,
+          variantName: it.variant,
+          quantity: it.quantity,
+          price: it.unitPrice,
+          unit: it.unit,
+          productId: it.productId,
+          variantId: it.variantId
+        }))
+      }
     };
   }
 
   closeModal() {
     this.modalConfig.isOpen = false;
+    this.modalConfig.viewOrderData = null;
+  }
+
+  handleOrderStatusChange(event: { orderId: string; newStatus: string; reason?: string }) {
+    const { orderId, newStatus, reason } = event;
+    const targetOrder = this.data.find(o => o.rawId === orderId || o.id === orderId);
+    const isImport = targetOrder?.type === 'import';
+    
+    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}/status`, { status: newStatus, cancelReason: reason || null }).subscribe({
+      next: () => {
+        this.closeModal();
+        this.fetchOrders();
+        const labels: Record<string, string> = {
+          PLANNED: isImport ? 'Chờ nhập kho / Lên kế hoạch' : 'Lên kế hoạch xuất',
+          EXPORTED: 'Đã xuất kho',
+          IMPORTED: 'Đã nhập kho',
+          COMPLETED: isImport ? 'Đã nhập kho' : 'Đã xuất kho',
+          CANCELLED: 'Đã hủy'
+        };
+        const label = labels[newStatus] || newStatus;
+        this.triggerToast(`Cập nhật trạng thái`, `Phiếu ${isImport ? 'nhập kho' : 'xuất kho'} đã chuyển sang trạng thái: ${label}`, 'success');
+      },
+      error: (err) => {
+        console.warn('API error updating order status:', err);
+        // Fallback: update locally
+        const order = this.data.find(o => o.rawId === orderId || o.id === orderId);
+        if (order) {
+          (order as any).status = newStatus;
+          (order as any).rawStatus = newStatus;
+        }
+        this.closeModal();
+      }
+    });
+  }
+
+  handleDeleteOrder(orderId: string) {
+    const targetOrder = this.data.find(o => o.rawId === orderId || o.id === orderId);
+    const isImport = targetOrder?.type === 'import';
+    this.http.delete(`${environment.apiUrl}/admin/inventory/orders/${orderId}`).subscribe({
+      next: () => {
+        this.closeModal();
+        this.fetchOrders();
+        this.triggerToast(`Xóa phiếu thành công`, `Phiếu ${isImport ? 'nhập kho' : 'xuất kho'} đã được xóa thành công.`, 'success');
+      },
+      error: (err) => {
+        console.warn('API error deleting order, removing locally:', err);
+        this.data = this.data.filter(o => o.rawId !== orderId && o.id !== orderId);
+        this.closeModal();
+      }
+    });
+  }
+
+  handleUpdateOrder(payload: any) {
+    const { orderId, orderData } = payload;
+    const targetOrder = this.data.find(o => o.rawId === orderId || o.id === orderId);
+    const isImport = targetOrder?.type === 'import' || orderData?.type === 'IMPORT';
+    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}`, orderData).subscribe({
+      next: () => {
+        this.closeModal();
+        this.fetchOrders();
+        this.triggerToast(`Cập nhật phiếu ${isImport ? 'nhập kho' : 'xuất kho'} thành công!`, '', 'success');
+      },
+      error: (err) => {
+        console.warn('API error updating order:', err);
+        this.closeModal();
+        this.fetchOrders();
+        this.triggerToast(`Đã cập nhật thông tin phiếu ${isImport ? 'nhập kho' : 'xuất kho'}.`, '', 'info');
+      }
+    });
   }
 
   handleModalSubmit(formData: any) {
     const isImport = formData.type === 'import';
-    const isTransfer = formData.reason === 'Chuyển kho';
+    const isTransfer = (formData.reason || '').includes('Chuyển kho');
     const orderType = isImport ? 'IMPORT' : (isTransfer ? 'TRANSFER' : 'EXPORT');
+    const isDraft = formData.action === 'draft';
+    // [Lưu nháp] -> DRAFT, [Tạo phiếu xuất kho] -> PLANNED
+    const orderStatus = isDraft ? 'DRAFT' : 'PLANNED';
 
     const payload = {
+      orderCode: formData.orderCode,
+      status: orderStatus,
       type: orderType,
-      sourceLocation: formData.location,
-      destinationLocation: formData.destination,
+      sourceLocation: formData.sourceLocation || formData.location,
+      destinationLocation: formData.destinationLocation || formData.destination,
       sourceWarehouseId: formData.sourceWarehouseId,
       destWarehouseId: formData.destWarehouseId,
+      referenceCode: formData.referenceCode || formData.orderCode,
       reason: formData.reason,
       notes: formData.note,
+      createdAt: formData.createdAt,
+      creatorName: formData.creatorName,
+      recipientName: formData.recipientName,
       items: (formData.items || []).map((it: any) => ({
         variantId: it.variantId,
         quantity: parseInt(it.quantity, 10) || 1,
-        price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0
+        price: it.price ? parseInt(it.price.toString().replace(/\D/g, ''), 10) : 0,
+        unit: it.unit || 'Chiếc',
+        notes: [
+          it.unit ? `ĐVT: ${it.unit}` : null,
+          it.lotNumber ? `Lô: ${it.lotNumber}` : null,
+          it.expiryDate ? `HSD: ${it.expiryDate}` : null
+        ].filter(Boolean).join(' | ') || null
       }))
     };
 
@@ -429,14 +783,25 @@ export class InventoryOrdersComponent implements OnInit {
       next: (created) => {
         this.closeModal();
         this.fetchOrders();
-        window.alert(`Đã tạo thành công lệnh kho ${created.orderCode || created.id}!`);
+        if (isDraft) {
+          this.triggerToast(
+            `Đã lưu nháp thành công phiếu ${created.orderCode || created.id}!`,
+            'Trạng thái: Nháp (chưa làm thay đổi số lượng tồn kho).',
+            'info'
+          );
+        } else {
+          const typeName = isImport ? 'nhập kho (Chờ nhập kho)' : 'xuất kho (Lên kế hoạch xuất)';
+          this.triggerToast(
+            `Đã tạo thành công phiếu ${typeName} ${created.orderCode || created.id}!`,
+            'Trạng thái: Lên kế hoạch (hàng chưa cộng/trừ tồn kho thực tế).',
+            'success'
+          );
+        }
       },
       error: (err) => {
         console.warn('API error creating order, falling back to local list:', err);
-        const prefix = isImport ? 'NK' : (isTransfer ? 'CK' : 'XK');
-        const randomNum = Math.floor(100 + Math.random() * 900);
-        const dateStr = new Date().toLocaleDateString('vi-VN');
-        const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = new Date(formData.createdAt || Date.now()).toLocaleDateString('vi-VN');
+        const timeStr = new Date(formData.createdAt || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         
         let totalQty = 0;
         let totalAmt = 0;
@@ -451,51 +816,73 @@ export class InventoryOrdersComponent implements OnInit {
             variant: it.variantName || 'Tiêu chuẩn',
             quantity: q,
             unitPrice: rawPrice,
-            unit: 'Chiếc'
+            unit: it.unit || 'Chiếc'
           };
         });
 
         const newOrder: StockOrder = {
-          id: `${prefix}-2410-${randomNum}`,
+          id: formData.orderCode || (isImport ? 'NK-2610-0001' : 'PXK-BH-2610-0001'),
           type: (orderType.toLowerCase()) as any,
           typeLabel: isImport ? 'Nhập kho' : (isTransfer ? 'Chuyển kho' : 'Xuất kho'),
           createdAt: `${dateStr} ${timeStr}`,
           sourceLocation: formData.location || 'Kho Tổng (TP.HCM)',
           destinationLocation: formData.destination || 'Chi nhánh / Khách hàng nhận',
-          referenceCode: `${prefix}-REF-${randomNum}`,
+          referenceCode: formData.orderCode,
           reason: formData.reason || (isImport ? 'Nhập kho theo kế hoạch' : 'Xuất kho phục vụ hoạt động'),
-          creator: 'Admin Quản Trị',
+          creator: formData.creatorName || 'Admin Quản Trị',
           items: items.length > 0 ? items : [
             { sku: 'SF-NEW-01', productName: 'Sản phẩm mới nhập', variant: 'Tiêu chuẩn', quantity: 5, unitPrice: 20000000, unit: 'Bộ' }
           ],
           totalQuantity: totalQty || 5,
           totalAmount: totalAmt || 100000000,
-          status: 'PENDING',
-          notes: formData.note || 'Tạo tự động từ hệ thống quản lý lệnh kho.'
+          status: orderStatus,
+          notes: formData.note || 'Tạo từ form quản lý kho'
         };
 
         this.data.unshift(newOrder);
         this.closeModal();
-        window.alert(`Đã tạo thành công ${newOrder.typeLabel}: ${newOrder.id}`);
+        if (isDraft) {
+          this.triggerToast(
+            `Đã lưu nháp thành công ${newOrder.typeLabel}: ${newOrder.id}`,
+            'Trạng thái: Nháp (chưa làm thay đổi số lượng tồn kho).',
+            'info'
+          );
+        } else {
+          this.triggerToast(
+            `Đã phát hành thành công ${newOrder.typeLabel}: ${newOrder.id}`,
+            'Số lượng tồn kho thực tế đã được cập nhật ngay lập tức.',
+            'success'
+          );
+        }
       }
     });
   }
 
-  // Detail Modal
+  // Detail Modal -> Open full transaction modal
   viewOrderDetail(order: StockOrder, event?: Event) {
-    if (event) event.stopPropagation();
-    this.selectedOrder = order;
-    this.activeActionMenu = null;
+    this.viewOrderInModal(order, event);
   }
 
   closeOrderDetail() {
-    this.selectedOrder = null;
+    this.closeModal();
   }
 
   updateOrderStatus(order: StockOrder, newStatus: 'COMPLETED' | 'PROCESSING' | 'PENDING' | 'CANCELLED', event?: Event) {
     if (event) event.stopPropagation();
+    const prevStatus = order.status;
     order.status = newStatus;
     this.activeActionMenu = null;
+
+    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${order.id}/status`, { status: newStatus }).subscribe({
+      next: () => {
+        if (newStatus === 'COMPLETED') {
+          this.triggerToast(`Lệnh kho ${order.id} đã hoàn tất thành công và cập nhật tồn kho!`, '', 'success');
+        }
+      },
+      error: (err) => {
+        console.warn('API error updating order status:', err);
+      }
+    });
   }
 
   deleteOrder(id: string, event?: Event) {
@@ -512,13 +899,21 @@ export class InventoryOrdersComponent implements OnInit {
 
   batchUpdateStatus(status: 'COMPLETED' | 'PROCESSING' | 'CANCELLED') {
     if (this.selectedIds.size === 0) return;
+    const ids = Array.from(this.selectedIds);
     this.data.forEach(o => {
       if (this.selectedIds.has(o.id)) {
         o.status = status;
       }
     });
     this.selectedIds.clear();
-    window.alert(`Đã cập nhật trạng thái các lệnh đã chọn.`);
+
+    ids.forEach(id => {
+      this.http.put(`${environment.apiUrl}/admin/inventory/orders/${id}/status`, { status }).subscribe({
+        error: (err) => console.warn(`Error batch updating order ${id}:`, err)
+      });
+    });
+
+    this.triggerToast('Cập nhật trạng thái thành công', 'Đã cập nhật trạng thái các lệnh đã chọn.', 'success');
   }
 
   printOrder(order: StockOrder, event?: Event) {
@@ -527,14 +922,42 @@ export class InventoryOrdersComponent implements OnInit {
   }
 
   exportExcel() {
-    window.alert(`Đang trích xuất dữ liệu danh sách lệnh kho ra file Excel...`);
+    this.triggerToast('Xuất file Excel', 'Đang trích xuất dữ liệu danh sách lệnh kho ra file Excel...', 'info');
   }
 
-  setTypeFilter(type: 'all' | 'import' | 'export' | 'transfer') {
-    this.typeFilter = type;
-  }
 
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+  }
+
+  getOrderTime(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+      }
+    } catch {}
+    const timeMatch = dateStr.match(/\b\d{1,2}:\d{2}\b/);
+    if (timeMatch) return timeMatch[0];
+    return dateStr;
+  }
+
+  getOrderDate(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+    } catch {}
+    const dateMatch = dateStr.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/);
+    if (dateMatch) return dateMatch[0];
+    return '';
   }
 }

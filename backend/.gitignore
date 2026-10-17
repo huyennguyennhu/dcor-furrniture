@@ -1,3 +1,16 @@
-node_modules
+node_modules/
+dist/
 .env
-dist
+.env.*
+!.env.example
+*.log
+
+# Scratch, cache & temporary scripts/data
+scratch*
+*scratch*
+analyze*
+calc*
+*.tmp*
+temp*
+*cache*.json
+*filtered*.json

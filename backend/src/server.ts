@@ -1,16 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import prisma from './lib/prisma';
 import authRoutes from './routes/auth.routes';
 import cartRoutes from './routes/cart.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import staffRoutes from './routes/staff.routes';
+import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
@@ -45,6 +45,9 @@ app.use('/api/admin/warehouses', (req, res, next) => {
   res.redirect('/api/admin/inventory/warehouses');
 });
 
+// Gắn router báo cáo & thống kê
+app.use('/api/admin/reports', reportRoutes);
+
 // Example route
 app.get('/api/products', async (req, res) => {
   try {
@@ -70,7 +73,37 @@ app.get('/api/products/:id', async (req, res) => {
       }
     });
     if (product) {
-      res.json(product);
+      const variantsWithDimensions = product.variants.map((v: any) => {
+        const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+        const attrs = opt.attributes || {};
+        const parseNum = (val: any) => {
+          if (!val) return null;
+          const match = String(val).match(/\d+/);
+          return match ? parseInt(match[0], 10) : null;
+        };
+        return {
+          ...v,
+          images: opt.images || [],
+          dimensions: {
+            width: parseNum(attrs.width) || parseNum(attrs.length),
+            depth: parseNum(attrs.depth),
+            height: parseNum(attrs.height),
+            weight: parseNum(attrs.weight)
+          },
+          attributes: attrs
+        };
+      });
+
+      const firstVariantAttrs = variantsWithDimensions[0]?.attributes || {};
+      const descVi = firstVariantAttrs.designFeatures_vi 
+        ? firstVariantAttrs.designFeatures_vi.split('|').join('\n\n')
+        : (firstVariantAttrs.designFeatures ? firstVariantAttrs.designFeatures.split('|').join('\n\n') : undefined);
+
+      res.json({
+        ...product,
+        description_vi: descVi,
+        variants: variantsWithDimensions
+      });
     } else {
       res.status(404).json({ error: 'Product not found' });
     }
