@@ -23,6 +23,7 @@ export interface AuditItemRow {
   price: number;
   systemStock: number | '';
   actualStock: number | '';
+  damagedQuantity?: number | '';
   discrepancy: number | '';
   discrepancyAmount: number | '';
   reason: string;
@@ -759,6 +760,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       price: 0,
       systemStock: '',
       actualStock: '',
+      damagedQuantity: '',
       discrepancy: '',
       discrepancyAmount: '',
       reason: '',
@@ -899,6 +901,23 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
       this.auditItems = (item.items || []).map((it: any, index: number) => {
         const v = this.allVariants.find(p => p.id === it.variantId) || it.variant || {};
+        const rawReason = it.reason || (it.discrepancy === 0 ? 'Khớp' : '');
+        const damagedMatch = rawReason.match(/\[HỎNG:\s*(\d+)\]/i);
+        const actualCountMatch = rawReason.match(/\[THỰC_ĐẾM:\s*(\d+)\]/i);
+
+        const damagedQty = damagedMatch ? parseInt(damagedMatch[1], 10) : '';
+        let actualStockVal = it.actualStock !== null && it.actualStock !== undefined ? it.actualStock : (this.currentAuditStatus === 'IN_PROGRESS' ? 0 : '');
+        if (actualCountMatch) {
+          actualStockVal = parseInt(actualCountMatch[1], 10);
+        } else if (damagedQty !== '' && it.actualStock !== null && it.actualStock !== undefined && it.actualStock !== '') {
+          actualStockVal = Number(it.actualStock) + Number(damagedQty);
+        }
+
+        const cleanReason = rawReason
+          .replace(/\[HỎNG:\s*\d+\]/gi, '')
+          .replace(/\[THỰC_ĐẾM:\s*\d+\]/gi, '')
+          .trim();
+
         const row: AuditItemRow = {
           id: `${Date.now()}_${index}`,
           productId: (v as any).productId || it.variant?.product?.id,
@@ -909,10 +928,11 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
           unit: (v as any).unit || 'Cái',
           price: v.price || it.variant?.price || (v as any).product?.basePrice || 0,
           systemStock: it.systemStock !== null && it.systemStock !== undefined ? it.systemStock : 0,
-          actualStock: it.actualStock !== null && it.actualStock !== undefined ? it.actualStock : (this.currentAuditStatus === 'IN_PROGRESS' ? 0 : ''),
+          actualStock: actualStockVal,
+          damagedQuantity: damagedQty !== '' ? damagedQty : '',
           discrepancy: it.discrepancy !== null && it.discrepancy !== undefined ? it.discrepancy : '',
           discrepancyAmount: '',
-          reason: it.reason || (it.discrepancy === 0 ? 'Khớp' : ''),
+          reason: cleanReason || (it.discrepancy === 0 ? 'Khớp' : ''),
           customReason: '',
           productSearchTerm: '',
           showProductDropdown: false,
@@ -1193,10 +1213,14 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  handleUpdateRow(row: AuditItemRow, field: 'actualStock' | 'reason' | 'customReason', value: any) {
+  handleUpdateRow(row: AuditItemRow, field: 'actualStock' | 'damagedQuantity' | 'reason' | 'customReason', value: any) {
     if (field === 'actualStock') {
       const sanitized = String(value ?? '').replace(/[^0-9]/g, '');
       row.actualStock = sanitized ? parseInt(sanitized, 10) : '';
+      this.recalcRow(row);
+    } else if (field === 'damagedQuantity') {
+      const sanitized = String(value ?? '').replace(/[^0-9]/g, '');
+      row.damagedQuantity = sanitized ? parseInt(sanitized, 10) : '';
       this.recalcRow(row);
     } else if (field === 'reason') {
       row.reason = value;
@@ -1207,11 +1231,23 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
   recalcRow(row: AuditItemRow) {
     if (row.actualStock !== '' && row.systemStock !== '') {
-      row.discrepancy = Number(row.actualStock) - Number(row.systemStock);
+      const actual = Number(row.actualStock);
+      const system = Number(row.systemStock);
+      const damaged = row.damagedQuantity !== '' && row.damagedQuantity !== null && row.damagedQuantity !== undefined 
+        ? Math.max(0, Number(row.damagedQuantity)) 
+        : 0;
+
+      // Hàng tốt sử dụng được = Thực đếm - Hàng hỏng
+      const usable = Math.max(0, actual - damaged);
+
+      // Chênh lệch so với tồn sổ sách hệ thống
+      row.discrepancy = usable - system;
       row.discrepancyAmount = row.discrepancy * (row.price || 0);
 
-      if (row.discrepancy === 0) {
+      if (row.discrepancy === 0 && damaged === 0) {
         row.reason = 'Khớp';
+      } else if (damaged > 0 && (!row.reason || row.reason === 'Khớp')) {
+        row.reason = `Phát hiện ${damaged} hàng hỏng/vỡ`;
       } else if (!row.reason || row.reason === 'Khớp') {
         row.reason = '';
       }
@@ -1502,6 +1538,19 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     return this.auditItems.reduce((sum, it) => {
       if (it.variantId && typeof it.discrepancyAmount === 'number') {
         return sum + it.discrepancyAmount;
+      }
+      return sum;
+    }, 0);
+  }
+
+  get totalDamagedItems(): number {
+    return this.auditItems.filter(it => it.variantId && Number(it.damagedQuantity) > 0).length;
+  }
+
+  get totalDamagedQuantity(): number {
+    return this.auditItems.reduce((sum, it) => {
+      if (it.variantId && it.damagedQuantity !== '' && it.damagedQuantity !== null) {
+        return sum + (Number(it.damagedQuantity) || 0);
       }
       return sum;
     }, 0);
@@ -1858,12 +1907,26 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       scope: this.modalAuditScope,
       notes: finalNotes,
       status: targetStatus,
-      items: validItems.map(it => ({
-        variantId: it.variantId,
-        systemStock: Number(it.systemStock) || 0,
-        actualStock: it.actualStock !== '' && it.actualStock !== null && it.actualStock !== undefined ? Number(it.actualStock) : null,
-        reason: it.reason || (it.discrepancy === 0 ? 'Khớp' : null)
-      }))
+      items: validItems.map(it => {
+        const actual = it.actualStock !== '' && it.actualStock !== null && it.actualStock !== undefined ? Number(it.actualStock) : null;
+        const damaged = it.damagedQuantity !== '' && it.damagedQuantity !== null && it.damagedQuantity !== undefined ? Number(it.damagedQuantity) : 0;
+        
+        let reason = it.reason || (it.discrepancy === 0 ? 'Khớp' : null);
+        if (damaged > 0) {
+          const cleanReason = (reason || '').replace(/\[HỎNG:\s*\d+\]/gi, '').replace(/\[THỰC_ĐẾM:\s*\d+\]/gi, '').trim();
+          reason = `[HỎNG: ${damaged}] [THỰC_ĐẾM: ${actual ?? 0}] ${cleanReason}`.trim();
+        }
+
+        // Tồn thực tế đưa vào hệ thống khi cân bằng là số lượng hàng đạt chuẩn (usable = actual - damaged)
+        const usableActual = actual !== null ? Math.max(0, actual - damaged) : null;
+
+        return {
+          variantId: it.variantId,
+          systemStock: Number(it.systemStock) || 0,
+          actualStock: usableActual,
+          reason: reason
+        };
+      })
     };
 
     const isUpdate = (this.currentAuditStatus === 'DRAFT' || this.currentAuditStatus === 'IN_PROGRESS' || this.currentAuditStatus === 'PLANNED') && !!this.existingDraftId;

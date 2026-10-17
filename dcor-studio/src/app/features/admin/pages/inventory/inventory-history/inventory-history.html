@@ -175,11 +175,11 @@
               Chưa có ghi nhận biến động kho nào phù hợp.
             </td>
           </tr>
-          <tr *ngFor="let item of data" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
+          <tr *ngFor="let item of data" style="border-bottom: 1px solid var(--border-color);"
               onmouseover="this.style.background='#F3E5D3'" 
               onmouseout="this.style.background='transparent'">
             <td style="padding: 16px;">
-              <span style="font-weight: 600; color: var(--accent); cursor: pointer;">{{ item.id }}</span>
+              <span style="font-weight: 600; color: var(--accent);">{{ item.id }}</span>
             </td>
             <td style="padding: 16px;">
               <div>
@@ -260,17 +260,7 @@
               </div>
             </td>
             <td style="padding: 16px;">
-              <span 
-                *ngIf="item.reference && item.reference !== '-'" 
-                (click)="navigateToDocument(item, $event)"
-                style="color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;"
-                [title]="item.orderTypeLabel === 'Kiểm kê' ? ('Nhấn để mở kiểm kê ' + item.reference) : ('Nhấn để mở lệnh kho ' + item.reference)"
-              >
-                {{ item.reference }}
-              </span>
-              <span *ngIf="!item.reference || item.reference === '-'" style="color: var(--text-muted); font-weight: 500;">
-                -
-              </span>
+              <span style="color: var(--text-secondary); font-weight: 500;">{{ item.reference }}</span>
             </td>
             <td style="padding: 16px;">
               <div style="display: flex; align-items: center; gap: 8px;">

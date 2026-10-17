@@ -338,12 +338,12 @@
   </div>
 
   <!-- Data Table -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
-    <div style="width: 100%; overflow-x: auto;">
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
+    <div style="width: 100%; overflow: visible;">
       <table style="width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed;">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-            <th style="padding: 16px 8px; width: 44px; text-align: center;">
+            <th style="padding: 16px 8px; width: 44px; text-align: center; border-top-left-radius: 11px;">
               <button 
                 type="button" 
                 (click)="toggleSelectAll($event)" 
@@ -361,8 +361,8 @@
             <th *ngIf="columnVisibility['availableStock']" style="padding: 16px 12px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; width: 105px;">Có thể bán</th>
             <th *ngIf="columnVisibility['threshold']" style="padding: 16px 12px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; width: 90px;">Cảnh báo</th>
             <th *ngIf="columnVisibility['status']" style="padding: 16px 12px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; width: 110px;">Trạng thái</th>
-            <th style="padding: 16px 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 48px; text-align: center; position: relative;">
-              <div class="column-settings-container" style="position: relative; display: inline-flex; align-items: center; justify-content: center;">
+            <th style="padding: 16px 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 48px; text-align: center; position: relative; z-index: 100;">
+              <div class="column-settings-container" style="position: relative; display: inline-flex; align-items: center; justify-content: center; z-index: 100;">
                 <button 
                   type="button"
                   (click)="showColumnDropdown = !showColumnDropdown; $event.stopPropagation()"
@@ -418,13 +418,13 @@
                 </div>
               </div>
             </th>
-            <th style="padding: 16px 8px; width: 44px; text-align: center;" title="Xem chi tiết sản phẩm"></th>
+            <th style="padding: 16px 8px; width: 44px; text-align: center; border-top-right-radius: 11px;" title="Xem chi tiết sản phẩm"></th>
           </tr>
         </thead>
         <tbody>
           <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
           <tr *ngIf="isLoading">
-            <td [attr.colspan]="getVisibleColumnCount()" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+            <td [attr.colspan]="getVisibleColumnCount()" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
                 <div class="spinning-loader"></div>
                 <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu tổng quan kho...</span>
@@ -625,7 +625,13 @@
           </ng-container>
           <!-- Empty State -->
           <tr *ngIf="data.length === 0">
-            <td [attr.colspan]="getVisibleColumnCount()" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">Không tìm thấy sản phẩm nào phù hợp.</td>
+            <td [attr.colspan]="getVisibleColumnCount()" style="padding: 64px 20px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <lucide-angular [img]="icons.Package" size="36" style="color: var(--text-muted); opacity: 0.45;"></lucide-angular>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">Không tìm thấy sản phẩm nào phù hợp</span>
+                <span style="font-size: 12.5px; color: var(--text-muted);">Vui lòng thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn.</span>
+              </div>
+            </td>
           </tr>
           </ng-container>
         </tbody>
@@ -633,7 +639,7 @@
     </div>
 
     <!-- Pagination Footer -->
-    <div *ngIf="!isLoading && totalItems > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px;">
+    <div *ngIf="!isLoading && totalItems > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
       <div style="font-size: 13px; color: var(--text-secondary);">
         Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ totalItems }}</span> sản phẩm
       </div>

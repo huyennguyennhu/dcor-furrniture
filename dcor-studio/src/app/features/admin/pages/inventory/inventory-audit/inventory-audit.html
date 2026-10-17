@@ -828,12 +828,11 @@
                 <col style="width: 50%; min-width: 180px;">
                 <col style="width: 60px;">
                 <col style="width: 80px;">
-                <ng-container *ngIf="isCountingMode">
-                  <col style="width: 85px;">
-                  <col style="width: 85px;">
-                  <col style="width: 110px;">
-                  <col style="width: 170px;">
-                </ng-container>
+                <col *ngIf="isCountingMode" style="width: 100px;">
+                <col *ngIf="isCountingMode" style="width: 105px;">
+                <col *ngIf="isCountingMode" style="width: 85px;">
+                <col *ngIf="isCountingMode" style="width: 110px;">
+                <col *ngIf="isCountingMode" style="width: 170px;">
                 <col *ngIf="canEditInitialFields" style="width: 44px;">
               </colgroup>
               <thead>
@@ -843,8 +842,9 @@
                   <th style="width: 60px; text-align: center;">ĐVT</th>
                   <th style="width: 80px; text-align: center;">Tồn HT</th>
                   <ng-container *ngIf="isCountingMode">
-                    <th style="width: 85px; text-align: center;">Tồn đếm</th>
-                    <th style="width: 85px; text-align: center;">Chênh lệch</th>
+                    <th class="col-center" style="width: 100px; text-align: center !important; padding: 11px 4px;">Tồn đếm</th>
+                    <th class="col-center" style="width: 105px; text-align: center !important; padding: 11px 4px;" title="Số lượng hàng phát hiện bị hư hỏng / vỡ / lỗi">SL hư hỏng</th>
+                    <th class="col-center" style="width: 85px; text-align: center !important;">Chênh lệch</th>
                     <th style="width: 110px; text-align: right;">Giá trị lệch</th>
                     <th style="width: 170px; text-align: left;">Lý do chênh lệch</th>
                   </ng-container>
@@ -854,7 +854,7 @@
               <tbody>
                 <!-- Loading state when loading all stock or category stock -->
                 <tr *ngIf="isLoadingStock">
-                  <td [attr.colspan]="isCountingMode ? (canEditInitialFields ? 9 : 8) : (canEditInitialFields ? 5 : 4)" style="text-align: center; padding: 48px 16px; background: var(--bg-primary);">
+                  <td [attr.colspan]="isCountingMode ? (canEditInitialFields ? 10 : 9) : (canEditInitialFields ? 5 : 4)" style="text-align: center; padding: 48px 16px; background: var(--bg-primary);">
                     <div style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: var(--text-secondary);">
                       <lucide-angular [img]="icons.Loader2" size="20" style="animation: spin 1s linear infinite; color: var(--accent);"></lucide-angular>
                       <span>Đang nạp dữ liệu tồn kho sản phẩm...</span>
@@ -865,7 +865,7 @@
                 <ng-container *ngIf="!isLoadingStock">
                   <!-- Trạng thái trống khi chưa có mặt hàng nào -->
                   <tr *ngIf="auditItems.length === 0">
-                    <td [attr.colspan]="isCountingMode ? (canEditInitialFields ? 9 : 8) : (canEditInitialFields ? 5 : 4)" style="text-align: center; padding: 48px 16px; background: var(--bg-primary); color: var(--text-muted);">
+                    <td [attr.colspan]="isCountingMode ? (canEditInitialFields ? 10 : 9) : (canEditInitialFields ? 5 : 4)" style="text-align: center; padding: 48px 16px; background: var(--bg-primary); color: var(--text-muted);">
                       <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
                         <lucide-angular [img]="icons.Package" size="30" style="color: var(--text-muted); opacity: 0.5;"></lucide-angular>
                         <span style="font-size: 13.5px; font-weight: 500;">Chưa có mặt hàng nào trong danh sách kiểm kê</span>
@@ -1035,7 +1035,7 @@
                       {{ (modalWarehouseId && row.systemStock !== '') ? row.systemStock : (row.systemStock || 0) }}
                     </td>
 
-                    <!-- 4 CỘT KIỂM ĐẾM (Chỉ hiện khi isCountingMode) -->
+                    <!-- 5 CỘT KIỂM ĐẾM (Chỉ hiện khi isCountingMode) -->
                     <ng-container *ngIf="isCountingMode">
                       <!-- 5. Tồn đếm -->
                       <td style="text-align: center;">
@@ -1051,6 +1051,28 @@
                         <span *ngIf="currentAuditStatus !== 'IN_PROGRESS'" style="font-weight: 700; font-size: 13px;">
                           {{ row.actualStock !== null && row.actualStock !== '' ? row.actualStock : '-' }}
                         </span>
+                      </td>
+
+                      <!-- 5b. Hàng hư hỏng -->
+                      <td style="text-align: center;">
+                        <input 
+                          *ngIf="currentAuditStatus === 'IN_PROGRESS'"
+                          type="text" 
+                          [ngModel]="row.damagedQuantity" 
+                          (ngModelChange)="handleUpdateRow(row, 'damagedQuantity', $event)" 
+                          placeholder="0" 
+                          class="stock-count-input" 
+                          style="color: #ea580c; font-weight: 700; border-color: rgba(234, 88, 12, 0.35);"
+                          title="Nhập số lượng hàng phát hiện bị hư hỏng / vỡ / lỗi"
+                        />
+                        <ng-container *ngIf="currentAuditStatus !== 'IN_PROGRESS'">
+                          <span *ngIf="row.damagedQuantity && row.damagedQuantity > 0" style="color: #ea580c; font-weight: 700; font-size: 12.5px; background: rgba(234, 88, 12, 0.08); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(234, 88, 12, 0.2);">
+                            {{ row.damagedQuantity }}
+                          </span>
+                          <span *ngIf="!row.damagedQuantity || row.damagedQuantity === 0" style="color: var(--text-muted); font-size: 12px;">
+                            0
+                          </span>
+                        </ng-container>
                       </td>
 
                       <!-- 6. Chênh lệch -->
@@ -1269,6 +1291,9 @@
               <strong [style.color]="totalDiscrepancyAmount < 0 ? '#ef4444' : (totalDiscrepancyAmount > 0 ? '#10b981' : 'var(--text-primary)')">
                 {{ formatCurrency(totalDiscrepancyAmount) }}
               </strong>
+            </span>
+            <span *ngIf="totalDamagedItems > 0" style="color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px; background: rgba(234, 88, 12, 0.08); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(234, 88, 12, 0.2);">
+              Hàng hỏng: <strong style="color: #ea580c;">{{ totalDamagedQuantity }} cái ({{ totalDamagedItems }} SP)</strong>
             </span>
           </ng-container>
           <ng-container *ngIf="!isCountingMode">

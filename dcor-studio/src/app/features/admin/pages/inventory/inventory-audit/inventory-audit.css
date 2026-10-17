@@ -471,6 +471,11 @@
   white-space: nowrap;
 }
 
+.audit-table th.col-center,
+.audit-table td.col-center {
+  text-align: center !important;
+}
+
 .audit-table thead tr th:first-child {
   border-top-left-radius: 7px;
 }
