@@ -2,8 +2,24 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { getStaffMetadata } from '../lib/staff-metadata';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
+
+function mapFromPrismaRole(role: string): string {
+  switch (role) {
+    case 'OWNER':
+    case 'ADMIN':
+      return 'Super Admin';
+    case 'WAREHOUSE':
+      return 'Quản lý kho';
+    case 'CONTENT':
+      return 'Quản lý sản phẩm';
+    case 'SALES':
+    default:
+      return 'Sales';
+  }
+}
 
 export const authController = {
   // Đăng nhập dành cho Admin / Staff
@@ -16,9 +32,11 @@ export const authController = {
         return;
       }
 
+      const normalizedEmail = email.trim().toLowerCase();
+
       // 1. Tìm user trong bảng StaffUser
       const staff = await prisma.staffUser.findUnique({
-        where: { email }
+        where: { email: normalizedEmail }
       });
 
       if (!staff) {
@@ -50,12 +68,24 @@ export const authController = {
         data: { lastLoginAt: new Date(), failedLoginCount: 0 }
       });
 
+      // Đọc metadata chính xác (bảo toàn vai trò động như IT, quyền đa vai trò, chi nhánh)
+      const metadata = getStaffMetadata(staff.email);
+      const exactRoles = metadata?.roles && metadata.roles.length > 0 
+        ? metadata.roles 
+        : [mapFromPrismaRole(staff.role)];
+      const exactRole = metadata?.role || exactRoles[0];
+      const branchId = metadata?.branchId || 'ALL';
+      const branchName = metadata?.branchName || 'Toàn hệ thống';
+      const assignedBranches = metadata?.assignedBranches || [branchId];
+
       // 4. Sinh JWT Token
       const token = jwt.sign(
         { 
           userId: staff.id, 
           email: staff.email, 
-          role: staff.role,
+          role: exactRole,
+          roles: exactRoles,
+          branchId,
           type: 'STAFF' 
         },
         JWT_SECRET,
@@ -69,7 +99,11 @@ export const authController = {
           id: staff.id,
           fullName: staff.fullName,
           email: staff.email,
-          role: staff.role
+          role: exactRole,
+          roles: exactRoles,
+          branchId,
+          branchName,
+          assignedBranches
         }
       });
     } catch (error) {
@@ -129,12 +163,24 @@ export const authController = {
         }
       });
 
+      // Đọc metadata chính xác (bảo toàn vai trò động như IT, đa vai trò, chi nhánh)
+      const metadata = getStaffMetadata(updatedStaff.email);
+      const exactRoles = metadata?.roles && metadata.roles.length > 0 
+        ? metadata.roles 
+        : [mapFromPrismaRole(updatedStaff.role)];
+      const exactRole = metadata?.role || exactRoles[0];
+      const branchId = metadata?.branchId || 'ALL';
+      const branchName = metadata?.branchName || 'Toàn hệ thống';
+      const assignedBranches = metadata?.assignedBranches || [branchId];
+
       // Tự sinh token JWT đăng nhập luôn cho người dùng
       const authToken = jwt.sign(
         { 
           userId: updatedStaff.id, 
           email: updatedStaff.email, 
-          role: updatedStaff.role,
+          role: exactRole,
+          roles: exactRoles,
+          branchId,
           type: 'STAFF' 
         },
         JWT_SECRET,
@@ -148,7 +194,11 @@ export const authController = {
           id: updatedStaff.id,
           fullName: updatedStaff.fullName,
           email: updatedStaff.email,
-          role: updatedStaff.role
+          role: exactRole,
+          roles: exactRoles,
+          branchId,
+          branchName,
+          assignedBranches
         }
       });
     } catch (error) {

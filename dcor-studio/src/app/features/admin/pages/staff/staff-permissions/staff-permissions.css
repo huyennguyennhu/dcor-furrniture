@@ -4,14 +4,15 @@
 
 .permissions-page {
   position: relative;
+  width: 100%;
 }
 
-/* Toast Notification Floating */
+/* Toast Floating */
 .toast-alert {
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 2000;
+  z-index: 2200;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -55,53 +56,263 @@
   opacity: 0.7;
 }
 
-/* Roles Tabs */
-.roles-tabs-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
+.btn-close-toast:hover {
+  opacity: 1;
 }
 
-.roles-tabs-header {
+/* ==========================================================================
+   View Mode Switcher (Theo Nhân viên vs Theo Mẫu Vai trò)
+   ========================================================================== */
+.view-mode-tabs {
   display: flex;
   align-items: center;
-  gap: 12px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-control, 8px);
+  padding: 4px;
+  gap: 4px;
 }
 
-.roles-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary, #616161);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.role-badge {
+.view-tab-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 10px;
-  border-radius: var(--radius-pill, 999px);
-  background: rgba(188, 95, 19, 0.1);
-  color: var(--color-accent, #BC5F13);
-  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--color-text-secondary, #616161);
+  cursor: pointer;
+  transition: all var(--transition-fast, 120ms ease);
+}
+
+.view-tab-btn:hover {
+  color: var(--color-text, #0A0A0A);
+}
+
+.view-tab-btn.active {
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.2);
+}
+
+/* ==========================================================================
+   Staff Selector Banner (Theo Nhân viên)
+   ========================================================================== */
+.staff-selector-banner {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-card, 12px);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+
+.selector-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.selector-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+}
+
+.staff-dropdown-wrap {
+  min-width: 380px;
+}
+
+.staff-select-control {
+  font-weight: 600;
+  border-color: var(--color-primary, #765337);
+}
+
+.staff-active-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--color-surface-subtle, #F5F5F5);
+  border-radius: var(--radius-control, 8px);
+  border: 1px solid var(--color-border, #E0E0E0);
+}
+
+.staff-active-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.staff-active-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.s-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.s-name {
+  font-size: 15px;
+  color: var(--color-text, #0A0A0A);
+}
+
+.s-email {
+  font-size: 13px;
+  color: var(--color-text-secondary, #616161);
+}
+
+.s-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meta-label {
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+}
+
+.meta-divider {
+  color: var(--color-border-dark, #BDBDBD);
+}
+
+.s-roles-wrap,
+.s-branches-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.s-role-chip {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+}
+
+.s-role-chip.is-super {
+  background: #FFF8E5;
+  border-color: #F2BF3D;
+  color: #7A5600;
+}
+
+.s-branch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(0, 35, 221, 0.08);
+  border: 1px solid rgba(0, 35, 221, 0.2);
+  color: var(--color-info, #0023DD);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.s-branch-chip.is-wh {
+  background: rgba(188, 95, 19, 0.08);
+  border-color: rgba(188, 95, 19, 0.25);
+  color: var(--color-accent, #BC5F13);
+}
+
+/* ==========================================================================
+   Roles Manager Card (Theo Mẫu Vai trò)
+   ========================================================================== */
+.roles-manager-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-card, 12px);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.roles-manager-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.roles-manager-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+}
+
+.roles-manager-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-sm {
+  padding: 7px 12px;
+  font-size: 12.5px;
+  height: 34px;
+}
+
+.btn-danger-action {
+  color: var(--color-danger, #C42326) !important;
+  border-color: rgba(196, 35, 38, 0.3) !important;
+  background: #FFF5F5 !important;
+}
+
+.btn-danger-action:hover {
+  background: var(--color-danger, #C42326) !important;
+  color: #FFFFFF !important;
+}
+
+.roles-tabs-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .roles-tabs {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  min-width: max-content;
 }
 
 .role-tab-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
+  padding: 8px 14px;
   border-radius: var(--radius-control, 8px);
-  background: var(--color-surface, #FFFFFF);
+  background: var(--color-surface-subtle, #F5F5F5);
   border: 1px solid var(--color-border, #E0E0E0);
   color: var(--color-text, #0A0A0A);
   font-size: 13px;
@@ -111,7 +322,7 @@
 }
 
 .role-tab-btn:hover {
-  background: var(--color-surface-subtle, #F5F5F5);
+  background: #EFEFEF;
   border-color: var(--color-primary-hover, #BC5F13);
 }
 
@@ -119,80 +330,156 @@
   background: var(--color-primary, #765337);
   border-color: var(--color-primary, #765337);
   color: #FFFFFF;
-  font-weight: 600;
   box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25);
 }
 
 .tab-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--color-text-muted, #757575);
+  background: var(--color-border-dark, #BDBDBD);
+}
+
+.tab-dot.admin-dot {
+  background: var(--color-accent, #BC5F13);
 }
 
 .role-tab-btn.active .tab-dot {
   background: #FFFFFF;
 }
 
-.admin-dot {
-  background: var(--color-accent, #BC5F13);
-}
-
-/* Matrix Card */
-.matrix-card {
+.staff-count-badge {
+  padding: 2px 7px;
+  border-radius: var(--radius-pill, 999px);
   background: var(--color-surface, #FFFFFF);
   border: 1px solid var(--color-border, #E0E0E0);
+  color: var(--color-text-secondary, #616161);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.role-tab-btn.active .staff-count-badge {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #FFFFFF;
+}
+
+.system-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.selected-role-desc-banner {
+  padding: 10px 14px;
+  background: var(--color-sub-bg, #FFF3E3);
+  border: 1px solid rgba(188, 95, 19, 0.2);
+  border-radius: var(--radius-control, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.desc-content {
+  font-size: 13px;
+  color: var(--color-text, #0A0A0A);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.desc-content code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--color-primary, #765337);
+  font-weight: 600;
+}
+
+.desc-divider {
+  color: var(--color-text-muted, #757575);
+}
+
+.desc-text {
+  color: var(--color-text-secondary, #616161);
+}
+
+.role-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+}
+
+.role-type-badge.is-super {
+  background: #FFF8E5;
+  border-color: #F2BF3D;
+  color: #7A5600;
+}
+
+/* ==========================================================================
+   Matrix Card (9 Modules x 5 Actions)
+   ========================================================================== */
+.matrix-card {
   border-radius: var(--radius-card, 12px);
-  box-shadow: var(--shadow-card);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
   overflow: hidden;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
 }
 
 .matrix-card-header {
   padding: 18px 24px;
   border-bottom: 1px solid var(--color-border, #E0E0E0);
-  background: var(--color-surface-subtle, #F5F5F5);
+  background: var(--color-surface, #FFFFFF);
 }
 
 .matrix-title {
-  margin: 0 0 4px 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text, #0A0A0A);
+  margin: 0 0 4px 0;
 }
 
 .highlight-role {
-  color: var(--color-accent, #BC5F13);
+  color: var(--color-primary, #765337);
 }
 
 .matrix-subtitle {
-  margin: 0;
   font-size: 12px;
-  color: var(--color-text-secondary, #616161);
+  color: var(--color-text-muted, #757575);
+  margin: 0;
 }
 
-/* Table */
 .permissions-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .permissions-table th {
-  padding: 14px 16px;
+  background: var(--color-surface-subtle, #F5F5F5);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-secondary, #616161);
-  background: var(--color-surface, #FFFFFF);
-  border-bottom: 2px solid var(--color-border, #E0E0E0);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
 }
 
 .permissions-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border-subtle, #EDEDED);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
   vertical-align: middle;
-}
-
-.matrix-row {
-  transition: background-color var(--transition-fast, 120ms ease);
 }
 
 .matrix-row:hover {
@@ -238,7 +525,7 @@
   margin-top: 2px;
 }
 
-/* Checkbox tùy biến bo góc 4px, khi tick đổi màu nâu #765337 */
+/* Custom Checkbox bo góc 4px, màu #765337 */
 .custom-checkbox-wrap {
   display: inline-flex;
   align-items: center;
@@ -249,8 +536,7 @@
 }
 
 .custom-checkbox-wrap.disabled {
-  cursor: not-allowed;
-  opacity: 0.85;
+  cursor: default;
 }
 
 .custom-check-input {
@@ -264,7 +550,7 @@
 .check-box-visual {
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-sm, 4px); /* Bo góc 4px */
+  border-radius: 4px;
   border: 1.5px solid var(--color-border, #E0E0E0);
   background: var(--color-surface, #FFFFFF);
   display: flex;
@@ -277,7 +563,6 @@
   border-color: var(--color-primary-hover, #BC5F13);
 }
 
-/* Khi tick đổi màu nâu #765337 */
 .custom-check-input:checked + .check-box-visual {
   background: var(--color-primary, #765337);
   border-color: var(--color-primary, #765337);
@@ -295,7 +580,28 @@
   transform: scale(1);
 }
 
-/* Toggle All button */
+.module-status-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-surface-subtle, #F5F5F5);
+  border: 1px solid var(--color-border, #E0E0E0);
+  color: var(--color-text-secondary, #616161);
+}
+
+.module-status-badge.all-granted {
+  background: var(--color-success-bg, #E9F8E9);
+  color: var(--color-success, #00A30B);
+  border-color: rgba(0, 163, 11, 0.2);
+}
+
+.module-status-badge.no-perm {
+  background: #FFF5F5;
+  color: var(--color-danger, #C42326);
+  border-color: rgba(196, 35, 38, 0.2);
+}
+
 .btn-toggle-module {
   background: none;
   border: 1px solid var(--color-border, #E0E0E0);
@@ -318,14 +624,15 @@
   cursor: not-allowed;
 }
 
-/* Matrix Card Footer */
 .matrix-card-footer {
-  padding: 18px 24px;
+  padding: 16px 24px;
   border-top: 1px solid var(--color-border, #E0E0E0);
   background: var(--color-surface-subtle, #F5F5F5);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .footer-legend {
@@ -343,9 +650,9 @@
 }
 
 .legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-sm, 4px);
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
   border: 1px solid var(--color-border, #E0E0E0);
 }
 
@@ -358,13 +665,226 @@
   background: var(--color-surface, #FFFFFF);
 }
 
-@keyframes slideToast {
-  from {
-    opacity: 0;
-    transform: translateY(-16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ==========================================================================
+   Bảng Tổng hợp Phân quyền Toàn thể Nhân sự
+   ========================================================================== */
+.staff-overview-table {
+  width: 100%;
+  border-collapse: collapse;
 }
+
+.staff-overview-table th {
+  background: var(--color-surface-subtle, #F5F5F5);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #616161);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
+}
+
+.staff-overview-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
+  vertical-align: middle;
+}
+
+.staff-overview-row {
+  cursor: pointer;
+  transition: all var(--transition-fast, 120ms ease);
+}
+
+.staff-overview-row:hover {
+  background-color: var(--color-surface-subtle, #F5F5F5);
+}
+
+.staff-overview-row.active-staff {
+  background-color: #FAF4EE !important;
+  border-left: 3px solid var(--color-primary, #765337);
+}
+
+.perm-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-border, #E0E0E0);
+}
+
+.perm-dot.active {
+  background: var(--color-primary, #765337);
+}
+
+.perm-dot.active.is-wh {
+  background: var(--color-accent, #BC5F13);
+}
+
+.perm-dot.active.is-super {
+  background: #00A30B;
+}
+
+/* ==========================================================================
+   Modals Common
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--color-surface, #FFFFFF);
+  border-radius: var(--radius-card, 12px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--color-border, #E0E0E0);
+}
+
+.modal-sm {
+  max-width: 440px;
+}
+
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text, #0A0A0A);
+  margin: 0;
+}
+
+.modal-subtitle {
+  font-size: 12.5px;
+  color: var(--color-text-secondary, #616161);
+  margin: 4px 0 0 0;
+}
+
+.admin-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #757575);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-control, 8px);
+}
+
+.admin-close-btn:hover {
+  background: var(--color-surface-subtle, #F5F5F5);
+  color: var(--color-text, #0A0A0A);
+}
+
+.modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface-subtle, #F5F5F5);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+}
+
+.required {
+  color: var(--color-danger, #C42326);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+}
+
+.admin-input,
+.admin-select,
+.admin-textarea {
+  width: 100%;
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-control, 8px);
+  padding: 0 14px;
+  font-size: 13.5px;
+  color: var(--color-text, #0A0A0A);
+  background: var(--color-surface, #FFFFFF);
+  transition: all var(--transition-fast, 120ms ease);
+  box-sizing: border-box;
+}
+
+.admin-input,
+.admin-select {
+  height: 44px;
+}
+
+.admin-textarea {
+  padding: 10px 14px;
+  resize: vertical;
+}
+
+.admin-input:focus,
+.admin-select:focus,
+.admin-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-hover, #BC5F13);
+  box-shadow: 0 0 0 2px rgba(188, 95, 19, 0.2);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideToast {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner-icon {
+  animation: spin 0.75s linear infinite;
+  display: inline-flex;
+}
+

@@ -1,6 +1,6 @@
 <section class="admin-page permissions-page">
 
-  <!-- Toast Notification -->
+  <!-- Toast Floating -->
   <div *ngIf="toastMessage" class="toast-alert" [ngClass]="'toast-' + toastType">
     <app-icon [name]="toastType === 'success' ? 'CircleCheck' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
     <span>{{ toastMessage }}</span>
@@ -13,122 +13,536 @@
   <header class="admin-page-heading">
     <div>
       <h1>Ma trận phân quyền hệ thống</h1>
-      <p>Cấu hình quyền thao tác chi tiết (Xem, Thêm, Sửa, Xóa, Duyệt) cho 7 vai trò nhân sự.</p>
+      <p>Phân quyền 2 chiều đa vai trò (Multi-Role), quản lý quyền hiệu lực theo Nhân viên và mẫu Vai trò.</p>
     </div>
-    <div class="admin-page-actions">
-      <button type="button" class="admin-btn admin-btn-secondary" (click)="resetToDefault()">
-        <app-icon name="Clock" size="16"></app-icon>
-        <span>Khôi phục mặc định</span>
+    
+    <!-- View Mode Switcher: Theo Nhân viên vs Theo Mẫu Vai trò -->
+    <div class="view-mode-tabs">
+      <button 
+        type="button" 
+        class="view-tab-btn" 
+        [class.active]="activeViewTab === 'staff_matrix'"
+        (click)="activeViewTab = 'staff_matrix'">
+        <app-icon name="UsersRound" size="15"></app-icon>
+        <span>Theo Nhân viên (Staff Matrix)</span>
       </button>
-      <button type="button" class="admin-btn admin-btn-primary" (click)="savePermissions()" [disabled]="saveLoading">
-        <app-icon name="LoaderCircle" size="16" class="spinner-icon" *ngIf="saveLoading"></app-icon>
-        <span>{{ saveLoading ? 'Đang lưu...' : 'Lưu phân quyền' }}</span>
+      <button 
+        type="button" 
+        class="view-tab-btn" 
+        [class.active]="activeViewTab === 'role_templates'"
+        (click)="activeViewTab = 'role_templates'">
+        <app-icon name="ShieldCheck" size="15"></app-icon>
+        <span>Cấu hình Mẫu Vai trò (Roles)</span>
       </button>
     </div>
   </header>
 
-  <!-- Role Selector Tabs -->
-  <div class="roles-tabs-container">
-    <div class="roles-tabs-header">
-      <span class="roles-label">Chọn vai trò:</span>
-      <span class="role-badge" *ngIf="isSuperAdmin()">
-        <app-icon name="ShieldCheck" size="14"></app-icon>
-        Toàn quyền quản trị viên cao nhất
-      </span>
+  <!-- =========================================================================
+       CHẾ ĐỘ 1: MA TRẬN PHÂN QUYỀN THEO NHÂN VIÊN (STAFF MATRIX)
+       ========================================================================= -->
+  <div *ngIf="activeViewTab === 'staff_matrix'" class="staff-matrix-container">
+    
+    <!-- Staff Selector Card -->
+    <div class="staff-selector-banner">
+      <div class="selector-left">
+        <label for="select-staff-dropdown" class="selector-label">Chọn nhân viên kiểm tra quyền:</label>
+        <div class="staff-dropdown-wrap">
+          <select 
+            id="select-staff-dropdown" 
+            class="admin-select staff-select-control"
+            [ngModel]="selectedStaff?.id"
+            (ngModelChange)="selectStaff($event)">
+            <option *ngFor="let s of staffMembers" [value]="s.id">
+              {{ s.name }} ({{ s.email }}) — [{{ s.roles.join(', ') }}]
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Selected Staff Information Badge -->
+      <div class="staff-active-info" *ngIf="selectedStaff">
+        <div class="staff-active-avatar">
+          <span>{{ getInitials(selectedStaff.name) }}</span>
+        </div>
+        <div class="staff-active-details">
+          <div class="s-name-row">
+            <strong class="s-name">{{ selectedStaff.name }}</strong>
+            <span class="s-email">({{ selectedStaff.email }})</span>
+          </div>
+          
+          <div class="s-badges-row">
+            <span class="meta-label">Vai trò:</span>
+            <div class="s-roles-wrap">
+              <span *ngFor="let r of selectedStaff.roles" class="s-role-chip" [class.is-super]="r === 'Super Admin'">
+                {{ r }}
+              </span>
+            </div>
+            <span class="meta-divider">•</span>
+            <span class="meta-label">Địa điểm:</span>
+            <div class="s-branches-wrap">
+              <span *ngFor="let bId of (selectedStaff.assignedBranches || [])" class="s-branch-chip" [class.is-wh]="isWarehouse(bId)">
+                <app-icon [name]="isWarehouse(bId) ? 'Warehouse' : 'Building'" size="11"></app-icon>
+                <span>{{ adminAuthService.getBranchName(bId) }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="roles-tabs">
-      <button 
-        type="button" 
-        *ngFor="let role of rolesList" 
-        class="role-tab-btn" 
-        [class.active]="selectedRole === role"
-        (click)="selectRole(role)">
-        <span class="tab-dot" [class.admin-dot]="role === 'Super Admin'"></span>
-        <span>{{ role }}</span>
-      </button>
+
+    <!-- Effective Permissions Matrix Card -->
+    <div class="admin-page-table-card matrix-card">
+      <div class="matrix-card-header">
+        <div>
+          <h2 class="matrix-title">
+            Quyền thao tác hiệu lực của: <span class="highlight-role">{{ selectedStaff?.name }}</span>
+          </h2>
+          <p class="matrix-subtitle" *ngIf="isStaffSuperAdmin()">
+            * Nhân sự sở hữu vai trò <strong>Super Admin</strong> có toàn quyền tối cao trên toàn bộ 9 phân hệ hệ thống.
+          </p>
+          <p class="matrix-subtitle" *ngIf="!isStaffSuperAdmin()">
+            * Quyền hiệu lực được tự động tổng hợp (hợp tập hợp) từ các vai trò: <strong>{{ selectedStaff?.roles?.join(', ') }}</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="admin-page-table-scroll">
+        <table class="admin-table permissions-table">
+          <thead>
+            <tr>
+              <th class="col-module" style="width: 290px;">Phân hệ nghiệp vụ (9)</th>
+              <th class="col-action text-center" *ngFor="let action of actionsList" style="width: 110px;">
+                {{ action.label }}
+              </th>
+              <th class="col-all text-center" style="width: 130px;">Tình trạng</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let mod of modulesList" class="matrix-row">
+              <td class="col-module">
+                <div class="module-info">
+                  <div class="module-icon-wrap">
+                    <app-icon [name]="mod.icon" size="18"></app-icon>
+                  </div>
+                  <div>
+                    <strong class="module-name">{{ mod.name }}</strong>
+                    <span class="module-desc">{{ mod.description }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- 5 Cột Quyền hiệu lực -->
+              <td class="col-action text-center" *ngFor="let act of actionsList">
+                <label class="custom-checkbox-wrap disabled" [title]="(currentMatrix[mod.key] && currentMatrix[mod.key][act.key]) ? 'Được cấp quyền' : 'Không có quyền'">
+                  <input 
+                    type="checkbox" 
+                    class="custom-check-input"
+                    [checked]="currentMatrix[mod.key] && currentMatrix[mod.key][act.key]"
+                    disabled>
+                  <span class="check-box-visual">
+                    <app-icon name="Check" size="13" class="check-icon"></app-icon>
+                  </span>
+                </label>
+              </td>
+
+              <!-- Tình trạng quyền module -->
+              <td class="col-all text-center">
+                <span class="module-status-badge" [class.all-granted]="isModuleAllChecked(mod.key)" [class.no-perm]="!currentMatrix[mod.key]?.view">
+                  {{ isModuleAllChecked(mod.key) ? 'Toàn quyền' : (currentMatrix[mod.key]?.view ? 'Một phần' : 'Không có quyền') }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="matrix-card-footer">
+        <div class="footer-legend">
+          <span class="legend-item"><span class="legend-dot active"></span> Quyền hiệu lực được cấp</span>
+          <span class="legend-item"><span class="legend-dot inactive"></span> Không có quyền</span>
+        </div>
+        <div style="font-size: 12.5px; color: var(--color-text-secondary, #616161);">
+          * Để thay đổi quyền hạn của nhân sự, hãy gán thêm hoặc bớt vai trò trong trang Quản lý nhân sự.
+        </div>
+      </div>
+    </div>
+
+    <!-- Bảng tổng hợp: Tên nhân viên - Role - Quyền -->
+    <div class="admin-page-table-card staff-summary-matrix-table" style="margin-top: 24px;">
+      <div class="matrix-card-header">
+        <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 4px 0;">Bảng tổng hợp Phân quyền toàn thể Nhân sự</h3>
+        <p style="font-size: 12.5px; color: var(--color-text-muted); margin: 0;">Theo dõi nhanh Tên nhân viên - Vai trò đảm nhiệm - Quyền hạn trên các phân hệ chính.</p>
+      </div>
+
+      <div class="admin-page-table-scroll">
+        <table class="admin-table staff-overview-table">
+          <thead>
+            <tr>
+              <th style="min-width: 200px;">Nhân viên</th>
+              <th style="min-width: 170px;">Các vai trò (Multi-Role)</th>
+              <th style="min-width: 180px;">Kho & Showroom phụ trách</th>
+              <th class="text-center" style="width: 85px;">Sản phẩm</th>
+              <th class="text-center" style="width: 85px;">Đơn hàng</th>
+              <th class="text-center" style="width: 85px;">Kho hàng</th>
+              <th class="text-center" style="width: 85px;">Khách hàng</th>
+              <th class="text-center" style="width: 85px;">Khuyến mãi</th>
+              <th class="text-center" style="width: 85px;">Nhân sự</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              *ngFor="let s of staffMembers" 
+              class="staff-overview-row" 
+              [class.active-staff]="selectedStaff?.id === s.id"
+              (click)="selectStaff(s)">
+              <td>
+                <strong style="color: var(--color-text); font-size: 13.5px; display: block;">{{ s.name }}</strong>
+                <span style="font-size: 12px; color: var(--color-text-muted);">{{ s.email }}</span>
+              </td>
+              <td>
+                <div class="roles-chips-wrap">
+                  <span *ngFor="let r of s.roles" class="s-role-chip" [class.is-super]="r === 'Super Admin'">{{ r }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="branches-chips-wrap">
+                  <span *ngFor="let bId of (s.assignedBranches || [])" class="s-branch-chip" [class.is-wh]="isWarehouse(bId)">
+                    {{ adminAuthService.getBranchName(bId) }}
+                  </span>
+                </div>
+              </td>
+              
+              <!-- 6 Phân hệ chính -->
+              <td class="text-center">
+                <span class="perm-dot" [class.active]="s.effectivePermissions?.products?.view" [title]="s.effectivePermissions?.products?.view ? 'Có quyền Sản phẩm' : 'Không có quyền'"></span>
+              </td>
+              <td class="text-center">
+                <span class="perm-dot" [class.active]="s.effectivePermissions?.orders?.view" [title]="s.effectivePermissions?.orders?.view ? 'Có quyền Đơn hàng' : 'Không có quyền'"></span>
+              </td>
+              <td class="text-center">
+                <span class="perm-dot is-wh" [class.active]="s.effectivePermissions?.inventory?.view" [title]="s.effectivePermissions?.inventory?.view ? 'Có quyền Kho hàng' : 'Không có quyền'"></span>
+              </td>
+              <td class="text-center">
+                <span class="perm-dot" [class.active]="s.effectivePermissions?.customers?.view" [title]="s.effectivePermissions?.customers?.view ? 'Có quyền Khách hàng' : 'Không có quyền'"></span>
+              </td>
+              <td class="text-center">
+                <span class="perm-dot" [class.active]="s.effectivePermissions?.promotions?.view" [title]="s.effectivePermissions?.promotions?.view ? 'Có quyền Khuyến mãi' : 'Không có quyền'"></span>
+              </td>
+              <td class="text-center">
+                <span class="perm-dot is-super" [class.active]="s.effectivePermissions?.staff?.view" [title]="s.effectivePermissions?.staff?.view ? 'Có quyền Nhân sự' : 'Không có quyền'"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =========================================================================
+       CHẾ ĐỘ 2: CẤU HÌNH MẪU VAI TRÒ (ROLE TEMPLATES MATRIX)
+       ========================================================================= -->
+  <div *ngIf="activeViewTab === 'role_templates'" class="role-templates-container">
+    
+    <!-- Thanh quản lý vai trò động -->
+    <div class="roles-manager-card">
+      <div class="roles-manager-top">
+        <div class="roles-manager-title">
+          <app-icon name="ShieldCheck" size="18" color="var(--color-primary, #765337)"></app-icon>
+          <span>Danh sách vai trò quản trị ({{ rolesList.length }})</span>
+        </div>
+        <div class="roles-manager-actions">
+          <button 
+            type="button" 
+            class="admin-btn admin-btn-secondary btn-sm" 
+            (click)="openEditRoleModal()"
+            title="Chỉnh sửa thông tin vai trò đang chọn">
+            <app-icon name="Pencil" size="14"></app-icon>
+            <span>Sửa vai trò</span>
+          </button>
+
+          <button 
+            type="button" 
+            class="admin-btn admin-btn-secondary btn-sm btn-danger-action" 
+            *ngIf="selectedRoleDef && !selectedRoleDef.isSystem && selectedRoleDef.name !== 'Super Admin'"
+            (click)="openDeleteRoleModal()"
+            title="Xóa vai trò tùy biến này">
+            <app-icon name="Trash2" size="14"></app-icon>
+            <span>Xóa vai trò</span>
+          </button>
+
+          <button type="button" class="admin-btn admin-btn-primary btn-sm" (click)="openAddRoleModal()">
+            <app-icon name="Plus" size="15"></app-icon>
+            <span>+ Thêm vai trò mới</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Role Tabs -->
+      <div class="roles-tabs-scroll">
+        <div class="roles-tabs">
+          <button 
+            type="button" 
+            *ngFor="let role of rolesList" 
+            class="role-tab-btn" 
+            [class.active]="selectedRoleName === role.name"
+            (click)="selectRole(role)">
+            <span class="tab-dot" [class.admin-dot]="role.name === 'Super Admin'"></span>
+            <span class="role-name-text">{{ role.name }}</span>
+            <span class="staff-count-badge" [class.active-count]="selectedRoleName === role.name">
+              {{ getStaffCount(role.name) }} NS
+            </span>
+            <span class="system-tag" *ngIf="role.isSystem">Hệ thống</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Selected Role Info -->
+      <div class="selected-role-desc-banner" *ngIf="selectedRoleDef">
+        <div class="desc-content">
+          <strong>Mã vai trò: <code>{{ selectedRoleDef.code }}</code></strong>
+          <span class="desc-divider">•</span>
+          <span class="desc-text">{{ selectedRoleDef.description || 'Chưa có mô tả nghiệp vụ.' }}</span>
+        </div>
+        <div class="role-type-badge" [class.is-super]="isSuperAdminRole()">
+          <app-icon [name]="isSuperAdminRole() ? 'ShieldCheck' : 'UsersRound'" size="14"></app-icon>
+          <span>{{ isSuperAdminRole() ? 'Toàn quyền Super Admin' : (getStaffCount(selectedRoleName) + ' nhân sự đang đảm nhiệm') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matrix Card for Selected Role -->
+    <div class="admin-page-table-card matrix-card">
+      <div class="matrix-card-header">
+        <div>
+          <h2 class="matrix-title">Ma trận quyền của mẫu vai trò: <span class="highlight-role">{{ selectedRoleName }}</span></h2>
+          <p class="matrix-subtitle" *ngIf="isSuperAdminRole()">
+            * Vai trò Super Admin mặc định sở hữu toàn bộ quyền và không thể bị giới hạn.
+          </p>
+          <p class="matrix-subtitle" *ngIf="!isSuperAdminRole()">
+            * Nhấn trực tiếp vào ô checkbox để bật/tắt quyền thao tác cho vai trò này.
+          </p>
+        </div>
+      </div>
+
+      <div class="admin-page-table-scroll">
+        <table class="admin-table permissions-table">
+          <thead>
+            <tr>
+              <th class="col-module" style="width: 290px;">Phân hệ nghiệp vụ (9)</th>
+              <th class="col-action text-center" *ngFor="let action of actionsList" style="width: 110px;">
+                {{ action.label }}
+              </th>
+              <th class="col-all text-center" style="width: 120px;">Tất cả</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let mod of modulesList" class="matrix-row">
+              <td class="col-module">
+                <div class="module-info">
+                  <div class="module-icon-wrap">
+                    <app-icon [name]="mod.icon" size="18"></app-icon>
+                  </div>
+                  <div>
+                    <strong class="module-name">{{ mod.name }}</strong>
+                    <span class="module-desc">{{ mod.description }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <td class="col-action text-center" *ngFor="let act of actionsList">
+                <label class="custom-checkbox-wrap" [class.disabled]="isSuperAdminRole()">
+                  <input 
+                    type="checkbox" 
+                    class="custom-check-input"
+                    [checked]="currentMatrix[mod.key] && currentMatrix[mod.key][act.key]"
+                    [disabled]="isSuperAdminRole()"
+                    (change)="toggleAction(mod.key, act.key)">
+                  <span class="check-box-visual">
+                    <app-icon name="Check" size="13" class="check-icon"></app-icon>
+                  </span>
+                </label>
+              </td>
+
+              <td class="col-all text-center">
+                <button 
+                  type="button" 
+                  class="btn-toggle-module"
+                  [disabled]="isSuperAdminRole()"
+                  (click)="toggleAllInModule(mod.key, !isModuleAllChecked(mod.key))">
+                  {{ isModuleAllChecked(mod.key) ? 'Bỏ chọn' : 'Chọn hết' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="matrix-card-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="resetToDefault()">
+          <app-icon name="RefreshCw" size="15"></app-icon>
+          <span>Khôi phục mặc định</span>
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="savePermissions()" [disabled]="saveLoading">
+          <app-icon name="LoaderCircle" size="16" class="spinner-icon" *ngIf="saveLoading"></app-icon>
+          <app-icon name="Check" size="16" *ngIf="!saveLoading"></app-icon>
+          <span>{{ saveLoading ? 'Đang lưu...' : 'Lưu ma trận phân quyền cho ' + selectedRoleName }}</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =========================================================================
+       MODAL: + THÊM VAI TRÒ MỚI
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isAddRoleModalOpen" (click)="closeAddRoleModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Thêm vai trò quản trị mới</h2>
+          <p class="modal-subtitle">Tạo vai trò công việc động và sao chép nhanh quyền từ vai trò sẵn có.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeAddRoleModal()">
+          <app-icon name="X" size="20"></app-icon>
+        </button>
+      </div>
+
+      <form (ngSubmit)="submitAddRole()" class="modal-form">
+        <div class="modal-body">
+          <div class="form-field">
+            <label for="new-role-name">Tên vai trò <span class="required">*</span></label>
+            <input 
+              id="new-role-name" 
+              name="roleName" 
+              [(ngModel)]="newRoleData.name" 
+              (ngModelChange)="onRoleNameChange()"
+              class="admin-input" 
+              required 
+              placeholder="Ví dụ: Quản lý Showroom, Giám sát kho...">
+          </div>
+
+          <div class="form-field">
+            <label for="new-role-code">Mã vai trò (System Code) <span class="required">*</span></label>
+            <input 
+              id="new-role-code" 
+              name="roleCode" 
+              [(ngModel)]="newRoleData.code" 
+              class="admin-input" 
+              required 
+              placeholder="Ví dụ: SHOWROOM_MGR">
+            <span class="field-hint">Mã viết hoa, không dấu, ngăn cách bằng dấu gạch dưới (_).</span>
+          </div>
+
+          <div class="form-field">
+            <label for="new-role-clone">Sao chép quyền từ vai trò có sẵn</label>
+            <select id="new-role-clone" name="cloneRole" [(ngModel)]="newRoleData.cloneFromRoleId" class="admin-select">
+              <option value="NONE">— Không sao chép (Tự cấu hình ma trận quyền sau) —</option>
+              <option *ngFor="let r of rolesList" [value]="r.id">{{ r.name }} ({{ r.code }})</option>
+            </select>
+            <span class="field-hint">Chọn "Không sao chép" nếu bạn muốn khởi tạo vai trò rỗng và tự thiết lập các quyền sau.</span>
+          </div>
+
+          <div class="form-field">
+            <label for="new-role-desc">Mô tả nghiệp vụ vai trò</label>
+            <textarea 
+              id="new-role-desc" 
+              name="roleDesc" 
+              [(ngModel)]="newRoleData.description" 
+              class="admin-textarea" 
+              rows="3" 
+              placeholder="Mô tả phạm vi trách nhiệm và công việc chính..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeAddRoleModal()">Hủy</button>
+          <button type="submit" class="admin-btn admin-btn-primary" [disabled]="!newRoleData.name || !newRoleData.code">
+            <app-icon name="Plus" size="16"></app-icon>
+            <span>Tạo vai trò</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Matrix Card -->
-  <div class="admin-page-table-card matrix-card">
-    <div class="matrix-card-header">
-      <div>
-        <h2 class="matrix-title">Quyền thao tác của vai trò: <span class="highlight-role">{{ selectedRole }}</span></h2>
-        <p class="matrix-subtitle" *ngIf="isSuperAdmin()">
-          * Vai trò Super Admin mặc định có toàn bộ quyền trên toàn bộ các phân hệ và không thể bị hạn chế.
-        </p>
-        <p class="matrix-subtitle" *ngIf="!isSuperAdmin()">
-          * Tắt quyền "Xem" sẽ tự động vô hiệu hóa các quyền thao tác còn lại của module tương ứng.
+  <!-- =========================================================================
+       MODAL: SỬA VAI TRÒ
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isEditRoleModalOpen" (click)="closeEditRoleModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Chỉnh sửa vai trò</h2>
+          <p class="modal-subtitle">Cập nhật thông tin và mô tả cho: <strong>{{ editRoleData.name }}</strong></p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeEditRoleModal()">
+          <app-icon name="X" size="20"></app-icon>
+        </button>
+      </div>
+
+      <form (ngSubmit)="submitEditRole()" class="modal-form">
+        <div class="modal-body">
+          <div class="form-field">
+            <label for="edit-role-name">Tên vai trò <span class="required">*</span></label>
+            <input 
+              id="edit-role-name" 
+              name="editName" 
+              [(ngModel)]="editRoleData.name" 
+              [disabled]="!!(selectedRoleDef?.isSystem && selectedRoleDef?.name === 'Super Admin')"
+              class="admin-input" 
+              required>
+          </div>
+
+          <div class="form-field">
+            <label for="edit-role-desc">Mô tả nghiệp vụ vai trò</label>
+            <textarea 
+              id="edit-role-desc" 
+              name="editDesc" 
+              [(ngModel)]="editRoleData.description" 
+              class="admin-textarea" 
+              rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeEditRoleModal()">Hủy</button>
+          <button type="submit" class="admin-btn admin-btn-primary" [disabled]="!editRoleData.name">
+            Lưu thay đổi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL: XÁC NHẬN XÓA VAI TRÒ
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isDeleteConfirmModalOpen" (click)="closeDeleteModal()">
+    <div class="modal-card modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" style="color: var(--color-danger, #C42326);">Xác nhận xóa vai trò</h2>
+          <p class="modal-subtitle">Hành động này sẽ xóa vai trò vĩnh viễn khỏi hệ thống.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeDeleteModal()">
+          <app-icon name="X" size="20"></app-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 14px; line-height: 1.5; color: var(--color-text, #0A0A0A);">
+          Bạn có chắc chắn muốn xóa vai trò <strong>"{{ roleToDelete?.name }}"</strong>?
         </p>
       </div>
-    </div>
 
-    <div class="admin-page-table-scroll">
-      <table class="admin-table permissions-table">
-        <thead>
-          <tr>
-            <th class="col-module" style="width: 280px;">Phân hệ / Module</th>
-            <th class="col-action text-center" *ngFor="let action of actionsList" style="width: 120px;">
-              {{ action.label }}
-            </th>
-            <th class="col-all text-center" style="width: 120px;">Tất cả</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let mod of modulesList" class="matrix-row">
-            <!-- Tên Module + Icon + Mô tả -->
-            <td class="col-module">
-              <div class="module-info">
-                <div class="module-icon-wrap">
-                  <app-icon [name]="mod.icon" size="18"></app-icon>
-                </div>
-                <div>
-                  <strong class="module-name">{{ mod.name }}</strong>
-                  <span class="module-desc">{{ mod.description }}</span>
-                </div>
-              </div>
-            </td>
-
-            <!-- 5 Cột Quyền: Xem | Thêm | Sửa | Xóa | Duyệt -->
-            <td class="col-action text-center" *ngFor="let act of actionsList">
-              <label class="custom-checkbox-wrap" [class.disabled]="isSuperAdmin()">
-                <input 
-                  type="checkbox" 
-                  class="custom-check-input"
-                  [checked]="currentMatrix[mod.key][act.key]"
-                  [disabled]="isSuperAdmin()"
-                  (change)="toggleAction(mod.key, act.key)">
-                <span class="check-box-visual">
-                  <app-icon name="Check" size="13" class="check-icon"></app-icon>
-                </span>
-              </label>
-            </td>
-
-            <!-- Nút bật/tắt toàn bộ trong Module -->
-            <td class="col-all text-center">
-              <button 
-                type="button" 
-                class="btn-toggle-module"
-                [disabled]="isSuperAdmin()"
-                (click)="toggleAllInModule(mod.key, !isModuleAllChecked(mod.key))">
-                {{ isModuleAllChecked(mod.key) ? 'Bỏ chọn' : 'Chọn hết' }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Matrix Card Footer -->
-    <div class="matrix-card-footer">
-      <div class="footer-legend">
-        <span class="legend-item"><span class="legend-dot active"></span> Đã cấp quyền</span>
-        <span class="legend-item"><span class="legend-dot inactive"></span> Không có quyền</span>
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeDeleteModal()">Hủy</button>
+        <button type="button" class="admin-btn btn-danger-action" (click)="confirmDeleteRole()">
+          <app-icon name="Trash2" size="16"></app-icon>
+          <span>Xác nhận xóa</span>
+        </button>
       </div>
-      <button type="button" class="admin-btn admin-btn-primary" (click)="savePermissions()" [disabled]="saveLoading">
-        <app-icon name="LoaderCircle" size="16" class="spinner-icon" *ngIf="saveLoading"></app-icon>
-        <span>{{ saveLoading ? 'Đang lưu...' : 'Lưu phân quyền cho ' + selectedRole }}</span>
-      </button>
     </div>
   </div>
 

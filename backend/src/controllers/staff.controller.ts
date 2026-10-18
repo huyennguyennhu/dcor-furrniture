@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient, StaffRole, StaffStatus } from '@prisma/client';
 import crypto from 'crypto';
 import { emailService } from '../services/email.service';
+import { getStaffMetadata, setStaffMetadata, deleteStaffMetadata } from '../lib/staff-metadata';
 
 const prisma = new PrismaClient();
 
@@ -41,7 +42,7 @@ function formatStatus(status: StaffStatus): 'Đã kích hoạt' | 'Chờ kích h
 }
 
 export const staffController = {
-  // Lấy toàn bộ danh sách nhân viên từ Database
+  // Lấy toàn bộ danh sách nhân viên từ Database kết hợp Metadata
   getAllStaff: async (req: Request, res: Response): Promise<void> => {
     try {
       const staffList = await prisma.staffUser.findMany({
@@ -52,7 +53,9 @@ export const staffController = {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
 
       const formatted = staffList.map(s => {
-        const inviteLink = s.status === 'PENDING_ACTIVATION' && s.invitationToken
+        const metadata = getStaffMetadata(s.email);
+
+        const inviteLink = s.invitationToken
           ? `${frontendUrl}/admin-invite?email=${encodeURIComponent(s.email)}&token=${s.invitationToken}`
           : undefined;
 
@@ -69,12 +72,26 @@ export const staffController = {
           }
         }
 
+        // Ưu tiên lấy vai trò động chính xác (ví dụ: IT) từ metadata nếu có
+        const exactRoles = metadata?.roles && metadata.roles.length > 0 
+          ? metadata.roles 
+          : [mapFromPrismaRole(s.role)];
+
+        const exactRole = metadata?.role || exactRoles.join(', ');
+        const branchId = metadata?.branchId || 'ALL';
+        const branchName = metadata?.branchName || 'Toàn hệ thống';
+        const assignedBranches = metadata?.assignedBranches || [branchId];
+
         return {
           id: s.id,
           name: s.fullName,
           email: s.email,
           phone: s.phone || '',
-          role: mapFromPrismaRole(s.role),
+          role: exactRole,
+          roles: exactRoles,
+          branchId,
+          branchName,
+          assignedBranches,
           status: formatStatus(s.status),
           rawStatus: s.status,
           rawRole: s.role,
@@ -91,10 +108,20 @@ export const staffController = {
     }
   },
 
-  // Mời nhân viên mới & gửi email kích hoạt
+  // Mời nhân viên mới (Khởi tạo tài khoản, KHÔNG TẠO MẬT KHẨU, lưu metadata vai trò động)
   inviteStaff: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { fullName, email, phone, role } = req.body;
+      const { 
+        fullName, 
+        email, 
+        phone, 
+        role, 
+        roles, 
+        branchName, 
+        branchId, 
+        assignedBranches,
+        sendEmailImmediately = false
+      } = req.body;
 
       if (!fullName || !email) {
         res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ họ tên và email.' });
@@ -129,7 +156,21 @@ export const staffController = {
       const tokenExpiry = new Date();
       tokenExpiry.setDate(tokenExpiry.getDate() + 7); // Hạn 7 ngày
 
-      const prismaRole = mapToPrismaRole(role);
+      const selectedRoles: string[] = Array.isArray(roles) && roles.length > 0 
+        ? roles 
+        : [role || 'Sales'];
+
+      const primaryRole = selectedRoles[0];
+      const prismaRole = mapToPrismaRole(primaryRole);
+
+      // Lưu trữ Metadata (Lưu vai trò động chính xác như IT, Quản lý kho, v.v.)
+      setStaffMetadata(normalizedEmail, {
+        roles: selectedRoles,
+        role: primaryRole,
+        branchId: branchId || 'ALL',
+        branchName: branchName || 'Toàn hệ thống',
+        assignedBranches: Array.isArray(assignedBranches) ? assignedBranches : [branchId || 'ALL']
+      });
 
       // Tạo bản ghi nhân sự trong database
       const newStaff = await prisma.staffUser.create({
@@ -147,35 +188,154 @@ export const staffController = {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
       const inviteUrl = `${frontendUrl}/admin-invite?email=${encodeURIComponent(normalizedEmail)}&token=${token}`;
 
-      // Gửi email kích hoạt qua dịch vụ email
-      const emailResult = await emailService.sendStaffInviteEmail({
-        to: normalizedEmail,
-        fullName: newStaff.fullName,
-        roleName: role || mapFromPrismaRole(prismaRole),
-        inviteUrl
-      });
+      let emailSent = false;
+      if (sendEmailImmediately) {
+        const emailResult = await emailService.sendStaffOnboardingEmail({
+          to: normalizedEmail,
+          fullName: newStaff.fullName,
+          roles: selectedRoles,
+          branchName: branchName || 'Toàn hệ thống',
+          inviteUrl
+        });
+        emailSent = emailResult.success;
+      }
 
       res.status(201).json({
-        message: emailResult.success
-          ? `Đã tạo nhân sự và gửi email kích hoạt tới ${normalizedEmail}!`
-          : `Đã tạo nhân sự trong CSDL. (Email lưu ý: ${emailResult.error})`,
+        message: `Đã khởi tạo tài khoản cho ${fullName}. Mở modal để cấu hình và gửi email!`,
         staff: {
           id: newStaff.id,
           name: newStaff.fullName,
           email: newStaff.email,
           phone: newStaff.phone || '',
-          role: mapFromPrismaRole(newStaff.role),
+          role: selectedRoles.join(', '),
+          roles: selectedRoles,
+          branchId: branchId || 'ALL',
+          branchName: branchName || 'Toàn hệ thống',
+          assignedBranches: Array.isArray(assignedBranches) ? assignedBranches : [branchId || 'ALL'],
           status: formatStatus(newStaff.status),
           lastLogin: 'Chưa từng',
           createdAt: newStaff.createdAt.toLocaleDateString('vi-VN'),
           inviteLink: inviteUrl
         },
         inviteLink: inviteUrl,
-        emailSent: emailResult.success
+        emailSent
       });
     } catch (error) {
       console.error('Lỗi inviteStaff:', error);
       res.status(500).json({ message: 'Không thể tạo nhân sự mới trên máy chủ' });
+    }
+  },
+
+  // Gửi email bàn giao & kích hoạt độc lập (Email Dispatch Modal)
+  dispatchEmail: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { 
+        email, 
+        fullName, 
+        roles, 
+        branchName, 
+        branchAddress, 
+        branchPhone, 
+        branchManager, 
+        adminNote, 
+        subject 
+      } = req.body;
+
+      if (!email || !fullName) {
+        res.status(400).json({ message: 'Thiếu thông tin người nhận email.' });
+        return;
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      
+      let token = crypto.randomBytes(32).toString('hex');
+      const staff = await prisma.staffUser.findUnique({ where: { email: normalizedEmail } });
+      
+      if (staff) {
+        if (!staff.invitationToken) {
+          const tokenExpiry = new Date();
+          tokenExpiry.setDate(tokenExpiry.getDate() + 7);
+          await prisma.staffUser.update({
+            where: { id: staff.id },
+            data: { invitationToken: token, invitationTokenExpiry: tokenExpiry }
+          });
+        } else {
+          token = staff.invitationToken;
+        }
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+      const inviteUrl = `${frontendUrl}/admin-invite?email=${encodeURIComponent(normalizedEmail)}&token=${token}`;
+
+      const roleList: string[] = Array.isArray(roles) && roles.length > 0 ? roles : ['Sales'];
+
+      // Cập nhật metadata vai trò
+      setStaffMetadata(normalizedEmail, {
+        roles: roleList,
+        role: roleList[0],
+        branchName: branchName || 'Toàn hệ thống'
+      });
+
+      const emailResult = await emailService.sendStaffOnboardingEmail({
+        to: normalizedEmail,
+        fullName,
+        roles: roleList,
+        branchName: branchName || 'Toàn hệ thống',
+        branchAddress,
+        branchPhone,
+        branchManager,
+        inviteUrl,
+        subject,
+        adminNote
+      });
+
+      if (emailResult.success) {
+        res.status(200).json({
+          message: `Đã gửi email bàn giao & kích hoạt tài khoản thành công tới ${normalizedEmail}!`,
+          inviteUrl,
+          emailSent: true
+        });
+      } else {
+        res.status(500).json({
+          message: `Lỗi gửi email tới ${normalizedEmail}: ${emailResult.error}`,
+          error: emailResult.error,
+          inviteUrl,
+          emailSent: false
+        });
+      }
+    } catch (error: any) {
+      console.error('Lỗi dispatchEmail:', error);
+      res.status(500).json({ message: 'Lỗi máy chủ khi gửi email: ' + error.message });
+    }
+  },
+
+  // Xóa tài khoản nhân sự
+  deleteStaff: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const target = await prisma.staffUser.findUnique({ where: { id } });
+      if (!target) {
+        res.status(404).json({ message: 'Không tìm thấy tài khoản nhân sự cần xóa.' });
+        return;
+      }
+
+      if (target.role === 'ADMIN' || target.role === 'OWNER' || target.email.toLowerCase().includes('admin@dcor.vn')) {
+        res.status(403).json({ message: 'Không được phép xóa tài khoản Super Admin hệ thống.' });
+        return;
+      }
+
+      // Xóa metadata
+      deleteStaffMetadata(target.email);
+      deleteStaffMetadata(target.id);
+
+      // Xóa bản ghi nhân sự
+      await prisma.staffUser.delete({ where: { id } });
+
+      console.log(`[STAFF DELETE] Đã xóa nhân sự: ${target.fullName} (${target.email})`);
+      res.status(200).json({ message: `Đã xóa nhân sự "${target.fullName}" khỏi hệ thống thành công!` });
+    } catch (error: any) {
+      console.error('Lỗi deleteStaff:', error);
+      res.status(500).json({ message: 'Lỗi khi xóa nhân sự: ' + error.message });
     }
   },
 
@@ -190,12 +350,6 @@ export const staffController = {
         return;
       }
 
-      if (staff.status === 'ACTIVE') {
-        res.status(400).json({ message: 'Tài khoản này đã được kích hoạt trước đó.' });
-        return;
-      }
-
-      // Cập nhật lại token mới
       const token = crypto.randomBytes(32).toString('hex');
       const tokenExpiry = new Date();
       tokenExpiry.setDate(tokenExpiry.getDate() + 7);
@@ -212,10 +366,14 @@ export const staffController = {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
       const inviteUrl = `${frontendUrl}/admin-invite?email=${encodeURIComponent(updated.email)}&token=${token}`;
 
-      const emailResult = await emailService.sendStaffInviteEmail({
+      const metadata = getStaffMetadata(updated.email);
+      const rolesList = metadata?.roles || [mapFromPrismaRole(updated.role)];
+
+      const emailResult = await emailService.sendStaffOnboardingEmail({
         to: updated.email,
         fullName: updated.fullName,
-        roleName: mapFromPrismaRole(updated.role),
+        roles: rolesList,
+        branchName: metadata?.branchName || 'Toàn hệ thống',
         inviteUrl
       });
 
@@ -234,17 +392,25 @@ export const staffController = {
   updateRole: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id as string;
-      const { role } = req.body;
+      const { role, roles } = req.body;
 
-      const prismaRole = mapToPrismaRole(role);
+      const rolesArray = Array.isArray(roles) && roles.length > 0 ? roles : [role || 'Sales'];
+      const prismaRole = mapToPrismaRole(rolesArray[0]);
+
       const updated = await prisma.staffUser.update({
         where: { id },
         data: { role: prismaRole }
       });
 
+      setStaffMetadata(updated.email, {
+        roles: rolesArray,
+        role: rolesArray[0]
+      });
+
       res.status(200).json({
         message: 'Cập nhật vai trò thành công',
-        role: mapFromPrismaRole(updated.role)
+        role: rolesArray[0],
+        roles: rolesArray
       });
     } catch (error) {
       console.error('Lỗi updateRole:', error);
@@ -256,7 +422,7 @@ export const staffController = {
   updateStatus: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id as string;
-      const { status } = req.body; // 'ACTIVE' | 'INACTIVE'
+      const { status } = req.body;
 
       const updated = await prisma.staffUser.update({
         where: { id },
