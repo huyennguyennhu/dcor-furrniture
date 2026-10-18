@@ -133,7 +133,10 @@ export class CatalogSection implements OnInit, OnChanges {
   getAllImages(prod: CatalogProduct): string[] {
     let allImages = prod.images || [];
     if (prod.variants) {
-      const extraImgs = prod.variants.flatMap((v: any) => v.images || []).filter(Boolean);
+      const extraImgs = prod.variants.flatMap((v: any) => {
+        const vImgs = v.optionValues?.images || v.images || [];
+        return Array.isArray(vImgs) ? vImgs : [];
+      }).filter(Boolean);
       allImages = Array.from(new Set([...allImages, ...extraImgs]));
     }
     return allImages.slice(0, 6);

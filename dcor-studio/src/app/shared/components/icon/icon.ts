@@ -6,6 +6,7 @@ import {
   AtSign,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Bell,
   Check,
   ChevronDown,
@@ -65,6 +66,8 @@ import {
   Wrench,
   X,
   Image,
+  Scale,
+  Star,
 } from 'lucide-angular';
 
 const ICONS = {
@@ -74,6 +77,7 @@ const ICONS = {
   AtSign,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Bell,
   Check,
   ChevronDown,
@@ -132,6 +136,8 @@ const ICONS = {
   Wrench,
   X,
   Image,
+  Scale,
+  Star,
 } as const;
 
 export type IconName = keyof typeof ICONS;

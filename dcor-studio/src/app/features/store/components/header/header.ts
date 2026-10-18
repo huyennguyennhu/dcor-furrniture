@@ -8,6 +8,7 @@ import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CartDrawerComponent } from '../../../../shared/components/cart-drawer/cart-drawer';
 import { CartService } from '../../../../core/services/cart.service';
 import { environment } from '../../../../../environments/environment';
+import { getParentCategory } from '../../utils/category-grouping';
 
 interface StoreUser {
   id?: string;
@@ -16,6 +17,12 @@ interface StoreUser {
   email?: string;
   phone?: string;
   role?: string;
+}
+
+interface StoreCategory {
+  name: string;
+  slug: string;
+  productCount: number;
 }
 
 @Component({
@@ -27,6 +34,7 @@ interface StoreUser {
 })
 export class Header implements OnInit {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('shopNavItem') shopNavItem!: ElementRef<HTMLElement>;
 
   theme = 'light';
   isLoggedIn = false;
@@ -35,6 +43,10 @@ export class Header implements OnInit {
   isDropdownOpen = false;
   isCartDrawerOpen = false;
   isScrolled = false;
+  shopMenuOpen = false;
+  shopHoverDismissed = false;
+  isStoreCategoriesLoading = true;
+  storeCategories: StoreCategory[] = [];
   
   cartCount = 0;
   products: CatalogProduct[] = [];
@@ -47,6 +59,7 @@ export class Header implements OnInit {
     ).subscribe((event: any) => {
       this.searchQuery = '';
       this.isDropdownOpen = false;
+      this.shopMenuOpen = false;
       this.syncUser();
     });
   }
@@ -76,6 +89,13 @@ export class Header implements OnInit {
     this.isScrolled = window.scrollY > 10;
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.shopMenuOpen && !this.shopNavItem.nativeElement.contains(event.target as Node)) {
+      this.shopMenuOpen = false;
+    }
+  }
+
   get searchResults(): CatalogProduct[] {
     if (!this.searchQuery.trim()) return [];
     const query = this.normalizeSearchText(this.searchQuery);
@@ -90,29 +110,70 @@ export class Header implements OnInit {
 
   private async loadSearchProducts(): Promise<void> {
     try {
-      const response = await fetch(`${environment.apiUrl}/products`);
-      if (!response.ok) {
-        throw new Error(`Products API returned HTTP ${response.status}`);
+      this.isStoreCategoriesLoading = true;
+      const [prodRes, catRes] = await Promise.all([
+        fetch(`${environment.apiUrl}/products`),
+        fetch(`${environment.apiUrl}/categories`).catch(() => null)
+      ]);
+
+      if (prodRes && prodRes.ok) {
+        const data = await prodRes.json();
+        const products = Array.isArray(data) ? data : (data.data || data.products || []);
+        this.products = products.map((product: any): CatalogProduct => ({
+          id: product.id,
+          productId: product.id || product.productId,
+          shortDescription: product.name || product.shortDescription || '',
+          shortDescription_vi: product.name || product.shortDescription_vi || '',
+          category: product.category?.name || product.category || '',
+          variantUrl: product.slug || '',
+          images: Array.isArray(product.images) ? product.images : [],
+          refinementColors: [],
+          refinementMaterials: [],
+          prices: [],
+          lowestPrices: []
+        }));
       }
 
-      const data = await response.json();
-      const products = Array.isArray(data) ? data : (data.data || data.products || []);
-      this.products = products.map((product: any): CatalogProduct => ({
-        id: product.id,
-        productId: product.id || product.productId,
-        shortDescription: product.name || product.shortDescription || '',
-        shortDescription_vi: product.name || product.shortDescription_vi || '',
-        category: product.category?.name || product.category || '',
-        variantUrl: product.slug || '',
-        images: Array.isArray(product.images) ? product.images : [],
-        refinementColors: [],
-        refinementMaterials: [],
-        prices: [],
-        lowestPrices: []
-      }));
+      if (catRes && catRes.ok) {
+        const categories = await catRes.json();
+        // Lấy danh mục gốc từ database (parentId === null)
+        const rootCats = categories.filter((c: any) => !c.parentId);
+        this.storeCategories = rootCats.map((c: any) => ({
+          name: c.name,
+          slug: c.slug,
+          productCount: c._count?.products || 0
+        }));
+      }
     } catch (error) {
-      console.error('Không thể tải sản phẩm cho tìm kiếm:', error);
+      console.error('Không thể tải sản phẩm hoặc danh mục:', error);
+    } finally {
+      this.isStoreCategoriesLoading = false;
     }
+  }
+
+  closeShopMenu(): void {
+    this.shopMenuOpen = false;
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+  }
+
+  toggleShopMenu(): void {
+    this.shopMenuOpen = !this.shopMenuOpen;
+  }
+
+  onShopLinkClick(): void {
+    this.shopMenuOpen = false;
+    this.shopHoverDismissed = true;
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+  }
+
+  onShopNavMouseLeave(): void {
+    this.shopHoverDismissed = false;
   }
 
   private normalizeSearchText(value: string): string {
