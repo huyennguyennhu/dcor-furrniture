@@ -288,7 +288,7 @@ export const inventorySettingsController = {
       let query = `SELECT id, type, reason, prefix, requires_partner as "requiresPartner", 
                           partner_label as "partnerLabel", is_active as "isActive", 
                           is_system as "isSystem", created_at as "createdAt"
-                   FROM inventory_reasons `;
+                   FROM "InventoryReasons" `;
       const params: any[] = [];
       if (['EXPORT', 'IMPORT', 'AUDIT'].includes(type)) {
         query += `WHERE type = $1 `;
@@ -328,7 +328,7 @@ export const inventorySettingsController = {
 
       // Kiểm tra trùng
       const exists = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id FROM inventory_reasons WHERE type = $1 AND reason = $2`,
+        `SELECT id FROM "InventoryReasons" WHERE type = $1 AND reason = $2`,
         normType, trimmedReason
       );
       if (exists && exists.length > 0) {
@@ -336,7 +336,7 @@ export const inventorySettingsController = {
       }
 
       await prisma.$executeRawUnsafe(
-        `INSERT INTO inventory_reasons (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
+        `INSERT INTO "InventoryReasons" (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
          VALUES ($1, $2, $3, $4, $5, $6, TRUE, FALSE)`,
         id, normType, trimmedReason, normPrefix, reqPartner, label
       );
@@ -375,7 +375,7 @@ export const inventorySettingsController = {
       }
 
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT * FROM inventory_reasons WHERE id = $1`, id
+        `SELECT * FROM "InventoryReasons" WHERE id = $1`, id
       );
       if (!existing || existing.length === 0) {
         return res.status(404).json({ error: 'Không tìm thấy lý do cần sửa' });
@@ -388,7 +388,7 @@ export const inventorySettingsController = {
       const activeState = isActive !== undefined ? Boolean(isActive) : existing[0].is_active;
 
       await prisma.$executeRawUnsafe(
-        `UPDATE inventory_reasons 
+        `UPDATE "InventoryReasons" 
          SET reason = $1, prefix = $2, requires_partner = $3, partner_label = $4, is_active = $5, updated_at = NOW()
          WHERE id = $6`,
         trimmedReason, normPrefix, reqPartner, label, activeState, id
@@ -409,7 +409,7 @@ export const inventorySettingsController = {
       await ensureDbInit();
       const { id } = req.params;
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, reason, is_active as "isActive" FROM inventory_reasons WHERE id = $1`, id
+        `SELECT id, reason, is_active as "isActive" FROM "InventoryReasons" WHERE id = $1`, id
       );
       if (!existing || existing.length === 0) {
         return res.status(404).json({ error: 'Không tìm thấy lý do' });
@@ -417,7 +417,7 @@ export const inventorySettingsController = {
 
       const newStatus = !existing[0].isActive;
       await prisma.$executeRawUnsafe(
-        `UPDATE inventory_reasons SET is_active = $1, updated_at = NOW() WHERE id = $2`,
+        `UPDATE "InventoryReasons" SET is_active = $1, updated_at = NOW() WHERE id = $2`,
         newStatus, id
       );
 
@@ -437,7 +437,7 @@ export const inventorySettingsController = {
       await ensureDbInit();
       const { id } = req.params;
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, reason, is_system as "isSystem" FROM inventory_reasons WHERE id = $1`, id
+        `SELECT id, reason, is_system as "isSystem" FROM "InventoryReasons" WHERE id = $1`, id
       );
       if (!existing || existing.length === 0) {
         return res.status(404).json({ error: 'Không tìm thấy lý do cần xóa' });
@@ -449,7 +449,7 @@ export const inventorySettingsController = {
         });
       }
 
-      await prisma.$executeRawUnsafe(`DELETE FROM inventory_reasons WHERE id = $1`, id);
+      await prisma.$executeRawUnsafe(`DELETE FROM "InventoryReasons" WHERE id = $1`, id);
       res.json({
         success: true,
         message: `Đã xóa lý do "${existing[0].reason}" thành công!`
@@ -470,13 +470,13 @@ export const inventorySettingsController = {
       const taxes = await prisma.$queryRawUnsafe<any[]>(
         `SELECT id, code, name, rate, description, is_default as "isDefault", 
                 is_active as "isActive", created_at as "createdAt"
-         FROM tax_rates 
+         FROM "TaxRates" 
          ORDER BY is_default DESC, rate ASC`
       );
 
       // Lấy cấu hình chung
       const general = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT key, value FROM inventory_settings`
+        `SELECT key, value FROM "InventorySettings"`
       );
       const settingsMap: Record<string, string> = {};
       (general || []).forEach((g: any) => {
@@ -520,18 +520,18 @@ export const inventorySettingsController = {
       const id = 'tax_' + normCode.toLowerCase();
 
       const exists = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id FROM tax_rates WHERE code = $1`, normCode
+        `SELECT id FROM "TaxRates" WHERE code = $1`, normCode
       );
       if (exists && exists.length > 0) {
         return res.status(400).json({ error: `Mã thuế "${normCode}" đã tồn tại.` });
       }
 
       if (markDefault) {
-        await prisma.$executeRawUnsafe(`UPDATE tax_rates SET is_default = FALSE`);
+        await prisma.$executeRawUnsafe(`UPDATE "TaxRates" SET is_default = FALSE`);
       }
 
       await prisma.$executeRawUnsafe(
-        `INSERT INTO tax_rates (id, code, name, rate, description, is_default, is_active)
+        `INSERT INTO "TaxRates" (id, code, name, rate, description, is_default, is_active)
          VALUES ($1, $2, $3, $4, $5, $6, TRUE)`,
         id, normCode, name.trim(), numRate, (description || '').trim() || null, markDefault
       );
@@ -570,7 +570,7 @@ export const inventorySettingsController = {
       }
 
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT * FROM tax_rates WHERE id = $1`, id
+        `SELECT * FROM "TaxRates" WHERE id = $1`, id
       );
       if (!existing || existing.length === 0) {
         return res.status(404).json({ error: 'Không tìm thấy mức thuế cần sửa' });
@@ -578,13 +578,13 @@ export const inventorySettingsController = {
 
       const markDefault = Boolean(isDefault);
       if (markDefault) {
-        await prisma.$executeRawUnsafe(`UPDATE tax_rates SET is_default = FALSE WHERE id <> $1`, id);
+        await prisma.$executeRawUnsafe(`UPDATE "TaxRates" SET is_default = FALSE WHERE id <> $1`, id);
       }
 
       const activeState = isActive !== undefined ? Boolean(isActive) : existing[0].is_active;
 
       await prisma.$executeRawUnsafe(
-        `UPDATE tax_rates 
+        `UPDATE "TaxRates" 
          SET name = $1, rate = $2, description = $3, is_default = $4, is_active = $5, updated_at = NOW()
          WHERE id = $6`,
         name.trim(), numRate, (description || '').trim() || null, markDefault, activeState, id
@@ -605,7 +605,7 @@ export const inventorySettingsController = {
       await ensureDbInit();
       const { id } = req.params;
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, name, is_default as "isDefault", is_active as "isActive" FROM tax_rates WHERE id = $1`, id
+        `SELECT id, name, is_default as "isDefault", is_active as "isActive" FROM "TaxRates" WHERE id = $1`, id
       );
       if (!existing || existing.length === 0) {
         return res.status(404).json({ error: 'Không tìm thấy mức thuế' });
@@ -617,7 +617,7 @@ export const inventorySettingsController = {
       }
 
       await prisma.$executeRawUnsafe(
-        `UPDATE tax_rates SET is_active = $1, updated_at = NOW() WHERE id = $2`,
+        `UPDATE "TaxRates" SET is_active = $1, updated_at = NOW() WHERE id = $2`,
         newStatus, id
       );
 
@@ -637,14 +637,14 @@ export const inventorySettingsController = {
       await ensureDbInit();
       const { id } = req.params;
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, name FROM tax_rates WHERE id = $1`, id
+        `SELECT id, name FROM "TaxRates" WHERE id = $1`, id
       );
       if (!existing || existing.length === 0) {
         return res.status(404).json({ error: 'Không tìm thấy mức thuế' });
       }
 
-      await prisma.$executeRawUnsafe(`UPDATE tax_rates SET is_default = FALSE`);
-      await prisma.$executeRawUnsafe(`UPDATE tax_rates SET is_default = TRUE, is_active = TRUE, updated_at = NOW() WHERE id = $1`, id);
+      await prisma.$executeRawUnsafe(`UPDATE "TaxRates" SET is_default = FALSE`);
+      await prisma.$executeRawUnsafe(`UPDATE "TaxRates" SET is_default = TRUE, is_active = TRUE, updated_at = NOW() WHERE id = $1`, id);
 
       res.json({
         success: true,
@@ -661,7 +661,7 @@ export const inventorySettingsController = {
       await ensureDbInit();
       const { id } = req.params;
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, name, is_default as "isDefault" FROM tax_rates WHERE id = $1`, id
+        `SELECT id, name, is_default as "isDefault" FROM "TaxRates" WHERE id = $1`, id
       );
       if (!existing || existing.length === 0) {
         return res.status(404).json({ error: 'Không tìm thấy mức thuế' });
@@ -671,7 +671,7 @@ export const inventorySettingsController = {
         return res.status(400).json({ error: 'Không thể xóa mức thuế Mặc định. Hãy đặt mức khác làm mặc định trước.' });
       }
 
-      await prisma.$executeRawUnsafe(`DELETE FROM tax_rates WHERE id = $1`, id);
+      await prisma.$executeRawUnsafe(`DELETE FROM "TaxRates" WHERE id = $1`, id);
       res.json({
         success: true,
         message: `Đã xóa mức thuế "${existing[0].name}" thành công!`
@@ -693,7 +693,7 @@ export const inventorySettingsController = {
 
       if (pricingTaxMode) {
         await prisma.$executeRawUnsafe(`
-          INSERT INTO inventory_settings (key, value, description, updated_at)
+          INSERT INTO "InventorySettings" (key, value, description, updated_at)
           VALUES ('pricing_tax_mode', $1, 'Cơ chế tính thuế: EXCLUSIVE | INCLUSIVE', NOW())
           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
         `, String(pricingTaxMode));
@@ -701,7 +701,7 @@ export const inventorySettingsController = {
 
       if (autoZeroTaxInternal !== undefined) {
         await prisma.$executeRawUnsafe(`
-          INSERT INTO inventory_settings (key, value, description, updated_at)
+          INSERT INTO "InventorySettings" (key, value, description, updated_at)
           VALUES ('auto_zero_tax_internal', $1, 'Tự động 0% VAT cho phiếu nội bộ', NOW())
           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
         `, String(Boolean(autoZeroTaxInternal)));

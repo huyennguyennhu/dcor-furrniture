@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import {
@@ -32,7 +32,10 @@ import {
   ChevronsLeft,
   ChevronLeft,
   ChevronRight,
-  ChevronsRight
+  ChevronsRight,
+  Square,
+  CheckSquare,
+  Loader2
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -108,12 +111,16 @@ export class InventorySettingsComponent implements OnInit {
     ChevronsLeft,
     ChevronLeft,
     ChevronRight,
-    ChevronsRight
+    ChevronsRight,
+    Square,
+    CheckSquare,
+    Loader2
   };
 
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   // Tab hiện tại: 1 (Kho), 2 (Lý do Xuất), 3 (Lý do Nhập), 4 (Lý do Kiểm kê), 5 (VAT)
   activeTab: 1 | 2 | 3 | 4 | 5 = 1;
@@ -146,6 +153,13 @@ export class InventorySettingsComponent implements OnInit {
   };
   isSavingGeneralSettings = false;
 
+  // Trạng thái đang khóa và tải toggle switch cho từng hàng
+  togglingItemIds = new Set<string>();
+
+  isItemToggling(id: string): boolean {
+    return this.togglingItemIds.has(id);
+  }
+
   // Toast notification
   toastMessage = '';
   toastSubMessage = '';
@@ -173,11 +187,62 @@ export class InventorySettingsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // 1. Phục hồi tab đang đứng từ URL query param (?tab=...) hoặc localStorage
+    const queryTab = Number(this.route.snapshot.queryParams['tab']);
+    let initialTab: 1 | 2 | 3 | 4 | 5 = 1;
+
+    if ([1, 2, 3, 4, 5].includes(queryTab)) {
+      initialTab = queryTab as 1 | 2 | 3 | 4 | 5;
+    } else {
+      try {
+        const savedTab = Number(localStorage.getItem('dcor_inventory_settings_active_tab'));
+        if ([1, 2, 3, 4, 5].includes(savedTab)) {
+          initialTab = savedTab as 1 | 2 | 3 | 4 | 5;
+        }
+      } catch (e) {}
+    }
+
+    this.activeTab = initialTab;
+
+    // Đồng bộ tab lên URL nếu chưa có
+    if (!this.route.snapshot.queryParams['tab'] && initialTab !== 1) {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { tab: initialTab },
+        queryParamsHandling: 'merge',
+        replaceUrl: true
+      });
+    }
+
+    // Lắng nghe thay đổi queryParams khi user ấn Back / Forward
+    this.route.queryParams.subscribe(params => {
+      const tab = Number(params['tab']);
+      if ([1, 2, 3, 4, 5].includes(tab) && tab !== this.activeTab) {
+        this.activeTab = tab as 1 | 2 | 3 | 4 | 5;
+        try {
+          localStorage.setItem('dcor_inventory_settings_active_tab', String(tab));
+        } catch (e) {}
+        this.cdr.markForCheck();
+      }
+    });
+
     this.loadAllData();
   }
 
   setTab(tab: 1 | 2 | 3 | 4 | 5) {
     this.activeTab = tab;
+    try {
+      localStorage.setItem('dcor_inventory_settings_active_tab', String(tab));
+    } catch (e) {}
+
+    // Lưu vào query param URL để khi F5 hoặc chia sẻ link vẫn giữ nguyên tab
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+
     this.searchTerm = '';
     this.whCurrentPage = 1;
     this.reasonCurrentPage = 1;
@@ -235,6 +300,10 @@ export class InventorySettingsComponent implements OnInit {
   showWarehouseModal = false;
   isEditWarehouse = false;
   editingWarehouseId = '';
+  isSavingWarehouse = false;
+  isDeletingWarehouse = false;
+  isUpdatingDefaultWh = false;
+
   warehouseForm = {
     code: '',
     name: '',
@@ -274,6 +343,7 @@ export class InventorySettingsComponent implements OnInit {
     this.isEditWarehouse = false;
     this.editingWarehouseId = '';
     this.showWarehouseTypeDropdown = false;
+    this.isSavingWarehouse = false;
     this.warehouseForm = {
       code: '',
       name: '',
@@ -291,6 +361,7 @@ export class InventorySettingsComponent implements OnInit {
     this.isEditWarehouse = true;
     this.editingWarehouseId = wh.id;
     this.showWarehouseTypeDropdown = false;
+    this.isSavingWarehouse = false;
     this.warehouseForm = {
       code: wh.code,
       name: wh.name,
@@ -307,10 +378,13 @@ export class InventorySettingsComponent implements OnInit {
   closeWarehouseModal() {
     this.showWarehouseModal = false;
     this.showWarehouseTypeDropdown = false;
+    this.isSavingWarehouse = false;
     this.cdr.markForCheck();
   }
 
   saveWarehouse() {
+    if (this.isSavingWarehouse) return;
+
     if (!this.warehouseForm.code.trim()) {
       return this.triggerToast('Vui lòng nhập Mã kho', '', 'warning');
     }
@@ -320,6 +394,9 @@ export class InventorySettingsComponent implements OnInit {
     if (!this.warehouseForm.address.trim()) {
       return this.triggerToast('Vui lòng nhập Địa chỉ chi tiết', '', 'warning');
     }
+
+    this.isSavingWarehouse = true;
+    this.cdr.markForCheck();
 
     const payload = {
       ...this.warehouseForm,
@@ -333,56 +410,91 @@ export class InventorySettingsComponent implements OnInit {
     if (this.isEditWarehouse) {
       this.http.put<any>(`${environment.apiUrl}/admin/inventory/settings/warehouses/${this.editingWarehouseId}`, payload).subscribe({
         next: (res) => {
+          this.isSavingWarehouse = false;
           this.triggerToast('Cập nhật điểm kho thành công!', '', 'success');
           this.closeWarehouseModal();
           this.loadAllData();
         },
         error: (err) => {
+          this.isSavingWarehouse = false;
           this.triggerToast('Lỗi khi cập nhật kho', err.error?.error || err.message, 'error');
+          this.cdr.markForCheck();
         }
       });
     } else {
       this.http.post<any>(`${environment.apiUrl}/admin/inventory/settings/warehouses`, payload).subscribe({
         next: (res) => {
+          this.isSavingWarehouse = false;
           this.triggerToast('Thêm điểm kho mới thành công!', '', 'success');
           this.closeWarehouseModal();
           this.loadAllData();
         },
         error: (err) => {
+          this.isSavingWarehouse = false;
           this.triggerToast('Lỗi khi tạo kho mới', err.error?.error || err.message, 'error');
+          this.cdr.markForCheck();
         }
       });
     }
   }
 
   toggleWarehouseActive(wh: WarehouseItem) {
+    if (this.togglingItemIds.has(wh.id)) return;
+
+    if (wh.isDefault && wh.isActive) {
+      return this.triggerToast(
+        'Không thể tắt Kho Mặc Định',
+        'Vui lòng đặt kho khác làm mặc định trước khi tắt kho này!',
+        'warning'
+      );
+    }
+
+    this.togglingItemIds.add(wh.id);
+    // Optimistic toggle: đổi ngay trên UI để công tắc không bị bật ngược lại
+    wh.isActive = !wh.isActive;
+    this.warehouseSummary.activeCount += wh.isActive ? 1 : -1;
+    this.warehouseSummary.inactiveCount = this.warehouseSummary.totalCount - this.warehouseSummary.activeCount;
+    this.cdr.markForCheck();
+
     this.http.patch<any>(`${environment.apiUrl}/admin/inventory/settings/warehouses/${wh.id}/toggle`, {}).subscribe({
       next: (res) => {
-        wh.isActive = !wh.isActive;
-        this.warehouseSummary.activeCount += wh.isActive ? 1 : -1;
-        this.warehouseSummary.inactiveCount = this.warehouseSummary.totalCount - this.warehouseSummary.activeCount;
+        this.togglingItemIds.delete(wh.id);
+        if (res.warehouse && typeof res.warehouse.isActive === 'boolean') {
+          wh.isActive = res.warehouse.isActive;
+        }
         this.triggerToast(res.message || 'Thay đổi trạng thái kho thành công!', '', 'success');
         this.cdr.markForCheck();
       },
       error: (err) => {
+        // Rollback nếu có lỗi
+        wh.isActive = !wh.isActive;
+        this.warehouseSummary.activeCount += wh.isActive ? 1 : -1;
+        this.warehouseSummary.inactiveCount = this.warehouseSummary.totalCount - this.warehouseSummary.activeCount;
+        this.togglingItemIds.delete(wh.id);
         this.triggerToast('Không thể đổi trạng thái kho', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
 
   setWarehouseAsDefault(wh: WarehouseItem) {
-    if (wh.isDefault) return;
+    if (wh.isDefault || this.isUpdatingDefaultWh) return;
+    this.isUpdatingDefaultWh = true;
+    this.cdr.markForCheck();
     this.http.put<any>(`${environment.apiUrl}/admin/inventory/settings/warehouses/${wh.id}`, {
       ...wh,
       isDefault: true
     }).subscribe({
       next: () => {
+        this.isUpdatingDefaultWh = false;
         this.warehouses.forEach(w => w.isDefault = (w.id === wh.id));
         this.triggerToast(`Đã đặt "${wh.name}" làm Kho Mặc Định!`, '', 'success');
         this.cdr.markForCheck();
       },
       error: (err) => {
+        this.isUpdatingDefaultWh = false;
         this.triggerToast('Lỗi khi đặt kho mặc định', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -406,27 +518,39 @@ export class InventorySettingsComponent implements OnInit {
   }
 
   confirmSafeDeactivateWh() {
-    if (!this.deleteWarningWh) return;
+    if (!this.deleteWarningWh || this.isDeletingWarehouse) return;
+    this.isDeletingWarehouse = true;
+    this.cdr.markForCheck();
     const wh = this.deleteWarningWh;
-    this.showDeleteWarehouseWarningModal = false;
     if (wh.isActive) {
       this.toggleWarehouseActive(wh);
     }
+    setTimeout(() => {
+      this.isDeletingWarehouse = false;
+      this.showDeleteWarehouseWarningModal = false;
+      this.deleteWarningWh = null;
+      this.cdr.markForCheck();
+    }, 400);
   }
 
   confirmDeleteWarehouse() {
-    if (!this.deleteConfirmWh) return;
+    if (!this.deleteConfirmWh || this.isDeletingWarehouse) return;
+    this.isDeletingWarehouse = true;
+    this.cdr.markForCheck();
     const whId = this.deleteConfirmWh.id;
     this.http.delete<any>(`${environment.apiUrl}/admin/inventory/settings/warehouses/${whId}`).subscribe({
       next: (res) => {
+        this.isDeletingWarehouse = false;
         this.showDeleteWarehouseConfirmModal = false;
         this.deleteConfirmWh = null;
         this.triggerToast(res.message || 'Xóa điểm kho thành công!', '', 'success');
         this.loadAllData();
       },
       error: (err) => {
+        this.isDeletingWarehouse = false;
         this.showDeleteWarehouseConfirmModal = false;
         this.triggerToast('Lỗi khi xóa kho', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -481,6 +605,9 @@ export class InventorySettingsComponent implements OnInit {
   showReasonModal = false;
   isEditReason = false;
   editingReasonId = '';
+  isSavingReason = false;
+  isDeletingReason = false;
+
   reasonForm = {
     type: 'EXPORT' as 'EXPORT' | 'IMPORT' | 'AUDIT',
     reason: '',
@@ -564,6 +691,7 @@ export class InventorySettingsComponent implements OnInit {
     const t = this.getCurrentTabReasonType();
     this.isEditReason = false;
     this.editingReasonId = '';
+    this.isSavingReason = false;
     let defaultPrefix = 'PXK-';
     let defaultLabel = 'Khách hàng';
     if (t === 'IMPORT') {
@@ -588,6 +716,7 @@ export class InventorySettingsComponent implements OnInit {
   openEditReasonModal(r: ReasonItem) {
     this.isEditReason = true;
     this.editingReasonId = r.id;
+    this.isSavingReason = false;
     this.reasonForm = {
       type: r.type,
       reason: r.reason,
@@ -601,16 +730,22 @@ export class InventorySettingsComponent implements OnInit {
 
   closeReasonModal() {
     this.showReasonModal = false;
+    this.isSavingReason = false;
     this.cdr.markForCheck();
   }
 
   saveReason() {
+    if (this.isSavingReason) return;
+
     if (!this.reasonForm.reason.trim()) {
       return this.triggerToast('Vui lòng nhập Tên lý do', '', 'warning');
     }
     if (!this.reasonForm.prefix.trim()) {
       return this.triggerToast('Vui lòng nhập Tiền tố mã chứng từ (Prefix)', '', 'warning');
     }
+
+    this.isSavingReason = true;
+    this.cdr.markForCheck();
 
     const payload = {
       type: this.reasonForm.type,
@@ -623,37 +758,57 @@ export class InventorySettingsComponent implements OnInit {
     if (this.isEditReason) {
       this.http.put<any>(`${environment.apiUrl}/admin/inventory/settings/reasons/${this.editingReasonId}`, payload).subscribe({
         next: (res) => {
+          this.isSavingReason = false;
           this.triggerToast('Cập nhật lý do thành công!', '', 'success');
           this.closeReasonModal();
           this.loadAllData();
         },
         error: (err) => {
+          this.isSavingReason = false;
           this.triggerToast('Lỗi khi cập nhật lý do', err.error?.error || err.message, 'error');
+          this.cdr.markForCheck();
         }
       });
     } else {
       this.http.post<any>(`${environment.apiUrl}/admin/inventory/settings/reasons`, payload).subscribe({
         next: (res) => {
+          this.isSavingReason = false;
           this.triggerToast('Thêm lý do mới thành công!', '', 'success');
           this.closeReasonModal();
           this.loadAllData();
         },
         error: (err) => {
+          this.isSavingReason = false;
           this.triggerToast('Lỗi khi tạo lý do', err.error?.error || err.message, 'error');
+          this.cdr.markForCheck();
         }
       });
     }
   }
 
   toggleReasonActive(r: ReasonItem) {
+    if (this.togglingItemIds.has(r.id)) return;
+    this.togglingItemIds.add(r.id);
+
+    // Optimistic toggle
+    r.isActive = !r.isActive;
+    this.cdr.markForCheck();
+
     this.http.patch<any>(`${environment.apiUrl}/admin/inventory/settings/reasons/${r.id}/toggle`, {}).subscribe({
       next: (res) => {
-        r.isActive = !r.isActive;
+        this.togglingItemIds.delete(r.id);
+        if (typeof res.isActive === 'boolean') {
+          r.isActive = res.isActive;
+        }
         this.triggerToast(res.message || 'Thay đổi trạng thái thành công!', '', 'success');
         this.cdr.markForCheck();
       },
       error: (err) => {
+        // Rollback nếu có lỗi
+        r.isActive = !r.isActive;
+        this.togglingItemIds.delete(r.id);
         this.triggerToast('Không thể đổi trạng thái', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -672,18 +827,23 @@ export class InventorySettingsComponent implements OnInit {
   }
 
   confirmDeleteReason() {
-    if (!this.deleteReasonTarget) return;
+    if (!this.deleteReasonTarget || this.isDeletingReason) return;
+    this.isDeletingReason = true;
+    this.cdr.markForCheck();
     const rId = this.deleteReasonTarget.id;
     this.http.delete<any>(`${environment.apiUrl}/admin/inventory/settings/reasons/${rId}`).subscribe({
       next: (res) => {
+        this.isDeletingReason = false;
         this.showDeleteReasonModal = false;
         this.deleteReasonTarget = null;
         this.triggerToast(res.message || 'Đã xóa lý do thành công!', '', 'success');
         this.loadAllData();
       },
       error: (err) => {
+        this.isDeletingReason = false;
         this.showDeleteReasonModal = false;
         this.triggerToast('Lỗi khi xóa lý do', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -694,6 +854,10 @@ export class InventorySettingsComponent implements OnInit {
   showTaxModal = false;
   isEditTax = false;
   editingTaxId = '';
+  isSavingTax = false;
+  isDeletingTax = false;
+  isUpdatingDefaultTax = false;
+
   taxForm = {
     code: '',
     name: '',
@@ -709,6 +873,7 @@ export class InventorySettingsComponent implements OnInit {
   openAddTaxModal() {
     this.isEditTax = false;
     this.editingTaxId = '';
+    this.isSavingTax = false;
     this.taxForm = {
       code: '',
       name: '',
@@ -724,6 +889,7 @@ export class InventorySettingsComponent implements OnInit {
   openEditTaxModal(t: TaxRateItem) {
     this.isEditTax = true;
     this.editingTaxId = t.id;
+    this.isSavingTax = false;
     this.taxForm = {
       code: t.code,
       name: t.name,
@@ -738,6 +904,7 @@ export class InventorySettingsComponent implements OnInit {
 
   closeTaxModal() {
     this.showTaxModal = false;
+    this.isSavingTax = false;
     this.cdr.markForCheck();
   }
 
@@ -750,6 +917,8 @@ export class InventorySettingsComponent implements OnInit {
   }
 
   saveTaxRate() {
+    if (this.isSavingTax) return;
+
     if (!this.taxForm.code.trim()) {
       return this.triggerToast('Vui lòng nhập Mã mức thuế', '', 'warning');
     }
@@ -760,6 +929,9 @@ export class InventorySettingsComponent implements OnInit {
     if (isNaN(rateNum) || rateNum < 0 || rateNum > 100) {
       return this.triggerToast('Thuế suất phải từ 0% đến 100%', '', 'warning');
     }
+
+    this.isSavingTax = true;
+    this.cdr.markForCheck();
 
     const payload = {
       code: this.taxForm.code.trim().toUpperCase().replace(/\s+/g, '_'),
@@ -772,51 +944,84 @@ export class InventorySettingsComponent implements OnInit {
     if (this.isEditTax) {
       this.http.put<any>(`${environment.apiUrl}/admin/inventory/settings/tax-rates/${this.editingTaxId}`, payload).subscribe({
         next: (res) => {
+          this.isSavingTax = false;
           this.triggerToast('Cập nhật mức thuế VAT thành công!', '', 'success');
           this.closeTaxModal();
           this.loadAllData();
         },
         error: (err) => {
+          this.isSavingTax = false;
           this.triggerToast('Lỗi khi cập nhật mức thuế', err.error?.error || err.message, 'error');
+          this.cdr.markForCheck();
         }
       });
     } else {
       this.http.post<any>(`${environment.apiUrl}/admin/inventory/settings/tax-rates`, payload).subscribe({
         next: (res) => {
+          this.isSavingTax = false;
           this.triggerToast('Thêm mức thuế VAT mới thành công!', '', 'success');
           this.closeTaxModal();
           this.loadAllData();
         },
         error: (err) => {
+          this.isSavingTax = false;
           this.triggerToast('Lỗi khi tạo mức thuế', err.error?.error || err.message, 'error');
+          this.cdr.markForCheck();
         }
       });
     }
   }
 
   setTaxRateAsDefault(t: TaxRateItem) {
-    if (t.isDefault) return;
+    if (t.isDefault || this.isUpdatingDefaultTax) return;
+    this.isUpdatingDefaultTax = true;
+    this.cdr.markForCheck();
     this.http.patch<any>(`${environment.apiUrl}/admin/inventory/settings/tax-rates/${t.id}/default`, {}).subscribe({
       next: (res) => {
+        this.isUpdatingDefaultTax = false;
         this.taxRates.forEach(item => item.isDefault = (item.id === t.id));
         this.triggerToast(res.message || `Đã đặt "${t.name}" làm Thuế suất Mặc định!`, '', 'success');
         this.cdr.markForCheck();
       },
       error: (err) => {
+        this.isUpdatingDefaultTax = false;
         this.triggerToast('Lỗi khi đặt thuế mặc định', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
 
   toggleTaxRateActive(t: TaxRateItem) {
+    if (this.togglingItemIds.has(t.id)) return;
+
+    if (t.isDefault && t.isActive) {
+      return this.triggerToast(
+        'Không thể tắt Thuế suất Mặc định',
+        'Vui lòng đặt mức thuế khác làm mặc định trước khi tắt mức này!',
+        'warning'
+      );
+    }
+
+    this.togglingItemIds.add(t.id);
+    // Optimistic toggle
+    t.isActive = !t.isActive;
+    this.cdr.markForCheck();
+
     this.http.patch<any>(`${environment.apiUrl}/admin/inventory/settings/tax-rates/${t.id}/toggle`, {}).subscribe({
       next: (res) => {
-        t.isActive = !t.isActive;
+        this.togglingItemIds.delete(t.id);
+        if (typeof res.isActive === 'boolean') {
+          t.isActive = res.isActive;
+        }
         this.triggerToast(res.message || 'Thay đổi trạng thái thuế thành công!', '', 'success');
         this.cdr.markForCheck();
       },
       error: (err) => {
+        // Rollback nếu lỗi
+        t.isActive = !t.isActive;
+        this.togglingItemIds.delete(t.id);
         this.triggerToast('Không thể đổi trạng thái thuế', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -835,18 +1040,23 @@ export class InventorySettingsComponent implements OnInit {
   }
 
   confirmDeleteTaxRate() {
-    if (!this.deleteTaxTarget) return;
+    if (!this.deleteTaxTarget || this.isDeletingTax) return;
+    this.isDeletingTax = true;
+    this.cdr.markForCheck();
     const tId = this.deleteTaxTarget.id;
     this.http.delete<any>(`${environment.apiUrl}/admin/inventory/settings/tax-rates/${tId}`).subscribe({
       next: (res) => {
+        this.isDeletingTax = false;
         this.showDeleteTaxModal = false;
         this.deleteTaxTarget = null;
         this.triggerToast(res.message || 'Đã xóa mức thuế VAT thành công!', '', 'success');
         this.loadAllData();
       },
       error: (err) => {
+        this.isDeletingTax = false;
         this.showDeleteTaxModal = false;
         this.triggerToast('Lỗi khi xóa mức thuế', err.error?.error || err.message, 'error');
+        this.cdr.markForCheck();
       }
     });
   }

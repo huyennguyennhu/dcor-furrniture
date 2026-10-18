@@ -2,17 +2,34 @@ import prisma, { withDbRetry } from './prisma';
 
 export async function initInventorySettingsDatabase() {
   try {
-    // console.log('[DB-INIT] Đang kiểm tra và khởi tạo bảng cấu hình tồn kho & VAT...');
-
     await withDbRetry(async () => {
+      // 0. Tự động đổi tên bảng cũ sang tên PascalCase mới nếu bảng cũ còn tồn tại
+      await prisma.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory_reasons') 
+             AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'InventoryReasons') THEN
+            ALTER TABLE inventory_reasons RENAME TO "InventoryReasons";
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tax_rates') 
+             AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'TaxRates') THEN
+            ALTER TABLE tax_rates RENAME TO "TaxRates";
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory_settings') 
+             AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'InventorySettings') THEN
+            ALTER TABLE inventory_settings RENAME TO "InventorySettings";
+          END IF;
+        END $$;
+      `);
+
       // 1. Cập nhật bảng Warehouse: thêm cột isDefault nếu chưa có
       await prisma.$executeRawUnsafe(`
         ALTER TABLE "Warehouse" ADD COLUMN IF NOT EXISTS "isDefault" BOOLEAN DEFAULT FALSE;
       `);
 
-      // 2. Bảng inventory_reasons (Tab 2: Xuất, Tab 3: Nhập, Tab 4: Kiểm kê)
+      // 2. Bảng InventoryReasons (Tab 2: Xuất, Tab 3: Nhập, Tab 4: Kiểm kê)
       await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS inventory_reasons (
+        CREATE TABLE IF NOT EXISTS "InventoryReasons" (
           id VARCHAR(64) PRIMARY KEY,
           type VARCHAR(20) NOT NULL,
           reason VARCHAR(255) NOT NULL,
@@ -27,9 +44,9 @@ export async function initInventorySettingsDatabase() {
         );
       `);
 
-      // 3. Bảng tax_rates (Tab 5: Thuế suất VAT)
+      // 3. Bảng TaxRates (Tab 5: Thuế suất VAT)
       await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS tax_rates (
+        CREATE TABLE IF NOT EXISTS "TaxRates" (
           id VARCHAR(64) PRIMARY KEY,
           code VARCHAR(50) UNIQUE NOT NULL,
           name VARCHAR(255) NOT NULL,
@@ -42,9 +59,9 @@ export async function initInventorySettingsDatabase() {
         );
       `);
 
-      // 4. Bảng inventory_settings (Cấu hình chung)
+      // 4. Bảng InventorySettings (Cấu hình chung)
       await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS inventory_settings (
+        CREATE TABLE IF NOT EXISTS "InventorySettings" (
           key VARCHAR(100) PRIMARY KEY,
           value TEXT NOT NULL,
           description TEXT,
@@ -53,7 +70,6 @@ export async function initInventorySettingsDatabase() {
       `);
 
       // 5. SEED DỮ LIỆU MẪU KHO MẶC ĐỊNH
-      // Đặt KHO_TONG_HCM làm kho mặc định nếu chưa kho nào có isDefault = true
       const defaultWhCount = await prisma.$queryRawUnsafe<any[]>(`
         SELECT COUNT(*) as count FROM "Warehouse" WHERE "isDefault" = TRUE
       `);
@@ -79,7 +95,7 @@ export async function initInventorySettingsDatabase() {
         const r = exportReasons[i];
         const id = 'exp_' + (i + 1).toString().padStart(3, '0') + '_' + Math.random().toString(36).substring(2, 7);
         await prisma.$executeRawUnsafe(`
-          INSERT INTO inventory_reasons (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
+          INSERT INTO "InventoryReasons" (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
           VALUES ($1, 'EXPORT', $2, $3, $4, $5, TRUE, TRUE)
           ON CONFLICT (type, reason) DO UPDATE 
           SET prefix = EXCLUDED.prefix, requires_partner = EXCLUDED.requires_partner, partner_label = EXCLUDED.partner_label, is_active = TRUE;
@@ -99,7 +115,7 @@ export async function initInventorySettingsDatabase() {
         const r = importReasons[i];
         const id = 'imp_' + (i + 1).toString().padStart(3, '0') + '_' + Math.random().toString(36).substring(2, 7);
         await prisma.$executeRawUnsafe(`
-          INSERT INTO inventory_reasons (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
+          INSERT INTO "InventoryReasons" (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
           VALUES ($1, 'IMPORT', $2, $3, $4, $5, TRUE, TRUE)
           ON CONFLICT (type, reason) DO UPDATE 
           SET prefix = EXCLUDED.prefix, requires_partner = EXCLUDED.requires_partner, partner_label = EXCLUDED.partner_label, is_active = TRUE;
@@ -118,7 +134,7 @@ export async function initInventorySettingsDatabase() {
         const r = auditReasons[i];
         const id = 'aud_' + (i + 1).toString().padStart(3, '0') + '_' + Math.random().toString(36).substring(2, 7);
         await prisma.$executeRawUnsafe(`
-          INSERT INTO inventory_reasons (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
+          INSERT INTO "InventoryReasons" (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
           VALUES ($1, 'AUDIT', $2, $3, FALSE, NULL, TRUE, TRUE)
           ON CONFLICT (type, reason) DO UPDATE 
           SET prefix = EXCLUDED.prefix, is_active = TRUE;
@@ -136,7 +152,7 @@ export async function initInventorySettingsDatabase() {
       for (const t of taxRates) {
         const id = 'tax_' + t.code.toLowerCase();
         await prisma.$executeRawUnsafe(`
-          INSERT INTO tax_rates (id, code, name, rate, description, is_default, is_active)
+          INSERT INTO "TaxRates" (id, code, name, rate, description, is_default, is_active)
           VALUES ($1, $2, $3, $4, $5, $6, TRUE)
           ON CONFLICT (code) DO UPDATE 
           SET name = EXCLUDED.name, rate = EXCLUDED.rate, description = EXCLUDED.description, is_active = TRUE;
@@ -151,14 +167,13 @@ export async function initInventorySettingsDatabase() {
 
       for (const s of settings) {
         await prisma.$executeRawUnsafe(`
-          INSERT INTO inventory_settings (key, value, description, updated_at)
+          INSERT INTO "InventorySettings" (key, value, description, updated_at)
           VALUES ($1, $2, $3, NOW())
           ON CONFLICT (key) DO NOTHING;
         `, s.key, s.value, s.description);
       }
     });
 
-    // console.log('[DB-INIT] ✅ Khởi tạo bảng và dữ liệu mẫu cấu hình tồn kho & VAT thành công!');
     return true;
   } catch (error) {
     console.error('[DB-INIT] ❌ Lỗi khi khởi tạo database cấu hình kho & VAT:', error);

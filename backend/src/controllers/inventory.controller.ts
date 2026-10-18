@@ -717,15 +717,29 @@ export const inventoryController = {
   // Lấy danh sách các lý do xuất/nhập kho đã từng được sử dụng trong hệ thống và cấu hình đối tác
   getInventoryReasons: async (req: Request, res: Response) => {
     try {
-      // 1. Lấy từ bảng cấu hình inventory_custom_reasons
+      // 1. Lấy từ bảng cấu hình "InventoryReasons"
       let customReasons: any[] = [];
       try {
         customReasons = await prisma.$queryRawUnsafe<any[]>(
           `SELECT type, reason, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
-           FROM inventory_custom_reasons ORDER BY created_at ASC`
+           FROM "InventoryReasons" WHERE is_active = TRUE ORDER BY is_system DESC, created_at ASC`
         );
       } catch (err) {
-        console.warn('inventory_custom_reasons query warning:', err);
+        try {
+          customReasons = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT type, reason, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
+             FROM inventory_reasons WHERE is_active = TRUE ORDER BY is_system DESC, created_at ASC`
+          );
+        } catch (err2) {
+          try {
+            customReasons = await prisma.$queryRawUnsafe<any[]>(
+              `SELECT type, reason, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
+               FROM inventory_custom_reasons ORDER BY created_at ASC`
+            );
+          } catch (err3) {
+            console.warn('InventoryReasons query warning:', err3);
+          }
+        }
       }
 
       // 2. Lấy các lý do thực tế từ StockOrder
@@ -745,7 +759,8 @@ export const inventoryController = {
       (customReasons || []).forEach((c: any) => {
         const r = (c.reason || '').trim();
         if (r) {
-          if (c.type === 'import') {
+          const t = (c.type || '').toUpperCase();
+          if (t === 'IMPORT') {
             if (!importReasons.includes(r)) importReasons.push(r);
           } else {
             if (!exportReasons.includes(r)) exportReasons.push(r);
@@ -785,24 +800,41 @@ export const inventoryController = {
         return res.status(400).json({ error: 'Lý do không được để trống' });
       }
       const trimmedReason = reason.trim();
-      const normType = (type || 'export').toLowerCase() === 'import' ? 'import' : 'export';
+      const normType = (type || 'export').toUpperCase() === 'IMPORT' ? 'IMPORT' : 'EXPORT';
       const reqPartner = Boolean(requiresPartner);
       const label = reqPartner 
-        ? ((partnerLabel && typeof partnerLabel === 'string' && partnerLabel.trim()) ? partnerLabel.trim() : (normType === 'import' ? 'Nhà cung ứng' : 'Khách hàng'))
+        ? ((partnerLabel && typeof partnerLabel === 'string' && partnerLabel.trim()) ? partnerLabel.trim() : (normType === 'IMPORT' ? 'Nhà cung ứng' : 'Khách hàng'))
         : null;
-      const id = 'reason_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      const id = normType.toLowerCase().slice(0, 3) + '_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+      const prefix = normType === 'IMPORT' ? 'PNK-TD' : 'PXK-TD';
 
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO inventory_custom_reasons (id, type, reason, requires_partner, partner_label)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (reason) 
-         DO UPDATE SET requires_partner = EXCLUDED.requires_partner, partner_label = EXCLUDED.partner_label`,
-        id,
-        normType,
-        trimmedReason,
-        reqPartner,
-        label
-      );
+      try {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "InventoryReasons" (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
+           VALUES ($1, $2, $3, $4, $5, $6, TRUE, FALSE)
+           ON CONFLICT (type, reason) 
+           DO UPDATE SET requires_partner = EXCLUDED.requires_partner, partner_label = EXCLUDED.partner_label`,
+          id,
+          normType,
+          trimmedReason,
+          prefix,
+          reqPartner,
+          label
+        );
+      } catch (err) {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO inventory_reasons (id, type, reason, prefix, requires_partner, partner_label, is_active, is_system)
+           VALUES ($1, $2, $3, $4, $5, $6, TRUE, FALSE)
+           ON CONFLICT (type, reason) 
+           DO UPDATE SET requires_partner = EXCLUDED.requires_partner, partner_label = EXCLUDED.partner_label`,
+          id,
+          normType,
+          trimmedReason,
+          prefix,
+          reqPartner,
+          label
+        );
+      }
 
       res.json({
         success: true,
