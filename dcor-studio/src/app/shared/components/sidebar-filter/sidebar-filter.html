@@ -1,109 +1,241 @@
 <aside class="sidebar-filter-wrapper">
   <div class="sidebar-filter-content">
-    <h3 class="sidebar-title">Bộ lọc</h3>
     
-    <!-- Category -->
-    <div class="filter-section">
-      <div class="filter-header" (click)="toggleExpand('category')">
-        <h4>
-          Danh mục
-          <span class="filter-count-badge" *ngIf="CATEGORIES.length > 0">{{CATEGORIES.length}}</span>
-        </h4>
-        <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['category'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-      </div>
-      <div class="filter-body" *ngIf="expanded['category']">
-        <label class="filter-checkbox-label" *ngFor="let cat of CATEGORIES">
-          <input type="checkbox" class="filter-checkbox" [checked]="filters.categories.includes(cat)" (change)="handleCheckboxChange('categories', cat)">
-          <span class="filter-checkbox-custom"></span>
-          <span class="filter-checkbox-text">{{cat}}</span>
-        </label>
+    <!-- Top Header: Bộ lọc + Số lượng sản phẩm -->
+    <div class="sidebar-header-row">
+      <h3 class="sidebar-title">Bộ lọc</h3>
+      <span class="product-count-text" *ngIf="productCount > 0">{{ productCount }} Sản phẩm</span>
+    </div>
+    
+    <!-- 1. Danh mục chính trong database -->
+    <div class="filter-section section-categories">
+      <h4 class="section-plain-title">Danh mục</h4>
+      <div class="category-link-list">
+        <button 
+          type="button" 
+          class="cat-link-btn" 
+          [class.active]="isCatActive('all')"
+          (click)="selectCategory('all')">
+          Tất cả
+        </button>
+        <button 
+          type="button" 
+          class="cat-link-btn" 
+          *ngFor="let cat of displayCategories" 
+          [class.active]="isCatActive(cat.key)"
+          (click)="selectCategory(cat.key)">
+          {{ cat.label }}
+        </button>
       </div>
     </div>
 
-    <!-- Price -->
+    <!-- 2. Khoảng giá (VNĐ) -->
     <div class="filter-section">
       <div class="filter-header" (click)="toggleExpand('price')">
-        <h4>Khoảng giá</h4>
+        <h4>Khoảng giá (VNĐ)</h4>
         <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['price'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
       </div>
       <div class="filter-body" *ngIf="expanded['price']">
-        <div class="price-slider-wrapper" style="padding: 25px 0 5px 0;">
-          <div style="position: relative;">
-            <div style="position: absolute; top: -28px; transform: translateX(-50%); background: var(--accent, #B77953); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; white-space: nowrap; pointer-events: none; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.15);"
-                 [ngStyle]="{'left': 'calc(' + ((localPrice / dynamicMaxPrice) * 100) + '% + ' + (8 - (localPrice / dynamicMaxPrice) * 16) + 'px)'}">
-              {{formatPriceShort(localPrice)}}
-              <div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); border-width: 4px 4px 0; border-style: solid; border-color: var(--accent, #B77953) transparent transparent transparent;"></div>
+        <div class="price-slider-container">
+          <!-- Dual Range Slider (2 phía Min và Max) -->
+          <div class="dual-range-wrapper">
+            <div class="slider-track-bar"></div>
+            <div class="slider-range-highlight" [style.left.%]="minPercent" [style.right.%]="100 - maxPercent"></div>
+            <input 
+              type="range" 
+              [min]="0" 
+              [max]="dynamicMaxPrice" 
+              [step]="500000" 
+              [(ngModel)]="localMinPrice" 
+              (input)="onMinSliderInput()" 
+              (change)="handlePriceChangeEnd()"
+              (touchend)="handlePriceChangeEnd()"
+              [style.z-index]="localMinPrice > (dynamicMaxPrice / 2) ? 5 : 3"
+              class="range-input range-input-min"
+              aria-label="Giá tối thiểu">
+            <input 
+              type="range" 
+              [min]="0" 
+              [max]="dynamicMaxPrice" 
+              [step]="500000" 
+              [(ngModel)]="localMaxPrice" 
+              (input)="onMaxSliderInput()" 
+              (change)="handlePriceChangeEnd()"
+              (touchend)="handlePriceChangeEnd()"
+              [style.z-index]="localMinPrice > (dynamicMaxPrice / 2) ? 3 : 5"
+              class="range-input range-input-max"
+              aria-label="Giá tối đa">
+          </div>
+
+          <!-- Ô nhập giá thủ công 2 phía -->
+          <div class="price-inputs-row">
+            <div class="price-input-col">
+              <label class="price-input-sublabel">Tối thiểu</label>
+              <div class="price-input-box">
+                <input 
+                  type="text" 
+                  class="price-manual-input"
+                  [value]="formatPriceOnlyNumber(localMinPrice)"
+                  (focus)="onInputFocus($event)"
+                  (blur)="onMinInputBlur($event)"
+                  (keydown.enter)="onMinInputEnter($event)"
+                  placeholder="0">
+                <span class="price-currency-suffix">đ</span>
+              </div>
             </div>
-            <input type="range" [min]="0" [max]="dynamicMaxPrice" [step]="500000" [(ngModel)]="localPrice" (mouseup)="handlePriceChangeEnd()" (touchend)="handlePriceChangeEnd()" class="price-slider" style="width: 100%; position: relative; z-index: 1; margin: 0;">
-          </div>
-          <div class="price-range-labels" style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 12px;">
-            <span>0đ</span>
-            <span>{{formatPriceShort(dynamicMaxPrice)}}</span>
+
+            <span class="price-sep-dash">-</span>
+
+            <div class="price-input-col">
+              <label class="price-input-sublabel">Tối đa</label>
+              <div class="price-input-box">
+                <input 
+                  type="text" 
+                  class="price-manual-input"
+                  [value]="formatPriceOnlyNumber(localMaxPrice)"
+                  (focus)="onInputFocus($event)"
+                  (blur)="onMaxInputBlur($event)"
+                  (keydown.enter)="onMaxInputEnter($event)"
+                  placeholder="100.000.000">
+                <span class="price-currency-suffix">đ</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Material -->
+    <!-- 3. Phòng (slug room) -->
     <div class="filter-section">
-      <div class="filter-header" (click)="toggleExpand('material')">
-        <h4>
-          Chất liệu
-          <span class="filter-count-badge" *ngIf="VALID_MATERIALS.length > 0">{{VALID_MATERIALS.length}}</span>
-        </h4>
-        <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['material'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      <div class="filter-header" (click)="toggleExpand('room')">
+        <h4>Phòng</h4>
+        <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['room'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
       </div>
-      <div class="filter-body" *ngIf="expanded['material']">
-        <input *ngIf="VALID_MATERIALS.length >= 20" type="text" class="filter-search-input" placeholder="Tìm chất liệu..." [(ngModel)]="materialSearchQuery" (input)="materialPage = 0" style="width: 100%; padding: 6px 12px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 13px;">
-        
-        <label class="filter-checkbox-label" *ngFor="let m of currentMaterials">
-          <input type="checkbox" class="filter-checkbox" [checked]="filters.materials.includes(m)" (change)="handleCheckboxChange('materials', m)">
-          <span class="filter-checkbox-custom"></span>
-          <span class="filter-checkbox-text">{{m}}</span>
+      <div class="filter-body" *ngIf="expanded['room']">
+        <label 
+          class="filter-radio-item" 
+          *ngFor="let r of ROOM_OPTIONS"
+          (click)="$event.preventDefault(); selectRoom(r.slug)">
+          <input 
+            type="radio" 
+            name="sidebar_filter_room"
+            class="radio-input-hidden" 
+            [checked]="isRoomActive(r.slug)">
+          <span class="custom-radio-circle" [class.checked]="isRoomActive(r.slug)"></span>
+          <span class="filter-label-text">{{ r.name }}</span>
         </label>
-        
-        <div *ngIf="usePagination && totalMaterialPages > 1" class="filter-pagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 10px; align-items: center;">
-          <button [disabled]="materialPage === 0" (click)="materialPage = materialPage - 1" [ngStyle]="{'background': 'none', 'border': 'none', 'cursor': materialPage === 0 ? 'not-allowed' : 'pointer', 'opacity': materialPage === 0 ? 0.3 : 1, 'color': 'var(--accent)'}">&lt;</button>
-          <span style="font-size: 12px; color: #666;">{{materialPage + 1}} / {{totalMaterialPages}}</span>
-          <button [disabled]="materialPage >= totalMaterialPages - 1" (click)="materialPage = materialPage + 1" [ngStyle]="{'background': 'none', 'border': 'none', 'cursor': materialPage >= totalMaterialPages - 1 ? 'not-allowed' : 'pointer', 'opacity': materialPage >= totalMaterialPages - 1 ? 0.3 : 1, 'color': 'var(--accent)'}">&gt;</button>
+      </div>
+    </div>
+
+    <!-- 4. Phong cách thiết kế (slug style) -->
+    <div class="filter-section">
+      <div class="filter-header" (click)="toggleExpand('style')">
+        <h4>Phong cách thiết kế</h4>
+        <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['style'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </div>
+      <div class="filter-body" *ngIf="expanded['style']">
+        <label class="filter-checkbox-label" *ngFor="let s of STYLE_OPTIONS">
+          <input 
+            type="checkbox" 
+            class="filter-checkbox" 
+            [checked]="filters.styles?.includes(s.slug)" 
+            (change)="handleCheckboxChange('styles', s.slug)">
+          <span class="filter-checkbox-custom"></span>
+          <span class="filter-checkbox-text">{{ s.name }}</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 5. Đánh giá (Data thật tính từ các sản phẩm) -->
+    <div class="filter-section">
+      <div class="filter-header" (click)="toggleExpand('rating')">
+        <h4>Đánh giá</h4>
+        <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['rating'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </div>
+      <div class="filter-body" *ngIf="expanded['rating']">
+        <div 
+          class="rating-filter-row" 
+          *ngFor="let stars of [5, 4, 3, 2]" 
+          (click)="selectRating(stars)"
+          [class.active]="filters.minRating === stars">
+          <span class="custom-radio-circle" [class.checked]="filters.minRating === stars"></span>
+          <div class="stars-visual">
+            <lucide-angular 
+              *ngFor="let s of [1,2,3,4,5]" 
+              [img]="icons.Star" 
+              size="15" 
+              class="star-item" 
+              [class.filled]="s <= stars">
+            </lucide-angular>
+          </div>
+          <span class="rating-count-num">{{ ratingCounts[stars] || 0 }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Color -->
+    <!-- 6. Bảng màu sắc thật từ Database (Có phân trang) -->
     <div class="filter-section">
       <div class="filter-header" (click)="toggleExpand('color')">
-        <h4>
-          Màu sắc
-          <span class="filter-count-badge" *ngIf="VALID_COLORS.length > 0">{{VALID_COLORS.length}}</span>
-        </h4>
+        <h4>Bảng màu sắc</h4>
         <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['color'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
       </div>
       <div class="filter-body" *ngIf="expanded['color']">
-        <div class="filter-color-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-          <label class="color-swatch-item" *ngFor="let c of VALID_COLORS" [class.active]="filters.colors.includes(getColorName(c))" [title]="getColorName(c)">
-            <input type="checkbox" [checked]="filters.colors.includes(getColorName(c))" (change)="handleCheckboxChange('colors', getColorName(c))" style="display: none;">
-            <span class="color-swatch-circle" [ngStyle]="{
-                'background-color': getColorHex(c),
-                'background-image': c.imageLink ? 'url(' + c.imageLink + ')' : 'none',
-                'background-size': 'cover',
-                'background-position': 'center',
-                'border-radius': '50%',
-                'border': '1px solid rgba(0,0,0,0.05)',
-                'display': 'flex',
-                'align-items': 'center',
-                'justify-content': 'center',
-                'width': '100%',
-                'height': '100%',
-                'aspect-ratio': '1',
-                'cursor': 'pointer'
-              }">
-              <lucide-angular *ngIf="filters.colors.includes(getColorName(c))" [img]="icons.Check" size="16" color="#FFF" style="filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.8));"></lucide-angular>
-            </span>
-          </label>
+        <div class="color-swatches-grid">
+          <button 
+            type="button" 
+            class="swatch-circle-btn" 
+            *ngFor="let c of currentColors" 
+            [style.background-color]="c.hex" 
+            [class.active]="filters.colors.includes(c.slug)"
+            [title]="c.name"
+            (click)="handleCheckboxChange('colors', c.slug)">
+            <lucide-angular *ngIf="filters.colors.includes(c.slug)" [img]="icons.Check" size="12" [color]="c.hex === '#F8F8F8' ? '#000' : '#fff'"></lucide-angular>
+          </button>
+        </div>
+
+        <!-- Phân trang màu sắc khi nhiều màu -->
+        <div *ngIf="totalColorPages > 1" class="filter-pager-row">
+          <button [disabled]="colorPage === 0" (click)="colorPage = colorPage - 1">&lt;</button>
+          <span>{{ colorPage + 1 }} / {{ totalColorPages }}</span>
+          <button [disabled]="colorPage >= totalColorPages - 1" (click)="colorPage = colorPage + 1">&gt;</button>
         </div>
       </div>
     </div>
-    
+
+    <!-- 7. Chất liệu thật từ Database (Có tìm kiếm & phân trang) -->
+    <div class="filter-section">
+      <div class="filter-header" (click)="toggleExpand('material')">
+        <h4>Chất liệu</h4>
+        <lucide-angular [img]="icons.ChevronDown" size="16" [ngStyle]="{'transform': expanded['material'] ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </div>
+      <div class="filter-body" *ngIf="expanded['material']">
+        <div class="material-search-wrap">
+          <input 
+            type="text" 
+            class="material-search-input" 
+            placeholder="Tìm kiếm chất liệu..." 
+            [(ngModel)]="materialSearchQuery" 
+            (input)="materialPage = 0">
+        </div>
+        
+        <label class="filter-checkbox-label" *ngFor="let m of currentMaterials">
+          <input 
+            type="checkbox" 
+            class="filter-checkbox" 
+            [checked]="filters.materials.includes(m)" 
+            (change)="handleCheckboxChange('materials', m)">
+          <span class="filter-checkbox-custom"></span>
+          <span class="filter-checkbox-text">{{ m }}</span>
+        </label>
+        
+        <!-- Phân trang chất liệu khi nhiều chất liệu -->
+        <div *ngIf="totalMaterialPages > 1" class="filter-pager-row">
+          <button [disabled]="materialPage === 0" (click)="materialPage = materialPage - 1">&lt;</button>
+          <span>{{ materialPage + 1 }} / {{ totalMaterialPages }}</span>
+          <button [disabled]="materialPage >= totalMaterialPages - 1" (click)="materialPage = materialPage + 1">&gt;</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </aside>

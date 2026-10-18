@@ -1,37 +1,75 @@
 <div *ngIf="isOpen" class="modal-backdrop" (click)="closeModal()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <div class="icon-box">
-        <app-icon name="Shield" size="24"></app-icon>
+      <div class="header-info">
+        <div class="icon-box">
+          <app-icon name="ShieldCheck" size="24"></app-icon>
+        </div>
+        <div class="header-titles">
+          <h3>{{ title }}</h3>
+          <p class="subtitle">Mã xác thực 6 số</p>
+        </div>
       </div>
-      <button class="close-btn" (click)="closeModal()">
-        <app-icon name="X" size="20"></app-icon>
+      <button type="button" class="close-btn" (click)="closeModal()" aria-label="Đóng">
+        <app-icon name="X" size="18"></app-icon>
       </button>
     </div>
 
     <div class="modal-body text-center">
-      <h3>Xác thực chữ ký số (OTP)</h3>
-      <p class="desc">Vui lòng nhập mã OTP gồm 6 chữ số đã được gửi đến số điện thoại <strong>{{ phoneNumber }}</strong> để xác nhận ký Hợp đồng Thiết kế.</p>
+      <p class="desc" *ngIf="description">{{ description }}</p>
+      <p class="desc" *ngIf="!description">
+        Mã xác thực đã được gửi đến số điện thoại
+        <span class="phone-highlight">{{ phoneNumber }}</span>. Vui lòng nhập mã để tiếp tục.
+      </p>
 
+      <!-- 6 Ô nhập OTP -->
       <div class="otp-inputs">
-        <input *ngFor="let val of otpValues; let i = index" 
-               [id]="'otp-' + i"
-               type="text" 
-               maxlength="1" 
-               [(ngModel)]="otpValues[i]" 
-               (input)="onOtpInput($event, i)" 
-               (keydown)="onKeyDown($event, i)"
-               class="otp-box" />
+        @for (i of inputIndices; track i) {
+          <input 
+            [id]="'otp-' + i"
+            type="text" 
+            inputmode="numeric"
+            maxlength="1" 
+            [value]="otpValues[i]"
+            (input)="onOtpInput($event, i)" 
+            (keydown)="onKeyDown($event, i)"
+            (paste)="onPaste($event, i)"
+            class="otp-box" 
+            [class.has-value]="otpValues[i]"
+            [class.has-error]="displayError"
+            [attr.autocomplete]="i === 0 ? 'one-time-code' : 'off'" />
+        }
       </div>
 
-      <div *ngIf="error" class="error-text">{{ error }}</div>
+      <!-- Đồng hồ đếm ngược hiệu lực -->
+      <div class="countdown-badge" [class.expired]="isExpired">
+        <app-icon name="Clock" size="16"></app-icon>
+        <span *ngIf="!isExpired">Mã có hiệu lực trong: <strong>{{ formattedTime }}</strong></span>
+        <span *ngIf="isExpired" class="expired-text">Mã OTP đã hết hiệu lực</span>
+      </div>
+
+      <!-- Thông báo lỗi nếu có -->
+      <div *ngIf="displayError" class="error-banner">
+        <app-icon name="AlertCircle" size="16"></app-icon>
+        <span>{{ displayError }}</span>
+      </div>
     </div>
 
     <div class="modal-footer">
-      <button class="resend-btn">Gửi lại mã</button>
-      <button class="confirm-btn" [disabled]="loading" (click)="handleVerify()">
+      <button type="button" 
+              class="resend-btn" 
+              [disabled]="remainingResendSeconds > 0 || loading" 
+              (click)="handleResend()">
+        <span>Gửi lại mã</span>
+        <span *ngIf="remainingResendSeconds > 0" class="cooldown-tag">({{ remainingResendSeconds }}s)</span>
+      </button>
+
+      <button type="button" 
+              class="confirm-btn" 
+              [disabled]="!canConfirm" 
+              (click)="handleVerify()">
         <span *ngIf="loading" class="spinner"></span>
-        {{ loading ? 'Đang xử lý...' : 'Xác nhận Ký' }}
+        <span>{{ loading ? 'Đang xác thực...' : confirmText }}</span>
       </button>
     </div>
   </div>

@@ -1,175 +1,289 @@
 <div class="explore-page">
-  <!-- 1. Hero & Quick Filter -->
+
+  <!-- 1. Top Banner: Title thay đổi theo danh mục + Breadcrumb ngay phía dưới -->
   <section class="explore-hero">
-    <div class="container">
+    <div class="explore-hero-overlay"></div>
+    <div class="container explore-hero-container">
       <div class="explore-hero-content">
-        <h1 class="explore-hero-title">KHÁM PHÁ</h1>
-        <p class="explore-hero-subtitle">Tìm kiếm nội thất phù hợp với không gian và phong cách của bạn</p>
-      </div>
-      
-      <div *ngIf="isLoading" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
-        <div style="width: 80px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: pulse 1.5s infinite ease-in-out;"></div>
-        <div style="width: 100px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: pulse 1.5s infinite ease-in-out;"></div>
-        <div style="width: 90px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: pulse 1.5s infinite ease-in-out;"></div>
-      </div>
-      
-      <div *ngIf="!isLoading && products.length > 0" class="quick-pill-list">
-        <button 
-          class="quick-pill" 
-          [class.active]="filters.categories.length === 0"
-          (click)="handleQuickCatClick('Tất cả')">
-          Tất cả
-        </button>
-        <button *ngFor="let cat of dynamicFilters.categories"
-          class="quick-pill" 
-          [class.active]="filters.categories.includes(cat)"
-          (click)="handleQuickCatClick(cat)">
-          {{ cat }}
-        </button>
+        <h1 class="explore-hero-title">{{ currentCategoryTitle }}</h1>
+        <div class="explore-breadcrumb">
+          <a routerLink="/">Home</a>
+          <span class="bc-sep">/</span>
+          <a routerLink="/explore" (click)="clearAllFilters()">Products</a>
+          <span class="bc-sep"
+            *ngIf="currentCategoryBreadcrumb && currentCategoryBreadcrumb !== 'Tất cả sản phẩm'">/</span>
+          <span class="bc-current" *ngIf="currentCategoryBreadcrumb && currentCategoryBreadcrumb !== 'Tất cả sản phẩm'">
+            {{ currentCategoryBreadcrumb }}
+          </span>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- 3. Thanh điều khiển danh sách (Sticky) -->
-  <div *ngIf="products.length > 0" class="explore-active-bar">
-    <div class="container">
-      <div class="active-bar-content">
-        <div class="active-tags">
-          <span class="product-count">{{ filteredProducts.length }} sản phẩm</span>
-          
-          <span *ngFor="let c of filters.categories" class="active-tag">{{ c }} <button (click)="removeFilterTag('categories', c)">&times;</button></span>
-          <span *ngFor="let m of filters.materials" class="active-tag">{{ m }} <button (click)="removeFilterTag('materials', m)">&times;</button></span>
-          <span *ngFor="let c of filters.colors" class="active-tag">{{ c }} <button (click)="removeFilterTag('colors', c)">&times;</button></span>
-          <span *ngIf="filters.priceRange[1] < 100000000" class="active-tag">Dưới {{ (filters.priceRange[1]/1000000).toFixed(0) }}tr <button (click)="removeFilterTag('priceRange', null)">&times;</button></span>
-          
-          <button *ngIf="activeTagCount > 0" class="clear-all-btn" (click)="clearAllFilters()">
+  <!-- 2. Sub-header Bar: Active filter pills & Sort dropdown -->
+  <section class="explore-subbar">
+    <div class="container explore-subbar-container">
+
+      <!-- Left: Active Filter Pills -->
+      <div class="subbar-left">
+        <div class="active-pills-list" *ngIf="hasActiveFilters">
+          <!-- Category Pills -->
+          <span *ngFor="let cat of filters.categories" class="active-pill">
+            {{ getCategoryLabel(cat) }}
+            <button type="button" class="pill-close" (click)="removeCategory(cat)">&times;</button>
+          </span>
+
+          <!-- Room Pills -->
+          <span *ngFor="let room of filters.rooms" class="active-pill">
+            {{ getRoomLabel(room) }}
+            <button type="button" class="pill-close" (click)="removeFilterTag('rooms', room)">&times;</button>
+          </span>
+
+          <!-- Style Pills -->
+          <span *ngFor="let style of filters.styles" class="active-pill">
+            {{ getStyleLabel(style) }}
+            <button type="button" class="pill-close" (click)="removeFilterTag('styles', style)">&times;</button>
+          </span>
+
+          <!-- Material Pills -->
+          <span *ngFor="let mat of filters.materials" class="active-pill">
+            {{ mat }}
+            <button type="button" class="pill-close" (click)="removeFilterTag('materials', mat)">&times;</button>
+          </span>
+
+          <!-- Color Pills -->
+          <span *ngFor="let col of filters.colors" class="active-pill">
+            {{ getColorLabel(col) }}
+            <button type="button" class="pill-close" (click)="removeFilterTag('colors', col)">&times;</button>
+          </span>
+
+          <!-- Price Pill -->
+          <span *ngIf="filters.priceRange[0] > 0 || filters.priceRange[1] < dynamicMaxPrice" class="active-pill">
+            <ng-container *ngIf="filters.priceRange[0] > 0 && filters.priceRange[1] < dynamicMaxPrice">
+              {{ formatPriceShort(filters.priceRange[0]) }} - {{ formatPriceShort(filters.priceRange[1]) }}
+            </ng-container>
+            <ng-container *ngIf="filters.priceRange[0] > 0 && filters.priceRange[1] >= dynamicMaxPrice">
+              &ge; {{ formatPriceShort(filters.priceRange[0]) }}
+            </ng-container>
+            <ng-container *ngIf="filters.priceRange[0] <= 0 && filters.priceRange[1] < dynamicMaxPrice">
+              &le; {{ formatPriceShort(filters.priceRange[1]) }}
+            </ng-container>
+            <button type="button" class="pill-close" (click)="resetPrice()">&times;</button>
+          </span>
+
+          <!-- Clear All Button -->
+          <button type="button" class="clear-all-link" (click)="clearAllFilters()">
             Xóa bộ lọc
           </button>
         </div>
-        
-        <div class="sort-controls">
-          <app-custom-select 
-            [value]="sortBy"
-            (valueChange)="sortBy = $event; currentPage = 1"
-            [options]="[
-              { value: 'featured', label: 'Nổi bật nhất' },
-              { value: 'newest', label: 'Mới nhất' },
-              { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
-              { value: 'price-desc', label: 'Giá: Cao đến Thấp' },
-              { value: 'sale', label: 'Đang khuyến mãi' }
-            ]"
-          ></app-custom-select>
-        </div>
       </div>
+
+      <!-- Right: Sắp xếp theo -->
+      <div class="subbar-right">
+        <span class="sort-prefix">Sắp xếp theo:</span>
+        <app-custom-select [value]="sortBy" (valueChange)="onSortChange($event)" [options]="[
+            { value: 'featured', label: 'Bán chạy nhất' },
+            { value: 'newest', label: 'Mới nhất' },
+            { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
+            { value: 'price-desc', label: 'Giá: Cao đến Thấp' },
+            { value: 'sale', label: 'Đang khuyến mãi' }
+          ]">
+        </app-custom-select>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 3. Khu vực chính: 2 cột (Sidebar bên trái + Lưới sản phẩm bên phải) -->
+  <div class="container explore-main-container">
+    <div class="explore-layout-grid">
+
+      <!-- Cột 1: Sidebar Filter -->
+      <aside class="explore-sidebar-col">
+        <div *ngIf="isLoading" class="sidebar-skeleton">
+          <div style="height: 28px; width: 50%; background: #eaeaea; margin-bottom: 20px; border-radius: 4px;"></div>
+          <div style="height: 180px; background: #f5f5f5; margin-bottom: 16px; border-radius: 8px;"></div>
+          <div style="height: 120px; background: #f5f5f5; border-radius: 8px;"></div>
+        </div>
+
+        <div *ngIf="!isLoading">
+          <app-sidebar-filter [filters]="filters" [rawCategories]="rawCategories" [dynamicFilters]="dynamicFilters"
+            [dynamicMaxPrice]="dynamicMaxPrice" [productCount]="filteredProducts.length" [ratingCounts]="ratingCounts"
+            (onFilterChange)="onFilterChange($event)">
+          </app-sidebar-filter>
+        </div>
+      </aside>
+
+      <!-- Cột 2: Lưới sản phẩm (Grid 3 cột) -->
+      <main class="explore-products-col">
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="products-grid-3col">
+          <div *ngFor="let i of [1,2,3,4,5,6]" class="skeleton-card">
+            <div style="height: 220px; background: #f0f0f0; border-radius: 6px;"></div>
+            <div style="height: 16px; width: 60%; background: #f0f0f0; margin-top: 12px; border-radius: 4px;"></div>
+            <div style="height: 20px; width: 85%; background: #f0f0f0; margin-top: 8px; border-radius: 4px;"></div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!isLoading && paginatedProducts.length === 0" class="empty-products-state">
+          <p>Không tìm thấy sản phẩm nào phù hợp với bộ lọc hiện tại.</p>
+          <button (click)="clearAllFilters()" class="btn-reset-filters">Xóa bộ lọc</button>
+        </div>
+
+        <!-- Products Grid (3 cột theo mẫu) -->
+        <div *ngIf="!isLoading && paginatedProducts.length > 0" class="products-grid-3col">
+          <div *ngFor="let prod of paginatedProducts" class="product-item-card"
+            [class.is-hovered]="hoveredCardId === prod.productId" [id]="'product-' + prod.productId"
+            (mouseenter)="onCardMouseEnter(prod)" (mouseleave)="onCardMouseLeave(prod)"
+            (click)="handleProductClick(prod.productId)">
+
+            <!-- Vùng ảnh sản phẩm -->
+            <div class="card-image-box" (mousemove)="onCardMouseMove($event, prod)">
+
+              <!-- Badge Sale / Mới -->
+              <div class="card-badge-wrap">
+                <span *ngIf="isOnSale(prod)" class="badge-hotdeal">
+                  HOT DEAL {{ prod.discountType === 'PERCENT' ? '-' + prod.discountValue + '%' : 'SALE' }}
+                </span>
+                <span *ngIf="!isOnSale(prod) && prod.isNew" class="badge-new">
+                  MỚI
+                </span>
+              </div>
+
+              <!-- Top-right Action Buttons: So sánh + Yêu thích -->
+              <div class="card-corner-actions">
+                <button type="button" class="round-action-btn compare-btn" [class.active]="isInCompare(prod.productId)"
+                  title="So sánh" (click)="toggleCompare($event, prod)">
+                  <app-icon name="Scale" size="16"
+                    [color]="isInCompare(prod.productId) ? '#b45309' : '#4b5563'"></app-icon>
+                </button>
+                <button type="button" class="round-action-btn wishlist-btn" [class.active]="wishlist.includes(prod.productId)"
+                  title="Yêu thích" (click)="toggleWishlist($event, prod.productId)">
+                  <app-icon name="Heart" size="16" [color]="wishlist.includes(prod.productId) ? '#b45309' : '#4b5563'"
+                    [filled]="wishlist.includes(prod.productId)"></app-icon>
+                </button>
+              </div>
+
+              <!-- Ảnh sản phẩm đa góc nhìn (Stack) -->
+              <div class="card-img-stack">
+                <img *ngFor="let img of getCardImages(prod); let idx = index" [src]="img"
+                  [alt]="prod.shortDescription + ' - Góc ' + (idx + 1)" class="product-main-img"
+                  [class.active-img]="getActiveImageIndex(prod.productId) === idx"
+                  [attr.loading]="idx === 0 ? 'eager' : 'lazy'" (error)="onImageError(prod, idx)">
+              </div>
+            </div>
+
+            <!-- Vùng thông tin sản phẩm -->
+            <div class="card-body-box">
+
+              <!-- Hàng biến thể màu sắc & Đánh giá -->
+              <div class="meta-row">
+                <div class="swatches-preview" *ngIf="prod.colorSwatches && prod.colorSwatches.length > 0">
+                  <button type="button" *ngFor="let sw of prod.colorSwatches.slice(0, 5)" class="swatch-btn"
+                    [class.active]="isSwatchActive(prod, sw)" [title]="sw.name" [style.background-color]="sw.hex"
+                    (mouseenter)="selectCardSwatch($event, prod, sw)" (click)="selectCardSwatch($event, prod, sw)">
+                  </button>
+                  <span *ngIf="prod.colorSwatches.length > 5" class="variant-count">
+                    +{{ prod.colorSwatches.length - 5 }}
+                  </span>
+                  <span *ngIf="prod.colorSwatches.length <= 5 && prod.colorSwatches.length > 1" class="variant-count">
+                    {{ prod.colorSwatches.length }} màu
+                  </span>
+                </div>
+                <div class="swatches-preview" *ngIf="!prod.colorSwatches || prod.colorSwatches.length === 0">
+                  <span class="variant-count">1 màu tiêu chuẩn</span>
+                </div>
+                <div class="rating-badge">
+                  <lucide-angular [img]="icons.Star" size="13" class="star-gold"></lucide-angular>
+                  <span class="rating-val">4.9</span>
+                  <span class="rating-total">({{ prod.reviewCount || 128 }})</span>
+                </div>
+              </div>
+
+              <!-- Tiêu đề sản phẩm -->
+              <h3 class="product-name" [title]="prod.shortDescription_vi || prod.shortDescription">
+                {{ prod.shortDescription_vi || prod.shortDescription }}
+              </h3>
+
+              <!-- Mô tả / Chất liệu ngắn gọn -->
+              <p class="product-summary">
+                {{ prod.description || 'Khung sồi Nga sấy nhiệt, đệm mút D40 ca...' }}
+              </p>
+
+              <!-- Hàng giá & Nút mua -->
+              <div class="price-buy-row">
+                <div class="price-stack">
+                  <span class="price-current">{{ getProductPriceFormatted(prod) }}</span>
+                  <span *ngIf="getOriginalPriceFormatted(prod)" class="price-original">
+                    {{ getOriginalPriceFormatted(prod) }}
+                  </span>
+                </div>
+
+                <button type="button" class="btn-buy" (click)="handleBuyClick($event, prod)">
+                  <app-icon name="ShoppingCart" size="14" color="#ffffff"></app-icon>
+                  <span>MUA</span>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Nút Xem thêm -->
+        <div *ngIf="!isLoading && currentPage < totalPages" class="load-more-section">
+          <button type="button" class="btn-see-more" (click)="loadMore()">
+            Xem thêm
+          </button>
+        </div>
+
+      </main>
+
     </div>
   </div>
 
-  <!-- 4. Khu vực chính -->
-  <div class="container explore-main-layout">
-    <!-- 5. Sidebar Filter (Giả lập đơn giản tạm thời) -->
-    <div class="explore-sidebar">
-      <div *ngIf="isLoading" style="padding: 20px;">
-        <div style="width: 60%; height: 24px; background: #eaeaea; margin-bottom: 20px; border-radius: 4px; animation: pulse 1.5s infinite ease-in-out;"></div>
-        <div style="width: 100%; height: 30px; background: #f5f5f5; margin-bottom: 10px; border-radius: 4px; animation: pulse 1.5s infinite ease-in-out;"></div>
-        <div style="width: 100%; height: 30px; background: #f5f5f5; margin-bottom: 10px; border-radius: 4px; animation: pulse 1.5s infinite ease-in-out;"></div>
-      </div>
-      <div *ngIf="!isLoading && products.length > 0">
-        <app-sidebar-filter
-          [filters]="filters"
-          [dynamicFilters]="dynamicFilters"
-          [validFilters]="validFiltersObj"
-          [dynamicMaxPrice]="dynamicMaxPrice"
-          (onFilterChange)="onFilterChange($event)">
-        </app-sidebar-filter>
-      </div>
-    </div>
+  <!-- 4. Floating Compare Bar (Thanh so sánh nổi bên dưới) -->
+  <div class="floating-compare-dock" *ngIf="compareList.length > 0">
+    <div class="container compare-dock-container">
 
-    <!-- 7. Product Grid -->
-    <div class="explore-content">
-      <div *ngIf="isLoading" class="products-grid">
-        <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12]" class="skeleton-card">
-          <div class="skeleton-img" style="height: 280px; background: rgba(0,0,0,0.05); animation: pulse 1.5s infinite;"></div>
-          <div style="padding: 20px;">
-            <div style="height: 12px; width: 40%; margin-bottom: 10px; background: rgba(0,0,0,0.05); animation: pulse 1.5s infinite;"></div>
-            <div style="height: 18px; width: 80%; background: rgba(0,0,0,0.05); animation: pulse 1.5s infinite;"></div>
-          </div>
+      <div class="dock-left">
+        <div class="compare-badge">
+          <app-icon name="Scale" size="16" color="#b45309"></app-icon>
+          <span class="compare-tag-title">Đang so sánh</span>
         </div>
-      </div>
-      
-      <div *ngIf="!isLoading && paginatedProducts.length === 0" class="empty-state" style="text-align: center; padding: 100px 0;">
-        <p style="color: var(--text-muted); margin-bottom: 16px;">Không tìm thấy sản phẩm nào phù hợp với bộ lọc hiện tại.</p>
-        <button (click)="clearAllFilters()" class="cta-btn">Xóa bộ lọc</button>
-      </div>
+        <span class="compare-counter">{{ compareList.length }} / 5 sản phẩm</span>
 
-      <div *ngIf="!isLoading && paginatedProducts.length > 0" class="products-grid">
-        <div *ngFor="let prod of paginatedProducts" 
-             class="product-card" 
-             [id]="'product-' + prod.productId"
-             (click)="handleProductClick(prod.productId)">
-          
-          <app-hover-image-slider 
-            [images]="prod.images || []" 
-             
-            [onSale]="isOnSale(prod)"
-            [isBestSeller]="prod.isBestSeller || false"
-            [isNew]="prod.isNew || false"
-            [discountType]="prod.discountType"
-            [discountValue]="prod.discountValue">
-          </app-hover-image-slider>
-          
-          <div class="card-details">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span class="card-category">{{ prod.category || 'D\'Cor' }}</span>
-              <div class="card-mini-actions">
-                <button class="mini-action-btn" [class.favorite-active]="wishlist.includes(prod.productId)" title="Yêu thích" (click)="toggleWishlist($event, prod.productId)">
-                  <app-icon name="Heart" size="14" [color]="wishlist.includes(prod.productId) ? 'var(--accent)' : 'currentColor'" [filled]="wishlist.includes(prod.productId)"></app-icon>
-                </button>
-                <button class="mini-action-btn" title="So sánh" (click)="$event.stopPropagation(); $event.preventDefault();">
-                  <app-icon name="Activity" size="14"></app-icon>
-                </button>
-                <button class="mini-action-btn" title="Xem nhanh" (click)="openQuickView($event, prod)">
-                  <app-icon name="Eye" size="14"></app-icon>
-                </button>
-              </div>
-            </div>
-            <h3 class="card-title">{{ prod.shortDescription_vi || prod.shortDescription }}</h3>
-            <div class="card-price-row">
-              <div>
-                <ng-container *ngIf="isOnSale(prod) && getLowestPriceFormatted(prod); else normalPrice">
-                  <span class="card-price-label">Sale:</span>
-                  <div class="card-price" style="color: var(--accent);">{{ getLowestPriceFormatted(prod) }}</div>
-                </ng-container>
-                <ng-template #normalPrice>
-                  <span class="card-price-label">Giá từ</span>
-                  <div class="card-price">{{ getProductPriceFormatted(prod) }}</div>
-                </ng-template>
-              </div>
-            </div>
+        <div class="compare-items-thumbs">
+          <div class="thumb-box" *ngFor="let item of compareList">
+            <img [src]="item.images[0]" [alt]="item.shortDescription">
+            <button type="button" class="thumb-remove" (click)="removeCompare(item.productId)">&times;</button>
           </div>
+          <div class="thumb-placeholder" *ngIf="compareList.length < 5" title="Chọn thêm sản phẩm để so sánh">+</div>
         </div>
       </div>
 
-      <!-- 9. Pagination -->
-      <div *ngIf="!isLoading && currentPage < totalPages" class="explore-load-more">
-        <button (click)="currentPage = currentPage + 1">
-          Khám phá thêm
-          <app-icon name="ChevronDown" size="16"></app-icon>
+      <div class="dock-right">
+        <button type="button" class="dock-share-btn" title="Chia sẻ danh sách so sánh">
+          <app-icon name="Share2" size="16" color="#4b5563"></app-icon>
+        </button>
+        <button type="button" class="btn-compare-action" routerLink="/store/compare">
+          So sánh ngay ({{ compareList.length }}) &rarr;
         </button>
       </div>
 
-      <!-- 10. CTA Room Planner -->
-      <div *ngIf="!isLoading" class="explore-cta-banner">
-        <div class="cta-content">
-          <h2>Chưa tìm được sản phẩm phù hợp?</h2>
-          <p>Hãy thử bố trí không gian bằng công cụ Thiết kế phòng của chúng tôi.</p>
-          <button routerLink="/thiet-ke/room-planner" class="cta-btn">
-            Thiết kế ngay
-          </button>
-        </div>
-      </div>
     </div>
   </div>
+
+  <!-- 5. Floating Back to Top Button -->
+  <button type="button" class="btn-back-to-top" [class.visible]="showScrollTop"
+    [class.dock-active]="compareList.length > 0" (click)="scrollToTop()" aria-label="Về đầu trang" title="Về đầu trang">
+    <app-icon name="ArrowUp" size="20" color="#ffffff"></app-icon>
+  </button>
+
 </div>
 
-
-<app-quick-view-drawer [product]="quickViewProduct" [isOpen]="isQuickViewOpen" (onClose)="isQuickViewOpen = false"></app-quick-view-drawer>
+<!-- Quick View Drawer Modal -->
+<app-quick-view-drawer [product]="quickViewProduct" [isOpen]="isQuickViewOpen"
+  (onClose)="isQuickViewOpen = false"></app-quick-view-drawer>

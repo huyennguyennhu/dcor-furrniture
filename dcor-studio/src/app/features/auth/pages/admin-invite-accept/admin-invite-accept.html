@@ -1,57 +1,132 @@
-<div class="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-  <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-10"></div>
-  <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80"></div>
-  
-  <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-    <div class="text-center animate-fade-in-up">
-      <h2 class="text-4xl font-extrabold text-white tracking-tight flex items-center justify-center gap-3">
-        <span class="text-emerald-500">Dcor</span> Studio
-      </h2>
-      <p class="mt-2 text-sm text-slate-400 uppercase tracking-widest">Thiết lập Mật khẩu Mới</p>
+<div class="admin-invite-page">
+  <div class="invite-card">
+    
+    <!-- Header -->
+    <div class="invite-header">
+      <div class="logo-circle">
+        <span class="logo-symbol">D</span>
+      </div>
+      <h1 class="brand-title">DCor <span class="highlight">Studio</span></h1>
+      <p class="brand-subtitle">Kích hoạt tài khoản quản trị</p>
     </div>
 
-    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-md animate-fade-in-up" style="animation-delay: 0.1s;">
-      <div class="bg-slate-800/60 backdrop-blur-xl py-8 px-4 shadow-2xl shadow-black/50 sm:rounded-2xl sm:px-10 border border-slate-700/50">
-        
-        <!-- Error Alert -->
-        <div *ngIf="error" class="mb-4 bg-red-500/20 border border-red-500/50 p-4 rounded-xl flex items-start gap-3">
-          <app-icon name="AlertTriangle" size="20" class="w-5 h-5 text-red-400 mt-0.5"></app-icon>
-          <p class="text-sm text-red-200">{{ error }}</p>
-        </div>
-
-        <!-- Success Alert -->
-        <div *ngIf="success" class="mb-4 bg-emerald-500/20 border border-emerald-500/50 p-4 rounded-xl flex items-start gap-3">
-          <app-icon name="Check" size="20" class="w-5 h-5 text-emerald-400 mt-0.5"></app-icon>
-          <p class="text-sm text-emerald-200">Đã thiết lập mật khẩu thành công! Đang chuyển hướng...</p>
-        </div>
-
-        <form class="space-y-6" (ngSubmit)="handleSetup($event)">
-          <div>
-            <label class="block text-sm font-medium text-slate-300 mb-2">Email công việc</label>
-            <input name="email" [(ngModel)]="email" type="email" required readonly class="appearance-none block w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl shadow-sm text-slate-400 sm:text-sm cursor-not-allowed">
-            <p class="text-xs text-slate-500 mt-1">Email được cung cấp trong thư mời.</p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-slate-300 mb-2">Mật khẩu mới</label>
-            <input name="password" [(ngModel)]="password" type="password" required class="appearance-none block w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all sm:text-sm" placeholder="Nhập mật khẩu mới">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-slate-300 mb-2">Xác nhận mật khẩu mới</label>
-            <input name="confirmPassword" [(ngModel)]="confirmPassword" type="password" required class="appearance-none block w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all sm:text-sm" placeholder="Nhập lại mật khẩu mới">
-          </div>
-
-          <div>
-            <button type="submit" [disabled]="!password || !confirmPassword || loading" 
-                    [ngClass]="(!password || !confirmPassword || loading) ? 'bg-emerald-600/50 cursor-not-allowed opacity-70' : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98]'"
-                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white transition-all items-center gap-2">
-              <app-icon name="LoaderCircle" size="16" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" *ngIf="loading"></app-icon>
-              {{ loading ? 'Đang xử lý...' : 'Kích hoạt tài khoản' }}
-            </button>
-          </div>
-        </form>
+    <!-- Alert Box: Khi Token Hết Hạn / Không hợp lệ -->
+    <div class="alert-box alert-error" *ngIf="isTokenExpired">
+      <app-icon name="AlertTriangle" size="24" class="alert-icon"></app-icon>
+      <div class="alert-content">
+        <strong>Lời mời không còn hiệu lực</strong>
+        <p>{{ error || 'Liên kết kích hoạt tài khoản đã hết hạn. Vui lòng yêu cầu Super Admin gửi lại lời mời mới.' }}</p>
       </div>
     </div>
+
+    <!-- Nút quay lại khi Token hết hạn -->
+    <div class="expired-actions" *ngIf="isTokenExpired">
+      <a routerLink="/admin-login" class="admin-btn admin-btn-primary btn-submit-full">
+        Quay lại Trang Đăng nhập
+      </a>
+      <p class="expired-hint">Nếu bạn cần hỗ trợ, vui lòng liên hệ quản trị viên qua email: <strong>admin@dcor.vn</strong></p>
+    </div>
+
+    <!-- Alert Box: Lỗi thông thường khi điền form -->
+    <div class="alert-box alert-error" *ngIf="error && !isTokenExpired">
+      <app-icon name="AlertCircle" size="20" class="alert-icon"></app-icon>
+      <div class="alert-text">{{ error }}</div>
+    </div>
+
+    <!-- Alert Box: Thành công -->
+    <div class="alert-box alert-success" *ngIf="success">
+      <app-icon name="CircleCheck" size="20" class="alert-icon"></app-icon>
+      <div class="alert-text">Kích hoạt tài khoản thành công! Đang chuyển hướng vào Dashboard...</div>
+    </div>
+
+    <!-- Form Kích hoạt khi Token hợp lệ -->
+    <form *ngIf="!isTokenExpired && !success" class="invite-form" (ngSubmit)="handleSetup($event)">
+      
+      <!-- Field: Họ và tên -->
+      <div class="form-field">
+        <label for="fullName">Họ và tên của bạn</label>
+        <div class="input-wrapper">
+          <app-icon name="CircleUserRound" size="18" class="field-icon"></app-icon>
+          <input 
+            id="fullName" 
+            name="fullName" 
+            [(ngModel)]="fullName" 
+            type="text" 
+            required 
+            placeholder="Ví dụ: Nguyễn Văn A" 
+            autocomplete="name">
+        </div>
+      </div>
+
+      <!-- Field: Email công việc (Readonly) -->
+      <div class="form-field">
+        <label for="email">Email công việc</label>
+        <div class="input-wrapper">
+          <app-icon name="Mail" size="18" class="field-icon"></app-icon>
+          <input 
+            id="email" 
+            name="email" 
+            [(ngModel)]="email" 
+            type="email" 
+            readonly 
+            class="input-readonly" 
+            placeholder="email@dcor.vn">
+        </div>
+        <span class="field-hint">Email nhận lời mời tham gia quản trị hệ thống DCor.</span>
+      </div>
+
+      <!-- Field: Mật khẩu mới -->
+      <div class="form-field">
+        <label for="password">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+        <div class="input-wrapper">
+          <app-icon name="LockKeyhole" size="18" class="field-icon"></app-icon>
+          <input 
+            id="password" 
+            name="password" 
+            [(ngModel)]="password" 
+            [type]="showPassword ? 'text' : 'password'" 
+            required 
+            placeholder="Nhập mật khẩu mới" 
+            autocomplete="new-password">
+          <button type="button" class="btn-visibility" (click)="showPassword = !showPassword" aria-label="Hiện/ẩn mật khẩu">
+            <app-icon [name]="showPassword ? 'EyeOff' : 'Eye'" size="18"></app-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Field: Xác nhận mật khẩu mới -->
+      <div class="form-field">
+        <label for="confirmPassword">Xác nhận lại mật khẩu</label>
+        <div class="input-wrapper">
+          <app-icon name="LockKeyhole" size="18" class="field-icon"></app-icon>
+          <input 
+            id="confirmPassword" 
+            name="confirmPassword" 
+            [(ngModel)]="confirmPassword" 
+            [type]="showConfirmPassword ? 'text' : 'password'" 
+            required 
+            placeholder="Nhập lại mật khẩu mới" 
+            autocomplete="new-password">
+          <button type="button" class="btn-visibility" (click)="showConfirmPassword = !showConfirmPassword" aria-label="Hiện/ẩn mật khẩu">
+            <app-icon [name]="showConfirmPassword ? 'EyeOff' : 'Eye'" size="18"></app-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Submit Button: Kích hoạt tài khoản -->
+      <button 
+        type="submit" 
+        class="admin-btn admin-btn-primary btn-submit-full" 
+        [disabled]="!fullName || !password || !confirmPassword || loading">
+        <app-icon name="LoaderCircle" size="18" class="spinner-icon" *ngIf="loading"></app-icon>
+        <span>{{ loading ? 'Đang kích hoạt...' : 'Kích hoạt tài khoản & Vào Dashboard' }}</span>
+      </button>
+
+      <div class="card-footer-note">
+        <app-icon name="ShieldCheck" size="16"></app-icon>
+        <span>Trạng thái tài khoản sẽ được chuyển sang ACTIVE</span>
+      </div>
+    </form>
+
   </div>
 </div>

@@ -1,3 +1,16 @@
+export interface ProductCategory {
+  id: string;
+  name: string;
+  name_vi?: string;
+  slug: string;
+  parentId?: string | null;
+  parent?: ProductCategory | null;
+  children?: ProductCategory[];
+  _count?: {
+    products: number;
+  };
+}
+
 export interface ProductPrice {
   price: number;
   formattedPrice: string;
@@ -5,14 +18,28 @@ export interface ProductPrice {
   isDefaultPrice?: boolean;
 }
 
+export interface ProductColorSwatch {
+  id: string;
+  name: string;
+  rawName: string;
+  hex: string;
+  images: string[];
+  price?: number;
+}
+
 export interface CatalogProduct {
   id?: string;
   productId: string;
+  slug?: string;
+  name?: string;
+  colorSwatches?: ProductColorSwatch[];
   shortDescription: string;
   shortDescription_vi?: string;
   description?: string;
   description_vi?: string;
   category: string;
+  categoryObj?: ProductCategory;
+  categoryId?: string;
   variantUrl: string;
   images: string[];
   refinementColors: string[];
@@ -29,6 +56,10 @@ export interface CatalogProduct {
   discountType?: string;
   isSale?: boolean;
   dimensions?: { width: number; depth: number };
+  rating?: number;
+  reviewCount?: number;
+  room?: string;
+  designStyle?: string;
 }
 
 export interface LegStyle {

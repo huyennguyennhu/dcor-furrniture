@@ -13,7 +13,7 @@
   <div class="sidebar-navigation">
     <nav class="sidebar-menu" aria-label="Điều hướng quản trị">
       <div
-        *ngFor="let item of MENU_ITEMS"
+        *ngFor="let item of visibleMenuItems"
         class="sidebar-entry"
         (mouseenter)="handleMouseEnter($event, item.href)"
         (mouseleave)="handleMouseLeave()">
@@ -92,7 +92,7 @@
     </nav>
   </div>
 
-  <nav class="sidebar-footer" aria-label="Ajustes">
+  <nav class="sidebar-footer" aria-label="Ajustes" *ngIf="showSettings">
     <a
       class="sidebar-link"
       [class.active]="SETTINGS_ITEM.href === activeHref"

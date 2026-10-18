@@ -1,16 +1,20 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
+import { adminGuestGuard } from './core/guards/guest.guard';
 
 export const routes: Routes = [
   // --- Admin Landing Page ---
   {
     path: 'admin',
     pathMatch: 'full',
+    canActivate: [adminGuestGuard],
     loadComponent: () => import('./features/admin/pages/admin-landing/admin-landing').then(m => m.AdminLandingComponent)
   },
   
   // --- Admin Area (Dashboard) ---
   {
     path: 'admin',
+    canActivate: [adminGuard],
     loadComponent: () => import('./features/admin/components/admin-layout/admin-layout').then(m => m.AdminLayout),
     children: [
       { path: 'reports', loadComponent: () => import('./features/admin/pages/reports/reports').then(m => m.ReportsComponent) },
@@ -60,7 +64,11 @@ export const routes: Routes = [
   // --- Auth Area ---
   { path: 'login', loadComponent: () => import('./features/auth/pages/login/login').then(m => m.LoginComponent) },
   { path: 'register', loadComponent: () => import('./features/auth/pages/register/register').then(m => m.RegisterComponent) },
-  { path: 'admin-login', loadComponent: () => import('./features/auth/pages/admin-login/admin-login').then(m => m.AdminLoginComponent) },
+  { 
+    path: 'admin-login', 
+    canActivate: [adminGuestGuard],
+    loadComponent: () => import('./features/auth/pages/admin-login/admin-login').then(m => m.AdminLoginComponent) 
+  },
   { path: 'admin-logout', loadComponent: () => import('./features/auth/pages/admin-logout/admin-logout').then(m => m.AdminLogout) },
   { path: 'admin-invite', loadComponent: () => import('./features/auth/pages/admin-invite-accept/admin-invite-accept').then(m => m.AdminInviteAcceptComponent) },
   
@@ -73,7 +81,7 @@ export const routes: Routes = [
       { path: 'explore', loadComponent: () => import('./features/store/pages/explore/explore').then(m => m.ExploreComponent) },
       { path: 'products/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) },
       { path: 'explore/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) }, // Alias
-      { path: 'cart', loadComponent: () => import('./features/store/pages/cart/cart').then(m => m.CartComponent) },
+      { path: 'cart', redirectTo: '', pathMatch: 'full' },
       { path: 'checkout', loadComponent: () => import('./features/store/pages/checkout/checkout').then(m => m.CheckoutComponent) },
       { path: 'blog', loadComponent: () => import('./features/store/pages/blog/blog').then(m => m.BlogComponent) },
       { path: 'custom-design', loadComponent: () => import('./features/store/pages/custom-design/custom-design').then(m => m.CustomDesignComponent) },

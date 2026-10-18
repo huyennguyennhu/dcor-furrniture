@@ -1,107 +1,358 @@
-<div style="display: flex; min-height: 100vh; width: 100vw; background: var(--bg-primary);">
-  <!-- Left Column - Image -->
-  <div class="login-image-column" style="flex: 1; display: none; position: relative;">
+<div class="auth-page-container">
+  <!-- Left Column - Image & Brand Story -->
+  <div class="auth-image-column">
     <img 
       src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&q=80" 
-      alt="DCor Interior" 
-      style="width: 100%; height: 100vh; object-fit: cover;" 
+      alt="DCor Interior Design" 
+      class="auth-hero-img"
     />
-    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); display: flex; flex-direction: column; justify-content: flex-end; padding: 60px; color: #fff;">
-      <h1 style="font-size: 48px; font-weight: 300; margin-bottom: 20px; letter-spacing: -1px;">DCor Studio</h1>
-      <p style="font-size: 18px; opacity: 0.9; max-width: 500px; line-height: 1.6;">Nâng tầm không gian sống với thiết kế nội thất tối giản phong cách Bắc Âu.</p>
+    <div class="auth-image-overlay">
+      <div class="auth-brand-badge">
+        <span class="brand-dot"></span>
+        <span>DCor Studio</span>
+      </div>
+      <h1 class="auth-image-title">Welcome Back</h1>
+      <p class="auth-image-subtitle">Nâng tầm không gian sống với thiết kế nội thất tối giản phong cách Bắc Âu chuẩn mực.</p>
     </div>
   </div>
 
-  <!-- Right Column - Form -->
-  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 20px;">
-    <div style="width: 100%; max-width: 420px;">
-      <div style="margin-bottom: 40px; text-align: center;">
-        <h2 style="font-size: 32px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Welcome Back</h2>
-        <p style="font-size: 15px; color: var(--text-muted);">Đăng nhập để tiếp tục mua sắm</p>
+  <!-- Right Column - Form Container -->
+  <div class="auth-form-column">
+    <div class="auth-form-card">
+      
+      <!-- Logo DCor -->
+      <div class="logo-circle-wrapper">
+        <div class="logo-circle">
+          <span class="logo-circle-text">DC</span>
+        </div>
       </div>
 
-      <form (submit)="handleLogin($event)" style="display: flex; flex-direction: column; gap: 20px;">
-        
-        <div>
-          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Số điện thoại <span style="color: red;">*</span></label>
-          <div style="position: relative;">
-            <input 
-              type="tel" 
-              [ngModel]="phone" (ngModelChange)="onPhoneChange($event)" name="phone"
-              maxlength="10"
-              required 
-              class="auth-input" 
-              placeholder="Nhập số điện thoại" 
-              autocomplete="off"
-              style="padding-right: 40px;"
-            />
-            <button *ngIf="phone" type="button" (click)="phone = ''" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
-              <app-icon name="X" size="18"></app-icon>
-            </button>
-          </div>
+      <!-- ============================================== -->
+      <!-- VIEW 1: FORM ĐĂNG NHẬP CHÍNH                   -->
+      <!-- ============================================== -->
+      <ng-container *ngIf="viewMode === 'LOGIN'">
+        <div class="auth-header text-center">
+          <h2 class="auth-title">Đăng nhập</h2>
+          <p class="auth-subtitle">Đăng nhập tài khoản để tiếp tục mua sắm</p>
         </div>
 
-        <div>
-          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Mật khẩu <span style="color: red;">*</span></label>
-          <div style="position: relative;">
-            <input 
-              [type]="showPassword ? 'text' : 'password'" 
-              [(ngModel)]="password" name="password"
-              (ngModelChange)="error = ''"
-              required 
-              class="auth-input" 
-              style="padding-right: 70px;" 
-              placeholder="Nhập mật khẩu" 
-              autocomplete="new-password"
-            />
-            <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; gap: 8px; align-items: center;">
-              <button type="button" (click)="showPassword = !showPassword" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
-                <app-icon name="EyeOff" size="18" *ngIf="showPassword"></app-icon>
-                <app-icon name="Eye" size="18" *ngIf="!showPassword"></app-icon>
-              </button>
-              <button *ngIf="password" type="button" (click)="password = ''" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
-                <app-icon name="X" size="18"></app-icon>
-              </button>
+        <!-- Thông báo thành công (ví dụ sau khi đổi mật khẩu xong) -->
+        <div *ngIf="successMessage" class="auth-alert alert-success">
+          <app-icon name="CircleCheck" size="18"></app-icon>
+          <span>{{ successMessage }}</span>
+        </div>
+
+        <!-- Cảnh báo khóa tài khoản do sai 5 lần (423) -->
+        <div *ngIf="isLocked" class="auth-alert alert-locked">
+          <div class="alert-icon-wrap">
+            <app-icon name="Clock" size="20"></app-icon>
+          </div>
+          <div class="locked-content">
+            <p class="locked-title">Tài khoản tạm thời bị khóa</p>
+            <p class="locked-desc">Bạn đã nhập sai mật khẩu quá 5 lần liên tiếp. Thời gian mở khóa còn lại:</p>
+            <div class="lock-timer-badge">
+              <strong>{{ formattedLockTime }}</strong>
             </div>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
-          <label class="auth-checkbox-label">
-            <input type="checkbox" class="auth-checkbox" checked /> Ghi nhớ đăng nhập
-          </label>
-          <a routerLink="/forgot-password" class="hover-underline-lr" style="color: var(--accent); text-decoration: none; font-weight: 600;">Quên mật khẩu?</a>
+        <!-- Thông báo lỗi chung chung (không lộ thông tin tài khoản) -->
+        <div *ngIf="error && !isLocked" class="auth-alert alert-error">
+          <app-icon name="AlertCircle" size="18"></app-icon>
+          <span>{{ error }}</span>
         </div>
 
-        <button type="submit" class="checkout-btn" [disabled]="loading || !isFormValid" 
-                [style.opacity]="(loading || !isFormValid) ? 0.5 : 1" 
-                [style.cursor]="(loading || !isFormValid) ? 'not-allowed' : 'pointer'"
-                style="width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; margin-top: 10px;">
-          {{ loading ? 'Đang xử lý...' : 'ĐĂNG NHẬP' }}
-        </button>
-        <div *ngIf="error" style="color: red; font-size: 14px; text-align: center; padding: 10px; background: rgba(255,0,0,0.05); border-radius: 8px; margin-top: -10px;">{{ error }}</div>
-      </form>
+        <form (submit)="handleLogin($event)" class="auth-form">
+          <!-- Số điện thoại -->
+          <div class="form-group">
+            <label class="form-label" for="login-phone">
+              Số điện thoại <span class="required-star">*</span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                id="login-phone"
+                type="tel" 
+                [ngModel]="phone" 
+                (ngModelChange)="onPhoneChange($event)"
+                (input)="onPhoneInput($event)"
+                (change)="onPhoneChange(phone)"
+                (blur)="onPhoneBlur()"
+                name="phone"
+                maxlength="10"
+                required 
+                class="auth-input" 
+                placeholder="Nhập số điện thoại" 
+                autocomplete="tel"
+                [disabled]="isLocked"
+              />
+              <button *ngIf="phone && !isLocked" type="button" class="input-clear-btn" (click)="clearPhone()" aria-label="Xóa">
+                <app-icon name="X" size="16"></app-icon>
+              </button>
+            </div>
+            <span *ngIf="shouldShowPhoneError" class="field-error-hint">
+              Số điện thoại phải gồm 10 chữ số (đầu số 03, 05, 07, 08, 09)
+            </span>
+          </div>
 
-      <div style="display: flex; align-items: center; margin: 30px 0; gap: 15px;">
-        <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
-        <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Hoặc</span>
-        <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+          <!-- Mật khẩu -->
+          <div class="form-group">
+            <label class="form-label" for="login-password">
+              Mật khẩu <span class="required-star">*</span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                id="login-password"
+                [type]="showPassword ? 'text' : 'password'" 
+                [ngModel]="password" 
+                (ngModelChange)="onPasswordChange($event)"
+                (input)="onPasswordInput($event)"
+                (change)="onPasswordChange(password)"
+                (blur)="onPasswordBlur()"
+                name="password"
+                required 
+                class="auth-input" 
+                placeholder="Nhập mật khẩu" 
+                autocomplete="current-password"
+                [disabled]="isLocked"
+              />
+              <div class="input-actions-group">
+                <button type="button" class="input-action-btn" (click)="showPassword = !showPassword" aria-label="Hiện/ẩn mật khẩu">
+                  <app-icon name="EyeOff" size="18" *ngIf="showPassword"></app-icon>
+                  <app-icon name="Eye" size="18" *ngIf="!showPassword"></app-icon>
+                </button>
+                <button *ngIf="password && !isLocked" type="button" class="input-clear-btn" (click)="clearPassword()" aria-label="Xóa">
+                  <app-icon name="X" size="16"></app-icon>
+                </button>
+              </div>
+            </div>
+            <span *ngIf="shouldShowPasswordEmptyError" class="field-error-hint">
+              Vui lòng nhập mật khẩu
+            </span>
+            <span *ngIf="shouldShowPasswordLengthError" class="field-error-hint">
+              Mật khẩu phải có tối thiểu 6 ký tự
+            </span>
+          </div>
+
+          <!-- Ghi nhớ đăng nhập & Quên mật khẩu -->
+          <div class="login-options-row">
+            <label class="custom-checkbox-label">
+              <input type="checkbox" [(ngModel)]="remember" name="remember" class="custom-checkbox" [disabled]="isLocked" />
+              <span>Ghi nhớ đăng nhập</span>
+            </label>
+            <button type="button" class="forgot-link-btn" (click)="switchToForgot()">
+              Quên mật khẩu?
+            </button>
+          </div>
+
+          <!-- Nút Đăng nhập -->
+          <button 
+            type="submit" 
+            class="auth-submit-btn" 
+            [disabled]="loading || isLocked || !isLoginFormValid">
+            <span *ngIf="loading" class="spinner"></span>
+            <span>{{ loading ? 'Đang xác thực...' : (isLocked ? 'TÀI KHOẢN ĐANG BỊ KHÓA' : 'ĐĂNG NHẬP') }}</span>
+          </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="auth-divider">
+          <span class="divider-line"></span>
+          <span class="divider-text">Hoặc</span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- Đăng nhập Google -->
+        <div class="google-auth-wrapper">
+          <asl-google-signin-button type="standard" size="large" [width]="380" theme="outline"></asl-google-signin-button>
+        </div>
+
+        <!-- Chuyển sang Đăng ký -->
+        <div class="auth-switch-link text-center">
+          <span>Bạn chưa có tài khoản? </span>
+          <a routerLink="/register" class="link-accent">Đăng ký ngay</a>
+        </div>
+      </ng-container>
+
+      <!-- ============================================== -->
+      <!-- VIEW 2: QUÊN MẬT KHẨU - BƯỚC 1: NHẬP SĐT       -->
+      <!-- ============================================== -->
+      <ng-container *ngIf="viewMode === 'FORGOT_PHONE'">
+        <div class="back-nav-bar">
+          <button type="button" class="back-link-btn" (click)="switchToLogin()">
+            <app-icon name="ArrowLeft" size="16"></app-icon>
+            <span>Quay lại đăng nhập</span>
+          </button>
+        </div>
+
+        <div class="auth-header text-center">
+          <div class="header-icon-badge">
+            <app-icon name="LockKeyhole" size="24"></app-icon>
+          </div>
+          <h2 class="auth-title">Quên mật khẩu?</h2>
+          <p class="auth-subtitle">Nhập số điện thoại đã đăng ký để nhận mã OTP xác thực và đặt lại mật khẩu</p>
+        </div>
+
+        <div *ngIf="forgotError" class="auth-alert alert-error">
+          <app-icon name="AlertCircle" size="18"></app-icon>
+          <span>{{ forgotError }}</span>
+        </div>
+
+        <form (submit)="handleForgotSendOtp($event)" class="auth-form">
+          <div class="form-group">
+            <label class="form-label" for="forgot-phone">
+              Số điện thoại <span class="required-star">*</span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                id="forgot-phone"
+                type="tel" 
+                [ngModel]="forgotPhone" 
+                (ngModelChange)="onForgotPhoneChange($event)" 
+                name="forgotPhone"
+                maxlength="10"
+                required 
+                class="auth-input" 
+                placeholder="VD: 0912345678" 
+                autocomplete="tel"
+              />
+              <button *ngIf="forgotPhone" type="button" class="input-clear-btn" (click)="forgotPhone = ''" aria-label="Xóa">
+                <app-icon name="X" size="16"></app-icon>
+              </button>
+            </div>
+            <span *ngIf="forgotPhone && !isForgotPhoneValid" class="field-error-hint">
+              Số điện thoại phải gồm 10 chữ số (đầu số 03, 05, 07, 08, 09)
+            </span>
+          </div>
+
+          <button 
+            type="submit" 
+            class="auth-submit-btn" 
+            [disabled]="forgotLoading || !isForgotPhoneValid">
+            <span *ngIf="forgotLoading" class="spinner"></span>
+            <span>{{ forgotLoading ? 'Đang gửi mã OTP...' : 'GỬI MÃ XÁC THỰC' }}</span>
+          </button>
+        </form>
+      </ng-container>
+
+      <!-- ============================================== -->
+      <!-- VIEW 3: QUÊN MẬT KHẨU - BƯỚC 3: MẬT KHẨU MỚI   -->
+      <!-- ============================================== -->
+      <ng-container *ngIf="viewMode === 'FORGOT_RESET'">
+        <div class="auth-header text-center">
+          <div class="header-icon-badge">
+            <app-icon name="ShieldCheck" size="24"></app-icon>
+          </div>
+          <h2 class="auth-title">Đặt lại mật khẩu</h2>
+          <p class="auth-subtitle">Tạo mật khẩu mới cho số điện thoại <strong>{{ forgotPhone }}</strong></p>
+        </div>
+
+        <div *ngIf="resetError" class="auth-alert alert-error">
+          <app-icon name="AlertCircle" size="18"></app-icon>
+          <span>{{ resetError }}</span>
+        </div>
+
+        <form (submit)="handleResetPassword($event)" class="auth-form">
+          <!-- Mật khẩu mới -->
+          <div class="form-group">
+            <label class="form-label" for="reset-new-password">
+              Mật khẩu mới <span class="required-star">*</span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                id="reset-new-password"
+                [type]="showNewPassword ? 'text' : 'password'" 
+                [(ngModel)]="newPassword" 
+                name="newPassword"
+                required 
+                class="auth-input" 
+                placeholder="Tối thiểu 8 ký tự (chữ và số)" 
+                autocomplete="new-password"
+              />
+              <button type="button" class="input-action-btn" (click)="showNewPassword = !showNewPassword" aria-label="Hiện/ẩn mật khẩu">
+                <app-icon name="EyeOff" size="18" *ngIf="showNewPassword"></app-icon>
+                <app-icon name="Eye" size="18" *ngIf="!showNewPassword"></app-icon>
+              </button>
+            </div>
+
+            <!-- Password Strength Indicator -->
+            <div *ngIf="newPassword" class="password-strength-box">
+              <div class="strength-bar-track">
+                <div class="strength-bar-fill" 
+                     [ngClass]="newPasswordStrength.barClass" 
+                     [style.width.%]="newPasswordStrength.percent"></div>
+              </div>
+              <div class="strength-info">
+                <span class="strength-text">Độ mạnh: <strong [ngClass]="newPasswordStrength.textClass">{{ newPasswordStrength.label }}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nhập lại mật khẩu mới -->
+          <div class="form-group">
+            <label class="form-label" for="reset-confirm-password">
+              Nhập lại mật khẩu mới <span class="required-star">*</span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                id="reset-confirm-password"
+                [type]="showConfirmNewPassword ? 'text' : 'password'" 
+                [(ngModel)]="confirmNewPassword" 
+                name="confirmNewPassword"
+                required 
+                class="auth-input" 
+                placeholder="Nhập lại mật khẩu mới" 
+                autocomplete="new-password"
+              />
+              <button type="button" class="input-action-btn" (click)="showConfirmNewPassword = !showConfirmNewPassword" aria-label="Hiện/ẩn mật khẩu">
+                <app-icon name="EyeOff" size="18" *ngIf="showConfirmNewPassword"></app-icon>
+                <app-icon name="Eye" size="18" *ngIf="!showConfirmNewPassword"></app-icon>
+              </button>
+            </div>
+            <span *ngIf="confirmNewPassword && !isConfirmNewPasswordValid" class="field-error-hint">
+              Mật khẩu nhập lại chưa trùng khớp
+            </span>
+            <span *ngIf="confirmNewPassword && isConfirmNewPasswordValid" class="field-success-hint">
+              <app-icon name="Check" size="14"></app-icon> Mật khẩu trùng khớp
+            </span>
+          </div>
+
+          <!-- Nút Đặt lại mật khẩu -->
+          <button 
+            type="submit" 
+            class="auth-submit-btn" 
+            [disabled]="resetLoading || !isResetFormValid">
+            <span *ngIf="resetLoading" class="spinner"></span>
+            <span>{{ resetLoading ? 'Đang cập nhật mật khẩu...' : 'XÁC NHẬN ĐỔI MẬT KHẨU' }}</span>
+          </button>
+
+          <button type="button" class="cancel-link-btn text-center" (click)="switchToLogin()">
+            Hủy và quay lại đăng nhập
+          </button>
+        </form>
+      </ng-container>
+
+      <!-- Footer Policy -->
+      <div class="auth-legal-footer text-center">
+        Bằng việc tiếp tục, bạn đồng ý với
+        <a href="#" (click)="$event.preventDefault()">Điều khoản sử dụng</a> và
+        <a href="#" (click)="$event.preventDefault()">Chính sách bảo mật</a> của DCor Studio.
       </div>
 
-      <div style="display: flex; justify-content: center; width: 100%; margin-top: 15px;">
-        <asl-google-signin-button type="standard" size="large" [width]="400" theme="outline"></asl-google-signin-button>
-      </div>
-
-      <div style="text-align: center; margin-top: 30px; font-size: 15px;">
-        <span style="color: var(--text-muted);">Bạn chưa có tài khoản? </span>
-        <a routerLink="/register" class="hover-underline-lr" style="color: var(--accent); font-weight: 600; text-decoration: none;">Đăng ký ngay</a>
-      </div>
-
-      <div style="text-align: center; margin-top: 30px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-        Bằng việc đăng nhập bạn đồng ý với<br />
-        <a href="#" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">Điều khoản sử dụng</a> và <a href="#" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">Chính sách bảo mật</a> của DCor Studio
-      </div>
     </div>
   </div>
 </div>
 
+<!-- Modal Nhập OTP trong luồng Quên mật khẩu (Bước 2) -->
+<app-otp-modal
+  [isOpen]="isForgotOtpOpen"
+  [phoneNumber]="forgotPhone"
+  [loading]="forgotOtpLoading"
+  [errorMessage]="forgotOtpErrorMessage"
+  [countdown]="forgotOtpCountdown"
+  [resendCountdown]="forgotOtpResendCountdown"
+  title="Xác thực quên mật khẩu"
+  confirmText="Xác nhận mã OTP"
+  (verify)="handleForgotOtpVerify($event)"
+  (resend)="handleForgotOtpResend()"
+  (close)="handleForgotOtpClose()">
+</app-otp-modal>

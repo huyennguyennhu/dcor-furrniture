@@ -1,7 +1,8 @@
 import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
+import { AdminAuthService } from '../../../../core/services/admin-auth.service';
 
 @Component({
   selector: 'app-admin-header',
@@ -15,11 +16,14 @@ export class AdminHeader {
   @Output() sidebarToggle = new EventEmitter<void>();
   isAccountMenuOpen = false;
 
-  constructor(private router: Router) {}
+  readonly currentUser$;
+
+  constructor(private adminAuthService: AdminAuthService) {
+    this.currentUser$ = this.adminAuthService.currentUser$;
+  }
 
   handleLogout(): void {
     this.isAccountMenuOpen = false;
-    localStorage.removeItem('dcor_user');
-    this.router.navigate(['/login']);
+    this.adminAuthService.logout();
   }
 }
