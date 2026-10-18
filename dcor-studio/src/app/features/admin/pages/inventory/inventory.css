@@ -150,10 +150,9 @@
   border: none;
   cursor: pointer;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 2px 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -162,8 +161,9 @@
 }
 
 .product-detail-link-btn:hover {
-  background: rgba(245, 128, 37, 0.08);
+  background: transparent;
   text-decoration: underline;
+  opacity: 0.85;
 }
 
 /* Column Settings Dropdown */

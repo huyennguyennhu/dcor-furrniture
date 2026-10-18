@@ -228,7 +228,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
   extractLogsFromNotes(notes: string | null | undefined): AuditActionLog[] | null {
     if (!notes) return null;
-    const match = notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+    const match = notes.match(/\[ACTION_LOGS:(\[[\s\S]*?\])\]/) || notes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
     if (match && match[1]) {
       try {
         const parsed = JSON.parse(match[1]);
@@ -241,6 +241,8 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   cleanNotesForDisplay(notes: string | null | undefined): string {
     if (!notes) return '';
     return notes
+      .replace(/\[ACTION_LOGS:\[[\s\S]*?\]\]/g, '')
+      .replace(/\[ACTION_LOGS:[\s\S]*?\]\]/g, '')
       .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
       .replace(/\[STATUS:[^\]]+\]/g, '')
       .trim();

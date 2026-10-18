@@ -614,17 +614,15 @@ export const inventoryController = {
         orderBy: { createdAt: 'desc' }
       });
 
-      // Format BigInt to string/number and resolve status
       const formatted = orders.map((o: any) => {
         let displayStatus = o.status;
-        if (o.notes?.includes('[STATUS:DRAFT]')) displayStatus = 'DRAFT';
-        else if (o.notes?.includes('[STATUS:PLANNED]')) displayStatus = 'PLANNED';
+        if (o.status === 'DRAFT' || o.notes?.includes('[STATUS:DRAFT]') || o.status === 'PENDING') displayStatus = 'DRAFT';
+        else if (o.status === 'PLANNED' || o.notes?.includes('[STATUS:PLANNED]') || o.status === 'PROCESSING') displayStatus = 'PLANNED';
         else if (o.notes?.includes('[STATUS:IMPORTED]')) displayStatus = 'IMPORTED';
         else if (o.notes?.includes('[STATUS:EXPORTED]')) displayStatus = 'EXPORTED';
         else if (o.notes?.includes('[STATUS:CANCELLED]') || o.status === 'CANCELLED') displayStatus = 'CANCELLED';
         else if (o.status === 'COMPLETED') displayStatus = o.type === 'IMPORT' ? 'IMPORTED' : 'EXPORTED';
-        else if (o.status === 'PENDING') displayStatus = 'DRAFT';
-        else if (o.status === 'PROCESSING') displayStatus = 'PLANNED';
+        else displayStatus = 'PLANNED';
 
         let creatorName = o.creator?.fullName || o.creator?.name;
         if (!creatorName && o.notes) {
@@ -633,7 +631,7 @@ export const inventoryController = {
         }
         if (!creatorName && o.notes && o.notes.includes('ACTION_LOGS:')) {
           try {
-            const logsMatch = o.notes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || o.notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+            const logsMatch = o.notes.match(/\[ACTION_LOGS:(\[[\s\S]*?\])\]/) || o.notes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || o.notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
             if (logsMatch) {
               const logs = JSON.parse(logsMatch[1]);
               if (Array.isArray(logs) && logs.length > 0 && logs[0].operator) {
@@ -650,12 +648,42 @@ export const inventoryController = {
           if (matchRec) recipientName = matchRec[1].trim();
         }
 
-        // Clean user notes so technical tags never appear on UI
         const rawNotes = o.notes || '';
+        let actionLogs: any[] | null = null;
+        if (rawNotes.includes('ACTION_LOGS:')) {
+          try {
+            const logsMatch = rawNotes.match(/\[ACTION_LOGS:(\[[\s\S]*?\])\]/) || rawNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || rawNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+            if (logsMatch) {
+              const parsed = JSON.parse(logsMatch[1]);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                actionLogs = parsed;
+              }
+            }
+          } catch {}
+        }
+
+        // Trích xuất mã phiếu chuyển kho liên kết
+        let linkedTransferCode = '';
+        const matchLinked = rawNotes.match(/\[LINKED_TRANSFER:\s*([^\]]+)\]/);
+        if (matchLinked) {
+          linkedTransferCode = matchLinked[1].trim();
+        } else if (o.referenceCode && o.referenceCode !== o.orderCode && (o.referenceCode.startsWith('XK-') || o.referenceCode.startsWith('NK-') || o.referenceCode.startsWith('PXK-') || o.referenceCode.startsWith('PNK-') || o.referenceCode.startsWith('CK-'))) {
+          linkedTransferCode = o.referenceCode.trim();
+        }
+        if (linkedTransferCode === o.orderCode) {
+          linkedTransferCode = '';
+        }
+
+        // Clean user notes so technical tags never appear on UI
         const cleanUserNotes = rawNotes
+          .replace(/\[ACTION_LOGS:\[[\s\S]*?\]\]/g, '')
           .replace(/\[ACTION_LOGS:[\s\S]*?\]\]/g, '')
           .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
           .replace(/\[STATUS:[^\]]+\]/g, '')
+          .replace(/\[ORIGIN:[^\]]+\]/g, '')
+          .replace(/\[LINKED_TRANSFER:[^\]]+\]/g, '')
+          .replace(/\[Chuyển từ:[^\]]+\]/g, '')
+          .replace(/\[Chuyển đến:[^\]]+\]/g, '')
           .replace(/\[Người lập:[^\]]+\]/g, '')
           .replace(/\[Người nhận:[^\]]+\]/g, '')
           .replace(/\[Lý do hủy:[^\]]+\]/g, '')
@@ -667,8 +695,10 @@ export const inventoryController = {
           rawStatus: displayStatus,
           creatorName,
           recipientName,
+          linkedTransferCode,
           notes: cleanUserNotes,
           rawNotes: rawNotes,
+          actionLogs: actionLogs,
           totalAmount: Number(o.totalAmount || 0),
           items: (o.items || []).map((it: any) => ({
             ...it,
@@ -839,10 +869,10 @@ export const inventoryController = {
       }
       orderCode = uniqueOrderCode;
 
-      let dbStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' = 'PENDING';
+      let dbStatus: any = 'DRAFT';
       let statusTag = '[STATUS:DRAFT]';
       if (customStatus === 'PLANNED') {
-        dbStatus = 'PROCESSING';
+        dbStatus = 'PLANNED';
         statusTag = '[STATUS:PLANNED]';
       } else if (customStatus === 'IMPORTED') {
         dbStatus = 'COMPLETED';
@@ -854,8 +884,8 @@ export const inventoryController = {
         dbStatus = 'CANCELLED';
         statusTag = '[STATUS:CANCELLED]';
       } else {
-        dbStatus = 'PENDING';
-        statusTag = '[STATUS:DRAFT]';
+        dbStatus = 'DRAFT';
+        statusTag = '[STATUS:DRAFT] [ORIGIN:DRAFT]';
       }
 
       const finalStatus = dbStatus;
@@ -910,11 +940,160 @@ export const inventoryController = {
         }
       });
 
-      // Chỉ cập nhật tồn kho khi thực sự hoàn tất (IMPORTED, EXPORTED hoặc COMPLETED)
+      const isTransferOrder = (type === 'TRANSFER') || (reason && reason.toLowerCase().includes('chuyển kho'));
+
+      // 1. Xử lý Chuyển kho khi ở trạng thái PLANNED (Đang lên kế hoạch)
+      if (customStatus === 'PLANNED' && isTransferOrder) {
+        // Tăng reservedStock tại Kho A (Kho xuất) để khóa tồn kho khả dụng
+        if (sourceWarehouseId) {
+          for (const item of lineItems) {
+            try {
+              const whStock = await (prisma as any).warehouseStock.findFirst({
+                where: { warehouseId: sourceWarehouseId, variantId: item.variantId }
+              });
+              if (whStock) {
+                await (prisma as any).warehouseStock.update({
+                  where: { id: whStock.id },
+                  data: { reservedStock: { increment: item.quantity } }
+                });
+              } else {
+                await (prisma as any).warehouseStock.create({
+                  data: {
+                    warehouseId: sourceWarehouseId,
+                    variantId: item.variantId,
+                    physicalStock: 0,
+                    reservedStock: item.quantity
+                  }
+                });
+              }
+            } catch (err) {
+              console.warn('Could not increment reservedStock at source warehouse:', err);
+            }
+          }
+        }
+
+        // Tự động sinh Phiếu Nhập đối ứng tại Kho B (Kho nhận)
+        try {
+          const importRandom = Math.floor(100 + Math.random() * 900);
+          let linkedImportCode = `PNK-CK-${yearMonth}-${importRandom}`;
+          let importCounter = 1;
+          while (await (prisma as any).stockOrder.findUnique({ where: { orderCode: linkedImportCode } })) {
+            linkedImportCode = `PNK-CK-${yearMonth}-${importRandom + importCounter}`;
+            importCounter++;
+          }
+
+          const linkedNotes = `[STATUS:PLANNED] [LINKED_TRANSFER:${orderCode}] [Chuyển từ: ${sourceLocation || 'Kho xuất'}] [Người lập: ${creatorName || 'Admin'}] ${notes || ''}`.trim();
+          
+          await (prisma as any).stockOrder.create({
+            data: {
+              orderCode: linkedImportCode,
+              type: 'IMPORT',
+              status: 'PLANNED',
+              sourceLocation: sourceLocation || 'Kho xuất',
+              destinationLocation: destinationLocation || finalDestination,
+              sourceWarehouseId: sourceWarehouseId || null,
+              destWarehouseId: destWarehouseId || null,
+              referenceCode: orderCode,
+              reason: 'Chuyển kho nội bộ (từ kho khác sang)',
+              notes: linkedNotes,
+              totalQuantity: totalQty,
+              totalAmount: totalAmt,
+              createdAt: createdDate,
+              items: {
+                create: lineItems.map((it: any) => ({
+                  variantId: it.variantId,
+                  quantity: it.quantity,
+                  unitPrice: it.unitPrice,
+                  lineTotal: it.lineTotal,
+                  notes: it.notes
+                }))
+              }
+            }
+          });
+        } catch (linkErr) {
+          console.warn('Could not auto-create linked import transfer order:', linkErr);
+        }
+      }
+
+      // 2. Cập nhật tồn kho khi thực sự hoàn tất (IMPORTED, EXPORTED hoặc COMPLETED)
       if (customStatus === 'IMPORTED' || customStatus === 'EXPORTED' || customStatus === 'COMPLETED') {
         for (const item of lineItems) {
           try {
-            if (type === 'EXPORT') {
+            if (isTransferOrder) {
+              // Điểu chuyển 2 kho: Trừ kho A và cộng kho B, bảo toàn tồn kho toàn công ty
+              if (sourceWarehouseId) {
+                const whStockA = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: sourceWarehouseId, variantId: item.variantId }
+                });
+                if (whStockA) {
+                  const decReserved = Math.min(whStockA.reservedStock || 0, item.quantity);
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStockA.id },
+                    data: {
+                      physicalStock: { decrement: item.quantity },
+                      reservedStock: { decrement: decReserved }
+                    }
+                  }).catch((e: any) => console.warn('Could not decrement stock at source:', e));
+                }
+              }
+
+              const targetWhId = destWarehouseId || sourceWarehouseId;
+              if (targetWhId) {
+                const whStockB = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: targetWhId, variantId: item.variantId }
+                });
+                if (whStockB) {
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStockB.id },
+                    data: { physicalStock: { increment: item.quantity } }
+                  }).catch((e: any) => console.warn('Could not increment stock at dest:', e));
+                } else {
+                  await (prisma as any).warehouseStock.create({
+                    data: {
+                      warehouseId: targetWhId,
+                      variantId: item.variantId,
+                      physicalStock: item.quantity,
+                      reservedStock: 0
+                    }
+                  }).catch((e: any) => console.warn('Could not create stock at dest:', e));
+                }
+              }
+
+              // Ghi 2 bút toán sổ cái TRANSFER_OUT và TRANSFER_IN
+              const txRandom = Math.floor(1000 + Math.random() * 9000);
+              await (prisma as any).stockTransaction.create({
+                data: {
+                  txCode: `TX-${yearMonth}-${txRandom}`,
+                  type: 'TRANSFER_OUT',
+                  variantId: item.variantId,
+                  location: sourceLocation || 'Kho xuất',
+                  warehouseId: sourceWarehouseId || null,
+                  stockBefore: 0,
+                  quantityChange: -item.quantity,
+                  stockAfter: 0,
+                  referenceCode: orderCode,
+                  stockOrderId: newOrder.id,
+                  notes: `Xuất chuyển kho [${orderCode}]: Chuyển đến ${destinationLocation || finalDestination}`
+                }
+              }).catch((e: any) => console.warn('Could not create transfer out ledger:', e));
+
+              await (prisma as any).stockTransaction.create({
+                data: {
+                  txCode: `TX-${yearMonth}-${txRandom + 1}`,
+                  type: 'TRANSFER_IN',
+                  variantId: item.variantId,
+                  location: destinationLocation || finalDestination,
+                  warehouseId: targetWhId || null,
+                  stockBefore: 0,
+                  quantityChange: item.quantity,
+                  stockAfter: 0,
+                  referenceCode: referenceCode || orderCode,
+                  stockOrderId: newOrder.id,
+                  notes: `Nhập chuyển kho [${orderCode}]: Nhận từ ${sourceLocation || 'Kho xuất'}`
+                }
+              }).catch((e: any) => console.warn('Could not create transfer in ledger:', e));
+
+            } else if (type === 'EXPORT') {
               // 1. Trừ tồn kho tổng của Variant
               await prisma.productVariant.update({
                 where: { id: item.variantId },
@@ -942,8 +1121,7 @@ export const inventoryController = {
 
               // 3. Ghi bút toán sổ cái biến động kho StockTransaction
               const txRandom = Math.floor(1000 + Math.random() * 9000);
-              const txType = reason?.includes('Chuyển kho') ? 'TRANSFER_OUT'
-                           : (reason?.includes('hủy') || reason?.includes('Hư hỏng') ? 'DISPOSAL_DISPATCH' : 'SALES_DISPATCH');
+              const txType = (reason?.includes('hủy') || reason?.includes('Hư hỏng')) ? 'DISPOSAL_DISPATCH' : 'SALES_DISPATCH';
               
               await (prisma as any).stockTransaction.create({
                 data: {
@@ -985,13 +1163,21 @@ export const inventoryController = {
                     where: { id: whStock.id },
                     data: { physicalStock: { increment: item.quantity } }
                   }).catch((e: any) => console.warn('Could not increment warehouseStock:', e));
+                } else {
+                  await (prisma as any).warehouseStock.create({
+                    data: {
+                      warehouseId: targetWhId,
+                      variantId: item.variantId,
+                      physicalStock: item.quantity,
+                      reservedStock: 0
+                    }
+                  }).catch((e: any) => console.warn('Could not create warehouseStock at dest:', e));
                 }
               }
 
               // Ghi bút toán sổ cái biến động kho StockTransaction cho Nhập kho
               const txRandom = Math.floor(1000 + Math.random() * 9000);
-              const txType = reason?.includes('Chuyển kho') ? 'TRANSFER_IN'
-                           : (reason?.includes('trả lại') || reason?.includes('khách hàng') ? 'RETURN_RECEIPT' : 'IMPORT_RECEIPT');
+              const txType = (reason?.includes('trả lại') || reason?.includes('khách hàng')) ? 'RETURN_RECEIPT' : 'IMPORT_RECEIPT';
               await (prisma as any).stockTransaction.create({
                 data: {
                   txCode: `TX-${yearMonth}-${txRandom}`,
@@ -1033,7 +1219,7 @@ export const inventoryController = {
   updateStockOrderStatus: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { status: newStatus, cancelReason } = req.body;
+      const { status: newStatus, cancelReason, actionLogs } = req.body;
 
       const order = await (prisma as any).stockOrder.findFirst({
         where: { OR: [{ id }, { orderCode: id }] },
@@ -1045,14 +1231,14 @@ export const inventoryController = {
       }
 
       const prevStatus = order.status;
-      let dbStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' = 'PENDING';
+      let dbStatus: any = 'DRAFT';
       let statusTag = '';
 
-      if (newStatus === 'DRAFT') {
-        dbStatus = 'PENDING';
+      if (newStatus === 'DRAFT' || newStatus === 'PENDING') {
+        dbStatus = 'DRAFT';
         statusTag = '[STATUS:DRAFT]';
       } else if (newStatus === 'PLANNED') {
-        dbStatus = 'PROCESSING';
+        dbStatus = 'PLANNED';
         statusTag = '[STATUS:PLANNED]';
       } else if (newStatus === 'IMPORTED') {
         dbStatus = 'COMPLETED';
@@ -1064,18 +1250,106 @@ export const inventoryController = {
         dbStatus = 'CANCELLED';
         statusTag = '[STATUS:CANCELLED]';
       } else {
-        dbStatus = 'PROCESSING';
+        dbStatus = 'PLANNED';
         statusTag = `[STATUS:${newStatus}]`;
       }
 
       let updatedNotes = order.notes || '';
+
+      // Xác định xem đơn hàng ban đầu có phải là bản nháp DRAFT hay không
+      const wasDraft = updatedNotes.includes('[ORIGIN:DRAFT]') || 
+                       updatedNotes.includes('[STATUS:DRAFT]') || 
+                       prevStatus === 'DRAFT' ||
+                       prevStatus === 'PENDING';
+      const originTag = wasDraft ? '[ORIGIN:DRAFT]' : '';
+
+      // Trích xuất các action logs đã có sẵn trong ghi chú của đơn hàng
+      let existingLogs: any[] = [];
+      const logsMatch = updatedNotes.match(/\[ACTION_LOGS:(\[[\s\S]*?\])\]/) || updatedNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || updatedNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+      if (logsMatch && logsMatch[1]) {
+        try {
+          const parsed = JSON.parse(logsMatch[1]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            existingLogs = parsed;
+          }
+        } catch (e) {}
+      }
+
+      // Xây dựng danh sách action logs hoàn chỉnh và đầy đủ
+      let finalLogs: any[] = [];
+      if (Array.isArray(actionLogs) && actionLogs.length > 0) {
+        finalLogs = actionLogs;
+      } else if (existingLogs.length > 0) {
+        finalLogs = [...existingLogs];
+        const lastLog = finalLogs[finalLogs.length - 1];
+        if (lastLog?.toStatus !== newStatus) {
+          finalLogs.push({
+            timestamp: new Date().toISOString(),
+            operator: 'Admin Quản Trị',
+            actionType: newStatus === 'CANCELLED' ? 'CANCEL' : 'STATUS_CHANGE',
+            fromStatus: lastLog?.toStatus || (wasDraft ? 'DRAFT' : 'PLANNED'),
+            toStatus: newStatus,
+            reason: cancelReason || undefined
+          });
+        }
+      } else {
+        const createdAt = order.createdAt ? new Date(order.createdAt).toISOString() : new Date().toISOString();
+        if (wasDraft) {
+          finalLogs.push({
+            timestamp: createdAt,
+            operator: 'Admin Quản Trị',
+            actionType: 'CREATE',
+            toStatus: 'DRAFT',
+            actionLabel: 'Tạo bản nháp'
+          });
+          if (newStatus !== 'DRAFT') {
+            finalLogs.push({
+              timestamp: new Date().toISOString(),
+              operator: 'Admin Quản Trị',
+              actionType: newStatus === 'CANCELLED' ? 'CANCEL' : 'STATUS_CHANGE',
+              fromStatus: 'DRAFT',
+              toStatus: newStatus,
+              reason: cancelReason || undefined
+            });
+          }
+        } else {
+          finalLogs.push({
+            timestamp: createdAt,
+            operator: 'Admin Quản Trị',
+            actionType: 'CREATE',
+            toStatus: 'PLANNED',
+            actionLabel: order.type === 'IMPORT' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho'
+          });
+          if (newStatus !== 'PLANNED') {
+            finalLogs.push({
+              timestamp: new Date().toISOString(),
+              operator: 'Admin Quản Trị',
+              actionType: newStatus === 'CANCELLED' ? 'CANCEL' : 'STATUS_CHANGE',
+              fromStatus: 'PLANNED',
+              toStatus: newStatus,
+              reason: cancelReason || undefined
+            });
+          }
+        }
+      }
+
+      // Làm sạch thẻ hệ thống cũ để ghép lại ghi chú chuẩn hóa
       updatedNotes = updatedNotes.replace(/\[STATUS:[^\]]+\]\s*/g, '').trim();
-      if (statusTag) {
-        updatedNotes = `${statusTag} ${updatedNotes}`.trim();
+      updatedNotes = updatedNotes.replace(/\[ORIGIN:[^\]]+\]\s*/g, '').trim();
+      updatedNotes = updatedNotes.replace(/\[ACTION_LOGS:\[[\s\S]*?\]\]/g, '').replace(/\[ACTION_LOGS:[\s\S]*?\]\]/g, '').replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '').trim();
+
+      const tags: string[] = [];
+      if (statusTag) tags.push(statusTag);
+      if (originTag) tags.push(originTag);
+
+      let reconstructed = [tags.join(' '), updatedNotes].filter(Boolean).join(' ').trim();
+      if (cancelReason && !reconstructed.includes(`[Lý do hủy: ${cancelReason}]`)) {
+        reconstructed = `${reconstructed} [Lý do hủy: ${cancelReason}]`.trim();
       }
-      if (cancelReason) {
-        updatedNotes = `${updatedNotes} [Lý do hủy: ${cancelReason}]`.trim();
+      if (finalLogs.length > 0) {
+        reconstructed = `${reconstructed} [ACTION_LOGS:${JSON.stringify(finalLogs)}]`.trim();
       }
+      updatedNotes = reconstructed;
 
       const updated = await (prisma as any).stockOrder.update({
         where: { id: order.id },
@@ -1086,11 +1360,192 @@ export const inventoryController = {
         }
       });
 
-      // Nếu chuyển sang COMPLETED / EXPORTED / IMPORTED và trước đó chưa COMPLETED: cập nhật tồn kho thực tế
+      const isTransferOrder = (order.type === 'TRANSFER') || 
+                              (order.reason && order.reason.toLowerCase().includes('chuyển kho')) || 
+                              (order.notes && order.notes.includes('[LINKED_TRANSFER:'));
+
+      // 0. Nếu chuyển từ DRAFT sang PLANNED đối với phiếu xuất chuyển kho:
+      // Tăng reservedStock tại Kho A và tự động sinh phiếu nhập đối ứng tại Kho B (nếu chưa có)
+      if (wasDraft && (newStatus === 'PLANNED' || dbStatus === 'PROCESSING') && isTransferOrder) {
+        if (order.sourceWarehouseId) {
+          for (const item of order.items) {
+            try {
+              const whStock = await (prisma as any).warehouseStock.findFirst({
+                where: { warehouseId: order.sourceWarehouseId, variantId: item.variantId }
+              });
+              if (whStock) {
+                await (prisma as any).warehouseStock.update({
+                  where: { id: whStock.id },
+                  data: { reservedStock: { increment: item.quantity } }
+                });
+              } else {
+                await (prisma as any).warehouseStock.create({
+                  data: {
+                    warehouseId: order.sourceWarehouseId,
+                    variantId: item.variantId,
+                    physicalStock: 0,
+                    reservedStock: item.quantity
+                  }
+                });
+              }
+            } catch (err) {
+              console.warn('Could not increment reservedStock at source on PLANNED:', err);
+            }
+          }
+        }
+
+        // Tự động sinh Phiếu Nhập đối ứng tại Kho B nếu chưa tồn tại
+        try {
+          const existingLinked = await (prisma as any).stockOrder.findFirst({
+            where: {
+              OR: [
+                { referenceCode: order.orderCode, type: 'IMPORT' },
+                { notes: { contains: `[LINKED_TRANSFER:${order.orderCode}]` } }
+              ]
+            }
+          });
+
+          if (!existingLinked) {
+            const now = new Date();
+            const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            const importRandom = Math.floor(100 + Math.random() * 900);
+            let linkedImportCode = `PNK-CK-${yearMonth}-${importRandom}`;
+            let importCounter = 1;
+            while (await (prisma as any).stockOrder.findUnique({ where: { orderCode: linkedImportCode } })) {
+              linkedImportCode = `PNK-CK-${yearMonth}-${importRandom + importCounter}`;
+              importCounter++;
+            }
+
+            const cleanNotes = (order.notes || '')
+              .replace(/\[STATUS:[^\]]+\]/g, '')
+              .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
+              .trim();
+            const linkedNotes = `[STATUS:PLANNED] [LINKED_TRANSFER:${order.orderCode}] [Chuyển từ: ${order.sourceLocation || 'Kho xuất'}] ${cleanNotes}`.trim();
+
+            await (prisma as any).stockOrder.create({
+              data: {
+                orderCode: linkedImportCode,
+                type: 'IMPORT',
+                status: 'PLANNED',
+                sourceLocation: order.sourceLocation || 'Kho xuất',
+                destinationLocation: order.destinationLocation,
+                sourceWarehouseId: order.sourceWarehouseId || null,
+                destWarehouseId: order.destWarehouseId || null,
+                referenceCode: order.orderCode,
+                reason: 'Chuyển kho nội bộ (từ kho khác sang)',
+                notes: linkedNotes,
+                totalQuantity: order.totalQuantity,
+                totalAmount: order.totalAmount,
+                createdAt: new Date(),
+                items: {
+                  create: order.items.map((it: any) => ({
+                    variantId: it.variantId,
+                    quantity: it.quantity,
+                    unitPrice: it.unitPrice,
+                    lineTotal: it.lineTotal,
+                    notes: it.notes
+                  }))
+                }
+              }
+            });
+          }
+        } catch (linkErr) {
+          console.warn('Could not auto-create linked import transfer order on status update:', linkErr);
+        }
+        clearInventoryCaches();
+      }
+
+      // 1. Nếu chuyển sang COMPLETED / EXPORTED / IMPORTED và trước đó chưa COMPLETED: cập nhật tồn kho thực tế
       if (prevStatus !== 'COMPLETED' && (newStatus === 'IMPORTED' || newStatus === 'EXPORTED' || newStatus === 'COMPLETED' || dbStatus === 'COMPLETED')) {
+        const isTransferOut = isTransferOrder && (order.type === 'TRANSFER' || order.type === 'EXPORT');
+        const isTransferIn = isTransferOrder && (order.type === 'IMPORT');
+
         for (const item of order.items) {
           try {
-            if (order.type === 'EXPORT') {
+            if (isTransferOut) {
+              // XUẤT CHUYỂN KHO TẠI KHO A: Trừ physicalStock và giải phóng reservedStock tại Kho A
+              if (order.sourceWarehouseId) {
+                const whStockA = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: order.sourceWarehouseId, variantId: item.variantId }
+                });
+                if (whStockA) {
+                  const decReserved = Math.min(whStockA.reservedStock || 0, item.quantity);
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStockA.id },
+                    data: {
+                      physicalStock: { decrement: item.quantity },
+                      reservedStock: { decrement: decReserved }
+                    }
+                  }).catch((e: any) => console.warn('Could not decrement physicalStock/reservedStock at source:', e));
+                }
+              }
+
+              // Ghi bút toán sổ cái TRANSFER_OUT cho Kho A
+              const now = new Date();
+              const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+              const txRandom = Math.floor(1000 + Math.random() * 9000);
+              await (prisma as any).stockTransaction.create({
+                data: {
+                  txCode: `TX-${yearMonth}-${txRandom}`,
+                  type: 'TRANSFER_OUT',
+                  variantId: item.variantId,
+                  location: order.sourceLocation || 'Kho xuất',
+                  warehouseId: order.sourceWarehouseId || null,
+                  stockBefore: 0,
+                  quantityChange: -item.quantity,
+                  stockAfter: 0,
+                  referenceCode: order.orderCode,
+                  stockOrderId: order.id,
+                  notes: `Xuất chuyển kho [${order.orderCode}]: Chuyển đến ${order.destinationLocation}`
+                }
+              }).catch((e: any) => console.warn('Could not create transfer out ledger:', e));
+
+            } else if (isTransferIn) {
+              // NHẬP CHUYỂN KHO TẠI KHO B: Cộng physicalStock tại Kho B (không tăng tổng tồn kho toàn công ty)
+              const targetWhId = order.destWarehouseId || order.sourceWarehouseId;
+              if (targetWhId) {
+                const whStockB = await (prisma as any).warehouseStock.findFirst({
+                  where: { warehouseId: targetWhId, variantId: item.variantId }
+                });
+                if (whStockB) {
+                  await (prisma as any).warehouseStock.update({
+                    where: { id: whStockB.id },
+                    data: { physicalStock: { increment: item.quantity } }
+                  }).catch((e: any) => console.warn('Could not increment physicalStock at dest:', e));
+                } else {
+                  await (prisma as any).warehouseStock.create({
+                    data: {
+                      warehouseId: targetWhId,
+                      variantId: item.variantId,
+                      physicalStock: item.quantity,
+                      reservedStock: 0
+                    }
+                  }).catch((e: any) => console.warn('Could not create warehouseStock at dest:', e));
+                }
+              }
+
+              // Ghi bút toán sổ cái TRANSFER_IN cho Kho B
+              const now = new Date();
+              const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+              const txRandom = Math.floor(1000 + Math.random() * 9000);
+              await (prisma as any).stockTransaction.create({
+                data: {
+                  txCode: `TX-${yearMonth}-${txRandom}`,
+                  type: 'TRANSFER_IN',
+                  variantId: item.variantId,
+                  location: order.destinationLocation || 'Kho nhận',
+                  warehouseId: targetWhId || null,
+                  stockBefore: 0,
+                  quantityChange: item.quantity,
+                  stockAfter: 0,
+                  referenceCode: order.referenceCode || order.orderCode,
+                  stockOrderId: order.id,
+                  notes: `Nhập chuyển kho [${order.orderCode}]: Nhận từ ${order.sourceLocation}`
+                }
+              }).catch((e: any) => console.warn('Could not create transfer in ledger:', e));
+
+            } else if (order.type === 'EXPORT') {
+              // XUẤT KHO THÔNG THƯỜNG (Bán hàng, tiêu hủy...)
               await prisma.productVariant.update({
                 where: { id: item.variantId },
                 data: { stock: { decrement: item.quantity } }
@@ -1108,6 +1563,7 @@ export const inventoryController = {
                 }
               }
             } else if (order.type === 'IMPORT') {
+              // NHẬP KHO THÔNG THƯỜNG (Mua hàng NCC, khách trả hàng...)
               await prisma.productVariant.update({
                 where: { id: item.variantId },
                 data: { stock: { increment: item.quantity } }
@@ -1123,6 +1579,15 @@ export const inventoryController = {
                     where: { id: whStock.id },
                     data: { physicalStock: { increment: item.quantity } }
                   }).catch((e: any) => console.warn('Could not increment warehouseStock:', e));
+                } else {
+                  await (prisma as any).warehouseStock.create({
+                    data: {
+                      warehouseId: targetWhId,
+                      variantId: item.variantId,
+                      physicalStock: item.quantity,
+                      reservedStock: 0
+                    }
+                  }).catch((e: any) => console.warn('Could not create warehouseStock at dest:', e));
                 }
               }
             }
@@ -1130,13 +1595,115 @@ export const inventoryController = {
             console.warn('Error adjusting stock on status complete:', e);
           }
         }
+
+        // CẬP NHẬT GHI CHÚ CHO PHIẾU NHẬP ĐỐI ỨNG khi Kho A xuất thành công (Sẵn sàng nhập kho)
+        if (isTransferOut) {
+          try {
+            const linkedImportOrder = await (prisma as any).stockOrder.findFirst({
+              where: {
+                OR: [
+                  { referenceCode: order.orderCode, type: 'IMPORT' },
+                  { notes: { contains: `[LINKED_TRANSFER:${order.orderCode}]` } }
+                ]
+              }
+            });
+
+            if (linkedImportOrder && linkedImportOrder.status !== 'COMPLETED' && linkedImportOrder.status !== 'CANCELLED') {
+              let linkedNotes = linkedImportOrder.notes || '';
+              linkedNotes = linkedNotes.replace(/\[STATUS:[^\]]+\]\s*/g, '').trim();
+              linkedNotes = `[STATUS:PLANNED] ${linkedNotes}`.trim();
+
+              let linkedLogs: any[] = [];
+              const matchLogs = linkedNotes.match(/\[ACTION_LOGS:(\[[\s\S]*?\])\]/);
+              if (matchLogs) {
+                try { linkedLogs = JSON.parse(matchLogs[1]); } catch (e) {}
+              }
+              linkedLogs.push({
+                timestamp: new Date().toISOString(),
+                operator: 'Hệ thống tự động',
+                actionType: 'UPDATE',
+                actionLabel: `Kho xuất (${order.sourceLocation}) đã xuất hàng thành công. Sẵn sàng nhập hàng.`,
+                fromStatus: 'PLANNED',
+                toStatus: 'PLANNED'
+              });
+
+              linkedNotes = linkedNotes.replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '').trim();
+              linkedNotes = `${linkedNotes} [ACTION_LOGS:${JSON.stringify(linkedLogs)}]`.trim();
+
+              await (prisma as any).stockOrder.update({
+                where: { id: linkedImportOrder.id },
+                data: {
+                  status: 'PLANNED',
+                  notes: linkedNotes
+                }
+              });
+            }
+          } catch (autoErr) {
+            console.warn('Could not auto-update linked import order note:', autoErr);
+          }
+        }
+
         clearInventoryCaches();
       }
+
+      // 2. Nếu chuyển sang CANCELLED: Hoàn trả reservedStock nếu phiếu chuyển kho bị hủy trước khi hoàn tất
+      if (newStatus === 'CANCELLED' && isTransferOrder && prevStatus !== 'COMPLETED') {
+        try {
+          if (order.sourceWarehouseId) {
+            for (const item of order.items) {
+              const whStockA = await (prisma as any).warehouseStock.findFirst({
+                where: { warehouseId: order.sourceWarehouseId, variantId: item.variantId }
+              });
+              if (whStockA) {
+                const decReserved = Math.min(whStockA.reservedStock || 0, item.quantity);
+                await (prisma as any).warehouseStock.update({
+                  where: { id: whStockA.id },
+                  data: { reservedStock: { decrement: decReserved } }
+                }).catch((e: any) => console.warn('Could not rollback reservedStock on cancel:', e));
+              }
+            }
+          }
+
+          // Tự động hủy luôn phiếu nhập đối ứng liên kết nếu phiếu xuất bị hủy
+          const linkedImport = await (prisma as any).stockOrder.findFirst({
+            where: {
+              OR: [
+                { referenceCode: order.orderCode, type: 'IMPORT' },
+                { notes: { contains: `[LINKED_TRANSFER:${order.orderCode}]` } }
+              ]
+            }
+          });
+          if (linkedImport && linkedImport.status !== 'COMPLETED' && linkedImport.status !== 'CANCELLED') {
+            let lNotes = (linkedImport.notes || '').replace(/\[STATUS:[^\]]+\]\s*/g, '').trim();
+            lNotes = `[STATUS:CANCELLED] ${lNotes} [Lý do: Phiếu xuất chuyển kho gốc ${order.orderCode} đã bị hủy]`.trim();
+            await (prisma as any).stockOrder.update({
+              where: { id: linkedImport.id },
+              data: { status: 'CANCELLED', notes: lNotes }
+            }).catch((e: any) => console.warn('Could not auto-cancel linked import order:', e));
+          }
+        } catch (cancErr) {
+          console.warn('Error during transfer order cancellation rollback:', cancErr);
+        }
+        clearInventoryCaches();
+      }
+
+      const cleanUserNotes = updatedNotes
+        .replace(/\[ACTION_LOGS:[\s\S]*?\]\]/g, '')
+        .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
+        .replace(/\[STATUS:[^\]]+\]/g, '')
+        .replace(/\[ORIGIN:[^\]]+\]/g, '')
+        .replace(/\[Người lập:[^\]]+\]/g, '')
+        .replace(/\[Người nhận:[^\]]+\]/g, '')
+        .replace(/\[Lý do hủy:[^\]]+\]/g, '')
+        .trim();
 
       res.json({
         ...updated,
         status: newStatus,
         rawStatus: newStatus,
+        notes: cleanUserNotes,
+        rawNotes: updatedNotes,
+        actionLogs: finalLogs,
         totalAmount: Number(updated.totalAmount || 0),
         items: (updated.items || []).map((it: any) => ({
           ...it,
@@ -1200,6 +1767,15 @@ export const inventoryController = {
       let baseNotes = notes !== undefined ? notes : (order.notes || '');
       if (!baseNotes.includes('[STATUS:')) {
         baseNotes = `[STATUS:DRAFT] ${baseNotes}`.trim();
+      }
+      if (!baseNotes.includes('[ORIGIN:DRAFT]')) {
+        baseNotes = `[ORIGIN:DRAFT] ${baseNotes}`.trim();
+      }
+      if (!baseNotes.includes('ACTION_LOGS:') && order.notes && order.notes.includes('ACTION_LOGS:')) {
+        const logsMatch = order.notes.match(/\[ACTION_LOGS:[\s\S]*?\]\]/) || order.notes.match(/\[ACTION_LOGS:[\s\S]*?\]/);
+        if (logsMatch) {
+          baseNotes = `${baseNotes} ${logsMatch[0]}`.trim();
+        }
       }
 
       const updated = await (prisma as any).stockOrder.update({

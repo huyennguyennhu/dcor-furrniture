@@ -7,7 +7,7 @@ import {
   X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
   Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
   CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock,
-  Loader2
+  Loader2, ArrowLeftRight
 } from 'lucide-angular';
 import { environment } from '../../../../../environments/environment';
 
@@ -46,22 +46,23 @@ export interface LineItem {
   styles: [`
     .custom-dropdown-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: #b0a8a0 var(--bg-secondary, #f4f4f5);
+      scrollbar-color: #8d674b rgba(118, 83, 55, 0.08);
     }
     .custom-dropdown-scrollbar::-webkit-scrollbar {
-      width: 8px;
+      width: 7px;
     }
     .custom-dropdown-scrollbar::-webkit-scrollbar-track {
-      background: var(--bg-secondary, #f4f4f5);
-      border-radius: 4px;
+      background: rgba(118, 83, 55, 0.08);
+      border-radius: 6px;
+      margin: 4px 0;
     }
     .custom-dropdown-scrollbar::-webkit-scrollbar-thumb {
-      background: #b0a8a0;
-      border-radius: 4px;
+      background: #8d674b;
+      border-radius: 6px;
       cursor: pointer;
     }
     .custom-dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #765337;
+      background: #5a3d26;
     }
     .dropdown-option-item {
       padding: 8px 10px;
@@ -383,6 +384,10 @@ export interface LineItem {
                 <span style="color: var(--text-muted); font-size: 14px; font-weight: 400; margin: 0 2px;">-</span>
                 <span [ngStyle]="{'background': getViewStatusBg(), 'color': getViewStatusColor()}" style="font-size: 11.5px; font-weight: 600; padding: 2px 10px; border-radius: 20px; letter-spacing: 0.3px;">{{ getViewStatusLabel() }}</span>
                 <span style="font-size: 12px; color: var(--text-muted);">{{ formatDisplayDate(viewOrderData?.date || viewOrderData?.createdAt) }}</span>
+                <span *ngIf="viewOrderData?.linkedTransferCode" style="font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 6px; background: rgba(14, 165, 233, 0.08); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.25); display: inline-flex; align-items: center; gap: 4px;" [title]="'Phiếu liên kết đối ứng: ' + viewOrderData?.linkedTransferCode">
+                  <lucide-angular [img]="icons.ArrowLeftRight" size="12"></lucide-angular>
+                  <span>Liên kết: {{ viewOrderData?.linkedTransferCode }}</span>
+                </span>
               </ng-container>
             </div>
           </div>
@@ -460,8 +465,8 @@ export interface LineItem {
             
             <!-- FORM BỐ TRÍ DÀNH RIÊNG CHO PHIẾU XUẤT KHO -->
             <ng-container *ngIf="type === 'export'">
-              <!-- Hàng 1: Mã phiếu xuất * | Người lập phiếu (hệ thống tự điền, khóa) | Ngày xuất kho * -->
-              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
+              <!-- Hàng 1: Mã phiếu xuất * | Người lập phiếu (hệ thống tự điền, khóa) -->
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
                 <!-- 1. Mã phiếu xuất -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
@@ -472,9 +477,9 @@ export interface LineItem {
                       type="text" 
                       [value]="orderCode" 
                       readonly 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-family: monospace; font-size: 13px; font-weight: 400; color: var(--accent); cursor: not-allowed; letter-spacing: 0.5px;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; font-size: 13px; color: #4f5966; cursor: not-allowed;"
                     />
-                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
+                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
                     </div>
                   </div>
@@ -490,53 +495,16 @@ export interface LineItem {
                       type="text" 
                       [value]="creatorName" 
                       readonly 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 400; color: var(--text-primary); cursor: not-allowed;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; font-size: 13px; color: #4f5966; cursor: not-allowed;"
                     />
-                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
+                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 3. Ngày xuất kho * -->
-                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
-                  <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                    Ngày xuất kho <span style="color: #ef4444;">*</span>
-                  </label>
-                  <div style="position: relative; width: 100%; min-width: 0;">
-                    <input 
-                      type="text" 
-                      [value]="getFormattedTransactionDate()" 
-                      readonly 
-                      [disabled]="isFormDisabled"
-                      (click)="!isFormDisabled && openDatePicker(exportDatePicker)"
-                      placeholder="Chọn ngày giờ xuất kho"
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;"
-                      [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
-                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer'
-                      }"
-                    />
-                    <input 
-                      #exportDatePicker
-                      type="datetime-local" 
-                      [(ngModel)]="transactionDate" 
-                      [disabled]="isFormDisabled"
-                      (change)="onDateChange()"
-                      (click)="!isFormDisabled && openDatePicker(exportDatePicker)"
-                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: 2;"
-                      [style.cursor]="isFormDisabled ? 'not-allowed' : 'pointer'"
-                      [style.pointer-events]="isFormDisabled ? 'none' : 'auto'"
-                    />
-                    <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); display: flex; align-items: center; z-index: 1;">
-                      <lucide-angular [img]="icons.Calendar" size="15"></lucide-angular>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Hàng 2: Chi nhánh / Kho xuất * | Lý do xuất kho * | Đơn vị nhận hàng -->
+              <!-- Hàng 2: Chi nhánh / Kho xuất * | Lý do xuất kho * | Chuyển đến -->
               <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 15;">
                 <!-- 1. Chi nhánh / Kho xuất * -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
@@ -549,11 +517,12 @@ export interface LineItem {
                       (click)="toggleLocationDropdown($event)"
                       [disabled]="isFormDisabled"
                       [title]="getLocationLabel()"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; font-size: 13px; text-align: left;"
                       [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                        'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                         'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
-                        'opacity': isFormDisabled ? '0.75' : '1'
+                        'opacity': isFormDisabled ? '0.85' : '1'
                       }"
                       [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
@@ -565,15 +534,15 @@ export interface LineItem {
                       </div>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
-                    <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                    <div *ngIf="showLocationDropdown" class="custom-dropdown-scrollbar" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px 6px 4px 4px; max-height: 220px; overflow-y: auto;">
                       <div *ngFor="let w of activeWarehouses"
                         class="dropdown-menu-item"
                         [class.selected]="transactionLocation === w.id"
                         (click)="selectLocation(w.id, $event)"
-                        [title]="w.name + ' (' + w.code + ')'"
+                        [title]="w.name"
                         [style.color]="transactionLocation === w.id ? 'var(--accent)' : 'var(--text-primary)'"
                       >
-                        {{ w.name }} ({{ w.code }})
+                        {{ w.name }}
                       </div>
                     </div>
                   </div>
@@ -590,11 +559,12 @@ export interface LineItem {
                       (click)="toggleReasonDropdown($event)"
                       [disabled]="isFormDisabled"
                       [title]="transactionReason || 'Chọn lý do xuất'"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; font-size: 13px; text-align: left;"
                       [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                        'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                         'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
-                        'opacity': isFormDisabled ? '0.75' : '1'
+                        'opacity': isFormDisabled ? '0.85' : '1'
                       }"
                       [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionReason ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
@@ -605,7 +575,7 @@ export interface LineItem {
                       </div>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
-                    <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 260px; overflow-y: auto;">
+                    <div *ngIf="showReasonDropdown" class="custom-dropdown-scrollbar" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px 6px 4px 4px; max-height: 260px; overflow-y: auto;">
                       <div *ngFor="let r of currentReasonOptions"
                         class="dropdown-menu-item"
                         [class.selected]="transactionReason === r"
@@ -634,12 +604,12 @@ export interface LineItem {
                   </div>
                 </div>
 
-                <!-- 3. Đơn vị nhận hàng: Tinh chỉnh linh hoạt theo từng lý do xuất kho -->
+                <!-- 3. Chuyển đến: Tinh chỉnh linh hoạt theo từng lý do xuất kho -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <!-- 1. Chuyển kho -> Kho đích * -->
                   <ng-container *ngIf="transactionReason.includes('Chuyển kho')">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      Kho đích <span style="color: #ef4444;">*</span>
+                      Chuyển đến <span style="color: #ef4444;">*</span>
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <button 
@@ -647,11 +617,12 @@ export interface LineItem {
                         (click)="toggleDestDropdown($event)"
                         [disabled]="isFormDisabled"
                         [title]="getDestLabel()"
-                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; font-size: 13px; text-align: left;"
                         [ngStyle]="{
-                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                          'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                           'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
-                          'opacity': isFormDisabled ? '0.75' : '1'
+                          'opacity': isFormDisabled ? '0.85' : '1'
                         }"
                         [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)')"
                       >
@@ -662,26 +633,26 @@ export interface LineItem {
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                       </button>
-                      <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                      <div *ngIf="showDestDropdown" class="custom-dropdown-scrollbar" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px 6px 4px 4px; max-height: 220px; overflow-y: auto;">
                         <ng-container *ngFor="let w of activeWarehouses">
                           <div *ngIf="w.id !== transactionLocation"
                             class="dropdown-menu-item"
                             [class.selected]="transactionDestination === w.id"
                             (click)="selectDest(w.id, $event)"
-                            [title]="w.name + ' (' + w.code + ')'"
+                            [title]="w.name"
                             [style.color]="transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)'"
                           >
-                            {{ w.name }} ({{ w.code }})
+                            {{ w.name }}
                           </div>
                         </ng-container>
                       </div>
                     </div>
                   </ng-container>
 
-                  <!-- 2. Không yêu cầu đối tác (Hủy hàng hỏng hoặc lý do tạo mới không tick yêu cầu đối tác) -> Khóa trường lại -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && !isReasonRequiringPartner(transactionReason)">
+                  <!-- 2. Đã chọn lý do và lý do KHÔNG yêu cầu đối tác (Hủy hàng hỏng...) -> Khóa trường lại -->
+                  <ng-container *ngIf="transactionReason && !transactionReason.includes('Chuyển kho') && !isReasonRequiringPartner(transactionReason)">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                      Nhà cung cấp / Khách hàng
+                      Chuyển đến
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
@@ -690,18 +661,18 @@ export interface LineItem {
                         readonly 
                         disabled
                         placeholder="Không áp dụng" 
-                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; opacity: 0.75;" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; font-size: 13px; color: #4f5966; cursor: not-allowed;" 
                       />
-                      <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
+                      <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; display: flex; align-items: center;">
                         <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
                       </div>
                     </div>
                   </ng-container>
 
-                  <!-- 3. Có yêu cầu đối tác -> Hiển thị trường theo tên gọi phù hợp (Nhà cung ứng / Khách hàng / Tùy chỉnh) -->
-                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && isReasonRequiringPartner(transactionReason)">
+                  <!-- 3. Chưa chọn lý do HOẶC lý do có yêu cầu đối tác -> Đánh dấu * và KHÔNG KHÓA KHUNG -->
+                  <ng-container *ngIf="!transactionReason.includes('Chuyển kho') && (!transactionReason || isReasonRequiringPartner(transactionReason))">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      {{ getPartnerLabelForReason(transactionReason) }} <span style="color: #ef4444;">*</span>
+                      Chuyển đến <span style="color: #ef4444;">*</span>
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
@@ -710,10 +681,11 @@ export interface LineItem {
                         [disabled]="isFormDisabled"
                         [readonly]="isFormDisabled"
                         [attr.list]="getPartnerLabelForReason(transactionReason).toLowerCase().includes('cung') ? 'supplierListSuggestionsExport' : null"
-                        [placeholder]="'Nhập ' + getPartnerLabelForReason(transactionReason).toLowerCase() + '...'" 
-                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                        [placeholder]="transactionReason ? ('Nhập thông tin chuyển đến (' + getPartnerLabelForReason(transactionReason).toLowerCase() + ')...') : 'Nhập thông tin chuyển đến (Khách hàng, Đối tác)...'" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; font-size: 13px; outline: none;" 
                         [ngStyle]="{
-                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                          'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                           'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
                           'cursor': isFormDisabled ? 'not-allowed' : 'text'
                         }"
@@ -726,12 +698,12 @@ export interface LineItem {
                 </div>
               </div>
 
-              <!-- Hàng 3: Số hóa đơn / Chứng từ gốc | Ghi chú -->
+              <!-- Hàng 3: Chứng từ gốc | Ghi chú -->
               <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
-                <!-- 1. Số hóa đơn / Chứng từ gốc -->
+                <!-- 1. Chứng từ gốc -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                    Số hóa đơn / Chứng từ gốc
+                    Chứng từ gốc
                   </label>
                   <input 
                     type="text" 
@@ -739,9 +711,10 @@ export interface LineItem {
                     [disabled]="isFormDisabled"
                     [readonly]="isFormDisabled"
                     placeholder="Nhập số hóa đơn / Mã SO / Chứng từ gốc (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; font-size: 13px; outline: none;" 
                     [ngStyle]="{
-                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                      'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                       'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
                       'cursor': isFormDisabled ? 'not-allowed' : 'text'
                     }"
@@ -757,9 +730,10 @@ export interface LineItem {
                     [disabled]="isFormDisabled"
                     [readonly]="isFormDisabled"
                     placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; font-size: 13px; outline: none;" 
                     [ngStyle]="{
-                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                      'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                       'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
                       'cursor': isFormDisabled ? 'not-allowed' : 'text'
                     }"
@@ -770,8 +744,8 @@ export interface LineItem {
 
             <!-- FORM BỐ TRÍ DÀNH RIÊNG CHO PHIẾU NHẬP KHO -->
             <ng-container *ngIf="type === 'import'">
-              <!-- Hàng 1: Mã phiếu nhập * | Người lập phiếu (hệ thống tự điền, khóa) | Ngày nhập kho * -->
-              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
+              <!-- Hàng 1: Mã phiếu nhập * | Người lập phiếu (hệ thống tự điền, khóa) -->
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
                 <!-- 1. Mã phiếu nhập -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
@@ -782,9 +756,9 @@ export interface LineItem {
                       type="text" 
                       [value]="orderCode" 
                       readonly 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-family: monospace; font-size: 13px; font-weight: 400; color: var(--accent); cursor: not-allowed; letter-spacing: 0.5px;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; font-size: 13px; color: #4f5966; cursor: not-allowed;"
                     />
-                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
+                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
                     </div>
                   </div>
@@ -800,53 +774,16 @@ export interface LineItem {
                       type="text" 
                       [value]="creatorName" 
                       readonly 
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 400; color: var(--text-primary); cursor: not-allowed;"
+                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; font-size: 13px; color: #4f5966; cursor: not-allowed;"
                     />
-                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
+                    <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; display: flex; align-items: center;">
                       <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 3. Ngày nhập kho * -->
-                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
-                  <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                    Ngày nhập kho <span style="color: #ef4444;">*</span>
-                  </label>
-                  <div style="position: relative; width: 100%; min-width: 0;">
-                    <input 
-                      type="text" 
-                      [value]="getFormattedTransactionDate()" 
-                      readonly 
-                      [disabled]="isFormDisabled"
-                      (click)="!isFormDisabled && openDatePicker(importDatePicker)"
-                      placeholder="Chọn ngày giờ nhập kho"
-                      style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 36px 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;"
-                      [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-                        'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
-                        'cursor': isFormDisabled ? 'not-allowed' : 'pointer'
-                      }"
-                    />
-                    <input 
-                      #importDatePicker
-                      type="datetime-local" 
-                      [(ngModel)]="transactionDate" 
-                      [disabled]="isFormDisabled"
-                      (change)="onDateChange()"
-                      (click)="!isFormDisabled && openDatePicker(importDatePicker)"
-                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: 2;"
-                      [style.cursor]="isFormDisabled ? 'not-allowed' : 'pointer'"
-                      [style.pointer-events]="isFormDisabled ? 'none' : 'auto'"
-                    />
-                    <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); display: flex; align-items: center; z-index: 1;">
-                      <lucide-angular [img]="icons.Calendar" size="15"></lucide-angular>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Hàng 2: Kho đích nhập về * | Lý do nhập kho * | Nhà cung cấp -->
+              <!-- Hàng 2: Kho đích nhập về * | Lý do nhập kho * | Nhận từ -->
               <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 15;">
                 <!-- 1. Kho đích nhập về * -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
@@ -859,11 +796,12 @@ export interface LineItem {
                       (click)="toggleLocationDropdown($event)"
                       [disabled]="isFormDisabled"
                       [title]="getLocationLabel()"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; font-size: 13px; text-align: left;"
                       [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                        'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                         'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
-                        'opacity': isFormDisabled ? '0.75' : '1'
+                        'opacity': isFormDisabled ? '0.85' : '1'
                       }"
                       [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionLocation ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
@@ -875,16 +813,16 @@ export interface LineItem {
                       </div>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
-                    <div *ngIf="showLocationDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                    <div *ngIf="showLocationDropdown" class="custom-dropdown-scrollbar" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px 6px 4px 4px; max-height: 220px; overflow-y: auto;">
                       <div *ngFor="let w of activeWarehouses"
                         (click)="selectLocation(w.id, $event)"
                         style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                        [title]="w.name + ' (' + w.code + ')'"
+                        [title]="w.name"
                         [ngStyle]="{'color': transactionLocation === w.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': '400'}"
                         onmouseover="this.style.background='var(--bg-secondary)'"
                         onmouseout="this.style.background='transparent'"
                       >
-                        {{ w.name }} ({{ w.code }})
+                        {{ w.name }}
                       </div>
                     </div>
                   </div>
@@ -901,11 +839,12 @@ export interface LineItem {
                       (click)="toggleReasonDropdown($event)"
                       [disabled]="isFormDisabled"
                       [title]="transactionReason || 'Chọn lý do nhập'"
-                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                      style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; font-size: 13px; text-align: left;"
                       [ngStyle]="{
-                        'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                        'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                         'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
-                        'opacity': isFormDisabled ? '0.75' : '1'
+                        'opacity': isFormDisabled ? '0.85' : '1'
                       }"
                       [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionReason ? 'var(--text-primary)' : 'var(--text-muted)')"
                     >
@@ -916,7 +855,7 @@ export interface LineItem {
                       </div>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
-                    <div *ngIf="showReasonDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 260px; overflow-y: auto;">
+                    <div *ngIf="showReasonDropdown" class="custom-dropdown-scrollbar" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px 6px 4px 4px; max-height: 260px; overflow-y: auto;">
                       <div *ngFor="let r of currentReasonOptions"
                         class="dropdown-menu-item"
                         [class.selected]="transactionReason === r"
@@ -945,12 +884,12 @@ export interface LineItem {
                   </div>
                 </div>
 
-                <!-- 3. Nhà cung cấp / Kho xuất / Khách hàng / Khóa khi Dư sau kiểm kê -->
+                <!-- 3. Nhận từ: Tinh chỉnh linh hoạt theo từng lý do nhập kho -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <!-- Trường hợp 1: Nhập chuyển kho -> Chọn Kho xuất * -->
                   <ng-container *ngIf="isImportTransfer()">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      Kho xuất <span style="color: #ef4444;">*</span>
+                      Nhận từ <span style="color: #ef4444;">*</span>
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <button 
@@ -958,11 +897,12 @@ export interface LineItem {
                         (click)="toggleDestDropdown($event)"
                         [disabled]="isFormDisabled"
                         [title]="getDestLabel()"
-                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; text-align: left;"
+                        style="width: 100%; min-width: 0; height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 8px; font-size: 13px; text-align: left;"
                         [ngStyle]="{
-                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                          'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                           'cursor': isFormDisabled ? 'not-allowed' : 'pointer',
-                          'opacity': isFormDisabled ? '0.75' : '1'
+                          'opacity': isFormDisabled ? '0.85' : '1'
                         }"
                         [style.color]="isFormDisabled ? 'var(--text-muted)' : (transactionDestination ? 'var(--text-primary)' : 'var(--text-muted)')"
                       >
@@ -973,26 +913,26 @@ export interface LineItem {
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" [ngStyle]="{'transform': showDestDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"><polyline points="6 9 12 15 18 9"></polyline></svg>
                       </button>
-                      <div *ngIf="showDestDropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px; max-height: 220px; overflow-y: auto;">
+                      <div *ngIf="showDestDropdown" class="custom-dropdown-scrollbar" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1050; padding: 4px 6px 4px 4px; max-height: 220px; overflow-y: auto;">
                         <ng-container *ngFor="let w of activeWarehouses">
                           <div *ngIf="w.id !== transactionLocation"
                             class="dropdown-menu-item"
                             [class.selected]="transactionDestination === w.id"
                             (click)="selectDest(w.id, $event)"
-                            [title]="w.name + ' (' + w.code + ')'"
+                            [title]="w.name"
                             [style.color]="transactionDestination === w.id ? 'var(--accent)' : 'var(--text-primary)'"
                           >
-                            {{ w.name }} ({{ w.code }})
+                            {{ w.name }}
                           </div>
                         </ng-container>
                       </div>
                     </div>
                   </ng-container>
 
-                  <!-- Trường hợp 2: Không yêu cầu đối tác (Dư sau kiểm kê hoặc lý do tạo mới không tick yêu cầu đối tác) -> Khóa trường lại -->
-                  <ng-container *ngIf="!isImportTransfer() && !isReasonRequiringPartner(transactionReason)">
+                  <!-- Trường hợp 2: Đã chọn lý do và lý do KHÔNG yêu cầu đối tác (Dư sau kiểm kê...) -> Khóa trường lại -->
+                  <ng-container *ngIf="transactionReason && !isImportTransfer() && !isReasonRequiringPartner(transactionReason)">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                      Nhà cung cấp / Khách hàng
+                      Nhận từ
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
@@ -1001,18 +941,18 @@ export interface LineItem {
                         readonly 
                         disabled
                         placeholder="Không áp dụng" 
-                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); font-size: 13px; color: var(--text-muted); cursor: not-allowed; opacity: 0.75;" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; font-size: 13px; color: #4f5966; cursor: not-allowed;" 
                       />
-                      <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center;">
+                      <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; display: flex; align-items: center;">
                         <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
                       </div>
                     </div>
                   </ng-container>
 
-                  <!-- Trường hợp 3: Có yêu cầu đối tác -> Hiển thị trường theo tên gọi phù hợp (Nhà cung ứng / Khách hàng / Tùy chỉnh) -->
-                  <ng-container *ngIf="!isImportTransfer() && isReasonRequiringPartner(transactionReason)">
+                  <!-- Trường hợp 3: Chưa chọn lý do HOẶC lý do có yêu cầu đối tác -> Đánh dấu * và KHÔNG KHÓA KHUNG -->
+                  <ng-container *ngIf="!isImportTransfer() && (!transactionReason || isReasonRequiringPartner(transactionReason))">
                     <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                      {{ getPartnerLabelForReason(transactionReason) }} <span style="color: #ef4444;">*</span>
+                      Nhận từ <span style="color: #ef4444;">*</span>
                     </label>
                     <div style="position: relative; width: 100%; min-width: 0;">
                       <input 
@@ -1021,10 +961,11 @@ export interface LineItem {
                         [disabled]="isFormDisabled"
                         [readonly]="isFormDisabled"
                         [attr.list]="getPartnerLabelForReason(transactionReason).toLowerCase().includes('khách') ? null : 'supplierListSuggestions'"
-                        [placeholder]="'Nhập ' + getPartnerLabelForReason(transactionReason).toLowerCase() + '...'" 
-                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                        [placeholder]="transactionReason ? ('Nhập thông tin nhận từ (' + getPartnerLabelForReason(transactionReason).toLowerCase() + ')...') : 'Nhập thông tin nhận từ (Nhà cung ứng, Đối tác)...'" 
+                        style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; font-size: 13px; outline: none;" 
                         [ngStyle]="{
-                          'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                          'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                          'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                           'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
                           'cursor': isFormDisabled ? 'not-allowed' : 'text'
                         }"
@@ -1037,12 +978,12 @@ export interface LineItem {
                 </div>
               </div>
 
-              <!-- Hàng 3: Số hóa đơn VAT / Mã PO | Ghi chú -->
+              <!-- Hàng 3: Chứng từ gốc | Ghi chú -->
               <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; position: relative; z-index: 1;">
-                <!-- 1. Số hóa đơn VAT / Mã PO -->
+                <!-- 1. Chứng từ gốc -->
                 <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <label style="font-size: 13px; font-weight: 400; color: var(--text-primary);">
-                    Số hóa đơn VAT / Mã PO
+                    Chứng từ gốc
                   </label>
                   <input 
                     type="text" 
@@ -1050,9 +991,10 @@ export interface LineItem {
                     [disabled]="isFormDisabled"
                     [readonly]="isFormDisabled"
                     placeholder="Nhập số hóa đơn VAT / Mã PO (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; font-size: 13px; outline: none;" 
                     [ngStyle]="{
-                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                      'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                       'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
                       'cursor': isFormDisabled ? 'not-allowed' : 'text'
                     }"
@@ -1068,9 +1010,10 @@ export interface LineItem {
                     [disabled]="isFormDisabled"
                     [readonly]="isFormDisabled"
                     placeholder="Nhập thông tin ghi chú kèm theo phiếu (nếu có)..." 
-                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none;" 
+                    style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; font-size: 13px; outline: none;" 
                     [ngStyle]="{
-                      'background': isFormDisabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      'background': isFormDisabled ? '#f1f1f1' : 'var(--bg-primary)',
+                      'border': isFormDisabled ? '2px solid #c8c8c8' : '1px solid var(--border-color)',
                       'color': isFormDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
                       'cursor': isFormDisabled ? 'not-allowed' : 'text'
                     }"
@@ -1103,7 +1046,6 @@ export interface LineItem {
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: left; text-transform: uppercase;">Sản phẩm</div>
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: left; text-transform: uppercase;">Biến thể</div>
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; text-transform: uppercase;">Tồn kho</div>
-                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; text-transform: uppercase;">ĐVT</div>
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; text-transform: uppercase;">Số lượng</div>
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; text-transform: uppercase; white-space: nowrap;">{{ type === 'import' ? 'Đơn giá nhập (₫)' : 'Đơn giá xuất (₫)' }}</div>
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; text-transform: uppercase; white-space: nowrap;">Thành tiền (₫)</div>
@@ -1125,7 +1067,7 @@ export interface LineItem {
                      'border': isFormDisabled ? 'none' : (isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)'),
                      'border-bottom': (isFormDisabled && lineItems.length > 1 && !last) ? '1px solid var(--border-color)' : (isFormDisabled ? 'none' : (isQuantityExceeded(item) ? '1px solid #f87171' : '1px solid var(--border-color)')),
                      'position': 'relative',
-                     'z-index': (openProductDropdownId === item.id || openVariantDropdownId === item.id || openUnitDropdownId === item.id) ? 100 : 1
+                     'z-index': (openProductDropdownId === item.id || openVariantDropdownId === item.id) ? 100 : 1
                    }">
                 
                 <!-- 1. Sản phẩm: Khóa khi chưa chọn kho -->
@@ -1337,57 +1279,10 @@ export interface LineItem {
                   </ng-container>
                 </div>
 
-                <!-- 4. Đơn vị tính (ĐVT) -->
-                <div style="display: flex; justify-content: center; width: 100%;">
-                  <div *ngIf="isFormDisabled" style="display: flex; align-items: center; justify-content: center; height: 38px; font-size: 13px; color: var(--text-primary); font-weight: 500;">
-                    {{ (item.productId && item.variantId) ? (item.unit || '-') : '-' }}
-                  </div>
-                  <div *ngIf="!isFormDisabled" class="filter-dropdown-wrapper location-filter-wrapper" style="width: 100%; position: relative;">
-                    <button 
-                      type="button" 
-                      class="filter-trigger-btn"
-                      [class.active]="!!item.unit"
-                      [disabled]="!transactionLocation || !item.productId || !item.variantId"
-                      [title]="!transactionLocation ? 'Vui lòng chọn chi nhánh / kho trước' : ((!item.productId || !item.variantId) ? 'Vui lòng chọn sản phẩm và biến thể trước' : ('Đơn vị tính: ' + (item.unit || 'Chưa chọn')))"
-                      (click)="toggleUnitDropdown(item, $event)"
-                      [ngStyle]="{
-                        'opacity': (!transactionLocation || !item.productId || !item.variantId) ? '0.6' : '1',
-                        'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'pointer',
-                        'background': (!transactionLocation || !item.productId || !item.variantId) ? 'var(--bg-secondary)' : 'var(--bg-primary)'
-                      }"
-                    >
-                      <div class="trigger-label">
-                        <span class="truncate-label">{{ (item.productId && item.variantId) ? (item.unit || '-') : '-' }}</span>
-                      </div>
-                      <lucide-angular 
-                        [img]="icons.ChevronDown" 
-                        size="13" 
-                        [style.transform]="openUnitDropdownId === item.id ? 'rotate(180deg)' : 'none'" 
-                        style="transition: transform 0.2s; flex-shrink: 0;"
-                      ></lucide-angular>
-                    </button>
-
-                    <div *ngIf="openUnitDropdownId === item.id && transactionLocation && item.productId && item.variantId" 
-                      class="filter-menu-dropdown custom-dropdown-scrollbar"
-                      [ngStyle]="{
-                        'bottom': dropdownPositions['unit_' + item.id] === 'up' ? 'calc(100% + 4px)' : 'auto',
-                        'top': dropdownPositions['unit_' + item.id] === 'up' ? 'auto' : 'calc(100% + 4px)'
-                      }"
-                    >
-                      <div *ngFor="let opt of getUnitOptions(item.unit)"
-                        (click)="selectUnit(item, opt, $event)"
-                        class="filter-menu-item"
-                        [class.selected]="item.unit === opt"
-                      >
-                        <span>{{ opt }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 <!-- 5. Số lượng (kèm Validation cảnh báo vượt tồn) -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                  <div *ngIf="isFormDisabled" style="display: flex; align-items: center; justify-content: center; height: 38px; font-size: 13.5px; font-weight: 700; color: var(--text-primary);">
+                  <div *ngIf="isFormDisabled" style="width: 76px; height: 38px; box-sizing: border-box; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text-primary); cursor: not-allowed;" title="Số lượng (Đã khóa)">
                     {{ item.quantity || 0 }}
                   </div>
                   <div *ngIf="!isFormDisabled" style="display: flex; align-items: stretch; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; height: 38px; width: 76px; background: var(--bg-primary); transition: all 0.15s ease;"
@@ -1404,9 +1299,9 @@ export interface LineItem {
                       [disabled]="!transactionLocation || !item.productId || !item.variantId"
                       [value]="item.quantity" 
                       (keydown)="onQuantityKeydown($event)"
-                      (input)="onQuantityInput(item, $event)"
-                      placeholder="0"
-                      style="flex: 1; min-width: 0; width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-primary); padding: 0 2px;"
+                      (input)="onQuantityInput(item, $event)" 
+                      placeholder="0" 
+                      style="flex: 1; min-width: 0; width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-primary); padding: 0 2px;" 
                       [ngStyle]="{
                         'cursor': (!transactionLocation || !item.productId || !item.variantId) ? 'not-allowed' : 'text',
                         'color': isQuantityExceeded(item) ? '#dc2626' : 'var(--text-primary)'
@@ -1447,7 +1342,7 @@ export interface LineItem {
 
                 <!-- 6. Đơn giá xuất / nhập -->
                 <div>
-                  <div *ngIf="isFormDisabled" style="display: flex; align-items: center; justify-content: flex-end; height: 38px; font-size: 13px; font-weight: 500; color: var(--text-primary); padding-right: 8px;">
+                  <div *ngIf="isFormDisabled" style="width: 100%; height: 38px; box-sizing: border-box; border-radius: 8px; border: 2px solid #c8c8c8; background: #f1f1f1; display: flex; align-items: center; justify-content: flex-end; padding: 0 10px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: not-allowed;" title="Đơn giá (Đã khóa)">
                     {{ item.price ? (item.price + ' ₫') : '0 ₫' }}
                   </div>
                   <input *ngIf="!isFormDisabled"
@@ -1556,9 +1451,9 @@ export interface LineItem {
                     />
                   </ng-container>
                   <ng-container *ngIf="isFormDisabled">
-                    <span style="font-weight: 600; color: var(--text-primary); font-size: 13px; text-align: right;">
+                    <div style="width: 190px; height: 28px; box-sizing: border-box; border-radius: 6px; border: 2px solid #c8c8c8; background: #f1f1f1; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; font-size: 12.5px; font-weight: 600; color: var(--text-primary); cursor: not-allowed;" title="Chiết khấu (Đã khóa)">
                       {{ getDiscountValue() > 0 ? ('-' + formatCurrency(getDiscountValue())) : '0 ₫' }}
-                    </span>
+                    </div>
                   </ng-container>
                 </div>
 
@@ -1616,8 +1511,8 @@ export interface LineItem {
                                   [value]="customTaxInput"
                                   (keydown)="onCustomTaxKeydown($event)"
                                   (input)="onCustomTaxInput($event)"
-                                  placeholder="0"
-                                  maxlength="3"
+                                  placeholder="0" 
+                                  maxlength="3" 
                                   title="Nhập số nguyên (0-100)"
                                   style="width: 100%; height: 26px; padding: 0 16px 0 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 11.5px; background: var(--bg-primary); color: var(--text-primary); text-align: right; outline: none; box-sizing: border-box;"
                                 />
@@ -1641,9 +1536,12 @@ export interface LineItem {
                     </div>
                   </ng-container>
                   <ng-container *ngIf="isFormDisabled">
-                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
-                      <span *ngIf="taxRate > 0" style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(118, 83, 55, 0.1); color: var(--accent); font-weight: 600;">{{ taxRate }}%</span>
-                      <span style="font-weight: 600; color: var(--text-primary); font-size: 13px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 190px; gap: 6px;">
+                      <div style="width: 78px; height: 28px; box-sizing: border-box; border-radius: 6px; border: 2px solid #c8c8c8; background: #f1f1f1; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-primary); cursor: not-allowed; flex-shrink: 0;" title="Thuế VAT (Đã khóa)">
+                        <lucide-angular [img]="icons.Percent" size="12" style="color: #64748b;"></lucide-angular>
+                        <span>{{ taxRate }}%</span>
+                      </div>
+                      <span style="font-weight: 600; text-align: right; color: var(--text-primary); font-size: 12.5px; flex: 1; white-space: nowrap;">
                         {{ taxRate > 0 ? ('+' + formatCurrency(getTaxValue())) : '0 ₫' }}
                       </span>
                     </div>
@@ -1666,9 +1564,9 @@ export interface LineItem {
                     />
                   </ng-container>
                   <ng-container *ngIf="isFormDisabled">
-                    <span style="font-weight: 600; color: var(--text-primary); font-size: 13px; text-align: right;">
+                    <div style="width: 190px; height: 28px; box-sizing: border-box; border-radius: 6px; border: 2px solid #c8c8c8; background: #f1f1f1; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; font-size: 12.5px; font-weight: 600; color: var(--text-primary); cursor: not-allowed;" title="Phí vận chuyển (Đã khóa)">
                       {{ getShippingValue() > 0 ? ('+' + formatCurrency(getShippingValue())) : '0 ₫' }}
-                    </span>
+                    </div>
                   </ng-container>
                 </div>
 
@@ -1946,7 +1844,7 @@ export interface LineItem {
               >
                 <lucide-angular *ngIf="!isExecutingOrder" [img]="icons.CheckCircle2" size="15"></lucide-angular>
                 <lucide-angular *ngIf="isExecutingOrder" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
-                <span>{{ isExecutingOrder ? (type === 'import' ? 'Đang nhập kho...' : 'Đang xuất kho...') : (type === 'import' ? 'Xác nhận Nhập kho' : 'Xác nhận Xuất kho') }}</span>
+                <span>{{ getConfirmActionBtnLabel() }}</span>
               </button>
             </ng-container>
 
@@ -2022,7 +1920,7 @@ export interface LineItem {
 
           <!-- Field 2: Checkbox Có yêu cầu thông tin đối tác / nhà cung cấp không -->
           <div 
-            (click)="newReasonRequiresSupplier = !newReasonRequiresSupplier"
+            (click)="toggleNewReasonRequiresSupplier()"
             style="padding: 12px 14px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.15s ease;"
             [style.border-color]="newReasonRequiresSupplier ? 'var(--accent)' : 'var(--border-color)'"
           >
@@ -2035,9 +1933,9 @@ export interface LineItem {
                 <lucide-angular *ngIf="!newReasonRequiresSupplier" [img]="icons.Square" size="16"></lucide-angular>
               </div>
               <div style="display: flex; flex-direction: column; gap: 2px;">
-                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Yêu cầu đối tác (Nhà cung ứng / Khách hàng)</span>
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Yêu cầu đối tác</span>
                 <span style="font-size: 11.5px; color: var(--text-muted); line-height: 1.35;">
-                  {{ type === 'import' ? 'Bật nếu đơn nhập cần ghi nhận từ đối tác (Nhà cung ứng hoặc Khách hàng)' : 'Bật nếu đơn xuất cần ghi nhận cho đối tác (Khách hàng hoặc Nhà cung ứng)' }}
+                  {{ type === 'import' ? 'Bật nếu đơn nhập cần ghi nhận cho đối tác' : 'Bật nếu đơn xuất cần ghi nhận cho đối tác' }}
                 </span>
               </div>
             </div>
@@ -2056,35 +1954,11 @@ export interface LineItem {
               <span style="font-size: 11px; color: var(--text-muted);">Hiển thị trên form</span>
             </div>
 
-            <!-- Nút chọn nhanh: Nhà cung ứng / Khách hàng -->
-            <div style="display: flex; gap: 8px;">
-              <button 
-                type="button" 
-                (click)="newReasonPartnerLabel = 'Nhà cung ứng'"
-                [style.background]="(newReasonPartnerLabel === 'Nhà cung ứng' || newReasonPartnerLabel === 'Nhà cung cấp') ? 'var(--accent)' : 'var(--bg-primary)'"
-                [style.color]="(newReasonPartnerLabel === 'Nhà cung ứng' || newReasonPartnerLabel === 'Nhà cung cấp') ? '#ffffff' : 'var(--text-primary)'"
-                [style.border]="'1px solid ' + ((newReasonPartnerLabel === 'Nhà cung ứng' || newReasonPartnerLabel === 'Nhà cung cấp') ? 'var(--accent)' : 'var(--border-color)')"
-                style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
-              >
-                Nhà cung ứng
-              </button>
-              <button 
-                type="button" 
-                (click)="newReasonPartnerLabel = 'Khách hàng'"
-                [style.background]="newReasonPartnerLabel === 'Khách hàng' ? 'var(--accent)' : 'var(--bg-primary)'"
-                [style.color]="newReasonPartnerLabel === 'Khách hàng' ? '#ffffff' : 'var(--text-primary)'"
-                [style.border]="'1px solid ' + (newReasonPartnerLabel === 'Khách hàng' ? 'var(--accent)' : 'var(--border-color)')"
-                style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;"
-              >
-                Khách hàng
-              </button>
-            </div>
-
-            <!-- Ô nhập tự do nếu muốn tùy chỉnh thêm tên gọi khác -->
+            <!-- Ô nhập tên gọi của trường đối tác (Điền sẵn Khách hàng khi xuất kho, Nhà cung ứng khi nhập kho) -->
             <input 
               type="text" 
               [(ngModel)]="newReasonPartnerLabel"
-              placeholder="Hoặc nhập tên gọi khác (VD: Đối tác dự án, Nhà máy...)"
+              [placeholder]="type === 'import' ? 'VD: Nhà cung ứng, Đối tác dự án, Nhà máy...' : 'VD: Khách hàng, Đối tác dự án...'"
               maxlength="40"
               style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 12.5px; color: var(--text-primary); outline: none;"
             />
@@ -2262,7 +2136,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     X, Plus, Minus, Trash2, Filter, Search, ChevronUp, ChevronDown, 
     Lock, Calendar, User, FileText, CheckCircle2, AlertCircle, Save,
     CheckSquare, Square, Package, Percent, Play, Printer, Ban, Pencil, RotateCcw, Clock,
-    Loader2
+    Loader2, ArrowLeftRight
   };
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
@@ -2301,7 +2175,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   @Output() onClose = new EventEmitter<void>();
   @Output() onSubmit = new EventEmitter<any>();
-  @Output() onStatusChange = new EventEmitter<{ orderId: string; newStatus: string; reason?: string }>();
+  @Output() onStatusChange = new EventEmitter<{ orderId: string; newStatus: string; reason?: string; actionLogs?: ActionLogItem[] }>();
   @Output() onDeleteOrder = new EventEmitter<string>();
   @Output() onUpdateOrder = new EventEmitter<any>();
 
@@ -2310,21 +2184,36 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   get isViewMode(): boolean { return !!this.viewOrderData; }
   get viewStatus(): string {
     const raw = String(this.viewOrderData?.rawStatus || this.viewOrderData?.status || '').toUpperCase().trim();
-    if (raw === 'BẢN NHÁP' || raw === 'NHÁP') return 'DRAFT';
-    if (raw === 'LÊN KẾ HOẠCH' || raw === 'CHỜ NHẬP KHO' || raw === 'CHỜ XUẤT KHO') return 'PLANNED';
+    if (raw === 'BẢN NHÁP' || raw === 'NHÁP' || raw === 'PENDING') return 'DRAFT';
+    if (raw === 'LÊN KẾ HOẠCH' || raw === 'CHỜ NHẬP KHO' || raw === 'CHỜ XUẤT KHO' || raw === 'PROCESSING') return 'PLANNED';
     if (raw === 'ĐÃ XUẤT KHO') return 'EXPORTED';
     if (raw === 'ĐÃ NHẬP KHO') return 'IMPORTED';
     if (raw === 'ĐÃ HỦY') return 'CANCELLED';
     return raw;
   }
-  /** Canonical statuses: DRAFT | PLANNED | EXPORTED | IMPORTED | CANCELLED */
-  get isDraft(): boolean    { return this.viewStatus === 'DRAFT' || this.viewStatus === 'PENDING'; }
-  get isPlanned(): boolean  { return this.viewStatus === 'PLANNED' || this.viewStatus === 'PROCESSING'; }
-  get isExported(): boolean { return this.type === 'export' && (this.viewStatus === 'EXPORTED' || this.viewStatus === 'COMPLETED'); }
-  get isImported(): boolean { return this.type === 'import' && (this.viewStatus === 'IMPORTED' || this.viewStatus === 'COMPLETED'); }
+  /** Canonical statuses: DRAFT | PLANNED | EXPORTED | IMPORTED | COMPLETED | CANCELLED */
+  get isDraft(): boolean        { return this.viewStatus === 'DRAFT'; }
+  get isPlanned(): boolean      { return this.viewStatus === 'PLANNED'; }
+  get isExported(): boolean     { return this.type === 'export' && (this.viewStatus === 'EXPORTED' || this.viewStatus === 'COMPLETED'); }
+  get isImported(): boolean     { return this.type === 'import' && (this.viewStatus === 'IMPORTED' || this.viewStatus === 'COMPLETED'); }
   get isCompletedStock(): boolean { return this.isExported || this.isImported; }
-  get isCancelled(): boolean{ return this.viewStatus === 'CANCELLED'; }
+  get isCancelled(): boolean    { return this.viewStatus === 'CANCELLED'; }
   get isReadOnlyOrder(): boolean { return this.isCompletedStock || this.isCancelled; }
+
+  get isTransferImport(): boolean {
+    if (this.type !== 'import') return false;
+    const r = (this.viewOrderData?.reason || this.transactionReason || '').toLowerCase();
+    const id = (this.viewOrderData?.id || this.orderCode || '').toLowerCase();
+    const ref = (this.viewOrderData?.referenceCode || '').toLowerCase();
+    return r.includes('chuyển kho') || id.includes('ck') || ref.includes('ck') || !!this.viewOrderData?.linkedTransferCode;
+  }
+
+  getConfirmActionBtnLabel(): string {
+    if (this.isExecutingOrder) {
+      return this.type === 'import' ? 'Đang nhập kho...' : 'Đang xuất kho...';
+    }
+    return this.type === 'import' ? 'Xác nhận Nhập kho' : 'Xác nhận Xuất kho';
+  }
 
   // Draft editing state
   isEditingDraft = false;
@@ -2482,12 +2371,35 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   extractLogsFromNotes(notes: string | null | undefined): ActionLogItem[] | null {
     if (!notes) return null;
-    const match = notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+    const match = notes.match(/\[ACTION_LOGS:(\[[\s\S]*?\])\]/) || notes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || notes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
     if (match && match[1]) {
       try {
         const parsed = JSON.parse(match[1]);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
+    }
+    // Bracket counting fallback
+    const startIdx = notes.indexOf('[ACTION_LOGS:[');
+    if (startIdx !== -1) {
+      const jsonStart = startIdx + '[ACTION_LOGS:'.length;
+      let depth = 0;
+      let jsonEnd = -1;
+      for (let i = jsonStart; i < notes.length; i++) {
+        if (notes[i] === '[') depth++;
+        else if (notes[i] === ']') {
+          depth--;
+          if (depth === 0) {
+            jsonEnd = i + 1;
+            break;
+          }
+        }
+      }
+      if (jsonEnd !== -1) {
+        try {
+          const parsed = JSON.parse(notes.slice(jsonStart, jsonEnd));
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
+      }
     }
     return null;
   }
@@ -2495,8 +2407,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   cleanNotesForDisplay(notes: string | null | undefined): string {
     if (!notes) return '';
     return notes
+      .replace(/\[ACTION_LOGS:\[[\s\S]*?\]\]/g, '')
+      .replace(/\[ACTION_LOGS:[\s\S]*?\]\]/g, '')
       .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
       .replace(/\[STATUS:[^\]]+\]/g, '')
+      .replace(/\[ORIGIN:[^\]]+\]/g, '')
       .replace(/\[Người lập:[^\]]+\]/g, '')
       .replace(/\[Người nhận:[^\]]+\]/g, '')
       .replace(/\[Lý do hủy:[^\]]+\]/g, '')
@@ -2508,8 +2423,15 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     const operator = v.creatorName || v.creator || this.creatorName || 'Admin Quản Trị';
     const createdAt = v.createdAt || v.date || new Date().toISOString();
     const rawStatus = v.rawStatus || v.status || 'DRAFT';
+    const rawNotes = v.rawNotes || v.notes || '';
 
-    if (rawStatus === 'DRAFT') {
+    const wasDraft = rawStatus === 'DRAFT' || 
+                     rawNotes.includes('[ORIGIN:DRAFT]') || 
+                     rawNotes.includes('[STATUS:DRAFT]') ||
+                     rawNotes.includes('Tạo bản nháp') ||
+                     rawNotes.includes('bản nháp');
+
+    if (wasDraft) {
       logs.push({
         timestamp: createdAt,
         operator,
@@ -2517,6 +2439,16 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         toStatus: 'DRAFT',
         actionLabel: 'Tạo bản nháp'
       });
+
+      if (rawStatus !== 'DRAFT') {
+        logs.push({
+          timestamp: v.plannedAt || createdAt,
+          operator,
+          actionType: 'STATUS_CHANGE',
+          fromStatus: 'DRAFT',
+          toStatus: 'PLANNED'
+        });
+      }
     } else {
       logs.push({
         timestamp: createdAt,
@@ -2530,7 +2462,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (rawStatus === 'EXPORTED' || rawStatus === 'IMPORTED' || rawStatus === 'COMPLETED') {
       const completedStatus = this.type === 'import' ? 'IMPORTED' : 'EXPORTED';
       logs.push({
-        timestamp: v.updatedAt || createdAt,
+        timestamp: v.completedAt || v.updatedAt || createdAt,
         operator,
         actionType: 'STATUS_CHANGE',
         fromStatus: 'PLANNED',
@@ -2539,14 +2471,14 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     }
 
     if (rawStatus === 'CANCELLED') {
-      const reasonMatch = (v.notes || '').match(/\[Lý do hủy:\s*([^\]]+)\]/);
+      const reasonMatch = (rawNotes || '').match(/\[Lý do hủy:\s*([^\]]+)\]/);
       logs.push({
         timestamp: v.updatedAt || createdAt,
         operator,
         actionType: 'CANCEL',
-        fromStatus: 'PLANNED',
+        fromStatus: wasDraft && rawStatus === 'DRAFT' ? 'DRAFT' : 'PLANNED',
         toStatus: 'CANCELLED',
-        reason: reasonMatch ? reasonMatch[1] : (this.cleanNotesForDisplay(v.notes) || 'Hủy theo yêu cầu')
+        reason: reasonMatch ? reasonMatch[1] : (this.cleanNotesForDisplay(rawNotes) || 'Hủy theo yêu cầu')
       });
     }
 
@@ -2556,7 +2488,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   getViewStatusLabel(): string {
     switch (this.viewStatus) {
       case 'DRAFT':     case 'PENDING':    return 'Bản nháp';
-      case 'PLANNED':   case 'PROCESSING': return this.type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất';
+      case 'PLANNED':   case 'PROCESSING': return this.type === 'import' ? 'Chờ nhập kho' : 'Lên kế hoạch xuất';
       case 'EXPORTED':  return 'Đã xuất kho';
       case 'IMPORTED':  return 'Đã nhập kho';
       case 'COMPLETED': return this.type === 'import' ? 'Đã nhập kho' : 'Đã xuất kho';
@@ -2666,7 +2598,11 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     }, 12000);
 
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
+    const cleanNote = this.cleanNotesForDisplay(this.transactionNote);
+    const logsPayload = `[ACTION_LOGS:${JSON.stringify(this.actionLogs)}]`;
+    const finalNotes = cleanNote ? `${cleanNote}\n${logsPayload}` : logsPayload;
     const isImport = this.type === 'import';
+
     const payload = {
       orderId,
       orderData: {
@@ -2675,7 +2611,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         sourceWarehouseId: isImport ? null : this.transactionLocation,
         destWarehouseId: isImport ? this.transactionLocation : this.transactionDestination,
         reason: this.transactionReason,
-        notes: this.transactionNote,
+        notes: finalNotes,
         referenceCode: this.referenceCode,
         taxRate: this.taxRate,
         discount: this.getDiscountValue(),
@@ -2715,7 +2651,13 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       fromStatus: 'DRAFT',
       toStatus: 'PLANNED'
     });
-    this.onStatusChange.emit({ orderId, newStatus: 'PLANNED' });
+    if (this.viewOrderData) {
+      this.viewOrderData.status = 'PLANNED';
+      this.viewOrderData.rawStatus = 'PLANNED';
+    }
+    this.isEditingDraft = false;
+    this.cdr.markForCheck();
+    this.onStatusChange.emit({ orderId, newStatus: 'PLANNED', actionLogs: this.actionLogs });
   }
 
   handleConfirmExecution() {
@@ -2733,14 +2675,21 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
     const orderId = this.viewOrderData.rawId || this.viewOrderData.id;
     const newStatus = this.type === 'import' ? 'IMPORTED' : 'EXPORTED';
+    const fromStatus = (this.viewStatus === 'DRAFT') ? 'DRAFT' : 'PLANNED';
     this.actionLogs.push({
       timestamp: new Date().toISOString(),
       operator: this.creatorName || 'Admin Quản Trị',
       actionType: 'STATUS_CHANGE',
-      fromStatus: 'PLANNED',
+      fromStatus,
       toStatus: newStatus
     });
-    this.onStatusChange.emit({ orderId, newStatus });
+    if (this.viewOrderData) {
+      this.viewOrderData.status = newStatus;
+      this.viewOrderData.rawStatus = newStatus;
+    }
+    this.isEditingDraft = false;
+    this.cdr.markForCheck();
+    this.onStatusChange.emit({ orderId, newStatus, actionLogs: this.actionLogs });
   }
 
   handleExportOrder() {
@@ -2781,7 +2730,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       toStatus: 'CANCELLED',
       reason
     });
-    this.onStatusChange.emit({ orderId, newStatus: 'CANCELLED', reason });
+    this.onStatusChange.emit({ orderId, newStatus: 'CANCELLED', reason, actionLogs: this.actionLogs });
   }
 
   populateFromViewOrder() {
@@ -2816,8 +2765,47 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       } catch {}
     }
     const noteSource = v.rawNotes || v.notes;
-    const existingLogs = this.extractLogsFromNotes(noteSource);
-    this.actionLogs = existingLogs || this.generateOrderBaselineLogs(v);
+    const existingLogs = (Array.isArray(v.actionLogs) && v.actionLogs.length > 0)
+      ? v.actionLogs
+      : this.extractLogsFromNotes(noteSource);
+
+    if (existingLogs && existingLogs.length > 0) {
+      this.actionLogs = [...existingLogs];
+      const rawStatus = v.rawStatus || v.status || 'DRAFT';
+      const lastLog = this.actionLogs[this.actionLogs.length - 1];
+      const hasCompleted = this.actionLogs.some(l => l.toStatus === 'EXPORTED' || l.toStatus === 'IMPORTED' || l.toStatus === 'COMPLETED');
+      const hasPlanned = this.actionLogs.some(l => l.toStatus === 'PLANNED');
+
+      if ((rawStatus === 'PLANNED' || rawStatus === 'PROCESSING') && !hasPlanned) {
+        this.actionLogs.push({
+          timestamp: v.updatedAt || new Date().toISOString(),
+          operator: this.creatorName || 'Admin Quản Trị',
+          actionType: 'STATUS_CHANGE',
+          fromStatus: lastLog?.toStatus || 'DRAFT',
+          toStatus: 'PLANNED'
+        });
+      } else if ((rawStatus === 'EXPORTED' || rawStatus === 'IMPORTED' || rawStatus === 'COMPLETED') && !hasCompleted) {
+        if (!hasPlanned && lastLog?.toStatus === 'DRAFT') {
+          this.actionLogs.push({
+            timestamp: v.updatedAt || new Date().toISOString(),
+            operator: this.creatorName || 'Admin Quản Trị',
+            actionType: 'STATUS_CHANGE',
+            fromStatus: 'DRAFT',
+            toStatus: 'PLANNED'
+          });
+        }
+        const completedStatus = this.type === 'import' ? 'IMPORTED' : 'EXPORTED';
+        this.actionLogs.push({
+          timestamp: v.completedAt || v.updatedAt || new Date().toISOString(),
+          operator: this.creatorName || 'Admin Quản Trị',
+          actionType: 'STATUS_CHANGE',
+          fromStatus: 'PLANNED',
+          toStatus: completedStatus
+        });
+      }
+    } else {
+      this.actionLogs = this.generateOrderBaselineLogs(v);
+    }
     this.transactionNote = this.cleanNotesForDisplay(v.notes);
     this.referenceCode = v.referenceCode || '';
     this.transactionReason = v.reason || '';
@@ -3188,6 +3176,13 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   getWordCount(text: string): number {
     if (!text || !text.trim()) return 0;
     return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+  }
+
+  toggleNewReasonRequiresSupplier() {
+    this.newReasonRequiresSupplier = !this.newReasonRequiresSupplier;
+    if (this.newReasonRequiresSupplier && (!this.newReasonPartnerLabel || !this.newReasonPartnerLabel.trim())) {
+      this.newReasonPartnerLabel = this.type === 'import' ? 'Nhà cung ứng' : 'Khách hàng';
+    }
   }
 
   openAddReasonModal(event: Event) {
@@ -3706,13 +3701,13 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   getLocationLabel(): string {
     if (!this.transactionLocation) return this.type === 'import' ? 'Chọn kho đích nhập về' : 'Chọn chi nhánh / kho xuất';
     const w = this.activeWarehouses.find((x: any) => x.id === this.transactionLocation || x.name === this.transactionLocation);
-    return w ? `${w.name} (${w.code})` : this.transactionLocation;
+    return w ? w.name : this.transactionLocation;
   }
 
   getDestLabel(): string {
     if (!this.transactionDestination) return this.type === 'import' ? 'Chọn kho nguồn' : 'Chọn kho đích';
     const w = this.activeWarehouses.find((x: any) => x.id === this.transactionDestination || x.name === this.transactionDestination);
-    return w ? `${w.name} (${w.code})` : this.transactionDestination;
+    return w ? w.name : this.transactionDestination;
   }
 
   getExportRecipientLabel(): string {
@@ -4163,7 +4158,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   getGridColumns() {
-    return 'minmax(220px, 1.5fr) minmax(190px, 1.3fr) 80px 80px 90px 140px 145px 36px';
+    return 'minmax(240px, 1.6fr) minmax(200px, 1.4fr) 85px 95px 140px 145px 36px';
   }
 
   getQuantity(item: LineItem): number {

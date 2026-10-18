@@ -42,6 +42,20 @@ interface StockHistory {
     .admin-table tbody tr:hover {
       background: #F3E5D3 !important;
     }
+    .spinning-loader {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(188, 95, 19, 0.15);
+      border-top: 4px solid var(--accent, #bc5f13);
+      border-radius: 50%;
+      animation: reportsSpin 0.85s linear infinite;
+      box-sizing: border-box;
+      display: inline-block;
+    }
+    @keyframes reportsSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
@@ -260,13 +274,11 @@ interface StockHistory {
         </button>
       </div>
 
-      <!-- 1. LOADING STATE: Nút xoay vòng khi đang tải dữ liệu -->
-      <div *ngIf="isLoading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px; background: white; border-radius: 12px; border: 1px solid var(--border-color); gap: 16px; padding: 60px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(118, 83, 55, 0.08); display: flex; align-items: center; justify-content: center;">
-          <lucide-angular [img]="icons.Loader2" size="28" color="var(--accent)" style="animation: spin 0.8s linear infinite;"></lucide-angular>
-        </div>
+      <!-- 1. LOADING STATE: Nút xoay vòng khi đang tải dữ liệu (đồng bộ chuẩn từ Tổng quan kho) -->
+      <div *ngIf="isLoading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px; background: white; border-radius: 12px; border: 1px solid var(--border-color); gap: 14px; padding: 60px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div class="spinning-loader"></div>
         <div style="text-align: center;">
-          <div style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Đang tải chi tiết tồn kho sản phẩm...</div>
+          <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Đang tải chi tiết tồn kho sản phẩm...</div>
           <div style="font-size: 13px; color: var(--text-muted);">Vui lòng chờ trong giây lát trong khi hệ thống cập nhật dữ liệu mới nhất.</div>
         </div>
       </div>

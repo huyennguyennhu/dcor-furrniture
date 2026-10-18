@@ -390,6 +390,12 @@
             <div style="max-width: 250px;">
               <div style="font-weight: 400; line-height: 1.3; font-size: 13px; color: var(--text-primary);">{{ order.reason }}</div>
               <div *ngIf="order.cleanNotes" style="font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="order.cleanNotes">{{ order.cleanNotes }}</div>
+              <div *ngIf="order.linkedTransferCode" style="margin-top: 4px;">
+                <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; color: #0284c7; background: rgba(14, 165, 233, 0.08); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(14, 165, 233, 0.25);" [title]="'Phiếu liên kết đối ứng: ' + order.linkedTransferCode">
+                  <lucide-angular [img]="icons.ArrowLeftRight" size="11"></lucide-angular>
+                  <span>{{ order.linkedTransferCode }}</span>
+                </span>
+              </div>
             </div>
           </td>
 

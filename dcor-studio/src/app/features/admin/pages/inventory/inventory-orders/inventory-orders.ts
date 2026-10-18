@@ -40,6 +40,9 @@ export interface StockOrder {
   status: 'COMPLETED' | 'PROCESSING' | 'PENDING' | 'CANCELLED' | 'DRAFT' | 'PLANNED' | 'EXPORTED' | 'IMPORTED';
   rawStatus?: string;
   notes?: string;
+  cleanNotes?: string;
+  rawNotes?: string;
+  actionLogs?: any[];
 }
 
 @Component({
@@ -312,6 +315,9 @@ export class InventoryOrdersComponent implements OnInit {
             status: o.status,
             rawStatus: o.rawStatus || o.status,
             notes: o.notes,
+            cleanNotes: o.notes,
+            rawNotes: o.rawNotes || o.notes,
+            actionLogs: o.actionLogs || null,
             taxRate: o.taxRate,
             taxAmount: o.taxAmount,
             discount: o.discount,
@@ -716,7 +722,8 @@ export class InventoryOrdersComponent implements OnInit {
         creatorName: order.creator,
         recipientName: (order as any).recipientName,
         notes: (order as any).cleanNotes || order.notes,
-        rawNotes: order.notes,
+        rawNotes: (order as any).rawNotes || order.notes,
+        actionLogs: (order as any).actionLogs || null,
         taxRate: (order as any).taxRate,
         discount: (order as any).discount,
         items: (order.items || []).map((it: any) => ({
@@ -738,12 +745,16 @@ export class InventoryOrdersComponent implements OnInit {
     this.modalConfig.viewOrderData = null;
   }
 
-  handleOrderStatusChange(event: { orderId: string; newStatus: string; reason?: string }) {
-    const { orderId, newStatus, reason } = event;
+  handleOrderStatusChange(event: { orderId: string; newStatus: string; reason?: string; actionLogs?: any[] }) {
+    const { orderId, newStatus, reason, actionLogs } = event;
     const targetOrder = this.data.find(o => o.rawId === orderId || o.id === orderId);
     const isImport = targetOrder?.type === 'import';
     
-    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}/status`, { status: newStatus, cancelReason: reason || null }).subscribe({
+    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}/status`, { 
+      status: newStatus, 
+      cancelReason: reason || null,
+      actionLogs: actionLogs || null
+    }).subscribe({
       next: () => {
         this.closeModal();
         this.fetchOrders(true);

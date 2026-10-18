@@ -36,6 +36,7 @@ export interface StockOrder {
   sourceWarehouseId?: string;
   destWarehouseId?: string;
   referenceCode: string;
+  linkedTransferCode?: string;
   reason: string;
   creator: string;
   items: StockOrderItem[];
@@ -45,6 +46,8 @@ export interface StockOrder {
   rawStatus?: string;
   notes?: string;
   cleanNotes?: string;
+  rawNotes?: string;
+  actionLogs?: any[];
   taxRate?: number;
   taxAmount?: number;
   discount?: number;
@@ -232,7 +235,7 @@ export class InventoryTransactionsComponent implements OnInit {
         return 'Bản nháp';
       case 'PLANNED':
       case 'PROCESSING':
-        return t === 'import' ? 'Chờ nhập kho' : 'Lên kế hoạch';
+        return t === 'import' ? 'Chờ nhập kho' : 'Lên kế hoạch xuất';
       case 'IMPORTED':
         return 'Đã nhập kho';
       case 'EXPORTED':
@@ -340,7 +343,7 @@ export class InventoryTransactionsComponent implements OnInit {
             let creatorFromLogs = '';
             if (rawNotes.includes('ACTION_LOGS:')) {
               try {
-                const logsMatch = rawNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || rawNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
+                const logsMatch = rawNotes.match(/\[ACTION_LOGS:(\[[\s\S]*?\])\]/) || rawNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]\]/) || rawNotes.match(/\[ACTION_LOGS:([\s\S]*?)\]/);
                 if (logsMatch) {
                   const logs = JSON.parse(logsMatch[1]);
                   if (Array.isArray(logs) && logs.length > 0 && logs[0].operator) {
@@ -356,9 +359,11 @@ export class InventoryTransactionsComponent implements OnInit {
             }
 
             const cleanNotes = (o.notes || '')
+              .replace(/\[ACTION_LOGS:\[[\s\S]*?\]\]/g, '')
               .replace(/\[ACTION_LOGS:[\s\S]*?\]\]/g, '')
               .replace(/\[ACTION_LOGS:[\s\S]*?\]/g, '')
               .replace(/\[STATUS:[^\]]+\]/g, '')
+              .replace(/\[ORIGIN:[^\]]+\]/g, '')
               .replace(/\[Người lập:[^\]]+\]/g, '')
               .replace(/\[Người nhận:[^\]]+\]/g, '')
               .replace(/\[Lý do hủy:[^\]]+\]/g, '')
@@ -393,6 +398,7 @@ export class InventoryTransactionsComponent implements OnInit {
               sourceWarehouseId: o.sourceWarehouseId,
               destWarehouseId: o.destWarehouseId,
               referenceCode: o.referenceCode || o.orderCode,
+              linkedTransferCode: (o.linkedTransferCode && o.linkedTransferCode !== (o.orderCode || o.id)) ? o.linkedTransferCode : '',
               reason: o.reason || 'Lệnh điều phối kho',
               creator: finalCreator,
               totalQuantity: o.totalQuantity || 0,
@@ -401,6 +407,8 @@ export class InventoryTransactionsComponent implements OnInit {
               rawStatus: o.rawStatus || o.status,
               notes: rawNotes,
               cleanNotes: cleanNotes,
+              rawNotes: rawNotes,
+              actionLogs: o.actionLogs || null,
               taxRate: o.taxRate,
               taxAmount: o.taxAmount,
               discount: o.discount,
@@ -444,6 +452,8 @@ export class InventoryTransactionsComponent implements OnInit {
           if (order.status !== 'PLANNED' && order.status !== 'PROCESSING' && order.rawStatus !== 'PLANNED') return false;
         } else if (this.statusFilter === 'DRAFT') {
           if (order.status !== 'DRAFT' && order.rawStatus !== 'DRAFT' && order.status !== 'PENDING') return false;
+        } else if (this.statusFilter === 'CANCELLED') {
+          if (order.status !== 'CANCELLED' && order.rawStatus !== 'CANCELLED') return false;
         } else if (order.status !== this.statusFilter) {
           return false;
         }
@@ -628,7 +638,8 @@ export class InventoryTransactionsComponent implements OnInit {
         creatorName: order.creator,
         recipientName: (order as any).recipientName,
         notes: order.cleanNotes || order.notes,
-        rawNotes: order.notes,
+        rawNotes: (order as any).rawNotes || order.notes,
+        actionLogs: (order as any).actionLogs || null,
         taxRate: order.taxRate,
         discount: order.discount,
         shippingFee: order.shippingFee,
@@ -651,17 +662,21 @@ export class InventoryTransactionsComponent implements OnInit {
     this.modalConfig.viewOrderData = null;
   }
 
-  handleOrderStatusChange(event: { orderId: string; newStatus: string; reason?: string }) {
-    const { orderId, newStatus, reason } = event;
+  handleOrderStatusChange(event: { orderId: string; newStatus: string; reason?: string; actionLogs?: any[] }) {
+    const { orderId, newStatus, reason, actionLogs } = event;
     const targetOrder = this.data.find(o => o.rawId === orderId || o.id === orderId);
     const isImport = targetOrder?.type === 'import';
     
-    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}/status`, { status: newStatus, cancelReason: reason || null }).subscribe({
+    this.http.put(`${environment.apiUrl}/admin/inventory/orders/${orderId}/status`, { 
+      status: newStatus, 
+      cancelReason: reason || null,
+      actionLogs: actionLogs || null
+    }).subscribe({
       next: () => {
         this.closeModal();
         this.fetchOrders(true);
         const labels: Record<string, string> = {
-          PLANNED: isImport ? 'Chờ nhập kho / Lên kế hoạch' : 'Lên kế hoạch xuất',
+          PLANNED: isImport ? 'Chờ nhập kho' : 'Lên kế hoạch xuất',
           EXPORTED: 'Đã xuất kho',
           IMPORTED: 'Đã nhập kho',
           COMPLETED: isImport ? 'Đã nhập kho' : 'Đã xuất kho',
