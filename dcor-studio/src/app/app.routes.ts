@@ -80,7 +80,7 @@ export const routes: Routes = [
       { path: 'explore', loadComponent: () => import('./features/store/pages/explore/explore').then(m => m.ExploreComponent) },
       { path: 'products/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) },
       { path: 'explore/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) }, // Alias
-      { path: 'cart', loadComponent: () => import('./features/store/pages/cart/cart').then(m => m.CartComponent) },
+      { path: 'cart', redirectTo: '', pathMatch: 'full' },
       { path: 'checkout', loadComponent: () => import('./features/store/pages/checkout/checkout').then(m => m.CheckoutComponent) },
       { path: 'blog', loadComponent: () => import('./features/store/pages/blog/blog').then(m => m.BlogComponent) },
       { path: 'custom-design', loadComponent: () => import('./features/store/pages/custom-design/custom-design').then(m => m.CustomDesignComponent) },

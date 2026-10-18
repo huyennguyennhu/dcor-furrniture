@@ -1,68 +1,542 @@
-import { IconComponent } from '../icon/icon';
-import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { CartService, CartItem } from '../../../core/services/cart.service';
+import { PromotionService, Promotion, AppliedPromotion } from '../../../core/services/promotion.service';
+import { Subscription } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { 
+  LucideAngularModule, 
+  Trash2, 
+  X, 
+  AlertCircle, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Check, 
+  ShoppingBag, 
+  ChevronDown, 
+  ArrowRight, 
+  Tag, 
+  Undo2,
+  Sparkles,
+  Truck
+} from 'lucide-angular';
 
 @Component({
   selector: 'app-cart-drawer',
   standalone: true,
-  imports: [IconComponent, CommonModule, RouterModule],
-  templateUrl: './cart-drawer.html'
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  templateUrl: './cart-drawer.html',
+  styleUrl: './cart-drawer.css'
 })
-export class CartDrawerComponent implements OnInit {
+export class CartDrawerComponent implements OnInit, OnDestroy {
   @Input() isOpen = false;
   @Output() close = new EventEmitter<void>();
 
-  cartItems: CartItem[] = [];
+  // Lucide Icons (Nguồn chuẩn https://lucide.dev/icons/)
+  icons = {
+    Trash2,
+    X,
+    AlertCircle,
+    AlertTriangle,
+    CheckCircle2,
+    Check,
+    ShoppingBag,
+    ChevronDown,
+    ArrowRight,
+    Tag,
+    Undo2,
+    Sparkles,
+    Truck
+  };
 
-  constructor(private router: Router, private cartService: CartService) {}
+  // Cache biến thể sản phẩm theo productId để tải nhanh tức thì
+  private static productVariantsCache = new Map<string, any>();
+
+  cartItems: CartItem[] = [];
+  isLoading = false;
+  selectedItemIds: Set<string> = new Set();
+
+  // Khuyến mãi / Vouchers từ hệ thống thực tế (đồng bộ qua PromotionService)
+  systemPromotions: Promotion[] = [];
+  appliedVoucher: AppliedPromotion | null = null;
+  selectedVoucherCode = '';
+  customVoucherInput = '';
+  showCustomInput = false;
+  voucherError = '';
+
+  // Confirm delete single item modal
+  isConfirmDeleteOpen = false;
+  itemToDelete: CartItem | null = null;
+
+  // Confirm batch delete modal
+  isBatchDeleteModalOpen = false;
+
+  // Variant Switcher Drawer / Panel
+  isVariantDrawerOpen = false;
+  editingCartItem: CartItem | null = null;
+  productForVariantEdit: any = null;
+  isLoadingProductVariants = false;
+  selectedVariantId: string | null = null;
+  variantErrorMessage: string | null = null;
+
+  // Toast notifications
+  toastMessage: string | null = null;
+  toastType: 'success' | 'warning' | 'error' = 'success';
+  private toastTimer: any = null;
+
+  private sub: Subscription = new Subscription();
+
+  constructor(
+    private router: Router,
+    private cartService: CartService,
+    private promotionService: PromotionService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
-    this.cartService.cart$.subscribe(items => {
-      this.cartItems = items;
+    this.sub.add(
+      this.cartService.cart$.subscribe(items => {
+        this.cartItems = items;
+
+        const validIds = new Set(
+          items
+            .filter(item => item.isActive !== false && (item.availableStock === undefined || item.availableStock > 0))
+            .map(item => item.id)
+        );
+
+        if (this.selectedItemIds.size === 0) {
+          // Mặc định chọn tất cả item hợp lệ lần đầu
+          this.selectedItemIds = validIds;
+        } else {
+          // Lọc bỏ những item không còn tồn tại hoặc đã bị hết hàng
+          const newSelected = new Set<string>();
+          this.selectedItemIds.forEach(id => {
+            if (validIds.has(id)) {
+              newSelected.add(id);
+            }
+          });
+          this.selectedItemIds = newSelected;
+        }
+
+        // Đồng bộ tính lại giá trị giảm giá khi sản phẩm trong giỏ thay đổi
+        this.promotionService.recalculate(this.subTotal);
+        this.cdr.detectChanges();
+      })
+    );
+
+    // Đồng bộ danh sách khuyến mãi thực tế từ hệ thống
+    this.sub.add(
+      this.promotionService.promotions$.subscribe(promos => {
+        this.systemPromotions = promos;
+        this.cdr.detectChanges();
+      })
+    );
+
+    // Đồng bộ mã ưu đãi đang áp dụng (giữa giỏ hàng, trang thanh toán & khuyến mãi)
+    this.sub.add(
+      this.promotionService.appliedPromotion$.subscribe(applied => {
+        this.appliedVoucher = applied;
+        if (applied) {
+          this.selectedVoucherCode = applied.code;
+          this.customVoucherInput = applied.code;
+        } else {
+          this.selectedVoucherCode = '';
+        }
+        this.cdr.detectChanges();
+      })
+    );
+
+    this.sub.add(
+      this.cartService.isLoading$.subscribe(loading => {
+        this.isLoading = loading;
+        this.cdr.detectChanges();
+      })
+    );
+
+    this.cartService.loadCart().subscribe({
+      error: () => {}
     });
-    this.cartService.loadCart();
   }
 
-  get subTotal() {
-    return this.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  }
-
-  get shippingFee() {
-    return this.subTotal > 50000000 ? 0 : 250000;
-  }
-
-  get totalAmount() {
-    return this.subTotal + this.shippingFee;
-  }
-  
-  get totalItemsCount() {
-    return this.cartItems.reduce((a, b) => a + b.quantity, 0);
-  }
-
-  formatCurrency(val: number) {
-    return val.toLocaleString('vi-VN') + ' ₫';
-  }
-
-  updateQuantity(id: string, newQty: number) {
-    if (newQty < 1) {
-      this.removeFromCart(id);
-    } else {
-      this.cartService.updateQuantity(id, newQty).subscribe();
+  ngOnDestroy() {
+    this.sub.unsubscribe();
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
     }
   }
 
-  removeFromCart(id: string) {
-    this.cartService.removeFromCart(id).subscribe();
+  // --- Logic Selection ---
+  get selectableItems(): CartItem[] {
+    return this.cartItems.filter(
+      item => item.isActive !== false && (item.availableStock === undefined || item.availableStock > 0)
+    );
+  }
+
+  get isAllSelected(): boolean {
+    return this.selectableItems.length > 0 && this.selectableItems.every(i => this.selectedItemIds.has(i.id));
+  }
+
+  get selectedValidItems(): CartItem[] {
+    return this.cartItems.filter(
+      item => this.selectedItemIds.has(item.id) &&
+              item.isActive !== false &&
+              (item.availableStock === undefined || item.availableStock > 0)
+    );
+  }
+
+  get selectedCount(): number {
+    return this.selectedItemIds.size;
+  }
+
+  toggleSelectAll() {
+    if (this.isAllSelected) {
+      this.selectedItemIds.clear();
+    } else {
+      this.selectedItemIds.clear();
+      this.selectableItems.forEach(i => this.selectedItemIds.add(i.id));
+    }
+  }
+
+  toggleSelectItem(item: CartItem) {
+    if (item.isActive === false || (item.availableStock !== undefined && item.availableStock <= 0)) {
+      return;
+    }
+
+    if (this.selectedItemIds.has(item.id)) {
+      this.selectedItemIds.delete(item.id);
+    } else {
+      this.selectedItemIds.add(item.id);
+    }
+  }
+
+  isItemSelected(item: CartItem): boolean {
+    return this.selectedItemIds.has(item.id);
+  }
+
+  // --- Tính toán Tạm tính, Khuyến mãi & Tổng cộng ---
+  // --- Tính toán Tạm tính, Khuyến mãi & Tổng cộng ---
+  get eligibleVouchers(): Promotion[] {
+    return this.promotionService.getEligiblePromotions(this.subTotal);
+  }
+
+  get subTotal(): number {
+    return this.selectedValidItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }
+
+  get shippingFee(): number {
+    if (this.subTotal === 0) return 0;
+    if (this.subTotal >= 50000000) return 0;
+    if (this.appliedVoucher?.code === 'FREESHIP') return 0;
+    return 250000;
+  }
+
+  get discountAmount(): number {
+    return this.appliedVoucher ? this.appliedVoucher.calculatedDiscount : 0;
+  }
+
+  get totalAmount(): number {
+    return Math.max(0, this.subTotal + (this.subTotal > 0 ? this.shippingFee : 0) - this.discountAmount);
+  }
+
+  get totalSelectedQuantity(): number {
+    return this.selectedValidItems.reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  get totalItemsCount(): number {
+    return this.cartItems.reduce((a, b) => a + b.quantity, 0);
+  }
+
+  get canCheckout(): boolean {
+    return this.selectedValidItems.length > 0 && this.subTotal > 0;
+  }
+
+  // --- Logic Khuyến mãi (Đồng bộ qua PromotionService) ---
+  onVoucherSelectChange() {
+    this.voucherError = '';
+    if (this.selectedVoucherCode === 'CUSTOM') {
+      this.showCustomInput = true;
+      this.promotionService.removeAppliedPromotion();
+    } else if (this.selectedVoucherCode) {
+      this.showCustomInput = false;
+      this.promotionService.applyPromotion(this.selectedVoucherCode, this.subTotal).subscribe(res => {
+        if (!res.success) {
+          this.voucherError = res.message;
+        } else {
+          this.voucherError = '';
+        }
+        this.cdr.detectChanges();
+      });
+    } else {
+      this.promotionService.removeAppliedPromotion();
+    }
+  }
+
+  applyCustomVoucher() {
+    const code = (this.customVoucherInput || '').trim().toUpperCase();
+    if (!code) {
+      this.voucherError = 'Vui lòng nhập mã ưu đãi.';
+      return;
+    }
+    this.voucherError = '';
+    this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
+      if (!res.success) {
+        this.voucherError = res.message;
+      } else {
+        this.voucherError = '';
+        this.showCustomInput = false;
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+  removeVoucher() {
+    this.promotionService.removeAppliedPromotion();
+    this.selectedVoucherCode = '';
+    this.customVoucherInput = '';
+    this.voucherError = '';
+  }
+
+  formatCurrency(val: number): string {
+    return (val || 0).toLocaleString('vi-VN') + ' ₫';
+  }
+
+  showToast(message: string, type: 'success' | 'warning' | 'error' = 'warning', durationMs = 3000) {
+    this.toastMessage = message;
+    this.toastType = type;
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+    this.toastTimer = setTimeout(() => {
+      this.toastMessage = null;
+      this.cdr.detectChanges();
+    }, durationMs);
+  }
+
+  // --- Logic Thay đổi Số lượng ---
+  increaseQuantity(item: CartItem) {
+    if (item.availableStock !== undefined && item.quantity >= item.availableStock) {
+      this.showToast(`Chỉ còn ${item.availableStock} sản phẩm trong kho.`, 'warning');
+      return;
+    }
+
+    const nextQty = item.quantity + 1;
+    this.cartService.updateQuantity(item.id, nextQty).subscribe({
+      next: () => {
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        const msg = err.error?.message || 'Không thể cập nhật số lượng';
+        this.showToast(msg, 'error');
+      }
+    });
+  }
+
+  decreaseQuantity(item: CartItem) {
+    if (item.quantity <= 1) {
+      // Giảm về 0 -> Hiển thị xác nhận xóa
+      this.promptRemove(item);
+      return;
+    }
+
+    const nextQty = item.quantity - 1;
+    this.cartService.updateQuantity(item.id, nextQty).subscribe({
+      next: () => {
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        const msg = err.error?.message || 'Không thể cập nhật số lượng';
+        this.showToast(msg, 'error');
+      }
+    });
+  }
+
+  // --- Logic Xóa 1 sản phẩm ---
+  promptRemove(item: CartItem) {
+    this.itemToDelete = item;
+    this.isConfirmDeleteOpen = true;
+  }
+
+  confirmRemove() {
+    if (!this.itemToDelete) return;
+    const id = this.itemToDelete.id;
+    this.cartService.removeFromCart(id).subscribe({
+      next: () => {
+        this.selectedItemIds.delete(id);
+        this.showToast('Đã xóa sản phẩm khỏi giỏ hàng.', 'success');
+        this.cancelDelete();
+      },
+      error: (err) => {
+        const msg = err.error?.message || 'Không thể xóa sản phẩm';
+        this.showToast(msg, 'error');
+        this.cancelDelete();
+      }
+    });
+  }
+
+  cancelDelete() {
+    this.isConfirmDeleteOpen = false;
+    this.itemToDelete = null;
+  }
+
+  // --- Logic Xóa nhiều sản phẩm đã chọn ---
+  promptDeleteSelected() {
+    if (this.selectedItemIds.size === 0) return;
+    this.isBatchDeleteModalOpen = true;
+  }
+
+  confirmDeleteSelected() {
+    const ids = Array.from(this.selectedItemIds);
+    if (ids.length === 0) return;
+
+    this.cartService.removeMultiple(ids).subscribe({
+      next: () => {
+        this.selectedItemIds.clear();
+        this.showToast(`Đã xóa ${ids.length} sản phẩm được chọn.`, 'success');
+        this.isBatchDeleteModalOpen = false;
+      },
+      error: (err) => {
+        const msg = err.error?.message || 'Không thể xóa các sản phẩm được chọn';
+        this.showToast(msg, 'error');
+        this.isBatchDeleteModalOpen = false;
+      }
+    });
+  }
+
+  cancelDeleteSelected() {
+    this.isBatchDeleteModalOpen = false;
+  }
+
+  // --- Logic Đổi Biến Thể Sản Phẩm (Drawer) ---
+  openVariantDrawer(item: CartItem) {
+    this.editingCartItem = item;
+    this.selectedVariantId = item.variantId;
+    this.isVariantDrawerOpen = true;
+    this.variantErrorMessage = null;
+
+    // Kiểm tra cache: Nếu sản phẩm đã tải trước đó, hiển thị ngay lập tức không cần chờ mạng!
+    if (CartDrawerComponent.productVariantsCache.has(item.productId)) {
+      this.productForVariantEdit = CartDrawerComponent.productVariantsCache.get(item.productId);
+      this.isLoadingProductVariants = false;
+      return;
+    }
+
+    this.isLoadingProductVariants = true;
+    this.productForVariantEdit = null;
+
+    fetch(`${environment.apiUrl}/products/${item.productId}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Không thể tải biến thể của sản phẩm');
+        return res.json();
+      })
+      .then(data => {
+        CartDrawerComponent.productVariantsCache.set(item.productId, data);
+        this.productForVariantEdit = data;
+        this.isLoadingProductVariants = false;
+        this.cdr.detectChanges();
+      })
+      .catch(err => {
+        console.error('Lỗi tải sản phẩm:', err);
+        this.isLoadingProductVariants = false;
+        this.variantErrorMessage = 'Không thể tải danh sách biến thể. Vui lòng thử lại.';
+        this.cdr.detectChanges();
+      });
+  }
+
+  closeVariantDrawer() {
+    this.isVariantDrawerOpen = false;
+    this.editingCartItem = null;
+    this.productForVariantEdit = null;
+    this.selectedVariantId = null;
+    this.variantErrorMessage = null;
+  }
+
+  get availableVariantsForEdit(): any[] {
+    return this.productForVariantEdit?.variants || [];
+  }
+
+  get selectedVariantDetails(): any {
+    return this.availableVariantsForEdit.find(v => v.id === this.selectedVariantId);
+  }
+
+  selectVariant(variant: any) {
+    if (variant.isActive === false || (variant.stock - (variant.reservedStock || 0)) <= 0) {
+      return;
+    }
+    this.selectedVariantId = variant.id;
+    this.variantErrorMessage = null;
+  }
+
+  saveVariantChange() {
+    if (!this.editingCartItem || !this.selectedVariantId) return;
+
+    if (this.selectedVariantId === this.editingCartItem.variantId) {
+      this.closeVariantDrawer();
+      return;
+    }
+
+    const newVariant = this.availableVariantsForEdit.find(v => v.id === this.selectedVariantId);
+    if (!newVariant) {
+      this.variantErrorMessage = 'Biến thể đã chọn không hợp lệ.';
+      return;
+    }
+
+    const availableStock = Math.max(0, newVariant.stock - (newVariant.reservedStock || 0));
+
+    // Kiểm tra xem trong giỏ hàng đã có dòng nào trùng với biến thể mới này chưa
+    const existingSameVariantItem = this.cartItems.find(
+      i => i.variantId === this.selectedVariantId && i.id !== this.editingCartItem!.id
+    );
+
+    if (existingSameVariantItem) {
+      const mergedQty = this.editingCartItem.quantity + existingSameVariantItem.quantity;
+      if (mergedQty > availableStock) {
+        this.variantErrorMessage = `Không thể đổi vì tổng số lượng sau khi gộp (${mergedQty}) sẽ vượt quá tồn kho (Chỉ còn ${availableStock} sản phẩm).`;
+        return;
+      }
+    } else {
+      if (this.editingCartItem.quantity > availableStock) {
+        this.variantErrorMessage = `Số lượng hiện tại (${this.editingCartItem.quantity}) vượt quá tồn kho của biến thể mới (Chỉ còn ${availableStock} sản phẩm).`;
+        return;
+      }
+    }
+
+    this.cartService.updateVariant(this.editingCartItem.id, this.selectedVariantId).subscribe({
+      next: (res) => {
+        this.showToast(res?.message || 'Cập nhật biến thể thành công.', 'success');
+        this.closeVariantDrawer();
+      },
+      error: (err) => {
+        this.variantErrorMessage = err.error?.message || 'Không thể cập nhật biến thể.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   closeDrawer() {
     this.isOpen = false;
+    this.isConfirmDeleteOpen = false;
+    this.isBatchDeleteModalOpen = false;
+    this.isVariantDrawerOpen = false;
+    this.itemToDelete = null;
     this.close.emit();
   }
 
   goToCheckout() {
+    if (!this.canCheckout) {
+      this.showToast('Vui lòng có ít nhất một sản phẩm hợp lệ để thanh toán.', 'warning');
+      return;
+    }
+
+    // Lưu danh sách ID các sản phẩm được chọn vào sessionStorage để checkout lấy đúng mục
+    const selectedIds = Array.from(this.selectedItemIds);
+    try {
+      sessionStorage.setItem('dcor_checkout_items', JSON.stringify(selectedIds));
+    } catch (e) {
+      console.error('Không thể lưu session checkout:', e);
+    }
+
     this.closeDrawer();
     this.router.navigate(['/checkout']);
   }

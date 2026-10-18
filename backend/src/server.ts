@@ -9,6 +9,7 @@ import cartRoutes from './routes/cart.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import staffRoutes from './routes/staff.routes';
 import reportRoutes from './routes/report.routes';
+import orderRoutes from './routes/order.routes';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -38,6 +39,9 @@ app.use('/api/admin/staff', staffRoutes);
 
 // Gắn router giỏ hàng
 app.use('/api/store/cart', cartRoutes);
+
+// Gắn router đơn hàng phía Store
+app.use('/api/store/orders', orderRoutes);
 
 // Gắn router phân hệ quản lý kho
 app.use('/api/admin/inventory', inventoryRoutes);

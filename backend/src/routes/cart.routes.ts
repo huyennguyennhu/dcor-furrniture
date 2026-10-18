@@ -9,6 +9,7 @@ router.use(authenticateJWT);
 
 router.get('/', cartController.getCart);
 router.post('/', cartController.addToCart);
+router.post('/batch-delete', cartController.removeMultiple);
 router.put('/:id', cartController.updateCartItem);
 router.delete('/:id', cartController.removeCartItem);
 

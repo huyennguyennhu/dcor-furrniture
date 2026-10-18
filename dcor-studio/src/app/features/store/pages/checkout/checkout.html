@@ -1,231 +1,945 @@
-<div style="padding: 60px 0; min-height: 90vh; background-color: var(--bg-primary);">
+<div class="checkout-page-container">
   <div class="container">
-    
-    <div style="margin-bottom: 40px;">
-      <span style="color: var(--accent); font-size: 14px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;">Quy trình mua hàng</span>
-      <h1 style="font-size: 36px; font-weight: 800; margin-top: 8px; color: var(--text-primary); font-family: var(--font-title);">Thanh toán đơn hàng</h1>
-    </div>
 
-    <form (submit)="handleSubmit($event)" style="display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start;">
+    <!-- BƯỚC 1: TRANG THANH TOÁN & ĐẶT HÀNG (A) -->
+    <ng-container *ngIf="currentStep === 'checkout'">
       
-      <!-- Cột trái: Form thông tin -->
-      <div style="display: flex; flex-direction: column; gap: 30px;">
-        
-        <!-- Thông tin người mua -->
-        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px;">
-          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary);">1. Thông tin giao hàng</h2>
-          
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-            <div>
-              <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Họ và tên *</label>
-              <input 
-                type="text" 
-                required 
-                [(ngModel)]="fullName" name="fullName"
-                placeholder="Nguyễn Văn A" 
-                style="width: 100%; height: 44px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 16px; color: #fff; font-size: 14px; outline: none;"
-              />
-            </div>
-            <div>
-              <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Số điện thoại *</label>
-              <input 
-                type="tel" 
-                required 
-                [(ngModel)]="phone" name="phone"
-                placeholder="0901234567" 
-                style="width: 100%; height: 44px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 16px; color: #fff; font-size: 14px; outline: none;"
-              />
-            </div>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Địa chỉ Email (Nhận hóa đơn)</label>
-            <input 
-              type="email" 
-              [(ngModel)]="email" name="email"
-              placeholder="nguyenvana@gmail.com" 
-              style="width: 100%; height: 44px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 16px; color: #fff; font-size: 14px; outline: none;"
-            />
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Địa chỉ giao hàng đầy đủ *</label>
-            <input 
-              type="text" 
-              required 
-              [(ngModel)]="address" name="address"
-              placeholder="Số nhà, Tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố" 
-              style="width: 100%; height: 44px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 16px; color: #fff; font-size: 14px; outline: none;"
-            />
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Ghi chú đơn hàng</label>
-            <textarea 
-              [(ngModel)]="notes" name="notes"
-              placeholder="Ghi chú thêm về thời gian giao hàng, hướng dẫn chỉ đường..." 
-              style="width: 100%; height: 80px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 14px; outline: none; resize: none;"
-            ></textarea>
-          </div>
+      <!-- Page Header -->
+      <div class="checkout-header">
+        <div class="checkout-breadcrumbs">
+          <a routerLink="/explore" class="back-cart-link">
+            <lucide-angular [img]="icons.ArrowLeft" size="16"></lucide-angular>
+            <span>Tiếp tục mua hàng</span>
+          </a>
         </div>
+        <div class="header-main-title">
+          <span class="sub-eyebrow">DCor Furniture</span>
+          <h1 class="main-title">Thanh toán & Đặt hàng</h1>
+        </div>
+      </div>
 
-        <!-- Tính năng Gift Order -->
-        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary);">Gửi tặng làm Quà tặng</h2>
-              <p style="color: var(--text-muted); font-size: 13px; margin-top: 2px;">Giao hàng cho người nhận khác, thêm lời chúc và ẩn hóa đơn giá trị.</p>
+      <!-- Khi giỏ hàng không có sản phẩm nào -->
+      <div *ngIf="!isLoadingCart && checkoutItems.length === 0" class="empty-checkout-state">
+        <div class="empty-checkout-icon">
+          <lucide-angular [img]="icons.AlertCircle" size="36"></lucide-angular>
+        </div>
+        <h3>Chưa có sản phẩm nào để thanh toán</h3>
+        <p>Vui lòng chọn sản phẩm trong giỏ hàng hoặc tiếp tục khám phá các mẫu nội thất tinh tế của DCor.</p>
+        <a routerLink="/explore" class="btn-return-shop">Khám phá sản phẩm</a>
+      </div>
+
+      <!-- Alert thông báo lỗi chung -->
+      <div *ngIf="orderErrorMessage && checkoutItems.length > 0" class="checkout-alert error" role="alert">
+        <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+        <span>{{ orderErrorMessage }}</span>
+      </div>
+
+      <!-- Form Thanh toán chính (Chỉ hiện khi có sản phẩm) -->
+      <form *ngIf="checkoutItems.length > 0" (submit)="handleSubmitOrder($event)" class="checkout-grid-layout">
+
+        <!-- CỘT TRÁI: THÔNG TIN GIAO HÀNG & PHƯƠNG THỨC -->
+        <div class="checkout-main-col">
+
+          <!-- KHUNG 1: THÔNG TIN NGƯỜI NHẬN -->
+          <div class="checkout-card">
+            <div class="card-header">
+              <div class="header-badge-title">
+                <span class="step-num">1</span>
+                <h2>Thông tin người nhận</h2>
+              </div>
+
+              <!-- Chỉ hiển thị khi có sổ địa chỉ nạp từ tài khoản -->
+              <div *ngIf="isLoggedIn && savedAddresses.length > 0" class="address-book-action">
+                <button type="button" class="btn-address-book" (click)="isAddressModalOpen = true">
+                  <span>Sổ địa chỉ ({{ savedAddresses.length }})</span>
+                  <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+                </button>
+              </div>
+
+              <!-- Nếu khách đăng nhập nhưng chưa có địa chỉ, có liên kết đến trang Profile -->
+              <div *ngIf="isLoggedIn && savedAddresses.length === 0" class="address-book-action">
+                <a routerLink="/account/profile" class="link-manage-address">Quản lý hồ sơ</a>
+              </div>
             </div>
-            <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 26px;">
-              <input 
-                type="checkbox" 
-                [(ngModel)]="isGift" name="isGift"
-                style="opacity: 0; width: 0; height: 0;" 
-              />
-              <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; transition: .4s; border-radius: 34px;"
-                    [style.backgroundColor]="isGift ? 'var(--accent)' : 'rgba(255, 255, 255, 0.1)'">
-                <span style="position: absolute; content: ''; height: 18px; width: 18px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%;"
-                      [style.left]="isGift ? '28px' : '4px'"></span>
-              </span>
-            </label>
-          </div>
 
-          <div *ngIf="isGift" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-              <div>
-                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Tên người nhận *</label>
+            <!-- Khách đã đăng nhập: Thông báo tự điền từ hồ sơ -->
+            <div *ngIf="isLoggedIn" class="user-status-strip">
+              <span class="strip-text">
+                Thông tin được tự động điền từ hồ sơ tài khoản <b>{{ currentUser?.fullName || currentUser?.email }}</b>. Bạn vẫn có thể chỉnh sửa trực tiếp bên dưới.
+              </span>
+            </div>
+
+            <div class="form-fields-grid">
+              
+              <!-- Họ và tên -->
+              <div class="form-group">
+                <label for="fullName">Họ và tên người nhận <span class="req">*</span></label>
                 <input 
                   type="text" 
-                  [required]="isGift"
-                  [(ngModel)]="giftReceiver" name="giftReceiver"
-                  placeholder="Họ tên người nhận quà" 
-                  style="width: 100%; height: 44px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 16px; color: #fff; font-size: 14px; outline: none;"
-                />
+                  id="fullName" 
+                  name="fullName"
+                  [(ngModel)]="fullName" 
+                  (blur)="onFullNameBlur()"
+                  [class.is-invalid]="errors.fullName"
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  class="custom-input" />
+                <span *ngIf="errors.fullName" class="field-error-text">{{ errors.fullName }}</span>
               </div>
-              <div>
-                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Số điện thoại người nhận *</label>
+
+              <!-- Số điện thoại & Luồng kiểm tra định dạng + OTP -->
+              <div class="form-group">
+                <div class="label-with-verify">
+                  <label for="phone">Số điện thoại <span class="req">*</span></label>
+                  <span *ngIf="isPhoneVerified" class="verify-badge verified">
+                    <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
+                    <span>Đã xác thực</span>
+                  </span>
+                  <span *ngIf="!isPhoneVerified" class="verify-badge unverified">
+                    Chưa xác thực SĐT
+                  </span>
+                </div>
+
+                <div class="phone-input-wrap">
+                  <input 
+                    type="tel" 
+                    id="phone" 
+                    name="phone"
+                    [(ngModel)]="phone" 
+                    (blur)="onPhoneBlur()"
+                    (input)="isPhoneVerified = false"
+                    [class.is-invalid]="errors.phone"
+                    placeholder="Ví dụ: 0912345678"
+                    class="custom-input" />
+                  
+                  <button 
+                    *ngIf="!isPhoneVerified" 
+                    type="button" 
+                    class="btn-send-otp" 
+                    (click)="sendOtp()"
+                    [disabled]="isSendingOtp">
+                    {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
+                  </button>
+                </div>
+                <span *ngIf="errors.phone" class="field-error-text">{{ errors.phone }}</span>
+                <small *ngIf="!errors.phone && !isPhoneVerified" class="hint-text">
+                  * Số điện thoại gồm 10 chữ số, bắt đầu bằng đầu số hợp lệ (03, 05, 07, 08, 09).
+                </small>
+              </div>
+
+              <!-- Email nhận thông báo đơn (Kiểm tra đúng định dạng) -->
+              <div class="form-group full-width">
+                <label for="email">Địa chỉ Email (Nhận thông báo đơn hàng & bảo hành)</label>
                 <input 
-                  type="tel" 
-                  [required]="isGift"
-                  [(ngModel)]="giftPhone" name="giftPhone"
-                  placeholder="SĐT người nhận" 
-                  style="width: 100%; height: 44px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 16px; color: #fff; font-size: 14px; outline: none;"
-                />
+                  type="email" 
+                  id="email" 
+                  name="email"
+                  [(ngModel)]="email" 
+                  (blur)="onEmailBlur()"
+                  [class.is-invalid]="errors.email"
+                  placeholder="Ví dụ: hoten@gmail.com"
+                  class="custom-input" />
+                <span *ngIf="errors.email" class="field-error-text">{{ errors.email }}</span>
+              </div>
+
+              <!-- PHÂN ĐƠN VỊ HÀNH CHÍNH VIỆT NAM (TỈNH/THÀNH PHỐ - QUẬN/HUYỆN - PHƯỜNG/XÃ) -->
+              <div class="form-group">
+                <label for="province">Tỉnh / Thành phố <span class="req">*</span></label>
+                <select 
+                  id="province" 
+                  name="province"
+                  [(ngModel)]="selectedProvince"
+                  (change)="onProvinceChange()"
+                  class="custom-select">
+                  <option *ngFor="let prov of provinces" [value]="prov">{{ prov }}</option>
+                </select>
+              </div>
+
+              <div class="form-group" *ngIf="districts.length > 0">
+                <label for="district">Quận / Huyện / Thị xã <span class="req">*</span></label>
+                <select 
+                  id="district" 
+                  name="district"
+                  [(ngModel)]="selectedDistrict"
+                  (change)="onDistrictChange()"
+                  [disabled]="!selectedProvince"
+                  class="custom-select">
+                  <option value="" disabled>-- Chọn Quận / Huyện --</option>
+                  <option *ngFor="let dist of districts" [value]="dist">{{ dist }}</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="ward">Phường / Xã / Thị trấn <span class="req">*</span></label>
+                <select 
+                  id="ward" 
+                  name="ward"
+                  [(ngModel)]="selectedWard"
+                  (change)="onWardChange()"
+                  [disabled]="!selectedProvince || (districts.length > 0 && !selectedDistrict)"
+                  class="custom-select">
+                  <option value="" disabled>-- Chọn Phường / Xã --</option>
+                  <option *ngFor="let w of wards" [value]="w">{{ w }}</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="streetAddress">Số nhà, tên đường cụ thể <span class="req">*</span></label>
+                <input 
+                  type="text" 
+                  id="streetAddress" 
+                  name="streetAddress"
+                  [(ngModel)]="streetAddress" 
+                  (input)="onStreetAddressChange()"
+                  (blur)="onAddressBlur()"
+                  [class.is-invalid]="errors.address"
+                  placeholder="Ví dụ: 123 Nguyễn Huệ, Tòa nhà A"
+                  class="custom-input" />
+              </div>
+
+              <div *ngIf="errors.address" class="form-group full-width">
+                <span class="field-error-text">{{ errors.address }}</span>
+              </div>
+
+              <div *ngIf="address" class="form-group full-width full-address-preview">
+                <span class="preview-label">Địa chỉ nhận hàng đầy đủ:</span>
+                <span class="preview-text">{{ address }}</span>
+              </div>
+
+              <!-- Ghi chú giao hàng -->
+              <div class="form-group full-width">
+                <label for="shippingNotes">Ghi chú giao hàng</label>
+                <textarea 
+                  id="shippingNotes" 
+                  name="shippingNotes"
+                  [(ngModel)]="shippingNotes" 
+                  rows="2" 
+                  placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến 15 phút, nhà có thang máy..."
+                  class="custom-textarea"></textarea>
+              </div>
+
+              <!-- TẶNG QUÀ CHO NGƯỜI THÂN & ẨN GIÁ ĐƠN HÀNG -->
+              <div class="gift-order-wrapper full-width">
+                <div class="gift-switch-card">
+                  <div class="gift-switch-info">
+                    <div class="gift-icon-badge">
+                      <lucide-angular [img]="icons.Gift" size="20" color="#765337"></lucide-angular>
+                    </div>
+                    <div class="gift-switch-texts">
+                      <span class="gift-title">Tặng quà cho người thân</span>
+                      <p class="gift-desc">Đơn hàng sẽ được đóng gói theo quy chuẩn quà tặng cao cấp của DCor.</p>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" [(ngModel)]="isGift" name="isGift" (change)="onGiftToggleChange()" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <!-- Khi nút Tặng quà bật -> Mở nút: Không hiện giá tiền trên đơn vận chuyển -->
+                <div *ngIf="isGift" class="hide-price-switch-card">
+                  <div class="gift-switch-info">
+                    <div class="gift-icon-badge">
+                      <lucide-angular [img]="icons.FileText" size="18" color="#765337"></lucide-angular>
+                    </div>
+                    <div class="gift-switch-texts">
+                      <span class="gift-sub-title">Không hiện giá tiền trên đơn vận chuyển</span>
+                      <p class="gift-desc">Bảo mật thông tin giá tiền với người nhận; hóa đơn kèm theo sẽ không hiển thị đơn giá.</p>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" [(ngModel)]="hideInvoicePrice" name="hideInvoicePrice" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- KHUNG 2: PHƯƠNG THỨC THANH TOÁN -->
+          <div class="checkout-card">
+            <div class="card-header">
+              <div class="header-badge-title">
+                <span class="step-num">2</span>
+                <h2>Phương thức thanh toán</h2>
               </div>
             </div>
 
-            <div>
-              <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Địa chỉ giao quà *</label>
-              <input 
-                type="text" 
-                [required]="isGift"
-                [(ngModel)]="giftAddress" name="giftAddress"
-                placeholder="Địa chỉ chi tiết nơi nhận quà" 
-                style="width: 100%; height: 44px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 16px; color: #fff; font-size: 14px; outline: none;"
-              />
+            <!-- Cảnh báo đơn > 50 triệu khóa COD -->
+            <div *ngIf="isHighValueOrder" class="high-value-warning">
+              <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+              <div>
+                <strong>Đơn hàng giá trị cao ({{ formatCurrency(totalAmount) }}):</strong>
+                <span> Không áp dụng hình thức COD. Quý khách vui lòng chọn chuyển khoản ngân hàng (áp dụng thanh toán đặt cọc trong 24h).</span>
+              </div>
             </div>
 
-            <div>
-              <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Lời nhắn chúc mừng (Thiệp tặng kèm)</label>
-              <textarea 
-                [(ngModel)]="giftMessage" name="giftMessage"
-                placeholder="Chúc mừng tân gia! Hy vọng món quà này mang lại sự ấm áp..." 
-                style="width: 100%; height: 80px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 14px; outline: none; resize: none;"
-              ></textarea>
-            </div>
+            <div class="payment-options-list">
+              
+              <!-- 1. Chuyển khoản ngân hàng / Quét mã QR -->
+              <div 
+                class="payment-option-card"
+                [class.active]="paymentMethod === 'BANK_TRANSFER'"
+                (click)="selectPaymentMethod('BANK_TRANSFER')">
+                <div class="opt-radio-col">
+                  <input 
+                    type="radio" 
+                    name="paymentMethod" 
+                    value="BANK_TRANSFER" 
+                    [checked]="paymentMethod === 'BANK_TRANSFER'"
+                    (click)="$event.stopPropagation(); selectPaymentMethod('BANK_TRANSFER')" />
+                </div>
+                <div class="opt-content-col">
+                  <div class="opt-top">
+                    <div class="opt-title-wrap">
+                      <lucide-angular [img]="icons.Building2" size="18" color="#765337"></lucide-angular>
+                      <span class="opt-title">Chuyển khoản Ngân hàng / Quét mã QR</span>
+                    </div>
+                    <span class="opt-badge recommend">Khuyên dùng</span>
+                  </div>
+                  <p class="opt-desc">Chuyển khoản an toàn và tiện lợi qua ứng dụng ngân hàng di động 24/7.</p>
 
-            <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-              <input 
-                type="checkbox" 
-                id="hidePrice" 
-                [(ngModel)]="hidePrice" name="hidePrice"
-                style="accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;" 
-              />
-              <label for="hidePrice" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">
-                <strong>Ẩn thông tin giá bán</strong> trên hóa đơn giao hàng đi kèm.
+                  <!-- Chi tiết thông tin ngân hàng: Chỉ hiển thị khi có dữ liệu được nạp vào -->
+                  <div *ngIf="paymentMethod === 'BANK_TRANSFER' && storeBankInfo" class="bank-config-box">
+                    <div class="bank-row">
+                      <span>Ngân hàng:</span>
+                      <strong>{{ storeBankInfo.bankName }}</strong>
+                    </div>
+                    <div class="bank-row">
+                      <span>Số tài khoản:</span>
+                      <strong>{{ storeBankInfo.accountNumber }}</strong>
+                    </div>
+                    <div class="bank-row">
+                      <span>Chủ tài khoản:</span>
+                      <strong>{{ storeBankInfo.accountHolder }}</strong>
+                    </div>
+                  </div>
+
+                  <!-- Nếu chưa có dữ liệu nạp vào thì hiển thị hướng dẫn quy trình -->
+                  <div *ngIf="paymentMethod === 'BANK_TRANSFER' && !storeBankInfo" class="bank-notice-box">
+                    <p class="notice-desc">
+                      Sau khi quý khách bấm <b>"Xác nhận Đặt hàng"</b>, hệ thống sẽ cung cấp thông tin tài khoản chính thức và cú pháp thanh toán tương ứng với mã đơn hàng của quý khách.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Thanh toán khi nhận hàng (COD) -->
+              <div 
+                class="payment-option-card"
+                [class.active]="paymentMethod === 'COD'"
+                [class.disabled]="isHighValueOrder"
+                (click)="selectPaymentMethod('COD')">
+                <div class="opt-radio-col">
+                  <input 
+                    type="radio" 
+                    name="paymentMethod" 
+                    value="COD" 
+                    [checked]="paymentMethod === 'COD'"
+                    [disabled]="isHighValueOrder"
+                    (click)="$event.stopPropagation(); selectPaymentMethod('COD')" />
+                </div>
+                <div class="opt-content-col">
+                  <div class="opt-top">
+                    <div class="opt-title-wrap">
+                      <lucide-angular [img]="icons.Truck" size="18" color="#765337"></lucide-angular>
+                      <span class="opt-title">Thanh toán khi nhận hàng (COD)</span>
+                    </div>
+                    <span *ngIf="isHighValueOrder" class="opt-badge locked">Đã khóa (>50tr)</span>
+                  </div>
+                  <p class="opt-desc">Kiểm tra sản phẩm và thanh toán tiền mặt trực tiếp cho nhân viên giao hàng.</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- KHUNG 3: GHI CHÚ & XUẤT HÓA ĐƠN VAT -->
+          <div class="checkout-card">
+            <div class="invoice-switch-header">
+              <div class="switch-title-wrap">
+                <lucide-angular [img]="icons.Receipt" size="20"></lucide-angular>
+                <div>
+                  <h3 class="switch-title">Yêu cầu xuất Hóa đơn điện tử (VAT)</h3>
+                  <p class="switch-subtitle">DCor hỗ trợ xuất hóa đơn GTGT hợp lệ cho doanh nghiệp và cá nhân.</p>
+                </div>
+              </div>
+
+              <!-- Toggle switch -->
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="isInvoiceRequired" name="isInvoiceRequired" />
+                <span class="toggle-slider"></span>
               </label>
             </div>
-          </div>
-        </div>
 
-        <!-- Chọn phương thức thanh toán -->
-        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px;">
-          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary);">2. Phương thức thanh toán</h2>
-          
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <label style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 12px; cursor: pointer;"
-                   [style.background]="paymentMethod === 'COD' ? 'rgba(188, 95, 19, 0.05)' : 'var(--bg-tertiary)'"
-                   [style.border]="paymentMethod === 'COD' ? '1px solid var(--accent)' : '1px solid var(--border-color)'">
-              <input type="radio" name="payment" value="COD" [(ngModel)]="paymentMethod" style="accent-color: var(--accent); width: 18px; height: 18px;" />
-              <div>
-                <strong style="display: block; font-size: 14px;">Thanh toán khi nhận hàng (COD)</strong>
-                <span style="font-size: 12px; color: var(--text-muted);">Nhận hàng kiểm tra và thanh toán trực tiếp cho shipper.</span>
-              </div>
-            </label>
+            <!-- Form điền thông tin xuất hóa đơn -->
+            <div *ngIf="isInvoiceRequired" class="invoice-form-panel">
+              <div class="form-fields-grid">
+                <div class="form-group full-width">
+                  <label for="companyName">Tên công ty / Doanh nghiệp <span class="req">*</span></label>
+                  <input 
+                    type="text" 
+                    id="companyName" 
+                    name="companyName"
+                    [(ngModel)]="companyName" 
+                    [class.is-invalid]="errors.companyName"
+                    placeholder="Công ty TNHH / Cổ phần..."
+                    class="custom-input" />
+                  <span *ngIf="errors.companyName" class="field-error-text">{{ errors.companyName }}</span>
+                </div>
 
-            <label style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 12px; cursor: pointer;"
-                   [style.background]="paymentMethod === 'ONLINE' ? 'rgba(188, 95, 19, 0.05)' : 'var(--bg-tertiary)'"
-                   [style.border]="paymentMethod === 'ONLINE' ? '1px solid var(--accent)' : '1px solid var(--border-color)'">
-              <input type="radio" name="payment" value="ONLINE" [(ngModel)]="paymentMethod" style="accent-color: var(--accent); width: 18px; height: 18px;" />
-              <div>
-                <strong style="display: block; font-size: 14px;">Thanh toán trực tuyến (Stripe / Thẻ tín dụng)</strong>
-                <span style="font-size: 12px; color: var(--text-muted);">Thanh toán nhanh chóng qua cổng Stripe bằng thẻ nội địa hoặc quốc tế.</span>
-              </div>
-            </label>
-          </div>
-        </div>
+                <div class="form-group">
+                  <label for="taxCode">Mã số thuế (MST) <span class="req">*</span></label>
+                  <input 
+                    type="text" 
+                    id="taxCode" 
+                    name="taxCode"
+                    [(ngModel)]="taxCode" 
+                    [class.is-invalid]="errors.taxCode"
+                    placeholder="Ví dụ: 0101234567"
+                    class="custom-input" />
+                  <span *ngIf="errors.taxCode" class="field-error-text">{{ errors.taxCode }}</span>
+                </div>
 
-      </div>
+                <div class="form-group">
+                  <label for="invoiceEmail">Email nhận hóa đơn điện tử <span class="req">*</span></label>
+                  <input 
+                    type="email" 
+                    id="invoiceEmail" 
+                    name="invoiceEmail"
+                    [(ngModel)]="invoiceEmail" 
+                    (blur)="onInvoiceEmailBlur()"
+                    [class.is-invalid]="errors.invoiceEmail"
+                    placeholder="ketoan@congty.com"
+                    class="custom-input" />
+                  <span *ngIf="errors.invoiceEmail" class="field-error-text">{{ errors.invoiceEmail }}</span>
+                </div>
 
-      <!-- Cột phải: Tóm tắt giỏ hàng -->
-      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: var(--card-shadow); position: sticky; top: 100px;">
-        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">Đơn hàng của bạn</h3>
-        
-        <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px;">
-          <div *ngFor="let group of groupedCart" style="padding-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.05);">
-            <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">{{ group.name }}</div>
-            <div style="display: flex; flex-direction: column; gap: 8px; padding-left: 8px;">
-              <div *ngFor="let gItem of group.items" style="display: flex; justify-content: space-between; font-size: 13px;">
-                <span style="color: var(--text-secondary); max-width: 70%;">
-                  <ng-container *ngIf="gItem.item.variantTags?.length">
-                    - <ng-container *ngFor="let t of gItem.item.variantTags; let isLast = last">{{ t.value }}{{ !isLast ? ' | ' : '' }}</ng-container> 
-                  </ng-container>
-                  <strong style="color: var(--accent);">(x{{ gItem.item.quantity }})</strong>
-                </span>
-                <span style="font-weight: 600; color: var(--text-primary);">{{ formatCurrency(gItem.item.price * gItem.item.quantity) }}</span>
+                <div class="form-group full-width">
+                  <label for="companyAddress">Địa chỉ theo giấy phép kinh doanh <span class="req">*</span></label>
+                  <input 
+                    type="text" 
+                    id="companyAddress" 
+                    name="companyAddress"
+                    [(ngModel)]="companyAddress" 
+                    [class.is-invalid]="errors.companyAddress"
+                    placeholder="Địa chỉ trụ sở đăng ký kinh doanh"
+                    class="custom-input" />
+                  <span *ngIf="errors.companyAddress" class="field-error-text">{{ errors.companyAddress }}</span>
+                </div>
               </div>
             </div>
           </div>
-          <div *ngIf="cartItems.length === 0" style="font-size: 14px; color: var(--text-muted); font-style: italic;">Giỏ hàng rỗng</div>
+
         </div>
 
-        <div style="border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-          <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary);">
-            <span>Tạm tính ({{ totalItemsCount }} sản phẩm)</span>
-            <span>{{ formatCurrency(subTotal) }}</span>
+        <!-- CỘT PHẢI: TÓM TẮT ĐƠN HÀNG & MÃ GIẢM GIÁ (STICKY) -->
+        <div class="checkout-sidebar-col">
+          <div class="order-summary-card">
+            
+            <div class="summary-card-header">
+              <h3>Đơn hàng của bạn</h3>
+              <a routerLink="/explore" class="edit-cart-link">Thêm sản phẩm</a>
+            </div>
+
+            <!-- Danh sách sản phẩm thanh toán (Read-only) -->
+            <div class="summary-items-list">
+              <div *ngFor="let item of checkoutItems" class="summary-item-row">
+                <div class="summary-item-thumb">
+                  <img [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop'" [alt]="item.name" />
+                  <span class="item-qty-badge">{{ item.quantity }}</span>
+                </div>
+                <div class="summary-item-info">
+                  <h4 class="item-title" [title]="item.name">{{ item.name }}</h4>
+                  <div class="item-variant-text" *ngIf="item.variantTags && item.variantTags.length > 0">
+                    <span *ngFor="let tag of item.variantTags; let isLast = last">
+                      {{ tag.value }}{{ !isLast ? ' · ' : '' }}
+                    </span>
+                  </div>
+                  <div class="item-variant-text" *ngIf="(!item.variantTags || item.variantTags.length === 0) && item.variantName">
+                    {{ item.variantName }}
+                  </div>
+                  <div class="item-price">{{ formatCurrency(item.price * item.quantity) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mã giảm giá: Nhập và kiểm tra khi có dữ liệu nạp vào (Không tự sinh voucher giả) -->
+            <div class="voucher-section">
+              <label class="voucher-label">
+                <lucide-angular [img]="icons.Tag" size="15" color="#765337"></lucide-angular>
+                <span>Mã ưu đãi / Voucher</span>
+              </label>
+              
+              <div class="voucher-input-group">
+                <input 
+                  type="text" 
+                  [(ngModel)]="voucherInput" 
+                  name="voucherInput"
+                  placeholder="Nhập mã ưu đãi" 
+                  class="voucher-input" />
+                <button 
+                  type="button" 
+                  class="btn-apply-voucher" 
+                  (click)="applyVoucherCode()"
+                  [disabled]="isCheckingVoucher">
+                  {{ isCheckingVoucher ? 'Đang kiểm tra...' : 'Áp dụng' }}
+                </button>
+              </div>
+
+              <!-- Thông báo voucher -->
+              <div *ngIf="voucherSuccessMessage" class="voucher-message success">
+                <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular>
+                <span>{{ voucherSuccessMessage }}</span>
+                <button type="button" class="btn-remove-voucher" (click)="removeVoucher()" title="Bỏ mã">
+                  <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+                </button>
+              </div>
+
+              <div *ngIf="voucherErrorMessage" class="voucher-message error">
+                <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                <span>{{ voucherErrorMessage }}</span>
+              </div>
+            </div>
+
+            <!-- Tính toán Tóm tắt chi phí -->
+            <div class="summary-cost-lines">
+              <div class="cost-line">
+                <span>Tạm tính ({{ totalItemsCount }} sản phẩm)</span>
+                <span>{{ formatCurrency(subTotal) }}</span>
+              </div>
+
+              <div class="cost-line">
+                <span>Phí vận chuyển</span>
+                <span [class.free-ship]="shippingFee === 0">
+                  <ng-container *ngIf="shippingFee === 0">
+                    <span class="free-ship-tag">
+                      <lucide-angular [img]="icons.Sparkles" size="13" color="#00A30B"></lucide-angular>
+                      <span>Miễn phí</span>
+                    </span>
+                  </ng-container>
+                  <ng-container *ngIf="shippingFee > 0">
+                    {{ formatCurrency(shippingFee) }}
+                  </ng-container>
+                </span>
+              </div>
+
+              <div *ngIf="discountAmount > 0" class="cost-line discount-line">
+                <span>Giảm giá voucher</span>
+                <span>-{{ formatCurrency(discountAmount) }}</span>
+              </div>
+
+              <!-- Tổng thanh toán -->
+              <div class="cost-line total-highlight">
+                <span>Tổng thanh toán</span>
+                <span class="final-price">{{ formatCurrency(totalAmount) }}</span>
+              </div>
+
+              <!-- Chi tiết cọc nếu đơn > 50 triệu -->
+              <div *ngIf="isHighValueOrder" class="deposit-breakdown-box">
+                <div class="deposit-line">
+                  <span>Khoản đặt cọc (30%):</span>
+                  <strong>{{ formatCurrency(depositAmount) }}</strong>
+                </div>
+                <div class="deposit-line remaining">
+                  <span>Còn lại thanh toán khi nhận hàng (70%):</span>
+                  <span>{{ formatCurrency(remainingAmount) }}</span>
+                </div>
+                <small class="deposit-note">
+                  * Kỹ thuật viên DCor sẽ liên hệ và giao hàng, lắp đặt hoàn thiện trước khi quý khách thanh toán phần còn lại.
+                </small>
+              </div>
+            </div>
+
+            <!-- Nút Đặt hàng -->
+            <button 
+              type="submit" 
+              class="btn-submit-order" 
+              [disabled]="isSubmittingOrder || checkoutItems.length === 0">
+              <span *ngIf="!isSubmittingOrder">
+                Đặt hàng
+              </span>
+              <span *ngIf="isSubmittingOrder" class="btn-spinner-text">
+                <span class="btn-spinner"></span>
+                Đang xử lý đơn hàng...
+              </span>
+            </button>
+
+            <!-- Cam kết mua sắm an tâm -->
+            <div class="security-guarantee">
+              <div class="guarantee-item">
+                <lucide-angular [img]="icons.ShieldCheck" size="16"></lucide-angular>
+                <span>Bảo hành chính hãng 5 năm</span>
+              </div>
+              <div class="guarantee-item">
+                <lucide-angular [img]="icons.Truck" size="16"></lucide-angular>
+                <span>Miễn phí lắp đặt tại nhà</span>
+              </div>
+            </div>
+
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary);">
-            <span>Phí giao hàng</span>
-            <span [style.color]="shippingFee === 0 ? '#2ECC71' : 'var(--text-primary)'" [style.fontWeight]="shippingFee === 0 ? 600 : 400">
-              {{ shippingFee === 0 ? 'Miễn phí' : formatCurrency(shippingFee) }}
-            </span>
+        </div>
+
+      </form>
+
+    </ng-container>
+
+    <!-- BƯỚC 2: TRANG ĐẶT HÀNG THÀNH CÔNG (B) -->
+    <ng-container *ngIf="currentStep === 'success' && createdOrder">
+      <div class="order-success-view">
+        
+        <!-- Header Thành công -->
+        <div class="success-hero-box">
+          <div class="success-icon-animated">
+            <lucide-angular [img]="icons.CheckCircle2" size="48"></lucide-angular>
+          </div>
+          <h1 class="success-title">Đặt hàng thành công!</h1>
+          <p class="success-subtitle">
+            Cảm ơn quý khách <b>{{ createdOrder.receiverName }}</b> đã tin tưởng và mua sắm tại DCor Furniture.
+          </p>
+
+          <div class="order-code-pill">
+            <span>Mã đơn hàng:</span>
+            <strong class="order-code">{{ createdOrder.orderNumber }}</strong>
+            <button type="button" class="btn-copy-code" (click)="copyOrderNumber()" title="Sao chép mã đơn">
+              <lucide-angular [img]="icons.Copy" size="14"></lucide-angular>
+              <span>Sao chép</span>
+            </button>
           </div>
         </div>
 
-        <div style="border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-          <span style="font-size: 16px; font-weight: 700;">Tổng tiền:</span>
-          <span style="font-size: 24px; font-weight: 800; color: var(--accent); font-family: var(--font-title);">{{ formatCurrency(totalAmount) }}</span>
+        <!-- Chi tiết tóm tắt đơn hàng thành công -->
+        <div class="success-details-card">
+          <div class="details-section-title">Thông tin giao nhận & Thanh toán</div>
+          
+          <div class="details-info-grid">
+            <div class="info-block">
+              <span class="info-label">Người nhận hàng:</span>
+              <span class="info-val">{{ createdOrder.receiverName }} · {{ createdOrder.phone }}</span>
+            </div>
+
+            <div class="info-block">
+              <span class="info-label">Địa chỉ nhận hàng:</span>
+              <span class="info-val">{{ createdOrder.address }}</span>
+            </div>
+
+            <div class="info-block">
+              <span class="info-label">Phương thức thanh toán:</span>
+              <span class="info-val">
+                <ng-container [ngSwitch]="createdOrder.paymentMethod">
+                  <span *ngSwitchCase="'BANK_TRANSFER'">Chuyển khoản Ngân hàng / Quét mã QR</span>
+                  <span *ngSwitchCase="'COD'">Thanh toán khi nhận hàng (COD)</span>
+                  <span *ngSwitchDefault>{{ createdOrder.paymentMethod }}</span>
+                </ng-container>
+              </span>
+            </div>
+
+            <div class="info-block">
+              <span class="info-label">Thời gian giao dự kiến:</span>
+              <span class="info-val highlight-delivery">{{ createdOrder.deliveryEstimate }}</span>
+            </div>
+
+            <div class="info-block full">
+              <span class="info-label">Tổng giá trị đơn hàng:</span>
+              <span class="info-val total-money">{{ formatCurrency(createdOrder.totalAmount) }}</span>
+              <span *ngIf="createdOrder.depositAmount" class="deposit-meta">
+                (Khoản cọc 30%: <b>{{ formatCurrency(createdOrder.depositAmount) }}</b> · Còn lại: <b>{{ formatCurrency(createdOrder.remainingAmount || 0) }}</b>)
+              </span>
+            </div>
+
+            <div *ngIf="createdOrder.isGift" class="info-block full gift-success-block">
+              <span class="info-label">Dịch vụ quà tặng:</span>
+              <span class="info-val gift-highlight-text">
+                <lucide-angular [img]="icons.Gift" size="16" color="#765337"></lucide-angular>
+                <span>Đơn hàng quà tặng cao cấp</span>
+                <span *ngIf="createdOrder.hideInvoicePrice" class="hide-price-tag">
+                  · <lucide-angular [img]="icons.FileText" size="14" color="#765337"></lucide-angular>
+                  <span>Không hiển thị giá trên đơn vận chuyển</span>
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Danh sách sản phẩm trong đơn -->
+          <div class="purchased-items-section">
+            <div class="items-header">Sản phẩm trong đơn ({{ createdOrder.items.length }})</div>
+            <div class="purchased-items-list">
+              <div *ngFor="let item of createdOrder.items" class="purchased-item-row">
+                <img [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&auto=format&fit=crop'" [alt]="item.name" />
+                <div class="item-name-block">
+                  <div class="item-name">{{ item.name }}</div>
+                  <div class="item-variant" *ngIf="item.variantName">{{ item.variantName }}</div>
+                </div>
+                <div class="item-qty-price">
+                  <span>Số lượng: {{ item.quantity }}</span>
+                  <strong>{{ formatCurrency(item.price * item.quantity) }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button 
-          type="submit" 
-          style="width: 100%; background: var(--accent); color: #fff; padding: 16px; border-radius: 30px; font-size: 16px; font-weight: 600; box-shadow: 0 8px 25px rgba(var(--accent-rgb), 0.3); transition: all 0.2s ease; cursor: pointer; border: none;">
-          Đặt hàng ngay
-        </button>
+        <!-- FR7-C-07: Khung dành cho Khách vãng lai đăng ký tài khoản nhanh -->
+        <div *ngIf="!isLoggedIn" class="guest-register-card">
+          <div class="guest-card-left">
+            <div class="guest-badge-icon">
+              <lucide-angular [img]="icons.Sparkles" size="22"></lucide-angular>
+            </div>
+            <div>
+              <h3>Tạo tài khoản DCor để theo dõi tiến độ đơn hàng</h3>
+              <p>Thông tin của bạn đã được điền sẵn từ đơn hàng. Chỉ cần tạo mật khẩu để tích lũy điểm thưởng và quản lý bảo hành.</p>
+            </div>
+          </div>
+
+          <div *ngIf="!guestRegisterSuccess" class="guest-register-form">
+            <div class="guest-inputs">
+              <input type="text" [value]="createdOrder.receiverName" disabled class="custom-input disabled" />
+              <input type="text" [value]="createdOrder.phone" disabled class="custom-input disabled" />
+              <input 
+                type="password" 
+                [(ngModel)]="registerPassword" 
+                placeholder="Tạo mật khẩu (tối thiểu 6 ký tự)" 
+                class="custom-input" />
+            </div>
+            <button 
+              type="button" 
+              class="btn-register-guest" 
+              (click)="handleRegisterGuest()" 
+              [disabled]="isRegisteringGuest">
+              {{ isRegisteringGuest ? 'Đang tạo tài khoản...' : 'Kích hoạt tài khoản ngay' }}
+            </button>
+          </div>
+
+          <div *ngIf="guestRegisterSuccess" class="guest-registered-success">
+            <lucide-angular [img]="icons.CheckCircle2" size="20"></lucide-angular>
+            <span>Tạo tài khoản thành công! Bạn có thể đăng nhập ngay để theo dõi lịch trình giao nhận.</span>
+          </div>
+        </div>
+
+        <!-- FR7-C-08: Hộp thoại dành cho Khách đăng nhập Google lưu địa chỉ -->
+        <div *ngIf="isLoggedIn && isGoogleAccount && !googleAddressSaved" class="google-save-address-card">
+          <div class="google-card-content">
+            <div class="google-card-title">
+              <lucide-angular [img]="icons.Receipt" size="18"></lucide-angular>
+              <strong>Lưu địa chỉ nhận hàng vào sổ địa chỉ tài khoản?</strong>
+            </div>
+            <p>Lần mua sắm tiếp theo của bạn sẽ nhanh chóng hơn mà không cần nhập lại địa chỉ này.</p>
+            
+            <div class="dont-ask-checkbox">
+              <input type="checkbox" id="dontAsk" [(ngModel)]="dontAskSaveGoogleAddress" />
+              <label for="dontAsk">Không nhắc lại lần sau</label>
+            </div>
+          </div>
+
+          <div class="google-card-actions">
+            <button type="button" class="btn-google-no" (click)="handleSaveGoogleAddress(false)">Để sau</button>
+            <button type="button" class="btn-google-yes" (click)="handleSaveGoogleAddress(true)">Đồng ý lưu</button>
+          </div>
+        </div>
+
+        <div *ngIf="googleAddressSaved" class="google-address-saved-msg">
+          <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
+          <span>Đã lưu địa chỉ vào hồ sơ tài khoản DCor của bạn.</span>
+        </div>
+
+        <!-- Các nút điều hướng sau đặt hàng -->
+        <div class="success-actions-row">
+          <a routerLink="/account/orders" class="btn-view-my-orders">
+            Xem đơn hàng của tôi
+          </a>
+          <a routerLink="/explore" class="btn-continue-explore">
+            Tiếp tục mua sắm
+          </a>
+        </div>
+
       </div>
-
-    </form>
+    </ng-container>
 
   </div>
 </div>
 
+<!-- MODAL SỔ ĐỊA CHỈ (Chỉ mở khi có địa chỉ thực tế từ tài khoản) -->
+<div *ngIf="isAddressModalOpen && savedAddresses.length > 0" class="modal-backdrop-overlay" (click)="isAddressModalOpen = false">
+  <div class="address-modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Chọn địa chỉ giao hàng</h3>
+      <button type="button" class="modal-close-btn" (click)="isAddressModalOpen = false">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="saved-address-list">
+        <div 
+          *ngFor="let addr of savedAddresses" 
+          class="saved-addr-card"
+          [class.selected]="selectedAddressId === addr.id"
+          (click)="selectAddress(addr)">
+          <div class="addr-card-top">
+            <strong>{{ addr.receiverName }}</strong>
+            <span class="addr-phone">{{ addr.phone }}</span>
+            <span *ngIf="addr.isDefault" class="default-badge">Mặc định</span>
+          </div>
+          <div class="addr-detail">{{ addr.address }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <a routerLink="/account/profile" (click)="isAddressModalOpen = false" class="btn-link-edit-addr">Quản lý địa chỉ trong Hồ sơ</a>
+      <button type="button" class="btn-modal-close" (click)="isAddressModalOpen = false">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL XÁC THỰC SỐ ĐIỆN THOẠI BẰNG OTP -->
+<div *ngIf="isOtpModalOpen" class="modal-backdrop-overlay" (click)="isOtpModalOpen = false">
+  <div class="otp-modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Xác thực Số điện thoại</h3>
+      <button type="button" class="modal-close-btn" (click)="isOtpModalOpen = false">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="otp-instruction">
+        Mã xác thực gồm 6 chữ số đã được gửi đến số điện thoại <b>{{ phone }}</b>.
+      </p>
+
+      <div class="otp-fixed-hint">
+        <lucide-angular [img]="icons.Sparkles" size="14" color="#765337"></lucide-angular>
+        <span>Mã OTP xác thực: <b>111111</b></span>
+      </div>
+
+      <div class="otp-input-wrap">
+        <input 
+          type="text" 
+          maxlength="6" 
+          [(ngModel)]="otpCode" 
+          placeholder="Nhập 6 số OTP" 
+          class="otp-large-input" />
+      </div>
+
+      <div *ngIf="otpErrorMessage" class="otp-error-msg">
+        <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+        <span>{{ otpErrorMessage }}</span>
+      </div>
+
+      <div class="otp-timer-row">
+        <span *ngIf="otpCountdown > 0">Gửi lại mã sau: <b>{{ otpCountdown }}s</b></span>
+        <button *ngIf="otpCountdown === 0" type="button" class="btn-resend-otp" (click)="sendOtp()">Gửi lại mã OTP</button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-close" (click)="isOtpModalOpen = false">Hủy</button>
+      <button type="button" class="btn-modal-verify" (click)="verifyOtp()">Xác nhận OTP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     POPUP 1: THANH TOÁN ĐẶT CỌC TRONG 24H (ĐƠN > 50 TRIỆU)
+     ============================================================ -->
+<div *ngIf="showDepositModal" class="modal-backdrop-overlay" (click)="closeDepositModal()">
+  <div class="deposit-modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header deposit-modal-header">
+      <div class="modal-header-title-wrap">
+        <div class="modal-header-icon-badge">
+          <lucide-angular [img]="icons.Sparkles" size="18" color="#765337"></lucide-angular>
+        </div>
+        <div>
+          <h3 class="modal-heading">Thanh toán đặt cọc trong 24h</h3>
+          <p class="modal-subheading">Đơn hàng giá trị cao từ 50.000.000 ₫ (Chờ đặt cọc)</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close-btn" (click)="closeDepositModal()" title="Đóng">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-body deposit-modal-body">
+      <!-- Thông tin tóm tắt đơn cọc -->
+      <div class="deposit-summary-box">
+        <div class="deposit-summary-row">
+          <span class="deposit-label">Mã đơn hàng:</span>
+          <strong class="deposit-order-code">{{ createdOrder?.orderNumber }}</strong>
+        </div>
+        <div class="deposit-summary-row">
+          <span class="deposit-label">Tổng giá trị đơn:</span>
+          <span class="deposit-total-val">{{ formatCurrency(createdOrder?.totalAmount || 0) }}</span>
+        </div>
+        <div class="deposit-summary-row highlight-row">
+          <span class="deposit-label">Khoản đặt cọc (30%):</span>
+          <strong class="deposit-amount-val">{{ formatCurrency(createdOrder?.depositAmount || depositAmount) }}</strong>
+        </div>
+      </div>
+
+      <!-- Khung Mã QR (Logo DCor giả định) -->
+      <div class="qr-payment-card">
+        <div class="qr-image-wrapper">
+          <img src="/assets/favicon/logo.png" alt="DCor QR Code" class="qr-preview-logo" />
+        </div>
+        <div class="qr-action-caption">
+          <lucide-angular [img]="icons.QrCode" size="18" color="#765337"></lucide-angular>
+          <span>Hãy quét mã QR để thanh toán.</span>
+        </div>
+      </div>
+
+      <!-- Liên hệ nhân viên hỗ trợ -->
+      <div class="staff-support-card">
+        <div class="staff-icon-circle">
+          <lucide-angular [img]="icons.Smartphone" size="20" color="#765337"></lucide-angular>
+        </div>
+        <div class="staff-support-content">
+          <div class="staff-support-label">Liên hệ nhân viên để được hỗ trợ:</div>
+          <div class="staff-phone-number">
+            Số điện thoại của nhân viên: <a href="tel:0999xxxxxx" class="phone-link">0999 xxx xxx</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer deposit-modal-footer">
+      <button type="button" class="btn-deposit-close" (click)="closeDepositModal()">Để sau</button>
+      <button type="button" class="btn-deposit-complete" (click)="completeDeposit()">
+        <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
+        <span>Hoàn tất đặt cọc</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     POPUP 2: BẠN ĐÃ ĐẶT HÀNG THÀNH CÔNG, XEM ĐƠN HÀNG CỦA BẠN
+     ============================================================ -->
+<div *ngIf="showSuccessModal" class="modal-backdrop-overlay" (click)="closeSuccessModal()">
+  <div class="success-popup-box" (click)="$event.stopPropagation()">
+    <button type="button" class="modal-close-btn success-close-btn" (click)="closeSuccessModal()" title="Đóng">
+      <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+    </button>
+
+    <div class="success-popup-body">
+      <div class="success-icon-badge">
+        <lucide-angular [img]="icons.CheckCircle2" size="48" color="#059669"></lucide-angular>
+      </div>
+
+      <h3 class="success-popup-title">Bạn đã đặt hàng thành công</h3>
+      
+      <p class="success-popup-desc">
+        Cảm ơn quý khách <b>{{ createdOrder?.receiverName }}</b> đã tin tưởng DCor Furniture. Mã đơn hàng của quý khách là <b class="order-id-tag">#{{ createdOrder?.orderNumber }}</b>.
+      </p>
+
+      <div class="success-popup-actions">
+        <button type="button" class="btn-view-orders-action" (click)="viewMyOrders()">
+          <span>Xem đơn hàng của bạn</span>
+          <lucide-angular [img]="icons.ArrowRight" size="16"></lucide-angular>
+        </button>
+        <button type="button" class="btn-stay-page" (click)="closeSuccessModal()">
+          <span>Đóng</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

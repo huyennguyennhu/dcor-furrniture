@@ -22,4 +22,20 @@ router.post('/customer/forgot-password/verify-otp', authController.customerVerif
 router.post('/customer/forgot-password/reset', authController.customerResetPassword);
 router.post('/customer/google', authController.customerGoogleLogin);
 
+// ----------------------------------------
+// OTP XÁC THỰC SỐ ĐIỆN THOẠI (CỐ ĐỊNH 111111)
+// ----------------------------------------
+router.post('/send-otp', (req, res) => {
+  res.json({ success: true, message: 'Mã xác thực OTP đã được gửi.', otp: '111111' });
+});
+
+router.post('/verify-otp', (req, res) => {
+  const { otp } = req.body;
+  if (otp && String(otp).trim() === '111111') {
+    res.json({ success: true, verified: true, message: 'Xác thực OTP thành công.' });
+  } else {
+    res.status(400).json({ success: false, message: 'Mã OTP không chính xác. Vui lòng nhập mã 111111.' });
+  }
+});
+
 export default router;

@@ -7,7 +7,7 @@
     </div>
   </div>
   <div class="container store-header-main">
-    
+
     <a routerLink="/" class="logo store-wordmark" aria-label="DCor - Trang chủ">
       <img src="/assets/favicon/logo.png" alt="DCor" />
     </a>
@@ -70,37 +70,37 @@
       <div class="floating-search-bar">
         <div class="store-search-field">
           <app-icon class="store-search-icon" name="Search" size="16"></app-icon>
-          <input #searchInput type="text"
-                 [(ngModel)]="searchQuery"
-                 (focus)="onSearchFocus()"
-                 (blur)="onSearchBlur()"
-                 (keydown)="handleSearch($event)"
-                 placeholder="Tìm kiếm sản phẩm"
-                 />
-                 
-          <button *ngIf="searchQuery" (click)="handleSearchSubmit()"
-                  class="store-search-submit">
+          <input #searchInput type="text" [(ngModel)]="searchQuery" (focus)="onSearchFocus()" (blur)="onSearchBlur()"
+            (keydown)="handleSearch($event)" placeholder="Tìm kiếm sản phẩm" />
+
+          <button *ngIf="searchQuery" (click)="handleSearchSubmit()" class="store-search-submit">
             <app-icon class="store-search-submit-icon" name="ArrowRight" size="14" color="#fff"></app-icon>
           </button>
         </div>
 
         <!-- Dropdown -->
-        <div *ngIf="isDropdownOpen && searchQuery.trim()"
-             (mousedown)="$event.preventDefault()"
-             style="position: absolute; top: calc(100% + 12px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; z-index: 102;">
-          <div *ngIf="searchResults.length > 0; else noResults" style="display: flex; flex-direction: column; gap: 8px;">
-            <a *ngFor="let p of searchResults.slice(0, 5)" [routerLink]="['/explore', p.productId]" (click)="isDropdownOpen = false"
-               style="display: flex; gap: 12px; padding: 8px; border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: background 0.2s;"
-               onmouseenter="this.style.background='rgba(0,0,0,0.05)'" onmouseleave="this.style.background='transparent'">
-              <img [src]="p.images[0] || ''" alt="" style="width: 48px; height: 48px; object-fit: contain; padding: 4px; border-radius: 4px; background: var(--bg-tertiary);" />
+        <div *ngIf="isDropdownOpen && searchQuery.trim()" (mousedown)="$event.preventDefault()"
+          style="position: absolute; top: calc(100% + 12px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; z-index: 102;">
+          <div *ngIf="searchResults.length > 0; else noResults"
+            style="display: flex; flex-direction: column; gap: 8px;">
+            <a *ngFor="let p of searchResults.slice(0, 5)" [routerLink]="['/explore', p.productId]"
+              (click)="isDropdownOpen = false"
+              style="display: flex; gap: 12px; padding: 8px; border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: background 0.2s;"
+              onmouseenter="this.style.background='rgba(0,0,0,0.05)'"
+              onmouseleave="this.style.background='transparent'">
+              <img [src]="p.images[0] || ''" alt=""
+                style="width: 48px; height: 48px; object-fit: contain; padding: 4px; border-radius: 4px; background: var(--bg-tertiary);" />
               <div>
-                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">{{ p.shortDescription_vi || p.shortDescription }}</div>
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">{{ p.shortDescription_vi ||
+                  p.shortDescription }}</div>
                 <div style="font-size: 12px; color: var(--text-muted);">{{ p.category }}</div>
               </div>
             </a>
-            
-            <div *ngIf="searchResults.length > 5" style="text-align: center; padding-top: 8px; border-top: 1px solid var(--border-color);">
-              <button (click)="handleSearchSubmit()" style="background: none; border: none; color: var(--accent); font-weight: 600; cursor: pointer; font-size: 13px;">
+
+            <div *ngIf="searchResults.length > 5"
+              style="text-align: center; padding-top: 8px; border-top: 1px solid var(--border-color);">
+              <button (click)="handleSearchSubmit()"
+                style="background: none; border: none; color: var(--accent); font-weight: 600; cursor: pointer; font-size: 13px;">
                 Xem tất cả {{ searchResults.length }} kết quả
               </button>
             </div>
@@ -120,7 +120,8 @@
         <button class="icon-btn" title="Thông báo">
           <app-icon name="Bell" size="20"></app-icon>
         </button>
-        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;" (click)="toggleCartDrawer()">
+        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
+          (click)="toggleCartDrawer()">
           <app-icon name="ShoppingCart" size="20"></app-icon>
           <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
         </button>
@@ -128,30 +129,36 @@
           <button class="icon-btn" (click)="toggleUserMenu()" title="Tài khoản">
             <app-icon name="UserRound" size="22"></app-icon>
           </button>
-          
-          <div class="user-dropdown-menu" [class.active]="userMenuOpen" [style.display]="userMenuOpen ? 'block' : 'none'">
+
+          <div class="user-dropdown-menu" [class.active]="userMenuOpen"
+            [style.display]="userMenuOpen ? 'block' : 'none'">
             <div class="user-dropdown-header">
               <span class="user-name">{{ user?.fullName || user?.name || 'Khách hàng' }}</span>
-              <span class="user-role" style="font-size: 12px; color: var(--text-muted);">{{ user?.email || user?.phone || 'Thành viên DCor' }}</span>
+              <span class="user-role" style="font-size: 12px; color: var(--text-muted);">{{ user?.email || user?.phone
+                || 'Thành viên DCor' }}</span>
             </div>
             <ul>
-              <li><a routerLink="/account/profile" class="user-menu-item" (click)="userMenuOpen = false">Hồ sơ cá nhân</a></li>
-              <li><a routerLink="/account/orders" class="user-menu-item" (click)="userMenuOpen = false">Đơn hàng của tôi</a></li>
-              <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="userMenuOpen = false">Sản phẩm yêu thích</a></li>
+              <li><a routerLink="/account/profile" class="user-menu-item" (click)="userMenuOpen = false">Hồ sơ cá
+                  nhân</a></li>
+              <li><a routerLink="/account/orders" class="user-menu-item" (click)="userMenuOpen = false">Đơn hàng của
+                  tôi</a></li>
+              <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="userMenuOpen = false">Sản phẩm yêu
+                  thích</a></li>
               <li>
                 <button class="user-menu-item" (click)="toggleTheme()"
-                        style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 14px; color: var(--text-secondary);">
+                  style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 14px; color: var(--text-secondary);">
                   <span>{{ theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối' }}</span>
                   <app-icon name="Sun" size="15" *ngIf="theme === 'dark'"></app-icon>
                   <app-icon name="Moon" size="15" *ngIf="theme === 'light'"></app-icon>
                 </button>
               </li>
               <li *ngIf="user?.role === 'ADMIN'">
-                <a routerLink="/admin" class="user-menu-item" (click)="userMenuOpen = false" style="border-top: 1px solid var(--border-color); margin-top: 4px;">Hệ thống quản trị Admin</a>
+                <a routerLink="/admin" class="user-menu-item" (click)="userMenuOpen = false"
+                  style="border-top: 1px solid var(--border-color); margin-top: 4px;">Hệ thống quản trị Admin</a>
               </li>
               <li>
                 <button class="user-menu-item" (click)="logout()"
-                        style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #ff4d4f; padding: 10px 16px; font-size: 14px; border-top: 1px solid var(--border-color); margin-top: 4px;">
+                  style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #ff4d4f; padding: 10px 16px; font-size: 14px; border-top: 1px solid var(--border-color); margin-top: 4px;">
                   <app-icon name="LogOut" size="16"></app-icon>
                   Đăng xuất
                 </button>
@@ -160,15 +167,15 @@
           </div>
         </div>
       </ng-container>
-      
+
       <ng-template #guestTemplate>
-        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;" (click)="toggleCartDrawer()">
+        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
+          (click)="toggleCartDrawer()">
           <app-icon name="ShoppingCart" size="20"></app-icon>
           <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
         </button>
-        <button (click)="openLoginModal()"
-                class="store-login-button"
-                onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">
+        <button (click)="openLoginModal()" class="store-login-button" onmouseenter="this.style.transform='scale(1.05)'"
+          onmouseleave="this.style.transform='scale(1)'">
           Đăng nhập
         </button>
       </ng-template>

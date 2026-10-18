@@ -47,7 +47,6 @@ export class Header implements OnInit {
   shopHoverDismissed = false;
   isStoreCategoriesLoading = true;
   storeCategories: StoreCategory[] = [];
-  
   cartCount = 0;
   products: CatalogProduct[] = [];
   user: StoreUser | null = null;
