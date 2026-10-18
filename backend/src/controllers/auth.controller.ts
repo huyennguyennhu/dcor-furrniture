@@ -6,6 +6,7 @@ import { otpService, normalizePhone, isValidPassword, OtpPurpose } from '../serv
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
+const LOCK_DURATION_SECONDS = Number(process.env.LOGIN_LOCK_SECONDS) || 900;
 
 export const authController = {
   // Đăng nhập dành cho Admin / Staff
@@ -239,7 +240,7 @@ export const authController = {
       }
 
       const normalizedPhone = normalizePhone(phone);
-      const customer = await prisma.customer.findUnique({
+      let customer = await prisma.customer.findUnique({
         where: { phone: normalizedPhone }
       });
 
@@ -253,6 +254,15 @@ export const authController = {
             remainingSeconds
           });
           return;
+        } else {
+          // lockedUntil đã qua -> coi failedLoginCount = 0 (và reset trong DB) trước khi xử lý lần đăng nhập này
+          customer = await prisma.customer.update({
+            where: { id: customer.id },
+            data: {
+              failedLoginCount: 0,
+              lockedUntil: null
+            }
+          });
         }
       }
 
@@ -265,31 +275,30 @@ export const authController = {
       const isPasswordValid = bcrypt.compareSync(password, customer.passwordHash);
 
       if (!isPasswordValid) {
-        const nextFailedCount = customer.failedLoginCount + 1;
+        const updatedCustomer = await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            failedLoginCount: { increment: 1 }
+          }
+        });
 
-        if (nextFailedCount >= 5) {
-          const lockDurationSeconds = 15 * 60; // 15 phút
+        if (updatedCustomer.failedLoginCount >= 5) {
+          const lockDurationSeconds = Number(process.env.LOGIN_LOCK_SECONDS) || LOCK_DURATION_SECONDS;
           const lockedUntil = new Date(Date.now() + lockDurationSeconds * 1000);
 
           await prisma.customer.update({
             where: { id: customer.id },
             data: {
-              failedLoginCount: nextFailedCount,
               lockedUntil
             }
           });
 
           res.status(423).json({
-            message: 'Tài khoản tạm thời bị khóa 15 phút do nhập sai mật khẩu quá 5 lần liên tiếp.',
+            message: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần liên tiếp.',
             remainingSeconds: lockDurationSeconds
           });
           return;
         }
-
-        await prisma.customer.update({
-          where: { id: customer.id },
-          data: { failedLoginCount: nextFailedCount }
-        });
 
         res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác.' });
         return;
@@ -347,6 +356,9 @@ export const authController = {
         res.status(otpValidation.status).json({ message: otpValidation.message });
         return;
       }
+
+      // OTP hợp lệ -> Xóa toàn bộ OTP của số điện thoại để chỉ dùng được một lần
+      await otpService.clearOtpsForPhone(normalizedPhone);
 
       // Sinh resetToken có thời hạn 10 phút, payload { phone, type: "RESET" }
       const resetToken = jwt.sign(

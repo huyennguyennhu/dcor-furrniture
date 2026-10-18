@@ -1,117 +1,209 @@
-<div style="display: flex; min-height: 100vh; width: 100vw; background: var(--bg-primary);">
-  <!-- Left Column - Image -->
-  <div class="login-image-column" style="flex: 1; display: none; position: relative;">
+<div class="auth-page-container">
+  <!-- Left Column - Image & Brand Story -->
+  <div class="auth-image-column">
     <img 
       src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80" 
-      alt="DCor Interior" 
-      style="width: 100%; height: 100vh; object-fit: cover;" 
+      alt="DCor Nordic Interior" 
+      class="auth-hero-img"
     />
-    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); display: flex; flex-direction: column; justify-content: flex-end; padding: 60px; color: #fff;">
-      <h1 style="font-size: 48px; font-weight: 300; margin-bottom: 20px; letter-spacing: -1px;">Gia nhập DCor</h1>
-      <p style="font-size: 18px; opacity: 0.9; max-width: 500px; line-height: 1.6;">Khám phá các bộ sưu tập nội thất mới nhất và tận hưởng ưu đãi dành riêng cho thành viên.</p>
+    <div class="auth-image-overlay">
+      <div class="auth-brand-badge">
+        <span class="brand-dot"></span>
+        <span>DCor Studio</span>
+      </div>
+      <h1 class="auth-image-title">Gia nhập DCor</h1>
+      <p class="auth-image-subtitle">Khám phá các bộ sưu tập nội thất Bắc Âu tinh tế và tận hưởng ưu đãi dành riêng cho thành viên.</p>
     </div>
   </div>
 
-  <!-- Right Column - Form -->
-  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 20px;">
-    <div style="width: 100%; max-width: 420px;">
-      <div style="margin-bottom: 40px; text-align: center;">
-        <h2 style="font-size: 32px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Tạo tài khoản</h2>
-        <p style="font-size: 15px; color: var(--text-muted);">Điền thông tin để đăng ký thành viên</p>
+  <!-- Right Column - Register Form -->
+  <div class="auth-form-column">
+    <div class="auth-form-card">
+      <div class="auth-header text-center">
+        <div class="logo-circle-wrapper">
+          <div class="logo-circle">
+            <span class="logo-circle-text">DC</span>
+          </div>
+        </div>
+        <h2 class="auth-title">Tạo tài khoản</h2>
+        <p class="auth-subtitle">Điền thông tin để đăng ký thành viên DCor</p>
       </div>
 
-      <form (submit)="handleRegister($event)" style="display: flex; flex-direction: column; gap: 20px;">
-        
-        <div>
-          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Họ và tên <span style="color: red;">*</span></label>
-          <input 
-            type="text" 
-            [(ngModel)]="fullName" name="fullName"
-            required 
-            class="auth-input" 
-            placeholder="VD: Nguyễn Văn A" 
-            autocomplete="name"
-          />
-        </div>
+      <!-- Thông báo lỗi tổng -->
+      <div *ngIf="error" class="auth-alert alert-error">
+        <app-icon name="AlertCircle" size="18"></app-icon>
+        <span>{{ error }}</span>
+      </div>
 
-        <div>
-          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Số điện thoại <span style="color: red;">*</span></label>
-          <input 
-            type="tel" 
-            [ngModel]="phone" (ngModelChange)="onPhoneChange($event)" name="phone"
-            maxlength="10"
-            required 
-            class="auth-input" 
-            placeholder="Nhập số điện thoại" 
-            autocomplete="tel"
-          />
-        </div>
+      <!-- Thông báo thành công -->
+      <div *ngIf="success" class="auth-alert alert-success">
+        <app-icon name="CircleCheck" size="18"></app-icon>
+        <span>{{ success }}</span>
+      </div>
 
-        <div>
-          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Mật khẩu <span style="color: red;">*</span></label>
-          <div style="position: relative;">
+      <form (submit)="handleRegister($event)" class="auth-form">
+        <!-- Họ và tên -->
+        <div class="form-group">
+          <label class="form-label" for="reg-fullname">
+            Họ và tên <span class="required-star">*</span>
+          </label>
+          <div class="input-wrapper">
             <input 
-              [type]="showPassword ? 'text' : 'password'" 
-              [(ngModel)]="password" name="password"
+              id="reg-fullname"
+              type="text" 
+              [(ngModel)]="fullName" 
+              name="fullName"
               required 
               class="auth-input" 
-              style="padding-right: 40px;" 
-              placeholder="Tối thiểu 6 ký tự" 
+              placeholder="VD: Nguyễn Văn A" 
+              autocomplete="name"
+            />
+          </div>
+        </div>
+
+        <!-- Số điện thoại -->
+        <div class="form-group">
+          <label class="form-label" for="reg-phone">
+            Số điện thoại <span class="required-star">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input 
+              id="reg-phone"
+              type="tel" 
+              [ngModel]="phone" 
+              (ngModelChange)="onPhoneChange($event)" 
+              name="phone"
+              maxlength="10"
+              required 
+              class="auth-input" 
+              placeholder="VD: 0912345678" 
+              autocomplete="tel"
+            />
+            <button *ngIf="phone" type="button" class="input-clear-btn" (click)="phone = ''" aria-label="Xóa">
+              <app-icon name="X" size="16"></app-icon>
+            </button>
+          </div>
+          <span *ngIf="phone && !isPhoneValid" class="field-error-hint">
+            Số điện thoại phải gồm 10 chữ số (đầu số 03, 05, 07, 08, 09)
+          </span>
+        </div>
+
+        <!-- Mật khẩu -->
+        <div class="form-group">
+          <label class="form-label" for="reg-password">
+            Mật khẩu <span class="required-star">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input 
+              id="reg-password"
+              [type]="showPassword ? 'text' : 'password'" 
+              [(ngModel)]="password" 
+              name="password"
+              required 
+              class="auth-input" 
+              placeholder="Tối thiểu 8 ký tự (chữ và số)" 
               autocomplete="new-password"
             />
-            <button type="button" (click)="showPassword = !showPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
+            <button type="button" class="input-action-btn" (click)="showPassword = !showPassword" aria-label="Hiện/ẩn mật khẩu">
               <app-icon name="EyeOff" size="18" *ngIf="showPassword"></app-icon>
               <app-icon name="Eye" size="18" *ngIf="!showPassword"></app-icon>
             </button>
           </div>
+
+          <!-- Password Strength Indicator -->
+          <div *ngIf="password" class="password-strength-box">
+            <div class="strength-bar-track">
+              <div class="strength-bar-fill" 
+                   [ngClass]="passwordStrength.barClass" 
+                   [style.width.%]="passwordStrength.percent"></div>
+            </div>
+            <div class="strength-info">
+              <span class="strength-text">Độ mạnh: <strong [ngClass]="passwordStrength.textClass">{{ passwordStrength.label }}</strong></span>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label style="display: block; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Nhập lại mật khẩu <span style="color: red;">*</span></label>
-          <div style="position: relative;">
+        <!-- Nhập lại mật khẩu -->
+        <div class="form-group">
+          <label class="form-label" for="reg-confirm-password">
+            Nhập lại mật khẩu <span class="required-star">*</span>
+          </label>
+          <div class="input-wrapper">
             <input 
+              id="reg-confirm-password"
               [type]="showConfirmPassword ? 'text' : 'password'" 
-              [(ngModel)]="confirmPassword" name="confirmPassword"
+              [(ngModel)]="confirmPassword" 
+              name="confirmPassword"
               required 
               class="auth-input" 
-              style="padding-right: 40px;" 
-              placeholder="Nhập lại mật khẩu" 
+              placeholder="Nhập lại mật khẩu trên" 
               autocomplete="new-password"
             />
-            <button type="button" (click)="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; padding: 0;">
+            <button type="button" class="input-action-btn" (click)="showConfirmPassword = !showConfirmPassword" aria-label="Hiện/ẩn mật khẩu">
               <app-icon name="EyeOff" size="18" *ngIf="showConfirmPassword"></app-icon>
               <app-icon name="Eye" size="18" *ngIf="!showConfirmPassword"></app-icon>
             </button>
           </div>
+          <span *ngIf="confirmPassword && !isConfirmPasswordValid" class="field-error-hint">
+            Mật khẩu nhập lại chưa trùng khớp
+          </span>
+          <span *ngIf="confirmPassword && isConfirmPasswordValid" class="field-success-hint">
+            <app-icon name="Check" size="14"></app-icon> Mật khẩu trùng khớp
+          </span>
         </div>
 
-        <button type="submit" class="checkout-btn" [disabled]="loading || !isFormValid" 
-                [style.opacity]="(loading || !isFormValid) ? 0.5 : 1" 
-                [style.cursor]="(loading || !isFormValid) ? 'not-allowed' : 'pointer'"
-                style="width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; margin-top: 10px;">
-          {{ loading ? 'Đang xử lý...' : 'ĐĂNG KÝ' }}
+        <!-- Checkbox Điều khoản -->
+        <div class="terms-checkbox-wrap">
+          <label class="custom-checkbox-label">
+            <input type="checkbox" [(ngModel)]="agreeTerms" name="agreeTerms" class="custom-checkbox" />
+            <span class="terms-text">
+              Tôi đồng ý với <a href="#" (click)="$event.preventDefault()" class="terms-link">Điều khoản sử dụng</a> và <a href="#" (click)="$event.preventDefault()" class="terms-link">Chính sách bảo mật</a> của DCor Studio.
+            </span>
+          </label>
+        </div>
+
+        <!-- Nút Đăng ký -->
+        <button 
+          type="submit" 
+          class="auth-submit-btn" 
+          [disabled]="loading || !isFormValid">
+          <span *ngIf="loading" class="spinner"></span>
+          <span>{{ loading ? 'Đang gửi mã OTP...' : 'ĐĂNG KÝ TÀI KHOẢN' }}</span>
         </button>
-        
-        <div *ngIf="error" style="color: red; font-size: 14px; text-align: center; padding: 10px; background: rgba(255,0,0,0.05); border-radius: 8px;">{{ error }}</div>
-        <div *ngIf="success" style="color: #2ECC71; font-size: 14px; text-align: center; padding: 10px; background: rgba(46,204,113,0.05); border-radius: 8px;">{{ success }}</div>
       </form>
 
-      <div style="display: flex; align-items: center; margin: 30px 0; gap: 15px;">
-        <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
-        <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">Hoặc</span>
-        <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+      <!-- Phân cách -->
+      <div class="auth-divider">
+        <span class="divider-line"></span>
+        <span class="divider-text">Hoặc</span>
+        <span class="divider-line"></span>
       </div>
 
-      <div style="display: flex; justify-content: center; width: 100%; margin-top: 15px;">
-        <asl-google-signin-button type="standard" size="large" [width]="400" theme="outline"></asl-google-signin-button>
+      <!-- Đăng nhập Google -->
+      <div class="google-auth-wrapper">
+        <asl-google-signin-button type="standard" size="large" [width]="380" theme="outline"></asl-google-signin-button>
       </div>
 
-      <div style="text-align: center; margin-top: 30px; font-size: 15px;">
-        <span style="color: var(--text-muted);">Bạn đã có tài khoản? </span>
-        <a routerLink="/login" class="hover-underline-lr" style="color: var(--accent); font-weight: 600; text-decoration: none;">Đăng nhập</a>
+      <!-- Chuyển sang Đăng nhập -->
+      <div class="auth-switch-link text-center">
+        <span>Bạn đã có tài khoản? </span>
+        <a routerLink="/login" class="link-accent">Đăng nhập ngay</a>
       </div>
-
     </div>
   </div>
 </div>
 
+<!-- Modal Nhập OTP đăng ký -->
+<app-otp-modal
+  [isOpen]="isOtpModalOpen"
+  [phoneNumber]="phone"
+  [loading]="otpLoading"
+  [errorMessage]="otpErrorMessage"
+  [countdown]="otpCountdown"
+  [resendCountdown]="otpResendCountdown"
+  title="Xác thực số điện thoại"
+  confirmText="Hoàn tất đăng ký"
+  (verify)="handleOtpVerify($event)"
+  (resend)="handleOtpResend()"
+  (close)="handleOtpClose()">
+</app-otp-modal>

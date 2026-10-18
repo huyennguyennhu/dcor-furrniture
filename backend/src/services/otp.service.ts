@@ -1,5 +1,6 @@
 import { PrismaClient, OtpCode } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { smsService } from './sms.service';
 
 const prisma = new PrismaClient();
@@ -32,8 +33,8 @@ export const normalizePhone = (rawPhone: string): string => {
 
 export const isValidVietnamPhone = (phone: string): boolean => {
   const normalized = normalizePhone(phone);
-  // Số điện thoại Việt Nam chuẩn: 10 chữ số, bắt đầu bằng số 0
-  return /^0\d{9}$/.test(normalized);
+  // Số điện thoại Việt Nam chuẩn: 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09
+  return /^0[35789]\d{8}$/.test(normalized);
 };
 
 export const isValidPassword = (password: string): boolean => {
@@ -45,7 +46,7 @@ export const isValidPassword = (password: string): boolean => {
 };
 
 export const generateOtp = (): string => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 };
 
 export class OtpService {
@@ -117,17 +118,24 @@ export class OtpService {
       }
     });
 
-    // Gửi qua SMS service
-    await smsService.sendOtp(phone, otp);
+    const exposeDevOtp = process.env.EXPOSE_DEV_OTP === 'true';
 
-    const isDev = process.env.NODE_ENV !== 'production';
+    // Chỉ log OTP ra console khi process.env.EXPOSE_DEV_OTP === 'true'
+    if (exposeDevOtp) {
+      if (process.env.NODE_ENV === 'production') {
+        console.log(`[SMS Dev - ${phone}] Mã OTP xác thực DCor của bạn là: ${otp}. Mã có hiệu lực trong 90 giây.`);
+      }
+      await smsService.sendOtp(phone, otp);
+    } else if (process.env.SMS_PROVIDER && process.env.SMS_PROVIDER.toUpperCase() !== 'CONSOLE') {
+      await smsService.sendOtp(phone, otp);
+    }
 
     return {
       status: 200,
       message: 'Mã xác thực đã được gửi đến số điện thoại của bạn.',
       expiresIn: 90,
       resendAfter: 60,
-      ...(isDev ? { devOtp: otp } : {})
+      ...(exposeDevOtp ? { devOtp: otp } : {})
     };
   }
 
