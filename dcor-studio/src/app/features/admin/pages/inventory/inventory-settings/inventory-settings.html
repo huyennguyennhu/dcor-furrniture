@@ -1,0 +1,1286 @@
+<div class="inventory-settings-container" [style.cursor]="isLoading ? 'wait' : 'default'">
+
+  <!-- Floating Toast Notification -->
+  <div *ngIf="showToast" 
+    class="inventory-toast-container"
+    style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; animation: toastSlideUpRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;"
+    [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
+  >
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+      <div 
+        style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
+        [style.background]="toastType === 'success' ? 'rgba(16, 185, 129, 0.12)' : (toastType === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(59, 130, 246, 0.12)')"
+        [style.color]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#2563eb')"
+      >
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.AlertCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'warning'" [img]="icons.ShieldAlert" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.Info" size="20"></lucide-angular>
+      </div>
+
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+        <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; word-break: break-word;">
+          {{ toastMessage }}
+        </span>
+        <span *ngIf="toastSubMessage" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; word-break: break-word;">
+          {{ toastSubMessage }}
+        </span>
+      </div>
+
+      <button 
+        type="button" 
+        (click)="closeToast()" 
+        style="background: transparent; border: none; cursor: pointer; color: var(--text-muted, #9ca3af); padding: 2px; border-radius: 4px; display: flex; align-items: center; justify-content: center;"
+        title="Đóng thông báo"
+      >
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
+  </div>
+
+  <!-- Page Header & Navigation Bar -->
+  <div class="settings-page-header">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px;">
+        Cài đặt tồn kho & Danh mục
+      </h1>
+      <p style="color: var(--text-secondary); font-size: 13.5px; margin: 0;">
+        Quản trị mạng lưới điểm kho, chuẩn hóa tiền tố lý do xuất/nhập/kiểm kê và chính sách thuế suất VAT.
+      </p>
+    </div>
+  </div>
+
+  <!-- 5 Tabs Navigation Bar -->
+  <div class="settings-tabs-bar">
+    <button type="button" class="tab-item" [class.active]="activeTab === 1" (click)="setTab(1)">
+      <lucide-angular [img]="icons.Building2" size="17"></lucide-angular>
+      <span>1. Điểm kho & Chi nhánh</span>
+      <span class="tab-badge">{{ warehouses.length }}</span>
+    </button>
+    
+    <button type="button" class="tab-item" [class.active]="activeTab === 2" (click)="setTab(2)">
+      <lucide-angular [img]="icons.ArrowUpRight" size="17"></lucide-angular>
+      <span>2. Lý do Xuất</span>
+      <span class="tab-badge">{{ getReasonCount('EXPORT') }}</span>
+    </button>
+    
+    <button type="button" class="tab-item" [class.active]="activeTab === 3" (click)="setTab(3)">
+      <lucide-angular [img]="icons.ArrowDownRight" size="17"></lucide-angular>
+      <span>3. Lý do Nhập</span>
+      <span class="tab-badge">{{ getReasonCount('IMPORT') }}</span>
+    </button>
+
+    <button type="button" class="tab-item" [class.active]="activeTab === 4" (click)="setTab(4)">
+      <lucide-angular [img]="icons.ClipboardList" size="17"></lucide-angular>
+      <span>4. Lý do Kiểm kê</span>
+      <span class="tab-badge">{{ getReasonCount('AUDIT') }}</span>
+    </button>
+
+    <button type="button" class="tab-item" [class.active]="activeTab === 5" (click)="setTab(5)">
+      <lucide-angular [img]="icons.Percent" size="17"></lucide-angular>
+      <span>5. Phần trăm VAT</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: 🏬 ĐIỂM KHO & CHI NHÁNH (WAREHOUSES & LOCATIONS)                   -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 1" class="tab-content-panel">
+    <!-- KPI Summary Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: rgba(118, 83, 55, 0.12); color: var(--accent);">
+          <lucide-angular [img]="icons.Warehouse" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Tổng số điểm kho</span>
+          <span class="kpi-value">{{ warehouseSummary.totalCount }}</span>
+          <span class="kpi-desc">Mạng lưới kho & chi nhánh</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+          <lucide-angular [img]="icons.CheckCircle2" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Đang hoạt động</span>
+          <span class="kpi-value" style="color: #10b981;">{{ warehouseSummary.activeCount }}</span>
+          <span class="kpi-desc">Hiển thị trong dropdown làm phiếu</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.12); color: #2563eb;">
+          <lucide-angular [img]="icons.Building2" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Kho trung tâm</span>
+          <span class="kpi-value">{{ warehouseSummary.centralCount }}</span>
+          <span class="kpi-desc">Kho tổng điều phối chính</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: rgba(168, 85, 247, 0.12); color: #9333ea;">
+          <lucide-angular [img]="icons.Layers" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Showroom trưng bày</span>
+          <span class="kpi-value">{{ warehouseSummary.showroomCount }}</span>
+          <span class="kpi-desc">Điểm bán lẻ & trải nghiệm</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Action Toolbar -->
+    <div class="table-toolbar">
+      <div class="search-input-wrapper">
+        <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (ngModelChange)="onSearchChange()"
+          placeholder="Tìm theo mã kho, tên kho, địa chỉ, thủ kho..."
+          class="custom-search-input"
+        />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearchChange()" class="clear-search-btn">
+          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <button type="button" class="admin-btn admin-btn-primary" (click)="openAddWarehouseModal()" style="display: flex; align-items: center; gap: 8px;">
+        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+        <span>Thêm điểm kho mới</span>
+      </button>
+    </div>
+
+    <!-- Warehouses Table -->
+    <div class="custom-table-container">
+      <table class="settings-data-table">
+        <thead>
+          <tr>
+            <th style="width: 130px;">Mã kho</th>
+            <th style="min-width: 190px;">Tên kho & Chi nhánh</th>
+            <th style="width: 140px;">Phân loại</th>
+            <th style="min-width: 220px;">Địa chỉ</th>
+            <th style="width: 160px;">Thủ kho & SĐT</th>
+            <th style="width: 120px; text-align: center;">Trạng thái</th>
+            <th style="width: 150px; text-align: right;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
+          <tr *ngIf="isLoading">
+            <td colspan="7" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải danh sách điểm kho & chi nhánh...</span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
+            <tr *ngFor="let wh of getPaginatedWarehouses()" [class.row-disabled]="!wh.isActive">
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="code-badge">{{ wh.code }}</span>
+                  <span *ngIf="wh.isDefault" class="star-badge" title="Kho mặc định">
+                    <lucide-angular [img]="icons.Star" size="13" color="#f59e0b"></lucide-angular>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">
+                  {{ wh.name }}
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+                  <span>{{ wh.stockSkusCount || 0 }} mã hàng</span>
+                  <span>•</span>
+                  <span [style.color]="wh.hasTransactions ? '#059669' : 'var(--text-muted)'">
+                    {{ wh.transactionCount || 0 }} giao dịch
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="wh-type-badge" [attr.data-type]="wh.type">
+                  {{ wh.typeName }}
+                </span>
+              </td>
+              <td>
+                <div class="text-truncate-2" [title]="wh.address" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4;">
+                  {{ wh.address }}
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 12.5px; font-weight: 500; color: var(--text-primary);">
+                  {{ wh.managerName || '—' }}
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-muted);">
+                  {{ wh.phone || 'Chưa có SĐT' }}
+                </div>
+              </td>
+              <td style="text-align: center;">
+                <label class="toggle-switch" [title]="wh.isActive ? 'Đang hoạt động (Bấm để tạm dừng)' : 'Đang tạm dừng (Bấm để kích hoạt)'">
+                  <input 
+                    type="checkbox" 
+                    [checked]="wh.isActive" 
+                    (change)="toggleWarehouseActive(wh)"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </td>
+              <td style="text-align: right;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                  <button 
+                    *ngIf="!wh.isDefault" 
+                    type="button" 
+                    class="action-icon-btn star-action-btn"
+                    title="Đặt làm kho mặc định"
+                    (click)="setWarehouseAsDefault(wh)"
+                  >
+                    <lucide-angular [img]="icons.Star" size="15"></lucide-angular>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="action-icon-btn edit-action-btn"
+                    title="Sửa thông tin kho"
+                    (click)="openEditWarehouseModal(wh)"
+                  >
+                    <lucide-angular [img]="icons.Pencil" size="15"></lucide-angular>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="action-icon-btn delete-action-btn"
+                    title="Xóa điểm kho"
+                    (click)="handleDeleteWarehouse(wh)"
+                  >
+                    <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="getFilteredWarehouses().length === 0">
+              <td colspan="7" style="text-align: center; padding: 48px 16px;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <lucide-angular [img]="icons.Building2" size="36" style="opacity: 0.5;"></lucide-angular>
+                  <span>Không tìm thấy điểm kho nào phù hợp với bộ lọc</span>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+
+      <!-- Pagination Footer -->
+      <div *ngIf="!isLoading && getFilteredWarehouses().length > 0" class="table-pagination-footer">
+        <div class="pagination-info">
+          Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getWhStartIndex() }} - {{ getWhEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ getFilteredWarehouses().length }}</span> điểm kho
+        </div>
+
+        <div class="pagination-controls">
+          <button 
+            type="button"
+            (click)="goToWhPage(1)" 
+            [disabled]="whCurrentPage === 1"
+            class="admin-pagination-btn"
+            [class.disabled]="whCurrentPage === 1"
+            title="Trang đầu"
+          >
+            <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToWhPage(whCurrentPage - 1)" 
+            [disabled]="whCurrentPage === 1"
+            class="admin-pagination-btn"
+            [class.disabled]="whCurrentPage === 1"
+            title="Trang trước"
+          >
+            <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            *ngFor="let p of getWhVisiblePages()"
+            (click)="goToWhPage(p)"
+            class="admin-pagination-btn"
+            [class.active]="p === whCurrentPage"
+          >
+            {{ p }}
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToWhPage(whCurrentPage + 1)" 
+            [disabled]="whCurrentPage === whTotalPages"
+            class="admin-pagination-btn"
+            [class.disabled]="whCurrentPage === whTotalPages"
+            title="Trang sau"
+          >
+            <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToWhPage(whTotalPages)" 
+            [disabled]="whCurrentPage === whTotalPages"
+            class="admin-pagination-btn"
+            [class.disabled]="whCurrentPage === whTotalPages"
+            title="Trang cuối"
+          >
+            <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2, 3, 4: REASONS (XUẤT, NHẬP, KIỂM KÊ)                               -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 2 || activeTab === 3 || activeTab === 4" class="tab-content-panel">
+    <!-- Dynamic Header depending on Tab -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon" [style.background]="activeTab === 2 ? 'rgba(239, 68, 68, 0.12)' : (activeTab === 3 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)')"
+                              [style.color]="activeTab === 2 ? '#ef4444' : (activeTab === 3 ? '#10b981' : '#2563eb')">
+          <lucide-angular *ngIf="activeTab === 2" [img]="icons.ArrowUpRight" size="22"></lucide-angular>
+          <lucide-angular *ngIf="activeTab === 3" [img]="icons.ArrowDownRight" size="22"></lucide-angular>
+          <lucide-angular *ngIf="activeTab === 4" [img]="icons.ClipboardList" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Tổng số lý do</span>
+          <span class="kpi-value">{{ getCurrentReasons().length }}</span>
+          <span class="kpi-desc">
+            {{ activeTab === 2 ? 'Lý do xuất kho chuẩn' : (activeTab === 3 ? 'Lý do nhập kho chuẩn' : 'Mục đích kiểm đếm') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+          <lucide-angular [img]="icons.CheckCircle2" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Đang hoạt động</span>
+          <span class="kpi-value" style="color: #10b981;">
+            {{ getActiveReasonCount(getCurrentTabReasonType()) }}
+          </span>
+          <span class="kpi-desc">Hiển thị trên form tạo phiếu</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" *ngIf="activeTab !== 4">
+        <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.12); color: #d97706;">
+          <lucide-angular [img]="icons.FileText" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Yêu cầu Đối tác</span>
+          <span class="kpi-value">
+            {{ getPartnerReasonCount(getCurrentTabReasonType()) }}
+          </span>
+          <span class="kpi-desc">Bắt buộc nhập Khách hàng / NCC</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Toolbar -->
+    <div class="table-toolbar">
+      <div class="search-input-wrapper">
+        <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (ngModelChange)="onSearchChange()"
+          [placeholder]="activeTab === 2 ? 'Tìm lý do xuất, tiền tố PXK-...' : (activeTab === 3 ? 'Tìm lý do nhập, tiền tố PNK-...' : 'Tìm lý do kiểm kê, tiền tố PKK-...')"
+          class="custom-search-input"
+        />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearchChange()" class="clear-search-btn">
+          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <button type="button" class="admin-btn admin-btn-primary" (click)="openAddReasonModal()" style="display: flex; align-items: center; gap: 8px;">
+        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+        <span>
+          + Thêm {{ activeTab === 2 ? 'lý do xuất' : (activeTab === 3 ? 'lý do nhập' : 'lý do kiểm kê') }} mới
+        </span>
+      </button>
+    </div>
+
+    <!-- Reasons Table -->
+    <div class="custom-table-container">
+      <table class="settings-data-table">
+        <thead>
+          <tr>
+            <th style="min-width: 220px;">Tên lý do</th>
+            <th style="width: 140px;">Tiền tố mã chứng từ</th>
+            <th *ngIf="activeTab !== 4" style="width: 180px;">Yêu cầu đối tác</th>
+            <th style="width: 110px;">Phân loại</th>
+            <th style="width: 110px; text-align: center;">Trạng thái</th>
+            <th style="width: 120px; text-align: right;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
+          <tr *ngIf="isLoading">
+            <td [attr.colspan]="activeTab !== 4 ? 6 : 5" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">
+                  Đang tải danh mục {{ activeTab === 2 ? 'lý do xuất kho' : (activeTab === 3 ? 'lý do nhập kho' : 'lý do kiểm kê') }}...
+                </span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
+            <tr *ngFor="let r of getPaginatedReasons()" [class.row-disabled]="!r.isActive" style="white-space: nowrap;">
+              <td style="white-space: nowrap;">
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 13.5px; white-space: nowrap;">
+                  {{ r.reason }}
+                </div>
+              </td>
+              <td style="white-space: nowrap;">
+                <span class="prefix-badge" style="white-space: nowrap;">{{ r.prefix }}</span>
+              </td>
+              <td *ngIf="activeTab !== 4" style="white-space: nowrap;">
+                <span *ngIf="r.requiresPartner" class="partner-badge req" style="white-space: nowrap;">
+                  Bắt buộc ({{ r.partnerLabel || 'Đối tác' }})
+                </span>
+                <span *ngIf="!r.requiresPartner" class="partner-badge not-req" style="white-space: nowrap;">
+                  Không yêu cầu
+                </span>
+              </td>
+              <td>
+                <span *ngIf="r.isSystem" class="system-badge" title="Danh mục chuẩn định nghĩa sẵn">
+                  Hệ thống
+                </span>
+                <span *ngIf="!r.isSystem" class="custom-badge" title="Tùy chỉnh thêm">
+                  Tự tạo
+                </span>
+              </td>
+              <td style="text-align: center;">
+                <label class="toggle-switch" [title]="r.isActive ? 'Đang bật (Hiện trên dropdown)' : 'Đang tắt (Ẩn khỏi dropdown)'">
+                  <input 
+                    type="checkbox" 
+                    [checked]="r.isActive" 
+                    (change)="toggleReasonActive(r)"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </td>
+              <td style="text-align: right;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                  <button 
+                    type="button" 
+                    class="action-icon-btn edit-action-btn"
+                    title="Sửa lý do"
+                    (click)="openEditReasonModal(r)"
+                  >
+                    <lucide-angular [img]="icons.Pencil" size="15"></lucide-angular>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="action-icon-btn delete-action-btn"
+                    [disabled]="r.isSystem"
+                    [class.btn-disabled]="r.isSystem"
+                    [title]="r.isSystem ? 'Lý do hệ thống không thể xóa (hãy tắt hoạt động)' : 'Xóa lý do'"
+                    (click)="handleDeleteReason(r)"
+                  >
+                    <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="getCurrentReasons().length === 0">
+              <td [attr.colspan]="activeTab !== 4 ? 6 : 5" style="text-align: center; padding: 48px 16px;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <lucide-angular [img]="icons.FileText" size="36" style="opacity: 0.5;"></lucide-angular>
+                  <span>Chưa có lý do nào trong danh mục</span>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+
+      <!-- Pagination Footer -->
+      <div *ngIf="!isLoading && getCurrentReasons().length > 0" class="table-pagination-footer">
+        <div class="pagination-info">
+          Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getReasonStartIndex() }} - {{ getReasonEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ getCurrentReasons().length }}</span> lý do
+        </div>
+
+        <div class="pagination-controls">
+          <button 
+            type="button"
+            (click)="goToReasonPage(1)" 
+            [disabled]="reasonCurrentPage === 1"
+            class="admin-pagination-btn"
+            [class.disabled]="reasonCurrentPage === 1"
+            title="Trang đầu"
+          >
+            <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToReasonPage(reasonCurrentPage - 1)" 
+            [disabled]="reasonCurrentPage === 1"
+            class="admin-pagination-btn"
+            [class.disabled]="reasonCurrentPage === 1"
+            title="Trang trước"
+          >
+            <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            *ngFor="let p of getReasonVisiblePages()"
+            (click)="goToReasonPage(p)"
+            class="admin-pagination-btn"
+            [class.active]="p === reasonCurrentPage"
+          >
+            {{ p }}
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToReasonPage(reasonCurrentPage + 1)" 
+            [disabled]="reasonCurrentPage === reasonTotalPages"
+            class="admin-pagination-btn"
+            [class.disabled]="reasonCurrentPage === reasonTotalPages"
+            title="Trang sau"
+          >
+            <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToReasonPage(reasonTotalPages)" 
+            [disabled]="reasonCurrentPage === reasonTotalPages"
+            class="admin-pagination-btn"
+            [class.disabled]="reasonCurrentPage === reasonTotalPages"
+            title="Trang cuối"
+          >
+            <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 5: 💰 PHẦN TRĂM VAT (TAX RATES & VAT RULES)                           -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 5" class="tab-content-panel">
+    <!-- KPI Header -->
+    <div class="kpi-grid">
+      <div class="kpi-card highlight-card">
+        <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">
+          <lucide-angular [img]="icons.Star" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Thuế suất Mặc định</span>
+          <span class="kpi-value" style="color: #d97706;">
+            {{ getDefaultTaxRate() ? (getDefaultTaxRate()?.rate + '%') : 'Chưa đặt' }}
+          </span>
+          <span class="kpi-desc">{{ getDefaultTaxRate()?.name || 'Tự động chọn khi tạo phiếu mới' }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+          <lucide-angular [img]="icons.CheckCircle2" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Mức thuế Đang dùng</span>
+          <span class="kpi-value" style="color: #10b981;">
+            {{ getActiveTaxCount() }}
+          </span>
+          <span class="kpi-desc">Tổng cộng {{ taxRates.length }} mức thuế</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.12); color: #2563eb;">
+          <lucide-angular [img]="icons.SlidersHorizontal" size="22"></lucide-angular>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Cơ chế tính thuế</span>
+          <span class="kpi-value" style="font-size: 16px; font-weight: 700; color: #2563eb;">
+            {{ generalSettings.pricingTaxMode === 'EXCLUSIVE' ? 'Chưa gồm VAT' : 'Đã gồm VAT' }}
+          </span>
+          <span class="kpi-desc">Chuẩn hóa cho chứng từ kho & B2B</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Action Toolbar -->
+    <div class="table-toolbar">
+      <div class="search-input-wrapper">
+        <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (ngModelChange)="onSearchChange()"
+          placeholder="Tìm mức thuế (10%, 8%, KCT, VAT_10...)..."
+          class="custom-search-input"
+        />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearchChange()" class="clear-search-btn">
+          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <button type="button" class="admin-btn admin-btn-primary" (click)="openAddTaxModal()" style="display: flex; align-items: center; gap: 8px;">
+        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+        <span>+ Thêm mức thuế VAT mới</span>
+      </button>
+    </div>
+
+    <!-- Tax Rates Table -->
+    <div class="custom-table-container">
+      <table class="settings-data-table">
+        <thead>
+          <tr>
+            <th style="width: 120px;">Mã thuế</th>
+            <th style="min-width: 200px;">Tên hiển thị mức thuế</th>
+            <th style="width: 130px;">Thuế suất (%)</th>
+            <th style="min-width: 260px;">Mô tả / Căn cứ áp dụng</th>
+            <th style="width: 130px; text-align: center;">Mặc định</th>
+            <th style="width: 110px; text-align: center;">Trạng thái</th>
+            <th style="width: 120px; text-align: right;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu -->
+          <tr *ngIf="isLoading">
+            <td colspan="7" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải danh mục thuế suất & chính sách VAT...</span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
+            <tr *ngFor="let t of getPaginatedTaxRates()" [class.row-disabled]="!t.isActive">
+              <td>
+                <span class="code-badge">{{ t.code }}</span>
+              </td>
+              <td>
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 13.5px;">
+                  {{ t.name }}
+                </div>
+              </td>
+              <td>
+                <span class="tax-rate-pill" [class.highlight]="t.isDefault">
+                  {{ t.code === 'VAT_KCT' ? 'KCT (0%)' : (t.rate + '%') }}
+                </span>
+              </td>
+              <td>
+                <div class="text-truncate-2" [title]="t.description || ''" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4;">
+                  {{ t.description || '—' }}
+                </div>
+              </td>
+              <td style="text-align: center;">
+                <span *ngIf="t.isDefault" class="default-badge">
+                  <lucide-angular [img]="icons.Star" size="13" color="#f59e0b"></lucide-angular>
+                  <span>Mặc định</span>
+                </span>
+                <button 
+                  *ngIf="!t.isDefault" 
+                  type="button" 
+                  class="set-default-btn" 
+                  (click)="setTaxRateAsDefault(t)"
+                  title="Bấm để đặt làm mức thuế mặc định"
+                >
+                  Đặt mặc định
+                </button>
+              </td>
+              <td style="text-align: center;">
+                <label class="toggle-switch" [title]="t.isActive ? 'Đang bật' : 'Đang tắt'">
+                  <input 
+                    type="checkbox" 
+                    [checked]="t.isActive" 
+                    (change)="toggleTaxRateActive(t)"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </td>
+              <td style="text-align: right;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                  <button 
+                    type="button" 
+                    class="action-icon-btn edit-action-btn"
+                    title="Sửa mức thuế"
+                    (click)="openEditTaxModal(t)"
+                  >
+                    <lucide-angular [img]="icons.Pencil" size="15"></lucide-angular>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="action-icon-btn delete-action-btn"
+                    [disabled]="t.isDefault"
+                    [class.btn-disabled]="t.isDefault"
+                    [title]="t.isDefault ? 'Không thể xóa mức thuế mặc định' : 'Xóa mức thuế'"
+                    (click)="handleDeleteTaxRate(t)"
+                  >
+                    <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="getFilteredTaxRates().length === 0">
+              <td colspan="7" style="text-align: center; padding: 48px 16px;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <lucide-angular [img]="icons.Percent" size="36" style="opacity: 0.5;"></lucide-angular>
+                  <span>Không tìm thấy mức thuế suất nào phù hợp</span>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+
+      <!-- Pagination Footer -->
+      <div *ngIf="!isLoading && getFilteredTaxRates().length > 0" class="table-pagination-footer">
+        <div class="pagination-info">
+          Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getVatStartIndex() }} - {{ getVatEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ getFilteredTaxRates().length }}</span> mức thuế
+        </div>
+
+        <div class="pagination-controls">
+          <button 
+            type="button"
+            (click)="goToVatPage(1)" 
+            [disabled]="vatCurrentPage === 1"
+            class="admin-pagination-btn"
+            [class.disabled]="vatCurrentPage === 1"
+            title="Trang đầu"
+          >
+            <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToVatPage(vatCurrentPage - 1)" 
+            [disabled]="vatCurrentPage === 1"
+            class="admin-pagination-btn"
+            [class.disabled]="vatCurrentPage === 1"
+            title="Trang trước"
+          >
+            <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            *ngFor="let p of getVatVisiblePages()"
+            (click)="goToVatPage(p)"
+            class="admin-pagination-btn"
+            [class.active]="p === vatCurrentPage"
+          >
+            {{ p }}
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToVatPage(vatCurrentPage + 1)" 
+            [disabled]="vatCurrentPage === vatTotalPages"
+            class="admin-pagination-btn"
+            [class.disabled]="vatCurrentPage === vatTotalPages"
+            title="Trang sau"
+          >
+            <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+          </button>
+
+          <button 
+            type="button"
+            (click)="goToVatPage(vatTotalPages)" 
+            [disabled]="vatCurrentPage === vatTotalPages"
+            class="admin-pagination-btn"
+            [class.disabled]="vatCurrentPage === vatTotalPages"
+            title="Trang cuối"
+          >
+            <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Khối Cấu hình Quy tắc Thuế VAT & Kế toán Kho -->
+    <div class="general-rules-card">
+      <div class="rules-card-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <lucide-angular [img]="icons.SlidersHorizontal" size="18" style="color: var(--accent);"></lucide-angular>
+          <span style="font-weight: 700; font-size: 15px; color: var(--text-primary);">Quy tắc hạch toán Thuế VAT & Chứng từ</span>
+        </div>
+        <button 
+          type="button" 
+          class="admin-btn admin-btn-primary" 
+          (click)="saveGeneralSettingsForm()" 
+          [disabled]="isSavingGeneralSettings"
+          style="padding: 6px 14px; font-size: 13px;"
+        >
+          <span>{{ isSavingGeneralSettings ? 'Đang lưu...' : 'Lưu quy tắc' }}</span>
+        </button>
+      </div>
+
+      <div class="rules-card-body">
+        <!-- Rule 1: Cơ chế giá trên phiếu -->
+        <div class="rule-item">
+          <div>
+            <div class="rule-title">Cơ chế áp dụng giá trên Phiếu Nhập / Xuất kho</div>
+            <div class="rule-desc">
+              Xác định đơn giá hiển thị trên dòng sản phẩm là giá chưa thuế hay đã bao gồm thuế VAT.
+            </div>
+          </div>
+          <div class="rule-control radio-group">
+            <label class="radio-label">
+              <input 
+                type="radio" 
+                name="pricingTaxMode" 
+                value="EXCLUSIVE" 
+                [(ngModel)]="generalSettings.pricingTaxMode" 
+              />
+              <span>Giá CHƯA bao gồm VAT (Tiền thuế cộng thêm vào SubTotal) — <i>Khuyên dùng cho B2B & Kho</i></span>
+            </label>
+            <label class="radio-label">
+              <input 
+                type="radio" 
+                name="pricingTaxMode" 
+                value="INCLUSIVE" 
+                [(ngModel)]="generalSettings.pricingTaxMode" 
+              />
+              <span>Giá ĐÃ bao gồm VAT (Hệ thống tự bóc tách tiền thuế ngược ra) — <i>Bán lẻ B2C</i></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Rule 2: Tự động khóa 0% VAT cho phiếu nội bộ -->
+        <div class="rule-item">
+          <div>
+            <div class="rule-title">Tự động khóa Thuế VAT = 0% đối với Phiếu nội bộ</div>
+            <div class="rule-desc">
+              Khi tạo các phiếu: Chuyển kho nội bộ, Xuất hủy hàng hỏng, Trưng bày mẫu, Nhập cân bằng kiểm kê -> Hệ thống tự động gán VAT = 0% và vô hiệu hóa ô thuế để tránh sai lệch hạch toán.
+            </div>
+          </div>
+          <div class="rule-control">
+            <label class="toggle-switch">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="generalSettings.autoZeroTaxInternal" 
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS                                                                    -->
+  <!-- ========================================================================= -->
+
+  <!-- 1. Modal Thêm / Sửa Điểm Kho -->
+  <div *ngIf="showWarehouseModal" class="modal-backdrop" (click)="closeWarehouseModal()">
+    <div class="modal-dialog modal-warehouse" (click)="showWarehouseTypeDropdown = false; $event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ isEditWarehouse ? 'Chỉnh sửa điểm kho' : 'Thêm điểm kho mới' }}</h3>
+        <button type="button" class="modal-close-btn" (click)="closeWarehouseModal()" title="Đóng">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label required">Mã kho (Code)</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="warehouseForm.code"
+              placeholder="VD: KHO_DN, SR_BINH_DUONG" 
+              [disabled]="isEditWarehouse"
+              style="text-transform: uppercase;"
+            />
+            <span class="form-hint">Mã định danh duy nhất, viết hoa, không khoảng trắng</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Tên kho & Chi nhánh</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="warehouseForm.name"
+              placeholder="VD: Kho Đà Nẵng, Showroom Bình Dương" 
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Phân loại kho</label>
+            <div class="filter-dropdown-wrapper" (click)="$event.stopPropagation()">
+              <button 
+                type="button" 
+                title="Chọn phân loại kho" 
+                class="filter-trigger-btn"
+                [class.active]="showWarehouseTypeDropdown"
+                (click)="showWarehouseTypeDropdown = !showWarehouseTypeDropdown"
+              >
+                <div class="trigger-label">
+                  <span class="truncate-label">{{ getWarehouseTypeLabel(warehouseForm.type) }}</span>
+                </div>
+                <lucide-angular 
+                  [img]="icons.ChevronDown" 
+                  size="14" 
+                  [ngStyle]="{'transform': showWarehouseTypeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"
+                ></lucide-angular>
+              </button>
+
+              <div *ngIf="showWarehouseTypeDropdown" class="filter-menu-dropdown">
+                <div 
+                  *ngFor="let opt of warehouseTypeOptions"
+                  (click)="selectWarehouseType(opt.value)"
+                  class="filter-menu-item"
+                  [class.selected]="warehouseForm.type === opt.value"
+                >
+                  <span>{{ opt.label }}</span>
+                  <lucide-angular *ngIf="warehouseForm.type === opt.value" [img]="icons.Check" size="15" style="color: var(--accent);"></lucide-angular>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Địa chỉ chi tiết</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="warehouseForm.address"
+              placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" 
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Thủ kho phụ trách</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="warehouseForm.managerName"
+              placeholder="Họ và tên thủ kho" 
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Số điện thoại liên lạc</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="warehouseForm.phone"
+              placeholder="VD: 028 3816 8899" 
+            />
+          </div>
+
+          <div class="form-group full-width" style="margin-top: 6px;">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="warehouseForm.isDefault" 
+              />
+              <span style="font-weight: 600; color: var(--text-primary);">Đặt làm Điểm kho mặc định của hệ thống</span>
+            </label>
+            <span class="form-hint" style="margin-left: 24px;">Điểm kho này sẽ tự động được chọn sẵn khi tạo phiếu xuất/nhập kho và phân bổ đơn hàng online.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeWarehouseModal()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveWarehouse()">
+          {{ isEditWarehouse ? 'Lưu thay đổi' : 'Thêm điểm kho' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Modal Cảnh báo Safe Delete Warehouse (Khi có giao dịch) -->
+  <div *ngIf="showDeleteWarehouseWarningModal" class="modal-backdrop" (click)="showDeleteWarehouseWarningModal = false">
+    <div class="modal-dialog modal-warning" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; color: #d97706;">
+          <lucide-angular [img]="icons.ShieldAlert" size="22"></lucide-angular>
+          <h3 class="modal-title" style="color: #d97706;">Không thể xóa điểm kho</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="showDeleteWarehouseWarningModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 13.5px; line-height: 1.6; color: var(--text-primary); margin: 0 0 16px;">
+          {{ deleteWarningMessage }}
+        </p>
+
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: #b45309; line-height: 1.5;">
+          <strong>Khuyến nghị an toàn:</strong> Bạn nên chuyển trạng thái kho sang <b>"Tạm dừng"</b>. Khi đó, kho này sẽ không còn hiển thị trên các dropdown tạo phiếu mới nhưng vẫn bảo toàn đầy đủ báo cáo, phiếu lịch sử và số liệu kế toán.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="showDeleteWarehouseWarningModal = false">Đóng</button>
+        <button type="button" class="admin-btn admin-btn-warning" (click)="confirmSafeDeactivateWh()">
+          Chuyển sang Tạm dừng hoạt động
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Modal Confirm Delete Warehouse (Khi kho chưa có giao dịch) -->
+  <div *ngIf="showDeleteWarehouseConfirmModal" class="modal-backdrop" (click)="showDeleteWarehouseConfirmModal = false">
+    <div class="modal-dialog modal-danger" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #ef4444;">Xác nhận xóa điểm kho</h3>
+        <button type="button" class="modal-close-btn" (click)="showDeleteWarehouseConfirmModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 13.5px; color: var(--text-primary); line-height: 1.5;">
+          Bạn có chắc chắn muốn xóa vĩnh viễn điểm kho <b>"{{ deleteConfirmWh?.name }}"</b> ({{ deleteConfirmWh?.code }}) không?
+        </p>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
+          Hành động này không thể hoàn tác.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="showDeleteWarehouseConfirmModal = false">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDeleteWarehouse()">Xác nhận xóa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Modal Thêm / Sửa Lý Do (Tabs 2, 3, 4) -->
+  <div *ngIf="showReasonModal" class="modal-backdrop" (click)="closeReasonModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          {{ isEditReason ? 'Chỉnh sửa lý do' : ('Thêm ' + (reasonForm.type === 'EXPORT' ? 'lý do xuất' : (reasonForm.type === 'IMPORT' ? 'lý do nhập' : 'lý do kiểm kê')) + ' mới') }}
+        </h3>
+        <button type="button" class="modal-close-btn" (click)="closeReasonModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label class="form-label required">Tên lý do</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="reasonForm.reason"
+              placeholder="VD: Xuất hàng mẫu dự án, Nhập bảo hành..." 
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label required">Tiền tố mã chứng từ (Prefix)</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="reasonForm.prefix"
+              placeholder="VD: PXK-BH, PNK-NCC, PKK-DK" 
+              style="text-transform: uppercase;"
+            />
+            <span class="form-hint">Mã phiếu tạo ra sẽ có định dạng: [Prefix]-[NămTháng]-[SốThứTự]</span>
+          </div>
+
+          <div *ngIf="reasonForm.type !== 'AUDIT'" class="form-group full-width" style="margin-top: 4px;">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="reasonForm.requiresPartner" 
+              />
+              <span style="font-weight: 600; color: var(--text-primary);">
+                Bắt buộc nhập Đối tác khi làm phiếu
+              </span>
+            </label>
+            <span class="form-hint" style="margin-left: 24px;">
+              Tích chọn nếu phiếu này yêu cầu người lập phải điền Khách hàng hoặc Nhà cung cấp.
+            </span>
+          </div>
+
+          <div *ngIf="reasonForm.type !== 'AUDIT' && reasonForm.requiresPartner" class="form-group full-width">
+            <label class="form-label required">Tên nhãn đối tác hiển thị trên form</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="reasonForm.partnerLabel"
+              placeholder="VD: Khách hàng, Nhà cung cấp, Đơn vị nhận..." 
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeReasonModal()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveReason()">
+          {{ isEditReason ? 'Lưu thay đổi' : 'Thêm lý do' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Modal Xóa Lý Do -->
+  <div *ngIf="showDeleteReasonModal" class="modal-backdrop" (click)="showDeleteReasonModal = false">
+    <div class="modal-dialog modal-danger" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #ef4444;">Xác nhận xóa lý do</h3>
+        <button type="button" class="modal-close-btn" (click)="showDeleteReasonModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 13.5px; color: var(--text-primary); line-height: 1.5;">
+          Bạn có chắc chắn muốn xóa lý do <b>"{{ deleteReasonTarget?.reason }}"</b> khỏi danh mục không?
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="showDeleteReasonModal = false">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDeleteReason()">Xóa vĩnh viễn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Modal Thêm / Sửa Thuế VAT (Tab 5) -->
+  <div *ngIf="showTaxModal" class="modal-backdrop" (click)="closeTaxModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ isEditTax ? 'Chỉnh sửa mức thuế VAT' : 'Thêm mức thuế VAT mới' }}</h3>
+        <button type="button" class="modal-close-btn" (click)="closeTaxModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label required">Mã mức thuế</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="taxForm.code"
+              placeholder="VD: VAT_10, VAT_05" 
+              [disabled]="isEditTax"
+              style="text-transform: uppercase;"
+            />
+            <span class="form-hint">Mã định danh duy nhất (E-Invoice Tax Code)</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Tên hiển thị</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="taxForm.name"
+              placeholder="VD: Thuế GTGT 10% (Chuẩn)" 
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label class="checkbox-label" style="margin-bottom: 8px;">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="taxForm.isKct"
+                (change)="onTaxKctChange()"
+              />
+              <span style="font-weight: 600; color: var(--text-primary);">Hàng hóa / Dịch vụ Không chịu thuế (KCT)</span>
+            </label>
+          </div>
+
+          <div class="form-group full-width" *ngIf="!taxForm.isKct">
+            <label class="form-label required">Thuế suất (%)</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input 
+                type="number" 
+                class="form-control" 
+                [(ngModel)]="taxForm.rate"
+                min="0" 
+                max="100" 
+                placeholder="10" 
+                style="padding-right: 32px;"
+              />
+              <span style="position: absolute; right: 12px; font-weight: 600; color: var(--text-muted);">%</span>
+            </div>
+            <span class="form-hint">Nhập giá trị nguyên từ 0 đến 100</span>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label">Mô tả / Căn cứ pháp lý áp dụng</label>
+            <textarea 
+              class="form-control" 
+              rows="2"
+              [(ngModel)]="taxForm.description"
+              placeholder="VD: Áp dụng cho đồ gỗ thành phẩm theo Nghị định..."
+            ></textarea>
+          </div>
+
+          <div class="form-group full-width" style="margin-top: 4px;">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="taxForm.isDefault" 
+              />
+              <span style="font-weight: 600; color: var(--text-primary);">Đặt làm Thuế suất Mặc định</span>
+            </label>
+            <span class="form-hint" style="margin-left: 24px;">Tự động chọn mức này khi mở form lập phiếu xuất/nhập kho.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeTaxModal()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveTaxRate()">
+          {{ isEditTax ? 'Lưu thay đổi' : 'Thêm mức thuế' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Modal Xóa Thuế VAT -->
+  <div *ngIf="showDeleteTaxModal" class="modal-backdrop" (click)="showDeleteTaxModal = false">
+    <div class="modal-dialog modal-danger" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #ef4444;">Xác nhận xóa mức thuế</h3>
+        <button type="button" class="modal-close-btn" (click)="showDeleteTaxModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 13.5px; color: var(--text-primary); line-height: 1.5;">
+          Bạn có chắc chắn muốn xóa mức thuế <b>"{{ deleteTaxTarget?.name }}"</b> không?
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="showDeleteTaxModal = false">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDeleteTaxRate()">Xóa vĩnh viễn</button>
+      </div>
+    </div>
+  </div>
+
+</div>

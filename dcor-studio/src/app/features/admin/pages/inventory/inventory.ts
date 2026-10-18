@@ -813,7 +813,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const isTransfer = (data.reason || '').includes('Chuyển kho');
     const orderType = isImport ? 'IMPORT' : (isTransfer ? 'TRANSFER' : 'EXPORT');
     const isDraft = data.action === 'draft';
-    const orderStatus = isDraft ? 'PENDING' : 'COMPLETED';
+    const orderStatus = isDraft ? 'DRAFT' : (data.status || 'PLANNED');
 
     const payload = {
       orderCode: data.orderCode,
@@ -854,8 +854,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
           );
         } else {
           this.triggerToast(
-            `Đã tạo và phát hành thành công phiếu ${created.orderCode || created.id}!`,
-            'Số lượng tồn kho thực tế đã được cập nhật ngay lập tức.',
+            `Đã tạo thành công phiếu ${created.orderCode || created.id}!`,
+            `Trạng thái: Đang lên kế hoạch ${isImport ? 'nhập' : 'xuất'} kho.`,
             'success'
           );
         }

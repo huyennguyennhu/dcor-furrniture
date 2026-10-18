@@ -1,8 +1,40 @@
 import { Router } from 'express';
 import { inventoryController } from '../controllers/inventory.controller';
+import { inventorySettingsController } from '../controllers/inventory-settings.controller';
 
 const router = Router();
 
+// ==========================================
+// CÀI ĐẶT TỒN KHO & DANH MỤC (5 TABS)
+// ==========================================
+// Tab 1: Điểm kho & Chi nhánh
+router.get('/settings/warehouses', inventorySettingsController.getWarehouses);
+router.post('/settings/warehouses', inventorySettingsController.createWarehouse);
+router.put('/settings/warehouses/:id', inventorySettingsController.updateWarehouse);
+router.patch('/settings/warehouses/:id/toggle', inventorySettingsController.toggleWarehouseActive);
+router.delete('/settings/warehouses/:id', inventorySettingsController.deleteWarehouse);
+
+// Tab 2, 3, 4: Danh mục Lý do Xuất / Nhập / Kiểm kê
+router.get('/settings/reasons', inventorySettingsController.getReasons);
+router.post('/settings/reasons', inventorySettingsController.createReason);
+router.put('/settings/reasons/:id', inventorySettingsController.updateReason);
+router.patch('/settings/reasons/:id/toggle', inventorySettingsController.toggleReasonActive);
+router.delete('/settings/reasons/:id', inventorySettingsController.deleteReason);
+
+// Tab 5: Phần trăm VAT
+router.get('/settings/tax-rates', inventorySettingsController.getTaxRates);
+router.post('/settings/tax-rates', inventorySettingsController.createTaxRate);
+router.put('/settings/tax-rates/:id', inventorySettingsController.updateTaxRate);
+router.patch('/settings/tax-rates/:id/toggle', inventorySettingsController.toggleTaxRateActive);
+router.patch('/settings/tax-rates/:id/default', inventorySettingsController.setDefaultTaxRate);
+router.delete('/settings/tax-rates/:id', inventorySettingsController.deleteTaxRate);
+
+// Cấu hình quy tắc chung
+router.post('/settings/general', inventorySettingsController.saveGeneralSettings);
+
+// ==========================================
+// CÁC ENDPOINTS KHO HIỆN CÓ
+// ==========================================
 // Warehouses & Branches
 router.get('/warehouses', inventoryController.getWarehouses);
 
@@ -35,3 +67,4 @@ router.delete('/audits/:id', inventoryController.deleteStockAudit);
 router.get('/history', inventoryController.getStockTransactions);
 
 export default router;
+

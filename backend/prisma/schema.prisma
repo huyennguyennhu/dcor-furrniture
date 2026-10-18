@@ -459,6 +459,7 @@ model Warehouse {
   phone        String?
   managerName  String?
   isActive     Boolean       @default(true)
+  isDefault    Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -670,5 +671,56 @@ model StockTransaction {
   @@index([type])
   @@index([referenceCode])
   @@index([location])
+}
+
+// ============================================================================
+// 8. CẤU HÌNH QUẢN TRỊ TỒN KHO & THUẾ (INVENTORY SETTINGS)
+// ============================================================================
+
+enum InventoryReasonType {
+  EXPORT
+  IMPORT
+  AUDIT
+}
+
+model InventoryReason {
+  id              String              @id @default(uuid())
+  type            InventoryReasonType
+  reason          String
+  prefix          String
+  requiresPartner Boolean             @default(false)
+  partnerLabel    String?
+  isActive        Boolean             @default(true)
+  isSystem        Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([type, reason])
+  @@index([type, isActive])
+  @@map("inventory_reasons")
+}
+
+model TaxRate {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  rate        Float
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("tax_rates")
+}
+
+model InventorySetting {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("inventory_settings")
 }
 

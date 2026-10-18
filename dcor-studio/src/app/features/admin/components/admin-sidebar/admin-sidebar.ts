@@ -72,6 +72,7 @@ export class AdminSidebar implements OnInit {
         { title: 'Kiểm kê', href: '/admin/inventory/audit' },
         { title: 'Lệnh xuất-nhập kho', href: '/admin/inventory/transactions' },
         { title: 'Lịch sử biến động', href: '/admin/inventory/history' },
+        { title: 'Cài đặt tồn kho', href: '/admin/inventory/settings' },
       ]
     },
     {

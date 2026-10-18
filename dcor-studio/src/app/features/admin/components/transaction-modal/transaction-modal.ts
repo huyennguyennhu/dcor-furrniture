@@ -1144,7 +1144,7 @@ export interface LineItem {
                           (mousedown)="selectProduct(item, p.id, $event)"
                           (click)="selectProduct(item, p.id, $event)"
                         >
-                          <div style="font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;" [style.color]="item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'">
+                          <div style="font-size: 13px; font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.35;" [style.color]="item.productId === p.id ? 'var(--accent)' : 'var(--text-primary)'">
                             {{ p.name || p.productName }}
                           </div>
                           <div *ngIf="p.variants?.length" style="font-size: 11px; color: var(--text-muted);">
@@ -1758,18 +1758,6 @@ export interface LineItem {
           <!-- VIEW MODE: action buttons based on status -->
           <div *ngIf="isViewMode" style="display: flex; gap: 10px; align-items: center;">
 
-            <!-- Nút [Đóng] xuất hiện trong view mode (khi không sửa nháp) -->
-            <button *ngIf="!isEditingDraft" type="button" (click)="requestClose()"
-              [disabled]="isAnyActionProcessing"
-              [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
-              [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
-              style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; transition: all 0.15s ease;"
-              onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)'"
-              onmouseout="if(!this.disabled) this.style.background='var(--bg-primary)'"
-            >
-              Đóng
-            </button>
-
             <!-- DRAFT: If not editing: [Xóa phiếu] [Lên kế hoạch nhập/xuất] (Nút [Sửa] đã đưa lên Header) -->
             <ng-container *ngIf="isDraft && !isEditingDraft">
               <button type="button" (click)="openDeleteOrderModal()"
@@ -1784,16 +1772,19 @@ export interface LineItem {
                 Xóa phiếu
               </button>
               <button type="button" (click)="handlePlanOrder()"
-                [disabled]="isAnyActionProcessing"
-                [style.opacity]="isAnyActionProcessing ? '0.6' : '1'"
-                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
-                style="display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(124,58,237,0.25);transition:all 0.2s;"
-                onmouseover="if(!this.disabled) { this.style.background='#6d28d9'; this.style.boxShadow='0 4px 14px rgba(109,40,217,0.4)'; this.style.transform='translateY(-1px)'; }"
-                onmouseout="if(!this.disabled) { this.style.background='#7c3aed'; this.style.boxShadow='0 2px 8px rgba(124,58,237,0.25)'; this.style.transform='translateY(0)'; }"
+                [disabled]="!canPlanOrder()"
+                [style.opacity]="!canPlanOrder() ? '0.45' : '1'"
+                [style.cursor]="!canPlanOrder() ? 'not-allowed' : 'pointer'"
+                [style.background]="!canPlanOrder() ? '#9ca3af' : '#765337'"
+                [style.box-shadow]="!canPlanOrder() ? 'none' : '0 2px 8px rgba(118,83,55,0.28)'"
+                style="display:flex;align-items:center;gap:6px;padding:9px 24px;border-radius:8px;border:none;color:#fff;font-size:13px;font-weight:600;transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);"
+                onmouseover="if(!this.disabled) { this.style.background='#5a3d26'; this.style.boxShadow='0 4px 14px rgba(90, 61, 38, 0.4)'; this.style.transform='translateY(-1px)'; }"
+                onmouseout="if(!this.disabled) { this.style.background=canPlanOrder() ? '#765337' : '#9ca3af'; this.style.boxShadow=canPlanOrder() ? '0 2px 8px rgba(118, 83, 55, 0.28)' : 'none'; this.style.transform='translateY(0)'; }"
+                [title]="getPlanOrderBtnTitle()"
               >
-                <lucide-angular *ngIf="!isPlanningOrder" [img]="icons.Play" size="14"></lucide-angular>
-                <lucide-angular *ngIf="isPlanningOrder" [img]="icons.Loader2" size="14" style="animation: spin 0.8s linear infinite;"></lucide-angular>
-                <span>{{ isPlanningOrder ? 'Đang lên kế hoạch...' : (type === 'import' ? 'Lên kế hoạch nhập' : 'Lên kế hoạch xuất') }}</span>
+                <lucide-angular *ngIf="!isPlanningOrder" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+                <lucide-angular *ngIf="isPlanningOrder" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
+                <span>{{ isPlanningOrder ? 'Đang tạo phiếu...' : (type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho') }}</span>
               </button>
             </ng-container>
 
@@ -1833,14 +1824,15 @@ export interface LineItem {
                 Hủy phiếu
               </button>
               <button type="button" (click)="handleConfirmExecution()"
-                [disabled]="isAnyActionProcessing"
-                [style.opacity]="isAnyActionProcessing ? '0.6' : '1'"
-                [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
+                [disabled]="!canConfirmExecution()"
+                [style.opacity]="!canConfirmExecution() ? '0.45' : '1'"
+                [style.cursor]="!canConfirmExecution() ? 'not-allowed' : 'pointer'"
+                [style.background]="!canConfirmExecution() ? '#9ca3af' : (type === 'import' ? '#059669' : '#ef4444')"
+                [style.box-shadow]="!canConfirmExecution() ? 'none' : (type === 'import' ? '0 2px 8px rgba(5,150,105,0.25)' : '0 2px 8px rgba(239,68,68,0.25)')"
                 style="display:flex;align-items:center;gap:6px;padding:9px 22px;border-radius:8px;border:none;color:#fff;font-size:13px;font-weight:600;transition:all 0.2s;"
-                [style.background]="type === 'import' ? '#059669' : '#ef4444'"
-                [style.box-shadow]="type === 'import' ? '0 2px 8px rgba(5,150,105,0.25)' : '0 2px 8px rgba(239,68,68,0.25)'"
                 onmouseover="if(!this.disabled) { this.style.opacity='0.9'; this.style.transform='translateY(-1px)'; }"
-                onmouseout="if(!this.disabled) { this.style.opacity=isAnyActionProcessing ? '0.6' : '1'; this.style.transform='translateY(0)'; }"
+                onmouseout="if(!this.disabled) { this.style.opacity=canConfirmExecution() ? '1' : '0.45'; this.style.transform='translateY(0)'; }"
+                [title]="getConfirmActionBtnTitle()"
               >
                 <lucide-angular *ngIf="!isExecutingOrder" [img]="icons.CheckCircle2" size="15"></lucide-angular>
                 <lucide-angular *ngIf="isExecutingOrder" [img]="icons.Loader2" size="15" style="animation: spin 0.8s linear infinite;"></lucide-angular>
@@ -2631,6 +2623,12 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handlePlanOrder() {
+    if (!this.canPlanOrder()) {
+      if (this.type === 'export' && this.hasExceededStock()) {
+        this.triggerToast('Không thể tạo phiếu xuất!', 'Có sản phẩm vượt quá tồn kho khả dụng. Vui lòng kiểm tra lại.', 'error');
+      }
+      return;
+    }
     if (this.isAnyActionProcessing) return;
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
     this.isPlanningOrder = true;
@@ -2661,6 +2659,12 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   }
 
   handleConfirmExecution() {
+    if (!this.canConfirmExecution()) {
+      if (this.type === 'export' && this.hasExceededStock()) {
+        this.triggerToast('Không thể xuất kho!', 'Có sản phẩm vượt quá tồn kho thực tế. Vui lòng kiểm tra lại.', 'error');
+      }
+      return;
+    }
     if (this.isAnyActionProcessing) return;
     if (!this.viewOrderData?.rawId && !this.viewOrderData?.id) return;
     this.isExecutingOrder = true;
@@ -3289,6 +3293,26 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       error: (err) => console.warn('Could not fetch warehouses:', err)
     });
 
+    // Tải danh mục thuế VAT cấu hình từ Tab 5 Cài đặt tồn kho
+    this.http.get<any>(`${environment.apiUrl}/admin/inventory/settings/tax-rates`).subscribe({
+      next: (res) => {
+        if (res && Array.isArray(res.taxRates)) {
+          const activeRates = res.taxRates.filter((t: any) => t.isActive).map((t: any) => Number(t.rate));
+          if (activeRates.length > 0) {
+            this.taxRateOptions = Array.from(new Set([0, ...activeRates])).sort((a, b) => a - b);
+          }
+          if (!this.isViewMode && (this.taxRate === 0 || this.taxRate === undefined)) {
+            const defaultTax = res.taxRates.find((t: any) => t.isDefault && t.isActive);
+            if (defaultTax) {
+              this.taxRate = Number(defaultTax.rate);
+            }
+          }
+          this.cdr.markForCheck();
+        }
+      },
+      error: (err) => console.warn('Could not fetch tax rates from settings:', err)
+    });
+
     this.http.get<any[]>(`${environment.apiUrl}/admin/inventory/products-options`).subscribe({
       next: (data) => {
         if (Array.isArray(data)) {
@@ -3582,8 +3606,21 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     return { available: total, physical: total, reserved: 0 };
   }
 
+  getEffectiveStockForItem(item: LineItem): number {
+    const stockInfo = this.getVariantStockInfo(item.productId, item.variantId);
+    if (this.isPlanned) {
+      // Đối với phiếu đã Lên kế hoạch (PLANNED):
+      // Số lượng của chính phiếu này đã nằm trong reservedStock.
+      // Do đó lượng hàng thực tế còn trên kệ đáp ứng cho phiếu này = min(physicalStock, availableStock + itemQty)
+      const itemQty = parseInt(item.quantity, 10) || 0;
+      return Math.min(stockInfo.physical, stockInfo.available + itemQty);
+    }
+    // Đối với phiếu Mới hoặc DRAFT: chưa giữ chỗ, lượng hàng có thể dùng là tồn khả dụng (available)
+    return stockInfo.available;
+  }
+
   getVariantStock(item: LineItem): number {
-    return this.getVariantStockInfo(item.productId, item.variantId).available;
+    return this.getEffectiveStockForItem(item);
   }
 
   checkVariantStockAndToast(productId: string, variantId: string) {
@@ -4512,6 +4549,32 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   canSubmitOrder(): boolean {
     return this.isFormValid(false);
+  }
+
+  canConfirmExecution(): boolean {
+    if (this.isAnyActionProcessing) return false;
+    if (this.type === 'export' && this.hasExceededStock()) return false;
+    return true;
+  }
+
+  getConfirmActionBtnTitle(): string {
+    if (this.type === 'export' && this.hasExceededStock()) {
+      return 'Không thể xác nhận xuất kho do có sản phẩm vượt quá tồn kho thực tế!';
+    }
+    return this.getConfirmActionBtnLabel();
+  }
+
+  canPlanOrder(): boolean {
+    if (this.isAnyActionProcessing) return false;
+    if (this.type === 'export' && this.hasExceededStock()) return false;
+    return true;
+  }
+
+  getPlanOrderBtnTitle(): string {
+    if (this.type === 'export' && this.hasExceededStock()) {
+      return 'Không thể tạo phiếu xuất do có sản phẩm vượt quá tồn kho khả dụng!';
+    }
+    return this.type === 'import' ? 'Chuyển từ bản nháp sang tạo phiếu nhập kho' : 'Chuyển từ bản nháp sang tạo phiếu xuất kho';
   }
 
   getSubmitButtonTitle(): string {

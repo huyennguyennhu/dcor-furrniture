@@ -124,6 +124,9 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
+import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+  initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
 });

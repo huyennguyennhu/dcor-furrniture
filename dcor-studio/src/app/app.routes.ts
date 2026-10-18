@@ -37,6 +37,7 @@ export const routes: Routes = [
       { path: 'inventory/orders', redirectTo: 'inventory/transactions', pathMatch: 'full' },
       { path: 'inventory/transactions', loadComponent: () => import('./features/admin/pages/inventory/inventory-transactions/inventory-transactions').then(m => m.InventoryTransactionsComponent) },
       { path: 'inventory/history', loadComponent: () => import('./features/admin/pages/inventory/inventory-history/inventory-history').then(m => m.InventoryHistoryComponent) },
+      { path: 'inventory/settings', loadComponent: () => import('./features/admin/pages/inventory/inventory-settings/inventory-settings').then(m => m.InventorySettingsComponent) },
       { path: 'promotions', loadComponent: () => import('./features/admin/pages/promotions/promotions').then(m => m.PromotionsComponent) },
       { path: 'vouchers', loadComponent: () => import('./features/admin/pages/promotions/vouchers/vouchers').then(m => m.VouchersComponent) },
       { path: 'campaigns', loadComponent: () => import('./features/admin/pages/promotions/campaigns/campaigns').then(m => m.CampaignsComponent) },

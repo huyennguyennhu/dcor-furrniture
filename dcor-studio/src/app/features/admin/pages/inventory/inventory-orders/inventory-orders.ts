@@ -770,13 +770,8 @@ export class InventoryOrdersComponent implements OnInit {
       },
       error: (err) => {
         console.warn('API error updating order status:', err);
-        // Fallback: update locally
-        const order = this.data.find(o => o.rawId === orderId || o.id === orderId);
-        if (order) {
-          (order as any).status = newStatus;
-          (order as any).rawStatus = newStatus;
-        }
-        this.closeModal();
+        const errMsg = err?.error?.error || 'Không thể cập nhật trạng thái đơn hàng. Vui lòng kiểm tra lại tồn kho!';
+        this.triggerToast('Lỗi cập nhật', errMsg, 'error', 6000);
         this.fetchOrders(true);
       }
     });
