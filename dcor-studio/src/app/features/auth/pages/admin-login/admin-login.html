@@ -1,46 +1,196 @@
-<div class="admin-login-container">
-  <div class="glass-box">
-    <div class="logo">
-      <h2><span class="highlight">Dcor</span> Studio</h2>
-      <p class="subtitle">Hệ thống Quản trị & Điều hành</p>
-    </div>
+<div class="admin-login-layout">
 
-    <div class="error-message" *ngIf="error">
-      <app-icon name="Info" size="20"></app-icon>
-      <span>{{ error }}</span>
-    </div>
+  <!-- Left Column - Dcor Studio Brand Visual (Hiển thị trên màn hình lớn) -->
+  <div class="admin-login-visual">
+    <img 
+      src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80" 
+      alt="DCor Studio Interior Architecture" 
+      class="visual-bg-image"
+    />
+    <div class="visual-overlay">
+      <div class="visual-top-badge">
+        <span class="badge-dot"></span>
+        <span>HỆ THỐNG QUẢN TRỊ NỘI BỘ DCOR</span>
+      </div>
 
-    <form class="login-form" (ngSubmit)="handleLogin($event)">
-      <div class="form-group">
-        <label for="email">Email công việc</label>
-        <div class="input-wrapper">
-          <app-icon name="AtSign" size="20" class="input-icon"></app-icon>
-          <input id="email" name="email" [(ngModel)]="email" type="email" required placeholder="admin@dcor.vn" autocomplete="email">
+      <div class="visual-bottom-content">
+        <h1 class="visual-brand-title">DCor <span class="highlight">Studio</span></h1>
+        <p class="visual-brand-subtitle">
+          Cổng điều hành & quản trị tập trung chuỗi cung ứng, kho vận và phân quyền nhân sự DCor Furniture.
+        </p>
+
+        <div class="visual-features">
+          <div class="feature-item">
+            <app-icon name="Layers" size="16" class="feature-icon"></app-icon>
+            <span>Phân quyền bảo mật 7 cấp độ nhân sự nội bộ</span>
+          </div>
+          <div class="feature-item">
+            <app-icon name="Package" size="16" class="feature-icon"></app-icon>
+            <span>Quản lý kho đa điểm & kiểm kê thời gian thực</span>
+          </div>
+          <div class="feature-item">
+            <app-icon name="ChartNoAxesCombined" size="16" class="feature-icon"></app-icon>
+            <span>Báo cáo doanh thu & đơn hàng tự động</span>
+          </div>
         </div>
       </div>
-
-      <div class="form-group">
-        <label for="password">Mật khẩu</label>
-        <div class="input-wrapper">
-          <app-icon name="LockKeyhole" size="20" class="input-icon"></app-icon>
-          <input id="password" name="password" [(ngModel)]="password" type="password" required placeholder="••••••••" autocomplete="current-password">
-        </div>
-      </div>
-
-      <div class="form-options">
-        <label class="remember-me">
-          <input type="checkbox" name="remember-me">
-          <span>Ghi nhớ đăng nhập</span>
-        </label>
-        <a href="mailto:admin@dcor.vn" class="forgot-password">Quên mật khẩu?</a>
-      </div>
-
-      <button type="submit" class="btn-submit" [disabled]="!email || !password || loading">
-        <app-icon name="LoaderCircle" size="20" class="spinner" *ngIf="loading"></app-icon>
-        {{ loading ? 'Đang xử lý...' : 'Đăng nhập hệ thống' }}
-      </button>
-
-      <p class="rule-hint">Tất cả nút hành động mặc định ở trạng thái Disabled.</p>
-    </form>
+    </div>
   </div>
+
+  <!-- Right Column - Admin Login & Activation Panel -->
+  <div class="admin-login-panel">
+    <div class="form-wrapper">
+      
+      <!-- Brand Header -->
+      <div class="panel-header">
+        <div class="header-badge-row">
+          <div class="logo-circle">
+            <span class="logo-symbol">D</span>
+          </div>
+          <span class="portal-badge">PORTAL QUẢN TRỊ VIÊN</span>
+        </div>
+        <h2 class="panel-title">Đăng nhập Quản trị</h2>
+        <p class="panel-subtitle">Dành cho Ban điều hành và Nhân viên hệ thống DCor Studio</p>
+      </div>
+
+      <!-- Error Alert Box -->
+      <div class="alert-box alert-error" *ngIf="error">
+        <app-icon name="AlertCircle" size="20" class="alert-icon"></app-icon>
+        <div class="alert-text">{{ error }}</div>
+      </div>
+
+      <!-- Success Alert Box (Khi gửi yêu cầu quên mật khẩu) -->
+      <div class="alert-box alert-success" *ngIf="resetSuccess">
+        <app-icon name="CircleCheck" size="20" class="alert-icon"></app-icon>
+        <div class="alert-text">{{ resetSuccess }}</div>
+      </div>
+
+      <!-- 1. Form Đăng nhập chính -->
+      <form *ngIf="!isForgotPassword" class="auth-form" (ngSubmit)="handleLogin($event)">
+        
+        <!-- Field: Email -->
+        <div class="form-field">
+          <label for="admin-email">Email quản trị viên <span class="required-star">*</span></label>
+          <div class="input-wrapper">
+            <app-icon name="Mail" size="18" class="field-icon"></app-icon>
+            <input 
+              id="admin-email" 
+              name="email" 
+              [(ngModel)]="email" 
+              type="email" 
+              required 
+              placeholder="dcorfurniture406@gmail.com" 
+              autocomplete="email">
+          </div>
+        </div>
+
+        <!-- Field: Mật khẩu -->
+        <div class="form-field">
+          <div class="field-header">
+            <label for="admin-password">Mật khẩu <span class="required-star">*</span></label>
+            <button type="button" class="btn-forgot-link" (click)="toggleForgotPassword(true)">
+              Quên mật khẩu?
+            </button>
+          </div>
+          <div class="input-wrapper">
+            <app-icon name="LockKeyhole" size="18" class="field-icon"></app-icon>
+            <input 
+              id="admin-password" 
+              name="password" 
+              [(ngModel)]="password" 
+              [type]="showPassword ? 'text' : 'password'" 
+              required 
+              placeholder="••••••••" 
+              autocomplete="current-password">
+            <button type="button" class="btn-visibility" (click)="showPassword = !showPassword" aria-label="Hiện/ẩn mật khẩu">
+              <app-icon [name]="showPassword ? 'EyeOff' : 'Eye'" size="18"></app-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember Me -->
+        <div class="form-options">
+          <label class="remember-label">
+            <input type="checkbox" name="rememberMe" [(ngModel)]="rememberMe">
+            <span>Ghi nhớ phiên làm việc</span>
+          </label>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          class="admin-btn admin-btn-primary btn-submit-full" 
+          [disabled]="!email || !password || loading">
+          <app-icon name="LoaderCircle" size="18" class="spinner-icon" *ngIf="loading"></app-icon>
+          <span>{{ loading ? 'Đang xác thực...' : 'ĐĂNG NHẬP VÀO HỆ THỐNG' }}</span>
+        </button>
+
+        <!-- Khối Kích hoạt thư mời (Đặc thù Nhân sự nội bộ) -->
+        <div class="invite-activation-box">
+          <div class="activation-content">
+            <div class="activation-icon-wrapper">
+              <app-icon name="Mail" size="20"></app-icon>
+            </div>
+            <div class="activation-text">
+              <div class="activation-title">Nhận được thư mời làm việc?</div>
+              <div class="activation-desc">Kích hoạt tài khoản nhân sự & tạo mật khẩu lần đầu</div>
+            </div>
+          </div>
+          <a routerLink="/admin-invite" class="btn-activate-link">
+            <span>Kích hoạt qua thư mời</span>
+            <app-icon name="ArrowRight" size="15"></app-icon>
+          </a>
+        </div>
+
+        <!-- Footer Note Bảo mật -->
+        <div class="panel-footer-note">
+          <app-icon name="ShieldCheck" size="16"></app-icon>
+          <span>Cổng bảo mật nội bộ &copy; 2026 DCor Furniture System. Nghiêm cấm truy cập trái phép.</span>
+        </div>
+      </form>
+
+      <!-- 2. Form Quên mật khẩu (chuyển đổi mượt mà) -->
+      <form *ngIf="isForgotPassword" class="auth-form forgot-form" (ngSubmit)="handleForgotPassword($event)">
+        <div class="forgot-header">
+          <h3 class="forgot-title">Khôi phục mật khẩu quản trị</h3>
+          <p class="forgot-desc">
+            Nhập email quản trị của bạn để nhận liên kết khôi phục tài khoản từ máy chủ hệ thống.
+          </p>
+        </div>
+
+        <!-- Field: Forgot Email -->
+        <div class="form-field">
+          <label for="forgot-email">Email tài khoản quản trị <span class="required-star">*</span></label>
+          <div class="input-wrapper">
+            <app-icon name="Mail" size="18" class="field-icon"></app-icon>
+            <input 
+              id="forgot-email" 
+              name="forgotEmail" 
+              [(ngModel)]="forgotEmail" 
+              type="email" 
+              required 
+              placeholder="dcorfurniture406@gmail.com" 
+              autocomplete="email">
+          </div>
+        </div>
+
+        <!-- Submit Forgot Password -->
+        <button 
+          type="submit" 
+          class="admin-btn admin-btn-primary btn-submit-full" 
+          [disabled]="!forgotEmail || forgotLoading">
+          <app-icon name="LoaderCircle" size="18" class="spinner-icon" *ngIf="forgotLoading"></app-icon>
+          <span>{{ forgotLoading ? 'Đang gửi link...' : 'Gửi liên kết khôi phục' }}</span>
+        </button>
+
+        <!-- Back to Login -->
+        <button type="button" class="btn-back-link" (click)="toggleForgotPassword(false)">
+          <app-icon name="ArrowLeft" size="16"></app-icon>
+          <span>Quay lại Đăng nhập</span>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
 </div>

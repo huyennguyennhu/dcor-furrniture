@@ -13,165 +13,162 @@
   </div>
     
   <!-- Filter Bar -->
-  <div #filterRef style="display: flex; gap: 16px; flex-wrap: nowrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
+  <div #filterRef style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
     
-    <div style="display: flex;">
-      <div style="position: relative;">
-        <div (click)="toggleDropdown('time', $event)" [ngStyle]="{
-               'display': 'flex', 'align-items': 'center', 'gap': '8px', 'padding': '8px 16px', 
-               'background': 'var(--bg-primary)', 'border': '1px solid var(--border-color)', 
-               'border-radius': timeRange === 'custom' ? '8px 0 0 8px' : '8px', 
-               'border-right': timeRange === 'custom' ? 'none' : '1px solid var(--border-color)', 
-               'cursor': 'pointer'
-             }">
-          <lucide-angular [img]="icons.Calendar" size="16" color="var(--text-muted)"></lucide-angular>
-          <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ TIME_LABELS[timeRange] }}</span>
-          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-        </div>
-        <div [ngStyle]="{
-               'opacity': showTimeDropdown ? 1 : 0, 
-               'visibility': showTimeDropdown ? 'visible' : 'hidden', 
-               'transform': showTimeDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-               'transition': 'all 0.2s ease', 'pointer-events': showTimeDropdown ? 'auto' : 'none',  
-               'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-               'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-               'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-             }">
-            <div *ngFor="let key of timeLabelKeys" 
-                 (click)="setDropdownValue('time', key)" 
-                 [ngStyle]="{
-                   'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-                   'border-bottom': '1px solid var(--border-color)', 
-                   'background': timeRange === key ? 'var(--bg-tertiary)' : 'transparent', 
-                   'color': timeRange === key ? 'var(--accent)' : 'var(--text-primary)'
-                 }">
-              {{ TIME_LABELS[key] }}
-            </div>
+    <!-- 1. Thời gian -->
+    <div style="display: flex; align-items: center;">
+      <div style="position: relative; min-width: 160px;">
+        <button 
+          type="button"
+          (click)="toggleDropdown('time', $event)" 
+          class="products-filter-btn"
+          [class.active]="showTimeDropdown"
+          [style.border-radius]="timeRange === 'custom' ? '8px 0 0 8px' : '8px'"
+          [style.border-right]="timeRange === 'custom' ? 'none' : '1px solid var(--border-color)'"
+        >
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <lucide-angular [img]="icons.Calendar" size="14" color="var(--text-muted)"></lucide-angular>
+            <span>{{ TIME_LABELS[timeRange] }}</span>
           </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showTimeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        </button>
+        
+        <div *ngIf="showTimeDropdown" class="products-dropdown-menu">
+          <div *ngFor="let key of timeLabelKeys" 
+               (click)="setDropdownValue('time', key)" 
+               class="products-dropdown-item"
+               [class.selected]="timeRange === key"
+          >
+            {{ TIME_LABELS[key] }}
+          </div>
+        </div>
       </div>
       
-      <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0;">
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 12px; color: var(--text-primary);" value="2026-08-01" />
-        <span style="font-size: 12px; color: var(--text-muted);">-</span>
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 12px; color: var(--text-primary);" value="2026-08-07" />
+      <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0; height: 41px; box-sizing: border-box;">
+        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-01" />
+        <span style="font-size: 13px; color: var(--text-muted);">-</span>
+        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-07" />
       </div>
     </div>
     
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('category', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ category }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showCategoryDropdown ? 1 : 0, 
-             'visibility': showCategoryDropdown ? 'visible' : 'hidden', 
-             'transform': showCategoryDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showCategoryDropdown ? 'auto' : 'none',  
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-          <div *ngFor="let opt of categories" 
-               (click)="setDropdownValue('category', opt)" 
-               [ngStyle]="{
-                 'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-                 'border-bottom': '1px solid var(--border-color)', 
-                 'background': category === opt ? 'var(--bg-tertiary)' : 'transparent', 
-                 'color': category === opt ? 'var(--accent)' : 'var(--text-primary)'
-               }">
-            {{ opt }}
-          </div>
+    <!-- 2. Danh mục -->
+    <div style="position: relative; flex: 1; min-width: 160px;">
+      <button 
+        type="button"
+        (click)="toggleDropdown('category', $event)" 
+        class="products-filter-btn"
+        [class.active]="showCategoryDropdown"
+      >
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <lucide-angular [img]="icons.Tag" size="14" color="var(--text-muted)"></lucide-angular>
+          <span>{{ category }}</span>
         </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showCategoryDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showCategoryDropdown" class="products-dropdown-menu">
+        <div *ngFor="let opt of categories" 
+             (click)="setDropdownValue('category', opt)" 
+             class="products-dropdown-item"
+             [class.selected]="category === opt"
+        >
+          {{ opt }}
+        </div>
+      </div>
     </div>
 
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('collection', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ collection }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showCollectionDropdown ? 1 : 0, 
-             'visibility': showCollectionDropdown ? 'visible' : 'hidden', 
-             'transform': showCollectionDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showCollectionDropdown ? 'auto' : 'none',  
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-          <div *ngFor="let opt of collections" 
-               (click)="setDropdownValue('collection', opt)" 
-               [ngStyle]="{
-                 'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-                 'border-bottom': '1px solid var(--border-color)', 
-                 'background': collection === opt ? 'var(--bg-tertiary)' : 'transparent', 
-                 'color': collection === opt ? 'var(--accent)' : 'var(--text-primary)'
-               }">
-            {{ opt }}
-          </div>
+    <!-- 3. Bộ sưu tập -->
+    <div style="position: relative; flex: 1; min-width: 160px;">
+      <button 
+        type="button"
+        (click)="toggleDropdown('collection', $event)" 
+        class="products-filter-btn"
+        [class.active]="showCollectionDropdown"
+      >
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <lucide-angular [img]="icons.Layers" size="14" color="var(--text-muted)"></lucide-angular>
+          <span>{{ collection }}</span>
         </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showCollectionDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showCollectionDropdown" class="products-dropdown-menu">
+        <div *ngFor="let opt of collections" 
+             (click)="setDropdownValue('collection', opt)" 
+             class="products-dropdown-item"
+             [class.selected]="collection === opt"
+        >
+          {{ opt }}
+        </div>
+      </div>
     </div>
 
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('brand', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ brand }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showBrandDropdown ? 1 : 0, 
-             'visibility': showBrandDropdown ? 'visible' : 'hidden', 
-             'transform': showBrandDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showBrandDropdown ? 'auto' : 'none',  
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-          <div *ngFor="let opt of brands" 
-               (click)="setDropdownValue('brand', opt)" 
-               [ngStyle]="{
-                 'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-                 'border-bottom': '1px solid var(--border-color)', 
-                 'background': brand === opt ? 'var(--bg-tertiary)' : 'transparent', 
-                 'color': brand === opt ? 'var(--accent)' : 'var(--text-primary)'
-               }">
-            {{ opt }}
-          </div>
+    <!-- 4. Thương hiệu -->
+    <div style="position: relative; flex: 1; min-width: 160px;">
+      <button 
+        type="button"
+        (click)="toggleDropdown('brand', $event)" 
+        class="products-filter-btn"
+        [class.active]="showBrandDropdown"
+      >
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <lucide-angular [img]="icons.Filter" size="14" color="var(--text-muted)"></lucide-angular>
+          <span>{{ brand }}</span>
         </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showBrandDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showBrandDropdown" class="products-dropdown-menu">
+        <div *ngFor="let opt of brands" 
+             (click)="setDropdownValue('brand', opt)" 
+             class="products-dropdown-item"
+             [class.selected]="brand === opt"
+        >
+          {{ opt }}
+        </div>
+      </div>
     </div>
 
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('status', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ status }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showStatusDropdown ? 1 : 0, 
-             'visibility': showStatusDropdown ? 'visible' : 'hidden', 
-             'transform': showStatusDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showStatusDropdown ? 'auto' : 'none',  
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-          <div *ngFor="let opt of statuses" 
-               (click)="setDropdownValue('status', opt)" 
-               [ngStyle]="{
-                 'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-                 'border-bottom': '1px solid var(--border-color)', 
-                 'background': status === opt ? 'var(--bg-tertiary)' : 'transparent', 
-                 'color': status === opt ? 'var(--accent)' : 'var(--text-primary)'
-               }">
-            {{ opt }}
-          </div>
+    <!-- 5. Trạng thái kinh doanh -->
+    <div style="position: relative; flex: 1; min-width: 160px;">
+      <button 
+        type="button"
+        (click)="toggleDropdown('status', $event)" 
+        class="products-filter-btn"
+        [class.active]="showStatusDropdown"
+      >
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <lucide-angular [img]="icons.Activity" size="14" color="var(--text-muted)"></lucide-angular>
+          <span>{{ status }}</span>
         </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showStatusDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showStatusDropdown" class="products-dropdown-menu">
+        <div *ngFor="let opt of statuses" 
+             (click)="setDropdownValue('status', opt)" 
+             class="products-dropdown-item"
+             [class.selected]="status === opt"
+        >
+          {{ opt }}
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- KPI Cards -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+  <!-- Loading State (Animated Spinner) -->
+  <div *ngIf="isLoading" class="loading-state-container">
+    <div class="spinning-loader"></div>
+    <p class="loading-text">Đang tải dữ liệu sản phẩm...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <!-- KPI Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng sản phẩm</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">690</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.totalProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
         Toàn hệ thống
       </div>
@@ -179,15 +176,15 @@
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Đang bán</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">580</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.activeProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">+15</span> SP mới tuần này
+        <span style="color: #2ecc71; font-weight: 600;">Sẵn sàng kinh doanh</span>
       </div>
     </div>
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Gần hết hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">24</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.lowStockProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
         <span style="color: #f1c40f; font-weight: 600;">&lt; 5</span> tồn kho
       </div>
@@ -195,7 +192,7 @@
 
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Hết hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">12</div>
+      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.outOfStockProducts }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
         <span style="color: #e74c3c; font-weight: 600;">0</span> tồn kho
       </div>
@@ -203,17 +200,9 @@
     
     <div class="report-card kpi-card">
       <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">SP Bán chạy nhất</div>
-      <div style="font-size: 16px; font-weight: 700; margin: 14px 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Sofa Indivi</div>
+      <div style="font-size: 15px; font-weight: 700; margin: 12px 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="kpi.bestSellerName">{{ kpi.bestSellerName }}</div>
       <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        124 lượt bán
-      </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Giá bán TB</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">3,650K</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Toàn bộ danh mục
+        {{ kpi.bestSellerCount }} lượt bán
       </div>
     </div>
   </div>
@@ -224,30 +213,30 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Tương tác sản phẩm theo thời gian</h3>
         
-        <div style="position: relative;">
-          <div (click)="toggleDropdown('interval', $event)" style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted);">
-            Theo {{ interval | lowercase }} <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
-          </div>
-          <div [ngStyle]="{
-                 'opacity': showIntervalDropdown ? 1 : 0, 
-                 'visibility': showIntervalDropdown ? 'visible' : 'hidden', 
-                 'transform': showIntervalDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-                 'transition': 'all 0.2s ease', 'pointer-events': showIntervalDropdown ? 'auto' : 'none',  
-                 'position': 'absolute', 'top': '100%', 'right': '0', 'margin-top': '4px', 
-                 'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-                 'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100px', 'overflow': 'hidden'
-               }">
-              <div *ngFor="let opt of intervals" 
-                   (click)="setDropdownValue('interval', opt)" 
-                   [ngStyle]="{
-                     'padding': '8px 12px', 'font-size': '12px', 'cursor': 'pointer', 
-                     'border-bottom': '1px solid var(--border-color)', 
-                     'background': interval === opt ? 'var(--bg-tertiary)' : 'transparent', 
-                     'color': interval === opt ? 'var(--accent)' : 'var(--text-primary)'
-                   }">
-                {{ opt }}
-              </div>
+        <!-- (1) Dropdown Chu kỳ thời gian -->
+        <div class="filter-dropdown-wrapper interval-filter-wrapper" style="min-width: 125px;">
+          <button 
+            type="button" 
+            title="Chọn chu kỳ hiển thị" 
+            class="filter-trigger-btn" 
+            style="padding: 6px 12px; font-size: 12px;"
+            (click)="toggleDropdown('interval', $event)"
+          >
+            <div class="trigger-label">
+              <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
+              <span class="truncate-label">Theo {{ interval | lowercase }}</span>
             </div>
+            <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+          </button>
+          <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 125px;">
+            <div *ngFor="let opt of intervals" 
+                 (click)="setDropdownValue('interval', opt)" 
+                 class="filter-menu-item" 
+                 [class.selected]="interval === opt">
+              <span>{{ opt }}</span>
+              <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
+            </div>
+          </div>
         </div>
       </div>
       <div style="width: 100%; height: 300px; position: relative;">
@@ -261,28 +250,27 @@
     <div class="report-card" style="overflow: visible;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Top sản phẩm theo Số lượng & Doanh thu</h3>
-        <div style="position: relative;">
-          <div (click)="toggleDropdown('topsales', $event)" style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted);">
-            Top {{ topSalesCount }} <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
-          </div>
-          <div [ngStyle]="{
-                 'opacity': showTopSalesDropdown ? 1 : 0, 
-                 'visibility': showTopSalesDropdown ? 'visible' : 'hidden', 
-                 'transform': showTopSalesDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-                 'transition': 'all 0.2s ease', 'pointer-events': showTopSalesDropdown ? 'auto' : 'none', 
-                 'position': 'absolute', 'top': '100%', 'right': '0', 'margin-top': '4px', 
-                 'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-                 'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '80px', 'overflow': 'hidden'
-               }">
+        <!-- (2) Dropdown Top số lượng sản phẩm -->
+        <div class="filter-dropdown-wrapper topsales-filter-wrapper" style="min-width: 110px;">
+          <button 
+            type="button" 
+            title="Chọn số lượng hiển thị" 
+            class="filter-trigger-btn" 
+            style="padding: 6px 12px; font-size: 12px;"
+            (click)="toggleDropdown('topsales', $event)"
+          >
+            <div class="trigger-label">
+              <span class="truncate-label">Top {{ topSalesCount }}</span>
+            </div>
+            <app-icon name="ChevronDown" size="13" [style.transform]="showTopSalesDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+          </button>
+          <div *ngIf="showTopSalesDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 110px;">
             <div *ngFor="let opt of topSalesOpts" 
                  (click)="setDropdownValue('topsales', opt)" 
-                 [ngStyle]="{
-                   'padding': '8px 12px', 'font-size': '12px', 'cursor': 'pointer', 
-                   'border-bottom': '1px solid var(--border-color)', 
-                   'background': topSalesCount === opt ? 'var(--bg-tertiary)' : 'transparent', 
-                   'color': topSalesCount === opt ? 'var(--accent)' : 'var(--text-primary)'
-                 }">
-              Top {{ opt }}
+                 class="filter-menu-item" 
+                 [class.selected]="topSalesCount === opt">
+              <span>Top {{ opt }}</span>
+              <lucide-angular *ngIf="topSalesCount === opt" [img]="icons.Check" size="13"></lucide-angular>
             </div>
           </div>
         </div>
@@ -428,5 +416,6 @@
       </div>
     </div>
   </div>
+  </ng-container>
 
 </div>

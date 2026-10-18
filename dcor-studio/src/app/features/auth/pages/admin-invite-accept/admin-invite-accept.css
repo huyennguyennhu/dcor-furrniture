@@ -1,0 +1,281 @@
+/* ==========================================================================
+   Admin Invite Accept Page - DCor UI Style Guide
+   ========================================================================== */
+
+.admin-invite-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-page, #FCF8F3);
+  font-family: var(--font-body, "Poppins", sans-serif);
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+/* Card trung tâm nền trắng, bo góc 16px, shadow-overlay nhẹ trên nền Beige */
+.invite-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-modal, 16px);
+  box-shadow: 0 20px 40px -15px rgba(118, 83, 55, 0.12),
+              0 0 1px 1px rgba(0, 0, 0, 0.04);
+  padding: 40px 36px;
+  max-width: 460px;
+  width: 100%;
+  box-sizing: border-box;
+  animation: fadeInModal 0.35s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@media (max-width: 480px) {
+  .invite-card {
+    padding: 32px 20px;
+    border-radius: 12px;
+  }
+}
+
+/* Header */
+.invite-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.logo-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #765337);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);
+  margin-bottom: 12px;
+}
+
+.logo-symbol {
+  color: #FFFFFF;
+  font-family: var(--font-title, "Poppins", sans-serif);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.brand-title {
+  color: var(--color-text, #0A0A0A);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.brand-title .highlight {
+  color: var(--color-accent, #BC5F13);
+}
+
+.brand-subtitle {
+  color: var(--color-text-secondary, #616161);
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Alert Boxes */
+.alert-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-control, 8px);
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.alert-error {
+  background-color: var(--color-danger-bg, #FFE8E8);
+  border: 1px solid var(--color-danger, #C42326);
+  color: var(--color-danger, #C42326);
+}
+
+.alert-success {
+  background-color: var(--color-success-bg, #E9F8E9);
+  border: 1px solid var(--color-success, #00A30B);
+  color: var(--color-success, #00A30B);
+}
+
+.alert-content strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.alert-content p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.alert-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alert-text {
+  flex: 1;
+}
+
+/* Expired Actions */
+.expired-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.expired-hint {
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+  line-height: 1.5;
+  text-align: center;
+  margin: 0;
+}
+
+/* Form */
+.invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text, #0A0A0A);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+}
+
+/* Input Wrappers: 44px cao, bo 8px, viền #E0E0E0, focus ring #BC5F13 */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.field-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--color-text-muted, #757575);
+  pointer-events: none;
+}
+
+.input-wrapper input {
+  width: 100%;
+  height: 44px;
+  border-radius: var(--radius-control, 8px);
+  border: 1px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface, #FFFFFF);
+  padding: 0 40px 0 40px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text, #0A0A0A);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
+}
+
+.input-wrapper input::placeholder {
+  color: var(--color-text-muted, #757575);
+  opacity: 0.8;
+}
+
+.input-wrapper input:focus {
+  border-color: var(--color-focus, #BC5F13);
+  outline: 2px solid var(--color-focus, #BC5F13);
+  outline-offset: 2px;
+}
+
+.input-wrapper input.input-readonly {
+  background: var(--color-surface-subtle, #F5F5F5);
+  color: var(--color-text-secondary, #616161);
+  cursor: not-allowed;
+}
+
+.btn-visibility {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 4px;
+  color: var(--color-text-muted, #757575);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.btn-visibility:hover {
+  color: var(--color-text, #0A0A0A);
+}
+
+/* Submit Button */
+.btn-submit-full {
+  width: 100%;
+  height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-control, 8px);
+  margin-top: 6px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-submit-full:disabled {
+  opacity: 0.6;
+}
+
+.spinner-icon {
+  animation: spin 0.8s linear infinite;
+}
+
+.card-footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--color-text-muted, #757575);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Animations */
+@keyframes fadeInModal {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}

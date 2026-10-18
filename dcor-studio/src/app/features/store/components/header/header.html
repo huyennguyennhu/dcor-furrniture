@@ -14,8 +14,45 @@
 
     <nav class="store-header-nav">
       <ul>
-        <li>
-          <a routerLink="/explore" routerLinkActive="active" class="header-nav-link">Mua Sắm</a>
+        <li #shopNavItem
+            class="store-shop-nav-item"
+            [class.is-open]="shopMenuOpen"
+            [class.is-hover-dismissed]="shopHoverDismissed"
+            (mouseleave)="onShopNavMouseLeave()">
+          <a routerLink="/explore"
+             routerLinkActive="active"
+             class="header-nav-link store-shop-nav-link"
+             (click)="onShopLinkClick()">Sản Phẩm</a>
+          <button type="button"
+                  class="store-shop-menu-toggle"
+                  aria-label="Mở danh mục sản phẩm"
+                  aria-controls="store-shop-mega-menu"
+                  [attr.aria-expanded]="shopMenuOpen"
+                  (click)="toggleShopMenu()">
+            <svg class="store-shop-nav-chevron" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="m2.5 4.5 3.5 3 3.5-3" />
+            </svg>
+          </button>
+          <div id="store-shop-mega-menu" class="store-shop-mega-menu">
+            <section class="store-shop-menu-column store-shop-product-categories">
+              <h2>Danh Mục</h2>
+              <ul>
+                <li>
+                  <a [routerLink]="['/explore']" (click)="closeShopMenu()">
+                    <span>Tất cả sản phẩm</span>
+                  </a>
+                </li>
+                <li *ngFor="let category of storeCategories">
+                  <a [routerLink]="['/explore']" [queryParams]="{ category: category.slug }" (click)="closeShopMenu()">
+                    <span>{{ category.name }}</span>
+                    <span class="store-shop-category-count" *ngIf="category.productCount">({{ category.productCount }})</span>
+                  </a>
+                </li>
+                <li *ngIf="isStoreCategoriesLoading" class="store-shop-menu-loading">Đang tải danh mục...</li>
+                <li *ngIf="!isStoreCategoriesLoading && !storeCategories.length" class="store-shop-menu-loading">Chưa có danh mục sản phẩm</li>
+              </ul>
+            </section>
+          </div>
         </li>
         <li>
           <a routerLink="/custom-design" routerLinkActive="active" class="header-nav-link">Thiết kế</a>

@@ -561,6 +561,8 @@ model StockOrderItem {
 }
 
 enum AuditStatus {
+  DRAFT       // Phiếu nháp
+  PLANNED     // Đã lên kế hoạch kiểm kê
   PENDING     // Đơn yêu cầu kiểm kê vừa tạo, CHƯA thực hiện kiểm kê
   IN_PROGRESS // Đang kiểm đếm thực tế tại kho
   COMPLETED   // Đã đối chiếu và cân bằng tồn kho

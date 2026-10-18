@@ -8,6 +8,7 @@ import {
 } from 'lucide-angular';
 
 import { environment } from '../../../../../environments/environment';
+import { AdminAuthService } from '../../../../core/services/admin-auth.service';
 
 interface Product {
   id: string;
@@ -66,7 +67,23 @@ export class ProductsComponent implements OnInit {
 
   @ViewChild('filterRef', { static: false }) filterRef!: ElementRef;
 
-  constructor(private router: Router, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private router: Router, 
+    private cdr: ChangeDetectorRef,
+    private adminAuthService: AdminAuthService
+  ) {}
+
+  get canCreate(): boolean {
+    return this.adminAuthService.hasPermission('products', 'create');
+  }
+
+  get canEdit(): boolean {
+    return this.adminAuthService.hasPermission('products', 'edit');
+  }
+
+  get canDelete(): boolean {
+    return this.adminAuthService.hasPermission('products', 'delete');
+  }
 
   ngOnInit() {
     this.fetchProducts();

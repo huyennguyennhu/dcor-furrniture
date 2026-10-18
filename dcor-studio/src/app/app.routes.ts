@@ -1,16 +1,20 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
+import { adminGuestGuard } from './core/guards/guest.guard';
 
 export const routes: Routes = [
   // --- Admin Landing Page ---
   {
     path: 'admin',
     pathMatch: 'full',
+    canActivate: [adminGuestGuard],
     loadComponent: () => import('./features/admin/pages/admin-landing/admin-landing').then(m => m.AdminLandingComponent)
   },
   
   // --- Admin Area (Dashboard) ---
   {
     path: 'admin',
+    canActivate: [adminGuard],
     loadComponent: () => import('./features/admin/components/admin-layout/admin-layout').then(m => m.AdminLayout),
     children: [
       { path: 'reports', loadComponent: () => import('./features/admin/pages/reports/reports').then(m => m.ReportsComponent) },
@@ -59,7 +63,11 @@ export const routes: Routes = [
   // --- Auth Area ---
   { path: 'login', loadComponent: () => import('./features/auth/pages/login/login').then(m => m.LoginComponent) },
   { path: 'register', loadComponent: () => import('./features/auth/pages/register/register').then(m => m.RegisterComponent) },
-  { path: 'admin-login', loadComponent: () => import('./features/auth/pages/admin-login/admin-login').then(m => m.AdminLoginComponent) },
+  { 
+    path: 'admin-login', 
+    canActivate: [adminGuestGuard],
+    loadComponent: () => import('./features/auth/pages/admin-login/admin-login').then(m => m.AdminLoginComponent) 
+  },
   { path: 'admin-logout', loadComponent: () => import('./features/auth/pages/admin-logout/admin-logout').then(m => m.AdminLogout) },
   { path: 'admin-invite', loadComponent: () => import('./features/auth/pages/admin-invite-accept/admin-invite-accept').then(m => m.AdminInviteAcceptComponent) },
   
