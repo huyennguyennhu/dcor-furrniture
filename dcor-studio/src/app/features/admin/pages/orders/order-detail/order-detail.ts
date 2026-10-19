@@ -84,5 +84,10 @@ export class OrderDetailComponent implements OnInit {
       this.toastTimer = null;
     }
   }
+
+  onViewCustomerDetail() {
+    this.triggerToast('Module Khách hàng', 'Vui lòng đợi hoàn thành module Khách hàng nhé!', 'info');
+    alert('Vui lòng đợi hoàn thành module Khách hàng nhé!');
+  }
 }
 

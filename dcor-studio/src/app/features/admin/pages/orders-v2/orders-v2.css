@@ -109,11 +109,10 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 16px;
-  background: var(--bg-primary, #ffffff);
-  padding: 20px 24px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
 }
 
 .v2-header-left {
@@ -196,72 +195,220 @@
   border-color: #765337;
 }
 
-/* --- KPI CARDS GRID --- */
-.v2-kpi-grid {
+/* ==========================================================================
+   ORDERS STATUS KPI CARDS (INTERACTIVE FILTER CARDS - MATCHING V1)
+   ========================================================================== */
+.orders-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.v2-kpi-card {
+@media (max-width: 1024px) {
+  .orders-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .orders-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.orders-kpi-card {
   background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 10px;
-  padding: 14px 16px;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s ease;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  position: relative;
 }
 
-.v2-kpi-card:hover {
-  border-color: #765337;
-  background: #FDFBF7;
-  transform: translateY(-1px);
+.orders-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--accent, #765337);
 }
 
-.v2-kpi-card.active {
-  border-color: #765337;
-  background: #FDF9F5;
-  box-shadow: 0 0 0 2px rgba(118, 83, 55, 0.2);
-}
-
-.kpi-top {
+.orders-kpi-card .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.kpi-label {
+.orders-kpi-card .card-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary, #111827);
+  color: var(--text-secondary, #4b5563);
+  transition: color 0.15s ease;
 }
 
-.kpi-desc {
-  font-size: 11.5px;
-  color: var(--text-muted, #9ca3af);
+.orders-kpi-card .card-icon-wrapper {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.orders-kpi-card:hover .card-icon-wrapper {
+  transform: scale(1.08);
+}
+
+.orders-kpi-card .card-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.orders-kpi-card .card-subtitle {
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
 }
 
-.kpi-badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
+/* Card Themes & Active States */
+/* 1. ALL */
+.orders-kpi-card.card-all .card-icon-wrapper {
+  background: rgba(118, 83, 55, 0.12);
+  color: var(--accent, #765337);
+}
+.orders-kpi-card.card-all .card-subtitle {
+  color: var(--text-muted, #9ca3af);
+}
+.orders-kpi-card.card-all.active {
+  border-color: var(--accent, #765337);
+  background: rgba(118, 83, 55, 0.06);
+}
+.orders-kpi-card.card-all.active .card-label {
+  color: var(--accent, #765337);
 }
 
-.kpi-all { background: #f3f4f6; color: #374151; }
-.kpi-pending { background: #FEF3C7; color: #D97706; }
-.kpi-preparing { background: #EDE9FE; color: #7C3AED; }
-.kpi-shipping { background: #E0E7FF; color: #4F46E5; }
-.kpi-completed { background: #DCFCE7; color: #16A34A; }
-.kpi-return { background: #FFEDD5; color: #EA580C; }
-.kpi-cancelled { background: #FEE2E2; color: #DC2626; }
+/* 2. PENDING */
+.orders-kpi-card.card-pending .card-icon-wrapper {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+.orders-kpi-card.card-pending .card-subtitle {
+  color: #d97706;
+}
+.orders-kpi-card.card-pending.active {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.07);
+}
+.orders-kpi-card.card-pending.active .card-label {
+  color: #d97706;
+}
+
+/* 3. CONFIRMED */
+.orders-kpi-card.card-confirmed .card-icon-wrapper {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4f46e5;
+}
+.orders-kpi-card.card-confirmed .card-subtitle {
+  color: #4f46e5;
+}
+.orders-kpi-card.card-confirmed.active {
+  border-color: #4f46e5;
+  background: rgba(79, 70, 229, 0.07);
+}
+.orders-kpi-card.card-confirmed.active .card-label {
+  color: #4f46e5;
+}
+
+/* 4. PROCESSING */
+.orders-kpi-card.card-processing .card-icon-wrapper {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+}
+.orders-kpi-card.card-processing .card-subtitle {
+  color: #0284c7;
+}
+.orders-kpi-card.card-processing.active {
+  border-color: #0284c7;
+  background: rgba(2, 132, 199, 0.07);
+}
+.orders-kpi-card.card-processing.active .card-label {
+  color: #0284c7;
+}
+
+/* 5. READY_TO_SHIP */
+.orders-kpi-card.card-ready .card-icon-wrapper {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
+}
+.orders-kpi-card.card-ready .card-subtitle {
+  color: #0d9488;
+}
+.orders-kpi-card.card-ready.active {
+  border-color: #0d9488;
+  background: rgba(13, 148, 136, 0.07);
+}
+.orders-kpi-card.card-ready.active .card-label {
+  color: #0d9488;
+}
+
+/* 6. SHIPPED */
+.orders-kpi-card.card-shipped .card-icon-wrapper {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+}
+.orders-kpi-card.card-shipped .card-subtitle {
+  color: #9333ea;
+}
+.orders-kpi-card.card-shipped.active {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.07);
+}
+.orders-kpi-card.card-shipped.active .card-label {
+  color: #9333ea;
+}
+
+/* 7. DELIVERED */
+.orders-kpi-card.card-delivered .card-icon-wrapper {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+}
+.orders-kpi-card.card-delivered .card-subtitle {
+  color: #16a34a;
+}
+.orders-kpi-card.card-delivered.active {
+  border-color: #16a34a;
+  background: rgba(22, 163, 74, 0.07);
+}
+.orders-kpi-card.card-delivered.active .card-label {
+  color: #16a34a;
+}
+
+/* 8. COMPLETED */
+.orders-kpi-card.card-completed .card-icon-wrapper {
+  background: rgba(4, 120, 87, 0.12);
+  color: #047857;
+}
+.orders-kpi-card.card-completed .card-subtitle {
+  color: #047857;
+}
+.orders-kpi-card.card-completed.active {
+  border-color: #047857;
+  background: rgba(4, 120, 87, 0.07);
+}
+.orders-kpi-card.card-completed.active .card-label {
+  color: #047857;
+}
 
 /* --- FILTER TOOLBAR --- */
 .v2-toolbar {
@@ -419,12 +566,12 @@
 .order-number {
   font-weight: 700;
   color: #765337;
-  font-size: 13.5px;
+  font-size: 13px;
   letter-spacing: -0.01em;
 }
 
 .high-value-pill {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   background: #FEF3C7;
   color: #B45309;
@@ -435,8 +582,47 @@
 }
 
 .order-date {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-muted, #9ca3af);
+}
+
+/* 2-line order time cell (giờ:phút:giây và Ngày/tháng/năm) */
+.order-time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.time-clock {
+  font-weight: 700;
+  font-size: 13px;
+  color: #111827;
+  letter-spacing: 0.01em;
+}
+
+.time-date {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Order value cell */
+.order-value-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-items-qty {
+  font-size: 12px;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qty-types {
+  color: #9ca3af;
+  font-size: 12px;
 }
 
 .customer-cell {
@@ -447,6 +633,7 @@
 
 .customer-name {
   font-weight: 600;
+  font-size: 13px;
   color: var(--text-primary, #111827);
 }
 
@@ -528,11 +715,11 @@
 .order-total-price {
   font-weight: 700;
   color: #111827;
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .deposit-note {
-  font-size: 11px;
+  font-size: 12px;
   color: #0284C7;
   font-weight: 500;
   margin-left: 4px;
@@ -545,7 +732,7 @@
 }
 
 .payment-badge {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 6px;
@@ -553,7 +740,7 @@
 }
 
 .payment-method-text {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-muted, #9ca3af);
 }
 
@@ -573,7 +760,7 @@
 }
 
 .dept-indicator {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary, #6b7280);
 }
 
@@ -670,57 +857,39 @@
   max-width: 400px;
 }
 
-/* Pagination */
-.v2-pagination-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 14px 18px;
-  background: var(--bg-primary, #ffffff);
-  border-radius: 10px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  font-size: 13px;
-}
-
-.pagination-info {
-  color: var(--text-secondary, #4b5563);
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.page-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
+/* Pagination Buttons (Matching Tổng quan kho / Inventory) */
+.admin-pagination-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 32px;
+  height: 32px;
   border: 1px solid var(--border-color, #e5e7eb);
   background: var(--bg-primary, #ffffff);
   border-radius: 6px;
   cursor: pointer;
   color: var(--text-primary, #111827);
-  transition: all 0.15s;
+  font-size: 13px;
+  padding: 0 8px;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
-.page-btn:hover:not(:disabled) {
-  border-color: #765337;
-  background: #EAE1D7;
-  color: #765337;
+.admin-pagination-btn:hover:not(.disabled):not(.active) {
+  background: var(--bg-secondary, #f8f9fa);
+  border-color: var(--accent, #765337);
+  color: var(--accent, #765337);
 }
 
-.page-btn:disabled {
-  opacity: 0.4;
+.admin-pagination-btn.active {
+  border-color: var(--accent, #765337);
+  background: var(--accent, #765337);
+  color: white;
+  font-weight: 600;
+}
+
+.admin-pagination-btn.disabled {
   cursor: not-allowed;
-}
-
-.page-indicator {
-  font-size: 12.5px;
-  font-weight: 500;
-  padding: 0 6px;
+  color: var(--text-muted, #9ca3af);
+  opacity: 0.45;
 }

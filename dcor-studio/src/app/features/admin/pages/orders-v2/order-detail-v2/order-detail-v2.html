@@ -27,209 +27,169 @@
   <div class="v2-detail-header">
     <div class="v2-header-nav">
       <button type="button" class="v2-btn-back" (click)="goBack()" title="Quay lại danh sách">
-        <lucide-angular [img]="icons.ArrowLeft" size="18"></lucide-angular>
-        <span>Danh sách đơn hàng V2</span>
+        <lucide-angular [img]="icons.ArrowLeft" size="14"></lucide-angular>
+        <span>Trở về danh sách đơn hàng</span>
       </button>
-
-      <!-- Quick Switcher for Demo / Testing (Jumps between 11 mock orders) -->
-      <div class="quick-switcher">
-        <span class="switcher-label">Chuyển nhanh trạng thái test:</span>
-        <select [ngModel]="order.id" (ngModelChange)="switchOrder($event)" class="switcher-select">
-          <option *ngFor="let o of allOrders" [value]="o.id">
-            {{ o.orderNumber }} - [{{ o.status }}] {{ o.customer.name }}
-          </option>
-        </select>
-      </div>
     </div>
 
     <div class="v2-header-main">
       <div class="order-meta-title">
         <div class="title-with-tags">
           <h1>Đơn hàng #{{ order.orderNumber }}</h1>
-          <span *ngIf="order.isHighValue" class="badge-high-value" title="Đơn hàng >= 50 triệu yêu cầu cọc 30%">
-            ★ Đơn giá trị cao: Cọc 30%
-          </span>
-          <span class="badge-source">{{ order.source }}</span>
         </div>
         <div class="order-sub-meta">
           <span>Ngày đặt: <strong>{{ formatDate(order.createdAt) }}</strong></span>
           <span class="dot">•</span>
-          <span>Chi nhánh: <strong>{{ order.showroom }}</strong></span>
-          <span class="dot">•</span>
-          <span>Khách hàng: <strong>{{ order.customer.name }}</strong> ({{ order.customer.phone }})</span>
-        </div>
-      </div>
-
-      <div class="header-right-actions">
-        <!-- Button to open Customer View preview -->
-        <button type="button" class="btn-customer-view" (click)="showUserViewModal = true">
-          <lucide-angular [img]="icons.Eye" size="16"></lucide-angular>
-          <span>Xem góc nhìn Khách hàng</span>
-        </button>
-
-        <!-- Print Order -->
-        <button type="button" class="btn-icon-action" (click)="handlePrint()" title="In đơn hàng / Phiếu xuất">
-          <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
-          <span>In phiếu</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Dynamic Top Alert Banner based on Current Status & Business Rules -->
-  <div class="v2-status-banner status-banner-{{ order.status }}">
-    <div class="banner-left">
-      <div class="banner-icon-box">
-        <lucide-angular *ngIf="order.status === 'PENDING'" [img]="icons.Clock" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'CONFIRMED' || order.status === 'PROCESSING'" [img]="icons.Package" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'READY_TO_SHIP'" [img]="icons.Box" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'SHIPPED'" [img]="icons.Truck" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'FAILED_DELIVERY'" [img]="icons.AlertTriangle" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.ShieldCheck" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'COMPLETED'" [img]="icons.CheckCircle2" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'CANCELLED'" [img]="icons.XCircle" size="24"></lucide-angular>
-        <lucide-angular *ngIf="order.status === 'RETURN_REQUESTED' || order.status === 'RETURNING' || order.status === 'RETURNED'" [img]="icons.CornerDownLeft" size="24"></lucide-angular>
-      </div>
-      <div class="banner-content">
-        <div class="banner-headline">
-          <span class="banner-badge">{{ order.status }}</span>
-          <strong>{{ userView.label }}</strong>
-          <span class="dept-tag">Bộ phận phụ trách: {{ 
-            order.status === 'PENDING' ? 'CSKH' : 
-            (order.status === 'CONFIRMED' || order.status === 'PROCESSING' || order.status === 'READY_TO_SHIP') ? 'Thủ kho & Đóng gói' :
-            (order.status === 'SHIPPED' || order.status === 'FAILED_DELIVERY') ? 'Vận chuyển & Đội xe' :
-            (order.status === 'DELIVERED') ? 'Khách hàng (72h)' :
-            (order.status === 'COMPLETED') ? 'Kế toán' :
-            (order.status === 'CANCELLED') ? 'Đã đóng đơn' : 'CSKH & QC Kho'
-          }}</span>
-        </div>
-        
-        <!-- Contextual business rule advice -->
-        <div class="banner-rule-text">
-          <ng-container *ngIf="order.status === 'PENDING'">
-            <span *ngIf="order.isHighValue && order.paymentStatus === 'UNPAID'" class="text-danger-rule">
-              ⚠️ <strong>Cảnh báo nghiệp vụ:</strong> Đơn hàng giá trị lớn ({{ formatVND(order.pricing.totalAmount) }} >= 50 triệu). Bắt buộc khách thanh toán cọc tối thiểu 30% ({{ formatVND(order.pricing.totalAmount * 0.3) }}) trước khi xác nhận vào kho!
-            </span>
-            <span *ngIf="!order.isHighValue || order.paymentStatus !== 'UNPAID'">
-              Đơn hàng đang chờ CSKH liên hệ xác minh thông tin nhận hàng và kiểm tra tính khả dụng của tồn kho.
-            </span>
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'CONFIRMED'">
-            Đơn hàng đã được duyệt vào kho. Kho cần in phiếu nhặt hàng (Pick-list) và bắt đầu soạn hàng từ kệ.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'PROCESSING'">
-            Nhân viên kho đang đóng gói và thực hiện biên bản kiểm định QC 4 bước (Bề mặt gỗ, Khung chịu lực, Bọc đệm, Niêm phong xốp).
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'READY_TO_SHIP'">
-            Kiện hàng đã dán tem mã vận đơn và sẵn sàng tại cửa xuất kho. Chờ ĐVC quét barcode tiếp nhận xuất bãi.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'SHIPPED'">
-            Đơn hàng đang được vận chuyển bởi <strong>{{ order.deliveryInfo.provider }}</strong> (Tài xế: {{ order.deliveryInfo.driverName }} - {{ order.deliveryInfo.driverPhone }}).
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'FAILED_DELIVERY'">
-            ⚠️ Giao hàng không thành công: "{{ order.deliveryInfo.failureReason }}". Đã lưu lịch hẹn và cần điều phối giao lại.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'DELIVERED'">
-            ⏳ <strong>Đang đếm ngược 72 giờ khiếu nại đổi trả:</strong> Còn lại 71h:15m. Nếu khách không khiếu nại, hệ thống sẽ tự động chuyển sang COMPLETED.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'COMPLETED'">
-            ✓ Đơn hàng đã hoàn tất thành công. Đã khóa hồ sơ, ghi nhận doanh thu và kích hoạt chính sách bảo hành chính hãng 2 năm.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'CANCELLED'">
-            Đơn hàng đã hủy bởi <strong>{{ order.cancelledBy }}</strong>. Lý do: "{{ order.cancelReason }}". Tồn kho đã được nhả lại kệ bán.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'RETURN_REQUESTED'">
-            ⚠️ Khách gửi yêu cầu đổi trả hàng: "{{ order.returnInfo?.reason }}". CSKH cần đối soát ảnh bằng chứng và phê duyệt phương án xử lý.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'RETURNING'">
-            Xe tải đang tiến hành thu hồi sản phẩm từ nhà khách về Kho Tổng Bình Dương.
-          </ng-container>
-
-          <ng-container *ngIf="order.status === 'RETURNED'">
-            Hàng đã về kho. Kỹ thuật viên QC đã hoàn thành biên bản kiểm định. Chờ Kế toán hoàn tiền cho khách hàng.
-          </ng-container>
+          <span>Khách hàng: <strong>{{ order.customerName }}</strong> ({{ order.phone }})</span>
         </div>
       </div>
     </div>
   </div>
 
   <!-- 5-Step Stepper Timeline -->
+  <!-- Admin 7-Step Workflow Stepper Timeline -->
   <div class="v2-stepper-card">
     <div class="stepper-track">
-      <!-- Step 1: Đặt hàng -->
-      <div class="stepper-step" [class.step-done]="true" [class.step-active]="order.status === 'PENDING'">
-        <div class="step-circle">1</div>
-        <div class="step-label">Đặt hàng</div>
-        <div class="step-sub">Chờ xác nhận & cọc</div>
+      <!-- Step 1: PENDING -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(0)" 
+        [class.step-active]="isStepActive(0)"
+        [class.step-clickable]="isStepDone(0) || isStepActive(0)"
+        (click)="onStepClick(0)"
+        [title]="getStepTooltip(0)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(0)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(0)">1</span>
+        </div>
+        <div class="step-label">Pending</div>
+        <div class="step-sub">Chờ xác nhận</div>
       </div>
 
-      <div class="step-line" [class.line-done]="order.status !== 'PENDING' && order.status !== 'CANCELLED'"></div>
+      <div class="step-line" [class.line-done]="isLineDone(0)"></div>
 
-      <!-- Step 2: Kho & Đóng gói -->
+      <!-- Step 2: CONFIRMED -->
       <div class="stepper-step" 
-        [class.step-done]="['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'FAILED_DELIVERY', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status)"
-        [class.step-active]="['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP'].includes(order.status)"
+        [class.step-done]="isStepDone(1)" 
+        [class.step-active]="isStepActive(1)"
+        [class.step-clickable]="isStepDone(1) || isStepActive(1)"
+        (click)="onStepClick(1)"
+        [title]="getStepTooltip(1)"
       >
-        <div class="step-circle">2</div>
-        <div class="step-label">Xử lý Kho & QC</div>
-        <div class="step-sub">Soạn & đóng gói</div>
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(1)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(1)">2</span>
+        </div>
+        <div class="step-label">Confirmed</div>
+        <div class="step-sub">Đã xác nhận</div>
       </div>
 
-      <div class="step-line" [class.line-done]="['SHIPPED', 'FAILED_DELIVERY', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status)"></div>
+      <div class="step-line" [class.line-done]="isLineDone(1)"></div>
 
-      <!-- Step 3: Vận chuyển -->
+      <!-- Step 3: PROCESSING -->
       <div class="stepper-step" 
-        [class.step-done]="['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status)"
-        [class.step-active]="['SHIPPED', 'FAILED_DELIVERY'].includes(order.status)"
+        [class.step-done]="isStepDone(2)" 
+        [class.step-active]="isStepActive(2)"
+        [class.step-clickable]="isStepDone(2) || isStepActive(2)"
+        (click)="onStepClick(2)"
+        [title]="getStepTooltip(2)"
       >
-        <div class="step-circle">3</div>
-        <div class="step-label">Đang giao hàng</div>
-        <div class="step-sub">Xe tải DCOR Express</div>
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(2)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(2)">3</span>
+        </div>
+        <div class="step-label">Processing</div>
+        <div class="step-sub">Đang chuẩn bị</div>
       </div>
 
-      <div class="step-line" [class.line-done]="['COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status)"></div>
+      <div class="step-line" [class.line-done]="isLineDone(2)"></div>
 
-      <!-- Step 4: Đã giao (72h) -->
+      <!-- Step 4: READY_TO_SHIP -->
       <div class="stepper-step" 
-        [class.step-done]="['COMPLETED'].includes(order.status)"
-        [class.step-active]="order.status === 'DELIVERED'"
+        [class.step-done]="isStepDone(3)" 
+        [class.step-active]="isStepActive(3)"
+        [class.step-clickable]="isStepDone(3) || isStepActive(3)"
+        (click)="onStepClick(3)"
+        [title]="getStepTooltip(3)"
       >
-        <div class="step-circle">4</div>
-        <div class="step-label">Đã giao hàng</div>
-        <div class="step-sub">Đếm ngược 72 giờ</div>
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(3)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(3)">4</span>
+        </div>
+        <div class="step-label">Ready to Ship</div>
+        <div class="step-sub">Sẵn sàng xuất</div>
       </div>
 
-      <div class="step-line" [class.line-done]="order.status === 'COMPLETED'"></div>
+      <div class="step-line" [class.line-done]="isLineDone(3)"></div>
 
-      <!-- Step 5: Hoàn tất -->
+      <!-- Step 5: SHIPPED -->
       <div class="stepper-step" 
-        [class.step-done]="order.status === 'COMPLETED'"
-        [class.step-active]="order.status === 'COMPLETED'"
+        [class.step-done]="isStepDone(4)" 
+        [class.step-active]="isStepActive(4)"
+        [class.step-clickable]="isStepDone(4) || isStepActive(4)"
+        (click)="onStepClick(4)"
+        [title]="getStepTooltip(4)"
       >
-        <div class="step-circle">5</div>
-        <div class="step-label">Hoàn tất đơn</div>
-        <div class="step-sub">Khóa đơn & Bảo hành</div>
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(4)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(4)">5</span>
+        </div>
+        <div class="step-label">Shipped</div>
+        <div class="step-sub">Đang vận chuyển</div>
+      </div>
+
+      <div class="step-line" [class.line-done]="isLineDone(4)"></div>
+
+      <!-- Step 6: DELIVERED -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(5)" 
+        [class.step-active]="isStepActive(5)"
+        [class.step-clickable]="isStepDone(5) || isStepActive(5)"
+        (click)="onStepClick(5)"
+        [title]="getStepTooltip(5)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(5)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(5)">6</span>
+        </div>
+        <div class="step-label">Delivered</div>
+        <div class="step-sub">Đã giao hàng</div>
+      </div>
+
+      <div class="step-line" [class.line-done]="isLineDone(5)"></div>
+
+      <!-- Step 7: COMPLETED -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(6)" 
+        [class.step-active]="isStepActive(6)"
+        [class.step-clickable]="isStepDone(6) || isStepActive(6)"
+        (click)="onStepClick(6)"
+        [title]="getStepTooltip(6)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(6)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(6)">7</span>
+        </div>
+        <div class="step-label">Completed</div>
+        <div class="step-sub">Hoàn tất đơn</div>
       </div>
     </div>
 
-    <!-- Edge Branch Indicators (if Cancelled or Return) -->
+
+    <!-- Edge Branch Indicators for Exceptions -->
     <div class="stepper-branch-pill branch-cancelled" *ngIf="order.status === 'CANCELLED'">
-      <lucide-angular [img]="icons.XCircle" size="14"></lucide-angular>
-      <span>Nhánh rẽ: Đơn hàng đã bị hủy bỏ</span>
+      <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
+      <span>Trạng thái kết thúc: <strong>CANCELLED (Đã hủy đơn)</strong> — {{ order.cancelReason || 'Đã hủy đơn hàng' }} (Bởi: {{ order.cancelledBy || 'Admin' }})</span>
     </div>
+
+    <div class="stepper-branch-pill branch-failed" *ngIf="order.status === 'FAILED_DELIVERY'">
+      <lucide-angular [img]="icons.AlertTriangle" size="16"></lucide-angular>
+      <span>Trạng thái ngoại lệ: <strong>FAILED_DELIVERY (Giao thất bại)</strong> — Lý do: "{{ order.delivery.failureReason || 'Không liên lạc được' }}". Chờ CSKH gọi lại lên lịch giao lần tiếp theo.</span>
+    </div>
+
     <div class="stepper-branch-pill branch-return" *ngIf="['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status)">
-      <lucide-angular [img]="icons.CornerDownLeft" size="14"></lucide-angular>
-      <span>Nhánh rẽ: Quy trình Đổi trả hàng & Hoàn tiền ({{ order.status }})</span>
+      <lucide-angular [img]="icons.CornerDownLeft" size="16"></lucide-angular>
+      <span>Quy trình nghiệp vụ Đổi/Trả hàng: <strong>{{ order.status }}</strong> — {{ order.returnInfo?.reason || 'Yêu cầu đổi/trả từ khách hàng' }}</span>
     </div>
   </div>
 
@@ -244,9 +204,8 @@
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.Package" size="18" class="text-accent"></lucide-angular>
-            <h3>Danh sách Sản phẩm ({{ order.products.length }})</h3>
+            <h3>Danh sách Sản phẩm ({{ order.items.length }})</h3>
           </div>
-          <span class="sub-label">Kho chỉ định: <strong>{{ order.showroom }}</strong></span>
         </div>
 
         <div class="v2-table-responsive">
@@ -255,14 +214,13 @@
               <tr>
                 <th>Sản phẩm</th>
                 <th>SKU</th>
-                <th>Tồn khả dụng</th>
                 <th style="text-align: right;">Đơn giá</th>
                 <th style="text-align: center;">SL</th>
                 <th style="text-align: right;">Thành tiền</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of order.products">
+              <tr *ngFor="let item of order.items">
                 <td>
                   <div class="prod-row-item">
                     <img [src]="item.imageUrl" [alt]="item.name" class="item-img" />
@@ -273,11 +231,6 @@
                   </div>
                 </td>
                 <td class="sku-cell">{{ item.sku }}</td>
-                <td>
-                  <span class="stock-pill" [class.stock-warn]="item.stockAvailable < item.quantity">
-                    Còn {{ item.stockAvailable }} chiếc
-                  </span>
-                </td>
                 <td style="text-align: right;">{{ formatVND(item.price) }}</td>
                 <td style="text-align: center; font-weight: 700;">{{ item.quantity }}</td>
                 <td style="text-align: right; font-weight: 700; color: #111827;">{{ formatVND(item.lineTotal) }}</td>
@@ -287,12 +240,12 @@
         </div>
       </div>
 
-      <!-- CARD 2: Tổng kết Thanh toán & Thu tiền -->
+      <!-- CARD 2: Hóa đơn & Thanh toán -->
       <div class="v2-card">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.DollarSign" size="18" class="text-accent"></lucide-angular>
-            <h3>Tổng kết Tài chính & Thu tiền</h3>
+            <h3>Hóa đơn & Thanh toán</h3>
           </div>
           <span class="badge-payment-status" [style.background]="order.paymentStatus === 'PAID' ? '#DCFCE7' : '#FEF3C7'">
             {{ order.paymentStatus }}
@@ -301,39 +254,27 @@
 
         <div class="pricing-summary-grid">
           <div class="pricing-row">
-            <span>Tạm tính (Tiền hàng):</span>
-            <strong>{{ formatVND(order.pricing.subtotal) }}</strong>
+            <span>Tạm tính:</span>
+            <strong>{{ formatVND(order.subTotal) }}</strong>
           </div>
-          <div class="pricing-row" *ngIf="order.pricing.discount > 0">
-            <span>Khuyến mãi / Voucher giảm:</span>
-            <span class="text-discount">-{{ formatVND(order.pricing.discount) }}</span>
-          </div>
-          <div class="pricing-row">
-            <span>Phí vận chuyển & bốc xếp lắp đặt:</span>
-            <strong>{{ order.pricing.shippingFee === 0 ? 'Miễn phí (DCOR Care)' : formatVND(order.pricing.shippingFee) }}</strong>
+          <div class="pricing-row" *ngIf="order.discountAmount > 0">
+            <span>Khuyến mãi:</span>
+            <span class="text-discount">-{{ formatVND(order.discountAmount) }}</span>
           </div>
           <div class="pricing-row">
-            <span>Thuế VAT (8%):</span>
-            <strong>{{ formatVND(order.pricing.vat) }}</strong>
+            <span>Phí vận chuyển & lắp đặt:</span>
+            <strong>{{ order.shippingFee === 0 ? 'Miễn phí (DCOR Care)' : formatVND(order.shippingFee) }}</strong>
+          </div>
+          <div class="pricing-row">
+            <span>Thuế VAT ({{ vatRate }}%):</span>
+            <strong>{{ formatVND(vatAmount) }}</strong>
           </div>
 
           <div class="pricing-divider"></div>
 
           <div class="pricing-row total-highlight">
             <span>Tổng thanh toán (Đã bao gồm VAT):</span>
-            <span class="total-big-val">{{ formatVND(order.pricing.totalAmount) }}</span>
-          </div>
-
-          <!-- Deposit & Remaining amount -->
-          <div class="deposit-breakdown" *ngIf="order.pricing.depositAmount || order.isHighValue">
-            <div class="deposit-item">
-              <span class="lbl">Số tiền khách đã cọc:</span>
-              <span class="val text-success">{{ formatVND(order.pricing.depositAmount || 0) }}</span>
-            </div>
-            <div class="deposit-item">
-              <span class="lbl">Số tiền còn lại cần thu (COD):</span>
-              <span class="val text-danger">{{ formatVND(order.pricing.totalAmount - (order.pricing.depositAmount || 0)) }}</span>
-            </div>
+            <span class="total-big-val">{{ formatVND(order.totalAmount) }}</span>
           </div>
         </div>
       </div>
@@ -345,36 +286,40 @@
             <lucide-angular [img]="icons.ShieldCheck" size="18" class="text-accent"></lucide-angular>
             <h3>Biên bản Kiểm tra Chất lượng (QC xuất kho)</h3>
           </div>
-          <span class="sub-label">Quy chuẩn 4 bước DCOR Standard</span>
+          <span class="badge-locked-qc" *ngIf="isDataLocked || order.status !== 'PROCESSING'">
+            <lucide-angular [img]="icons.Lock" size="12"></lucide-angular>
+            Đã khóa kết quả QC
+          </span>
+          <span class="sub-label" *ngIf="!isDataLocked && order.status === 'PROCESSING'">Quy chuẩn 4 bước DCOR Standard</span>
         </div>
 
         <div class="qc-checklist-grid">
-          <label class="qc-checkbox-item">
-            <input type="checkbox" [(ngModel)]="checklist.surfaceChecked" />
+          <label class="qc-checkbox-item" [class.is-locked]="isDataLocked || order.status !== 'PROCESSING'">
+            <input type="checkbox" [(ngModel)]="checklist.surfaceChecked" [disabled]="isDataLocked || order.status !== 'PROCESSING'" />
             <div class="qc-content">
               <strong>1. Kiểm tra Bề mặt Gỗ & Lớp sơn bóng</strong>
               <p>Không trầy xước dăm, không rỗ sơn bóng PU, màu vân gỗ đồng nhất tiêu chuẩn.</p>
             </div>
           </label>
 
-          <label class="qc-checkbox-item">
-            <input type="checkbox" [(ngModel)]="checklist.structureChecked" />
+          <label class="qc-checkbox-item" [class.is-locked]="isDataLocked || order.status !== 'PROCESSING'">
+            <input type="checkbox" [(ngModel)]="checklist.structureChecked" [disabled]="isDataLocked || order.status !== 'PROCESSING'" />
             <div class="qc-content">
               <strong>2. Kiểm tra Kết cấu chịu lực & Chân đế</strong>
               <p>Khung sườn gỗ sồi nguyên khối ổn định, chân đế cân bằng, các mối ghép keo mộng chắc chắn.</p>
             </div>
           </label>
 
-          <label class="qc-checkbox-item">
-            <input type="checkbox" [(ngModel)]="checklist.cushionLeatherChecked" />
+          <label class="qc-checkbox-item" [class.is-locked]="isDataLocked || order.status !== 'PROCESSING'">
+            <input type="checkbox" [(ngModel)]="checklist.cushionLeatherChecked" [disabled]="isDataLocked || order.status !== 'PROCESSING'" />
             <div class="qc-content">
               <strong>3. Kiểm tra Đệm mút D40 & Chất liệu Da / Vải nỉ</strong>
               <p>Đệm mút đàn hồi cao, chỉ may đường viền sắc nét, không nhăn nhúm hoặc sờn mép.</p>
             </div>
           </label>
 
-          <label class="qc-checkbox-item">
-            <input type="checkbox" [(ngModel)]="checklist.protectiveWrapDone" />
+          <label class="qc-checkbox-item" [class.is-locked]="isDataLocked || order.status !== 'PROCESSING'">
+            <input type="checkbox" [(ngModel)]="checklist.protectiveWrapDone" [disabled]="isDataLocked || order.status !== 'PROCESSING'" />
             <div class="qc-content">
               <strong>4. Bọc màng PE 3 lớp & Chèn xốp góc bảo vệ</strong>
               <p>Bọc mút xốp định hình 4 góc, quấn 3 lớp màng PE co nhiệt, dán tem cảnh báo 'Hàng dễ vỡ'.</p>
@@ -491,25 +436,29 @@
 
         <div class="customer-info-box">
           <div class="cust-profile">
-            <div class="cust-avatar">{{ order.customer.name.charAt(0) }}</div>
+            <div class="cust-avatar">{{ order.customerName.charAt(0) }}</div>
             <div class="cust-meta">
-              <div class="cust-name">{{ order.customer.name }}</div>
-              <div class="cust-role">Khách hàng thành viên DCOR VIP</div>
+              <div class="cust-name">{{ order.customerName }}</div>
+              <button type="button" class="btn-customer-nav" (click)="onViewCustomerDetail()" title="Xem chi tiết hồ sơ khách hàng">
+                <lucide-angular [img]="icons.User" size="12"></lucide-angular>
+                <span>Chi tiết khách hàng</span>
+                <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+              </button>
             </div>
           </div>
 
           <div class="cust-rows">
             <div class="cust-row">
               <lucide-angular [img]="icons.Phone" size="15" class="row-icon"></lucide-angular>
-              <span>{{ order.customer.phone }}</span>
+              <span>{{ order.phone }}</span>
             </div>
             <div class="cust-row">
               <lucide-angular [img]="icons.Mail" size="15" class="row-icon"></lucide-angular>
-              <span>{{ order.customer.email }}</span>
+              <span>{{ order.email }}</span>
             </div>
             <div class="cust-row address-row">
               <lucide-angular [img]="icons.MapPin" size="15" class="row-icon"></lucide-angular>
-              <span>{{ order.customer.address }}</span>
+              <span>{{ order.address }}</span>
             </div>
           </div>
 
@@ -525,39 +474,39 @@
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.Truck" size="18" class="text-accent"></lucide-angular>
-            <h3>Vận chuyển & Giao nhận</h3>
+            <h3>Vận chuyển</h3>
           </div>
-          <span class="delivery-provider-badge">{{ order.deliveryInfo.provider }}</span>
+          <span class="delivery-provider-badge">{{ order.delivery.provider }}</span>
         </div>
 
         <div class="shipping-info-box">
           <div class="ship-metric">
             <span class="lbl">Mã vận đơn (Tracking Code):</span>
             <div class="tracking-display">
-              <strong>{{ order.deliveryInfo.trackingCode || 'Chưa phát sinh mã' }}</strong>
+              <strong>{{ order.delivery.trackingCode || 'Chưa phát sinh mã' }}</strong>
             </div>
           </div>
 
-          <div class="ship-driver-box" *ngIf="order.deliveryInfo.driverName">
+          <div class="ship-driver-box" *ngIf="order.delivery.driverName">
             <div class="driver-row">
               <span>Tài xế giao nhận:</span>
-              <strong>{{ order.deliveryInfo.driverName }}</strong>
+              <strong>{{ order.delivery.driverName }}</strong>
             </div>
-            <div class="driver-row" *ngIf="order.deliveryInfo.driverPhone">
+            <div class="driver-row" *ngIf="order.delivery.driverPhone">
               <span>Số điện thoại:</span>
-              <strong>{{ order.deliveryInfo.driverPhone }}</strong>
+              <strong>{{ order.delivery.driverPhone }}</strong>
             </div>
-            <div class="driver-row" *ngIf="order.deliveryInfo.vehiclePlate">
+            <div class="driver-row" *ngIf="order.delivery.vehiclePlate">
               <span>Biển số xe tải:</span>
-              <strong>{{ order.deliveryInfo.vehiclePlate }}</strong>
+              <strong>{{ order.delivery.vehiclePlate }}</strong>
             </div>
           </div>
 
           <!-- Live Tracking Steps History -->
-          <div class="tracking-history-box" *ngIf="order.deliveryInfo.trackingHistory && order.deliveryInfo.trackingHistory.length > 0">
+          <div class="tracking-history-box" *ngIf="order.delivery.trackingHistory && order.delivery.trackingHistory.length > 0">
             <span class="tracking-history-title">Lộ trình giao nhận chi tiết:</span>
             <div class="tracking-timeline">
-              <div class="track-step" *ngFor="let step of order.deliveryInfo.trackingHistory">
+              <div class="track-step" *ngFor="let step of order.delivery.trackingHistory">
                 <div class="track-dot"></div>
                 <div class="track-info">
                   <div class="track-status">{{ step.status }}</div>
@@ -590,7 +539,7 @@
           </div>
           <div class="pm-row">
             <span>Yêu cầu hóa đơn VAT:</span>
-            <strong>{{ order.pricing.vat > 0 ? 'Có (Xuất VAT 8%)' : 'Không yêu cầu' }}</strong>
+            <strong>Có (Xuất VAT 8%)</strong>
           </div>
         </div>
       </div>
@@ -605,15 +554,38 @@
   <div class="v2-bottom-action-card">
     <div class="bottom-action-inner">
       <div class="action-status-indicator">
-        <span class="step-guide">Bước hiện tại:</span>
+        <span class="step-guide">{{ isHistoricalView ? 'Bước đang xem lại:' : 'Bước hiện tại:' }}</span>
         <div class="curr-state">
-          <span class="state-chip state-{{ order.status }}">{{ order.status }}</span>
-          <span class="state-title">{{ userView.label }}</span>
+          <span class="state-chip state-{{ isHistoricalView ? STEP_CONFIG[activeViewingStep].key : order.status }}">
+            {{ isHistoricalView ? STEP_CONFIG[activeViewingStep].key : order.status }}
+          </span>
+          <span class="state-title">
+            {{ isHistoricalView ? STEP_CONFIG[activeViewingStep].vi : userView.label }}
+          </span>
+          <span class="badge-locked" *ngIf="isHistoricalView" style="margin-left: 6px;">
+            <lucide-angular [img]="icons.Lock" size="12"></lucide-angular>
+            Đã khóa
+          </span>
         </div>
       </div>
 
-      <!-- CONTEXTUAL BUTTONS FOR EACH OF THE 11 STATES -->
-      <div class="action-buttons-group">
+      <!-- VIEW 1: HISTORICAL MODE (PREVIEWING A COMPLETED STEP) -->
+      <div class="historical-action-view" *ngIf="isHistoricalView">
+        <div class="locked-action-info">
+          <lucide-angular [img]="icons.Lock" size="20" class="text-accent"></lucide-angular>
+          <div>
+            <strong>Bước {{ activeViewingStep + 1 }}: {{ STEP_CONFIG[activeViewingStep].en }} ({{ STEP_CONFIG[activeViewingStep].vi }}) — ĐÃ HOÀN TẤT</strong>
+            <p>Toàn bộ thông tin tại bước này đã được khóa bảo vệ. Không thể chỉnh sửa hoặc thao tác lại bước trong quá khứ.</p>
+          </div>
+        </div>
+        <button type="button" class="btn-return-live-lg" (click)="returnToCurrentStep()">
+          <lucide-angular [img]="icons.ArrowRight" size="16"></lucide-angular>
+          <span>Quay về bước hiện tại ({{ order.status }})</span>
+        </button>
+      </div>
+
+      <!-- VIEW 2: NORMAL LIVE CONTEXTUAL BUTTONS -->
+      <div class="action-buttons-group" *ngIf="!isHistoricalView">
 
         <!-- 1. PENDING -->
         <ng-container *ngIf="order.status === 'PENDING'">
@@ -665,7 +637,7 @@
         <ng-container *ngIf="order.status === 'READY_TO_SHIP'">
           <div class="tracking-input-wrap">
             <label>Mã vận đơn ĐVC:</label>
-            <input type="text" [(ngModel)]="newTrackingCode" placeholder="Nhập mã vận đơn..." class="tracking-input" />
+            <input type="text" [(ngModel)]="newTrackingCode" [disabled]="isDataLocked" placeholder="Nhập mã vận đơn..." class="tracking-input" />
           </div>
           <button type="button" class="btn-primary-action" (click)="onDispatchOrder()">
             <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
@@ -831,15 +803,15 @@
         <div class="mockup-order-info">
           <div class="m-row"><span>Mã đơn:</span> <strong>#{{ order.orderNumber }}</strong></div>
           <div class="m-row"><span>Ngày đặt:</span> <strong>{{ formatDate(order.createdAt) }}</strong></div>
-          <div class="m-row"><span>Đơn vị giao:</span> <strong>{{ order.deliveryInfo.provider }}</strong></div>
-          <div class="m-row" *ngIf="order.deliveryInfo.trackingCode">
-            <span>Mã vận đơn:</span> <strong>{{ order.deliveryInfo.trackingCode }}</strong>
+          <div class="m-row"><span>Đơn vị giao:</span> <strong>{{ order.delivery.provider }}</strong></div>
+          <div class="m-row" *ngIf="order.delivery.trackingCode">
+            <span>Mã vận đơn:</span> <strong>{{ order.delivery.trackingCode }}</strong>
           </div>
         </div>
 
         <!-- Product preview for customer -->
         <div class="mockup-products">
-          <div class="mock-item" *ngFor="let item of order.products">
+          <div class="mock-item" *ngFor="let item of order.items">
             <img [src]="item.imageUrl" [alt]="item.name" />
             <div class="mock-meta">
               <span class="m-name">{{ item.name }}</span>
@@ -851,7 +823,7 @@
 
         <div class="mockup-total">
           <span>Tổng tiền thanh toán:</span>
-          <strong>{{ formatVND(order.pricing.totalAmount) }}</strong>
+          <strong>{{ formatVND(order.totalAmount) }}</strong>
         </div>
 
         <!-- Customer Action Buttons Simulation -->

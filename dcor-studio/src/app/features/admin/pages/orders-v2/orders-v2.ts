@@ -8,7 +8,7 @@ import {
   Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck, 
   Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, 
   ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-  Building2, CreditCard
+  Building2, CreditCard, AlertCircle, RotateCcw, Box
 } from 'lucide-angular';
 import { OrdersV2Service } from './services/orders-v2.service';
 import { 
@@ -16,7 +16,7 @@ import {
   mapAdminStatusToUserView 
 } from './models/order-v2.model';
 
-export type KpiTab = 'ALL' | 'PENDING' | 'PREPARING' | 'SHIPPING' | 'DELIVERED_COMPLETED' | 'RETURNS' | 'CANCELLED';
+export type KpiTab = 'ALL' | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED';
 
 @Component({
   selector: 'app-orders-v2',
@@ -30,7 +30,7 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck,
     Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft,
     ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-    Building2, CreditCard
+    Building2, CreditCard, AlertCircle, RotateCcw, Box
   };
 
   orders: OrderV2[] = [];
@@ -99,24 +99,28 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     return this.orders.filter(o => o.status === 'PENDING').length;
   }
 
-  get countPreparing(): number {
-    return this.orders.filter(o => ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP'].includes(o.status)).length;
+  get countConfirmed(): number {
+    return this.orders.filter(o => o.status === 'CONFIRMED').length;
   }
 
-  get countShipping(): number {
-    return this.orders.filter(o => ['SHIPPED', 'FAILED_DELIVERY'].includes(o.status)).length;
+  get countProcessing(): number {
+    return this.orders.filter(o => o.status === 'PROCESSING').length;
   }
 
-  get countDeliveredCompleted(): number {
-    return this.orders.filter(o => ['DELIVERED', 'COMPLETED'].includes(o.status)).length;
+  get countReadyToShip(): number {
+    return this.orders.filter(o => o.status === 'READY_TO_SHIP').length;
   }
 
-  get countReturns(): number {
-    return this.orders.filter(o => ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(o.status)).length;
+  get countShipped(): number {
+    return this.orders.filter(o => o.status === 'SHIPPED').length;
   }
 
-  get countCancelled(): number {
-    return this.orders.filter(o => o.status === 'CANCELLED').length;
+  get countDelivered(): number {
+    return this.orders.filter(o => o.status === 'DELIVERED').length;
+  }
+
+  get countCompleted(): number {
+    return this.orders.filter(o => o.status === 'COMPLETED').length;
   }
 
   // --- FILTERED ORDERS ---
@@ -124,18 +128,8 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     let list = [...this.orders];
 
     // Filter by KPI Tab
-    if (this.activeTab === 'PENDING') {
-      list = list.filter(o => o.status === 'PENDING');
-    } else if (this.activeTab === 'PREPARING') {
-      list = list.filter(o => ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP'].includes(o.status));
-    } else if (this.activeTab === 'SHIPPING') {
-      list = list.filter(o => ['SHIPPED', 'FAILED_DELIVERY'].includes(o.status));
-    } else if (this.activeTab === 'DELIVERED_COMPLETED') {
-      list = list.filter(o => ['DELIVERED', 'COMPLETED'].includes(o.status));
-    } else if (this.activeTab === 'RETURNS') {
-      list = list.filter(o => ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(o.status));
-    } else if (this.activeTab === 'CANCELLED') {
-      list = list.filter(o => o.status === 'CANCELLED');
+    if (this.activeTab !== 'ALL') {
+      list = list.filter(o => o.status === this.activeTab);
     }
 
     // Filter by Specific Status Dropdown
@@ -158,10 +152,10 @@ export class OrdersV2Component implements OnInit, OnDestroy {
       const q = this.searchQuery.toLowerCase().trim();
       list = list.filter(o => 
         o.orderNumber.toLowerCase().includes(q) ||
-        o.customer.name.toLowerCase().includes(q) ||
-        o.customer.phone.includes(q) ||
-        (o.deliveryInfo.trackingCode && o.deliveryInfo.trackingCode.toLowerCase().includes(q)) ||
-        o.products.some(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
+        o.customerName.toLowerCase().includes(q) ||
+        o.phone.includes(q) ||
+        (o.delivery.trackingCode && o.delivery.trackingCode.toLowerCase().includes(q)) ||
+        o.items.some(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
       );
     }
 
@@ -172,9 +166,9 @@ export class OrdersV2Component implements OnInit, OnDestroy {
       } else if (this.sortBy === 'date-asc') {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       } else if (this.sortBy === 'total-desc') {
-        return b.pricing.totalAmount - a.pricing.totalAmount;
+        return b.totalAmount - a.totalAmount;
       } else if (this.sortBy === 'total-asc') {
-        return a.pricing.totalAmount - b.pricing.totalAmount;
+        return a.totalAmount - b.totalAmount;
       }
       return 0;
     });
@@ -183,8 +177,12 @@ export class OrdersV2Component implements OnInit, OnDestroy {
   }
 
   // --- PAGINATION ---
+  get totalItems(): number {
+    return this.filteredOrders.length;
+  }
+
   get totalPages(): number {
-    return Math.ceil(this.filteredOrders.length / this.pageSize) || 1;
+    return Math.ceil(this.totalItems / this.pageSize) || 1;
   }
 
   get paginatedOrders(): OrderV2[] {
@@ -198,9 +196,31 @@ export class OrdersV2Component implements OnInit, OnDestroy {
   }
 
   goToPage(page: number) {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+  }
+
+  getVisiblePages(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(this.totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
     }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  getStartIndex(): number {
+    if (this.totalItems === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  getEndIndex(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
   }
 
   resetFilters() {
@@ -246,13 +266,16 @@ export class OrdersV2Component implements OnInit, OnDestroy {
         break;
 
       case 'PROCESSING':
-        success = this.ordersService.finishPackaging(order.id, 'Thủ kho Hoàng Sơn');
+        success = this.ordersService.finishPackaging(order.id, order.qcChecklist, 'Thủ kho Hoàng Sơn');
         title = 'Đóng gói hoàn tất!';
         msg = `Đơn ${order.orderNumber} đã chuyển sang trạng thái READY_TO_SHIP (Sẵn sàng xuất kho).`;
         break;
 
       case 'READY_TO_SHIP':
-        success = this.ordersService.dispatchOrder(order.id, order.deliveryInfo.trackingCode || 'DCOR-SHIP-EXPRESS', 'Điều phối kho');
+        success = this.ordersService.dispatchOrder(order.id, {
+          provider: order.delivery.provider,
+          trackingCode: order.delivery.trackingCode || 'DCOR-SHIP-EXPRESS'
+        }, 'Điều phối kho');
         title = 'Xuất kho thành công!';
         msg = `Đơn ${order.orderNumber} đã bàn giao cho ĐVC và chuyển sang SHIPPED (Đang giao hàng).`;
         break;
@@ -276,7 +299,7 @@ export class OrdersV2Component implements OnInit, OnDestroy {
         break;
 
       case 'RETURN_REQUESTED':
-        success = this.ordersService.approveReturn(order.id, 'CSKH DCOR');
+        success = this.ordersService.approveReturn(order.id, 'CSKH DCOR duyệt đổi trả', 'CSKH DCOR');
         title = 'Đã chấp nhận yêu cầu trả hàng!';
         msg = `Đơn ${order.orderNumber} chuyển sang RETURNING (Đang thu hồi sản phẩm về kho).`;
         break;
@@ -314,12 +337,43 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   }
 
-  formatDate(dateStr: string): string {
+  private parseDateSafe(dateStr?: string): Date {
+    if (!dateStr) return new Date();
+    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = parseInt(match[3], 10);
+      const hour = match[4] ? parseInt(match[4], 10) : 0;
+      const min = match[5] ? parseInt(match[5], 10) : 0;
+      const sec = match[6] ? parseInt(match[6], 10) : 0;
+      return new Date(year, month, day, hour, min, sec);
+    }
     const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+
+  formatDate(dateStr: string): string {
+    const d = this.parseDateSafe(dateStr);
     return d.toLocaleString('vi-VN', { 
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit' 
     });
+  }
+
+  formatTimeOnly(dateStr: string): string {
+    const d = this.parseDateSafe(dateStr);
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  }
+
+  formatDateOnly(dateStr: string): string {
+    const d = this.parseDateSafe(dateStr);
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  getOrderTotalQty(order: OrderV2): number {
+    if (!order.items || order.items.length === 0) return 0;
+    return order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   }
 
   getAdminStatusMeta(status: AdminOrderStatus) {
@@ -357,14 +411,19 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     return mapAdminStatusToUserView(status);
   }
 
-  getPaymentMeta(status: PaymentStatus) {
+  getPaymentMeta(status: PaymentStatus, order?: OrderV2) {
     switch (status) {
       case 'PAID':
-        return { label: 'Đã thanh toán đủ', bg: '#DCFCE7', color: '#16A34A' };
-      case 'PARTIAL':
-        return { label: 'Đã cọc 30%', bg: '#E0F2FE', color: '#0284C7' };
+        return { label: 'Đã thanh toán', bg: '#DCFCE7', color: '#16A34A' };
+      case 'PARTIAL': {
+        let percent = 30;
+        if (order && order.depositPaid && order.totalAmount) {
+          percent = Math.round((order.depositPaid / order.totalAmount) * 100);
+        }
+        return { label: `Đã cọc ${percent}%`, bg: '#E0F2FE', color: '#0284C7' };
+      }
       case 'UNPAID':
-        return { label: 'Chưa thanh toán (COD)', bg: '#FEF3C7', color: '#D97706' };
+        return { label: 'Chưa thanh toán', bg: '#FEF3C7', color: '#D97706' };
       case 'REFUND_PENDING':
         return { label: 'Chờ hoàn tiền', bg: '#FFEDD5', color: '#EA580C' };
       case 'REFUNDED':

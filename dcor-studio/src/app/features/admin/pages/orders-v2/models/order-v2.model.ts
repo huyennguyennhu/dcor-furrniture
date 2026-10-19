@@ -119,6 +119,7 @@ export interface OrderV2 {
   subTotal: number;
   shippingFee: number;
   discountAmount: number;
+  vatRate?: number;
   totalAmount: number;
   depositRequired: number;
   depositPaid: number;

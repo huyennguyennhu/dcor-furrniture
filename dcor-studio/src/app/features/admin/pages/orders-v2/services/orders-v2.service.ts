@@ -115,6 +115,15 @@ export class OrdersV2Service {
     return true;
   }
 
+  updateQcChecklist(orderId: string, checklist: QcChecklistV2): boolean {
+    const orders = this.orders;
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return false;
+    order.qcChecklist = { ...checklist };
+    this.save(orders);
+    return true;
+  }
+
   // 5. READY_TO_SHIP -> SHIPPED
   dispatchOrder(orderId: string, deliveryData: { provider: string; trackingCode: string; driverName?: string; driverPhone?: string; vehiclePlate?: string }, staffName: string = 'Điều phối viên'): boolean {
     const orders = this.orders;
