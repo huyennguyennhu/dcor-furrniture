@@ -1,0 +1,390 @@
+<div class="orders-v2-container">
+
+  <!-- Floating Toast Notification -->
+  <div *ngIf="showToast" 
+    class="v2-toast"
+    [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'"
+    [class.toast-info]="toastType === 'info'"
+  >
+    <div class="v2-toast-inner">
+      <div class="v2-toast-icon">
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.XCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.Clock" size="20"></lucide-angular>
+      </div>
+      <div class="v2-toast-content">
+        <div class="v2-toast-title">{{ toastTitle }}</div>
+        <div class="v2-toast-msg">{{ toastMessage }}</div>
+      </div>
+      <button type="button" class="v2-toast-close" (click)="closeToast()" title="Đóng">
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
+  </div>
+
+  <!-- Page Header -->
+  <div class="v2-header">
+    <div class="v2-header-left">
+      <div class="v2-breadcrumbs">
+        <span>Admin</span>
+        <span class="sep">/</span>
+        <span class="active">Đơn hàng V2 (Full Workflow)</span>
+      </div>
+      <div class="v2-title-row">
+        <h1 class="v2-title">Quản lý Đơn hàng V2</h1>
+        <span class="v2-badge-system">Master Plan 11 Trạng thái</span>
+      </div>
+      <p class="v2-subtitle">
+        Quy trình chuẩn hóa khép kín: Khởi tạo & Cọc $\rightarrow$ Xử lý Kho & QC $\rightarrow$ Vận chuyển $\rightarrow$ Đã giao (72h) $\rightarrow$ Hoàn tất / Đổi trả.
+      </p>
+    </div>
+    
+    <div class="v2-header-actions">
+      <button type="button" class="v2-btn-secondary" (click)="resetMockData()" title="Khôi phục lại 11 đơn hàng mẫu đại diện cho 11 trạng thái">
+        <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
+        <span>Khôi phục 11 Đơn Mẫu</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Filter Metric Cards -->
+  <div class="v2-kpi-grid">
+    <button 
+      type="button" 
+      class="v2-kpi-card" 
+      [class.active]="activeTab === 'ALL'"
+      (click)="setTab('ALL')"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">Tất cả đơn</span>
+        <span class="kpi-badge kpi-all">{{ countAll }}</span>
+      </div>
+      <div class="kpi-desc">Tổng đơn trong hệ thống</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="v2-kpi-card" 
+      [class.active]="activeTab === 'PENDING'"
+      (click)="setTab('PENDING')"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">1. Chờ xác nhận</span>
+        <span class="kpi-badge kpi-pending">{{ countPending }}</span>
+      </div>
+      <div class="kpi-desc">Chờ CSKH duyệt & kiểm tra cọc</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="v2-kpi-card" 
+      [class.active]="activeTab === 'PREPARING'"
+      (click)="setTab('PREPARING')"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">2. Kho & Đóng gói</span>
+        <span class="kpi-badge kpi-preparing">{{ countPreparing }}</span>
+      </div>
+      <div class="kpi-desc">Confirmed, Processing, Ready</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="v2-kpi-card" 
+      [class.active]="activeTab === 'SHIPPING'"
+      (click)="setTab('SHIPPING')"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">3. Đang giao hàng</span>
+        <span class="kpi-badge kpi-shipping">{{ countShipping }}</span>
+      </div>
+      <div class="kpi-desc">Shipped & Failed Delivery</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="v2-kpi-card" 
+      [class.active]="activeTab === 'DELIVERED_COMPLETED'"
+      (click)="setTab('DELIVERED_COMPLETED')"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">4. Đã giao / Hoàn tất</span>
+        <span class="kpi-badge kpi-completed">{{ countDeliveredCompleted }}</span>
+      </div>
+      <div class="kpi-desc">72h đổi trả & Chốt doanh thu</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="v2-kpi-card" 
+      [class.active]="activeTab === 'RETURNS'"
+      (click)="setTab('RETURNS')"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">5. Đổi trả / Hoàn tiền</span>
+        <span class="kpi-badge kpi-return">{{ countReturns }}</span>
+      </div>
+      <div class="kpi-desc">Khiếu nại, Thu hồi, QC & Hoàn tiền</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="v2-kpi-card" 
+      [class.active]="activeTab === 'CANCELLED'"
+      (click)="setTab('CANCELLED')"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">6. Đã hủy</span>
+        <span class="kpi-badge kpi-cancelled">{{ countCancelled }}</span>
+      </div>
+      <div class="kpi-desc">Khách hủy hoặc hết hàng</div>
+    </button>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="v2-toolbar">
+    <div class="v2-search-box">
+      <lucide-angular [img]="icons.Search" size="18" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        (ngModelChange)="currentPage = 1"
+        placeholder="Tìm theo mã đơn (DCOR-ORD-...), tên khách, SĐT, sản phẩm, mã vận đơn..."
+      />
+      <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; currentPage = 1">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="v2-filter-group">
+      <!-- Showroom Filter -->
+      <div class="v2-select-wrapper">
+        <select [(ngModel)]="selectedShowroom" (change)="currentPage = 1">
+          <option *ngFor="let s of SHOWROOMS" [value]="s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name">
+            {{ s.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Payment Status Filter -->
+      <div class="v2-select-wrapper">
+        <select [(ngModel)]="selectedPayment" (change)="currentPage = 1">
+          <option *ngFor="let p of PAYMENT_STATUSES" [value]="p.id">
+            {{ p.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Sort Filter -->
+      <div class="v2-select-wrapper">
+        <select [(ngModel)]="sortBy" (change)="currentPage = 1">
+          <option value="date-desc">Mới nhất trước</option>
+          <option value="date-asc">Cũ nhất trước</option>
+          <option value="total-desc">Giá trị cao nhất</option>
+          <option value="total-asc">Giá trị thấp nhất</option>
+        </select>
+      </div>
+
+      <!-- Reset Filters Button -->
+      <button type="button" class="v2-btn-reset" (click)="resetFilters()" title="Xóa toàn bộ bộ lọc">
+        <lucide-angular [img]="icons.RefreshCw" size="14"></lucide-angular>
+        <span>Đặt lại</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Orders Table -->
+  <div class="v2-table-wrapper">
+    <table class="v2-table">
+      <thead>
+        <tr>
+          <th style="width: 140px;">Mã đơn & Ngày đặt</th>
+          <th style="width: 180px;">Khách hàng & Chi nhánh</th>
+          <th>Sản phẩm & Giá trị</th>
+          <th style="width: 150px;">Thanh toán</th>
+          <th style="width: 160px;">Trạng thái Admin</th>
+          <th style="width: 160px;">Góc nhìn Khách (User View)</th>
+          <th style="width: 150px; text-align: center;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of paginatedOrders" [routerLink]="['/admin/orders-v2', order.id]" class="v2-table-row">
+          
+          <!-- Mã đơn & Ngày đặt -->
+          <td>
+            <div class="order-code-cell">
+              <span class="order-number">{{ order.orderNumber }}</span>
+              <span *ngIf="order.isHighValue" class="high-value-pill" title="Đơn hàng >= 50 triệu - Bắt buộc thu cọc 30%">
+                ★ Cọc 30%
+              </span>
+              <span class="order-date">{{ formatDate(order.createdAt) }}</span>
+            </div>
+          </td>
+
+          <!-- Khách hàng & Chi nhánh -->
+          <td>
+            <div class="customer-cell">
+              <span class="customer-name">{{ order.customer.name }}</span>
+              <span class="customer-phone">{{ order.customer.phone }}</span>
+              <span class="showroom-tag">{{ order.showroom }}</span>
+            </div>
+          </td>
+
+          <!-- Sản phẩm & Giá trị -->
+          <td>
+            <div class="product-cell">
+              <div class="product-thumb-wrapper">
+                <img [src]="order.products[0].imageUrl" [alt]="order.products[0].name" class="product-thumb" />
+                <span *ngIf="order.products.length > 1" class="more-items-pill">+{{ order.products.length - 1 }}</span>
+              </div>
+              <div class="product-info-summary">
+                <div class="product-main-name">
+                  {{ order.products[0].name }} 
+                  <span class="product-qty">x{{ order.products[0].quantity }}</span>
+                </div>
+                <div class="product-variant" *ngIf="order.products[0].variant">
+                  {{ order.products[0].variant }}
+                </div>
+                <div class="order-total-price">
+                  {{ formatVND(order.pricing.totalAmount) }}
+                  <span *ngIf="order.pricing.depositAmount" class="deposit-note">
+                    (Đã cọc: {{ formatVND(order.pricing.depositAmount) }})
+                  </span>
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Thanh toán -->
+          <td>
+            <div class="payment-cell">
+              <span 
+                class="payment-badge"
+                [style.background]="getPaymentMeta(order.paymentStatus).bg"
+                [style.color]="getPaymentMeta(order.paymentStatus).color"
+              >
+                {{ getPaymentMeta(order.paymentStatus).label }}
+              </span>
+              <span class="payment-method-text">{{ order.paymentMethod }}</span>
+            </div>
+          </td>
+
+          <!-- Trạng thái Admin -->
+          <td>
+            <div class="admin-status-cell">
+              <span 
+                class="admin-status-badge"
+                [style.background]="getAdminStatusMeta(order.status).bg"
+                [style.color]="getAdminStatusMeta(order.status).color"
+                [style.border-color]="getAdminStatusMeta(order.status).border"
+              >
+                {{ getAdminStatusMeta(order.status).label }}
+              </span>
+              <span class="dept-indicator">
+                Bộ phận: <strong>{{ getAdminStatusMeta(order.status).dept }}</strong>
+              </span>
+            </div>
+          </td>
+
+          <!-- Góc nhìn Khách (User View) -->
+          <td>
+            <div class="user-status-cell">
+              <span class="user-status-badge" [style.color]="getUserView(order.status).color">
+                ● {{ getUserView(order.status).label }}
+              </span>
+              <span class="user-group-desc">{{ getUserView(order.status).group }}</span>
+            </div>
+          </td>
+
+          <!-- Thao tác -->
+          <td style="text-align: center;" (click)="$event.stopPropagation()">
+            <div class="table-actions">
+              <a [routerLink]="['/admin/orders-v2', order.id]" class="btn-detail" title="Xem toàn bộ hồ sơ & quy trình">
+                Chi tiết
+              </a>
+              <button 
+                type="button" 
+                class="btn-quick-step"
+                (click)="quickAction(order, $event)"
+                [title]="'Chuyển bước nhanh: ' + getAdminStatusMeta(order.status).nextBtn"
+              >
+                {{ getAdminStatusMeta(order.status).nextBtn }}
+              </button>
+            </div>
+          </td>
+
+        </tr>
+
+        <!-- Empty State -->
+        <tr *ngIf="filteredOrders.length === 0">
+          <td colspan="7">
+            <div class="v2-empty-state">
+              <div class="empty-icon-wrap">
+                <lucide-angular [img]="icons.Package" size="36"></lucide-angular>
+              </div>
+              <h3>Không tìm thấy đơn hàng phù hợp</h3>
+              <p>Thử điều chỉnh từ khóa tìm kiếm hoặc bấm nút đặt lại bộ lọc bên dưới.</p>
+              <button type="button" class="v2-btn-secondary" (click)="resetFilters()">
+                <lucide-angular [img]="icons.RefreshCw" size="15"></lucide-angular>
+                <span>Xóa bộ lọc</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div class="v2-pagination-bar" *ngIf="filteredOrders.length > 0">
+    <div class="pagination-info">
+      Hiển thị <strong>{{ ((currentPage - 1) * pageSize) + 1 }}</strong> - 
+      <strong>{{ currentPage * pageSize > filteredOrders.length ? filteredOrders.length : currentPage * pageSize }}</strong> 
+      trong tổng số <strong>{{ filteredOrders.length }}</strong> đơn hàng
+    </div>
+
+    <div class="pagination-controls">
+      <button 
+        type="button" 
+        class="page-btn" 
+        [disabled]="currentPage === 1"
+        (click)="goToPage(1)"
+        title="Trang đầu"
+      >
+        <lucide-angular [img]="icons.ChevronsLeft" size="16"></lucide-angular>
+      </button>
+      <button 
+        type="button" 
+        class="page-btn" 
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)"
+        title="Trang trước"
+      >
+        <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
+      </button>
+
+      <span class="page-indicator">Trang {{ currentPage }} / {{ totalPages }}</span>
+
+      <button 
+        type="button" 
+        class="page-btn" 
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)"
+        title="Trang sau"
+      >
+        <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+      </button>
+      <button 
+        type="button" 
+        class="page-btn" 
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(totalPages)"
+        title="Trang cuối"
+      >
+        <lucide-angular [img]="icons.ChevronsRight" size="16"></lucide-angular>
+      </button>
+    </div>
+  </div>
+
+</div>

@@ -1,76 +1,104 @@
 <div>
   <div class="no-print">
-    <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 24px;">Danh sách đơn hàng</h2>
-    
-    <!-- Stat Cards -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
-      <div style="background: var(--bg-primary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <lucide-angular [img]="icons.FileText" size="20" color="var(--accent)"></lucide-angular>
-        </div>
-        <div>
-          <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Tổng đơn hàng</div>
-          <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ orders.length }}</div>
-        </div>
-      </div>
-      <div style="background: #fffbeb; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <lucide-angular [img]="icons.AlertCircle" size="20" color="#d97706"></lucide-angular>
-        </div>
-        <div>
-          <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Chờ xác nhận</div>
-          <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getPendingCount() }}</div>
-        </div>
-      </div>
-      <div style="background: #eff6ff; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <lucide-angular [img]="icons.Truck" size="20" color="#2563eb"></lucide-angular>
-        </div>
-        <div>
-          <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Đang vận chuyển</div>
-          <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getShippingCount() }}</div>
-        </div>
-      </div>
-      <div style="background: #fef2f2; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          <lucide-angular [img]="icons.CreditCard" size="20" color="#dc2626"></lucide-angular>
-        </div>
-        <div>
-          <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Cần xác minh</div>
-          <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getHighValueCount() }}</div>
-        </div>
-      </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+      <h2 style="font-size: 24px; font-weight: 700; margin: 0;">Danh sách đơn hàng</h2>
+      <a routerLink="/admin/orders/settings" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; color: var(--text-primary); transition: all 0.2s;" onmouseover="this.style.background='var(--bg-secondary)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.background='var(--bg-primary)'; this.style.borderColor='var(--border-color)';">
+        <lucide-angular [img]="icons.Settings" size="16"></lucide-angular>
+        <span>Cài đặt đơn hàng</span>
+      </a>
     </div>
+    
+    <!-- Order Status KPI Filter Cards (6 Cards) -->
+    <div class="orders-kpi-grid">
+      <!-- Card 1: Tất cả -->
+      <div class="orders-kpi-card card-all" 
+           [class.active]="activeStatus === 'ALL'"
+           (click)="onStatusFilterClick('ALL')"
+           title="Xem tất cả đơn hàng">
+        <div class="card-header">
+          <span class="card-label">Tất cả</span>
+          <div class="card-icon-wrapper icon-all">
+            <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+          </div>
+        </div>
+        <div class="card-count">{{ orders.length }}</div>
+        <div class="card-subtitle">Toàn bộ đơn hàng</div>
+      </div>
 
-    <!-- Status Filters (Pills) -->
-    <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
-      <button *ngFor="let filter of statusFilters"
-        (click)="onStatusFilterClick(filter.id)"
-        [ngStyle]="{
-          'padding': '6px 16px',
-          'border-radius': '20px',
-          'font-size': '13px',
-          'font-weight': activeStatus === filter.id ? 600 : 500,
-          'background': activeStatus === filter.id ? 'var(--text-primary)' : 'var(--bg-primary)',
-          'color': activeStatus === filter.id ? 'var(--bg-primary)' : 'var(--text-secondary)',
-          'border': '1px solid ' + (activeStatus === filter.id ? 'var(--text-primary)' : 'var(--border-color)'),
-          'cursor': 'pointer',
-          'display': 'flex',
-          'align-items': 'center',
-          'gap': '6px'
-        }"
-      >
-        {{ filter.label }}
-        <span *ngIf="filter.count !== undefined" [ngStyle]="{
-          'background': activeStatus === filter.id ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
-          'color': activeStatus === filter.id ? '#fff' : 'inherit',
-          'padding': '2px 6px',
-          'border-radius': '10px',
-          'font-size': '11px'
-        }">
-          {{ filter.count }}
-        </span>
-      </button>
+      <!-- Card 2: Chờ xác nhận -->
+      <div class="orders-kpi-card card-pending" 
+           [class.active]="activeStatus === 'PENDING'"
+           (click)="onStatusFilterClick('PENDING')"
+           title="Lọc đơn chờ xác nhận">
+        <div class="card-header">
+          <span class="card-label">Chờ xác nhận</span>
+          <div class="card-icon-wrapper icon-pending">
+            <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+          </div>
+        </div>
+        <div class="card-count">{{ getPendingCount() }}</div>
+        <div class="card-subtitle">Cần duyệt đơn mới</div>
+      </div>
+
+      <!-- Card 3: Đang xử lý -->
+      <div class="orders-kpi-card card-processing" 
+           [class.active]="activeStatus === 'PROCESSING'"
+           (click)="onStatusFilterClick('PROCESSING')"
+           title="Lọc đơn đang xử lý">
+        <div class="card-header">
+          <span class="card-label">Đang xử lý</span>
+          <div class="card-icon-wrapper icon-processing">
+            <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
+          </div>
+        </div>
+        <div class="card-count">{{ getProcessingCount() }}</div>
+        <div class="card-subtitle">Chuẩn bị & đóng gói</div>
+      </div>
+
+      <!-- Card 4: Đang vận chuyển -->
+      <div class="orders-kpi-card card-shipping" 
+           [class.active]="activeStatus === 'SHIPPING'"
+           (click)="onStatusFilterClick('SHIPPING')"
+           title="Lọc đơn đang vận chuyển">
+        <div class="card-header">
+          <span class="card-label">Đang vận chuyển</span>
+          <div class="card-icon-wrapper icon-shipping">
+            <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
+          </div>
+        </div>
+        <div class="card-count">{{ getShippingCount() }}</div>
+        <div class="card-subtitle">Đang giao tới khách</div>
+      </div>
+
+      <!-- Card 5: Hoàn tất -->
+      <div class="orders-kpi-card card-delivered" 
+           [class.active]="activeStatus === 'DELIVERED'"
+           (click)="onStatusFilterClick('DELIVERED')"
+           title="Lọc đơn đã hoàn tất">
+        <div class="card-header">
+          <span class="card-label">Hoàn tất</span>
+          <div class="card-icon-wrapper icon-delivered">
+            <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
+          </div>
+        </div>
+        <div class="card-count">{{ getDeliveredCount() }}</div>
+        <div class="card-subtitle">Giao hàng thành công</div>
+      </div>
+
+      <!-- Card 6: Đã hủy -->
+      <div class="orders-kpi-card card-cancelled" 
+           [class.active]="activeStatus === 'CANCELLED'"
+           (click)="onStatusFilterClick('CANCELLED')"
+           title="Lọc đơn đã hủy">
+        <div class="card-header">
+          <span class="card-label">Đã hủy</span>
+          <div class="card-icon-wrapper icon-cancelled">
+            <lucide-angular [img]="icons.XCircle" size="18"></lucide-angular>
+          </div>
+        </div>
+        <div class="card-count">{{ getCancelledCount() }}</div>
+        <div class="card-subtitle">Hủy bỏ giao dịch</div>
+      </div>
     </div>
 
     <!-- Filters Bar -->
@@ -173,6 +201,21 @@
           </div>
         </div>
       </div>
+
+      <!-- 4. Nút lọc nhanh: Đơn giá trị lớn -->
+      <button 
+        type="button"
+        (click)="activeStatus = (activeStatus === 'HIGH_VALUE' ? 'ALL' : 'HIGH_VALUE'); currentPage = 1"
+        class="filter-trigger-btn"
+        [class.active]="activeStatus === 'HIGH_VALUE'"
+        style="width: auto; padding: 0 14px; height: 38px; flex-shrink: 0;"
+        title="Lọc đơn hàng có giá trị cao"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.CircleDollarSign" size="15" class="trigger-icon"></lucide-angular>
+          <span>Đơn lớn ({{ getHighValueCount() }})</span>
+        </div>
+      </button>
 
       <!-- Nút Đặt lại tất cả bộ lọc -->
       <button 

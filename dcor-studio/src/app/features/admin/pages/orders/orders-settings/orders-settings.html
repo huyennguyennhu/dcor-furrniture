@@ -1,0 +1,917 @@
+<div class="orders-settings-container" [style.cursor]="isLoading ? 'wait' : 'default'">
+
+  <!-- Floating Toast Notification -->
+  <div *ngIf="showToast" 
+    class="settings-toast-container"
+    style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; animation: toastSlideUpRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;"
+    [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
+  >
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+      <div 
+        style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
+        [style.background]="toastType === 'success' ? 'rgba(16, 185, 129, 0.12)' : (toastType === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(59, 130, 246, 0.12)')"
+        [style.color]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#2563eb')"
+      >
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.AlertCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.Info" size="20"></lucide-angular>
+      </div>
+
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+        <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; word-break: break-word;">
+          {{ toastMessage }}
+        </span>
+        <span *ngIf="toastSubMessage" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; word-break: break-word;">
+          {{ toastSubMessage }}
+        </span>
+      </div>
+
+      <button 
+        type="button" 
+        (click)="closeToast()" 
+        style="background: transparent; border: none; cursor: pointer; color: var(--text-muted, #9ca3af); padding: 2px; border-radius: 4px; display: flex; align-items: center; justify-content: center;"
+        title="Đóng thông báo"
+      >
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
+  </div>
+
+  <!-- Page Header -->
+  <div class="settings-page-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <a routerLink="/admin/orders" class="back-link-btn" title="Quay lại danh sách đơn hàng">
+        <lucide-angular [img]="icons.ArrowLeft" size="18"></lucide-angular>
+      </a>
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0;">
+            Cài đặt đơn hàng
+          </h1>
+          <span class="settings-version-badge">Hệ thống</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 13.5px; margin: 4px 0 0;">
+          Cấu hình quy trình xử lý, biểu phí giao lắp nội thất, chính sách đổi trả, bảo hành và mẫu phiếu in.
+        </p>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button 
+        type="button" 
+        (click)="resetTabToDefault()"
+        class="admin-btn-secondary"
+        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary);"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+        <span>Mặc định</span>
+      </button>
+
+      <button 
+        type="button" 
+        (click)="saveAllSettings()" 
+        class="admin-btn-primary"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
+      >
+        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
+        <span>Lưu cài đặt</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation Bar (Underline style - DCor brown theme) -->
+  <div class="settings-tabs-wrapper">
+    <nav class="settings-tabs-nav">
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 1" 
+        (click)="setTab(1)"
+      >
+        <lucide-angular [img]="icons.GitBranch" size="16"></lucide-angular>
+        <span>Quy trình & Trạng thái</span>
+      </button>
+      
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 2" 
+        (click)="setTab(2)"
+      >
+        <lucide-angular [img]="icons.Truck" size="16"></lucide-angular>
+        <span>Vận chuyển & Giao lắp</span>
+      </button>
+      
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 3" 
+        (click)="setTab(3)"
+      >
+        <lucide-angular [img]="icons.ArrowRightLeft" size="16"></lucide-angular>
+        <span>Chính sách Đổi trả</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 4" 
+        (click)="setTab(4)"
+      >
+        <lucide-angular [img]="icons.ShieldCheck" size="16"></lucide-angular>
+        <span>Bảo hành & Hậu mãi</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 5" 
+        (click)="setTab(5)"
+      >
+        <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
+        <span>Mẫu in & Thông báo</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: QUY TRÌNH & TRẠNG THÁI                                             -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 1" class="tab-content-panel">
+    <div class="cards-grid">
+      <!-- Card 1: Đơn hàng giá trị cao -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(217, 119, 6, 0.12); color: #d97706;">
+            <lucide-angular [img]="icons.SlidersHorizontal" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Ngưỡng đơn hàng giá trị cao (High-Value Order)</h3>
+            <p class="card-desc">Thiết lập điều kiện kích hoạt cờ "ĐƠN LỚN" và kiểm duyệt nghiêm ngặt trước khi xuất kho.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Mức tiền kích hoạt Đơn lớn (VNĐ)</label>
+              <span class="form-help">Các đơn hàng từ mức này trở lên sẽ hiển thị huy hiệu ĐƠN LỚN màu cam nổi bật.</span>
+            </div>
+            <div class="form-input-group">
+              <input 
+                type="number" 
+                [(ngModel)]="workflowSettings.highValueThreshold" 
+                step="5000000"
+                class="setting-input" 
+              />
+              <span class="input-suffix">VNĐ</span>
+            </div>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Yêu cầu Quản lý showroom duyệt trước khi xuất kho</div>
+              <div class="toggle-desc">Kho không thể bấm xuất hàng cho đến khi có xác nhận phê duyệt của Trưởng bộ phận.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="workflowSettings.requireManagerApprovalForHighValue">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Ưu tiên điều phối giao hàng trong ngày</div>
+              <div class="toggle-desc">Tự động gắn cờ ưu tiên hàng đầu trên lịch phân tuyến xe tải chuyên dụng DCor.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="workflowSettings.prioritizeHighValueDelivery">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Thời hạn thanh toán & Tự động hủy -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(239, 68, 68, 0.12); color: #dc2626;">
+            <lucide-angular [img]="icons.Clock" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Thời hạn thanh toán & Tự động hủy đơn (Payment Timeout)</h3>
+            <p class="card-desc">Kiểm soát giải phóng lượng hàng tồn giữ chỗ (Reserved) để tránh ứ đọng kho.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Tự động hủy đơn hàng quá hạn thanh toán</div>
+              <div class="toggle-desc">Áp dụng cho đơn Chuyển khoản ngân hàng hoặc thanh toán Cổng điện tử chưa hoàn tất.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="workflowSettings.autoCancelUnpaid">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-row" *ngIf="workflowSettings.autoCancelUnpaid">
+            <div class="form-label-group">
+              <label class="form-label">Thời gian chờ thanh toán tối đa</label>
+              <span class="form-help">Hệ thống gửi thông báo nhắc nhở trước khi chính thức hủy đơn 3 tiếng.</span>
+            </div>
+            <div class="form-input-group">
+              <select [(ngModel)]="workflowSettings.unpaidTimeoutHours" class="setting-select">
+                <option [ngValue]="12">12 Giờ</option>
+                <option [ngValue]="24">24 Giờ (1 Ngày - Mặc định)</option>
+                <option [ngValue]="48">48 Giờ (2 Ngày)</option>
+                <option [ngValue]="72">72 Giờ (3 Ngày)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Tự động hoàn trả tồn kho giữ chỗ (Reserved Stock)</div>
+              <div class="toggle-desc">Khi đơn bị hủy, số lượng tồn giữ chỗ lập tức được cộng lại vào Tồn có thể bán (Available).</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="workflowSettings.autoReleaseReservedStock">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Quy tắc xác nhận & Chuyển bước -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.12); color: #059669;">
+            <lucide-angular [img]="icons.CheckCircle2" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Quy tắc xác nhận đơn tự động</h3>
+            <p class="card-desc">Tự động hóa luồng chuyển trạng thái đơn hàng khi đáp ứng đủ điều kiện.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Tự động duyệt đơn khi thanh toán online thành công</div>
+              <div class="toggle-desc">Chuyển ngay từ "Chờ xác nhận" sang "Đang xử lý" khi nhận IPN thành công từ VNPAY.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="workflowSettings.autoConfirmOnlinePaid">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Bắt buộc CSKH gọi điện xác nhận đối với đơn COD</div>
+              <div class="toggle-desc">Đơn COD nội thất cồng kềnh phải được nhân viên gọi xác thực địa chỉ trước khi chuyển sang xử lý.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="workflowSettings.requireCallForCod">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Cho phép khách hàng hủy đơn trước khi xuất kho</div>
+              <div class="toggle-desc">Khách có thể nhấn nút "Hủy đơn" trên tài khoản cá nhân khi đơn ở trạng thái Chờ xác nhận.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="workflowSettings.allowCustomerCancelBeforeShipping">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: VẬN CHUYỂN & GIAO LẮP ĐẶC THÙ NỘI THẤT                             -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 2" class="tab-content-panel">
+    <div class="cards-grid">
+      <!-- Card 1: Miễn phí vận chuyển -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(118, 83, 55, 0.12); color: var(--accent);">
+            <lucide-angular [img]="icons.Truck" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Chính sách Miễn phí vận chuyển (Free Shipping)</h3>
+            <p class="card-desc">Cấu hình giá trị đơn tối thiểu để kích hoạt chính sách miễn phí giao hàng tận nhà.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Kích hoạt chính sách miễn phí vận chuyển nội thành</div>
+              <div class="toggle-desc">Tự động trừ phí giao hàng về 0đ khi đơn đạt giá trị tối thiểu.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="shippingSettings.enableFreeShipping">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-row" *ngIf="shippingSettings.enableFreeShipping">
+            <div class="form-label-group">
+              <label class="form-label">Giá trị đơn hàng tối thiểu để được Free Ship</label>
+              <span class="form-help">Áp dụng cho các quận nội thành TP.HCM và Hà Nội.</span>
+            </div>
+            <div class="form-input-group">
+              <input 
+                type="number" 
+                [(ngModel)]="shippingSettings.freeShippingMinAmount" 
+                step="1000000"
+                class="setting-input" 
+              />
+              <span class="input-suffix">VNĐ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Đối tác vận chuyển -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(59, 130, 246, 0.12); color: #2563eb;">
+            <lucide-angular [img]="icons.Building2" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Đối tác & Đội xe vận chuyển nội thất</h3>
+            <p class="card-desc">Lựa chọn các đơn vị phụ trách giao hàng tùy theo phân loại mặt hàng.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Đội xe tải & Thợ giao lắp DCor Studio (Khuyên dùng)</div>
+              <div class="toggle-desc">Chuyên trách Sofa, bàn ăn, giường tủ cồng kềnh kèm dịch vụ lắp đặt tận nơi.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="shippingSettings.enableInternalFleet">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Giao Hàng Nhanh (GHN)</div>
+              <div class="toggle-desc">Phụ trách giao bưu kiện phụ kiện decor, đôn ngồi nhỏ, gối trang trí.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="shippingSettings.enableGhn">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Viettel Post</div>
+              <div class="toggle-desc">Phụ trách chuyển phát hàng hóa đi các tỉnh thành xa ngoài bán kính phục vụ xe tải.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="shippingSettings.enableViettelPost">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Phụ phí bốc xếp & Giao lắp -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(168, 85, 247, 0.12); color: #9333ea;">
+            <lucide-angular [img]="icons.Layers" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Biểu phí bốc xếp & Cẩu hàng đặc thù nội thất</h3>
+            <p class="card-desc">Bảng giá phụ thu khi địa hình nhà khách hàng phức tạp hoặc không có thang máy.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Phí bốc vác cầu thang bộ (VNĐ / Tầng)</label>
+              <span class="form-help">Áp dụng cho chung cư cũ hoặc nhà phố không vừa thang máy.</span>
+            </div>
+            <div class="form-input-group">
+              <input 
+                type="number" 
+                [(ngModel)]="shippingSettings.stairCarryFeePerFloor" 
+                step="50000"
+                class="setting-input" 
+              />
+              <span class="input-suffix">VNĐ/tầng</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Bắt đầu tính phí từ tầng</label>
+              <span class="form-help">Mặc định tầng 1 và tầng 2 được miễn phí hỗ trợ bốc xếp.</span>
+            </div>
+            <div class="form-input-group">
+              <input 
+                type="number" 
+                [(ngModel)]="shippingSettings.stairCarryStartFloor" 
+                min="1" max="10"
+                class="setting-input" 
+              />
+              <span class="input-suffix">Tầng</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Phí thuê cẩu dây kéo qua ban công (VNĐ / Lần)</label>
+              <span class="form-help">Dành cho sofa nguyên khối kích thước lớn không vừa cửa chính.</span>
+            </div>
+            <div class="form-input-group">
+              <input 
+                type="number" 
+                [(ngModel)]="shippingSettings.balconyCraneFee" 
+                step="100000"
+                class="setting-input" 
+              />
+              <span class="input-suffix">VNĐ</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Phí hỗ trợ tháo dỡ nội thất cũ (VNĐ / Bộ)</label>
+              <span class="form-help">Hỗ trợ khách tháo dỡ bàn ghế cũ để lấy chỗ đặt sản phẩm mới.</span>
+            </div>
+            <div class="form-input-group">
+              <input 
+                type="number" 
+                [(ngModel)]="shippingSettings.oldFurnitureDismantleFee" 
+                step="50000"
+                class="setting-input" 
+              />
+              <span class="input-suffix">VNĐ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: CHÍNH SÁCH ĐỔI TRẢ & HOÀN TIỀN                                      -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 3" class="tab-content-panel">
+    <!-- Policy Limits -->
+    <div class="setting-card">
+      <div class="card-header">
+        <div class="card-icon" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">
+          <lucide-angular [img]="icons.Clock" size="20"></lucide-angular>
+        </div>
+        <div>
+          <h3 class="card-title">Thời hạn & Tỷ lệ khấu trừ hoàn tiền</h3>
+          <p class="card-desc">Thiết lập điều kiện tiếp nhận yêu cầu đổi mẫu mới hoặc trả hàng thu hồi tiền.</p>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+          <div>
+            <label class="form-label">Thời hạn đổi sản phẩm khác</label>
+            <div class="form-input-group" style="margin-top: 6px;">
+              <input type="number" [(ngModel)]="returnsSettings.exchangeMaxDays" class="setting-input" />
+              <span class="input-suffix">Ngày</span>
+            </div>
+            <span class="form-help">Tính từ thời điểm đơn hàng chuyển sang Hoàn tất.</span>
+          </div>
+
+          <div>
+            <label class="form-label">Thời hạn trả hàng hoàn tiền</label>
+            <div class="form-input-group" style="margin-top: 6px;">
+              <input type="number" [(ngModel)]="returnsSettings.refundMaxDays" class="setting-input" />
+              <span class="input-suffix">Ngày</span>
+            </div>
+            <span class="form-help">Áp dụng cho trường hợp lỗi kỹ thuật sản xuất.</span>
+          </div>
+
+          <div>
+            <label class="form-label">Phí khấu trừ hàng đã bóc bao bì</label>
+            <div class="form-input-group" style="margin-top: 6px;">
+              <input type="number" [(ngModel)]="returnsSettings.unsealedRestockingFeePercent" class="setting-input" />
+              <span class="input-suffix">%</span>
+            </div>
+            <span class="form-help">Phí tân trang đối với trường hợp khách đổi ý.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Return Reasons Table -->
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
+      <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
+        <div>
+          <h3 style="font-size: 15px; font-weight: 600; margin: 0; color: var(--text-primary);">
+            Danh mục lý do đổi trả chuẩn hóa
+          </h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0;">
+            Các lý do xuất hiện trong dropdown lựa chọn của khách hàng và nhân viên khi tạo yêu cầu đổi trả.
+          </p>
+        </div>
+        <button 
+          type="button" 
+          (click)="openAddReasonModal()" 
+          class="admin-btn-primary"
+          style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 6px; border: none; background: var(--accent); color: white; font-size: 13px; font-weight: 600; cursor: pointer;"
+        >
+          <lucide-angular [img]="icons.Plus" size="15"></lucide-angular>
+          <span>Thêm lý do</span>
+        </button>
+      </div>
+
+      <div style="width: 100%; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-left-radius: 11px;">Mã</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tên lý do đổi trả</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Bên chịu phí ship</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; text-align: center;">Trạng thái</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; text-align: center; border-top-right-radius: 11px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of returnReasons" style="border-bottom: 1px solid var(--border-color); transition: background 0.15s ease;"
+                onmouseover="this.style.background='#F3E5D3'" 
+                onmouseout="this.style.background='transparent'">
+              <td style="padding: 16px; white-space: nowrap;">
+                <span style="font-family: monospace; font-weight: 600; color: var(--accent); font-size: 13px;">{{ item.code }}</span>
+              </td>
+              <td style="padding: 16px;">
+                <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">{{ item.name }}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ item.description }}</div>
+              </td>
+              <td style="padding: 16px; white-space: nowrap;">
+                <span *ngIf="item.feeBearer === 'DCOR'" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2);">
+                  DCor Studio chịu 100%
+                </span>
+                <span *ngIf="item.feeBearer === 'CUSTOMER'" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2);">
+                  Khách hàng chi trả
+                </span>
+              </td>
+              <td style="padding: 16px; text-align: center; white-space: nowrap;">
+                <button 
+                  type="button" 
+                  (click)="toggleReasonStatus(item)"
+                  [style.background]="item.isActive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(107, 114, 128, 0.12)'"
+                  [style.color]="item.isActive ? '#059669' : '#6b7280'"
+                  style="border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;"
+                >
+                  {{ item.isActive ? 'Đang áp dụng' : 'Tạm khóa' }}
+                </button>
+              </td>
+              <td style="padding: 16px; text-align: center; white-space: nowrap;">
+                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                  <button 
+                    type="button" 
+                    (click)="openEditReasonModal(item)" 
+                    class="action-icon-btn" 
+                    title="Chỉnh sửa"
+                  >
+                    <lucide-angular [img]="icons.Pencil" size="14"></lucide-angular>
+                  </button>
+                  <button 
+                    type="button" 
+                    (click)="deleteReason(item.id)" 
+                    class="action-icon-btn delete-btn" 
+                    title="Xóa lý do"
+                  >
+                    <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 4: CHÍNH SÁCH BẢO HÀNH & HẬU MÃI                                      -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 4" class="tab-content-panel">
+    <!-- Expiring Alert Card -->
+    <div class="setting-card">
+      <div class="card-header">
+        <div class="card-icon" style="background: rgba(239, 68, 68, 0.12); color: #dc2626;">
+          <lucide-angular [img]="icons.ShieldCheck" size="20"></lucide-angular>
+        </div>
+        <div>
+          <h3 class="card-title">Cảnh báo sắp hết hạn bảo hành</h3>
+          <p class="card-desc">Thiết lập thời gian nhắc bảo dưỡng và gắn cờ cảnh báo trên màn hình Quản lý bảo hành.</p>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="setting-toggle-row">
+          <div>
+            <div class="toggle-title">Gắn cờ "SẮP HẾT HẠN" trên danh sách yêu cầu</div>
+            <div class="toggle-desc">Huy hiệu màu đỏ cảnh báo nhân viên ưu tiên xử lý trước khi quyền lợi khách hàng kết thúc.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" [(ngModel)]="warrantySettings.enableExpiringAlert">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="form-row" *ngIf="warrantySettings.enableExpiringAlert">
+          <div class="form-label-group">
+            <label class="form-label">Thời gian cảnh báo trước khi hết hạn</label>
+            <span class="form-help">Số ngày trước ngày đáo hạn bảo hành chính thức.</span>
+          </div>
+          <div class="form-input-group">
+            <input 
+              type="number" 
+              [(ngModel)]="warrantySettings.expiringAlertDays" 
+              min="5" max="90"
+              class="setting-input" 
+            />
+            <span class="input-suffix">Ngày</span>
+          </div>
+        </div>
+
+        <div class="setting-toggle-row">
+          <div>
+            <div class="toggle-title">Tự động tạo việc CSKH gọi điện mời bảo dưỡng miễn phí</div>
+            <div class="toggle-desc">Tạo lịch hẹn chăm sóc khách hàng trước khi gói bảo dưỡng định kỳ hết hạn.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" [(ngModel)]="warrantySettings.autoCreateMaintenanceTask">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warranty Terms Table -->
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+        <h3 style="font-size: 15px; font-weight: 600; margin: 0; color: var(--text-primary);">
+          Thời hạn bảo hành mặc định theo cấu kiện nội thất
+        </h3>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0;">
+          Quy định số tháng bảo hành chuẩn áp dụng khi xuất xưởng từng dòng sản phẩm DCor Studio.
+        </p>
+      </div>
+
+      <div style="width: 100%; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-top-left-radius: 11px;">Hạng mục / Cấu kiện</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; text-align: center;">Thời hạn bảo hành</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Phạm vi bảo hành chi tiết</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; text-align: center; border-top-right-radius: 11px;">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of warrantyTerms" style="border-bottom: 1px solid var(--border-color); transition: background 0.15s ease;"
+                onmouseover="this.style.background='#F3E5D3'" 
+                onmouseout="this.style.background='transparent'">
+              <td style="padding: 16px; font-weight: 600; font-size: 13.5px; color: var(--text-primary);">
+                {{ item.componentName }}
+              </td>
+              <td style="padding: 16px; text-align: center; white-space: nowrap;">
+                <span style="font-family: monospace; font-weight: 700; color: var(--accent); font-size: 14px; padding: 4px 10px; background: rgba(118, 83, 55, 0.08); border-radius: 6px;">
+                  {{ item.durationMonths }} tháng ({{ item.durationMonths / 12 }} năm)
+                </span>
+              </td>
+              <td style="padding: 16px; font-size: 13px; color: var(--text-secondary);">
+                {{ item.coverageScope }}
+              </td>
+              <td style="padding: 16px; text-align: center; white-space: nowrap;">
+                <button 
+                  type="button" 
+                  (click)="toggleWarrantyTerm(item)"
+                  [style.background]="item.isActive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(107, 114, 128, 0.12)'"
+                  [style.color]="item.isActive ? '#059669' : '#6b7280'"
+                  style="border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;"
+                >
+                  {{ item.isActive ? 'Áp dụng' : 'Khóa' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 5: MẪU IN PHIẾU & THÔNG BÁO TỰ ĐỘNG                                    -->
+  <!-- ========================================================================= -->
+  <div *ngIf="activeTab === 5" class="tab-content-panel">
+    <div class="cards-grid">
+      <!-- Card 1: Thông tin in phiếu -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(118, 83, 55, 0.12); color: var(--accent);">
+            <lucide-angular [img]="icons.Printer" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Mẫu in phiếu giao nhận & Hóa đơn A4</h3>
+            <p class="card-desc">Thiết lập thông tin thương hiệu và nội dung pháp lý hiển thị trên bản in.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Tên tiêu đề doanh nghiệp trên phiếu</label>
+              <span class="form-help">Hiển thị ở dòng đầu tiên của phiếu in.</span>
+            </div>
+            <div class="form-input-group full-width">
+              <input type="text" [(ngModel)]="printSettings.companyHeader" class="setting-input" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Địa chỉ xuất phiếu / Showroom chính</label>
+            </div>
+            <div class="form-input-group full-width">
+              <input type="text" [(ngModel)]="printSettings.companyAddress" class="setting-input" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Hotline hỗ trợ kỹ thuật</label>
+            </div>
+            <div class="form-input-group full-width">
+              <input type="text" [(ngModel)]="printSettings.supportHotline" class="setting-input" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label-group">
+              <label class="form-label">Lời cảm ơn & Cam kết bảo hành chân trang</label>
+            </div>
+            <div class="form-input-group full-width">
+              <textarea rows="3" [(ngModel)]="printSettings.printFooterNote" class="setting-textarea"></textarea>
+            </div>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Mặc định ẩn giá tiền khi in đơn quà tặng</div>
+              <div class="toggle-desc">Nếu đơn có lời chúc quà tặng (Gift Message), tự động che giá tiền thành *** để bảo mật.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="printSettings.hidePriceForGifts">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">In khung chữ ký xác nhận của khách hàng</div>
+              <div class="toggle-desc">Bổ sung vị trí ký nhận hàng nguyên vẹn và xác nhận thợ đã lắp ráp hoàn chỉnh.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="printSettings.printCustomerSignatureBox">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Kênh thông báo tự động -->
+      <div class="setting-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.12); color: #059669;">
+            <lucide-angular [img]="icons.Bell" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 class="card-title">Kênh thông báo tiến trình tự động (ZNS / SMS / Email)</h3>
+            <p class="card-desc">Gửi cập nhật trạng thái đơn hàng đến số điện thoại và email của khách hàng.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Gửi Zalo ZNS khi Đơn hàng được xác nhận</div>
+              <div class="toggle-desc">Gửi thông báo mã đơn hàng, ngày hẹn giao dự kiến qua ứng dụng Zalo của người mua.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="printSettings.notifyZaloOnConfirm">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Gửi tin nhắn SMS Brandname khi Xe tải bắt đầu giao hàng</div>
+              <div class="toggle-desc">Kèm theo số điện thoại tài xế giao lắp để khách chủ động sắp xếp thời gian đón nhận.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="printSettings.notifySmsOnShipping">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="toggle-title">Gửi Email hoàn tất kèm Hóa đơn VAT điện tử</div>
+              <div class="toggle-desc">Tự động gửi email cảm ơn kèm file PDF hóa đơn và phiếu bảo hành điện tử khi giao thành công.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="printSettings.notifyEmailOnCompleted">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm/Sửa Lý Do Đổi Trả -->
+  <div *ngIf="showReasonModal" class="modal-backdrop" (click)="showReasonModal = false">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary);">
+          {{ isEditingReason ? 'Chỉnh sửa lý do đổi trả' : 'Thêm lý do đổi trả mới' }}
+        </h3>
+        <button type="button" (click)="showReasonModal = false" class="modal-close-btn">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label class="form-label">Tên lý do đổi trả (*)</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editingReason.name" 
+            placeholder="Ví dụ: Lỗi kỹ thuật nứt vỡ khung sườn..." 
+            class="setting-input full-width"
+            style="margin-top: 6px;"
+          />
+        </div>
+
+        <div>
+          <label class="form-label">Mã định danh lý do</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editingReason.code" 
+            placeholder="RT-CODE" 
+            class="setting-input full-width"
+            style="margin-top: 6px; font-family: monospace;"
+          />
+        </div>
+
+        <div>
+          <label class="form-label">Bên chịu trách nhiệm phí vận chuyển thu hồi</label>
+          <select [(ngModel)]="editingReason.feeBearer" class="setting-select full-width" style="margin-top: 6px;">
+            <option value="DCOR">DCor Studio chịu 100% (Lỗi sản xuất / giao sai)</option>
+            <option value="CUSTOMER">Khách hàng chi trả (Khách đổi ý / không vừa không gian)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Ghi chú / Mô tả chi tiết</label>
+          <textarea 
+            rows="3" 
+            [(ngModel)]="editingReason.description" 
+            placeholder="Mô tả tiêu chuẩn kiểm duyệt khi áp dụng lý do này..."
+            class="setting-textarea full-width"
+            style="margin-top: 6px;"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" (click)="showReasonModal = false" class="admin-btn-secondary" style="padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer;">
+          Hủy bỏ
+        </button>
+        <button type="button" (click)="saveReason()" class="admin-btn-primary" style="padding: 8px 18px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer;">
+          Lưu lý do
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

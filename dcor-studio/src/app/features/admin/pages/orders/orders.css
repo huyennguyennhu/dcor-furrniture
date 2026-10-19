@@ -248,3 +248,193 @@
 .search-clear-btn:hover {
   color: var(--text-primary);
 }
+
+/* ==========================================================================
+   ORDERS STATUS KPI CARDS (INTERACTIVE FILTER CARDS)
+   ========================================================================== */
+.orders-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1400px) {
+  .orders-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .orders-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .orders-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.orders-kpi-card {
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  position: relative;
+}
+
+.orders-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--accent);
+}
+
+.orders-kpi-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.orders-kpi-card .card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+
+.orders-kpi-card .card-icon-wrapper {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.orders-kpi-card:hover .card-icon-wrapper {
+  transform: scale(1.08);
+}
+
+.orders-kpi-card .card-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.orders-kpi-card .card-subtitle {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+/* Card Themes & Active States */
+/* 1. ALL */
+.orders-kpi-card.card-all .card-icon-wrapper {
+  background: rgba(118, 83, 55, 0.12);
+  color: var(--accent);
+}
+.orders-kpi-card.card-all .card-subtitle {
+  color: var(--text-muted);
+}
+.orders-kpi-card.card-all.active {
+  border-color: var(--accent);
+  background: rgba(118, 83, 55, 0.06);
+}
+.orders-kpi-card.card-all.active .card-label {
+  color: var(--accent);
+}
+
+/* 2. PENDING */
+.orders-kpi-card.card-pending .card-icon-wrapper {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+.orders-kpi-card.card-pending .card-subtitle {
+  color: #d97706;
+}
+.orders-kpi-card.card-pending.active {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.07);
+}
+.orders-kpi-card.card-pending.active .card-label {
+  color: #d97706;
+}
+
+/* 3. PROCESSING */
+.orders-kpi-card.card-processing .card-icon-wrapper {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+.orders-kpi-card.card-processing .card-subtitle {
+  color: #2563eb;
+}
+.orders-kpi-card.card-processing.active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.07);
+}
+.orders-kpi-card.card-processing.active .card-label {
+  color: #2563eb;
+}
+
+/* 4. SHIPPING */
+.orders-kpi-card.card-shipping .card-icon-wrapper {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+}
+.orders-kpi-card.card-shipping .card-subtitle {
+  color: #9333ea;
+}
+.orders-kpi-card.card-shipping.active {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.07);
+}
+.orders-kpi-card.card-shipping.active .card-label {
+  color: #9333ea;
+}
+
+/* 5. DELIVERED */
+.orders-kpi-card.card-delivered .card-icon-wrapper {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+.orders-kpi-card.card-delivered .card-subtitle {
+  color: #059669;
+}
+.orders-kpi-card.card-delivered.active {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.07);
+}
+.orders-kpi-card.card-delivered.active .card-label {
+  color: #059669;
+}
+
+/* 6. CANCELLED */
+.orders-kpi-card.card-cancelled .card-icon-wrapper {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+.orders-kpi-card.card-cancelled .card-subtitle {
+  color: #dc2626;
+}
+.orders-kpi-card.card-cancelled.active {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.07);
+}
+.orders-kpi-card.card-cancelled.active .card-label {
+  color: #dc2626;
+}
+

@@ -5,7 +5,8 @@ import { Router, RouterModule } from '@angular/router';
 import { 
   LucideAngularModule, 
   Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard,
-  RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X
+  RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X, Settings,
+  Clock, XCircle
 } from 'lucide-angular';
 
 interface OrderProduct {
@@ -107,6 +108,61 @@ const mockOrders: Order[] = [
     isGift: false,
     hidePrice: false,
     isHighValue: true,
+  },
+  {
+    id: 'DCOR-ORD-005',
+    customerName: 'Hoàng Quốc Việt',
+    phone: '0977112233',
+    address: '120 Võ Văn Tần, Phường 6, Quận 3, Tp. Hồ Chí Minh',
+    products: [
+      { name: 'Bàn làm việc Minimalist Gỗ Óc Chó', sku: 'DK-MINI-01', quantity: 1, price: 18500000 }
+    ],
+    totalAmount: 18500000,
+    status: 'DELIVERED',
+    paymentStatus: 'PAID',
+    paymentMethod: 'Chuyển khoản',
+    showroom: 'Showroom Quận 1',
+    createdAt: '2026-06-10 11:15',
+    isGift: false,
+    hidePrice: false,
+    isHighValue: false,
+  },
+  {
+    id: 'DCOR-ORD-006',
+    customerName: 'Đỗ Mỹ Linh',
+    phone: '0944556677',
+    address: '78 Thảo Điền, Quận 2, Tp. Thủ Đức, Tp. Hồ Chí Minh',
+    products: [
+      { name: 'Ghế bành thư giãn Armchair Como', sku: 'AC-COMO-01', quantity: 1, price: 16000000 },
+      { name: 'Đèn sàn đứng Scandinavia', sku: 'LP-SCAN-02', quantity: 1, price: 8000000 }
+    ],
+    totalAmount: 24000000,
+    status: 'DELIVERED',
+    paymentStatus: 'PAID',
+    paymentMethod: 'Thẻ tín dụng',
+    showroom: 'Showroom Thủ Đức',
+    createdAt: '2026-06-08 16:30',
+    isGift: false,
+    hidePrice: false,
+    isHighValue: false,
+  },
+  {
+    id: 'DCOR-ORD-007',
+    customerName: 'Vũ Đức Thành',
+    phone: '0966889900',
+    address: '55 Hai Bà Trưng, Bến Nghé, Quận 1, Tp. Hồ Chí Minh',
+    products: [
+      { name: 'Kệ tivi Como gỗ sồi tự nhiên', sku: 'TV-COMO-02', quantity: 1, price: 22000000 }
+    ],
+    totalAmount: 22000000,
+    status: 'CANCELLED',
+    paymentStatus: 'UNPAID',
+    paymentMethod: 'Chuyển khoản',
+    showroom: 'Showroom Quận 1',
+    createdAt: '2026-06-11 08:45',
+    isGift: false,
+    hidePrice: false,
+    isHighValue: false,
   }
 ];
 
@@ -120,7 +176,8 @@ const mockOrders: Order[] = [
 export class OrdersComponent implements OnInit {
   icons = { 
     Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard,
-    RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X
+    RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X, Settings,
+    Clock, XCircle
   };
   
   orders = mockOrders;
@@ -216,17 +273,6 @@ export class OrdersComponent implements OnInit {
     this.currentPage = 1;
   }
 
-  get statusFilters() {
-    return [
-      { id: 'ALL', label: 'Tất cả' },
-      { id: 'PENDING', label: 'Chờ xác nhận', count: this.orders.filter(o => o.status === 'PENDING').length },
-      { id: 'PROCESSING', label: 'Đang xử lý', count: this.orders.filter(o => o.status === 'PROCESSING').length },
-      { id: 'SHIPPING', label: 'Đang vận chuyển', count: this.orders.filter(o => o.status === 'SHIPPING').length },
-      { id: 'DELIVERED', label: 'Hoàn tất' },
-      { id: 'CANCELLED', label: 'Đã hủy' },
-      { id: 'HIGH_VALUE', label: 'Đơn giá trị lớn', count: this.orders.filter(o => o.isHighValue).length }
-    ];
-  }
 
   get filteredOrders() {
     const q = (this.searchQuery || '').trim().toLowerCase();
@@ -323,7 +369,11 @@ export class OrdersComponent implements OnInit {
   }
 
   onStatusFilterClick(statusId: string) {
-    this.activeStatus = statusId;
+    if (this.activeStatus === statusId) {
+      this.activeStatus = 'ALL';
+    } else {
+      this.activeStatus = statusId;
+    }
     this.currentPage = 1;
   }
 
@@ -341,15 +391,27 @@ export class OrdersComponent implements OnInit {
     }, 300);
   }
 
-  getPendingCount() {
+  getPendingCount(): number {
     return this.orders.filter(o => o.status === 'PENDING').length;
   }
 
-  getShippingCount() {
+  getProcessingCount(): number {
+    return this.orders.filter(o => o.status === 'PROCESSING').length;
+  }
+
+  getShippingCount(): number {
     return this.orders.filter(o => o.status === 'SHIPPING').length;
   }
 
-  getHighValueCount() {
+  getDeliveredCount(): number {
+    return this.orders.filter(o => o.status === 'DELIVERED').length;
+  }
+
+  getCancelledCount(): number {
+    return this.orders.filter(o => o.status === 'CANCELLED').length;
+  }
+
+  getHighValueCount(): number {
     return this.orders.filter(o => o.isHighValue).length;
   }
 }

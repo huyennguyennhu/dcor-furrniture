@@ -50,36 +50,59 @@
     </div>
   </div>
 
-  <!-- 5 Tabs Navigation Bar -->
-  <div class="settings-tabs-bar">
-    <button type="button" class="tab-item" [class.active]="activeTab === 1" (click)="setTab(1)">
-      <lucide-angular [img]="icons.Building2" size="17"></lucide-angular>
-      <span>1. Điểm kho & Chi nhánh</span>
-      <span class="tab-badge">{{ warehouses.length }}</span>
-    </button>
-    
-    <button type="button" class="tab-item" [class.active]="activeTab === 2" (click)="setTab(2)">
-      <lucide-angular [img]="icons.ArrowUpRight" size="17"></lucide-angular>
-      <span>2. Lý do Xuất</span>
-      <span class="tab-badge">{{ getReasonCount('EXPORT') }}</span>
-    </button>
-    
-    <button type="button" class="tab-item" [class.active]="activeTab === 3" (click)="setTab(3)">
-      <lucide-angular [img]="icons.ArrowDownRight" size="17"></lucide-angular>
-      <span>3. Lý do Nhập</span>
-      <span class="tab-badge">{{ getReasonCount('IMPORT') }}</span>
-    </button>
+  <!-- Tabs Navigation Bar (Underline style) -->
+  <div class="settings-tabs-wrapper">
+    <nav class="settings-tabs-nav">
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 1" 
+        (click)="setTab(1)"
+      >
+        <lucide-angular [img]="icons.Building2" size="16"></lucide-angular>
+        <span>Điểm kho & Chi nhánh</span>
+      </button>
+      
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 2" 
+        (click)="setTab(2)"
+      >
+        <lucide-angular [img]="icons.ArrowUpRight" size="16"></lucide-angular>
+        <span>Lý do Xuất</span>
+      </button>
+      
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 3" 
+        (click)="setTab(3)"
+      >
+        <lucide-angular [img]="icons.ArrowDownRight" size="16"></lucide-angular>
+        <span>Lý do Nhập</span>
+      </button>
 
-    <button type="button" class="tab-item" [class.active]="activeTab === 4" (click)="setTab(4)">
-      <lucide-angular [img]="icons.ClipboardList" size="17"></lucide-angular>
-      <span>4. Loại kiểm kê</span>
-      <span class="tab-badge">{{ getReasonCount('AUDIT') }}</span>
-    </button>
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 4" 
+        (click)="setTab(4)"
+      >
+        <lucide-angular [img]="icons.ClipboardList" size="16"></lucide-angular>
+        <span>Loại kiểm kê</span>
+      </button>
 
-    <button type="button" class="tab-item" [class.active]="activeTab === 5" (click)="setTab(5)">
-      <lucide-angular [img]="icons.Percent" size="17"></lucide-angular>
-      <span>5. Phần trăm VAT</span>
-    </button>
+      <button 
+        type="button" 
+        class="tab-underline-btn" 
+        [class.active]="activeTab === 5" 
+        (click)="setTab(5)"
+      >
+        <lucide-angular [img]="icons.Percent" size="16"></lucide-angular>
+        <span>Phần trăm VAT</span>
+      </button>
+    </nav>
   </div>
 
   <!-- ========================================================================= -->
