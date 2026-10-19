@@ -72,7 +72,7 @@
 
     <button type="button" class="tab-item" [class.active]="activeTab === 4" (click)="setTab(4)">
       <lucide-angular [img]="icons.ClipboardList" size="17"></lucide-angular>
-      <span>4. Lý do Kiểm kê</span>
+      <span>4. Loại kiểm kê</span>
       <span class="tab-badge">{{ getReasonCount('AUDIT') }}</span>
     </button>
 
@@ -359,7 +359,7 @@
           type="text" 
           [(ngModel)]="searchTerm" 
           (ngModelChange)="onSearchChange()"
-          [placeholder]="activeTab === 2 ? 'Tìm lý do xuất, tiền tố PXK-...' : (activeTab === 3 ? 'Tìm lý do nhập, tiền tố PNK-...' : 'Tìm lý do kiểm kê, tiền tố PKK-...')"
+          [placeholder]="activeTab === 2 ? 'Tìm lý do xuất, tiền tố PXK-...' : (activeTab === 3 ? 'Tìm lý do nhập, tiền tố PNK-...' : 'Tìm loại kiểm kê, tiền tố PKK-...')"
           class="custom-search-input"
         />
         <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearchChange()" class="clear-search-btn">
@@ -370,7 +370,7 @@
       <button type="button" class="admin-btn admin-btn-primary" (click)="openAddReasonModal()" style="display: flex; align-items: center; gap: 8px;">
         <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
         <span>
-          Thêm {{ activeTab === 2 ? 'lý do xuất' : (activeTab === 3 ? 'lý do nhập' : 'lý do kiểm kê') }} mới
+          Thêm {{ activeTab === 2 ? 'lý do xuất' : (activeTab === 3 ? 'lý do nhập' : 'loại kiểm kê') }} mới
         </span>
       </button>
     </div>
@@ -380,7 +380,7 @@
       <table class="settings-data-table">
         <thead>
           <tr>
-            <th style="min-width: 220px;">Tên lý do</th>
+            <th style="min-width: 220px;">{{ activeTab === 4 ? 'Tên loại kiểm kê' : 'Tên lý do' }}</th>
             <th style="width: 140px;">Tiền tố mã chứng từ</th>
             <th *ngIf="activeTab !== 4" style="width: 180px;">Yêu cầu đối tác</th>
             <th style="width: 110px;">Phân loại</th>
@@ -395,7 +395,7 @@
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
                 <div class="spinning-loader"></div>
                 <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">
-                  Đang tải danh mục {{ activeTab === 2 ? 'lý do xuất kho' : (activeTab === 3 ? 'lý do nhập kho' : 'lý do kiểm kê') }}...
+                  Đang tải danh mục {{ activeTab === 2 ? 'lý do xuất kho' : (activeTab === 3 ? 'lý do nhập kho' : 'loại kiểm kê') }}...
                 </span>
               </div>
             </td>
@@ -471,7 +471,7 @@
               <td [attr.colspan]="activeTab !== 4 ? 6 : 5" style="text-align: center; padding: 48px 16px;">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-muted);">
                   <lucide-angular [img]="icons.FileText" size="36" style="opacity: 0.5;"></lucide-angular>
-                  <span>Chưa có lý do nào trong danh mục</span>
+                  <span>Chưa có {{ activeTab === 4 ? 'loại kiểm kê' : 'lý do' }} nào trong danh mục</span>
                 </div>
               </td>
             </tr>
@@ -601,7 +601,7 @@
                 <span class="code-badge">{{ t.code }}</span>
               </td>
               <td class="col-vat-name">
-                <div style="font-weight: 600; color: var(--text-primary); font-size: 13.5px;">
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">
                   {{ t.name }}
                 </div>
               </td>
@@ -933,7 +933,7 @@
     <div class="modal-dialog" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title">
-          {{ isEditReason ? 'Chỉnh sửa lý do' : ('Thêm ' + (reasonForm.type === 'EXPORT' ? 'lý do xuất' : (reasonForm.type === 'IMPORT' ? 'lý do nhập' : 'lý do kiểm kê')) + ' mới') }}
+          {{ isEditReason ? (reasonForm.type === 'AUDIT' ? 'Chỉnh sửa loại kiểm kê' : 'Chỉnh sửa lý do') : ('Thêm ' + (reasonForm.type === 'EXPORT' ? 'lý do xuất' : (reasonForm.type === 'IMPORT' ? 'lý do nhập' : 'loại kiểm kê')) + ' mới') }}
         </h3>
         <button type="button" class="modal-close-btn" (click)="closeReasonModal()">
           <lucide-angular [img]="icons.X" size="20"></lucide-angular>
@@ -943,12 +943,12 @@
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group full-width">
-            <label class="form-label required">Tên lý do</label>
+            <label class="form-label required">{{ reasonForm.type === 'AUDIT' ? 'Tên loại kiểm kê' : 'Tên lý do' }}</label>
             <input 
               type="text" 
               class="form-control" 
               [(ngModel)]="reasonForm.reason"
-              placeholder="VD: Xuất hàng mẫu dự án, Nhập bảo hành..." 
+              [placeholder]="reasonForm.type === 'AUDIT' ? 'VD: Kiểm kê định kỳ, Kiểm kê toàn bộ, Kiểm kê đột xuất...' : 'VD: Xuất hàng mẫu dự án, Nhập bảo hành...'" 
             />
           </div>
 
@@ -1004,7 +1004,7 @@
           [disabled]="isSavingReason"
         >
           <lucide-angular *ngIf="isSavingReason" [img]="icons.Loader2" class="spin" size="15" style="margin-right: 6px;"></lucide-angular>
-          <span>{{ isSavingReason ? 'Đang lưu...' : (isEditReason ? 'Lưu thay đổi' : 'Thêm lý do') }}</span>
+          <span>{{ isSavingReason ? 'Đang lưu...' : (isEditReason ? 'Lưu thay đổi' : (reasonForm.type === 'AUDIT' ? 'Thêm loại kiểm kê' : 'Thêm lý do')) }}</span>
         </button>
       </div>
     </div>
@@ -1014,7 +1014,7 @@
   <div *ngIf="showDeleteReasonModal" class="modal-backdrop" (click)="!isDeletingReason && (showDeleteReasonModal = false)">
     <div class="modal-dialog modal-danger" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3 class="modal-title" style="color: #ef4444;">Xác nhận xóa lý do</h3>
+        <h3 class="modal-title" style="color: #ef4444;">Xác nhận xóa {{ deleteReasonTarget?.type === 'AUDIT' ? 'loại kiểm kê' : 'lý do' }}</h3>
         <button type="button" class="modal-close-btn" (click)="showDeleteReasonModal = false" [disabled]="isDeletingReason">
           <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
@@ -1022,7 +1022,7 @@
 
       <div class="modal-body">
         <p style="font-size: 13.5px; color: var(--text-primary); line-height: 1.5;">
-          Bạn có chắc chắn muốn xóa lý do <b>"{{ deleteReasonTarget?.reason }}"</b> khỏi danh mục không?
+          Bạn có chắc chắn muốn xóa {{ deleteReasonTarget?.type === 'AUDIT' ? 'loại kiểm kê' : 'lý do' }} <b>"{{ deleteReasonTarget?.reason }}"</b> khỏi danh mục không?
         </p>
       </div>
 

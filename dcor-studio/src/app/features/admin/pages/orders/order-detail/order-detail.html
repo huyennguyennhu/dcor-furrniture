@@ -1,4 +1,4 @@
-﻿<div style="padding-bottom: 40px;">
+<div style="padding-bottom: 40px;">
   <!-- HEADER -->
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
     <div style="display: flex; align-items: center; gap: 16px;">
@@ -87,42 +87,64 @@
       <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
         <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Danh sách sản phẩm</h3>
         
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 13px;">
-              <th style="text-align: left; padding-bottom: 12px; font-weight: 500;">Sản phẩm</th>
-              <th style="text-align: right; padding-bottom: 12px; font-weight: 500;">Đơn giá</th>
-              <th style="text-align: center; padding-bottom: 12px; font-weight: 500;">Số lượng</th>
-              <th style="text-align: right; padding-bottom: 12px; font-weight: 500;">Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom: 1px solid var(--border-color);">
-              <td style="padding: 16px 0; display: flex; gap: 12px; align-items: center;">
-                <div style="width: 60px; height: 60px; background: var(--bg-secondary); border-radius: 8px;"></div>
-                <div>
-                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Sofa Indivi 3 chỗ</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Mã: SF-IND-02 | Da Napoli đen</div>
-                </div>
-              </td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 500;">{{ formatVND(80000000) }}</td>
-              <td style="padding: 16px 0; text-align: center; font-size: 14px; font-weight: 500;">1</td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 600; color: var(--accent);">{{ formatVND(80000000) }}</td>
-            </tr>
-            <tr>
-              <td style="padding: 16px 0; display: flex; gap: 12px; align-items: center;">
-                <div style="width: 60px; height: 60px; background: var(--bg-secondary); border-radius: 8px;"></div>
-                <div>
-                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Bàn trà Coda</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Mã: TB-CODA-01</div>
-                </div>
-              </td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 500;">{{ formatVND(10000000) }}</td>
-              <td style="padding: 16px 0; text-align: center; font-size: 14px; font-weight: 500;">1</td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 600; color: var(--accent);">{{ formatVND(10000000) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; position: relative;">
+          <div style="width: 100%; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+                  <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-top-left-radius: 11px;">Sản phẩm</th>
+                  <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: right; width: 1%; white-space: nowrap;">Đơn giá</th>
+                  <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; width: 1%; white-space: nowrap;">Số lượng</th>
+                  <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: right; width: 1%; white-space: nowrap; border-top-right-radius: 11px;">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--border-color); cursor: default; transition: background 0.15s ease;"
+                    onmouseover="this.style.background='#F3E5D3'" 
+                    onmouseout="this.style.background='transparent'">
+                  <td style="padding: 16px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                      <div style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex: 0 0 44px; aspect-ratio: 1 / 1; border-radius: 8px; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color); padding: 2px; box-sizing: border-box;">
+                        <lucide-angular [img]="icons.Package" size="20" color="var(--text-muted)"></lucide-angular>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">Sofa Indivi 3 chỗ</span>
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                          <span style="font-family: monospace; font-weight: 600; color: var(--accent); font-size: 12px;">SF-IND-02</span>
+                          <span style="color: var(--border-color);">•</span>
+                          <span style="color: var(--text-muted);">Da Napoli đen</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding: 16px; text-align: right; font-size: 13.5px; font-weight: 500; white-space: nowrap; color: var(--text-primary);">{{ formatVND(80000000) }}</td>
+                  <td style="padding: 16px; text-align: center; font-size: 13.5px; font-weight: 600; white-space: nowrap; color: var(--text-primary);">1</td>
+                  <td style="padding: 16px; text-align: right; font-size: 13.5px; font-weight: 600; color: var(--accent); white-space: nowrap;">{{ formatVND(80000000) }}</td>
+                </tr>
+                <tr style="cursor: default; transition: background 0.15s ease;"
+                    onmouseover="this.style.background='#F3E5D3'" 
+                    onmouseout="this.style.background='transparent'">
+                  <td style="padding: 16px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                      <div style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex: 0 0 44px; aspect-ratio: 1 / 1; border-radius: 8px; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border-color); padding: 2px; box-sizing: border-box;">
+                        <lucide-angular [img]="icons.Package" size="20" color="var(--text-muted)"></lucide-angular>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">Bàn trà Coda</span>
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                          <span style="font-family: monospace; font-weight: 600; color: var(--accent); font-size: 12px;">TB-CODA-01</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding: 16px; text-align: right; font-size: 13.5px; font-weight: 500; white-space: nowrap; color: var(--text-primary);">{{ formatVND(10000000) }}</td>
+                  <td style="padding: 16px; text-align: center; font-size: 13.5px; font-weight: 600; white-space: nowrap; color: var(--text-primary);">1</td>
+                  <td style="padding: 16px; text-align: right; font-size: 13.5px; font-weight: 600; color: var(--accent); white-space: nowrap;">{{ formatVND(10000000) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
           <div style="width: 300px;">

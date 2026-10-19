@@ -38,15 +38,15 @@
   <!-- Status Filters (Pills) -->
   <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
     <button *ngFor="let filter of statusFilters"
-      (click)="activeStatus = filter.id"
+      (click)="onStatusFilterClick(filter.id)"
       [ngStyle]="{
         'padding': '6px 16px',
         'border-radius': '20px',
-        'border': activeStatus === filter.id ? 'none' : '1px solid var(--border-color)',
-        'background': activeStatus === filter.id ? 'var(--accent)' : 'transparent',
-        'color': activeStatus === filter.id ? '#fff' : 'var(--text-secondary)',
         'font-size': '13px',
-        'font-weight': 500,
+        'font-weight': activeStatus === filter.id ? 600 : 500,
+        'background': activeStatus === filter.id ? 'var(--text-primary)' : 'var(--bg-primary)',
+        'color': activeStatus === filter.id ? 'var(--bg-primary)' : 'var(--text-secondary)',
+        'border': '1px solid ' + (activeStatus === filter.id ? 'var(--text-primary)' : 'var(--border-color)'),
         'cursor': 'pointer',
         'display': 'flex',
         'align-items': 'center',
@@ -68,103 +68,271 @@
   </div>
 
   <!-- Filters Bar -->
-  <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-    <div style="position: relative; flex: 1;">
-      <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
-      <input type="text" placeholder="Tìm mã bảo hành, mã đơn, khách hàng hoặc SKU..." style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+  <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+    <!-- Search Input with Clear Button -->
+    <div class="filter-search-box">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        (ngModelChange)="onFilterChange()"
+        placeholder="Tìm mã bảo hành, mã đơn, khách hàng hoặc SKU..." 
+        class="filter-search-input" 
+      />
+      <button *ngIf="searchQuery" (click)="searchQuery = ''; onFilterChange()" class="search-clear-btn" title="Xóa tìm kiếm">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+      </button>
     </div>
-    <select class="admin-input" style="width: 160px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-      <option value="">Tất cả thời gian</option>
-      <option value="today">Hôm nay</option>
-      <option value="7days">7 ngày qua</option>
-      <option value="this_month">Tháng này</option>
-      <option value="custom">Tùy chỉnh...</option>
-    </select>
-    <select class="admin-input" style="width: 160px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-      <option value="ALL">Phân loại</option>
-      <option value="SOFA">Sofa</option>
-      <option value="TABLE">Bàn ghế</option>
-      <option value="BED">Giường</option>
-    </select>
-    <select class="admin-input" style="width: 220px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-      <option value="ALL">Kho/Showroom phụ trách</option>
-      <option value="Q1">Showroom Quận 1</option>
-      <option value="KHO">Kho Tổng</option>
-    </select>
+
+    <!-- 1. Dropdown Thời gian -->
+    <div class="filter-dropdown-wrapper time-filter-wrapper">
+      <button 
+        type="button"
+        (click)="showTimeDropdown = !showTimeDropdown; showCategoryDropdown = false; showShowroomDropdown = false"
+        class="filter-trigger-btn"
+        [class.active]="selectedTime !== 'ALL'"
+        title="Chọn khoảng thời gian"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ selectedTimeLabel }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTimeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showTimeDropdown" class="filter-menu-dropdown">
+        <div *ngFor="let opt of timeOptions"
+          (click)="onSelectTime(opt.value)"
+          class="filter-menu-item"
+          [class.selected]="selectedTime === opt.value"
+        >
+          <span>{{ opt.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Dropdown Phân loại -->
+    <div class="filter-dropdown-wrapper category-filter-wrapper">
+      <button 
+        type="button"
+        (click)="showCategoryDropdown = !showCategoryDropdown; showTimeDropdown = false; showShowroomDropdown = false"
+        class="filter-trigger-btn"
+        [class.active]="selectedCategory !== 'ALL'"
+        title="Chọn phân loại"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ selectedCategoryLabel }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showCategoryDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showCategoryDropdown" class="filter-menu-dropdown">
+        <div *ngFor="let opt of categoryOptions"
+          (click)="onSelectCategory(opt.value)"
+          class="filter-menu-item"
+          [class.selected]="selectedCategory === opt.value"
+        >
+          <span>{{ opt.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Dropdown Kho/Showroom phụ trách -->
+    <div class="filter-dropdown-wrapper showroom-filter-wrapper">
+      <button 
+        type="button"
+        (click)="showShowroomDropdown = !showShowroomDropdown; showTimeDropdown = false; showCategoryDropdown = false"
+        class="filter-trigger-btn"
+        [class.active]="selectedShowroom !== 'ALL'"
+        title="Chọn kho/showroom"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Building2" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ selectedShowroomLabel }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showShowroomDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showShowroomDropdown" class="filter-menu-dropdown">
+        <div *ngFor="let opt of showroomOptions"
+          (click)="onSelectShowroom(opt.value)"
+          class="filter-menu-item"
+          [class.selected]="selectedShowroom === opt.value"
+        >
+          <span>{{ opt.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nút Đặt lại tất cả bộ lọc -->
+    <button 
+      *ngIf="hasActiveFilters()" 
+      type="button" 
+      (click)="resetFilters()" 
+      class="reset-filters-btn" 
+      title="Đặt lại toàn bộ bộ lọc về mặc định"
+    >
+      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+      <span>Xóa bộ lọc</span>
+    </button>
   </div>
 
   <!-- Data Table -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
     <div style="width: 100%; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Mã yêu cầu</th>
+          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-left-radius: 11px;">Mã yêu cầu</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Ngày YC</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Khách hàng</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); min-width: 200px;">Sản phẩm</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Bảo hành</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Trạng thái</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Người xử lý</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-right-radius: 11px;">Người xử lý</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of filteredWarranties" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
+          <tr *ngFor="let item of paginatedWarranties" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
               [routerLink]="['/admin/orders/warranty', item.id]"
-              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseover="this.style.background='#F3E5D3'" 
               onmouseout="this.style.background='transparent'">
             <td style="padding: 16px; white-space: nowrap;">
               <div>
-                <span style="font-weight: 600; color: var(--accent);">{{ item.id }}</span>
-                <div *ngIf="item.isExpiringSoon" style="font-size: 11px; color: #ef4444; margin-top: 4px; font-weight: 600; display: flex; align-items: center; gap: 4px;"><lucide-angular [img]="icons.AlertOctagon" size="10"></lucide-angular> SẮP HẾT HẠN</div>
+                <span style="font-weight: 600; color: var(--accent); font-family: monospace; font-size: 13px;">{{ item.id }}</span>
+                <div *ngIf="item.isExpiringSoon" style="font-size: 10.5px; color: #ef4444; margin-top: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">
+                  <lucide-angular [img]="icons.AlertOctagon" size="10"></lucide-angular> SẮP HẾT HẠN
+                </div>
               </div>
             </td>
             <td style="padding: 16px; white-space: nowrap;">
               <div>
-                <div style="font-weight: 500;">{{ item.createdAt.split(' ')[0] }}</div>
-                <div style="font-size: 12px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
+                <div style="font-weight: 500; font-size: 13px;">{{ item.createdAt.split(' ')[0] }}</div>
+                <div style="font-size: 11.5px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
               </div>
             </td>
             <td style="padding: 16px; white-space: nowrap;">
               <div>
-                <div style="font-weight: 600;">{{ item.customerName }}</div>
+                <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">{{ item.customerName }}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ item.phone }}</div>
               </div>
             </td>
             <td style="padding: 16px;">
               <div>
-                <div style="font-weight: 500;">{{ item.productName }}</div>
-                <div style="font-size: 12px; color: var(--text-muted);">{{ item.variant }}</div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; background: var(--bg-secondary); padding: 4px 8px; border-radius: 4px;">
+                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">{{ item.productName }}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">{{ item.variant }} • SKU: {{ item.sku }}</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color);">
                   Lỗi: {{ item.reason }}
                 </div>
               </div>
             </td>
             <td style="padding: 16px; white-space: nowrap;">
-              <div style="font-size: 12px; min-width: 130px;">
+              <div style="font-size: 12px; min-width: 130px; line-height: 1.5;">
                 <div><span style="color: var(--text-muted);">Mua:</span> {{ item.purchaseDate }}</div>
-                <div><span style="color: var(--text-muted);">Hạn:</span> <span [ngStyle]="{'font-weight': 500, 'color': item.isExpiringSoon ? '#ef4444' : 'var(--text-primary)'}">{{ item.warrantyExpiry }}</span></div>
+                <div><span style="color: var(--text-muted);">Hạn:</span> <span [ngStyle]="{'font-weight': 600, 'color': item.isExpiringSoon ? '#ef4444' : 'var(--text-primary)'}">{{ item.warrantyExpiry }}</span></div>
               </div>
             </td>
             <td style="padding: 16px; white-space: nowrap;">
-              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 8px; background: #fef3c7; color: #d97706; border-radius: 4px; font-size: 12px; font-weight: 600;">Chờ tiếp nhận</span>
-              <span *ngIf="item.status === 'INSPECTING'" style="padding: 4px 8px; background: #dbeafe; color: #2563eb; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang kiểm tra</span>
-              <span *ngIf="item.status === 'PROCESSING'" style="padding: 4px 8px; background: #ffedd5; color: #ea580c; border-radius: 4px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
-              <span *ngIf="item.status === 'REPAIRING'" style="padding: 4px 8px; background: #f3e8ff; color: #9333ea; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang sửa chữa</span>
-              <span *ngIf="item.status === 'REPLACING'" style="padding: 4px 8px; background: #e0f2fe; color: #0284c7; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang thay thế</span>
-              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 8px; background: #d1fae5; color: #059669; border-radius: 4px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
-              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 8px; background: #fee2e2; color: #dc2626; border-radius: 4px; font-size: 12px; font-weight: 600;">Từ chối</span>
+              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 10px; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Chờ tiếp nhận</span>
+              <span *ngIf="item.status === 'INSPECTING'" style="padding: 4px 10px; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang kiểm tra</span>
+              <span *ngIf="item.status === 'PROCESSING'" style="padding: 4px 10px; background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
+              <span *ngIf="item.status === 'REPAIRING'" style="padding: 4px 10px; background: rgba(168, 85, 247, 0.12); color: #9333ea; border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang sửa chữa</span>
+              <span *ngIf="item.status === 'REPLACING'" style="padding: 4px 10px; background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang thay thế</span>
+              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 10px; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
+              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 10px; background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Từ chối</span>
             </td>
             <td style="padding: 16px; white-space: nowrap;">
               <span [ngStyle]="{
                 'color': item.assignee === 'Chưa phân công' ? '#dc2626' : 'var(--text-primary)',
-                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500
+                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500,
+                'font-size': '13px'
               }">
                 {{ item.assignee }}
               </span>
             </td>
           </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredWarranties.length === 0">
+            <td colspan="7" style="padding: 64px 20px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <lucide-angular [img]="icons.Package" size="36" style="color: var(--text-muted); opacity: 0.45;"></lucide-angular>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">Không tìm thấy yêu cầu bảo hành nào phù hợp</span>
+                <span style="font-size: 12.5px; color: var(--text-muted);">Vui lòng thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn.</span>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div *ngIf="filteredWarranties.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+      <div style="font-size: 13px; color: var(--text-secondary);">
+        Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ filteredWarranties.length }}</span> yêu cầu
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <!-- First Page -->
+        <button 
+          type="button"
+          (click)="goToPage(1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang đầu"
+        >
+          <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Previous Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage - 1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang trước"
+        >
+          <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Page numbers -->
+        <button 
+          type="button"
+          *ngFor="let p of getVisiblePages()"
+          (click)="goToPage(p)"
+          class="admin-pagination-btn"
+          [class.active]="p === currentPage"
+        >
+          {{ p }}
+        </button>
+
+        <!-- Next Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage + 1)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang sau"
+        >
+          <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+        </button>
+
+        <!-- Last Page -->
+        <button 
+          type="button"
+          (click)="goToPage(totalPages)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang cuối"
+        >
+          <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+        </button>
+      </div>
     </div>
   </div>
 </div>

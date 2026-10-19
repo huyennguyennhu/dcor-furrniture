@@ -265,36 +265,41 @@
   <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
     <div class="report-card" style="display: flex; flex-direction: column;">
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Top đơn hàng giá trị cao</h3>
-      <div style="flex: 1; overflow-x: auto;">
-        <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 14px;">
+      <div style="flex: 1; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); box-shadow: var(--card-shadow);">
+        <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 13px; text-align: left;">
           <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
-              <th style="padding: 12px 16px; font-weight: 500;">Mã ĐH</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Khách hàng</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Số SP</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Tổng tiền</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Trạng thái</th>
+            <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-top-left-radius: 11px;">Mã ĐH</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Khách hàng</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; width: 90px;">Số SP</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: right;">Tổng tiền</th>
+              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-top-right-radius: 11px; text-align: center; width: 130px;">Trạng thái</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let order of topOrders" style="border-bottom: 1px solid var(--border-color);">
-              <td style="padding: 12px 16px; color: var(--accent); font-weight: 500;">{{ order.id }}</td>
-              <td style="padding: 12px 16px; color: var(--text-primary);">
-                <div>{{ order.customer }}</div>
-                <div style="font-size: 12px; color: var(--text-muted);">{{ order.date }}</div>
+            <tr *ngFor="let order of topOrders" style="border-bottom: 1px solid var(--border-color); cursor: default; transition: background 0.15s ease;"
+                onmouseover="this.style.background='#F3E5D3'" 
+                onmouseout="this.style.background='transparent'">
+              <td style="padding: 16px; color: var(--accent); font-weight: 600; font-family: monospace; font-size: 13px;">{{ order.id }}</td>
+              <td style="padding: 16px; color: var(--text-primary);">
+                <div style="font-weight: 600; font-size: 13.5px;">{{ order.customer }}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ order.date }}</div>
               </td>
-              <td style="padding: 12px 16px; color: var(--text-primary);">{{ order.items }}</td>
-              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">{{ order.total }}</td>
-              <td style="padding: 12px 16px;">
+              <td style="padding: 16px; color: var(--text-primary); text-align: center; font-weight: 600;">{{ order.items }}</td>
+              <td style="padding: 16px; color: var(--accent); font-weight: 600; text-align: right; font-size: 13.5px;">{{ order.total }}</td>
+              <td style="padding: 16px; text-align: center;">
                 <span [ngStyle]="{
-                  'padding': '4px 8px', 
-                  'border-radius': '4px', 
+                  'padding': '4px 10px', 
+                  'border-radius': '6px', 
                   'font-size': '12px', 
-                  'font-weight': 500,
-                  'background-color': order.status === 'Hoàn thành' ? 'rgba(46, 204, 113, 0.1)' : 
-                                   order.status === 'Đang xử lý' ? 'rgba(52, 152, 219, 0.1)' : 'rgba(231, 76, 60, 0.1)',
-                  'color': order.status === 'Hoàn thành' ? '#2ecc71' : 
-                         order.status === 'Đang xử lý' ? '#3498db' : '#e74c3c'
+                  'font-weight': '600',
+                  'display': 'inline-block',
+                  'background-color': order.status === 'Hoàn thành' ? 'rgba(16, 185, 129, 0.12)' : 
+                                   order.status === 'Đang xử lý' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                  'color': order.status === 'Hoàn thành' ? '#059669' : 
+                         order.status === 'Đang xử lý' ? '#2563eb' : '#dc2626',
+                  'border': order.status === 'Hoàn thành' ? '1px solid rgba(16, 185, 129, 0.2)' : 
+                         order.status === 'Đang xử lý' ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
                 }">
                   {{ order.status }}
                 </span>

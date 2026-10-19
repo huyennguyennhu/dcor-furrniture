@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { 
   LucideAngularModule, 
-  Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard 
+  Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard,
+  RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X
 } from 'lucide-angular';
 
 interface OrderProduct {
@@ -117,15 +118,103 @@ const mockOrders: Order[] = [
   styleUrls: ['./orders.css']
 })
 export class OrdersComponent implements OnInit {
-  icons = { Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard };
+  icons = { 
+    Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard,
+    RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X
+  };
   
   orders = mockOrders;
   activeStatus = 'ALL';
   activePrintOrder: Order | null = null;
 
+  // Search & Filter State
+  searchQuery = '';
+  selectedShowroom = 'ALL';
+  selectedPaymentStatus = 'ALL';
+  selectedPaymentMethod = 'ALL';
+
+  // Dropdown open states
+  showShowroomDropdown = false;
+  showPaymentStatusDropdown = false;
+  showPaymentMethodDropdown = false;
+
+  // Dropdown options
+  showroomOptions = [
+    { label: 'Tất cả Showroom', value: 'ALL' },
+    { label: 'Showroom Quận 1', value: 'Showroom Quận 1' },
+    { label: 'Showroom Thủ Đức', value: 'Showroom Thủ Đức' },
+    { label: 'Kho Tổng', value: 'Kho Tổng' },
+  ];
+
+  paymentStatusOptions = [
+    { label: 'Tất cả thanh toán', value: 'ALL', color: '' },
+    { label: 'Đã thanh toán', value: 'PAID', color: '#22c55e' },
+    { label: 'Đã cọc', value: 'PARTIAL', color: '#eab308' },
+    { label: 'Chưa thanh toán', value: 'UNPAID', color: '#ef4444' },
+  ];
+
+  paymentMethodOptions = [
+    { label: 'Tất cả phương thức', value: 'ALL' },
+    { label: 'Tiền mặt', value: 'Tiền mặt' },
+    { label: 'Chuyển khoản', value: 'Chuyển khoản' },
+    { label: 'Thẻ tín dụng', value: 'Thẻ tín dụng' },
+    { label: 'Trả góp', value: 'Trả góp' },
+  ];
+
+  // Pagination State (same as Inventory)
+  currentPage = 1;
+  pageSize = 10;
+
   constructor(private router: Router) {}
 
   ngOnInit() {}
+
+  @HostListener('document:mousedown', ['$event'])
+  onGlobalClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.showroom-filter-wrapper')) {
+      this.showShowroomDropdown = false;
+    }
+    if (!target.closest('.payment-status-filter-wrapper')) {
+      this.showPaymentStatusDropdown = false;
+    }
+    if (!target.closest('.payment-method-filter-wrapper')) {
+      this.showPaymentMethodDropdown = false;
+    }
+  }
+
+  get selectedShowroomLabel(): string {
+    const found = this.showroomOptions.find(o => o.value === this.selectedShowroom);
+    return found ? found.label : 'Tất cả Showroom';
+  }
+
+  get selectedPaymentStatusLabel(): string {
+    const found = this.paymentStatusOptions.find(o => o.value === this.selectedPaymentStatus);
+    return found ? found.label : 'Tất cả thanh toán';
+  }
+
+  get selectedPaymentMethodLabel(): string {
+    const found = this.paymentMethodOptions.find(o => o.value === this.selectedPaymentMethod);
+    return found ? found.label : 'Tất cả phương thức';
+  }
+
+  onSelectShowroom(value: string) {
+    this.selectedShowroom = value;
+    this.showShowroomDropdown = false;
+    this.currentPage = 1;
+  }
+
+  onSelectPaymentStatus(value: string) {
+    this.selectedPaymentStatus = value;
+    this.showPaymentStatusDropdown = false;
+    this.currentPage = 1;
+  }
+
+  onSelectPaymentMethod(value: string) {
+    this.selectedPaymentMethod = value;
+    this.showPaymentMethodDropdown = false;
+    this.currentPage = 1;
+  }
 
   get statusFilters() {
     return [
@@ -140,11 +229,102 @@ export class OrdersComponent implements OnInit {
   }
 
   get filteredOrders() {
+    const q = (this.searchQuery || '').trim().toLowerCase();
     return this.orders.filter(order => {
-      if (this.activeStatus === 'ALL') return true;
-      if (this.activeStatus === 'HIGH_VALUE') return order.isHighValue;
-      return order.status === this.activeStatus;
+      // 1. Status Pill Filter
+      if (this.activeStatus === 'HIGH_VALUE' && !order.isHighValue) return false;
+      if (this.activeStatus !== 'ALL' && this.activeStatus !== 'HIGH_VALUE' && order.status !== this.activeStatus) return false;
+
+      // 2. Search Query (id, customer name, phone)
+      if (q) {
+        const matchId = (order.id || '').toLowerCase().includes(q);
+        const matchCustomer = (order.customerName || '').toLowerCase().includes(q);
+        const matchPhone = (order.phone || '').toLowerCase().includes(q);
+        if (!matchId && !matchCustomer && !matchPhone) return false;
+      }
+
+      // 3. Showroom
+      if (this.selectedShowroom !== 'ALL' && order.showroom !== this.selectedShowroom) return false;
+
+      // 4. Payment status
+      if (this.selectedPaymentStatus !== 'ALL' && order.paymentStatus !== this.selectedPaymentStatus) return false;
+
+      // 5. Payment method
+      if (this.selectedPaymentMethod !== 'ALL' && order.paymentMethod !== this.selectedPaymentMethod) return false;
+
+      return true;
     });
+  }
+
+  // Pagination getters & methods
+  get totalPages(): number {
+    return Math.ceil(this.filteredOrders.length / this.pageSize) || 1;
+  }
+
+  get paginatedOrders(): Order[] {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    return this.filteredOrders.slice(startIndex, startIndex + this.pageSize);
+  }
+
+  goToPage(page: number) {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+  }
+
+  getVisiblePages(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(this.totalPages, start + maxVisible - 1);
+    
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  getStartIndex(): number {
+    if (this.filteredOrders.length === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  getEndIndex(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredOrders.length);
+  }
+
+  hasActiveFilters(): boolean {
+    return (
+      (this.searchQuery || '').trim() !== '' ||
+      this.selectedShowroom !== 'ALL' ||
+      this.selectedPaymentStatus !== 'ALL' ||
+      this.selectedPaymentMethod !== 'ALL' ||
+      this.activeStatus !== 'ALL'
+    );
+  }
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.selectedShowroom = 'ALL';
+    this.selectedPaymentStatus = 'ALL';
+    this.selectedPaymentMethod = 'ALL';
+    this.activeStatus = 'ALL';
+    this.showShowroomDropdown = false;
+    this.showPaymentStatusDropdown = false;
+    this.showPaymentMethodDropdown = false;
+    this.currentPage = 1;
+  }
+
+  onFilterChange() {
+    this.currentPage = 1;
+  }
+
+  onStatusFilterClick(statusId: string) {
+    this.activeStatus = statusId;
+    this.currentPage = 1;
   }
 
   formatVND(value: number) {

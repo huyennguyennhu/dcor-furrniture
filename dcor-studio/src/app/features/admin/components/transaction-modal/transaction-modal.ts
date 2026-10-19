@@ -590,16 +590,6 @@ export interface LineItem {
                           [{{ getPrefixForReasonText(r) }}]
                         </span>
                       </div>
-
-                      <!-- Nút thêm lý do xuất mới dưới cùng -->
-                      <div *ngIf="type === 'export'"
-                        class="dropdown-menu-item"
-                        (click)="openAddReasonModal($event)"
-                        style="color: var(--accent); border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; font-weight: 500;"
-                      >
-                        <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
-                        <span>Thêm lý do xuất</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -869,16 +859,6 @@ export interface LineItem {
                         <span style="font-size: 11px; font-family: monospace; color: var(--text-muted); flex-shrink: 0;">
                           [{{ getPrefixForReasonText(r) }}]
                         </span>
-                      </div>
-
-                      <!-- Nút thêm lý do nhập mới dưới cùng -->
-                      <div 
-                        class="dropdown-menu-item"
-                        (click)="openAddReasonModal($event)"
-                        style="color: var(--accent); border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; font-weight: 500;"
-                      >
-                        <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
-                        <span>Thêm lý do nhập</span>
                       </div>
                     </div>
                   </div>
@@ -1498,37 +1478,6 @@ export interface LineItem {
                           >
                             <span>{{ rate }}%</span>
                             <lucide-angular *ngIf="taxRate === rate" [img]="icons.CheckCircle2" size="12" style="color: var(--accent); flex-shrink: 0;"></lucide-angular>
-                          </div>
-
-                          <!-- Ô nhập & Nút + thêm mức thuế VAT mới (chỉ nhận số nguyên, tự động gắn %) -->
-                          <div style="border-top: 1px dashed var(--border-color); padding: 5px 2px 2px 2px; margin-top: 3px;" (click)="$event.stopPropagation()">
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                              <div style="position: relative; display: flex; align-items: center; flex: 1;">
-                                <input 
-                                  type="text" 
-                                  inputmode="numeric"
-                                  pattern="[0-9]*"
-                                  [value]="customTaxInput"
-                                  (keydown)="onCustomTaxKeydown($event)"
-                                  (input)="onCustomTaxInput($event)"
-                                  placeholder="0" 
-                                  maxlength="3" 
-                                  title="Nhập số nguyên (0-100)"
-                                  style="width: 100%; height: 26px; padding: 0 16px 0 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 11.5px; background: var(--bg-primary); color: var(--text-primary); text-align: right; outline: none; box-sizing: border-box;"
-                                />
-                                <span style="position: absolute; right: 4px; font-size: 11px; color: var(--text-muted); pointer-events: none; font-weight: 600;">%</span>
-                              </div>
-                              <button 
-                                type="button"
-                                (click)="confirmAddCustomTax($event)"
-                                title="Thêm mức thuế (%)"
-                                style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: var(--accent, #765337); color: #ffffff; border: none; border-radius: 4px; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s;"
-                                onmouseover="this.style.opacity='0.85'"
-                                onmouseout="this.style.opacity='1'"
-                              >
-                                <lucide-angular [img]="icons.Plus" size="13"></lucide-angular>
-                              </button>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -3052,6 +3001,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     'Trưng bày mẫu': 'Nơi trưng bày'
   };
 
+  reasonPrefixMap: { [reason: string]: string } = {};
+
   loadStoredReasons() {
     try {
       const storedImport = localStorage.getItem(this.STORAGE_KEY_IMPORT_REASONS);
@@ -3325,35 +3276,27 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       error: (err) => console.warn('Could not fetch products options:', err)
     });
 
-    // Tải và hợp nhất tất cả lý do đã từng được lưu trong cơ sở dữ liệu
+    // Tải và đồng bộ danh mục lý do từ bảng InventoryReasons của cơ sở dữ liệu
     this.http.get<{ 
       importReasons?: string[]; 
       exportReasons?: string[];
-      customReasons?: Array<{ type: string; reason: string; requiresPartner: boolean; partnerLabel: string | null }>;
+      customReasons?: Array<{ type: string; reason: string; prefix?: string; requiresPartner: boolean; partnerLabel: string | null }>;
     }>(`${environment.apiUrl}/admin/inventory/reasons`).subscribe({
       next: (res) => {
         if (res) {
-          let hasChanges = false;
-          if (Array.isArray(res.importReasons)) {
-            res.importReasons.forEach(r => {
-              if (r && typeof r === 'string' && !this.importReasonOptions.includes(r.trim())) {
-                this.importReasonOptions.push(r.trim());
-                hasChanges = true;
-              }
-            });
+          if (Array.isArray(res.importReasons) && res.importReasons.length > 0) {
+            this.importReasonOptions = [...res.importReasons];
           }
-          if (Array.isArray(res.exportReasons)) {
-            res.exportReasons.forEach(r => {
-              if (r && typeof r === 'string' && !this.exportReasonOptions.includes(r.trim())) {
-                this.exportReasonOptions.push(r.trim());
-                hasChanges = true;
-              }
-            });
+          if (Array.isArray(res.exportReasons) && res.exportReasons.length > 0) {
+            this.exportReasonOptions = [...res.exportReasons];
           }
           if (Array.isArray(res.customReasons)) {
-            res.customReasons.forEach(cr => {
+            res.customReasons.forEach((cr: any) => {
               if (!cr || !cr.reason) return;
               const reasonName = cr.reason.trim();
+              if (cr.prefix) {
+                this.reasonPrefixMap[reasonName] = cr.prefix;
+              }
               if (cr.requiresPartner) {
                 this.reasonsRequiringSupplier.add(reasonName);
                 this.reasonsNotRequiringSupplier.delete(reasonName);
@@ -3366,9 +3309,6 @@ export class TransactionModalComponent implements OnInit, OnChanges {
                 delete this.reasonPartnerLabelMap[reasonName];
               }
             });
-            hasChanges = true;
-          }
-          if (hasChanges) {
             this.saveCustomReasons();
           }
           if (this.isViewMode && this.viewOrderData?.reason) {
@@ -3525,17 +3465,22 @@ export class TransactionModalComponent implements OnInit, OnChanges {
 
   // --- LOGIC SINH MÃ PHIẾU XUẤT / NHẬP ---
   getPrefixForReasonText(reason: string): string {
+    if (reason && this.reasonPrefixMap[reason]) {
+      return this.reasonPrefixMap[reason];
+    }
     const r = (reason || '').toLowerCase().trim();
     if (this.type === 'import') {
       if (!r) return 'PNK';
       if (r.includes('chuyển kho')) return 'PNK-CK';
       if (r.includes('trả lại') || r.includes('đổi trả') || r.includes('thu hồi')) return 'PNK-TH';
-      if (r.includes('kiểm kê') || r.includes('dư')) return 'PNK-KK';
-      if (r.includes('nhà cung cấp') || r.includes('ncc') || r.includes('mua')) return 'PNK-NCC';
+      if (r.includes('kiểm kê') || r.includes('dư') || r.includes('thừa')) return 'PNK-KK';
+      if (r.includes('bảo hành') || r.includes('sửa chữa')) return 'PNK-BH';
+      if (r.includes('nhà cung cấp') || r.includes('nhà cung ứng') || r.includes('ncc') || r.includes('mua')) return 'PNK-NCC';
       return 'PNK';
     }
     if (!r) return 'PXK';
-    if (r.includes('bán')) return 'PXK-BH';
+    if (r.includes('bán lẻ') || r.includes('showroom')) return 'PXK-BL';
+    if (r.includes('bán buôn') || r.includes('dự án') || r.includes('bán')) return 'PXK-DA';
     if (r.includes('chuyển kho')) return 'PXK-CK';
     if (r.includes('trả') || r.includes('ncc') || r.includes('nhà cung cấp') || this.isReasonRequiringSupplier(reason)) return 'PXK-NCC';
     if (r.includes('hủy') || r.includes('hỏng') || r.includes('thất thoát')) return 'PXK-HUY';

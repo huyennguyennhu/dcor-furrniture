@@ -44,15 +44,15 @@
   <!-- Status Filters (Pills) -->
   <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
     <button *ngFor="let filter of statusFilters"
-      (click)="activeStatus = filter.id"
+      (click)="onStatusFilterClick(filter.id)"
       [ngStyle]="{
         'padding': '6px 16px',
         'border-radius': '20px',
-        'border': activeStatus === filter.id ? 'none' : '1px solid var(--border-color)',
-        'background': activeStatus === filter.id ? 'var(--accent)' : 'transparent',
-        'color': activeStatus === filter.id ? '#fff' : 'var(--text-secondary)',
         'font-size': '13px',
-        'font-weight': 500,
+        'font-weight': activeStatus === filter.id ? 600 : 500,
+        'background': activeStatus === filter.id ? 'var(--text-primary)' : 'var(--bg-primary)',
+        'color': activeStatus === filter.id ? 'var(--bg-primary)' : 'var(--text-secondary)',
+        'border': '1px solid ' + (activeStatus === filter.id ? 'var(--text-primary)' : 'var(--border-color)'),
         'cursor': 'pointer',
         'display': 'flex',
         'align-items': 'center',
@@ -74,83 +74,231 @@
   </div>
 
   <!-- Filters Bar -->
-  <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-    <div style="position: relative; flex: 1;">
-      <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);"></lucide-angular>
-      <input type="text" placeholder="Tìm mã yêu cầu, đơn hàng, khách hàng hoặc sản phẩm..." style="width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+  <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+    <!-- Search Input with Clear Button -->
+    <div class="filter-search-box">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        (ngModelChange)="onFilterChange()"
+        placeholder="Tìm mã yêu cầu, đơn hàng, khách hàng hoặc sản phẩm..." 
+        class="filter-search-input" 
+      />
+      <button *ngIf="searchQuery" (click)="searchQuery = ''; onFilterChange()" class="search-clear-btn" title="Xóa tìm kiếm">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+      </button>
     </div>
-    <select class="admin-input" style="width: 160px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-      <option value="ALL">Loại yêu cầu</option>
-      <option value="EXCHANGE">Đổi sản phẩm</option>
-      <option value="RETURN">Trả sản phẩm</option>
-      <option value="REFUND">Hoàn tiền</option>
-    </select>
-    <select class="admin-input" style="width: 180px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px;">
-      <option value="ALL">Lý do đổi trả</option>
-      <option value="DEFECTIVE">Sản phẩm lỗi/hư hỏng</option>
-      <option value="WRONG_ITEM">Sai sản phẩm</option>
-      <option value="NOT_AS_DESCRIBED">Không đúng mô tả</option>
-      <option value="NO_LONGER_NEEDED">Khách không còn nhu cầu</option>
-    </select>
+
+    <!-- 1. Dropdown Loại yêu cầu -->
+    <div class="filter-dropdown-wrapper type-filter-wrapper">
+      <button 
+        type="button"
+        (click)="showTypeDropdown = !showTypeDropdown; showReasonDropdown = false"
+        class="filter-trigger-btn"
+        [class.active]="selectedType !== 'ALL'"
+        title="Chọn loại yêu cầu"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.ArrowRightLeft" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ selectedTypeLabel }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTypeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showTypeDropdown" class="filter-menu-dropdown">
+        <div *ngFor="let opt of typeOptions"
+          (click)="onSelectType(opt.value)"
+          class="filter-menu-item"
+          [class.selected]="selectedType === opt.value"
+        >
+          <span>{{ opt.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Dropdown Lý do đổi trả -->
+    <div class="filter-dropdown-wrapper reason-filter-wrapper">
+      <button 
+        type="button"
+        (click)="showReasonDropdown = !showReasonDropdown; showTypeDropdown = false"
+        class="filter-trigger-btn"
+        [class.active]="selectedReason !== 'ALL'"
+        title="Chọn lý do đổi trả"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.HelpCircle" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ selectedReasonLabel }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+      </button>
+      
+      <div *ngIf="showReasonDropdown" class="filter-menu-dropdown">
+        <div *ngFor="let opt of reasonOptions"
+          (click)="onSelectReason(opt.value)"
+          class="filter-menu-item"
+          [class.selected]="selectedReason === opt.value"
+        >
+          <span>{{ opt.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nút Đặt lại tất cả bộ lọc -->
+    <button 
+      *ngIf="hasActiveFilters()" 
+      type="button" 
+      (click)="resetFilters()" 
+      class="reset-filters-btn" 
+      title="Đặt lại toàn bộ bộ lọc về mặc định"
+    >
+      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+      <span>Xóa bộ lọc</span>
+    </button>
   </div>
 
   <!-- Data Table -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
     <div style="width: 100%; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Mã yêu cầu</th>
+          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-left-radius: 11px;">Mã yêu cầu</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Ngày YC</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Đơn hàng</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Khách hàng</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 15%; min-width: 200px;">Sản phẩm</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Loại YC</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Trạng thái</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Người xử lý</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-right-radius: 11px;">Người xử lý</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of filteredReturns" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
+          <tr *ngFor="let item of paginatedReturns" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
               [routerLink]="['/admin/orders/returns', item.id]"
-              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseover="this.style.background='#F3E5D3'" 
               onmouseout="this.style.background='transparent'">
             <td style="padding: 16px; white-space: nowrap;">
-              <span style="font-weight: 600; color: var(--accent);">{{ item.id }}</span>
+              <span style="font-weight: 600; color: var(--accent); font-family: monospace; font-size: 13px;">{{ item.id }}</span>
             </td>
             <td style="padding: 16px; white-space: nowrap;">
               <div>
-                <div style="font-weight: 500;">{{ item.createdAt.split(' ')[0] }}</div>
-                <div style="font-size: 12px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
+                <div style="font-weight: 500; font-size: 13px;">{{ item.createdAt.split(' ')[0] }}</div>
+                <div style="font-size: 11.5px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
               </div>
             </td>
-            <td style="padding: 16px; white-space: nowrap;">{{ item.orderId }}</td>
-            <td style="padding: 16px; white-space: nowrap;">{{ item.customerName }}</td>
+            <td style="padding: 16px; white-space: nowrap; font-family: monospace; font-weight: 600; color: var(--text-secondary);">{{ item.orderId }}</td>
+            <td style="padding: 16px; white-space: nowrap; font-weight: 600; font-size: 13.5px; color: var(--text-primary);">{{ item.customerName }}</td>
             <td style="padding: 16px;">
-              <span style="font-weight: 500;">{{ item.productName }}</span>
+              <span style="font-weight: 500; font-size: 13px; color: var(--text-primary);">{{ item.productName }}</span>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Lý do: {{ item.reason }}</div>
             </td>
-            <td style="padding: 16px; white-space: nowrap;">{{ getTypeBadgeText(item.type) }}</td>
             <td style="padding: 16px; white-space: nowrap;">
-              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 8px; background: #fef3c7; color: #d97706; border-radius: 4px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
-              <span *ngIf="item.status === 'REVIEWING'" style="padding: 4px 8px; background: #dbeafe; color: #2563eb; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang xem xét</span>
-              <span *ngIf="item.status === 'APPROVED'" style="padding: 4px 8px; background: #f3e8ff; color: #9333ea; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã duyệt</span>
-              <span *ngIf="item.status === 'RETURNING'" style="padding: 4px 8px; background: #ffedd5; color: #ea580c; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang thu hồi</span>
-              <span *ngIf="item.status === 'RECEIVED'" style="padding: 4px 8px; background: #e0f2fe; color: #0284c7; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã nhận hàng</span>
-              <span *ngIf="item.status === 'REFUNDING'" style="padding: 4px 8px; background: #fce7f3; color: #db2777; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang xử lý hoàn tiền</span>
-              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 8px; background: #d1fae5; color: #059669; border-radius: 4px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
-              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 8px; background: #fee2e2; color: #dc2626; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã từ chối</span>
+              <span style="padding: 4px 10px; background: rgba(245, 128, 37, 0.1); color: var(--accent); border-radius: 6px; font-size: 12px; font-weight: 600;">
+                {{ getTypeBadgeText(item.type) }}
+              </span>
+            </td>
+            <td style="padding: 16px; white-space: nowrap;">
+              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 10px; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
+              <span *ngIf="item.status === 'REVIEWING'" style="padding: 4px 10px; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang xem xét</span>
+              <span *ngIf="item.status === 'APPROVED'" style="padding: 4px 10px; background: rgba(168, 85, 247, 0.12); color: #9333ea; border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đã duyệt</span>
+              <span *ngIf="item.status === 'RETURNING'" style="padding: 4px 10px; background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang thu hồi</span>
+              <span *ngIf="item.status === 'RECEIVED'" style="padding: 4px 10px; background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đã nhận hàng</span>
+              <span *ngIf="item.status === 'REFUNDING'" style="padding: 4px 10px; background: rgba(219, 39, 119, 0.12); color: #db2777; border: 1px solid rgba(219, 39, 119, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang hoàn tiền</span>
+              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 10px; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
+              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 10px; background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đã từ chối</span>
             </td>
             <td style="padding: 16px; white-space: nowrap;">
               <span [ngStyle]="{
                 'color': item.assignee === 'Chưa phân công' ? '#dc2626' : 'var(--text-primary)',
-                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500
+                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500,
+                'font-size': '13px'
               }">
                 {{ item.assignee }}
               </span>
             </td>
           </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredReturns.length === 0">
+            <td colspan="8" style="padding: 64px 20px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <lucide-angular [img]="icons.Package" size="36" style="color: var(--text-muted); opacity: 0.45;"></lucide-angular>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">Không tìm thấy yêu cầu đổi trả nào phù hợp</span>
+                <span style="font-size: 12.5px; color: var(--text-muted);">Vui lòng thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn.</span>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div *ngIf="filteredReturns.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+      <div style="font-size: 13px; color: var(--text-secondary);">
+        Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ filteredReturns.length }}</span> yêu cầu
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <!-- First Page -->
+        <button 
+          type="button"
+          (click)="goToPage(1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang đầu"
+        >
+          <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Previous Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage - 1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang trước"
+        >
+          <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Page numbers -->
+        <button 
+          type="button"
+          *ngFor="let p of getVisiblePages()"
+          (click)="goToPage(p)"
+          class="admin-pagination-btn"
+          [class.active]="p === currentPage"
+        >
+          {{ p }}
+        </button>
+
+        <!-- Next Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage + 1)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang sau"
+        >
+          <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+        </button>
+
+        <!-- Last Page -->
+        <button 
+          type="button"
+          (click)="goToPage(totalPages)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang cuối"
+        >
+          <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+        </button>
+      </div>
     </div>
   </div>
 </div>
