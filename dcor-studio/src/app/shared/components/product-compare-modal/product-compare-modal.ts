@@ -734,7 +734,23 @@ export class ProductCompareModalComponent implements OnInit, OnChanges {
       material: this.getColumnMaterial(prod)
     };
 
-    this.cartService.addToCart(variant.id, 1, selectedConfig)
+    const rawPrice = variant.price || (prod.prices?.[0]?.price) || (prod as any).basePrice || 0;
+    const productImages = Array.isArray(prod.images) ? prod.images : [];
+    const variantImages = (variant.optionValues as any)?.images;
+    const imageUrl = (Array.isArray(variantImages) && variantImages.length > 0)
+      ? variantImages[0]
+      : (productImages.length > 0 ? productImages[0] : '');
+
+    const guestProductInfo = {
+      productId: pid,
+      name: prod.name || prod.shortDescription_vi || prod.shortDescription || 'Sản phẩm',
+      variantName: variant.name !== 'Phân loại mặc định' ? variant.name : undefined,
+      image: typeof imageUrl === 'string' ? imageUrl : '',
+      price: rawPrice,
+      availableStock: variant.stock
+    };
+
+    this.cartService.addToCart(variant.id, 1, selectedConfig, guestProductInfo)
       .subscribe({
         next: () => {
           this.addingToCartMap[pid] = false;

@@ -988,9 +988,14 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe({
-        next: () => {
+        next: (res: any) => {
           this.showToast(`Đã thêm ${this.quantity} sản phẩm vào giỏ hàng thành công!`, 'success');
           if (redirectAfter) {
+            if (res?.cartItem?.id) {
+              try {
+                sessionStorage.setItem('dcor_checkout_items', JSON.stringify([res.cartItem.id]));
+              } catch (e) {}
+            }
             this.router.navigate(['/checkout']);
           }
         },

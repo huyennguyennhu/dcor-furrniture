@@ -674,12 +674,6 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
       e.stopPropagation();
       e.preventDefault();
     }
-    const token = localStorage.getItem('dcor_customer_token');
-    if (!token) {
-      this.closeAction();
-      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
-      return;
-    }
 
     const variant = this.matchedVariant || this.activeProduct?.variants?.[0];
     if (!variant) {
@@ -705,7 +699,24 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
       material: this.realMaterial
     };
 
-    this.cartService.addToCart(variant.id, this.quantity, selectedConfig)
+    const rawPrice = this.currentPrice || variant.price || this.activeProduct?.prices?.[0]?.price || 0;
+    const productImages = Array.isArray(this.activeProduct?.images) ? this.activeProduct.images : [];
+    const variantImages = (variant.optionValues as any)?.images;
+    const imageUrl = (Array.isArray(variantImages) && variantImages.length > 0)
+      ? variantImages[0]
+      : (this.galleryImages?.[0] || (productImages.length > 0 ? productImages[0] : ''));
+
+    const guestProductInfo = {
+      productId: this.activeProduct?.productId || this.activeProduct?.id || '',
+      name: this.activeProduct?.shortDescription_vi || this.activeProduct?.shortDescription || this.activeProduct?.name || 'Sản phẩm',
+      variantName: cleanVariantName !== 'Phân loại mặc định' ? cleanVariantName : undefined,
+      image: typeof imageUrl === 'string' ? imageUrl : '',
+      price: rawPrice,
+      originalPrice: this.originalPrice || undefined,
+      availableStock: this.maxStock
+    };
+
+    this.cartService.addToCart(variant.id, this.quantity, selectedConfig, guestProductInfo)
       .pipe(
         timeout({ first: 10000 }),
         finalize(() => {
@@ -749,22 +760,25 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
       material: this.realMaterial
     };
 
-    const token = localStorage.getItem('dcor_customer_token');
-    if (!token) {
-      try {
-        sessionStorage.setItem('dcor_pending_buy_now', JSON.stringify({
-          variantId: variant.id,
-          quantity: this.quantity,
-          selectedConfig
-        }));
-      } catch (err) {}
-      this.closeAction();
-      this.router.navigate(['/login'], { queryParams: { returnUrl: '/checkout' } });
-      return;
-    }
+    const rawPrice = this.currentPrice || variant.price || this.activeProduct?.prices?.[0]?.price || 0;
+    const productImages = Array.isArray(this.activeProduct?.images) ? this.activeProduct.images : [];
+    const variantImages = (variant.optionValues as any)?.images;
+    const imageUrl = (Array.isArray(variantImages) && variantImages.length > 0)
+      ? variantImages[0]
+      : (this.galleryImages?.[0] || (productImages.length > 0 ? productImages[0] : ''));
+
+    const guestProductInfo = {
+      productId: this.activeProduct?.productId || this.activeProduct?.id || '',
+      name: this.activeProduct?.shortDescription_vi || this.activeProduct?.shortDescription || this.activeProduct?.name || 'Sản phẩm',
+      variantName: cleanVariantName !== 'Phân loại mặc định' ? cleanVariantName : undefined,
+      image: typeof imageUrl === 'string' ? imageUrl : '',
+      price: rawPrice,
+      originalPrice: this.originalPrice || undefined,
+      availableStock: this.maxStock
+    };
 
     this.isBuyingNow = true;
-    this.cartService.addToCart(variant.id, this.quantity, selectedConfig)
+    this.cartService.addToCart(variant.id, this.quantity, selectedConfig, guestProductInfo)
       .pipe(
         timeout({ first: 10000 }),
         finalize(() => {

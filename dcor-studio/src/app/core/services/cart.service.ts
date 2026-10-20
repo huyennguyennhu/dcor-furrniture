@@ -119,8 +119,10 @@ export class CartService {
       // Guest: thêm vào localStorage
       const guestItems = this.loadGuestCart();
       const existingIdx = guestItems.findIndex(i => i.variantId === variantId);
+      let targetItem: CartItem;
       if (existingIdx >= 0) {
         guestItems[existingIdx].quantity += quantity;
+        targetItem = guestItems[existingIdx];
       } else {
         const newItem: CartItem = {
           id: `guest-${variantId}-${Date.now()}`,
@@ -138,10 +140,11 @@ export class CartService {
           selectedOptions
         };
         guestItems.push(newItem);
+        targetItem = newItem;
       }
       this.saveGuestCart(guestItems);
       this.cartSubject.next(guestItems);
-      return of({ message: 'Đã thêm vào giỏ hàng' });
+      return of({ message: 'Đã thêm vào giỏ hàng', cartItem: targetItem });
     }
     return this.http.post<any>(this.apiUrl, { variantId, quantity, selectedOptions }, { headers: this.getHeaders() })
       .pipe(tap(() => this.loadCart().subscribe()));
