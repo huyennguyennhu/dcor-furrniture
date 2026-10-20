@@ -9,7 +9,7 @@ import {
   AlertTriangle, ShieldCheck, DollarSign, CornerDownLeft, FileText, 
   Check, X, Building2, CreditCard, User, MapPin, Printer, RefreshCw,
   ExternalLink, Eye, ChevronRight, ChevronDown, Phone, Mail, Box, ShieldAlert, Lock, Info,
-  Square, CheckSquare
+  Square, CheckSquare, Navigation, Copy, Calendar
 } from 'lucide-angular';
 import { OrdersV2Service } from '../services/orders-v2.service';
 import { 
@@ -38,8 +38,62 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     AlertTriangle, ShieldCheck, DollarSign, CornerDownLeft, FileText,
     Check, X, Building2, CreditCard, User, MapPin, Printer, RefreshCw,
     ExternalLink, Eye, ChevronRight, ChevronDown, Phone, Mail, Box, ShieldAlert, Lock, Info,
-    Square, CheckSquare
+    Square, CheckSquare, Navigation, Copy, Calendar
   };
+
+  // Live GPS Map Tracking States
+  isGpsRefreshing = false;
+  lastGpsUpdate = '16:48:20 (Hôm nay)';
+  copiedTracking = false;
+
+  refreshGpsLocation(): void {
+    if (this.isGpsRefreshing) return;
+    this.isGpsRefreshing = true;
+    setTimeout(() => {
+      this.isGpsRefreshing = false;
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      this.lastGpsUpdate = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} (Hôm nay)`;
+    }, 700);
+  }
+
+  openGoogleMapsRoute(): void {
+    if (!this.order?.address) return;
+    const dest = encodeURIComponent(this.order.address);
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');
+  }
+
+  copyTrackingInfo(): void {
+    const text = `Đơn: ${this.order?.orderNumber} | Vận đơn: ${this.order?.delivery.trackingCode} | Tài xế: ${this.order?.delivery.driverName} (${this.order?.delivery.driverPhone}) | Vị trí: Đ. Nguyễn Hữu Thọ, Q7`;
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedTracking = true;
+      setTimeout(() => { this.copiedTracking = false; }, 2000);
+    });
+  }
+
+  // Lấy danh sách lịch sử theo dõi vận chuyển thực tế từ lúc xuất kho trở đi
+  get shippingOnlyHistory(): any[] {
+    if (!this.order?.delivery?.trackingHistory) return [];
+    const preShipKeywords = ['đặt hàng', 'chuyển khoản', 'đóng gói', 'thanh toán', 'xác nhận đơn', 'tạo đơn', 'duyệt đơn'];
+    return this.order.delivery.trackingHistory.filter(step => {
+      const s = (step.status || '').toLowerCase();
+      return !preShipKeywords.some(kw => s.includes(kw));
+    });
+  }
+
+  // Lấy thời gian xuất kho thực tế của đơn hàng
+  getShippedTime(): string {
+    if (!this.order) return 'Đã xuất kho';
+    const shipStep = this.order.delivery?.trackingHistory?.find(s => 
+      s.status.toLowerCase().includes('xuất kho')
+    );
+    if (shipStep?.time) return shipStep.time;
+    const shipLog = this.order.auditLogs?.find(l => 
+      l.action.toLowerCase().includes('xuất kho')
+    );
+    if (shipLog?.timestamp) return shipLog.timestamp;
+    return '14:00';
+  }
 
   orderId = '';
   order?: OrderV2;
@@ -69,10 +123,20 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     protectiveWrapDone: true
   };
 
-  // Modals state
+  // Cancel Order Modal
   showCancelModal = false;
-  cancelReason = 'Khách đổi ý không tiếp tục đặt hàng';
+  cancelReason = '';
   customCancelReason = '';
+  showCancelDropdown = false;
+  isCancelling = false;
+
+  readonly cancelOptions = [
+    { value: 'Khách đổi ý không tiếp tục đặt hàng', label: 'Khách đổi ý không tiếp tục đặt hàng' },
+    { value: 'Không liên lạc được với khách để xác nhận', label: 'Không liên lạc được với khách để xác nhận' },
+    { value: 'Kho hết sản phẩm và không kịp sản xuất bổ sung', label: 'Kho hết sản phẩm và không kịp sản xuất bổ sung' },
+    { value: 'Khách không đồng ý đặt cọc 30%', label: 'Khách không đồng ý đặt cọc 30%' },
+    { value: 'Khác', label: 'Lý do khác...' }
+  ];
 
   showRejectReturnModal = false;
   rejectReason = 'Sản phẩm không có lỗi từ nhà sản xuất hoặc đã quá thời hạn 72h hỗ trợ';
@@ -92,7 +156,9 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
   ];
 
   showRescheduleModal = false;
-  rescheduleSlot = 'Ca sáng (08:30 - 11:30) ngày mai';
+  rescheduleDate = '';
+  rescheduleTime = '09:00';
+  minRescheduleDate = '';
   customRescheduleNote = '';
 
   showUserViewModal = false;
@@ -441,7 +507,20 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
 
   // FAILED_DELIVERY -> SHIPPED (Mở Popup Lên lịch giao lại)
   openRescheduleModal(): void {
-    this.rescheduleSlot = 'Ca sáng (08:30 - 11:30) ngày mai';
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const formatYMD = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    this.minRescheduleDate = formatYMD(today);
+    this.rescheduleDate = formatYMD(tomorrow);
+    this.rescheduleTime = '09:00';
     this.customRescheduleNote = '';
     this.showRescheduleModal = true;
   }
@@ -452,10 +531,20 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
 
   confirmRescheduleDelivery(): void {
     if (!this.order || this.isSubmitting) return;
+    if (!this.rescheduleDate) {
+      this.triggerToast('Thiếu thông tin!', 'Vui lòng chọn ngày giao lại.', 'error');
+      return;
+    }
+
     this.withSubmittingLock(() => {
+      const [y, m, d] = this.rescheduleDate.split('-');
+      const formattedDate = `${d}/${m}/${y}`;
+      const timeStr = this.rescheduleTime ? `lúc ${this.rescheduleTime}` : '';
+      const dateTimePlan = `Giao lại ngày ${formattedDate} ${timeStr}`.trim();
+
       const finalPlan = this.customRescheduleNote.trim()
-        ? `${this.rescheduleSlot} (${this.customRescheduleNote.trim()})`
-        : this.rescheduleSlot;
+        ? `${dateTimePlan} (${this.customRescheduleNote.trim()})`
+        : dateTimePlan;
 
       const ok = this.ordersService.rescheduleDelivery(this.order!.id, finalPlan, 'Điều phối viên DCOR');
       this.showRescheduleModal = false;
@@ -555,21 +644,80 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
   }
 
   // Cancel Order Modal
-  openCancelModal() {
+  openCancelModal(): void {
+    this.isCancelling = false;
+    this.cancelReason = '';
+    this.customCancelReason = '';
+    this.showCancelDropdown = false;
     this.showCancelModal = true;
   }
 
-  confirmCancelOrder() {
-    if (!this.order || this.isSubmitting) return;
-    this.withSubmittingLock(() => {
-      const reason = this.customCancelReason.trim() || this.cancelReason;
+  closeCancelModal(): void {
+    if (this.isCancelling) return;
+    this.showCancelModal = false;
+    this.showCancelDropdown = false;
+  }
+
+  get selectedCancelReasonLabel(): string {
+    if (!this.cancelReason) return 'Chọn lý do hủy';
+    const opt = this.cancelOptions.find(o => o.value === this.cancelReason);
+    return opt ? opt.label : this.cancelReason;
+  }
+
+  toggleCancelDropdown(event?: Event): void {
+    if (this.isCancelling) return;
+    if (event) {
+      event.stopPropagation();
+    }
+    this.showCancelDropdown = !this.showCancelDropdown;
+  }
+
+  selectCancelReason(val: string, event?: Event): void {
+    if (this.isCancelling) return;
+    if (event) {
+      event.stopPropagation();
+    }
+    this.cancelReason = val;
+    this.showCancelDropdown = false;
+  }
+
+  get canConfirmCancel(): boolean {
+    const hasReason = !!this.cancelReason && this.cancelReason.trim().length > 0;
+    const hasDetailNote = !!this.customCancelReason && this.customCancelReason.trim().length > 0;
+    return hasReason && hasDetailNote;
+  }
+
+  confirmCancelOrder(): void {
+    if (!this.order || this.isCancelling || this.isSubmitting) return;
+    if (!this.canConfirmCancel) {
+      if (!this.cancelReason) {
+        this.triggerToast('Chưa chọn lý do!', 'Vui lòng chọn lý do hủy đơn trước khi xác nhận.', 'error');
+      } else if (!this.customCancelReason || !this.customCancelReason.trim()) {
+        this.triggerToast('Thiếu thông tin!', 'Vui lòng nhập nội dung chi tiết lý do hủy đơn.', 'error');
+      }
+      return;
+    }
+
+    // Khóa ngay lập tức nút hủy và chặn click tiếp theo
+    this.isCancelling = true;
+    this.isSubmitting = true;
+
+    setTimeout(() => {
+      const reason = this.cancelReason === 'Khác'
+        ? this.customCancelReason.trim()
+        : `${this.cancelReason} - ${this.customCancelReason.trim()}`;
+
       const ok = this.ordersService.cancelOrder(this.order!.id, reason, 'Admin Trần');
       this.showCancelModal = false;
+      this.showCancelDropdown = false;
+      this.isCancelling = false;
+      this.isSubmitting = false;
+
       if (ok) {
         this.triggerToast('Đã hủy đơn hàng!', `Lý do hủy: ${reason}.`, 'info');
         this.scrollToTop();
       }
-    });
+    }, 450);
   }
 
   // Print invoice / Packing list
@@ -695,10 +843,30 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     return false;
   }
 
-  // Khóa checkbox QC chỉ khi đơn hàng đã hoàn tất hoặc bị hủy
+  // Khóa checkbox QC sau khi đã nhấn xác nhận Xuất kho ở bước Sẵn sàng xuất (từ SHIPPED trở đi) hoặc đơn hoàn tất/hủy
   get isQcLocked(): boolean {
     if (!this.order) return true;
-    if (this.order.status === 'COMPLETED' || this.order.status === 'CANCELLED') return true;
+    if (this.isHistoricalView) return true;
+
+    const postReadyStatuses: AdminOrderStatus[] = [
+      'SHIPPED', 
+      'FAILED_DELIVERY', 
+      'DELIVERED', 
+      'COMPLETED', 
+      'RETURN_REQUESTED', 
+      'RETURNING', 
+      'RETURNED', 
+      'CANCELLED'
+    ];
+
+    if (postReadyStatuses.includes(this.order.status)) {
+      return true;
+    }
+
+    if (this.activeViewingStep > 2) {
+      return true;
+    }
+
     return false;
   }
 
@@ -715,6 +883,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
 
   // Tự động lưu trạng thái checklist QC khi người dùng check/uncheck
   onQcChange(): void {
+    if (this.isQcLocked) return;
     if (this.order) {
       this.ordersService.updateQcChecklist(this.order.id, this.checklist);
     }

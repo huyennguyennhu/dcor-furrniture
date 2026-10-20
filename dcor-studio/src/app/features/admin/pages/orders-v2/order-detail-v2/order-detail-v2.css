@@ -1023,8 +1023,34 @@
 
 /* Locked / Read-only state */
 .qc-checkbox-item.is-locked {
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.badge-qc-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  padding: 5px 8px;
+  border-radius: 6px;
   cursor: default;
-  opacity: 0.95;
+}
+
+.badge-qc-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #15803D;
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  padding: 4px 10px;
+  border-radius: 6px;
 }
 
 .qc-checkbox-item.is-locked:hover {
@@ -1972,22 +1998,28 @@
   color: #111827;
 }
 
+/* Modal Close Button (đồng bộ chuẩn admin-close-btn với hiệu ứng xoay 180deg khi hover) */
+.admin-close-btn,
 .modal-close {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #9ca3af;
-  padding: 4px;
+  color: var(--text-muted, #9CA3AF);
+  padding: 6px;
   border-radius: 6px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  line-height: 1;
+  opacity: 1;
 }
 
+.admin-close-btn:hover,
 .modal-close:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #111827;
+  transform: rotate(180deg);
+  color: var(--text-primary, #111827);
+  background: var(--bg-tertiary, rgba(0, 0, 0, 0.06));
 }
 
 .modal-body {
@@ -2004,6 +2036,64 @@
   color: #374151;
   margin-bottom: 2px;
   display: block;
+}
+
+/* Reschedule Date & Time Grid */
+.reschedule-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.reschedule-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reschedule-col .modal-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0;
+}
+
+.modal-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #FFFFFF;
+  color: #111827;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.modal-input:hover {
+  border-color: #765337;
+  background-color: #FDFBF7;
+}
+
+.modal-input:focus {
+  border-color: #765337;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 3.5px rgba(118, 83, 55, 0.15), 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 520px) {
+  .reschedule-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .modal-select {
@@ -2265,6 +2355,17 @@
   pointer-events: none !important;
 }
 
+@keyframes spinIcon {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.btn-spin-icon {
+  animation: spinIcon 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .btn-confirm-warning {
   padding: 8px 16px;
   background: #D97706;
@@ -2330,8 +2431,16 @@
   opacity: 0.85;
 }
 
-.user-view-header .modal-close {
+.user-view-header .modal-close,
+.user-view-header .admin-close-btn {
   color: #ffffff;
+}
+
+.user-view-header .modal-close:hover,
+.user-view-header .admin-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(180deg);
 }
 
 .mobile-mockup-body {
@@ -2477,4 +2586,779 @@
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
+}
+
+/* ==========================================================================
+   LIVE GPS ROUTE & MAP TRACKING CARD STYLES
+   ========================================================================== */
+.live-map-tracking-card {
+  border: 1.5px solid #E2E8F0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.header-map-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+}
+
+.pulse-beacon {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: beaconPulse 1.8s infinite;
+}
+
+@keyframes beaconPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.btn-refresh-gps {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  background: #ffffff;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-refresh-gps:hover:not(:disabled) {
+  background: #F1F5F9;
+  color: #0F172A;
+  border-color: #94A3B8;
+}
+
+.live-map-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Map Visual Container */
+.map-visual-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.map-background-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.map-bg-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Map Markers */
+.map-pin-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.pin-bubble {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #0F172A;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  margin-bottom: 3px;
+}
+
+.destination-bubble {
+  background: #DC2626;
+}
+
+.origin-bubble {
+  background: #0F172A;
+}
+
+.pin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.origin-dot { background: #0F172A; }
+.dest-dot { background: #DC2626; }
+
+/* Live Truck Moving Marker */
+.live-truck-pin {
+  z-index: 20;
+}
+
+.truck-floating-card {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 1px solid #F58025;
+  border-radius: 8px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 18px rgba(245, 128, 37, 0.25);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: floatBounce 2.5s ease-in-out infinite alternate;
+}
+
+.truck-floating-card::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #F58025 transparent transparent transparent;
+}
+
+@keyframes floatBounce {
+  from { transform: translateX(-50%) translateY(0); }
+  to { transform: translateX(-50%) translateY(-4px); }
+}
+
+.floating-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: #0F172A;
+}
+
+.live-dot-mini {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+}
+
+.floating-sub {
+  font-size: 10.5px;
+  color: #64748B;
+  margin-top: 1px;
+}
+
+.truck-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F58025 0%, #D9600E 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(245, 128, 37, 0.45);
+  border: 2.5px solid #ffffff;
+  position: relative;
+  z-index: 2;
+}
+
+/* Radar Pulse Rings */
+.radar-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid #F58025;
+  animation: radarWave 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.radar-pulse-ring.delay-1 {
+  animation-delay: 1s;
+}
+
+@keyframes radarWave {
+  0% { width: 38px; height: 38px; opacity: 0.8; }
+  100% { width: 88px; height: 88px; opacity: 0; }
+}
+
+/* Street Name Overlays */
+.map-street-label {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94A3B8;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.street-nguyen-huu-tho {
+  top: 36%;
+  left: 36%;
+  transform: rotate(-18deg);
+}
+
+.street-nguyen-thi-thap {
+  top: 18%;
+  left: 58%;
+}
+
+.street-rach-dia {
+  bottom: 22%;
+  left: 20%;
+  color: #0284C7;
+  font-weight: 700;
+}
+
+/* Map Floating Controls */
+.map-floating-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 30;
+}
+
+.btn-map-ctrl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.btn-map-ctrl:hover {
+  background: #0F172A;
+  color: #ffffff;
+  border-color: #0F172A;
+}
+
+/* =========================================================================
+   VERTICAL TRIP MILESTONES (Lộ trình vận chuyển xổ xuống theo chiều dọc)
+   ========================================================================= */
+.trip-milestones-vertical {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--border-color, #EAE1D7);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-top: 14px;
+}
+
+.milestones-vertical-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #765337;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #EAE1D7;
+}
+
+.milestone-v-step {
+  display: flex;
+  gap: 14px;
+  position: relative;
+}
+
+.milestone-v-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.milestone-v-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F1F5F9;
+  color: #94A3B8;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.milestone-v-step.completed .milestone-v-icon {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.milestone-v-step.active .milestone-v-icon {
+  background: #FFF7ED;
+  color: #EA580C;
+  border: 1.5px solid #F58025;
+}
+
+.milestone-v-step.failed .milestone-v-icon {
+  background: #FEE2E2;
+  color: #DC2626;
+  border: 1.5px solid #FCA5A5;
+}
+
+.milestone-v-line {
+  width: 2px;
+  flex: 1;
+  min-height: 28px;
+  background: #E2E8F0;
+  margin: 4px 0;
+}
+
+.milestone-v-line.completed {
+  background: #10B981;
+}
+
+.milestone-v-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 18px;
+  flex: 1;
+  min-width: 0;
+}
+
+.milestone-v-step:last-child .milestone-v-content {
+  padding-bottom: 4px;
+}
+
+.m-v-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.m-v-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1.4;
+}
+
+.m-v-time-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.m-v-time {
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.45;
+}
+
+.pulse-active {
+  animation: iconPulse 1.5s infinite alternate;
+}
+
+@keyframes iconPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+/* Real-time Shipping Events List under Map */
+.map-tracking-events {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #FDFBF9;
+  border: 1px solid #EAE1D7;
+  border-radius: 8px;
+}
+
+.map-events-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #765337;
+  margin-bottom: 12px;
+}
+
+.map-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+}
+
+.map-event-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10B981;
+  margin-top: 5px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.map-event-dot.is-failed {
+  background: #DC2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+.map-event-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.map-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-event-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.map-event-time {
+  font-size: 11.5px;
+  color: #8D7B68;
+}
+
+.map-event-desc {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.map-event-loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #8D7B68;
+  margin-top: 3px;
+}
+
+/* Telemetry Grid & Dispatch Actions */
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.tele-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tele-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.03em;
+}
+
+.tele-val {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.tele-sub {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.tele-driver-actions {
+  background: #FAF7F4;
+  border-color: #E6DCD2;
+}
+
+.driver-quick-contact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.btn-call-driver {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #16A34A;
+  color: #ffffff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-call-driver:hover {
+  background: #15803D;
+  transform: translateY(-1px);
+}
+
+.btn-copy-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-info:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* =========================================================================
+   LỘ TRÌNH VẬN CHUYỂN TỪ LÚC XUẤT KHO (Vertical Stepper Timeline)
+   ========================================================================= */
+.trip-milestones-vertical {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.milestones-vertical-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed #E2E8F0;
+}
+
+.milestone-v-step {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  position: relative;
+}
+
+.milestone-v-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 26px;
+  flex-shrink: 0;
+}
+
+.milestone-v-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F1F5F9;
+  color: #94A3B8;
+  border: 1.5px solid #CBD5E1;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+/* Các trạng thái icon */
+.milestone-v-step.completed .milestone-v-icon {
+  background: #DCFCE7;
+  color: #16A34A;
+  border-color: #86EFAC;
+}
+
+.milestone-v-step.active .milestone-v-icon {
+  background: #FEF3C7;
+  color: #D97706;
+  border-color: #FCD34D;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.milestone-v-step.failed .milestone-v-icon {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.milestone-v-step.pending .milestone-v-icon {
+  background: #F8FAFC;
+  color: #94A3B8;
+  border-color: #E2E8F0;
+}
+
+/* Đường line dọc nối giữa các bước */
+.milestone-v-line {
+  width: 2px;
+  flex-grow: 1;
+  min-height: 24px;
+  background: #E2E8F0;
+  margin: 4px 0;
+}
+
+.milestone-v-line.completed {
+  background: #22C55E;
+}
+
+/* Nội dung bước bên phải */
+.milestone-v-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-bottom: 16px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+/* Bước cuối cùng không có padding-bottom thừa */
+.milestone-v-step:last-child .milestone-v-content {
+  padding-bottom: 0;
+}
+
+.m-v-title-row,
+.m-v-time-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.m-v-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1.35;
+}
+
+.milestone-v-step.completed .m-v-title {
+  color: #0F172A;
+}
+
+.milestone-v-step.pending .m-v-title {
+  color: #64748B;
+  font-weight: 600;
+}
+
+.m-v-time {
+  font-size: 11.5px;
+  color: #64748B;
+  margin-top: 3px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* Pulse animation nhẹ nhàng cho xe đang chạy */
+.pulse-active {
+  animation: pulse-truck 2s infinite ease-in-out;
+}
+
+@keyframes pulse-truck {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
 }

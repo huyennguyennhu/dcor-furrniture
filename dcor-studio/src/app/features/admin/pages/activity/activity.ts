@@ -351,6 +351,25 @@ export class ActivityComponent implements OnInit, OnDestroy {
     return count;
   }
 
+  get hasActiveFilters(): boolean {
+    return !!(
+      (this.filters.search && this.filters.search.trim()) ||
+      this.filters.datePreset !== 'ALL' ||
+      this.filters.module !== 'ALL' ||
+      this.activeAdvancedFilterCount > 0
+    );
+  }
+
+  onCardSeverityFilter(sev: AuditSeverity): void {
+    if (this.filters.severity === sev) {
+      this.filters.severity = 'ALL';
+    } else {
+      this.filters.severity = sev;
+    }
+    this.filters.page = 1;
+    this.loadAuditLogs();
+  }
+
   applyAdvancedFilters(): void {
     this.filters.page = 1;
     this.loadAuditLogs();

@@ -1,362 +1,387 @@
-<div class="audit-log-page-container">
-  <!-- PAGE HEADER -->
-  <header class="page-header">
-    <div class="header-left">
-      <div class="header-title-row">
-        <div class="header-icon-box">
-          <lucide-angular [img]="icons.Clock" size="24" class="header-icon"></lucide-angular>
-        </div>
-        <div>
-          <h1 class="page-title">Nhật ký hoạt động</h1>
-          <p class="page-subtitle">Kiểm toán, giám sát và lưu trữ toàn bộ lịch sử thao tác hệ thống theo thời gian thực</p>
-        </div>
-      </div>
+<div style="display: flex; flex-direction: column; gap: 24px; position: relative;"
+     [style.pointer-events]="isLoading ? 'none' : 'auto'"
+     [style.user-select]="isLoading ? 'none' : 'auto'"
+     [style.cursor]="isLoading ? 'wait' : 'default'">
+
+  <!-- 1. TIÊU ĐỀ TRANG VÀ CÁC NÚT THAO TÁC NGANG HÀNG -->
+  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+    <div>
+      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Nhật ký hoạt động</h1>
+      <p style="color: var(--text-secondary); font-size: 14px;">Kiểm toán, giám sát và lưu trữ toàn bộ lịch sử thao tác hệ thống theo thời gian thực.</p>
     </div>
 
-    <div class="header-actions">
+    <!-- Nút Làm mới & Xuất CSV nằm ngang hàng với tiêu đề -->
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
       <button 
         type="button" 
-        class="btn-secondary" 
+        class="activity-header-btn-secondary" 
         (click)="loadAuditLogs()" 
         [disabled]="isLoading" 
         title="Làm mới dữ liệu">
-        <lucide-angular [img]="icons.RefreshCw" size="16" [class.spinning]="isLoading"></lucide-angular>
+        <lucide-angular [img]="icons.RefreshCw" size="15" [class.spinning]="isLoading"></lucide-angular>
         <span>Làm mới</span>
       </button>
 
       <button 
         type="button" 
-        class="btn-export" 
+        class="activity-header-btn-primary" 
         (click)="exportToCsv()" 
         [disabled]="logs.length === 0"
         title="Xuất danh sách ra file CSV">
-        <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
+        <lucide-angular [img]="icons.Download" size="15"></lucide-angular>
         <span>Xuất CSV</span>
       </button>
     </div>
-  </header>
+  </div>
 
-  <!-- KPI SUMMARY CARDS -->
-  <section class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-icon-wrapper bg-blue-soft">
-        <lucide-angular [img]="icons.Layers" size="20" class="text-blue"></lucide-angular>
+  <!-- 2. CÁC THẺ THỐNG KÊ (KPI SUMMARY CARDS) CHUẨN GIAO DIỆN QUẢN LÝ TỒN KHO -->
+  <div class="activity-kpi-grid">
+    <!-- Stat 1: Tổng số sự kiện (Xem tất cả) -->
+    <div 
+      (click)="resetAllFilters()"
+      [style.borderColor]="filters.severity === 'ALL' && filters.datePreset === 'ALL' ? 'var(--accent)' : 'var(--border-color)'"
+      [style.boxShadow]="filters.severity === 'ALL' && filters.datePreset === 'ALL' ? '0 0 0 2px rgba(118, 83, 55, 0.25)' : 'none'"
+      class="activity-stat-card"
+      style="background: var(--bg-primary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để xem tất cả nhật ký sự kiện"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.Layers" size="20" color="var(--accent)"></lucide-angular>
       </div>
-      <div class="kpi-info">
-        <span class="kpi-label">Tổng số sự kiện</span>
-        <span class="kpi-value">{{ stats.totalLogs | number }}</span>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Tổng sự kiện</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ stats.totalLogs | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Toàn bộ hệ thống</div>
       </div>
     </div>
 
-    <div class="kpi-card">
-      <div class="kpi-icon-wrapper bg-emerald-soft">
-        <lucide-angular [img]="icons.CheckCircle" size="20" class="text-emerald"></lucide-angular>
+    <!-- Stat 2: Sự kiện hôm nay -->
+    <div 
+      (click)="selectDatePreset('TODAY')"
+      [style.borderColor]="filters.datePreset === 'TODAY' ? '#22c55e' : 'var(--border-color)'"
+      [style.boxShadow]="filters.datePreset === 'TODAY' ? '0 0 0 2px rgba(34, 197, 94, 0.4)' : 'none'"
+      class="activity-stat-card"
+      style="background: rgba(34, 197, 94, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để lọc sự kiện phát sinh hôm nay"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.Clock" size="20" color="rgb(34, 197, 94)"></lucide-angular>
       </div>
-      <div class="kpi-info">
-        <span class="kpi-label">Sự kiện hôm nay</span>
-        <span class="kpi-value">{{ stats.todayLogs | number }}</span>
-      </div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-icon-wrapper bg-amber-soft">
-        <lucide-angular [img]="icons.AlertTriangle" size="20" class="text-amber"></lucide-angular>
-      </div>
-      <div class="kpi-info">
-        <span class="kpi-label">Cảnh báo (Warning)</span>
-        <span class="kpi-value text-amber-val">{{ stats.warningLogs | number }}</span>
-      </div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-icon-wrapper bg-rose-soft">
-        <lucide-angular [img]="icons.ShieldAlert" size="20" class="text-rose"></lucide-angular>
-      </div>
-      <div class="kpi-info">
-        <span class="kpi-label">Nguy hiểm (Critical)</span>
-        <span class="kpi-value text-rose-val">{{ stats.criticalLogs | number }}</span>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Hôm nay</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ stats.todayLogs | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Trong 24 giờ qua</div>
       </div>
     </div>
 
-    <div class="kpi-card">
-      <div class="kpi-icon-wrapper bg-purple-soft">
-        <lucide-angular [img]="icons.Users" size="20" class="text-purple"></lucide-angular>
+    <!-- Stat 3: Cảnh báo (Warning) -->
+    <div 
+      (click)="onCardSeverityFilter('WARNING')"
+      [style.borderColor]="filters.severity === 'WARNING' ? '#eab308' : 'var(--border-color)'"
+      [style.boxShadow]="filters.severity === 'WARNING' ? '0 0 0 2px rgba(234, 179, 8, 0.45)' : 'none'"
+      class="activity-stat-card"
+      style="background: rgba(234, 179, 8, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để lọc sự kiện Cảnh báo (Warning)"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.AlertTriangle" size="20" color="rgb(234, 179, 8)"></lucide-angular>
       </div>
-      <div class="kpi-info">
-        <span class="kpi-label">Nhân sự thực hiện</span>
-        <span class="kpi-value">{{ stats.activeActors | number }}</span>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Cảnh báo</div>
+        <div style="font-size: 24px; font-weight: 700; color: #d97706;">{{ stats.warningLogs | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Cần kiểm tra</div>
       </div>
     </div>
-  </section>
 
-  <!-- FILTER CONTROLS SECTION -->
-  <section class="filter-card">
-    <!-- A. BỘ LỌC CƠ BẢN (Hiển thị sẵn trên thanh Filter) -->
-    <div class="basic-filter-bar">
-      <!-- 1. Search Bar -->
-      <div class="search-input-wrapper">
-        <lucide-angular [img]="icons.Search" size="18" class="search-icon"></lucide-angular>
-        <input 
-          type="text" 
-          class="search-input" 
-          placeholder="Tìm theo: Mã đơn, SKU, Phiếu kho, Tên nhân viên, Email, Mã log..."
-          [ngModel]="filters.search"
-          (ngModelChange)="onSearchInput($event)"
-          (keyup.enter)="loadAuditLogs()"
-        />
-        <button 
-          *ngIf="filters.search" 
-          type="button" 
-          class="btn-clear-search" 
-          (click)="clearSearch()" 
-          title="Xóa tìm kiếm">
-          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
-        </button>
+    <!-- Stat 4: Nguy hiểm (Critical) -->
+    <div 
+      (click)="onCardSeverityFilter('CRITICAL')"
+      [style.borderColor]="filters.severity === 'CRITICAL' ? '#ef4444' : 'var(--border-color)'"
+      [style.boxShadow]="filters.severity === 'CRITICAL' ? '0 0 0 2px rgba(239, 68, 68, 0.4)' : 'none'"
+      class="activity-stat-card"
+      style="background: rgba(239, 68, 68, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để lọc sự kiện Nguy hiểm (Critical)"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.ShieldAlert" size="20" color="rgb(239, 68, 68)"></lucide-angular>
       </div>
-
-      <!-- 2. Date Range Picker Dropdown -->
-      <div class="filter-dropdown-wrapper date-dropdown-wrapper">
-        <button 
-          type="button" 
-          class="filter-trigger-btn" 
-          [class.active]="filters.datePreset !== 'ALL'"
-          [class.dropdown-open]="showDateDropdown"
-          (click)="toggleDateDropdown()">
-          <lucide-angular [img]="icons.Calendar" size="16" class="trigger-icon"></lucide-angular>
-          <span class="trigger-label">{{ getDateFilterLabel() }}</span>
-          <lucide-angular [img]="icons.ChevronDown" size="14" class="chevron-icon"></lucide-angular>
-        </button>
-
-        <!-- Date Popup Menu -->
-        <div class="filter-menu-dropdown date-menu-dropdown" *ngIf="showDateDropdown">
-          <div class="date-menu-header">Chọn khoảng thời gian</div>
-          <div class="preset-buttons-grid">
-            <button 
-              type="button" 
-              class="btn-preset" 
-              [class.active]="filters.datePreset === 'ALL'"
-              (click)="selectDatePreset('ALL')">
-              Tất cả
-            </button>
-            <button 
-              type="button" 
-              class="btn-preset" 
-              [class.active]="filters.datePreset === 'TODAY'"
-              (click)="selectDatePreset('TODAY')">
-              Hôm nay
-            </button>
-            <button 
-              type="button" 
-              class="btn-preset" 
-              [class.active]="filters.datePreset === 'LAST_7_DAYS'"
-              (click)="selectDatePreset('LAST_7_DAYS')">
-              7 ngày qua
-            </button>
-            <button 
-              type="button" 
-              class="btn-preset" 
-              [class.active]="filters.datePreset === 'LAST_30_DAYS'"
-              (click)="selectDatePreset('LAST_30_DAYS')">
-              30 ngày qua
-            </button>
-            <button 
-              type="button" 
-              class="btn-preset" 
-              [class.active]="filters.datePreset === 'THIS_MONTH'"
-              (click)="selectDatePreset('THIS_MONTH')">
-              Tháng này
-            </button>
-          </div>
-
-          <div class="date-custom-section">
-            <div class="custom-title">Hoặc chọn khoảng ngày tự do:</div>
-            <div class="date-inputs-row">
-              <div class="date-field">
-                <label>Từ ngày</label>
-                <input type="date" [(ngModel)]="customStartDate" />
-              </div>
-              <div class="date-field">
-                <label>Đến ngày</label>
-                <input type="date" [(ngModel)]="customEndDate" />
-              </div>
-            </div>
-            <div class="date-actions">
-              <button 
-                type="button" 
-                class="btn-apply-date" 
-                [disabled]="!customStartDate && !customEndDate"
-                (click)="applyCustomDate()">
-                Áp dụng ngày
-              </button>
-            </div>
-          </div>
-        </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Nguy hiểm</div>
+        <div style="font-size: 24px; font-weight: 700; color: #dc2626;">{{ stats.criticalLogs | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Rủi ro hệ thống</div>
       </div>
+    </div>
 
-      <!-- 3. Module Dropdown -->
-      <div class="filter-dropdown-wrapper module-dropdown-wrapper">
-        <button 
-          type="button" 
-          class="filter-trigger-btn" 
-          [class.active]="filters.module !== 'ALL'"
-          [class.dropdown-open]="showModuleDropdown"
-          (click)="toggleModuleDropdown()">
-          <lucide-angular [img]="icons.Layers" size="16" class="trigger-icon"></lucide-angular>
-          <span class="trigger-label">{{ getSelectedModuleLabel() }}</span>
-          <lucide-angular [img]="icons.ChevronDown" size="14" class="chevron-icon"></lucide-angular>
-        </button>
-
-        <!-- Module Popup Menu -->
-        <div class="filter-menu-dropdown module-menu-dropdown" *ngIf="showModuleDropdown">
-          <div class="dropdown-header-title">Chọn phân hệ nghiệp vụ</div>
-          <div class="dropdown-options-list">
-            <button 
-              type="button" 
-              class="dropdown-option-item" 
-              *ngFor="let mod of MODULE_OPTIONS"
-              [class.selected]="filters.module === mod.key"
-              (click)="selectModule(mod.key)">
-              <div class="option-content">
-                <lucide-angular [img]="getModuleIcon(mod.key)" size="16" class="option-icon"></lucide-angular>
-                <span class="option-text">{{ mod.label }}</span>
-              </div>
-              <lucide-angular *ngIf="filters.module === mod.key" [img]="icons.Check" size="16" class="selected-check"></lucide-angular>
-            </button>
-          </div>
-        </div>
+    <!-- Stat 5: Nhân sự thực hiện -->
+    <div 
+      (click)="toggleAdvancedFilters()"
+      [style.borderColor]="filters.role !== 'ALL' || filters.staffName.trim() ? '#8b5cf6' : 'var(--border-color)'"
+      [style.boxShadow]="filters.role !== 'ALL' || filters.staffName.trim() ? '0 0 0 2px rgba(139, 92, 246, 0.4)' : 'none'"
+      class="activity-stat-card"
+      style="background: rgba(139, 92, 246, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để lọc theo tài khoản / nhân sự thực hiện"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.Users" size="20" color="rgb(139, 92, 246)"></lucide-angular>
       </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Nhân sự</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ stats.activeActors | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Đã thực hiện thao tác</div>
+      </div>
+    </div>
+  </div>
 
-      <!-- 4. Advanced Filters Trigger Button -->
+  <!-- 3. BỘ LỌC & THANH TÌM KIẾM (TOOLBAR) CHUẨN GIAO DIỆN QUẢN LÝ TỒN KHO -->
+  <div class="inventory-filters-toolbar">
+    <!-- 3.1 Thanh tìm kiếm tức thời -->
+    <div class="filter-search-box">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        class="filter-search-input" 
+        placeholder="Tìm theo mã sự kiện, người thực hiện, đối tượng tác động, email..."
+        [ngModel]="filters.search"
+        (ngModelChange)="onSearchInput($event)"
+        (keyup.enter)="loadAuditLogs()"
+      />
+      <button *ngIf="filters.search" (click)="clearSearch()" class="search-clear-btn" title="Xóa tìm kiếm">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- 3.2 Dropdown Thời gian -->
+    <div class="filter-dropdown-wrapper date-dropdown-wrapper">
       <button 
         type="button" 
-        class="btn-advanced-toggle" 
-        [class.active]="showAdvancedFilters || activeAdvancedFilterCount > 0"
-        (click)="toggleAdvancedFilters()">
-        <lucide-angular [img]="icons.SlidersHorizontal" size="16"></lucide-angular>
+        class="filter-trigger-btn" 
+        [class.active]="filters.datePreset !== 'ALL'"
+        (click)="toggleDateDropdown(); showModuleDropdown = false"
+        title="Chọn khoảng thời gian">
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ getDateFilterLabel() }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showDateDropdown ? 'rotate(180deg)' : 'none'" [style.transition]="'transform 0.2s'"></lucide-angular>
+      </button>
+
+      <!-- Date Popup Menu -->
+      <div class="filter-menu-dropdown date-menu-dropdown" *ngIf="showDateDropdown">
+        <div class="dropdown-header-title">Khoảng thời gian</div>
+        <div class="preset-buttons-grid">
+          <button type="button" class="btn-preset" [class.active]="filters.datePreset === 'ALL'" (click)="selectDatePreset('ALL')">Tất cả</button>
+          <button type="button" class="btn-preset" [class.active]="filters.datePreset === 'TODAY'" (click)="selectDatePreset('TODAY')">Hôm nay</button>
+          <button type="button" class="btn-preset" [class.active]="filters.datePreset === 'LAST_7_DAYS'" (click)="selectDatePreset('LAST_7_DAYS')">7 ngày qua</button>
+          <button type="button" class="btn-preset" [class.active]="filters.datePreset === 'LAST_30_DAYS'" (click)="selectDatePreset('LAST_30_DAYS')">30 ngày qua</button>
+          <button type="button" class="btn-preset" [class.active]="filters.datePreset === 'THIS_MONTH'" (click)="selectDatePreset('THIS_MONTH')">Tháng này</button>
+        </div>
+
+        <div class="date-custom-section">
+          <div class="custom-title">Hoặc chọn khoảng ngày:</div>
+          <div class="date-inputs-row">
+            <div class="date-field">
+              <label>Từ ngày</label>
+              <input type="date" [(ngModel)]="customStartDate" />
+            </div>
+            <div class="date-field">
+              <label>Đến ngày</label>
+              <input type="date" [(ngModel)]="customEndDate" />
+            </div>
+          </div>
+          <div class="date-actions">
+            <button 
+              type="button" 
+              class="btn-apply-date" 
+              [disabled]="!customStartDate && !customEndDate"
+              (click)="applyCustomDate()">
+              Áp dụng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.3 Dropdown Phân hệ / Nghiệp vụ -->
+    <div class="filter-dropdown-wrapper module-dropdown-wrapper">
+      <button 
+        type="button" 
+        class="filter-trigger-btn" 
+        [class.active]="filters.module !== 'ALL'"
+        (click)="toggleModuleDropdown(); showDateDropdown = false"
+        title="Chọn phân hệ">
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ getSelectedModuleLabel() }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showModuleDropdown ? 'rotate(180deg)' : 'none'" [style.transition]="'transform 0.2s'"></lucide-angular>
+      </button>
+
+      <!-- Module Popup Menu -->
+      <div class="filter-menu-dropdown module-menu-dropdown" *ngIf="showModuleDropdown">
+        <div class="dropdown-header-title">Chọn phân hệ nghiệp vụ</div>
+        <div class="cat-menu-body">
+          <div 
+            *ngFor="let mod of MODULE_OPTIONS"
+            (click)="selectModule(mod.key)"
+            class="filter-menu-item"
+            [class.selected]="filters.module === mod.key"
+          >
+            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+              <lucide-angular [img]="getModuleIcon(mod.key)" size="15" style="flex-shrink: 0;"></lucide-angular>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ mod.label }}</span>
+            </div>
+            <lucide-angular *ngIf="filters.module === mod.key" [img]="icons.Check" size="14" style="color: var(--accent); flex-shrink: 0;"></lucide-angular>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.4 Nút Lọc nâng cao -->
+    <button 
+      type="button" 
+      class="filter-trigger-btn advanced-filter-btn" 
+      [class.active]="showAdvancedFilters || activeAdvancedFilterCount > 0"
+      (click)="toggleAdvancedFilters()"
+      title="Mở bộ lọc nâng cao">
+      <div class="trigger-label">
+        <lucide-angular [img]="icons.SlidersHorizontal" size="15" class="trigger-icon"></lucide-angular>
         <span>Lọc nâng cao</span>
-        <span *ngIf="activeAdvancedFilterCount > 0" class="filter-count-badge">
+        <span *ngIf="activeAdvancedFilterCount > 0" class="advanced-filter-count-badge">
           {{ activeAdvancedFilterCount }}
         </span>
-      </button>
+      </div>
+    </button>
 
-      <!-- 5. Reset All Filters Button -->
-      <button 
-        type="button" 
-        class="btn-reset-filter" 
-        (click)="resetAllFilters()" 
-        title="Đặt lại toàn bộ bộ lọc">
-        <lucide-angular [img]="icons.RotateCcw" size="15"></lucide-angular>
-        <span>Đặt lại</span>
+    <!-- 3.5 Nút Đặt lại tất cả bộ lọc (reset-filters-btn chuẩn Quản lý tồn kho) -->
+    <button 
+      *ngIf="hasActiveFilters" 
+      type="button" 
+      (click)="resetAllFilters()" 
+      class="reset-filters-btn" 
+      title="Đặt lại toàn bộ bộ lọc về mặc định">
+      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+      <span>Xóa bộ lọc</span>
+    </button>
+  </div>
+
+  <!-- 4. KHỐI TIÊU CHÍ LỌC NÂNG CAO (HIỂN THỊ KHI BẤM NÚT LỌC NÂNG CAO) -->
+  <div class="advanced-filter-panel" *ngIf="showAdvancedFilters">
+    <div class="panel-header">
+      <div class="panel-title-group">
+        <lucide-angular [img]="icons.Filter" size="16" style="color: var(--accent);"></lucide-angular>
+        <span class="panel-title">Tiêu chí lọc nâng cao</span>
+      </div>
+      <button type="button" class="admin-close-btn" (click)="showAdvancedFilters = false" title="Đóng bảng lọc">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
       </button>
     </div>
 
-    <!-- B. BỘ LỌC NÂNG CAO (Advanced Filters Panel) -->
-    <div class="advanced-filter-panel" *ngIf="showAdvancedFilters">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <lucide-angular [img]="icons.Filter" size="16"></lucide-angular>
-          <span class="panel-title">Tiêu chí lọc nâng cao</span>
+    <div class="advanced-grid">
+      <!-- 4.1 Loại hành động (Action Type) -->
+      <div class="advanced-field-group">
+        <label class="group-label">Loại hành động (Action Type)</label>
+        <div class="chips-selector">
+          <button 
+            type="button" 
+            class="chip-btn" 
+            *ngFor="let act of ACTION_OPTIONS"
+            [class.active]="filters.actionType === act.key"
+            (click)="filters.actionType = act.key">
+            {{ act.label }}
+          </button>
         </div>
-        <button type="button" class="btn-close-panel" (click)="showAdvancedFilters = false">
-          <lucide-angular [img]="icons.X" size="16"></lucide-angular>
-        </button>
       </div>
 
-      <div class="advanced-grid">
-        <!-- 1. Loại hành động (Action Type) -->
-        <div class="advanced-field-group">
-          <label class="group-label">Loại hành động (Action Type)</label>
-          <div class="chips-selector">
-            <button 
-              type="button" 
-              class="chip-btn" 
-              *ngFor="let act of ACTION_OPTIONS"
-              [class.active]="filters.actionType === act.key"
-              (click)="filters.actionType = act.key">
-              {{ act.label }}
-            </button>
+      <!-- 4.2 Người thực hiện (User / Role) -->
+      <div class="advanced-field-group">
+        <label class="group-label">Người thực hiện (User / Role)</label>
+        <div class="actor-filter-row">
+          <div class="select-wrapper">
+            <label class="sub-label">Vai trò (Role)</label>
+            <select class="custom-select" [(ngModel)]="filters.role">
+              <option *ngFor="let role of ROLE_OPTIONS" [value]="role.key">
+                {{ role.label }}
+              </option>
+            </select>
           </div>
-        </div>
 
-        <!-- 2. Người thực hiện (User / Role) -->
-        <div class="advanced-field-group">
-          <label class="group-label">Người thực hiện (User / Role)</label>
-          <div class="actor-filter-row">
-            <div class="select-wrapper">
-              <label class="sub-label">Vai trò (Role)</label>
-              <select class="custom-select" [(ngModel)]="filters.role">
-                <option *ngFor="let role of ROLE_OPTIONS" [value]="role.key">
-                  {{ role.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="input-wrapper">
-              <label class="sub-label">Tên nhân viên cụ thể</label>
-              <div class="input-with-icon">
-                <lucide-angular [img]="icons.User" size="16" class="input-icon"></lucide-angular>
-                <input 
-                  type="text" 
-                  class="custom-input" 
-                  placeholder="Ví dụ: Nguyễn Văn A..." 
-                  [(ngModel)]="filters.staffName"
-                  (keyup.enter)="applyAdvancedFilters()"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. Mức độ nghiêm trọng (Severity Level) -->
-        <div class="advanced-field-group">
-          <label class="group-label">Mức độ nghiêm trọng / Loại Log (Severity Level)</label>
-          <div class="severity-cards-grid">
-            <div 
-              class="severity-option-card" 
-              *ngFor="let sev of SEVERITY_OPTIONS"
-              [class.active]="filters.severity === sev.key"
-              (click)="filters.severity = sev.key">
-              <div class="card-radio">
-                <div class="radio-indicator" [class.checked]="filters.severity === sev.key"></div>
-              </div>
-              <div class="card-details">
-                <span class="card-name" [ngClass]="sev.badgeClass">{{ sev.label }}</span>
-                <span *ngIf="sev.desc" class="card-desc">{{ sev.desc }}</span>
-              </div>
+          <div class="input-wrapper">
+            <label class="sub-label">Tên nhân viên cụ thể</label>
+            <div class="input-with-icon">
+              <lucide-angular [img]="icons.User" size="15" class="input-icon"></lucide-angular>
+              <input 
+                type="text" 
+                class="custom-input" 
+                placeholder="Ví dụ: Nguyễn Văn A..." 
+                [(ngModel)]="filters.staffName"
+                (keyup.enter)="applyAdvancedFilters()"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      <div class="panel-actions">
-        <div class="active-count-text" *ngIf="activeAdvancedFilterCount > 0">
+      <!-- 4.3 Mức độ nghiêm trọng (Severity Level) -->
+      <div class="advanced-field-group">
+        <label class="group-label">Mức độ nghiêm trọng (Severity Level)</label>
+        <div class="severity-cards-grid">
+          <div 
+            class="severity-option-card" 
+            *ngFor="let sev of SEVERITY_OPTIONS"
+            [class.active]="filters.severity === sev.key"
+            (click)="filters.severity = sev.key">
+            <div class="card-radio">
+              <div class="radio-indicator" [class.checked]="filters.severity === sev.key"></div>
+            </div>
+            <div class="card-details">
+              <span class="card-name" [ngClass]="sev.badgeClass">{{ sev.label }}</span>
+              <span *ngIf="sev.desc" class="card-desc">{{ sev.desc }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-actions">
+      <div class="active-count-text">
+        <span *ngIf="activeAdvancedFilterCount > 0">
           Đang áp dụng <strong>{{ activeAdvancedFilterCount }}</strong> tiêu chí nâng cao
-        </div>
-        <div class="action-buttons-group">
-          <button type="button" class="btn-cancel" (click)="showAdvancedFilters = false">Đóng</button>
-          <button type="button" class="btn-primary" (click)="applyAdvancedFilters()">Áp dụng bộ lọc</button>
-        </div>
+        </span>
+      </div>
+      <div class="action-buttons-group">
+        <button type="button" class="btn-cancel" (click)="showAdvancedFilters = false">Đóng</button>
+        <button type="button" class="btn-primary" (click)="applyAdvancedFilters()">Áp dụng bộ lọc</button>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- TABLE SECTION -->
-  <section class="table-card">
-    <div class="table-top-bar">
-      <div class="table-info">
-        <span class="table-info-title">Danh sách Nhật ký</span>
-        <span class="table-info-count">({{ pagination.total | number }} sự kiện)</span>
+  <!-- 5. BẢNG DỮ LIỆU NHẬT KÝ KIỂM TOÁN (DATA TABLE) CHUẨN GIAO DIỆN QUẢN LÝ TỒN KHO -->
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
+    
+    <!-- Thanh thông tin đầu bảng -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-primary); border-top-left-radius: 11px; border-top-right-radius: 11px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Danh sách Nhật ký kiểm toán</span>
+        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">({{ pagination.total | number }} sự kiện)</span>
       </div>
 
-      <div class="table-tools">
-        <div class="limit-selector">
-          <span>Hiển thị:</span>
-          <select [ngModel]="filters.limit" (ngModelChange)="onLimitChange($event)">
-            <option [value]="10">10 dòng</option>
-            <option [value]="25">25 dòng</option>
-            <option [value]="50">50 dòng</option>
-          </select>
-        </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 12.5px; color: var(--text-secondary);">Hiển thị mỗi trang:</span>
+        <select [ngModel]="filters.limit" (ngModelChange)="onLimitChange($event)" class="table-limit-select">
+          <option [value]="10">10 dòng</option>
+          <option [value]="25">25 dòng</option>
+          <option [value]="50">50 dòng</option>
+        </select>
       </div>
     </div>
 
@@ -366,40 +391,40 @@
       <span>{{ errorMessage }}</span>
     </div>
 
-    <!-- Table Container -->
-    <div class="table-responsive">
-      <table class="audit-table">
+    <!-- Khung cuộn Table -->
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 1100px;">
         <thead>
-          <tr>
-            <th class="col-id">Mã sự kiện / ID</th>
-            <th class="col-timestamp">Thời gian</th>
-            <th class="col-actor">Người thực hiện</th>
-            <th class="col-action">Hành động</th>
-            <th class="col-module">Phân hệ</th>
-            <th class="col-target">Đối tượng tác động</th>
-            <th class="col-severity">Mức độ</th>
-            <th class="col-details text-center">Chi tiết thay đổi</th>
+          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 140px;">Mã sự kiện</th>
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 165px;">Thời gian</th>
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 220px;">Người thực hiện</th>
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 135px; text-align: center;">Hành động</th>
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 175px;">Phân hệ</th>
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Đối tượng tác động</th>
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 125px; text-align: center;">Mức độ</th>
+            <th style="padding: 16px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 125px; text-align: center;">Chi tiết</th>
           </tr>
         </thead>
         <tbody>
           <!-- Loading State Skeleton -->
           <tr *ngIf="isLoading" class="loading-row">
-            <td colspan="8" class="text-center py-8">
-              <div class="loading-spinner-box">
-                <lucide-angular [img]="icons.RefreshCw" size="24" class="spinning"></lucide-angular>
-                <span>Đang tải nhật ký kiểm toán...</span>
+            <td colspan="8" style="text-align: center; padding: 48px 16px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-secondary);">
+                <lucide-angular [img]="icons.RefreshCw" size="26" class="spinning" style="color: var(--accent);"></lucide-angular>
+                <span style="font-size: 13.5px; font-weight: 500;">Đang đồng bộ nhật ký kiểm toán...</span>
               </div>
             </td>
           </tr>
 
           <!-- Empty State -->
           <tr *ngIf="!isLoading && logs.length === 0" class="empty-row">
-            <td colspan="8" class="text-center py-12">
-              <div class="empty-box">
-                <lucide-angular [img]="icons.FileText" size="44" class="empty-icon"></lucide-angular>
-                <h3 class="empty-title">Không tìm thấy bản ghi nhật ký phù hợp</h3>
-                <p class="empty-desc">Hãy thử thay đổi điều kiện tìm kiếm, khoảng thời gian hoặc nhấn "Đặt lại bộ lọc".</p>
-                <button type="button" class="btn-primary mt-3" (click)="resetAllFilters()">
+            <td colspan="8" style="text-align: center; padding: 56px 16px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                <lucide-angular [img]="icons.FileText" size="44" style="color: var(--text-muted); opacity: 0.6; margin-bottom: 4px;"></lucide-angular>
+                <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Không tìm thấy bản ghi nhật ký phù hợp</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin: 0; max-width: 480px;">Hãy thử điều chỉnh từ khóa tìm kiếm, bộ lọc thời gian hoặc bấm "Xóa bộ lọc" để xem toàn bộ lịch sử.</p>
+                <button type="button" class="activity-header-btn-primary" style="margin-top: 12px;" (click)="resetAllFilters()">
                   <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
                   <span>Đặt lại bộ lọc</span>
                 </button>
@@ -410,28 +435,28 @@
           <!-- Data Rows -->
           <tr *ngFor="let log of logs" class="table-data-row">
             <!-- 1. Mã sự kiện / ID -->
-            <td class="col-id">
-              <div class="log-code-badge" (click)="copyLogCode(log.log_code || log.id, $event)" title="Nhấn để copy mã sự kiện">
+            <td style="padding: 14px;">
+              <div class="log-code-badge" (click)="copyLogCode(log.log_code || log.id, $event)" title="Nhấn để sao chép mã sự kiện">
                 <span class="code-text">{{ log.log_code || log.id }}</span>
                 <lucide-angular 
                   [img]="copiedLogCode === (log.log_code || log.id) ? icons.Check : icons.Copy" 
                   size="13" 
                   class="copy-icon"
-                  [class.text-emerald]="copiedLogCode === (log.log_code || log.id)">
+                  [style.color]="copiedLogCode === (log.log_code || log.id) ? '#10b981' : 'var(--text-muted)'">
                 </lucide-angular>
               </div>
             </td>
 
             <!-- 2. Thời gian (Timestamp) -->
-            <td class="col-timestamp">
+            <td style="padding: 14px;">
               <div class="timestamp-box">
                 <span class="timestamp-date">{{ formatTimestamp(log.timestamp) }}</span>
                 <span *ngIf="log.ip_address" class="ip-meta">IP: {{ log.ip_address }}</span>
               </div>
             </td>
 
-            <!-- 3. Người thực hiện (User/Actor) -->
-            <td class="col-actor">
+            <!-- 3. Người thực hiện (Actor) -->
+            <td style="padding: 14px;">
               <div class="actor-cell">
                 <div class="actor-avatar" [class.bg-avatar-admin]="log.actor_role === 'ADMIN'">
                   {{ getActorInitial(log.actor_name) }}
@@ -442,23 +467,23 @@
                   </div>
                   <div class="actor-sub">
                     <span class="role-badge" [ngClass]="getActorRoleBadgeClass(log.actor_role)">
-                      Role: {{ getRoleLabel(log.actor_role) }}
+                      {{ getRoleLabel(log.actor_role) }}
                     </span>
-                    <span *ngIf="log.actor_id" class="actor-id-badge">- ID: {{ log.actor_id }}</span>
+                    <span *ngIf="log.actor_id" class="actor-id-badge">ID: {{ log.actor_id }}</span>
                   </div>
                 </div>
               </div>
             </td>
 
             <!-- 4. Hành động (Action) -->
-            <td class="col-action">
+            <td style="padding: 14px; text-align: center;">
               <span class="action-badge" [ngClass]="getActionBadgeClass(log.action)">
                 {{ log.action_label || log.action }}
               </span>
             </td>
 
-            <!-- 5. Phân khu / Phân hệ (Module) -->
-            <td class="col-module">
+            <!-- 5. Phân hệ (Module) -->
+            <td style="padding: 14px;">
               <div class="module-tag">
                 <lucide-angular [img]="getModuleIcon(log.module)" size="14" class="module-icon"></lucide-angular>
                 <span>{{ log.module_label || log.module }}</span>
@@ -466,7 +491,7 @@
             </td>
 
             <!-- 6. Đối tượng tác động (Target / Entity) -->
-            <td class="col-target">
+            <td style="padding: 14px;">
               <div class="target-cell">
                 <div class="target-name" [title]="log.target_name || log.target_id || ''">
                   {{ log.target_name || log.target_id || 'Hệ thống' }}
@@ -478,7 +503,7 @@
             </td>
 
             <!-- 7. Mức độ (Severity) -->
-            <td class="col-severity">
+            <td style="padding: 14px; text-align: center;">
               <span class="severity-badge" [ngClass]="getSeverityBadgeClass(log.severity)">
                 <span class="severity-dot"></span>
                 <span>{{ log.severity }}</span>
@@ -486,14 +511,14 @@
             </td>
 
             <!-- 8. Chi tiết thay đổi (Change Details) -->
-            <td class="col-details text-center">
+            <td style="padding: 14px; text-align: center;">
               <button 
                 type="button" 
                 class="btn-view-detail" 
                 (click)="openDetailModal(log)" 
                 title="Xem chi tiết thay đổi giá trị Trước và Sau">
                 <lucide-angular [img]="icons.Eye" size="14"></lucide-angular>
-                <span>Xem chi tiết</span>
+                <span>Chi tiết</span>
               </button>
             </td>
           </tr>
@@ -501,31 +526,32 @@
       </table>
     </div>
 
-    <!-- PAGINATION FOOTER -->
-    <div class="pagination-footer" *ngIf="!isLoading && pagination.total > 0">
-      <div class="pagination-summary">
+    <!-- 6. PHÂN TRANG (PAGINATION FOOTER) CHUẨN GIAO DIỆN QUẢN LÝ TỒN KHO -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 14px; background: var(--bg-primary); border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+      <div style="font-size: 13px; color: var(--text-secondary);">
         Hiển thị 
-        <strong>{{ (pagination.page - 1) * pagination.limit + 1 }}</strong>
+        <strong>{{ pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0 }}</strong>
         đến 
         <strong>{{ (pagination.page * pagination.limit) > pagination.total ? pagination.total : (pagination.page * pagination.limit) }}</strong>
         trên tổng số 
         <strong>{{ pagination.total | number }}</strong> sự kiện
       </div>
 
-      <div class="pagination-controls">
+      <div style="display: flex; align-items: center; gap: 6px;">
         <button 
           type="button" 
-          class="page-nav-btn" 
+          class="admin-pagination-btn" 
+          [class.disabled]="pagination.page <= 1"
           [disabled]="pagination.page <= 1"
           (click)="goToPage(pagination.page - 1)" 
           title="Trang trước">
-          <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
+          <lucide-angular [img]="icons.ChevronLeft" size="14"></lucide-angular>
         </button>
 
-        <div class="page-numbers-list">
+        <div style="display: flex; align-items: center; gap: 4px;">
           <button 
             type="button" 
-            class="page-num-btn" 
+            class="admin-pagination-btn" 
             *ngFor="let p of pagesArray"
             [class.active]="p === pagination.page"
             (click)="goToPage(p)">
@@ -535,17 +561,18 @@
 
         <button 
           type="button" 
-          class="page-nav-btn" 
+          class="admin-pagination-btn" 
+          [class.disabled]="pagination.page >= pagination.totalPages"
           [disabled]="pagination.page >= pagination.totalPages"
           (click)="goToPage(pagination.page + 1)" 
           title="Trang sau">
-          <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+          <lucide-angular [img]="icons.ChevronRight" size="14"></lucide-angular>
         </button>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- MODAL XEM CHI TIẾT THAY ĐỔI (Old Value vs New Value Diff Modal) -->
+  <!-- 7. MODAL XEM CHI TIẾT THAY ĐỔI (OLD VALUE VS NEW VALUE DIFF MODAL) -->
   <div class="modal-backdrop" *ngIf="showDetailModal" (click)="closeDetailModal()">
     <div class="modal-dialog-audit" (click)="$event.stopPropagation()">
       <!-- Modal Header -->
@@ -567,8 +594,9 @@
           </div>
         </div>
 
-        <button type="button" class="btn-close-modal" (click)="closeDetailModal()">
-          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        <!-- Nút đóng [x] chuẩn .admin-close-btn -->
+        <button type="button" class="admin-close-btn" (click)="closeDetailModal()" title="Đóng">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
 
@@ -676,7 +704,7 @@
               </tbody>
             </table>
 
-            <!-- Trường hợp không có payload thay đổi (ví dụ login/logout) -->
+            <!-- Trường hợp không có payload thay đổi -->
             <div *ngIf="!selectedLog.old_value && !selectedLog.new_value" class="diff-empty-notice">
               <lucide-angular [img]="icons.Info" size="20" class="text-blue"></lucide-angular>
               <div class="notice-content">

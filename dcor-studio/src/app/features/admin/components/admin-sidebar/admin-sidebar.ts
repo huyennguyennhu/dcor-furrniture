@@ -152,7 +152,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
     {
       title: 'Nhật ký hoạt động',
       icon: 'ClipboardList',
-      href: '/admin/activity',
+      href: '/admin/audit-log',
       module: 'settings'
     }
   ];

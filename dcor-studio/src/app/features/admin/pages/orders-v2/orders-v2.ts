@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -8,8 +8,9 @@ import {
   Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck, 
   Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, 
   ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-  Building2, CreditCard, AlertCircle, RotateCcw, Box
+  Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown
 } from 'lucide-angular';
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { OrdersV2Service } from './services/orders-v2.service';
 import { 
   OrderV2, AdminOrderStatus, PaymentStatus, UserStatusView, 
@@ -21,7 +22,7 @@ export type KpiTab = 'ALL' | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'READY_TO_
 @Component({
   selector: 'app-orders-v2',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, IconComponent],
   templateUrl: './orders-v2.html',
   styleUrls: ['./orders-v2.css']
 })
@@ -30,7 +31,7 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck,
     Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft,
     ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-    Building2, CreditCard, AlertCircle, RotateCcw, Box
+    Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown
   };
 
   orders: OrderV2[] = [];
@@ -43,6 +44,75 @@ export class OrdersV2Component implements OnInit, OnDestroy {
   selectedPayment = 'ALL';
   selectedStatus = 'ALL';
   sortBy: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc' = 'date-desc';
+
+  // Dropdowns UI State
+  showShowroomDropdown = false;
+  showPaymentDropdown = false;
+  showSortDropdown = false;
+
+  readonly SORT_OPTIONS: { value: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc'; label: string }[] = [
+    { value: 'date-desc', label: 'Mới nhất trước' },
+    { value: 'date-asc', label: 'Cũ nhất trước' },
+    { value: 'total-desc', label: 'Giá trị cao nhất' },
+    { value: 'total-asc', label: 'Giá trị thấp nhất' }
+  ];
+
+  get selectedShowroomLabel(): string {
+    const found = this.SHOWROOMS.find(s => (s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name) === this.selectedShowroom);
+    return found ? found.name : 'Tất cả chi nhánh';
+  }
+
+  get selectedPaymentLabel(): string {
+    const found = this.PAYMENT_STATUSES.find(p => p.id === this.selectedPayment);
+    return found ? found.name : 'Tất cả thanh toán';
+  }
+
+  get selectedSortLabel(): string {
+    const found = this.SORT_OPTIONS.find(s => s.value === this.sortBy);
+    return found ? found.label : 'Mới nhất trước';
+  }
+
+  toggleDropdown(type: 'showroom' | 'payment' | 'sort', event: MouseEvent) {
+    event.stopPropagation();
+    if (type === 'showroom') {
+      this.showShowroomDropdown = !this.showShowroomDropdown;
+      this.showPaymentDropdown = false;
+      this.showSortDropdown = false;
+    } else if (type === 'payment') {
+      this.showPaymentDropdown = !this.showPaymentDropdown;
+      this.showShowroomDropdown = false;
+      this.showSortDropdown = false;
+    } else if (type === 'sort') {
+      this.showSortDropdown = !this.showSortDropdown;
+      this.showShowroomDropdown = false;
+      this.showPaymentDropdown = false;
+    }
+  }
+
+  setShowroom(name: string) {
+    this.selectedShowroom = name;
+    this.currentPage = 1;
+    this.showShowroomDropdown = false;
+  }
+
+  setPayment(id: string) {
+    this.selectedPayment = id;
+    this.currentPage = 1;
+    this.showPaymentDropdown = false;
+  }
+
+  setSort(val: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc') {
+    this.sortBy = val;
+    this.currentPage = 1;
+    this.showSortDropdown = false;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.showShowroomDropdown = false;
+    this.showPaymentDropdown = false;
+    this.showSortDropdown = false;
+  }
 
   // Pagination
   currentPage = 1;

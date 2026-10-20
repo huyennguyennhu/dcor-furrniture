@@ -168,32 +168,82 @@
     </div>
 
     <div class="v2-filter-group">
-      <!-- Showroom Filter -->
-      <div class="v2-select-wrapper">
-        <select [(ngModel)]="selectedShowroom" (change)="currentPage = 1">
-          <option *ngFor="let s of SHOWROOMS" [value]="s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name">
-            {{ s.name }}
-          </option>
-        </select>
+      <!-- 1. Dropdown Showroom -->
+      <div class="filter-dropdown-wrapper showroom-filter-wrapper">
+        <button 
+          type="button" 
+          title="Chọn showroom / chi nhánh" 
+          class="filter-trigger-btn"
+          [class.active]="selectedShowroom !== 'ALL'"
+          (click)="toggleDropdown('showroom', $event)"
+        >
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.MapPin" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedShowroomLabel }}</span>
+          </div>
+          <app-icon name="ChevronDown" size="14" [style.transform]="showShowroomDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+        </button>
+        <div *ngIf="showShowroomDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let s of SHOWROOMS" 
+               (click)="setShowroom(s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name)" 
+               class="filter-menu-item" 
+               [class.selected]="selectedShowroom === (s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name)">
+            <span>{{ s.name }}</span>
+            <lucide-angular *ngIf="selectedShowroom === (s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name)" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </div>
       </div>
 
-      <!-- Payment Status Filter -->
-      <div class="v2-select-wrapper">
-        <select [(ngModel)]="selectedPayment" (change)="currentPage = 1">
-          <option *ngFor="let p of PAYMENT_STATUSES" [value]="p.id">
-            {{ p.name }}
-          </option>
-        </select>
+      <!-- 2. Dropdown Thanh toán -->
+      <div class="filter-dropdown-wrapper payment-filter-wrapper">
+        <button 
+          type="button" 
+          title="Chọn hình thức / trạng thái thanh toán" 
+          class="filter-trigger-btn"
+          [class.active]="selectedPayment !== 'ALL'"
+          (click)="toggleDropdown('payment', $event)"
+        >
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.CreditCard" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedPaymentLabel }}</span>
+          </div>
+          <app-icon name="ChevronDown" size="14" [style.transform]="showPaymentDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+        </button>
+        <div *ngIf="showPaymentDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let p of PAYMENT_STATUSES" 
+               (click)="setPayment(p.id)" 
+               class="filter-menu-item" 
+               [class.selected]="selectedPayment === p.id">
+            <span>{{ p.name }}</span>
+            <lucide-angular *ngIf="selectedPayment === p.id" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </div>
       </div>
 
-      <!-- Sort Filter -->
-      <div class="v2-select-wrapper">
-        <select [(ngModel)]="sortBy" (change)="currentPage = 1">
-          <option value="date-desc">Mới nhất trước</option>
-          <option value="date-asc">Cũ nhất trước</option>
-          <option value="total-desc">Giá trị cao nhất</option>
-          <option value="total-asc">Giá trị thấp nhất</option>
-        </select>
+      <!-- 3. Dropdown Sắp xếp -->
+      <div class="filter-dropdown-wrapper sort-filter-wrapper">
+        <button 
+          type="button" 
+          title="Sắp xếp đơn hàng" 
+          class="filter-trigger-btn"
+          [class.active]="sortBy !== 'date-desc'"
+          (click)="toggleDropdown('sort', $event)"
+        >
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.ArrowUpDown" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedSortLabel }}</span>
+          </div>
+          <app-icon name="ChevronDown" size="14" [style.transform]="showSortDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+        </button>
+        <div *ngIf="showSortDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let opt of SORT_OPTIONS" 
+               (click)="setSort(opt.value)" 
+               class="filter-menu-item" 
+               [class.selected]="sortBy === opt.value">
+            <span>{{ opt.label }}</span>
+            <lucide-angular *ngIf="sortBy === opt.value" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </div>
       </div>
 
       <!-- Nút Đặt lại tất cả bộ lọc -->

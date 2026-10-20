@@ -3,6 +3,16 @@ import prisma, { withDbRetry } from './prisma';
 export async function initAuditLogsDatabase() {
   try {
     await withDbRetry(async () => {
+      // 0. Đảm bảo các cột liên quan đến Đặt cọc trong bảng Order tồn tại
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "isDepositRequired" BOOLEAN DEFAULT false;`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "depositRequired" BIGINT DEFAULT 0;`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "depositPaid" BIGINT DEFAULT 0;`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "paymentHoldReason" VARCHAR(50) DEFAULT 'NONE';`);
+      } catch (alterErr) {
+        console.warn('[WARN] Could not alter Order table columns for deposit:', alterErr);
+      }
+
       // 1. Tạo bảng AuditLogs nếu chưa tồn tại
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "AuditLogs" (

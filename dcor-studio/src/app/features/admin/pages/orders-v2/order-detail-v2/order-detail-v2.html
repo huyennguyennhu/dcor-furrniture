@@ -190,7 +190,7 @@
 
     <div class="stepper-branch-pill branch-failed" *ngIf="order.status === 'FAILED_DELIVERY'">
       <lucide-angular [img]="icons.AlertTriangle" size="16"></lucide-angular>
-      <span>Trạng thái ngoại lệ: <strong>FAILED_DELIVERY (Giao thất bại)</strong> — Lý do: "{{ order.delivery.failureReason || 'Không liên lạc được' }}". Chờ CSKH gọi lại lên lịch giao lần tiếp theo.</span>
+      <span>Trạng thái ngoại lệ: <strong>Giao thất bại</strong> — Lý do: "{{ order.delivery.failureReason || 'Không liên lạc được' }}". Chờ CSKH gọi lại lên lịch giao lần tiếp theo.</span>
     </div>
 
     <div class="stepper-branch-pill branch-return" *ngIf="['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status)">
@@ -379,6 +379,13 @@
             <lucide-angular [img]="icons.ShieldCheck" size="18" class="text-accent"></lucide-angular>
             <h3>Biên bản Kiểm tra Chất lượng</h3>
           </div>
+          <span *ngIf="isQcLocked" class="badge-qc-locked" title="Đã khóa kết quả (Đã xuất kho)">
+            <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
+          </span>
+          <span *ngIf="!isQcLocked && isQcAllChecked" class="badge-qc-ready">
+            <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+            <span>Đạt 4/4 tiêu chí QC</span>
+          </span>
         </div>
 
         <div class="qc-checklist-grid">
@@ -620,18 +627,226 @@
               <strong>{{ order.delivery.vehiclePlate }}</strong>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Live Tracking Steps History -->
-          <div class="tracking-history-box" *ngIf="order.delivery.trackingHistory && order.delivery.trackingHistory.length > 0">
-            <span class="tracking-history-title">Lộ trình giao nhận chi tiết:</span>
-            <div class="tracking-timeline">
-              <div class="track-step" *ngFor="let step of order.delivery.trackingHistory">
-                <div class="track-dot"></div>
-                <div class="track-info">
-                  <div class="track-status">{{ step.status }}</div>
-                  <div class="track-desc">{{ step.description }}</div>
-                  <div class="track-loc">{{ step.location }} - {{ formatDate(step.time) }}</div>
+      <!-- MAP TRACKING CARD: Bản đồ Lộ trình & Giám sát Giao hàng Thời gian thực (Tương tự Shopee/Grab tracking) -->
+      <!-- Hiển thị trong trạng thái Đang vận chuyển SHIPPED (hoặc khi đang xem bước Đang vận chuyển) -->
+      <div class="v2-card live-map-tracking-card" *ngIf="['SHIPPED', 'FAILED_DELIVERY'].includes(order.status) || (order.status !== 'PENDING' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING' && activeViewingStep === 3)">
+        <div class="v2-card-header" style="align-items: flex-start;">
+          <div class="card-title-group" style="align-items: flex-start;">
+            <lucide-angular [img]="icons.MapPin" size="18" class="text-accent" style="margin-top: 3px; flex-shrink: 0;"></lucide-angular>
+            <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
+              <h3>Bản đồ Giám sát Vận chuyển</h3>
+              <span class="live-pulse-badge">
+                <span class="pulse-beacon"></span>
+                <span>Đang lưu thông (Live GPS)</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="live-map-card-body">
+          <!-- BẢN ĐỒ VECTOR SVG NGHỆ THUẬT (Simulated Interactive Route Map) -->
+          <div class="map-visual-container">
+            <div class="map-background-canvas">
+              <!-- River / Land forms SVG -->
+              <svg class="map-bg-svg" width="100%" height="100%" viewBox="0 0 800 360" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="riverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#E0F2FE" />
+                    <stop offset="100%" stop-color="#BAE6FD" />
+                  </linearGradient>
+                </defs>
+
+                <!-- City Grid Lines (Mô phỏng mạng lưới đường phố) -->
+                <g class="city-streets" stroke="#E2E8F0" stroke-width="1.5">
+                  <line x1="0" y1="60" x2="800" y2="60" />
+                  <line x1="0" y1="140" x2="800" y2="140" stroke-width="2.5" stroke="#CBD5E1" />
+                  <line x1="0" y1="220" x2="800" y2="220" />
+                  <line x1="0" y1="300" x2="800" y2="300" />
+                  
+                  <line x1="120" y1="0" x2="120" y2="360" />
+                  <line x1="280" y1="0" x2="280" y2="360" stroke-width="2.5" stroke="#CBD5E1" />
+                  <line x1="460" y1="0" x2="460" y2="360" />
+                  <line x1="640" y1="0" x2="640" y2="360" stroke-width="2.5" stroke="#CBD5E1" />
+
+                  <!-- Secondary diagonal roads -->
+                  <line x1="40" y1="0" x2="320" y2="360" stroke="#F1F5F9" stroke-width="2" />
+                  <line x1="420" y1="0" x2="780" y2="360" stroke="#F1F5F9" stroke-width="2" />
+                </g>
+
+                <!-- Kênh rạch / Sông uốn lượn phong cách TP.HCM -->
+                <path d="M 0,280 C 180,260 260,340 420,310 C 580,280 680,340 800,320 L 800,360 L 0,360 Z" fill="url(#riverGrad)" opacity="0.6" />
+
+                <!-- Tuyến đường thực tế xe tải đã đi qua (Cam đậm nổi bật) -->
+                <path d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170" 
+                      fill="none" 
+                      stroke="#F58025" 
+                      stroke-width="5" 
+                      stroke-linecap="round" />
+
+                <!-- Tuyến đường còn lại xe đang hướng tới khách (Xanh dương nét đứt) -->
+                <path d="M 520,170 C 580,160 620,100 680,90" 
+                      fill="none" 
+                      stroke="#3B82F6" 
+                      stroke-width="4" 
+                      stroke-dasharray="6,6" 
+                      stroke-linecap="round" />
+              </svg>
+
+              <!-- MARKER 1: Kho xuất hàng DCOR -->
+              <div class="map-pin-marker start-warehouse-pin" style="left: 15%; top: 66%;">
+                <div class="pin-bubble origin-bubble">
+                  <lucide-angular [img]="icons.Building2" size="13"></lucide-angular>
+                  <span>Kho xuất DCOR (Q7)</span>
                 </div>
+                <div class="pin-dot origin-dot"></div>
+              </div>
+
+              <!-- MARKER 2: Xe tải / Shipper LIVE GPS -->
+              <div class="map-pin-marker live-truck-pin" style="left: 65%; top: 47%;">
+                <!-- Tooltip thông tin tài xế lơ lửng -->
+                <div class="truck-floating-card">
+                  <div class="floating-header">
+                    <span class="live-dot-mini"></span>
+                    <strong>{{ order.delivery.driverName || 'Nguyễn Văn Tài' }} (Xe tải)</strong>
+                  </div>
+                  <div class="floating-sub">
+                    Cách điểm nhận: <strong>2.8 km</strong> • ~20 phút nữa đến
+                  </div>
+                </div>
+
+                <!-- Radar Pulse Ripple Animation -->
+                <div class="radar-pulse-ring"></div>
+                <div class="radar-pulse-ring delay-1"></div>
+
+                <!-- Truck Circle Icon -->
+                <div class="truck-icon-circle">
+                  <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
+                </div>
+              </div>
+
+              <!-- MARKER 3: Điểm giao hàng (Địa chỉ khách) -->
+              <div class="map-pin-marker destination-client-pin" style="left: 85%; top: 25%;">
+                <div class="pin-bubble destination-bubble">
+                  <lucide-angular [img]="icons.MapPin" size="13"></lucide-angular>
+                  <span>Giao: {{ order.customerName }}</span>
+                </div>
+                <div class="pin-dot dest-dot"></div>
+              </div>
+
+              <!-- Street Name Tags -->
+              <div class="map-street-label street-nguyen-huu-tho">Đ. Nguyễn Hữu Thọ</div>
+              <div class="map-street-label street-nguyen-thi-thap">Đ. Nguyễn Thị Thập</div>
+              <div class="map-street-label street-rach-dia">Cầu Rạch Đĩa</div>
+
+              <!-- Floating Control Buttons -->
+              <div class="map-floating-controls">
+                <button type="button" class="btn-map-ctrl" (click)="openGoogleMapsRoute()" title="Mở lộ trình trên Google Maps">
+                  <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+                  <span>Google Maps</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- THÔNG BÁO VỊ TRÍ & ĐIỀU PHỐI (Live Telemetry & Driver Control Panel) -->
+          <div class="telemetry-grid">
+            <div class="tele-card">
+              <span class="tele-label">Vị trí hiện tại của xe</span>
+              <div class="tele-val">
+                <lucide-angular [img]="icons.Navigation" size="15" class="text-accent"></lucide-angular>
+                <span>Đường Nguyễn Hữu Thọ, P. Tân Hưng, Q.7</span>
+              </div>
+              <div class="tele-sub">Cập nhật GPS: {{ lastGpsUpdate }}</div>
+            </div>
+
+            <div class="tele-card">
+              <span class="tele-label">Khoảng cách & Thời gian (ETA)</span>
+              <div class="tele-val text-accent font-semibold">
+                <lucide-angular [img]="icons.Clock" size="15"></lucide-angular>
+                <span>Còn 2.8 km (khoảng 20 - 30 phút)</span>
+              </div>
+              <div class="tele-sub">Tốc độ xe: 32 km/h • Giao thông thông thoáng</div>
+            </div>
+          </div>
+
+          <!-- LỘ TRÌNH VẬN CHUYỂN TỪ LÚC XUẤT KHO (XỔ XUỐNG DỌC KHÔNG BỊ TRÀN HAY CẮT) -->
+          <div class="trip-milestones-vertical">
+            <div class="milestones-vertical-header">
+              <lucide-angular [img]="icons.Clock" size="14" class="text-accent"></lucide-angular>
+              <span>Lộ trình vận chuyển từ lúc xuất kho</span>
+            </div>
+
+            <!-- Chặng 1: Xuất kho -->
+            <div class="milestone-v-step completed">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon">
+                  <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                </div>
+                <div class="milestone-v-line completed"></div>
+              </div>
+              <div class="milestone-v-content">
+                <span class="m-v-title">1. Xuất kho thành công</span>
+                <span class="m-v-time">{{ getShippedTime() }} • Kiện hàng bàn giao cho xe tải</span>
+              </div>
+            </div>
+
+            <!-- Chặng 2: Xe lưu thông -->
+            <div class="milestone-v-step completed">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon">
+                  <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                </div>
+                <div class="milestone-v-line" [class.completed]="order.status === 'DELIVERED'"></div>
+              </div>
+              <div class="milestone-v-content">
+                <span class="m-v-title">2. Xe lưu thông trên đường</span>
+                <span class="m-v-time">Tài xế đang vận chuyển kiện hàng đến địa chỉ người nhận</span>
+              </div>
+            </div>
+
+            <!-- Chặng 3: Đang giao hoặc Giao thất bại -->
+            <div class="milestone-v-step" 
+                 [class.active]="order.status === 'SHIPPED'"
+                 [class.failed]="order.status === 'FAILED_DELIVERY'"
+                 [class.completed]="order.status === 'DELIVERED'">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon" [class.pulse-active]="order.status === 'SHIPPED'">
+                  <lucide-angular *ngIf="order.status === 'SHIPPED'" [img]="icons.Truck" size="14"></lucide-angular>
+                  <lucide-angular *ngIf="order.status === 'FAILED_DELIVERY'" [img]="icons.AlertTriangle" size="14" class="text-danger"></lucide-angular>
+                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="13"></lucide-angular>
+                </div>
+                <div class="milestone-v-line" [class.completed]="order.status === 'DELIVERED'"></div>
+              </div>
+              <div class="milestone-v-content">
+                <div class="m-v-title-row">
+                  <span class="m-v-title" *ngIf="order.status === 'FAILED_DELIVERY'" style="color: #DC2626;">3. Giao thất bại (Lần {{ order.delivery.failedAttempts || 1 }})</span>
+                  <span class="m-v-title" *ngIf="order.status === 'SHIPPED'">3. Đang giao chặng cuối</span>
+                  <span class="m-v-title" *ngIf="order.status === 'DELIVERED'">3. Đã tới nhà khách</span>
+                </div>
+                <div class="m-v-time-row">
+                  <span class="m-v-time" *ngIf="order.status === 'FAILED_DELIVERY'" style="color: #DC2626; font-weight: 600;">Lý do: "{{ order.delivery.failureReason || 'Khách bận, hẹn giao lại' }}" • Hẹn giao lại</span>
+                  <span class="m-v-time text-accent font-semibold" *ngIf="order.status === 'SHIPPED'">Dự kiến: khoảng 20 - 30 phút • Còn 2.8 km</span>
+                  <span class="m-v-time font-semibold" *ngIf="order.status === 'DELIVERED'">Đã đến nơi giao nhận</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chặng 4: Bàn giao & Ký nhận -->
+            <div class="milestone-v-step" [class.completed]="order.status === 'DELIVERED'" [class.pending]="order.status !== 'DELIVERED'">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon">
+                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="13"></lucide-angular>
+                  <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.MapPin" size="13"></lucide-angular>
+                </div>
+              </div>
+              <div class="milestone-v-content">
+                <span class="m-v-title">4. Bàn giao & Ký nhận</span>
+                <span class="m-v-time" *ngIf="order.status === 'DELIVERED'">Khách hàng đã nhận hàng và ký biên bản hoàn tất</span>
+                <span class="m-v-time" *ngIf="order.status === 'FAILED_DELIVERY'">Chờ điều phối xếp lịch giao lại lần {{ (order.delivery.failedAttempts || 1) + 1 }}</span>
+                <span class="m-v-time" *ngIf="order.status === 'SHIPPED'">Chờ khách nhận và thanh toán (nếu có thu COD)</span>
               </div>
             </div>
           </div>
@@ -782,31 +997,76 @@
        ========================================================================= -->
 
   <!-- CANCEL ORDER MODAL -->
-  <div class="v2-modal-backdrop" *ngIf="showCancelModal" (click)="showCancelModal = false">
-    <div class="v2-modal-card" (click)="$event.stopPropagation()">
+  <div class="v2-modal-backdrop" *ngIf="showCancelModal" (click)="closeCancelModal()">
+    <div class="v2-modal-card" (click)="$event.stopPropagation(); showCancelDropdown = false">
       <div class="modal-header">
-        <h3>Hủy đơn hàng #{{ order.orderNumber }}</h3>
-        <button type="button" class="modal-close" (click)="showCancelModal = false">
-          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        <div class="modal-header-title">
+          <lucide-angular [img]="icons.XCircle" size="20" style="color: #DC2626;"></lucide-angular>
+          <h3>Hủy đơn hàng #{{ order.orderNumber }}</h3>
+        </div>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="closeCancelModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
       <div class="modal-body">
-        <label class="modal-label">Chọn lý do hủy:</label>
-        <select [(ngModel)]="cancelReason" class="modal-select">
-          <option value="Khách đổi ý không tiếp tục đặt hàng">Khách đổi ý không tiếp tục đặt hàng</option>
-          <option value="Không liên lạc được với khách để xác nhận">Không liên lạc được với khách để xác nhận</option>
-          <option value="Kho hết sản phẩm và không kịp sản xuất bổ sung">Kho hết sản phẩm và không kịp sản xuất bổ sung</option>
-          <option value="Khách không đồng ý đặt cọc 30%">Khách không đồng ý đặt cọc 30%</option>
-          <option value="Khác">Lý do khác...</option>
-        </select>
+        <p class="modal-subtext" style="font-size: 13px; color: var(--text-muted, #6B7280); margin-bottom: 14px;">
+          Xác nhận hủy đơn hàng <strong>#{{ order.orderNumber }}</strong> và hoàn lại số lượng tồn kho vật lý:
+        </p>
 
-        <label class="modal-label" style="margin-top: 12px;">Ghi chú chi tiết thêm:</label>
-        <textarea [(ngModel)]="customCancelReason" rows="3" class="modal-textarea" placeholder="Nhập ghi chú chi tiết lý do hủy..."></textarea>
+        <label class="modal-label">
+          Chọn lý do hủy: <span style="color: #DC2626; font-size: 13px; font-weight: 700; margin-left: 2px;">*</span>
+        </label>
+        <div class="filter-dropdown-wrapper" (click)="$event.stopPropagation()">
+          <button 
+            type="button" 
+            class="filter-trigger-btn modal-filter-trigger"
+            [class.active]="showCancelDropdown || !!cancelReason"
+            title="Chọn lý do hủy"
+            (click)="toggleCancelDropdown($event)">
+            <div class="trigger-label">
+              <lucide-angular [img]="icons.XCircle" size="15" class="trigger-icon" style="color: #DC2626;"></lucide-angular>
+              <span class="truncate-label" [class.placeholder]="!cancelReason">
+                {{ selectedCancelReasonLabel }}
+              </span>
+            </div>
+            <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showCancelDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+          </button>
+
+          <div *ngIf="showCancelDropdown" class="filter-menu-dropdown modal-dropdown-menu">
+            <div *ngFor="let opt of cancelOptions"
+                 (click)="selectCancelReason(opt.value, $event)"
+                 class="filter-menu-item modal-dropdown-item"
+                 [class.selected]="cancelReason === opt.value">
+              <span>{{ opt.label }}</span>
+              <lucide-angular *ngIf="cancelReason === opt.value" [img]="icons.Check" size="14" class="item-check-icon"></lucide-angular>
+            </div>
+          </div>
+        </div>
+
+        <label class="modal-label" style="margin-top: 14px;">
+          Ghi chú chi tiết thêm: <span style="color: #DC2626; font-size: 13px; font-weight: 700; margin-left: 2px;">*</span>
+        </label>
+        <textarea [(ngModel)]="customCancelReason" 
+                  rows="3" 
+                  class="modal-textarea" 
+                  [disabled]="isCancelling"
+                  [style.border-color]="cancelReason && (!customCancelReason || !customCancelReason.trim()) ? '#EF4444' : ''"
+                  placeholder="Nhập ghi chú chi tiết lý do hủy (bắt buộc)..."></textarea>
+        <p *ngIf="cancelReason && (!customCancelReason || !customCancelReason.trim())" 
+           style="color: #DC2626; font-size: 11px; margin: 4px 0 0; display: flex; align-items: center; gap: 4px;">
+          * Bạn cần nhập nội dung chi tiết lý do hủy để mở khóa nút Xác nhận.
+        </p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-cancel" [disabled]="isSubmitting" (click)="showCancelModal = false">Hủy</button>
-        <button type="button" class="btn-confirm-cancel" [disabled]="isSubmitting" [class.btn-disabled]="isSubmitting" (click)="confirmCancelOrder()">
-          {{ isSubmitting ? 'Đang hủy...' : 'Xác nhận Hủy đơn' }}
+        <button type="button" class="btn-cancel" [disabled]="isCancelling || isSubmitting" (click)="closeCancelModal()">Hủy</button>
+        <button type="button" 
+                class="btn-confirm-cancel" 
+                [disabled]="!canConfirmCancel || isCancelling || isSubmitting" 
+                [class.btn-disabled]="!canConfirmCancel || isCancelling || isSubmitting" 
+                [title]="!cancelReason ? 'Vui lòng chọn lý do hủy' : (!customCancelReason || !customCancelReason.trim() ? 'Vui lòng nhập nội dung chi tiết lý do hủy' : (isCancelling ? 'Đang xử lý hủy đơn...' : 'Xác nhận Hủy đơn'))"
+                (click)="confirmCancelOrder()">
+          <lucide-angular *ngIf="isCancelling" [img]="icons.RefreshCw" size="14" class="btn-spin-icon" style="margin-right: 6px;"></lucide-angular>
+          <span>{{ isCancelling ? 'Đang xử lý hủy...' : 'Xác nhận Hủy đơn' }}</span>
         </button>
       </div>
     </div>
@@ -817,8 +1077,8 @@
     <div class="v2-modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Từ chối yêu cầu đổi trả</h3>
-        <button type="button" class="modal-close" (click)="showRejectReturnModal = false">
-          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="showRejectReturnModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
       <div class="modal-body">
@@ -842,8 +1102,8 @@
           <lucide-angular [img]="icons.AlertTriangle" size="20" style="color: #D97706;"></lucide-angular>
           <h3>Báo cáo Giao hàng không thành công</h3>
         </div>
-        <button type="button" class="modal-close" (click)="closeDeliveryFailedModal()">
-          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="closeDeliveryFailedModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
       <div class="modal-body">
@@ -881,7 +1141,6 @@
 
         <label class="modal-label" style="margin-top: 14px;">
           Ghi chú chi tiết từ tài xế/điều phối:
-          <span *ngIf="deliveryFailedReason === 'Khác'" style="color: #DC2626; font-size: 12px; font-weight: 500; margin-left: 4px;">* (Bắt buộc nhập nội dung)</span>
         </label>
         <textarea [(ngModel)]="customDeliveryFailedNote" 
                   rows="3" 
@@ -889,7 +1148,7 @@
                   [style.border-color]="deliveryFailedReason === 'Khác' && (!customDeliveryFailedNote || !customDeliveryFailedNote.trim()) ? '#EF4444' : ''"
                   [placeholder]="deliveryFailedReason === 'Khác' ? 'Vui lòng nhập chi tiết nguyên nhân giao không thành công...' : 'Ví dụ: Gọi 3 cuộc lúc 10h15 và 11h00 khách đều không bắt máy, hẹn giao lại ca sau...'"></textarea>
         <p *ngIf="deliveryFailedReason === 'Khác' && (!customDeliveryFailedNote || !customDeliveryFailedNote.trim())" style="color: #DC2626; font-size: 11px; margin: 4px 0 0; display: flex; align-items: center; gap: 4px;">
-          * Bạn cần nhập nội dung lý do cụ thể để mở khóa nút Xác nhận.
+          * Bạn cần nhập nội dung lý do cụ thể.
         </p>
       </div>
       <div class="modal-footer">
@@ -914,8 +1173,8 @@
           <lucide-angular [img]="icons.RefreshCw" size="20" class="text-accent"></lucide-angular>
           <h3>Lên lịch Giao hàng lại lần 2</h3>
         </div>
-        <button type="button" class="modal-close" (click)="closeRescheduleModal()">
-          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="closeRescheduleModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
       <div class="modal-body">
@@ -923,13 +1182,29 @@
           Lên kế hoạch điều phối ca giao lại cho đơn hàng <strong>#{{ order.orderNumber }}</strong>:
         </p>
 
-        <label class="modal-label">Chọn ca hẹn giao lại:</label>
-        <select [(ngModel)]="rescheduleSlot" class="modal-select">
-          <option value="Ca sáng (08:30 - 11:30) ngày mai">Ca sáng (08:30 - 11:30) ngày mai</option>
-          <option value="Ca chiều (14:00 - 17:30) ngày mai">Ca chiều (14:00 - 17:30) ngày mai</option>
-          <option value="Cuối tuần (Thứ 7 / Chủ nhật tới)">Cuối tuần (Thứ 7 / Chủ nhật tới)</option>
-          <option value="Hẹn giao lại theo yêu cầu riêng của khách">Hẹn giao lại theo yêu cầu riêng của khách</option>
-        </select>
+        <!-- Khung chọn ngày và chọn giờ -->
+        <div class="reschedule-grid">
+          <div class="reschedule-col">
+            <label class="modal-label">
+              <lucide-angular [img]="icons.Calendar" size="14" style="color: #765337;"></lucide-angular>
+              Chọn ngày giao lại:
+            </label>
+            <input type="date" 
+                   [(ngModel)]="rescheduleDate" 
+                   [min]="minRescheduleDate"
+                   class="modal-input" />
+          </div>
+
+          <div class="reschedule-col">
+            <label class="modal-label">
+              <lucide-angular [img]="icons.Clock" size="14" style="color: #765337;"></lucide-angular>
+              Chọn giờ giao lại:
+            </label>
+            <input type="time" 
+                   [(ngModel)]="rescheduleTime" 
+                   class="modal-input" />
+          </div>
+        </div>
 
         <label class="modal-label" style="margin-top: 14px;">Ghi chú dặn dò tài xế giao nhận:</label>
         <textarea [(ngModel)]="customRescheduleNote" rows="3" class="modal-textarea" placeholder="Ví dụ: Khách dặn giao sau 9h sáng, gọi trước 15 phút khi đến chân chung cư..."></textarea>
@@ -939,8 +1214,8 @@
         <button type="button" 
                 class="btn-primary-action" 
                 style="padding: 8px 16px;" 
-                [disabled]="isSubmitting" 
-                [class.btn-disabled]="isSubmitting" 
+                [disabled]="!rescheduleDate || isSubmitting" 
+                [class.btn-disabled]="!rescheduleDate || isSubmitting" 
                 (click)="confirmRescheduleDelivery()">
           <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
           <span>{{ isSubmitting ? 'Đang lưu lịch...' : 'Xác nhận Lên lịch' }}</span>
@@ -957,8 +1232,8 @@
           <span>Góc nhìn Khách hàng (User View Simulation)</span>
           <p>Màn hình hiển thị tại <code>/account/orders</code> của khách</p>
         </div>
-        <button type="button" class="modal-close" (click)="showUserViewModal = false">
-          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="showUserViewModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
 
