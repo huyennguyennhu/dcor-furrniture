@@ -1,0 +1,295 @@
+<div class="compare-modal-backdrop" *ngIf="isOpen" (click)="closeModal()">
+  <div class="compare-modal-container" (click)="$event.stopPropagation()">
+    
+    <!-- Modal Header -->
+    <div class="compare-modal-header">
+      <div class="header-left">
+        <div class="title-with-icon">
+          <div class="icon-circle">
+            <app-icon name="Scale" size="20" color="#b45309"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">So sánh sản phẩm</h2>
+            <div class="modal-sub-meta">
+              <span class="category-pill" *ngIf="products.length > 0">
+                {{ getCategoryPillText(products[0]) }}
+              </span>
+              <span class="count-pill">{{ products.length }} / 5 sản phẩm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Nút bật/tắt làm nổi bật điểm khác biệt -->
+        <label class="diff-toggle-wrapper" title="Đánh dấu các hàng có thông số hoặc giá khác biệt giữa các sản phẩm">
+          <span class="toggle-label">Làm nổi bật điểm khác biệt</span>
+          <div class="switch">
+            <input type="checkbox" [(ngModel)]="highlightDifferences">
+            <span class="slider round"></span>
+          </div>
+        </label>
+
+        <!-- Nút sao chép liên kết chia sẻ -->
+        <button type="button" class="btn-share-link" (click)="copyShareLink()" title="Sao chép liên kết để mở lại đúng danh sách so sánh này">
+          <app-icon [name]="copiedLinkSuccess ? 'Check' : 'Share2'" size="16" [color]="copiedLinkSuccess ? '#15803d' : '#4b5563'"></app-icon>
+          <span>{{ copiedLinkSuccess ? 'Đã sao chép!' : 'Sao chép liên kết' }}</span>
+        </button>
+
+        <!-- Nút đóng -->
+        <button type="button" class="btn-close-modal" (click)="closeModal()" aria-label="Đóng popup">
+          <app-icon name="X" size="20" color="#374151"></app-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Content: Bảng so sánh -->
+    <div class="compare-table-wrapper">
+      <table class="compare-table">
+        <!-- Table Head: Cột thông tin sản phẩm chính & Nút đổi biến thể & Thêm giỏ hàng -->
+        <thead>
+          <tr>
+            <th class="cell-prop-label cell-sticky-head">
+              <div class="prop-label-head">
+                <span class="prop-title">Thuộc tính sản phẩm</span>
+                <span class="prop-subtitle">So sánh chi tiết từng tiêu chí</span>
+              </div>
+            </th>
+
+            <th *ngFor="let prod of products" class="cell-product-col cell-sticky-head">
+              <div class="product-column-head">
+                <!-- Nút bỏ sản phẩm khỏi bảng so sánh -->
+                <button type="button" class="btn-remove-col" (click)="removeProduct($event, prod.productId)" title="Bỏ sản phẩm này khỏi so sánh">
+                  <app-icon name="X" size="14" color="#6b7280"></app-icon>
+                </button>
+
+                <!-- Ảnh sản phẩm theo biến thể đang chọn -->
+                <div class="compare-col-img-box">
+                  <img [src]="getColumnImage(prod)" [alt]="prod.name" class="compare-col-img">
+                  <span *ngIf="prod.discountValue" class="compare-sale-tag">
+                    -{{ prod.discountType === 'PERCENT' ? prod.discountValue + '%' : 'SALE' }}
+                  </span>
+                </div>
+
+                <!-- Tên sản phẩm -->
+                <h4 class="compare-col-title" [title]="prod.name">
+                  {{ prod.name }}
+                </h4>
+
+                <!-- MA TRẬN THUỘC TÍNH BIẾN THỂ (CHUẨN XEM NHANH): MỖI THUỘC TÍNH LÀ 1 FIELD-GROUP DROPDOWN -->
+                <div class="variant-field-groups-container">
+                  <div class="field-group" *ngFor="let group of getAttributeGroups(prod)">
+                    <div class="field-label">
+                      <span>{{ group.label }}</span>
+                      <span class="variant-count-pill">{{ group.options.length }} lựa chọn</span>
+                    </div>
+
+                    <div class="custom-select-box" [class.is-open]="openDropdownKey === (getProdId(prod) + '_' + group.groupId)">
+                      <!-- Nút kích hoạt dropdown hiển thị option đang chọn -->
+                      <div class="custom-select-trigger" (click)="toggleDropdown(getProdId(prod), group.groupId, $event)">
+                        <!-- Swatch ảnh nếu có -->
+                        <div class="trigger-thumb" *ngIf="getSelectedOption(prod, group)?.image">
+                          <img [src]="getSelectedOption(prod, group)?.image" [alt]="getSelectedOption(prod, group)?.name || ''" />
+                        </div>
+                        <!-- Swatch màu nếu có -->
+                        <div class="trigger-color-swatch" *ngIf="!getSelectedOption(prod, group)?.image && getSelectedOption(prod, group)?.hexColor"
+                             [style.background-color]="getSelectedOption(prod, group)?.hexColor"></div>
+
+                        <div class="trigger-content">
+                          <span class="trigger-name">{{ getSelectedOption(prod, group)?.name }}</span>
+                        </div>
+                        <app-icon name="ChevronDown" size="14" class="trigger-chevron"></app-icon>
+                      </div>
+
+                      <!-- Menu thả xuống của nhóm thuộc tính này -->
+                      <div class="custom-dropdown-menu" *ngIf="openDropdownKey === (getProdId(prod) + '_' + group.groupId)">
+                        <div *ngFor="let opt of group.options" 
+                             class="dropdown-item" 
+                             [class.selected]="getSelectedAttributeId(prod, group.groupId) === opt.id"
+                             (click)="selectAttributeOption(prod, group.groupId, opt.id, $event)">
+                          <!-- Swatch ảnh hoặc màu -->
+                          <div class="item-thumb" *ngIf="opt.image">
+                            <img [src]="opt.image" [alt]="opt.name" />
+                          </div>
+                          <div class="item-color-swatch" *ngIf="!opt.image && opt.hexColor"
+                               [style.background-color]="opt.hexColor"></div>
+
+                          <div class="item-info">
+                            <span class="item-title">{{ opt.name }}</span>
+                            <span class="item-subtitle" *ngIf="opt.groupName">{{ opt.groupName }}</span>
+                          </div>
+                          <app-icon *ngIf="getSelectedAttributeId(prod, group.groupId) === opt.id" name="Check" size="14" class="item-check-icon"></app-icon>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Fallback nếu không có biến thể đa tùy chọn -->
+                  <div class="field-group single-variant-group" *ngIf="getAttributeGroups(prod).length === 0">
+                    <div class="field-label">
+                      <span>Phiên bản:</span>
+                    </div>
+                    <div class="single-variant-badge" [title]="getSelectedVariant(prod)?.name || 'Tiêu chuẩn'">
+                      {{ getSelectedVariant(prod)?.name || 'Tiêu chuẩn' }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Cụm Giá tiền & Nút Thêm vào giỏ hàng cố định phía dưới cùng của thẻ th -->
+                <div class="col-head-bottom-action">
+                  <!-- Giá tiền cập nhật theo biến thể -->
+                  <div class="compare-col-price-box">
+                    <span class="compare-current-price">{{ formatPrice(getColumnFinalPrice(prod)) }}</span>
+                    <span *ngIf="getColumnOriginalPrice(prod)" class="compare-original-price">
+                      {{ formatPrice(getColumnOriginalPrice(prod)!) }}
+                    </span>
+                  </div>
+
+                  <!-- Nút Thêm vào giỏ hàng ngay trong từng cột -->
+                  <button type="button" class="btn-col-add-cart" 
+                          [class.btn-added]="addedSuccessMap[prod.productId]"
+                          [disabled]="addingToCartMap[prod.productId]"
+                          (click)="addToCart(prod)">
+                    <app-icon [name]="addedSuccessMap[prod.productId] ? 'Check' : 'ShoppingCart'" size="15" color="#ffffff"></app-icon>
+                    <span>{{ addedSuccessMap[prod.productId] ? 'Đã thêm vào giỏ' : (addingToCartMap[prod.productId] ? 'Đang thêm...' : 'Thêm vào giỏ') }}</span>
+                  </button>
+                </div>
+              </div>
+            </th>
+          </tr>
+        </thead>
+
+        <!-- Table Body: Các hàng thông số kỹ thuật -->
+        <tbody>
+          <!-- 1. Hàng: Đánh giá khách hàng -->
+          <tr [class.highlight-row]="highlightDifferences && isRowDifferent('rating')">
+            <td class="cell-prop-label">
+              <div class="prop-item-info">
+                <span class="prop-name">Đánh giá khách hàng</span>
+                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('rating')">Khác nhau</span>
+              </div>
+            </td>
+            <td *ngFor="let prod of products" class="cell-product-data">
+              <div class="rating-display">
+                <span class="star-icon">★</span>
+                <strong>{{ getColumnRating(prod).rating }}</strong>
+                <span class="review-count">({{ getColumnRating(prod).count }} đánh giá)</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- 2. Hàng: Chiều rộng -->
+          <tr [class.highlight-row]="highlightDifferences && isRowDifferent('width')">
+            <td class="cell-prop-label">
+              <div class="prop-item-info">
+                <span class="prop-name">Chiều rộng</span>
+                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('width')">Khác nhau</span>
+              </div>
+            </td>
+            <td *ngFor="let prod of products" class="cell-product-data">
+              <div class="spec-value-box">
+                <span class="spec-primary-text">{{ getColumnWidth(prod) }}</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- 3. Hàng: Chiều sâu / Chiều dài -->
+          <tr [class.highlight-row]="highlightDifferences && isRowDifferent('depth')">
+            <td class="cell-prop-label">
+              <div class="prop-item-info">
+                <span class="prop-name">Chiều sâu / dài</span>
+                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('depth')">Khác nhau</span>
+              </div>
+            </td>
+            <td *ngFor="let prod of products" class="cell-product-data">
+              <div class="spec-value-box">
+                <span class="spec-primary-text">{{ getColumnDepth(prod) }}</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- 4. Hàng: Chiều cao -->
+          <tr [class.highlight-row]="highlightDifferences && isRowDifferent('height')">
+            <td class="cell-prop-label">
+              <div class="prop-item-info">
+                <span class="prop-name">Chiều cao</span>
+                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('height')">Khác nhau</span>
+              </div>
+            </td>
+            <td *ngFor="let prod of products" class="cell-product-data">
+              <div class="spec-value-box">
+                <span class="spec-primary-text">{{ getColumnHeight(prod) }}</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- 5. Hàng: Trọng lượng -->
+          <tr [class.highlight-row]="highlightDifferences && isRowDifferent('weight')">
+            <td class="cell-prop-label">
+              <div class="prop-item-info">
+                <span class="prop-name">Trọng lượng</span>
+                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('weight')">Khác nhau</span>
+              </div>
+            </td>
+            <td *ngFor="let prod of products" class="cell-product-data">
+              <div class="spec-value-box">
+                <span class="spec-primary-text">{{ getColumnWeight(prod) }}</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- 3. Hàng: Chất liệu & Hoàn thiện -->
+          <tr [class.highlight-row]="highlightDifferences && isRowDifferent('material')">
+            <td class="cell-prop-label">
+              <div class="prop-item-info">
+                <span class="prop-name">Chất liệu & Hoàn thiện</span>
+                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('material')">Khác nhau</span>
+              </div>
+            </td>
+            <td *ngFor="let prod of products" class="cell-product-data">
+              <div class="spec-value-box">
+                <span class="spec-primary-text">{{ getColumnMaterial(prod) }}</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- 4. Hàng: Màu sắc biến thể -->
+          <tr [class.highlight-row]="highlightDifferences && isRowDifferent('color')">
+            <td class="cell-prop-label">
+              <div class="prop-item-info">
+                <span class="prop-name">Màu sắc biến thể</span>
+                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('color')">Khác nhau</span>
+              </div>
+            </td>
+            <td *ngFor="let prod of products" class="cell-product-data">
+              <div class="color-display-wrap">
+                <span class="color-dot" [style.background-color]="getColumnColor(prod).hex"></span>
+                <span class="color-name-text">{{ getColumnColor(prod).name }}</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer -->
+    <footer class="compare-modal-footer">
+      <div class="footer-left-info">
+        <span class="tip-dot">💡</span>
+        <span>Mẹo: Bạn có thể thay đổi biến thể màu/chất liệu ngay trong từng cột để xem giá và thông số cập nhật theo thời gian thực.</span>
+      </div>
+      <div class="footer-actions">
+        <button type="button" class="btn-footer-close" (click)="closeModal()">
+          Đóng bảng so sánh
+        </button>
+      </div>
+    </footer>
+
+    <!-- Toast Thông Báo Nội Bộ -->
+    <div class="compare-internal-toast" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
+      <app-icon [name]="toastType === 'success' ? 'Check' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="16" color="#ffffff"></app-icon>
+      <span>{{ toastMessage }}</span>
+    </div>
+
+  </div>
+</div>

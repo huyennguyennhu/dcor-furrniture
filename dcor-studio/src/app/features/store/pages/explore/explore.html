@@ -2,14 +2,15 @@
 
   <!-- 1. Top Banner: Title thay đổi theo danh mục + Breadcrumb ngay phía dưới -->
   <section class="explore-hero">
+    <div class="explore-hero-bg" [style.transform]="'translate3d(0, ' + heroParallaxY + 'px, 0)'"></div>
     <div class="explore-hero-overlay"></div>
     <div class="container explore-hero-container">
       <div class="explore-hero-content">
         <h1 class="explore-hero-title">{{ currentCategoryTitle }}</h1>
         <div class="explore-breadcrumb">
-          <a routerLink="/">Home</a>
+          <a routerLink="/">Trang chủ</a>
           <span class="bc-sep">/</span>
-          <a routerLink="/explore" (click)="clearAllFilters()">Products</a>
+          <a routerLink="/explore" (click)="clearAllFilters()">Sản phẩm</a>
           <span class="bc-sep"
             *ngIf="currentCategoryBreadcrumb && currentCategoryBreadcrumb !== 'Tất cả sản phẩm'">/</span>
           <span class="bc-current" *ngIf="currentCategoryBreadcrumb && currentCategoryBreadcrumb !== 'Tất cả sản phẩm'">
@@ -24,8 +25,15 @@
   <section class="explore-subbar">
     <div class="container explore-subbar-container">
 
-      <!-- Left: Active Filter Pills -->
+      <!-- Left: Active Filter Pills & Mobile Filter Button -->
       <div class="subbar-left">
+        <!-- Nút mở bộ lọc trên Mobile & Tablet -->
+        <button type="button" class="btn-open-mobile-filter" (click)="toggleFilterDrawer()">
+          <lucide-angular [img]="icons.SlidersHorizontal" size="16"></lucide-angular>
+          <span>Bộ lọc</span>
+          <span class="mobile-filter-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
+        </button>
+
         <div class="active-pills-list" *ngIf="hasActiveFilters">
           <!-- Category Pills -->
           <span *ngFor="let cat of filters.categories" class="active-pill">
@@ -98,19 +106,47 @@
   <div class="container explore-main-container">
     <div class="explore-layout-grid">
 
-      <!-- Cột 1: Sidebar Filter -->
-      <aside class="explore-sidebar-col">
-        <div *ngIf="isLoading" class="sidebar-skeleton">
-          <div style="height: 28px; width: 50%; background: #eaeaea; margin-bottom: 20px; border-radius: 4px;"></div>
-          <div style="height: 180px; background: #f5f5f5; margin-bottom: 16px; border-radius: 8px;"></div>
-          <div style="height: 120px; background: #f5f5f5; border-radius: 8px;"></div>
+      <!-- Cột 1: Sidebar Filter (Desktop: Cột trái; Mobile/Tablet: Off-canvas Drawer) -->
+      <div class="mobile-filter-backdrop" [class.open]="isFilterDrawerOpen" (click)="closeFilterDrawer()"></div>
+
+      <aside class="explore-sidebar-col" [class.drawer-open]="isFilterDrawerOpen">
+        <!-- Header Drawer trên Mobile/Tablet -->
+        <div class="mobile-drawer-header">
+          <div class="mobile-drawer-title-wrap">
+            <lucide-angular [img]="icons.SlidersHorizontal" size="18"></lucide-angular>
+            <h3>Bộ lọc sản phẩm</h3>
+            <span class="mobile-drawer-count" *ngIf="filteredProducts.length > 0">({{ filteredProducts.length }})</span>
+          </div>
+          <div class="mobile-drawer-actions">
+            <button type="button" class="btn-drawer-reset" *ngIf="hasActiveFilters" (click)="clearAllFilters()">
+              Xóa tất cả
+            </button>
+            <button type="button" class="btn-drawer-close" (click)="closeFilterDrawer()" aria-label="Đóng bộ lọc">
+              <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+            </button>
+          </div>
         </div>
 
-        <div *ngIf="!isLoading">
-          <app-sidebar-filter [filters]="filters" [rawCategories]="rawCategories" [dynamicFilters]="dynamicFilters"
-            [dynamicMaxPrice]="dynamicMaxPrice" [productCount]="filteredProducts.length" [ratingCounts]="ratingCounts"
-            (onFilterChange)="onFilterChange($event)">
-          </app-sidebar-filter>
+        <div class="sidebar-scrollable-body">
+          <div *ngIf="isLoading" class="sidebar-skeleton">
+            <div style="height: 28px; width: 50%; background: #eaeaea; margin-bottom: 20px; border-radius: 4px;"></div>
+            <div style="height: 180px; background: #f5f5f5; margin-bottom: 16px; border-radius: 8px;"></div>
+            <div style="height: 120px; background: #f5f5f5; border-radius: 8px;"></div>
+          </div>
+
+          <div *ngIf="!isLoading">
+            <app-sidebar-filter [filters]="filters" [rawCategories]="rawCategories" [dynamicFilters]="dynamicFilters"
+              [dynamicMaxPrice]="dynamicMaxPrice" [productCount]="filteredProducts.length" [ratingCounts]="ratingCounts"
+              (onFilterChange)="onFilterChange($event)">
+            </app-sidebar-filter>
+          </div>
+        </div>
+
+        <!-- Footer Drawer trên Mobile/Tablet -->
+        <div class="mobile-drawer-footer">
+          <button type="button" class="btn-drawer-apply" (click)="closeFilterDrawer()">
+            Xem {{ filteredProducts.length }} sản phẩm
+          </button>
         </div>
       </aside>
 
@@ -152,15 +188,22 @@
                 </span>
               </div>
 
-              <!-- Top-right Action Buttons: So sánh + Yêu thích -->
+              <!-- Top-right Action Buttons: Xem nhanh + So sánh + Yêu thích -->
               <div class="card-corner-actions">
-                <button type="button" class="round-action-btn compare-btn" [class.active]="isInCompare(prod.productId)"
-                  title="So sánh" (click)="toggleCompare($event, prod)">
-                  <app-icon name="Scale" size="16"
-                    [color]="isInCompare(prod.productId) ? '#b45309' : '#4b5563'"></app-icon>
+                <button type="button" class="round-action-btn quickview-btn" title="Xem nhanh"
+                  (click)="openQuickView($event, prod)">
+                  <app-icon name="Eye" size="16" color="#4b5563"></app-icon>
                 </button>
-                <button type="button" class="round-action-btn wishlist-btn" [class.active]="wishlist.includes(prod.productId)"
-                  title="Yêu thích" (click)="toggleWishlist($event, prod.productId)">
+                <button type="button" class="round-action-btn compare-btn" [class.active]="isInCompare(prod.productId)"
+                  [class.disabled-compare]="isCompareDisabledForProduct(prod)"
+                  [disabled]="isCompareDisabledForProduct(prod)" [title]="getCompareButtonTooltip(prod)"
+                  (click)="toggleCompare($event, prod)">
+                  <app-icon name="Scale" size="16"
+                    [color]="isInCompare(prod.productId) ? '#b45309' : (isCompareDisabledForProduct(prod) ? '#9ca3af' : '#4b5563')"></app-icon>
+                </button>
+                <button type="button" class="round-action-btn wishlist-btn"
+                  [class.active]="wishlist.includes(prod.productId)" title="Yêu thích"
+                  (click)="toggleWishlist($event, prod.productId)">
                   <app-icon name="Heart" size="16" [color]="wishlist.includes(prod.productId) ? '#b45309' : '#4b5563'"
                     [filled]="wishlist.includes(prod.productId)"></app-icon>
                 </button>
@@ -181,7 +224,7 @@
               <!-- Hàng biến thể màu sắc & Đánh giá -->
               <div class="meta-row">
                 <div class="swatches-preview" *ngIf="prod.colorSwatches && prod.colorSwatches.length > 0">
-                  <button type="button" *ngFor="let sw of prod.colorSwatches.slice(0, 5)" class="swatch-btn"
+                  <button type="button" *ngFor="let sw of getVisibleSwatches(prod)" class="swatch-btn"
                     [class.active]="isSwatchActive(prod, sw)" [title]="sw.name" [style.background-color]="sw.hex"
                     (mouseenter)="selectCardSwatch($event, prod, sw)" (click)="selectCardSwatch($event, prod, sw)">
                   </button>
@@ -206,11 +249,6 @@
               <h3 class="product-name" [title]="prod.shortDescription_vi || prod.shortDescription">
                 {{ prod.shortDescription_vi || prod.shortDescription }}
               </h3>
-
-              <!-- Mô tả / Chất liệu ngắn gọn -->
-              <p class="product-summary">
-                {{ prod.description || 'Khung sồi Nga sấy nhiệt, đệm mút D40 ca...' }}
-              </p>
 
               <!-- Hàng giá & Nút mua -->
               <div class="price-buy-row">
@@ -251,39 +289,58 @@
       <div class="dock-left">
         <div class="compare-badge">
           <app-icon name="Scale" size="16" color="#b45309"></app-icon>
-          <span class="compare-tag-title">Đang so sánh</span>
+          <span class="compare-tag-title">So sánh ({{ getRootCategoryName(compareList[0]) }})</span>
         </div>
-        <span class="compare-counter">{{ compareList.length }} / 5 sản phẩm</span>
+        <span class="compare-counter">{{ compareList.length }} / 5 sản phẩm đã chọn</span>
 
         <div class="compare-items-thumbs">
           <div class="thumb-box" *ngFor="let item of compareList">
             <img [src]="item.images[0]" [alt]="item.shortDescription">
-            <button type="button" class="thumb-remove" (click)="removeCompare(item.productId)">&times;</button>
+            <button type="button" class="thumb-remove" (click)="removeCompare(item.productId)"
+              title="Bỏ chọn">&times;</button>
           </div>
-          <div class="thumb-placeholder" *ngIf="compareList.length < 5" title="Chọn thêm sản phẩm để so sánh">+</div>
+          <div class="thumb-placeholder" *ngIf="compareList.length < 5"
+            title="Chọn thêm sản phẩm cùng danh mục để so sánh">+</div>
         </div>
       </div>
 
       <div class="dock-right">
-        <button type="button" class="dock-share-btn" title="Chia sẻ danh sách so sánh">
+        <!-- Nút Xóa tất cả -->
+        <button type="button" class="btn-clear-compare" (click)="clearAllCompare()"
+          title="Xóa tất cả sản phẩm đang so sánh">
+          Xóa tất cả
+        </button>
+
+        <!-- Nút Sao chép liên kết chia sẻ -->
+        <button type="button" class="dock-share-btn" (click)="copyCompareShareLink()" title="Sao chép liên kết so sánh">
           <app-icon name="Share2" size="16" color="#4b5563"></app-icon>
         </button>
-        <button type="button" class="btn-compare-action" routerLink="/store/compare">
+
+        <!-- Nút So sánh ngay (bật khi chọn >= 2) -->
+        <button type="button" class="btn-compare-action" [disabled]="compareList.length < 2"
+          (click)="openCompareModal()"
+          [title]="compareList.length < 2 ? 'Chọn tối thiểu 2 sản phẩm để so sánh' : 'Mở bảng so sánh chi tiết'">
           So sánh ngay ({{ compareList.length }}) &rarr;
         </button>
       </div>
 
     </div>
   </div>
-
-  <!-- 5. Floating Back to Top Button -->
-  <button type="button" class="btn-back-to-top" [class.visible]="showScrollTop"
-    [class.dock-active]="compareList.length > 0" (click)="scrollToTop()" aria-label="Về đầu trang" title="Về đầu trang">
-    <app-icon name="ArrowUp" size="20" color="#ffffff"></app-icon>
-  </button>
-
 </div>
 
 <!-- Quick View Drawer Modal -->
 <app-quick-view-drawer [product]="quickViewProduct" [isOpen]="isQuickViewOpen"
   (onClose)="isQuickViewOpen = false"></app-quick-view-drawer>
+
+<!-- Popup To Bảng So Sánh Sản Phẩm -->
+<app-product-compare-modal [isOpen]="isCompareModalOpen" [products]="compareList" (onClose)="closeCompareModal()"
+  (onRemove)="onRemoveCompareProduct($event)">
+</app-product-compare-modal>
+
+<!-- Floating Toast Thông Báo So Sánh -->
+<div class="floating-compare-toast" *ngIf="compareToastMessage" [ngClass]="'toast-' + compareToastType">
+  <app-icon
+    [name]="compareToastType === 'success' ? 'Check' : (compareToastType === 'warning' ? 'AlertTriangle' : 'Info')"
+    size="16" color="#ffffff"></app-icon>
+  <span>{{ compareToastMessage }}</span>
+</div>

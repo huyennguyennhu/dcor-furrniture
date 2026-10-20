@@ -38,6 +38,7 @@ import {
   MessageCircle,
   MessagesSquare,
   Moon,
+  Menu,
   LucideAngularModule,
   LoaderCircle,
   Minus,
@@ -76,6 +77,11 @@ import {
   Image,
   Scale,
   Star,
+  Zap,
+  Maximize2,
+  ZoomIn,
+  ThumbsUp,
+  Calendar,
 } from 'lucide-angular';
 
 const ICONS = {
@@ -117,6 +123,7 @@ const ICONS = {
   MessageCircle,
   MessagesSquare,
   Moon,
+  Menu,
   LoaderCircle,
   Minus,
   MoreHorizontal,
@@ -154,6 +161,11 @@ const ICONS = {
   Image,
   Scale,
   Star,
+  Zap,
+  Maximize2,
+  ZoomIn,
+  ThumbsUp,
+  Calendar,
 } as const;
 
 export type IconName = keyof typeof ICONS;

@@ -1,75 +1,122 @@
-import { IconComponent } from '../icon/icon';
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { finalize, TimeoutError, timeout } from 'rxjs';
+import { finalize, TimeoutError, timeout, Subscription } from 'rxjs';
 import { CatalogProduct } from '../../models/catalog.model';
-import { CustomSelect } from '../custom-select/custom-select';
-import { LucideAngularModule, X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink } from 'lucide-angular';
+import { IconComponent } from '../icon/icon';
 import { CartService } from '../../../core/services/cart.service';
-
+import { WishlistService } from '../../../core/services/wishlist.service';
 import { environment } from '../../../../environments/environment';
+
+export interface AttributeOption {
+  id: string;
+  name: string;
+  image?: string | null;
+  hexColor?: string | null;
+  groupName?: string | null;
+}
+
+export interface ProductAttributeGroup {
+  groupId: string;
+  label: string;
+  options: AttributeOption[];
+}
+
+export interface SingleFixedAttribute {
+  groupId: string;
+  label: string;
+  value: string;
+}
+
+const GROUP_LABEL_MAP: Record<string, string> = {
+  vaConfigurationSize: 'Kích thước',
+  vaMaterialUpholstery: 'Chất liệu vải bọc',
+  vaMaterial: 'Chất liệu / Màu hoàn thiện',
+  vaColour: 'Màu sắc',
+  vaMaterialLeg: 'Chất liệu chân',
+  vaMaterialLegStyle: 'Kiểu dáng chân',
+  vaMaterialSeat: 'Chất liệu mặt ngồi',
+  vaMaterialTabletop: 'Chất liệu mặt bàn',
+  vaSofaDirection: 'Hướng góc sofa',
+  vaRugShape: 'Kiểu dáng thảm',
+  vaFunction: 'Chức năng',
+  vaMaterialLamp: 'Chất liệu đèn',
+  vaMaterialShell: 'Chất liệu vỏ / Khung',
+  vaMaterialCabinet: 'Chất liệu tủ',
+  vaMattressSize: 'Kích thước nệm'
+};
 
 @Component({
   selector: 'app-quick-view-drawer',
   standalone: true,
-  imports: [IconComponent, CommonModule, RouterModule, FormsModule, LucideAngularModule, CustomSelect],
+  imports: [IconComponent, CommonModule, RouterModule, FormsModule],
   templateUrl: './quick-view-drawer.html',
   styleUrls: ['./quick-view-drawer.css']
 })
-export class QuickViewDrawerComponent implements OnChanges {
-  icons = { X, Plus, Minus, Info, ChevronLeft, ChevronRight, ShoppingCart, ExternalLink };
-  constructor(
-    private cdr: ChangeDetectorRef,
-    private cartService: CartService,
-    private router: Router
-  ) {}
-
-  currentImageIdx = 0;
-
-  prevImage(e: Event) {
-    e.stopPropagation();
-    this.currentImageIdx = this.currentImageIdx === 0 ? this.images.length - 1 : this.currentImageIdx - 1;
-  }
-
-  nextImage(e: Event) {
-    e.stopPropagation();
-    this.currentImageIdx = this.currentImageIdx === this.images.length - 1 ? 0 : this.currentImageIdx + 1;
-  }
-
-
+export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() product: CatalogProduct | null = null;
   @Input() isOpen = false;
   @Output() onClose = new EventEmitter<void>();
 
   isVisible = false;
   showAnim = false;
-
-  fullProduct: any = null;
   isLoadingDetails = false;
+  fullProduct: any = null;
 
-  dynamicConfig: any = null;
-  hasDynamicVariants = false;
-  selectedOptions: Record<string, string> = {};
-  quantity = 1;
-  isAddingToCart = false;
-  cartMessage = '';
+  // Gallery hình ảnh thật từ Database
+  currentImageIdx = 0;
+  galleryImages: string[] = [];
 
-  filteredVariantPrices: any[] = [];
-  rawColors: string[] = [];
-  colors: string[] = [];
-  selectedColor = '';
+  // Yêu thích
+  isWishlisted = false;
+  private wishlistSub?: Subscription;
+
+  // Ma trận biến thể thật từ Database (Mỗi thuộc tính là 1 dropdown riêng: Kích thước, Vải, v.v.)
+  attributeGroups: ProductAttributeGroup[] = [];
+  singleFixedAttributes: SingleFixedAttribute[] = [];
+  selectedAttributes: Record<string, string> = {}; // { groupId: optionId }
+  openDropdownGroupId: string | null = null;
 
   matchedVariant: any = null;
+  selectedVariantId = '';
 
-  COLOR_MAP: Record<string, string> = {
-    beige: '#D4C3A3', grey: '#8C8C8C', blue: '#325A82', green: '#4B6E50',
-    brown: '#6E4D3B', white: '#FAF5EF', black: '#1A1A1A', red: '#A33E3E',
-    yellow: '#D4AF37', orange: '#D47A37', pink: '#D48CAD', purple: '#5F3F6D'
-  };
+  // Thông số thật từ Database
+  realMaterial = '';
+  realDimensions = '';
+  specsWeightLoad = '';
+  specsMaterials = '';
+  specsDesignedBy = '';
+  specsPolicy = 'Bảo hành 10 năm kết cấu, Đổi trả 30 ngày';
+
+  // Số lượng & Tồn kho thật
+  quantity = 1;
+  maxStock = 0;
+
+  // Trạng thái thao tác
+  isAddingToCart = false;
+  isBuyingNow = false;
+  cartMessage = '';
+  cartSuccess = false;
+
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private cartService: CartService,
+    private wishlistService: WishlistService,
+    private router: Router
+  ) {}
+
+  ngOnInit() {
+    this.wishlistSub = this.wishlistService.wishlist$.subscribe(() => {
+      this.checkWishlist();
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy() {
+    this.wishlistSub?.unsubscribe();
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['isOpen']) {
@@ -83,49 +130,46 @@ export class QuickViewDrawerComponent implements OnChanges {
 
   openDrawer() {
     this.isVisible = true;
-    setTimeout(() => this.showAnim = true, 50);
+    setTimeout(() => (this.showAnim = true), 40);
     this.quantity = 1;
+    this.cartMessage = '';
+    this.cartSuccess = false;
     document.body.style.overflow = 'hidden';
 
-function getParentCategory(childCat: string): string {
-  if (!childCat) return 'Sofa';
-  const c = childCat.toLowerCase();
-  if (c.includes('sofa') || c.includes('chaise')) return 'Sofa';
-  if (c.includes('chair') || c.includes('bench') || c.includes('stool') || c.includes('recliner') || c.includes('poufs') || c.includes('cushion') || c.includes('seat')) return 'Ghế';
-  if (c.includes('table') || c.includes('desk') || (c.includes('stand') && !c.includes('night'))) return 'Bàn';
-  if (c.includes('storage') || c.includes('shelf') || c.includes('shelves') || c.includes('bookcase') || c.includes('board') || c.includes('unit') || c.includes('chest') || c.includes('drawer') || c.includes('system') || c.includes('night') || c.includes('hallway')) return 'Tủ Kệ';
-  if (c.includes('bed') || c.includes('daybed')) return 'Giường';
-  if (c.includes('lamp') || c.includes('pendant') || c.includes('lighting')) return 'Đèn';
-  if (c.includes('rug') || c.includes('carpet')) return 'Thảm';
-  return 'Phụ Kiện';
-}
+    this.checkWishlist();
 
-    if (this.product?.productId) {
+    const targetId = this.product?.productId || (this.product as any)?.id;
+    if (targetId) {
       this.isLoadingDetails = true;
-      fetch(`${environment.apiUrl}/products/${this.product.productId}`)
+      fetch(`${environment.apiUrl}/products/${targetId}`)
         .then(res => res.json())
         .then(data => {
           this.fullProduct = {
             ...this.product,
             ...data,
-            productId: data.id || this.product?.productId,
+            productId: data.id || targetId,
+            name: data.name || this.product?.name,
             shortDescription: data.name || this.product?.shortDescription,
             shortDescription_vi: data.name || this.product?.shortDescription_vi,
-            category: getParentCategory(data.category?.name || this.product?.category || ''),
-            prices: data.basePrice ? [{ price: data.basePrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(data.basePrice) + ' ₫' }] : this.product?.prices,
-            lowestPrices: data.discountValue ? [{ price: data.basePrice - data.discountValue, formattedPrice: new Intl.NumberFormat('vi-VN').format(data.basePrice - data.discountValue) + ' ₫' }] : this.product?.lowestPrices,
+            basePrice: data.basePrice || this.product?.prices?.[0]?.price || 0,
+            discountValue: data.discountValue ?? this.product?.discountValue ?? null,
+            discountType: data.discountType ?? this.product?.discountType ?? null,
+            configOptions: data.configOptions || (this.product as any)?.configOptions || null,
+            variants: data.variants || this.product?.variants || []
           };
           this.initProductState();
           this.isLoadingDetails = false;
           this.cdr.detectChanges();
         })
         .catch(err => {
-          console.error(err);
+          console.error('Lỗi tải chi tiết sản phẩm từ database:', err);
           this.fullProduct = this.product;
           this.initProductState();
           this.isLoadingDetails = false;
           this.cdr.detectChanges();
         });
+    } else {
+      this.initProductState();
     }
   }
 
@@ -135,115 +179,501 @@ function getParentCategory(childCat: string): string {
       this.isVisible = false;
       document.body.style.overflow = '';
       this.fullProduct = null;
-      this.selectedOptions = {};
-    }, 400);
+    }, 350);
   }
 
   closeAction() {
     this.onClose.emit();
   }
 
+  get activeProduct(): any {
+    return this.fullProduct || this.product;
+  }
+
+  private isNumericSlash(str: string): boolean {
+    return /\d[\d½¼¾\.]*\s*\/\s*\d/.test(str);
+  }
+
+  private splitCompositeName(name: string): string[] {
+    if (!name || this.isNumericSlash(name)) return [name.trim()];
+    const parts = name.split(/\s*\/\s*/).map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1 && parts.every(p => !/^\d+$/.test(p))) {
+      if (parts.length === 2 && parts[0].toLowerCase() === parts[1].toLowerCase()) {
+        return [parts[0]];
+      }
+      return parts;
+    }
+    return [name.trim()];
+  }
+
+  private parseVariantToParts(name: string): string[] {
+    if (!name) return [];
+    const majorParts = name.split(/\s+[\/|]\s+/);
+    const result: string[] = [];
+    for (const part of majorParts) {
+      result.push(...this.splitCompositeName(part));
+    }
+    return result;
+  }
+
   initProductState() {
-    const activeProduct = this.fullProduct || this.product;
-    if (!activeProduct) return;
+    const prod = this.activeProduct;
+    if (!prod) return;
 
-    this.dynamicConfig = this.buildDynamicOptions(activeProduct);
-    this.hasDynamicVariants = this.dynamicConfig && this.dynamicConfig.keys.length > 0;
-    
-    // Lấy variants từ database (không lọc v.images vì db chưa có cột images cho variant)
-    this.filteredVariantPrices = activeProduct.variants || [];
-    this.rawColors = activeProduct.refinementColors || [];
-    this.colors = activeProduct.refinementColors_vi || this.rawColors;
+    const rawVariants: any[] = Array.isArray(prod.variants) ? prod.variants : [];
+    const configAttrs: any[] = prod.configOptions?.attributes || [];
 
-    if (this.hasDynamicVariants && this.filteredVariantPrices.length > 0) {
-      const firstVariant = this.filteredVariantPrices[0];
-      // Dùng optionValues (của db) thay vì selections
-      this.selectedOptions = firstVariant.optionValues || firstVariant.selections || {};
-    } else if (this.rawColors.length > 0) {
-      this.selectedColor = this.rawColors[0];
-    }
-    
-    this.updateMatchedVariant();
-  }
+    this.attributeGroups = [];
+    this.singleFixedAttributes = [];
+    this.selectedAttributes = {};
+    this.openDropdownGroupId = null;
 
-  buildDynamicOptions(product: any) {
-    let configOptions = product.configOptions || [];
-    if (configOptions && !Array.isArray(configOptions)) {
-      configOptions = configOptions.attributes || [];
-    }
-    if (!configOptions || configOptions.length === 0) return null;
+    // 1. Khởi tạo nhóm thuộc tính (Tự động bóc tách các thuộc tính gộp chứa dấu "/")
+    if (configAttrs.length > 0) {
+      for (const attr of configAttrs) {
+        const gid = attr.groupId || 'attr';
+        const label = GROUP_LABEL_MAP[gid] || attr.groupName || gid;
+        const rawOpts: AttributeOption[] = (attr.options || []).map((o: any) => ({
+          id: String(o.id),
+          name: o.name,
+          image: o.image || null,
+          hexColor: o.hexColor || null,
+          groupName: o.groupName || null
+        }));
 
-    const groups: any = {};
-    const keyNames: any = {
-      'vaMaterialLegStyle': 'Chân ghế',
-      'vaMaterialUpholstery': 'Bọc ghế / Chất liệu',
-      'vaSofaDirection': 'Hướng góc',
-      'vaSize': 'Kích thước',
-      'vaColor': 'Màu sắc',
-      'vaColour': 'Màu sắc',
-      'vaConfigurationSize': 'Cấu hình / Kích thước',
-      'vaMaterialTabletop': 'Mặt bàn',
-      'vaMaterialLeg': 'Chân',
-      'vaMattressSize': 'Kích thước nệm',
-      'vaMaterial': 'Chất liệu',
-      'vaFunction': 'Chức năng',
-      'vaMaterialSeat': 'Chất liệu ghế',
-      'vaMotionOption': 'Tùy chọn chuyển động',
-      'vaRugShape': 'Hình dáng thảm',
-      'vaMaterialLamp': 'Chất liệu đèn',
-      'vaMaterialShell': 'Vỏ bọc ngoài',
-      'vaMaterialCabinet': 'Chất liệu tủ kệ',
-      'vaSlatsIncluded': 'Bao gồm rạt giường'
-    };
+        // Kiểm tra xem nhóm này có phải các biến thể ghép dạng "A / B" (như matt ash grey/matt black) không
+        const isComposite = rawOpts.length > 0 && rawOpts.every(o => {
+          const parts = this.splitCompositeName(o.name);
+          return parts.length >= 2;
+        });
 
-    configOptions.forEach((group: any) => {
-      const k = group.groupId;
-      const options = group.options || [];
-      groups[k] = options.map((opt: any) => ({
-        id: opt.id,
-        label: opt.name || opt.id,
-        image: opt.image || ''
-      }));
-    });
+        if (isComposite) {
+          // Tách thành 2 nhóm con độc lập (VD: Thân/Mặt và Khung/Chân)
+          for (let partIdx = 0; partIdx < 2; partIdx++) {
+            const subMap = new Map<string, AttributeOption>();
+            rawOpts.forEach(o => {
+              const parts = this.splitCompositeName(o.name);
+              const partVal = (parts[partIdx] || parts[0]).trim();
+              if (partVal && !subMap.has(partVal)) {
+                subMap.set(partVal, {
+                  id: partVal,
+                  name: partVal,
+                  image: partIdx === 0 ? o.image : null,
+                  hexColor: partIdx === 0 ? o.hexColor : null,
+                  groupName: o.groupName || null
+                });
+              }
+            });
 
-    return { keys: Object.keys(groups), names: keyNames, groups };
-  }
+            const subOpts = Array.from(subMap.values());
+            const subGroupId = `${gid}_sub_${partIdx}`;
+            let subLabel = label;
+            if (gid === 'vaMaterial') {
+              subLabel = partIdx === 0 ? 'Chất liệu thân / Mặt tủ' : 'Chất liệu khung / Chân';
+            } else if (gid === 'vaMaterialShell') {
+              subLabel = partIdx === 0 ? 'Chất liệu khung / Vỏ' : 'Chất liệu đệm / Vải bọc';
+            } else if (gid === 'vaMaterialTabletop') {
+              subLabel = partIdx === 0 ? 'Chất liệu mặt bàn chính' : 'Chi tiết phối viền / ngăn';
+            } else if (gid === 'vaMaterialLeg') {
+              subLabel = partIdx === 0 ? 'Chất liệu chân chính' : 'Chi tiết phối chân';
+            } else {
+              subLabel = partIdx === 0 ? `${label} (Chính)` : `${label} (Khung / Phối)`;
+            }
 
-  updateMatchedVariant() {
-    if (!this.hasDynamicVariants || !this.filteredVariantPrices) {
-      this.matchedVariant = null;
-      return;
-    }
-    this.matchedVariant = this.filteredVariantPrices.find((v: any) => {
-      const sel = v.optionValues || v.selections || {};
-      return Object.keys(this.selectedOptions).every(k => sel[k] === this.selectedOptions[k]);
-    }) || null;
-  }
+            if (subOpts.length > 1) {
+              this.attributeGroups.push({
+                groupId: subGroupId,
+                label: subLabel,
+                options: subOpts
+              });
+            } else if (subOpts.length === 1) {
+              this.singleFixedAttributes.push({
+                groupId: subGroupId,
+                label: subLabel,
+                value: subOpts[0].name
+              });
+            }
+          }
+        } else {
+          // Chuẩn hóa tên đơn lẻ nếu có lặp (VD: "dark oak veneer/dark oak veneer" -> "dark oak veneer")
+          const cleanedOpts = rawOpts.map(o => {
+            const parts = this.splitCompositeName(o.name);
+            return {
+              ...o,
+              name: parts.length === 1 ? parts[0] : o.name
+            };
+          });
+          const uniqueCleaned = Array.from(new Map(cleanedOpts.map(o => [o.name, o])).values());
 
-  handleSelectOption(groupKey: string, optionId: string) {
-    const newOptions = { ...this.selectedOptions, [groupKey]: optionId };
-    const comboExists = this.filteredVariantPrices.some((v: any) => {
-      const sel = v.selections || {};
-      return Object.keys(newOptions).every(k => sel[k] === newOptions[k]);
-    });
-    if (!comboExists && this.filteredVariantPrices.length > 0) {
-      const fallbackVariant = this.filteredVariantPrices.find((v: any) => {
-        const sel = v.optionValues || v.selections;
-        return sel?.[groupKey] === optionId;
-      });
-      if (fallbackVariant) {
-        this.selectedOptions = fallbackVariant.optionValues || fallbackVariant.selections || {};
-        this.updateMatchedVariant();
-        return;
+          if (uniqueCleaned.length > 1) {
+            this.attributeGroups.push({
+              groupId: gid,
+              label,
+              options: uniqueCleaned
+            });
+          } else if (uniqueCleaned.length === 1) {
+            this.singleFixedAttributes.push({
+              groupId: gid,
+              label,
+              value: uniqueCleaned[0].name
+            });
+          }
+        }
+      }
+    } else if (rawVariants.length > 1) {
+      // Fallback: phân tích tên biến thể (hỗ trợ cả dấu " / " và dấu "/" sát chữ)
+      const sampleParts = this.parseVariantToParts(rawVariants[0].name || '');
+      if (sampleParts.length > 1) {
+        sampleParts.forEach((_: string, idx: number) => {
+          const uniqueVals = Array.from(new Set(rawVariants.map(v => (this.parseVariantToParts(v.name || '')[idx] || '').trim()))).filter(Boolean);
+          if (uniqueVals.length > 1) {
+            let label = `Thuộc tính ${idx + 1}`;
+            if (idx === 0 && uniqueVals.some(v => /^[HhWwLlDdØø]\d+/i.test(v))) {
+              label = 'Kích thước';
+            } else if (uniqueVals.some(v => /lacquer|veneer|fabric|wood|leather|gỗ|da|vải|sơn/i.test(v))) {
+              label = idx === 0 ? 'Chất liệu thân / Mặt' : (idx === 1 ? 'Chất liệu khung / Chân' : 'Màu sắc / Hoàn thiện');
+            }
+            this.attributeGroups.push({
+              groupId: `opt_${idx}`,
+              label,
+              options: uniqueVals.map(val => ({ id: val, name: val }))
+            });
+          } else if (uniqueVals.length === 1) {
+            this.singleFixedAttributes.push({
+              groupId: `opt_${idx}`,
+              label: idx === 0 && /^[HhWwLlDdØø]\d+/i.test(uniqueVals[0]) ? 'Kích thước tiêu chuẩn' : 'Chất liệu tiêu chuẩn',
+              value: uniqueVals[0]
+            });
+          }
+        });
       }
     }
-    this.selectedOptions = newOptions;
-    this.updateMatchedVariant();
+
+    // 2. Mặc định chọn biến thể đầu tiên
+    if (rawVariants.length > 0) {
+      this.matchedVariant = rawVariants[0];
+      this.selectedVariantId = this.matchedVariant.id;
+
+      // Gán selectedAttributes theo biến thể đầu tiên
+      const vNameLower = (this.matchedVariant.name || '').toLowerCase();
+      for (const group of this.attributeGroups) {
+        const valId = this.matchedVariant.optionValues?.[group.groupId];
+        if (valId !== undefined && valId !== null && group.options.some(o => o.id === String(valId))) {
+          this.selectedAttributes[group.groupId] = String(valId);
+        } else {
+          const matchedOpt = group.options.find(o => vNameLower.includes(o.name.toLowerCase()));
+          this.selectedAttributes[group.groupId] = matchedOpt ? matchedOpt.id : (group.options[0]?.id || '');
+        }
+      }
+    } else {
+      this.matchedVariant = null;
+      this.selectedVariantId = '';
+    }
+
+    // 3. Cập nhật dữ liệu từ biến thể đang chọn
+    this.updateDataForVariant();
   }
 
-  handleAddToCart(e: Event) {
+
+  private updateDataForVariant() {
+    const prod = this.activeProduct;
+    const v = this.matchedVariant || prod?.variants?.[0];
+    const attrs = v?.attributes || {};
+    const dims = v?.dimensions || {};
+
+    // A. Tồn kho khả dụng thật
+    const stockVal = v ? ((v.stock ?? 0) - (v.reservedStock ?? 0)) : (prod?.stock || 0);
+    this.maxStock = Math.max(0, stockVal);
+    if (this.maxStock > 0 && this.quantity > this.maxStock) {
+      this.quantity = this.maxStock;
+    }
+
+    // B. Ảnh thật từ Database
+    this.galleryImages = this.extractRealImages(prod, v);
+    this.currentImageIdx = 0;
+
+    // C. Kích thước thật từ Database
+    this.realDimensions = this.buildDimensionString(attrs, dims);
+
+    // D. Chất liệu & Hoàn thiện thật từ Database
+    const finish = attrs.finish_vi || attrs.finish || '';
+    const upholstery = attrs.upholsteryComposition_vi || attrs.upholsteryComposition || '';
+    const baseDesc = prod?.description || '';
+    
+    const matParts = [finish, upholstery, baseDesc].filter(Boolean);
+    this.realMaterial = matParts.length > 0 ? matParts.join(' • ') : '';
+
+    // E. Thông số kỹ thuật
+    this.specsWeightLoad = attrs.weightLoad ? `${attrs.weightLoad}` : '';
+    
+    if (attrs.productSpecification_vi) {
+      const parts = attrs.productSpecification_vi.split('|');
+      this.specsMaterials = parts.slice(0, 3).join(', ');
+    } else if (attrs.productSpecification) {
+      const parts = attrs.productSpecification.split('|');
+      this.specsMaterials = parts.slice(0, 2).join(', ');
+    } else {
+      this.specsMaterials = this.realMaterial || '';
+    }
+
+    this.specsDesignedBy = attrs.designedBy || '';
+  }
+
+  private buildDimensionString(attrs: any, dims: any): string {
+    const parts: string[] = [];
+    
+    if (attrs.diameter) {
+      parts.push(`Đường kính: ${attrs.diameter}`);
+    } else if (dims.width || attrs.width) {
+      parts.push(`Rộng: ${attrs.width || (dims.width + ' cm')}`);
+    }
+
+    if (dims.depth || attrs.depth) {
+      parts.push(`Sâu: ${attrs.depth || (dims.depth + ' cm')}`);
+    }
+
+    if (dims.height || attrs.height) {
+      parts.push(`Cao: ${attrs.height || (dims.height + ' cm')}`);
+    }
+
+    if (dims.weight || attrs.weight) {
+      parts.push(`Trọng lượng: ${attrs.weight || (dims.weight + ' kg')}`);
+    }
+
+    if (attrs.mattressSize) {
+      parts.push(`Kích thước nệm: ${attrs.mattressSize}`);
+    }
+
+    return parts.join(' × ');
+  }
+
+  private extractRealImages(prod: any, currentVariant: any): string[] {
+    const list: string[] = [];
+    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com');
+
+    // 1. Ảnh của biến thể đang chọn
+    const vImgs = currentVariant?.images || currentVariant?.optionValues?.images || [];
+    if (Array.isArray(vImgs)) {
+      vImgs.filter(isClean).forEach(img => {
+        if (!list.includes(img)) list.push(img);
+      });
+    }
+
+    // 2. Ảnh của sản phẩm chính
+    const pImgs = prod?.images || [];
+    if (Array.isArray(pImgs)) {
+      pImgs.filter(isClean).forEach(img => {
+        if (!list.includes(img)) list.push(img);
+      });
+    }
+
+    // 3. Ảnh từ các biến thể khác của sản phẩm này (để có đầy đủ góc nhìn)
+    const allVariants = prod?.variants || [];
+    if (Array.isArray(allVariants)) {
+      for (const otherV of allVariants) {
+        const oImgs = otherV.images || otherV.optionValues?.images || [];
+        if (Array.isArray(oImgs)) {
+          oImgs.filter(isClean).forEach(img => {
+            if (list.length < 6 && !list.includes(img)) {
+              list.push(img);
+            }
+          });
+        }
+      }
+    }
+
+    return list;
+  }
+
+  toggleDropdown(groupId: string, e: Event) {
+    e.stopPropagation();
+    if (this.openDropdownGroupId === groupId) {
+      this.openDropdownGroupId = null;
+    } else {
+      this.openDropdownGroupId = groupId;
+    }
+  }
+
+  selectAttributeOption(groupId: string, optionId: string, e: Event) {
+    e.stopPropagation();
+    this.openDropdownGroupId = null;
+    this.selectedAttributes[groupId] = optionId;
+    this.resolveVariantFromSelections(groupId, optionId);
+  }
+
+  getSelectedOption(group: ProductAttributeGroup): AttributeOption | undefined {
+    const selId = this.selectedAttributes[group.groupId];
+    return group.options.find(o => o.id === selId) || group.options[0];
+  }
+
+  private findMatchingVariant(attrs: Record<string, string>): any | null {
+    const variants: any[] = this.activeProduct?.variants || [];
+    if (variants.length === 0) return null;
+
+    // 1. Thử khớp chính xác theo optionValues hoặc theo tên biến thể
+    const exact = variants.find(v => {
+      const vNameLower = (v.name || '').toLowerCase();
+      return Object.keys(attrs).every(gid => {
+        const selVal = attrs[gid];
+        const vVal = v.optionValues?.[gid];
+        if (vVal !== undefined && vVal !== null) {
+          return String(vVal) === String(selVal);
+        }
+        const group = this.attributeGroups.find(g => g.groupId === gid);
+        const opt = group?.options.find(o => o.id === selVal);
+        if (!opt) return true;
+        return vNameLower.includes(opt.name.toLowerCase());
+      });
+    });
+    if (exact) return exact;
+
+    // 2. Tính điểm tương đồng cao nhất nếu không có biến thể khớp 100% tất cả tiêu chí
+    let bestMatch: any = null;
+    let maxScore = -1;
+
+    for (const v of variants) {
+      let score = 0;
+      const vNameLower = (v.name || '').toLowerCase();
+      for (const gid of Object.keys(attrs)) {
+        const selVal = attrs[gid];
+        const vVal = v.optionValues?.[gid];
+        if (vVal !== undefined && vVal !== null && String(vVal) === String(selVal)) {
+          score += 2;
+        } else {
+          const group = this.attributeGroups.find(g => g.groupId === gid);
+          const opt = group?.options.find(o => o.id === selVal);
+          if (opt && vNameLower.includes(opt.name.toLowerCase())) {
+            score += 1;
+          }
+        }
+      }
+      if (score > maxScore) {
+        maxScore = score;
+        bestMatch = v;
+      }
+    }
+
+    return bestMatch || variants[0];
+  }
+
+  private resolveVariantFromSelections(changedGroupId: string, changedOptionId: string) {
+    const variants: any[] = this.activeProduct?.variants || [];
+    if (variants.length === 0) return;
+
+    let matched = this.findMatchingVariant(this.selectedAttributes);
+
+    if (matched) {
+      this.matchedVariant = matched;
+      this.selectedVariantId = matched.id;
+
+      // Đồng bộ lại tất cả dropdown khác theo variant tìm được
+      const vNameLower = (matched.name || '').toLowerCase();
+      for (const g of this.attributeGroups) {
+        const vVal = matched.optionValues?.[g.groupId];
+        if (vVal !== undefined && vVal !== null && g.options.some(o => o.id === String(vVal))) {
+          this.selectedAttributes[g.groupId] = String(vVal);
+        } else {
+          const matchingOpt = g.options.find(o => vNameLower.includes(o.name.toLowerCase()));
+          if (matchingOpt) {
+            this.selectedAttributes[g.groupId] = matchingOpt.id;
+          }
+        }
+      }
+
+      this.updateDataForVariant();
+      this.cdr.detectChanges();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(e: MouseEvent) {
+    if (this.openDropdownGroupId) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.custom-select-box')) {
+        this.openDropdownGroupId = null;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  selectThumbnail(idx: number) {
+    this.currentImageIdx = idx;
+  }
+
+  decreaseQuantity() {
+    if (this.quantity > 1) {
+      this.quantity--;
+    }
+  }
+
+  increaseQuantity() {
+    if (this.maxStock === 0) return;
+    if (this.quantity < this.maxStock) {
+      this.quantity++;
+    }
+  }
+
+  get currentSku(): string {
+    return this.matchedVariant?.sku || this.activeProduct?.variants?.[0]?.sku || this.activeProduct?.id || '—';
+  }
+
+  get currentPrice(): number {
+    const raw = this.matchedVariant ? this.matchedVariant.price : (this.activeProduct?.basePrice || 0);
+    const disc = this.activeProduct?.discountValue;
+    const type = this.activeProduct?.discountType;
+    if (disc && disc > 0) {
+      if (type === 'PERCENT') {
+        return Math.round(raw * (100 - disc) / 100);
+      }
+      return Math.max(0, raw - disc);
+    }
+    return raw;
+  }
+
+  get originalPrice(): number | null {
+    const disc = this.activeProduct?.discountValue;
+    if (disc && disc > 0) {
+      return this.matchedVariant ? this.matchedVariant.price : this.activeProduct?.basePrice;
+    }
+    return null; // Chỉ hiển thị giá gạch ngang khi DB thật có discountValue > 0
+  }
+
+  get discountPercent(): number | null {
+    const disc = this.activeProduct?.discountValue;
+    if (disc && disc > 0) {
+      if (this.activeProduct?.discountType === 'PERCENT') return disc;
+      const base = this.originalPrice || 1;
+      return Math.round((disc / base) * 100);
+    }
+    return null; // Chỉ hiển thị badge HOT DEAL khi DB thật có discountValue > 0
+  }
+
+  formatPrice(num: number | null | undefined): string {
+    if (!num) return '0 đ';
+    return new Intl.NumberFormat('vi-VN').format(num) + ' đ';
+  }
+
+  // Wishlist
+  private checkWishlist() {
+    const pid = this.activeProduct?.productId || this.activeProduct?.id;
+    this.isWishlisted = pid ? this.wishlistService.isWishlisted(pid) : false;
+  }
+
+  toggleWishlist(e: Event) {
     e.stopPropagation();
     e.preventDefault();
+    const pid = this.activeProduct?.productId || this.activeProduct?.id;
+    if (!pid) return;
+    this.isWishlisted = this.wishlistService.toggle(pid);
+    this.cdr.detectChanges();
+  }
+
+  // Thêm vào giỏ
+  handleAddToCart(e?: Event) {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     const token = localStorage.getItem('dcor_customer_token');
     if (!token) {
       this.closeAction();
@@ -251,23 +681,33 @@ function getParentCategory(childCat: string): string {
       return;
     }
 
-    const variants = this.activeProduct?.variants || [];
-    const variant = this.matchedVariant?.isActive !== false &&
-      this.matchedVariant?.stock > this.matchedVariant?.reservedStock
-      ? this.matchedVariant
-      : variants.find((item: any) =>
-          item.isActive !== false && item.stock > item.reservedStock
-        );
+    const variant = this.matchedVariant || this.activeProduct?.variants?.[0];
     if (!variant) {
-      this.cartMessage = 'Sản phẩm hiện chưa có biến thể còn hàng để thêm vào giỏ.';
+      this.cartMessage = 'Sản phẩm hiện chưa có biến thể sẵn sàng.';
+      this.cartSuccess = false;
+      return;
+    }
+
+    if (this.maxStock === 0) {
+      this.cartMessage = 'Sản phẩm hiện đã hết hàng.';
+      this.cartSuccess = false;
       return;
     }
 
     this.isAddingToCart = true;
     this.cartMessage = '';
-    this.cartService.addToCart(variant.id, this.quantity, variant.optionValues || this.selectedOptions)
+
+    const cleanVariantName = (variant.name || '').replace(/([a-zA-Z])\/([a-zA-Z])/g, '$1 · ');
+    const selectedConfig = {
+      variantName: cleanVariantName,
+      sku: variant.sku,
+      dimensions: this.realDimensions,
+      material: this.realMaterial
+    };
+
+    this.cartService.addToCart(variant.id, this.quantity, selectedConfig)
       .pipe(
-        timeout({ first: 15000 }),
+        timeout({ first: 10000 }),
         finalize(() => {
           this.isAddingToCart = false;
           this.cdr.detectChanges();
@@ -275,79 +715,93 @@ function getParentCategory(childCat: string): string {
       )
       .subscribe({
         next: () => {
-          this.cartMessage = 'Đã thêm sản phẩm vào giỏ hàng.';
-          this.cdr.detectChanges();
+          this.cartSuccess = true;
+          this.cartMessage = 'Đã thêm sản phẩm vào giỏ hàng thành công!';
+          setTimeout(() => {
+            if (this.cartSuccess) this.cartMessage = '';
+            this.cdr.detectChanges();
+          }, 3500);
         },
-        error: (error: unknown) => {
-          this.cartMessage = error instanceof TimeoutError
-            ? 'Máy chủ phản hồi quá lâu. Vui lòng kiểm tra lại kết nối rồi thử lại.'
-            : error instanceof HttpErrorResponse
-              ? error.error?.message || 'Không thể thêm sản phẩm vào giỏ hàng.'
+        error: (err: unknown) => {
+          this.cartSuccess = false;
+          this.cartMessage = err instanceof TimeoutError
+            ? 'Máy chủ phản hồi quá lâu, vui lòng thử lại.'
+            : err instanceof HttpErrorResponse
+              ? err.error?.message || 'Không thể thêm sản phẩm vào giỏ hàng.'
               : 'Không thể thêm sản phẩm vào giỏ hàng.';
+        }
+      });
+  }
+
+  // Mua ngay
+  handleBuyNow(e: Event) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const variant = this.matchedVariant || this.activeProduct?.variants?.[0];
+    if (!variant || this.maxStock === 0) return;
+
+    const cleanVariantName = (variant.name || '').replace(/([a-zA-Z])\/([a-zA-Z])/g, '$1 · ');
+    const selectedConfig = {
+      variantName: cleanVariantName,
+      sku: variant.sku,
+      dimensions: this.realDimensions,
+      material: this.realMaterial
+    };
+
+    const token = localStorage.getItem('dcor_customer_token');
+    if (!token) {
+      try {
+        sessionStorage.setItem('dcor_pending_buy_now', JSON.stringify({
+          variantId: variant.id,
+          quantity: this.quantity,
+          selectedConfig
+        }));
+      } catch (err) {}
+      this.closeAction();
+      this.router.navigate(['/login'], { queryParams: { returnUrl: '/checkout' } });
+      return;
+    }
+
+    this.isBuyingNow = true;
+    this.cartService.addToCart(variant.id, this.quantity, selectedConfig)
+      .pipe(
+        timeout({ first: 10000 }),
+        finalize(() => {
+          this.isBuyingNow = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.cartItem?.id) {
+            try {
+              sessionStorage.setItem('dcor_checkout_items', JSON.stringify([res.cartItem.id]));
+            } catch (err) {
+              console.error('Không thể lưu session checkout:', err);
+            }
+          }
+          this.closeAction();
+          this.router.navigate(['/checkout']);
+        },
+        error: (err: unknown) => {
+          this.cartSuccess = false;
+          this.cartMessage = err instanceof TimeoutError
+            ? 'Máy chủ phản hồi quá lâu, vui lòng thử lại.'
+            : err instanceof HttpErrorResponse
+              ? err.error?.message || 'Không thể tiến hành mua ngay lúc này.'
+              : 'Không thể tiến hành mua ngay lúc này.';
           this.cdr.detectChanges();
         }
       });
   }
 
-  get activeProduct(): any {
-    return this.fullProduct || this.product;
-  }
-
-  get currentPrice() {
-    const basePrice = this.matchedVariant ? this.matchedVariant.price : (this.activeProduct?.prices?.[0]?.price || 0);
-    const discountVal = this.activeProduct?.discountValue || 0;
-    const isPercentage = this.activeProduct?.discountType === 'PERCENTAGE';
-    return discountVal > 0 
-      ? (isPercentage ? basePrice * (1 - discountVal / 100) : Math.max(0, basePrice - discountVal))
-      : basePrice;
-  }
-
-  get minBasePrice() {
-    return this.activeProduct?.lowestPrices?.[0]?.price || this.activeProduct?.prices?.[0]?.price || 0;
-  }
-
-  get minCurrentPrice() {
-    const discountVal = this.activeProduct?.discountValue || 0;
-    const isPercentage = this.activeProduct?.discountType === 'PERCENTAGE';
-    return discountVal > 0 
-      ? (isPercentage ? this.minBasePrice * (1 - discountVal / 100) : Math.max(0, this.minBasePrice - discountVal))
-      : this.minBasePrice;
-  }
-
-  get discountVal() {
-    return this.activeProduct?.discountValue || 0;
-  }
-
-  get dimensionData() {
-    // Ưu tiên đọc từ configOptions nếu lưu dưới dạng object JSON
-    const configDims = this.activeProduct?.configOptions?.dimensions;
-    const optionValuesDims = this.matchedVariant?.optionValues?.dimensions;
-    return optionValuesDims || configDims || this.matchedVariant?.dimensions || this.activeProduct?.dimensions;
-  }
-
-  hasDimensions() {
-    return this.dimensionData && Object.keys(this.dimensionData).length > 0;
-  }
-
-  get images() {
-    return (this.matchedVariant?.images && this.matchedVariant.images.length > 0) 
-      ? this.matchedVariant.images 
-      : (this.activeProduct?.images || []);
-  }
-
-  formatPrice(price: number) {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
-  }
-
-  getSelectOptions(groupKey: string) {
-    return this.dynamicConfig.groups[groupKey].map((opt: any) => ({
-      label: opt.label,
-      value: opt.id,
-      image: opt.image
-    }));
-  }
-
-  isImageGroup(groupKey: string) {
-    return groupKey.toLowerCase().includes('color') || groupKey.toLowerCase().includes('upholstery') || groupKey === 'vaMaterial' || groupKey === 'vaMaterialSeat';
+  // Xem toàn bộ chi tiết
+  viewFullDetail() {
+    const pid = this.activeProduct?.productId || this.activeProduct?.id;
+    if (pid) {
+      this.closeAction();
+      this.router.navigate(['/products', pid]);
+    }
   }
 }

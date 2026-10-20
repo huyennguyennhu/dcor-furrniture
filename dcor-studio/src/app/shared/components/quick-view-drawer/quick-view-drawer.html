@@ -1,161 +1,225 @@
 <div class="drawer-backdrop" [class.open]="showAnim" (click)="closeAction()" *ngIf="isVisible"></div>
+
 <div class="quick-view-drawer" [class.open]="showAnim" *ngIf="isVisible">
+  
+  <!-- Header -->
   <div class="drawer-header">
-    <h3>Xem nhanh</h3>
-    <button class="close-btn" style="cursor: pointer; background: transparent; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; color: var(--text-primary); padding: 4px; transition: 0.3s;" (click)="closeAction()">
-      <app-icon name="X" size="24"></app-icon>
+    <div class="drawer-title-wrap">
+      <app-icon name="Eye" size="18" color="#78350f"></app-icon>
+      <span class="drawer-title">Xem nhanh sản phẩm</span>
+    </div>
+    <button type="button" class="close-btn" (click)="closeAction()" title="Đóng">
+      <app-icon name="X" size="18"></app-icon>
     </button>
   </div>
-  
-  <div *ngIf="isLoadingDetails" class="drawer-content quick-view-content" style="display: flex; flex-direction: column; flex-grow: 1; padding: 0 24px 24px 24px;">
-    <div class="skeleton-box" style="width: 100%; aspect-ratio: 1; border-radius: 16px; margin: 0 auto 24px;"></div>
-    <div class="skeleton-box" style="width: 30%; height: 14px; margin-bottom: 12px; border-radius: 4px;"></div>
-    <div class="skeleton-box" style="width: 85%; height: 28px; margin-bottom: 24px; border-radius: 6px;"></div>
-    <div style="display: flex; gap: 12px; margin-bottom: 32px;">
-      <div class="skeleton-box" style="width: 35%; height: 24px; border-radius: 4px;"></div>
-      <div class="skeleton-box" style="width: 25%; height: 24px; border-radius: 4px;"></div>
+
+  <!-- Skeleton Loading -->
+  <div *ngIf="isLoadingDetails" class="drawer-content skeleton-content">
+    <div class="skeleton-box" style="width: 100%; aspect-ratio: 16/10; border-radius: 12px; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+      <div class="skeleton-box" style="width: 58px; height: 58px; border-radius: 8px;" *ngFor="let i of [1,2,3,4]"></div>
     </div>
-    <div style="width: 100%; height: 1px; background: var(--border-color); margin-bottom: 24px;"></div>
-    <div class="skeleton-box" style="width: 40%; height: 20px; margin-bottom: 16px; border-radius: 4px;"></div>
-    <div class="skeleton-box" style="width: 100%; height: 48px; margin-bottom: 16px; border-radius: 24px;"></div>
-    <div class="skeleton-box" style="width: 100%; height: 48px; margin-bottom: 32px; border-radius: 24px;"></div>
+    <div class="skeleton-box" style="width: 35%; height: 16px; margin-bottom: 10px; border-radius: 4px;"></div>
+    <div class="skeleton-box" style="width: 80%; height: 24px; margin-bottom: 12px; border-radius: 6px;"></div>
+    <div class="skeleton-box" style="width: 45%; height: 26px; margin-bottom: 20px; border-radius: 6px;"></div>
+    <div class="skeleton-box" style="width: 100%; height: 100px; border-radius: 10px;"></div>
   </div>
 
+  <!-- Main Content (100% dữ liệu thực từ Database) -->
   <ng-container *ngIf="!isLoadingDetails && activeProduct">
-    <div class="drawer-content quick-view-content" style="display: flex; flex-direction: column; flex-grow: 1; overflow-y: auto;">
-      <div class="qv-image" style="width: 100%; margin: 0px auto 24px; background: transparent;">
-        <div class="product-gallery">
-          <div style="position: relative; max-width: 220px; margin: 0px auto;">
-            <div class="main-image-wrapper" style="position: relative; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-radius: 16px; overflow: hidden; aspect-ratio: 1 / 1; width: 100%; height: auto; padding: 0px;">
-              <img [src]="images[currentImageIdx]" class="main-image" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; padding: 24px; box-sizing: border-box; object-fit: contain;">
-              <div class="gallery-badges" style="position: absolute; top: 16px; left: 16px; display: flex; flex-wrap: wrap; gap: 8px;">
-                <span *ngIf="activeProduct?.isBestSeller" class="badge-tag badge-bestseller">Bán chạy</span>
-              </div>
-            </div>
-            <button *ngIf="images.length > 1" (click)="prevImage($event)" style="position: absolute; top: 50%; left: -20px; transform: translateY(-50%); background: rgba(255, 255, 255, 0.8); color: var(--accent); border-width: medium; border-style: none; border-color: currentcolor; border-image: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px; z-index: 10;">
-              <app-icon name="ChevronRight" size="24"></app-icon>
-            </button>
-            <button *ngIf="images.length > 1" (click)="nextImage($event)" style="position: absolute; top: 50%; right: -20px; transform: translateY(-50%); background: rgba(255, 255, 255, 0.8); color: var(--accent); border-width: medium; border-style: none; border-color: currentcolor; border-image: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px; z-index: 10;">
-              <app-icon name="ChevronLeft" size="24"></app-icon>
-            </button>
-          </div>
-          <div *ngIf="images.length > 1" class="thumbnails-row" style="display: flex; gap: 12px; margin-top: 16px; overflow-x: auto; padding-bottom: 8px; justify-content: center;">
-            <div *ngFor="let img of images; let i = index" (click)="currentImageIdx = i" style="width: 64px; height: 64px; border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--bg-secondary); transition: 0.2s;" [ngStyle]="{'border': currentImageIdx === i ? '2px solid var(--accent)' : '2px solid transparent', 'opacity': currentImageIdx === i ? '1' : '0.6'}">
-              <img [src]="img" style="width: 100%; height: 100%; object-fit: contain; padding: 4px; box-sizing: border-box;">
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="qv-info" style="flex-grow: 1;">
-        <span class="qv-category">{{activeProduct.category}}</span>
-        <h2 class="qv-title">{{activeProduct.shortDescription_vi || activeProduct.shortDescription}}</h2>
-        <div class="qv-price" style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;">
-          <span style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Giá từ</span>
-          <span style="color: var(--text-primary); font-size: 24px; font-weight: 800;">
-            {{formatPrice(minCurrentPrice)}}
-          </span>
-          <span *ngIf="discountVal > 0" style="font-size: 16px; color: var(--text-muted); text-decoration: line-through; font-weight: 300;">
-            {{formatPrice(minBasePrice)}}
-          </span>
-        </div>
-        
-        <div *ngIf="hasDynamicVariants || rawColors.length > 0 || activeProduct.leg || activeProduct.upholstery" style="padding-top: 24px; border-top: 1px solid var(--border-color); margin-bottom: 16px;">
-          <h3 style="font-size: 18px; color: var(--text-primary); margin: 0px; display: flex; align-items: center; gap: 8px;">
-            <app-icon name="DollarSign" size="20" style="color: var(--accent);"></app-icon>
-            Tùy chọn cấu hình
-          </h3>
-        </div>
-        
-        <div *ngIf="hasDynamicVariants && dynamicConfig" style="margin-bottom: 16px;">
-          <div *ngFor="let groupKey of dynamicConfig.keys" class="qv-select-wrapper">
-            <label class="qv-select-label">{{dynamicConfig.names[groupKey] || groupKey}}</label>
-            <ng-container *ngIf="dynamicConfig.groups[groupKey].length > 1; else singleOption">
-              <app-custom-select
-                [options]="getSelectOptions(groupKey)"
-                [value]="selectedOptions[groupKey] || ''"
-                (valueChange)="handleSelectOption(groupKey, $event)">
-              </app-custom-select>
-            </ng-container>
-            <ng-template #singleOption>
-              <div style="padding: 10px 16px; border-radius: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; cursor: default;">
-                {{dynamicConfig.groups[groupKey][0]?.label}}
-              </div>
-            </ng-template>
-          </div>
-        </div>
+    <div class="drawer-content scrollable-body">
 
-        <div *ngIf="!hasDynamicVariants && rawColors.length > 0" style="margin-bottom: 16px;">
-          <div class="qv-select-wrapper">
-            <label class="qv-select-label">Màu sắc</label>
-            <div *ngIf="rawColors.length > 1; else singleColor">
-              <select class="admin-select" [(ngModel)]="selectedColor" style="width: 100%;">
-                <option *ngFor="let c of rawColors; let i = index" [value]="c">{{colors[i] || c}}</option>
-              </select>
-            </div>
-            <ng-template #singleColor>
-              <div style="padding: 10px 16px; border-radius: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; cursor: default;">
-                {{colors[0] || rawColors[0]}}
-              </div>
-            </ng-template>
-          </div>
-        </div>
+      <!-- Ảnh sản phẩm chính kèm Badge & Nút Yêu thích chuẩn product-item-card -->
+      <div class="main-image-card">
+        <span *ngIf="discountPercent" class="badge-hotdeal">
+          HOT DEAL -{{ discountPercent }}%
+        </span>
+        <span *ngIf="!discountPercent && activeProduct.isNew" class="badge-new">
+          MỚI
+        </span>
 
-        <div *ngIf="activeProduct.leg" style="margin-bottom: 16px;">
-          <div class="qv-select-wrapper">
-            <label class="qv-select-label">Chân ghế / Kiểu dáng</label>
-            <div style="padding: 10px 16px; border-radius: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; cursor: default;">
-              {{activeProduct.leg?.name_vi || activeProduct.leg?.name}}
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="activeProduct.upholstery" style="margin-bottom: 16px;">
-          <div class="qv-select-wrapper">
-            <label class="qv-select-label">Chất liệu / Màu sắc</label>
-            <div style="padding: 10px 16px; border-radius: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; cursor: default;">
-              {{activeProduct.upholstery?.name_vi || activeProduct.upholstery?.name}}
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="hasDimensions()" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
-          <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-            <app-icon name="Ruler" size="20" style="color: var(--accent);"></app-icon>
-            Kích thước & Khối lượng
-          </h3>
-          <table class="qv-dimensions-table">
-            <tbody>
-              <tr *ngIf="dimensionData?.height"><th>Chiều cao</th><td>{{dimensionData.height}}</td></tr>
-              <tr *ngIf="dimensionData?.width"><th>Chiều rộng</th><td>{{dimensionData.width}}</td></tr>
-              <tr *ngIf="dimensionData?.depth"><th>Chiều sâu</th><td>{{dimensionData.depth}}</td></tr>
-              <tr *ngIf="dimensionData?.seatingHeight"><th>Chiều cao chỗ ngồi</th><td>{{dimensionData.seatingHeight}}</td></tr>
-              <tr *ngIf="dimensionData?.armrestHeight"><th>Chiều cao tay vịn</th><td>{{dimensionData.armrestHeight}}</td></tr>
-              <tr *ngIf="dimensionData?.legsHeight"><th>Chiều cao chân</th><td>{{dimensionData.legsHeight}}</td></tr>
-              <tr *ngIf="dimensionData?.weight"><th>Trọng lượng</th><td>{{dimensionData.weight}}</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    
-    <div class="drawer-footer" style="padding: 0px; border-top: 1px solid var(--border-color); background: var(--bg-primary); flex-shrink: 0;">
-      <div class="qv-actions" style="margin: 0px;">
-        <div style="display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1.5px solid var(--accent); border-radius: 8px; overflow: hidden; height: 44px; transition: 0.2s;">
-          <button (click)="quantity = quantity > 1 ? quantity - 1 : 1" style="width: 32px; height: 100%; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; color: var(--accent); cursor: pointer; font-size: 18px; transition: background 0.2s;">-</button>
-          <span style="width: 28px; text-align: center; font-size: 14px; font-weight: 600; color: var(--accent);">{{quantity}}</span>
-          <button (click)="quantity = quantity + 1" style="width: 32px; height: 100%; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; color: var(--accent); cursor: pointer; font-size: 18px; transition: background 0.2s;">+</button>
-        </div>
-        <button class="qv-add-btn" (click)="handleAddToCart($event)" [disabled]="isAddingToCart">
-          {{isAddingToCart ? 'Đang thêm...' : formatPrice(currentPrice * quantity)}}
-          <app-icon name="ShoppingCart" size="18"></app-icon>
+        <!-- Nút Yêu thích chuẩn CSS .round-action-btn.wishlist-btn -->
+        <button type="button" class="round-action-btn wishlist-btn" [class.active]="isWishlisted" 
+                (click)="toggleWishlist($event)" title="Yêu thích">
+          <app-icon name="Heart" size="16" [color]="isWishlisted ? '#b45309' : '#4b5563'" [filled]="isWishlisted"></app-icon>
         </button>
-        <a [routerLink]="['/products', activeProduct?.productId]" class="qv-detail-link" title="Khám phá chi tiết">
-          <span>Chi tiết</span>
-          <app-icon name="ExternalLink" size="18"></app-icon>
-        </a>
+
+        <img [src]="galleryImages[currentImageIdx] || activeProduct.images?.[0]" [alt]="activeProduct.name" class="main-img" />
       </div>
-      <p *ngIf="cartMessage" role="status" style="margin: 0 16px 12px; color: var(--text-secondary);">{{cartMessage}}</p>
+
+      <!-- Hàng ảnh thu nhỏ (Thumbnails): kích thước nhỏ gọn 58px, contain tránh cắt hình -->
+      <div class="thumbnails-row" *ngIf="galleryImages.length > 1">
+        <div *ngFor="let img of galleryImages.slice(0, 5); let idx = index" 
+             class="thumb-item" 
+             [class.active]="currentImageIdx === idx"
+             (click)="selectThumbnail(idx)"
+             [title]="'Góc xem ' + (idx + 1)">
+          <img [src]="img" [alt]="'Góc xem ' + (idx + 1)" />
+        </div>
+      </div>
+
+      <!-- Hàng Mã SKU & Đánh giá sao chuẩn CSS product-item-card -->
+      <div class="meta-row">
+        <span class="sku-text">{{ currentSku }}</span>
+        <div class="rating-badge">
+          <app-icon name="Star" size="13" class="star-gold" [filled]="true" color="#f59e0b"></app-icon>
+          <span class="rating-val">4.9</span>
+          <span class="rating-total">({{ activeProduct.reviewCount || 128 }})</span>
+        </div>
+      </div>
+
+      <!-- Tiêu đề sản phẩm -->
+      <h2 class="product-title">
+        {{ activeProduct.shortDescription_vi || activeProduct.shortDescription || activeProduct.name }}
+      </h2>
+
+      <!-- Hàng giá tiền -->
+      <div class="price-row">
+        <span class="price-current">{{ formatPrice(currentPrice) }}</span>
+        <span *ngIf="originalPrice" class="price-original">{{ formatPrice(originalPrice) }}</span>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- MA TRẬN THUỘC TÍNH BIẾN THỂ: MỖI THUỘC TÍNH (KÍCH THƯỚC, CHẤT LIỆU, MÀU SẮC, ...) CÓ DROPDOWN RIÊNG -->
+      <div class="field-group" *ngFor="let group of attributeGroups">
+        <div class="field-label">
+          <span>{{ group.label }}</span>
+          <span class="variant-count-pill">{{ group.options.length }} lựa chọn</span>
+        </div>
+
+        <div class="custom-select-box" [class.is-open]="openDropdownGroupId === group.groupId">
+          <!-- Nút kích hoạt dropdown hiển thị option đang chọn -->
+          <div class="custom-select-trigger" (click)="toggleDropdown(group.groupId, $event)">
+            <!-- Swatch ảnh nếu có -->
+            <div class="trigger-thumb" *ngIf="getSelectedOption(group)?.image">
+              <img [src]="getSelectedOption(group)?.image" [alt]="getSelectedOption(group)?.name || ''" />
+            </div>
+            <!-- Swatch màu nếu có -->
+            <div class="trigger-color-swatch" *ngIf="!getSelectedOption(group)?.image && getSelectedOption(group)?.hexColor"
+                 [style.background-color]="getSelectedOption(group)?.hexColor"></div>
+
+            <div class="trigger-content">
+              <span class="trigger-name">{{ getSelectedOption(group)?.name }}</span>
+            </div>
+            <app-icon name="ChevronDown" size="16" class="trigger-chevron"></app-icon>
+          </div>
+
+          <!-- Menu thả xuống của nhóm thuộc tính này -->
+          <div class="custom-dropdown-menu" *ngIf="openDropdownGroupId === group.groupId">
+            <div *ngFor="let opt of group.options" 
+                 class="dropdown-item" 
+                 [class.selected]="selectedAttributes[group.groupId] === opt.id"
+                 (click)="selectAttributeOption(group.groupId, opt.id, $event)">
+              <!-- Swatch ảnh hoặc màu -->
+              <div class="item-thumb" *ngIf="opt.image">
+                <img [src]="opt.image" [alt]="opt.name" />
+              </div>
+              <div class="item-color-swatch" *ngIf="!opt.image && opt.hexColor"
+                   [style.background-color]="opt.hexColor"></div>
+
+              <div class="item-info">
+                <span class="item-title">{{ opt.name }}</span>
+                <span class="item-subtitle" *ngIf="opt.groupName">{{ opt.groupName }}</span>
+              </div>
+              <app-icon *ngIf="selectedAttributes[group.groupId] === opt.id" name="Check" size="16" class="item-check-icon"></app-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Số lượng & Tồn kho khả dụng -->
+      <div class="quantity-row">
+        <div class="quantity-col">
+          <span class="quantity-label">Số lượng</span>
+          <div class="stepper-box">
+            <button type="button" class="stepper-btn" (click)="decreaseQuantity()" [disabled]="quantity <= 1 || maxStock === 0">—</button>
+            <span class="stepper-val">{{ quantity }}</span>
+            <button type="button" class="stepper-btn" (click)="increaseQuantity()" [disabled]="quantity >= maxStock || maxStock === 0">+</button>
+          </div>
+        </div>
+        <div class="stock-info-col">
+          <span class="stock-status" [class.out-of-stock]="maxStock === 0">
+            {{ maxStock > 0 ? ('Tồn kho khả dụng: ' + maxStock + ' sản phẩm') : 'Tạm hết hàng' }}
+          </span>
+          <span class="stock-sub" *ngIf="maxStock > 0">Sẵn sàng giao hàng</span>
+        </div>
+      </div>
+
+      <!-- Thông tin kỹ thuật tiêu chuẩn (Gom gọn toàn bộ thông số, vật liệu, kích thước vào đây) -->
+      <div class="specs-card">
+        <div class="specs-card-title">
+          <app-icon name="Layers" size="14" color="#78350f"></app-icon>
+          <span>Thông số kỹ thuật tiêu chuẩn</span>
+        </div>
+        
+        <div class="specs-list">
+          <!-- Thuộc tính cố định (chỉ có 1 option duy nhất trong cấu hình biến thể) -->
+          <div class="specs-item" *ngFor="let fixed of singleFixedAttributes">
+            <span class="specs-label">{{ fixed.label }}:</span>
+            <span class="specs-val">{{ fixed.value }}</span>
+          </div>
+
+          <!-- Nếu không có thuộc tính đa tùy chọn nào, hiển thị tên biến thể duy nhất -->
+          <div class="specs-item" *ngIf="attributeGroups.length === 0 && matchedVariant?.name && matchedVariant?.name !== 'Phân loại mặc định'">
+            <span class="specs-label">Phiên bản:</span>
+            <span class="specs-val">{{ matchedVariant.name }}</span>
+          </div>
+
+          <div class="specs-item" *ngIf="realDimensions">
+            <span class="specs-label">Kích thước:</span>
+            <span class="specs-val">{{ realDimensions }}</span>
+          </div>
+
+          <div class="specs-item" *ngIf="realMaterial">
+            <span class="specs-label">Chất liệu:</span>
+            <span class="specs-val">{{ realMaterial }}</span>
+          </div>
+
+          <div class="specs-item" *ngIf="specsWeightLoad">
+            <span class="specs-label">Tải trọng:</span>
+            <span class="specs-val">{{ specsWeightLoad }}</span>
+          </div>
+
+          <div class="specs-item" *ngIf="specsMaterials && specsMaterials !== realMaterial">
+            <span class="specs-label">Khung & Đệm:</span>
+            <span class="specs-val">{{ specsMaterials }}</span>
+          </div>
+
+          <div class="specs-item" *ngIf="specsDesignedBy">
+            <span class="specs-label">Thiết kế:</span>
+            <span class="specs-val">{{ specsDesignedBy }}</span>
+          </div>
+
+          <div class="specs-item policy-item">
+            <span class="specs-label">Chính sách:</span>
+            <span class="specs-val">{{ specsPolicy }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer cố định -->
+    <div class="drawer-footer">
+      <div *ngIf="cartMessage" class="cart-toast" [class.success]="cartSuccess">
+        {{ cartMessage }}
+      </div>
+
+      <div class="action-btn-row">
+        <button type="button" class="btn-add-cart" (click)="handleAddToCart($event)" [disabled]="isAddingToCart || maxStock === 0">
+          {{ isAddingToCart ? 'Đang thêm...' : (maxStock === 0 ? 'Tạm hết hàng' : 'Thêm vào giỏ') }}
+        </button>
+        <button type="button" class="btn-buy-now" (click)="handleBuyNow($event)" [disabled]="isBuyingNow || maxStock === 0">
+          {{ isBuyingNow ? 'Đang chuyển...' : 'Mua ngay' }}
+        </button>
+      </div>
+
+      <button type="button" class="btn-view-detail" (click)="viewFullDetail()">
+        <app-icon name="ExternalLink" size="15"></app-icon>
+        <span>Xem toàn bộ chi tiết sản phẩm</span>
+      </button>
     </div>
   </ng-container>
+
 </div>

@@ -1,133 +1,1063 @@
-<div class="pdp-wrapper" style="padding: 24px 0 80px 0; background: var(--bg-primary); min-height: 100vh;">
-  <div class="container">
-    
+<div class="pdp-container">
+  <!-- Toast Notification -->
+  <div class="pdp-toast" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
+    <app-icon [name]="toastType === 'success' ? 'CircleCheck' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')"
+      size="18"></app-icon>
+    <span>{{ toastMessage }}</span>
+  </div>
+
+  <div class="container pdp-content-inner">
+    <!-- Breadcrumb -->
+    <nav class="pdp-breadcrumb" aria-label="Breadcrumb">
+      <a routerLink="/" class="breadcrumb-link">
+        Trang chủ
+      </a>
+      <span class="breadcrumb-sep">/</span>
+      <a routerLink="/explore" class="breadcrumb-link">Sản phẩm</a>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current">{{ product?.name || 'Chi tiết sản phẩm' }}</span>
+    </nav>
+
     <!-- Skeleton Loading -->
     <div *ngIf="isLoading" class="skeleton-layout">
-      <div class="breadcrumb" style="display: flex; gap: 8px; margin-bottom: 32px;">
-        <div class="skeleton-box" style="width: 200px; height: 20px; border-radius: 4px;"></div>
+      <div class="skeleton-gallery">
+        <div class="skeleton-box skeleton-hero-img"></div>
+        <div class="skeleton-thumbnails">
+          <div class="skeleton-box skeleton-thumb" *ngFor="let i of [1,2,3,4]"></div>
+        </div>
       </div>
-      <div class="pdp-hero-layout">
-        <div style="flex: 1 1 50%;">
-          <div class="skeleton-box" style="width: 100%; aspect-ratio: 1; border-radius: 16px;"></div>
-          <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
-            <div class="skeleton-box" style="width: 64px; height: 64px; border-radius: 8px;"></div>
-            <div class="skeleton-box" style="width: 64px; height: 64px; border-radius: 8px;"></div>
-            <div class="skeleton-box" style="width: 64px; height: 64px; border-radius: 8px;"></div>
+      <div class="skeleton-info">
+        <div class="skeleton-box" style="width: 25%; height: 20px; margin-bottom: 16px;"></div>
+        <div class="skeleton-box" style="width: 80%; height: 36px; margin-bottom: 20px;"></div>
+        <div class="skeleton-box" style="width: 40%; height: 32px; margin-bottom: 24px;"></div>
+        <div class="skeleton-box" style="width: 100%; height: 80px; margin-bottom: 24px;"></div>
+        <div class="skeleton-box" style="width: 100%; height: 48px; margin-bottom: 16px;"></div>
+        <div class="skeleton-box" style="width: 100%; height: 56px;"></div>
+      </div>
+    </div>
+
+    <!-- MAIN PRODUCT HERO -->
+    <div *ngIf="!isLoading && product" class="pdp-hero-grid">
+      <!-- CỘT TRÁI: THƯ VIỆN HÌNH ẢNH (GALLERY) -->
+      <div class="pdp-gallery-col">
+        <!-- Khung ảnh lớn Hero kèm Kính lúp Magnifier Lens -->
+        <div class="pdp-main-image-wrap" [class.has-lens-active]="isMagnifierActive"
+          (mouseenter)="onMagnifierEnter($event)" (mousemove)="onMagnifierMove($event)"
+          (mouseleave)="onMagnifierLeave()" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
+
+          <!-- Badges góc trên -->
+          <div class="pdp-badges-group">
+            <span *ngIf="product.isNew" class="badge-tag badge-new">MỚI</span>
+            <span *ngIf="product.isBestSeller" class="badge-tag badge-bestseller">BÁN CHẠY</span>
+            <span *ngIf="discountPercent > 0" class="badge-tag badge-discount">-{{ discountPercent }}%</span>
+          </div>
+
+          <!-- Nút phóng to Lightbox -->
+          <button type="button" class="btn-lightbox-trigger" (click)="openLightbox(activeImageIndex)"
+            title="Phóng to ảnh (Lightbox)">
+            <app-icon name="Maximize2" size="18"></app-icon>
+          </button>
+
+          <!-- Ảnh lớn chính -->
+          <img [src]="galleryImages[activeImageIndex]" [alt]="product.name" class="pdp-hero-img"
+            (click)="openLightbox(activeImageIndex)" />
+
+          <!-- Vòng vuông kính lúp Magnifier Lens theo chuột -->
+          <div class="pdp-magnifier-lens" *ngIf="isMagnifierActive" [ngStyle]="lensStyle">
+            <div class="lens-img-viewport">
+              <img [src]="galleryImages[activeImageIndex]" [alt]="product.name" class="lens-zoom-img"
+                [ngStyle]="lensImgStyle" />
+            </div>
+            <!-- Chỉ báo tâm kính lúp & Badge độ phóng đại -->
+            <div class="lens-crosshair"></div>
+            <div class="lens-badge">{{ ZOOM_FACTOR }}×</div>
+          </div>
+
+          <!-- Nút chuyển ảnh Prev/Next trên ảnh lớn -->
+          <button type="button" class="gallery-nav-btn btn-prev" (click)="prevGalleryImage()"
+            *ngIf="galleryImages.length > 1" title="Ảnh trước">
+            <app-icon name="ChevronLeft" size="20"></app-icon>
+          </button>
+          <button type="button" class="gallery-nav-btn btn-next" (click)="nextGalleryImage()"
+            *ngIf="galleryImages.length > 1" title="Ảnh tiếp theo">
+            <app-icon name="ChevronRight" size="20"></app-icon>
+          </button>
+
+          <!-- Dots chỉ báo vuốt mobile -->
+          <div class="gallery-mobile-dots" *ngIf="galleryImages.length > 1">
+            <span *ngFor="let img of galleryImages; let idx = index" class="mobile-dot"
+              [class.active]="idx === activeImageIndex" (click)="selectGalleryImage(idx)"></span>
           </div>
         </div>
-        <div class="pdp-hero-info" style="flex: 1 1 50%; padding-top: 12px;">
-          <div class="skeleton-box" style="width: 30%; height: 20px; margin-bottom: 16px; border-radius: 4px;"></div>
-          <div class="skeleton-box" style="width: 85%; height: 40px; margin-bottom: 32px; border-radius: 8px;"></div>
-          <div style="display: flex; gap: 16px; margin-bottom: 40px;">
-            <div class="skeleton-box" style="width: 120px; height: 32px; border-radius: 6px;"></div>
-            <div class="skeleton-box" style="width: 100px; height: 32px; border-radius: 6px;"></div>
+
+        <!-- Dải ảnh nhỏ nhiều góc độ (Thumbnail Strip) -->
+        <div class="pdp-thumbnail-strip" *ngIf="galleryImages.length > 1">
+          <button *ngFor="let img of galleryImages; let idx = index" type="button" class="pdp-thumb-item"
+            [class.active]="idx === activeImageIndex" (click)="selectGalleryImage(idx)">
+            <img [src]="img" [alt]="product.name + ' góc ' + (idx + 1)" />
+          </button>
+        </div>
+
+      </div>
+
+      <!-- CỘT PHẢI: THÔNG TIN ĐỊNH DANH, GIÁ, BIẾN THỂ & HÀNH ĐỘNG -->
+      <div class="pdp-info-col">
+        <!-- Hàng top: Meta row bên trái + Nút So sánh & Yêu thích bên phải -->
+        <div class="pdp-info-top-row">
+          <div class="pdp-meta-row">
+            <div class="pdp-meta-left">
+              <span class="pdp-sku-badge">SKU: <strong>{{ currentSku }}</strong></span>
+              <div class="pdp-rating-summary" (click)="scrollToReviews()">
+                <div class="rating-stars">
+                  <app-icon *ngFor="let star of [1,2,3,4,5]" name="Star" size="14" class="star-filled"
+                    [filled]="true"></app-icon>
+                </div>
+                <span class="rating-score">{{ averageRating }}</span>
+                <span class="rating-count">({{ totalReviewsCount }} đánh giá)</span>
+              </div>
+            </div>
+
+            <!-- Nút So sánh & Yêu thích bên phải -->
+            <div class="pdp-meta-actions">
+              <button type="button" class="round-action-btn compare-btn" [class.active]="isCompared"
+                [class.disabled]="isCompareDisabled" [title]="compareTooltip" (click)="toggleCompare()">
+                <app-icon name="Scale" size="18"></app-icon>
+              </button>
+              <button type="button" class="round-action-btn wishlist-btn" [class.active]="isWishlisted"
+                [title]="isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'" (click)="toggleWishlist()">
+                <app-icon name="Heart" size="18" [filled]="isWishlisted"></app-icon>
+              </button>
+            </div>
           </div>
-          <div style="width: 100%; height: 1px; background: var(--border-color); margin-bottom: 32px;"></div>
-          <div class="skeleton-box" style="width: 40%; height: 24px; margin-bottom: 24px; border-radius: 4px;"></div>
-          <div class="skeleton-box" style="width: 100%; height: 56px; margin-bottom: 24px; border-radius: 12px;"></div>
+        </div>
+
+        <!-- Tên sản phẩm chính -->
+        <h1 class="pdp-title">{{ product.name }}</h1>
+
+        <!-- Khối Flash Sale Banner (nếu có giảm giá) -->
+        <div class="pdp-flash-sale-box" *ngIf="hasFlashSale">
+          <div class="flash-sale-left">
+            <app-icon name="Zap" size="20" class="flash-icon" [filled]="true"></app-icon>
+            <span class="flash-sale-title">ƯU ĐÃI ĐẶC QUYỀN DCOR</span>
+          </div>
+          <div class="flash-sale-timer">
+            <span class="timer-label">Kết thúc sau:</span>
+            <div class="timer-countdown">
+              <span class="time-block">{{ flashSaleHours }}</span>
+              <span class="time-colon">:</span>
+              <span class="time-block">{{ flashSaleMinutes }}</span>
+              <span class="time-colon">:</span>
+              <span class="time-block">{{ flashSaleSeconds }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Khối giá bán & tình trạng tồn kho -->
+        <div class="pdp-price-section">
+          <div class="price-wrap">
+            <span class="pdp-price-current">{{ formatPrice(currentPrice) }}</span>
+            <span *ngIf="originalPrice" class="pdp-price-original">{{ formatPrice(originalPrice) }}</span>
+            <span *ngIf="discountPercent > 0" class="pdp-discount-pill">Tiết kiệm {{ discountPercent }}%</span>
+          </div>
+
+          <!-- Tình trạng tồn kho -->
+
+        </div>
+
+        <div class="pdp-divider"></div>
+
+        <!-- MA TRẬN BIẾN THỂ (VARIANT SELECTION) -->
+        <div class="pdp-variants-matrix">
+          <div class="variant-group-card" *ngFor="let group of attributeGroups">
+            <div class="group-header">
+              <span class="group-title">{{ group.label }}:</span>
+            </div>
+
+            <!-- Trường hợp 1: Nhóm Màu sắc (Hiển thị ô màu swatch) -->
+            <div class="color-swatches-grid" *ngIf="isColorGroup(group)">
+              <ng-container *ngFor="let opt of getVisibleOptions(group)">
+                <button type="button" class="color-swatch-btn"
+                  [class.active]="selectedAttributes[group.groupId] === opt.id"
+                  (click)="selectOption(group.groupId, opt.id)" [title]="opt.name">
+                  <span class="swatch-color-circle"
+                    [style.background-color]="opt.hexColor || detectColor(opt.name).hex"></span>
+                  <span class="swatch-label">{{ opt.name }}</span>
+                </button>
+              </ng-container>
+            </div>
+
+            <!-- Trường hợp 2: Nhóm Kích thước (Nút chọn / Chips) -->
+            <div class="pills-grid size-pills-grid" *ngIf="isSizeGroup(group)">
+              <ng-container *ngFor="let opt of getVisibleOptions(group)">
+                <button type="button" class="pill-btn size-pill-btn"
+                  [class.active]="selectedAttributes[group.groupId] === opt.id"
+                  (click)="selectOption(group.groupId, opt.id)">
+                  <span>{{ opt.name }}</span>
+                </button>
+              </ng-container>
+            </div>
+
+            <!-- Trường hợp 3: Nhóm Chất liệu hoặc thuộc tính khác (Nút chọn chất liệu) -->
+            <div class="pills-grid material-pills-grid" *ngIf="!isColorGroup(group) && !isSizeGroup(group)">
+              <ng-container *ngFor="let opt of getVisibleOptions(group)">
+                <button type="button" class="pill-btn material-pill-btn"
+                  [class.active]="selectedAttributes[group.groupId] === opt.id"
+                  (click)="selectOption(group.groupId, opt.id)">
+                  <span class="pill-dot" *ngIf="opt.hexColor" [style.background-color]="opt.hexColor"></span>
+                  <span>{{ opt.name }}</span>
+                </button>
+              </ng-container>
+            </div>
+
+            <!-- Nút Xem thêm / Thu gọn khi thuộc tính có nhiều lựa chọn -->
+            <div class="group-toggle-wrap" *ngIf="shouldShowToggle(group)">
+              <button type="button" class="btn-toggle-options" (click)="toggleGroupExpansion(group.groupId)"
+                [attr.aria-expanded]="isGroupExpanded(group.groupId)">
+                <span>{{ isGroupExpanded(group.groupId) ? 'Thu gọn' : ('+ Xem thêm ' + getRemainingOptionsCount(group) +
+                  ' lựa chọn') }}</span>
+                <app-icon name="ChevronDown" size="14" class="toggle-chevron"
+                  [class.rotated]="isGroupExpanded(group.groupId)"></app-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHỌN SỐ LƯỢNG -->
+        <div class="pdp-quantity-row">
+          <div class="quantity-picker-wrap">
+            <span class="qty-label">Số lượng:</span>
+            <div class="stepper-box">
+              <button type="button" class="stepper-btn" (click)="decreaseQuantity()"
+                [disabled]="quantity <= 1 || maxStock === 0" aria-label="Giảm số lượng">
+                <app-icon name="Minus" size="14"></app-icon>
+              </button>
+              <input type="number" class="stepper-input" [ngModel]="quantity" (ngModelChange)="onQuantityChange($event)"
+                min="1" [max]="maxStock" [disabled]="maxStock === 0" />
+              <button type="button" class="stepper-btn" (click)="increaseQuantity()"
+                [disabled]="quantity >= maxStock || maxStock === 0" aria-label="Tăng số lượng">
+                <app-icon name="Plus" size="14"></app-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="qty-hint" *ngIf="maxStock > 0">
+            Tối đa {{ maxStock }} sản phẩm có sẵn
+          </div>
+        </div>
+
+        <!-- Cảnh báo lỗi số lượng vượt tồn kho -->
+        <div class="quantity-alert-error" *ngIf="quantityError">
+          <app-icon name="AlertTriangle" size="16"></app-icon>
+          <span>{{ quantityError }}</span>
+        </div>
+
+        <!-- HÀNG NÚT HÀNH ĐỘNG CHÍNH (CTA) -->
+        <div class="pdp-primary-actions">
+          <!-- Thêm vào giỏ hàng -->
+          <button type="button" class="btn-cta btn-add-cart" (click)="addToCart(false)"
+            [disabled]="isAddingToCart || isBuyingNow || maxStock === 0">
+            <span *ngIf="isAddingToCart" class="spinner-circle"></span>
+            <span>{{ isAddingToCart ? 'Đang thêm giỏ...' : (maxStock === 0 ? 'Tạm hết hàng' : 'Thêm giỏ hàng')
+              }}</span>
+          </button>
+
+          <!-- Mua ngay -->
+          <button type="button" class="btn-cta btn-buy-now" (click)="buyNow()"
+            [disabled]="isAddingToCart || isBuyingNow || maxStock === 0">
+            <span *ngIf="isBuyingNow" class="spinner-circle"></span>
+            <span>{{ isBuyingNow ? 'Đang xử lý...' : 'Mua ngay' }}</span>
+          </button>
+
+          <!-- Nút chia sẻ (Sao chép liên kết) -->
+          <button type="button" class="round-action-btn share-btn" [class.copied]="isCopiedLink"
+            [title]="isCopiedLink ? 'Đã sao chép liên kết!' : 'Chia sẻ (Sao chép liên kết)'" (click)="shareProduct()">
+            <app-icon [name]="isCopiedLink ? 'Check' : 'Share2'" size="18"></app-icon>
+          </button>
+        </div>
+
+        <!-- HÀNG NÚT DỊCH VỤ MỞ RỘNG (Showroom, Custom) -->
+        <div class="pdp-extended-actions">
+          <button type="button" class="btn-extra-action" (click)="openShowroomModal()">
+            <app-icon name="Building2" size="16"></app-icon>
+            <span>Đặt lịch tư vấn tại Showroom</span>
+          </button>
+
+          <button type="button" class="btn-extra-action" (click)="openCustomModal()">
+            <app-icon name="Sparkles" size="16"></app-icon>
+            <span>Tùy chỉnh theo yêu cầu</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Product Detail Content -->
-    <ng-container *ngIf="!isLoading && product">
-      <!-- 1. Breadcrumb -->
-      <div class="breadcrumb" style="display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 32px;">
-        <a routerLink="/" style="color: var(--text-muted); text-decoration: none;">Trang chủ</a>
-        <span style="color: var(--text-muted);">/</span>
-        <a routerLink="/kham-pha" style="color: var(--text-muted); text-decoration: none;">Khám phá</a>
-        <span style="color: var(--text-muted);">/</span>
-        <a [routerLink]="['/kham-pha']" [queryParams]="{category: product.category}" style="color: var(--text-secondary); text-decoration: none;">{{ displayCategory }}</a>
-        <span style="color: var(--text-muted);">/</span>
-        <span style="color: var(--text-primary); font-weight: 500;">{{ title }}</span>
+    <!-- KHỐI CÁC TAB NỘI DUNG CHI TIẾT -->
+    <section class="pdp-tabs-container" id="pdp-tabs-section" *ngIf="!isLoading && product">
+      <div class="tabs-nav-bar">
+        <button type="button" class="tab-nav-btn" [class.active]="activeTab === 'desc'" (click)="setActiveTab('desc')">
+          <app-icon name="FileText" size="18"></app-icon>
+          <span>Mô tả sản phẩm</span>
+        </button>
+
+        <button type="button" class="tab-nav-btn" [class.active]="activeTab === 'specs'"
+          (click)="setActiveTab('specs')">
+          <app-icon name="Ruler" size="18"></app-icon>
+          <span>Thông số kỹ thuật & Kích thước</span>
+        </button>
+
+        <button type="button" class="tab-nav-btn" [class.active]="activeTab === 'care'" (click)="setActiveTab('care')">
+          <app-icon name="Shield" size="18"></app-icon>
+          <span>Hướng dẫn bảo quản</span>
+        </button>
+
+        <button type="button" class="tab-nav-btn" [class.active]="activeTab === 'policy'"
+          (click)="setActiveTab('policy')">
+          <app-icon name="Truck" size="18"></app-icon>
+          <span>Chính sách dịch vụ</span>
+        </button>
+
+        <button type="button" class="tab-nav-btn" [class.active]="activeTab === 'reviews'"
+          (click)="setActiveTab('reviews')">
+          <app-icon name="Star" size="18" [filled]="true"></app-icon>
+          <span>Đánh giá khách hàng ({{ totalReviewsCount }})</span>
+        </button>
       </div>
 
-      <!-- 2. Hero Layout (Ảnh & Info) -->
-      <div class="pdp-hero-layout">
-        <!-- Trái: Hình ảnh -->
-        <div style="flex: 1 1 50%;">
-          <div style="width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: var(--bg-tertiary); position: relative;">
-            <img [src]="displayImages[0]" [alt]="title" style="width: 100%; height: 100%; object-fit: contain;" />
-          </div>
-          <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center; overflow-x: auto;">
-            <img *ngFor="let img of displayImages" [src]="img" 
-                 style="width: 64px; height: 64px; border-radius: 8px; object-fit: contain; background: var(--bg-tertiary); cursor: pointer; border: 1px solid transparent;" 
-                 onmouseover="this.style.borderColor='var(--accent)'" 
-                 onmouseout="this.style.borderColor='transparent'" />
+      <!-- NỘI DUNG TỪNG TAB -->
+      <div class="tabs-body-content">
+        <!-- TAB 1: MÔ TẢ CHI TIẾT -->
+        <div class="tab-pane tab-pane-desc" *ngIf="activeTab === 'desc'">
+          <div class="desc-grid">
+            <div class="desc-main-text">
+              <h3 class="tab-heading">Triết lý thiết kế Bắc Âu tối giản</h3>
+              <p class="desc-paragraph">
+                {{ product.description_vi || product.description || 'Sản phẩm nội thất cao cấp DCOR mang phong cách
+                Bắc
+                Âu Scandinavian, kết hợp giữa sự thanh lịch đương đại và tính tiện dụng tối ưu cho không gian sống
+                hiện
+                đại.' }}
+              </p>
+
+              <div class="desc-highlights-grid">
+                <div class="highlight-item">
+                  <div class="highlight-icon-box">
+                    <app-icon name="Sparkles" size="22"></app-icon>
+                  </div>
+                  <div class="highlight-info">
+                    <h4>Đường nét tinh giản</h4>
+                    <p>Được tạo tác bởi các nhà thiết kế hàng đầu Đan Mạch, chú trọng vào tỉ lệ vàng và sự đối xứng
+                      hài
+                      hòa.</p>
+                  </div>
+                </div>
+
+                <div class="highlight-item">
+                  <div class="highlight-icon-box">
+                    <app-icon name="ShieldCheck" size="22"></app-icon>
+                  </div>
+                  <div class="highlight-info">
+                    <h4>Vật liệu chọn lọc</h4>
+                    <p>Khung sườn gỗ sồi tự nhiên đạt chứng nhận FSC, nệm mút đàn hồi cao chống xẹp lún theo năm
+                      tháng.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="highlight-item">
+                  <div class="highlight-icon-box">
+                    <app-icon name="Leaf" size="22"></app-icon>
+                  </div>
+                  <div class="highlight-info">
+                    <h4>Thân thiện môi trường</h4>
+                    <p>Sơn phủ gốc nước không chứa hóa chất độc hại, an toàn tuyệt đối cho trẻ nhỏ và vật nuôi trong
+                      nhà.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="desc-side-card">
+              <div class="designer-card">
+                <span class="designer-badge">DESIGNER</span>
+                <h4 class="designer-name">{{ specsDesignedBy }}</h4>
+                <p class="designer-quote">
+                  "Nội thất không chỉ là những món đồ để ngắm nhìn, mà là cách bạn cảm nhận từng khoảnh khắc bình yên
+                  và
+                  ấm áp bên những người thân yêu."
+                </p>
+                <div class="origin-tag">
+                  <app-icon name="MapPin" size="14"></app-icon>
+                  <span>Sản xuất theo tiêu chuẩn BoConcept Đan Mạch</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <!-- Phải: Thông tin & Thuộc tính & CTA -->
-        <div class="pdp-hero-info" style="flex: 1 1 50%; padding-top: 12px;">
-          <h1 style="font-size: 32px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px;">{{ title }}</h1>
-          <p style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 24px;">{{ getProductPriceFormatted(product) }}</p>
-          
-          <div style="margin-bottom: 32px;">
-            <p style="color: var(--text-secondary); line-height: 1.6;">{{ product.description_vi || product.description }}</p>
-          </div>
 
-          <div style="display: flex; gap: 16px; margin-bottom: 40px;">
-            <button (click)="addToCart()" [disabled]="isAddingToCart" style="flex: 1; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 30px; font-weight: 600; font-size: 16px; cursor: pointer;">
-              {{ isAddingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng' }}
-            </button>
-            <button style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-tertiary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer;">
-              <app-icon name="Heart" size="24"></app-icon>
-            </button>
-          </div>
-          <p *ngIf="cartMessage" role="status" style="margin-top: -28px; margin-bottom: 24px; color: var(--text-secondary);">{{ cartMessage }}</p>
-        </div>
-      </div>
-
-      <!-- 3. Kích thước & Vận chuyển -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 48px; margin-bottom: 40px; margin-top: 60px;">
-        <!-- Cột Trái: Bảng Kích thước -->
-        <div>
-          <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px;">Kích thước & Trọng lượng</h3>
-          <div *ngIf="product.variants?.[0]?.dimensions" style="background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <!-- TAB 2: THÔNG SỐ KỸ THUẬT & KÍCH THƯỚC (BẢNG) -->
+        <div class="tab-pane tab-pane-specs" *ngIf="activeTab === 'specs'">
+          <div class="specs-table-wrapper">
+            <h3 class="tab-heading">Bảng thông số kỹ thuật chi tiết</h3>
+            <table class="specs-table">
               <tbody>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Chiều rộng</td>
-                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.width }} cm</td>
+                <tr *ngIf="specsWidth">
+                  <td class="spec-label">Chiều rộng</td>
+                  <td class="spec-value">{{ specsWidth }}</td>
                 </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Chiều sâu</td>
-                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.depth }} cm</td>
+                <tr *ngIf="specsDepth">
+                  <td class="spec-label">Chiều sâu</td>
+                  <td class="spec-value">{{ specsDepth }}</td>
                 </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Chiều cao</td>
-                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.height }} cm</td>
+                <tr *ngIf="specsHeight">
+                  <td class="spec-label">Chiều cao</td>
+                  <td class="spec-value">{{ specsHeight }}</td>
+                </tr>
+                <tr *ngIf="specsDiameter">
+                  <td class="spec-label">Đường kính mặt</td>
+                  <td class="spec-value">{{ specsDiameter }}</td>
+                </tr>
+                <tr *ngIf="specsWeight">
+                  <td class="spec-label">Trọng lượng tịnh</td>
+                  <td class="spec-value">{{ specsWeight }}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 10px 24px; color: var(--text-secondary); font-size: 14px; width: 50%;">Trọng lượng</td>
-                  <td style="padding: 10px 24px; color: var(--text-primary); font-size: 14px; font-weight: 600; text-align: right;">{{ product.variants?.[0]?.dimensions.weight }} kg</td>
+                  <td class="spec-label">Tải trọng tối đa</td>
+                  <td class="spec-value">{{ specsWeightLoad }}</td>
+                </tr>
+                <tr>
+                  <td class="spec-label">Chất liệu & Hoàn thiện</td>
+                  <td class="spec-value">{{ specsFinish }}</td>
+                </tr>
+                <tr>
+                  <td class="spec-label">Nhà thiết kế (Designer)</td>
+                  <td class="spec-value">{{ specsDesignedBy }}</td>
+                </tr>
+                <tr>
+                  <td class="spec-label">Tiêu chuẩn chất lượng</td>
+                  <td class="spec-value">EN 12520, EN 1022 (Tiêu chuẩn an toàn nội thất Châu Âu)</td>
+                </tr>
+                <tr>
+                  <td class="spec-label">Khung kết cấu</td>
+                  <td class="spec-value">Gỗ sồi Bắc Âu sấy đạt chuẩn & Thép gia cường sơn tĩnh điện</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Cột Phải: Vận chuyển xếp dọc -->
-        <div style="display: flex; flex-direction: column; gap: 24px;">
-          <div class="product-usp-section" style="padding: 24px; background: rgba(255, 255, 255, 0.02); border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: center;">
-            <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-              <app-icon name="Truck" size="20" style="color: var(--accent);"></app-icon>
-              Vận chuyển & Lắp đặt
-            </h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 14px; color: var(--text-secondary);">
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <strong style="color: var(--text-primary);">Thời gian:</strong>
-                <span>Nội thành HCM: 1-3 ngày<br/>Toàn quốc: 3-7 ngày</span>
+        <!-- TAB 3: HƯỚNG DẪN BẢO QUẢN -->
+        <div class="tab-pane tab-pane-care" *ngIf="activeTab === 'care'">
+          <div class="care-cards-grid">
+            <div class="care-card">
+              <div class="care-card-header">
+                <app-icon name="Leaf" size="20" class="care-icon"></app-icon>
+                <h4>Bề mặt gỗ & Sơn mài</h4>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <strong style="color: var(--text-primary);">Phí dịch vụ:</strong>
-                <span>Miễn phí đơn &gt; 10 triệu<br/>Hỗ trợ lắp đặt toàn quốc</span>
+              <ul class="care-list">
+                <li>Lau chùi hàng ngày bằng khăn vi sợi mềm, hơi ẩm, sau đó lau khô ngay bằng khăn sạch.</li>
+                <li>Tránh để nước đọng lâu trên bề mặt veneer hoặc sơn mài.</li>
+                <li>Luôn sử dụng lót ly lót chén khi đặt đồ uống nóng hoặc đá lạnh.</li>
+                <li>Tránh ánh nắng mặt trời gắt chiếu trực tiếp gây đổi màu gỗ.</li>
+              </ul>
+            </div>
+
+            <div class="care-card">
+              <div class="care-card-header">
+                <app-icon name="Sparkles" size="20" class="care-icon"></app-icon>
+                <h4>Vải bọc & Nệm mút</h4>
               </div>
+              <ul class="care-list">
+                <li>Hút bụi định kỳ mỗi tuần 1 lần với đầu chổi mềm để loại bỏ bụi bẩn len lỏi.</li>
+                <li>Khi bị đổ chất lỏng, dùng giấy thấm hút ngay lập tức, không chà xát làm loang vết bẩn.</li>
+                <li>Sử dụng dung dịch giặt khô chuyên dụng cho sofa vải của DCOR Care.</li>
+                <li>Đảo mặt gối tựa và gối ngồi định kỳ để duy trì độ phồng đồng đều.</li>
+              </ul>
+            </div>
+
+            <div class="care-card">
+              <div class="care-card-header">
+                <app-icon name="ShieldCheck" size="20" class="care-icon"></app-icon>
+                <h4>Kim loại & Gốm Ceramic</h4>
+              </div>
+              <ul class="care-list">
+                <li>Bề mặt gốm ceramic chống trầy xước và chịu nhiệt vượt trội, dễ dàng vệ sinh bằng nước lau thông
+                  thường.</li>
+                <li>Khung chân kim loại sơn tĩnh điện chỉ cần lau bằng khăn ẩm mềm.</li>
+                <li>Không sử dụng hóa chất tẩy rửa có tính axit mạnh hoặc búi cọ kim loại ráp.</li>
+                <li>Kiểm tra và siết lại các ốc vít liên kết chân định kỳ sau 6 tháng sử dụng.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: CHÍNH SÁCH DỊCH VỤ -->
+        <div class="tab-pane tab-pane-policy" *ngIf="activeTab === 'policy'">
+          <div class="policy-timeline-grid">
+            <div class="policy-card">
+              <div class="policy-icon-wrapper">
+                <app-icon name="ShieldCheck" size="24"></app-icon>
+              </div>
+              <h4>Bảo hành chính hãng 5 năm</h4>
+              <p>DCOR cam kết bảo hành miễn phí 5 năm đối với khung sườn và kết cấu gỗ, 2 năm đối với đệm mút và phụ
+                kiện cơ khí.</p>
+            </div>
+
+            <div class="policy-card">
+              <div class="policy-icon-wrapper">
+                <app-icon name="RefreshCw" size="24"></app-icon>
+              </div>
+              <h4>30 ngày đổi trả miễn phí</h4>
+              <p>Khách hàng được quyền đổi sản phẩm mới trong vòng 30 ngày nếu phát hiện lỗi kỹ thuật từ nhà sản xuất
+                hoặc giao sai mẫu.</p>
+            </div>
+
+            <div class="policy-card">
+              <div class="policy-icon-wrapper">
+                <app-icon name="Truck" size="24"></app-icon>
+              </div>
+              <h4>Vận chuyển & Lắp đặt tận nhà</h4>
+              <p>Miễn phí vận chuyển và lắp đặt hoàn thiện tại TP.HCM & Hà Nội cho đơn hàng từ 10.000.000₫. Hỗ trợ
+                giao
+                hàng toàn quốc.</p>
+            </div>
+
+            <div class="policy-card">
+              <div class="policy-icon-wrapper">
+                <app-icon name="DollarSign" size="24"></app-icon>
+              </div>
+              <h4>Trả góp 0% lãi suất</h4>
+              <p>Hỗ trợ trả góp linh hoạt kỳ hạn 3 - 6 - 12 tháng qua thẻ tín dụng liên kết với hơn 25 ngân hàng lớn
+                tại
+                Việt Nam.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: ĐÁNH GIÁ KHÁCH HÀNG (FR3-C-14) -->
+        <div class="tab-pane tab-pane-reviews" *ngIf="activeTab === 'reviews'">
+          <!-- TỔNG QUAN ĐIỂM & BIỂU ĐỒ PHÂN BỐ -->
+          <div class="reviews-summary-card">
+            <!-- Điểm trung bình -->
+            <div class="rating-overall-box">
+              <div class="big-score">{{ averageRating }}</div>
+              <div class="overall-stars">
+                <app-icon *ngFor="let s of [1,2,3,4,5]" name="Star" size="18" class="star-filled"
+                  [filled]="true"></app-icon>
+              </div>
+              <div class="total-reviews-text">Dựa trên {{ totalReviewsCount }} lượt đánh giá</div>
+            </div>
+
+            <!-- Biểu đồ phân bố 1 - 5 sao -->
+            <div class="rating-distribution-box">
+              <div class="dist-row" *ngFor="let star of [5, 4, 3, 2, 1]">
+                <span class="dist-star-label">{{ star }} sao</span>
+                <div class="dist-bar-track">
+                  <div class="dist-bar-fill" [style.width.%]="getStarDistributionPercent(star)"></div>
+                </div>
+                <span class="dist-count">{{ starDistribution[star] || 0 }} ({{ getStarDistributionPercent(star)
+                  }}%)</span>
+              </div>
+            </div>
+
+            <!-- Nút viết đánh giá -->
+            <div class="write-review-cta-box">
+              <h4>Bạn đã trải nghiệm sản phẩm này?</h4>
+              <p>Chia sẻ đánh giá chân thực để nhận ngay voucher giảm 5% cho đơn hàng tiếp theo!</p>
+              <button type="button" class="btn-write-review" (click)="openWriteReviewModal()">
+                <app-icon name="Pencil" size="16"></app-icon>
+                <span>Viết đánh giá của bạn</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- THANH LỌC ĐÁNH GIÁ (FILTER BAR) -->
+          <div class="reviews-filter-bar">
+            <!-- Lọc theo số sao -->
+            <div class="filter-pills-group">
+              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === 'all'"
+                (click)="setStarFilter('all')">
+                Tất cả ({{ totalReviewsCount }})
+              </button>
+              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '5'"
+                (click)="setStarFilter('5')">
+                5 sao ({{ starDistribution[5] || 0 }})
+              </button>
+              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '4'"
+                (click)="setStarFilter('4')">
+                4 sao ({{ starDistribution[4] || 0 }})
+              </button>
+              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '3'"
+                (click)="setStarFilter('3')">
+                3 sao ({{ starDistribution[3] || 0 }})
+              </button>
+              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === 'hasImage'"
+                (click)="setStarFilter('hasImage')">
+                Có hình ảnh ({{ hasImageFilterCount }})
+              </button>
+            </div>
+
+            <!-- Lọc theo biến thể đã mua -->
+            <div class="variant-filter-wrap" *ngIf="product.variants && product.variants.length > 1">
+              <label class="variant-filter-label" for="reviewVariantFilter">
+                <app-icon name="Layers" size="14" class="variant-filter-icon"></app-icon>
+                <span>Biến thể:</span>
+              </label>
+              <div class="variant-filter-select-box">
+                <select id="reviewVariantFilter" class="variant-filter-select"
+                  [class.has-filter-applied]="selectedVariantFilter !== 'all'" [ngModel]="selectedVariantFilter"
+                  (ngModelChange)="setVariantFilter($event)">
+                  <option value="all">Tất cả biến thể</option>
+                  <option *ngFor="let v of product.variants" [value]="v.id">
+                    {{ v.name }}
+                  </option>
+                </select>
+                <button type="button" *ngIf="selectedVariantFilter !== 'all'" class="btn-clear-variant-filter"
+                  (click)="setVariantFilter('all')" title="Bỏ lọc theo biến thể">
+                  <app-icon name="X" size="12"></app-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- DANH SÁCH ĐÁNH GIÁ CHI TIẾT -->
+          <div class="reviews-list">
+            <!-- Loading state -->
+            <div class="reviews-loading" *ngIf="isLoadingReviews">
+              <div class="spinner-circle"></div>
+              <span>Đang tải đánh giá...</span>
+            </div>
+
+            <!-- Empty state -->
+            <div class="reviews-empty" *ngIf="!isLoadingReviews && reviews.length === 0">
+              <app-icon name="MessagesSquare" size="40" class="empty-icon"></app-icon>
+              <h4>Chưa có đánh giá nào phù hợp với bộ lọc</h4>
+              <p>Hãy thử chọn số sao khác hoặc đặt lại bộ lọc để xem toàn bộ đánh giá.</p>
+              <button type="button" class="btn-reset-filter" (click)="setStarFilter('all'); setVariantFilter('all')">
+                Đặt lại bộ lọc
+              </button>
+            </div>
+
+            <!-- Item đánh giá -->
+            <div class="review-item-card" *ngFor="let rev of reviews">
+              <div class="review-header">
+                <div class="reviewer-meta">
+                  <div class="avatar-circle">
+                    {{ rev.reviewerName.charAt(0) }}
+                  </div>
+                  <div class="reviewer-info">
+                    <div class="name-row">
+                      <span class="reviewer-name">{{ rev.reviewerName }}</span>
+                      <span class="verified-tag" *ngIf="rev.isVerifiedPurchase">
+                        <app-icon name="CircleCheck" size="13"></app-icon>
+                        Đã mua tại DCOR Studio
+                      </span>
+                    </div>
+                    <div class="purchased-variant-badge" *ngIf="rev.variantName">
+                      Phân loại: <strong>{{ rev.variantName }}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="review-date-stars">
+                  <div class="review-stars">
+                    <app-icon *ngFor="let s of [1,2,3,4,5]" name="Star" size="13" [class.star-filled]="s <= rev.rating"
+                      [filled]="s <= rev.rating"></app-icon>
+                  </div>
+                  <span class="review-date">{{ rev.formattedDate }}</span>
+                </div>
+              </div>
+
+              <!-- Nội dung đánh giá -->
+              <div class="review-body">
+                <p class="review-comment">{{ rev.comment }}</p>
+
+                <!-- Dải ảnh đính kèm (nếu có) -->
+                <div class="review-images-strip" *ngIf="rev.images && rev.images.length > 0">
+                  <img *ngFor="let img of rev.images" [src]="img" [alt]="'Ảnh thực tế từ ' + rev.reviewerName"
+                    class="review-thumb-img" (click)="openLightbox(0)" />
+                </div>
+              </div>
+
+              <!-- Nút phản hồi & Hữu ích -->
+              <div class="review-footer">
+                <button type="button" class="btn-helpful" [class.liked]="rev.liked" (click)="likeReview(rev)">
+                  <app-icon name="ThumbsUp" size="14"></app-icon>
+                  <span>Hữu ích ({{ rev.helpfulCount }})</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Phân trang đánh giá -->
+            <div class="reviews-pagination" *ngIf="reviewTotalPages > 1">
+              <button type="button" class="page-btn prev-btn" [disabled]="reviewPage <= 1"
+                (click)="loadReviews(reviewPage - 1)">
+                <app-icon name="ChevronLeft" size="16"></app-icon>
+                <span>Trước</span>
+              </button>
+
+              <div class="page-numbers">
+                <button *ngFor="let p of [].constructor(reviewTotalPages); let idx = index" type="button"
+                  class="page-num-btn" [class.active]="reviewPage === idx + 1" (click)="loadReviews(idx + 1)">
+                  {{ idx + 1 }}
+                </button>
+              </div>
+
+              <button type="button" class="page-btn next-btn" [disabled]="reviewPage >= reviewTotalPages"
+                (click)="loadReviews(reviewPage + 1)">
+                <span>Sau</span>
+                <app-icon name="ChevronRight" size="16"></app-icon>
+              </button>
             </div>
           </div>
         </div>
       </div>
-    </ng-container>
+    </section>
 
+    <!-- SẢN PHẨM LIÊN QUAN (ƯU TIÊN DANH MỤC PHỤ, BỔ SUNG DANH MỤC LỚN, 1 HÀNG & XEM THÊM SỔ XUỐNG) -->
+    <section class="pdp-related-section" id="pdp-related-section" *ngIf="relatedProducts.length > 0">
+      <div class="section-header-row">
+        <div>
+          <h2 class="section-heading">Sản phẩm liên quan</h2>
+        </div>
+      </div>
+
+      <!-- Lưới sản phẩm (Mặc định 1 hàng 4 sản phẩm trên Desktop) -->
+      <div class="related-products-grid">
+        <app-product-card *ngFor="let item of displayedRelatedProducts" [product]="item">
+        </app-product-card>
+      </div>
+
+      <!-- Nút xem thêm / thu gọn dạng sổ xuống -->
+      <div class="related-expand-wrap" *ngIf="relatedProducts.length > RELATED_ROW_SIZE">
+        <button type="button" class="btn-toggle-related" (click)="toggleRelatedExpansion()">
+          <span>{{ isRelatedExpanded ? 'Thu gọn' : 'Xem thêm (' + remainingRelatedCount + ' sản phẩm)' }}</span>
+          <app-icon name="ChevronDown" size="16" class="toggle-related-icon"
+            [class.rotated]="isRelatedExpanded"></app-icon>
+        </button>
+      </div>
+    </section>
   </div>
+
+  <!-- THANH MUA CỐ ĐỊNH (STICKY BUY BAR) TRÊN MOBILE -->
+  <div class="mobile-sticky-buy-bar" *ngIf="showStickyMobileBar && product">
+    <div class="sticky-bar-info">
+      <img [src]="galleryImages[0]" [alt]="product.name" class="sticky-thumb" />
+      <div class="sticky-text-wrap">
+        <span class="sticky-name">{{ product.name }}</span>
+        <span class="sticky-price">{{ formatPrice(currentPrice) }}</span>
+      </div>
+    </div>
+    <div class="sticky-bar-actions">
+      <button type="button" class="btn-sticky-cart" (click)="addToCart(false)"
+        [disabled]="isAddingToCart || maxStock === 0">
+        <app-icon name="ShoppingCart" size="16"></app-icon>
+        <span>Thêm</span>
+      </button>
+      <button type="button" class="btn-sticky-buy" (click)="buyNow()" [disabled]="isBuyingNow || maxStock === 0">
+        <span>Mua ngay</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: PHÓNG TO HÌNH ẢNH (LIGHTBOX) -->
+  <div class="pdp-modal-backdrop" *ngIf="isLightboxOpen" (click)="closeLightbox()">
+    <div class="lightbox-container" (click)="$event.stopPropagation()">
+      <div class="lightbox-toolbar">
+        <span class="lightbox-counter">{{ lightboxIndex + 1 }} / {{ galleryImages.length }}</span>
+        <div class="lightbox-controls">
+          <button type="button" class="btn-lightbox-tool" (click)="zoomInLightbox()" title="Thu nhỏ">
+            <app-icon name="Plus" size="18"></app-icon>
+          </button>
+          <button type="button" class="btn-lightbox-tool" (click)="zoomOutLightbox()" title="Phóng to">
+            <app-icon name="Minus" size="18"></app-icon>
+          </button>
+          <button type="button" class="btn-lightbox-close" (click)="closeLightbox()" title="Đóng">
+            <app-icon name="X" size="20"></app-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="lightbox-image-stage">
+        <button type="button" class="lightbox-arrow btn-lightbox-prev" (click)="prevLightbox()">
+          <app-icon name="ChevronLeft" size="24"></app-icon>
+        </button>
+
+        <img [src]="galleryImages[lightboxIndex]" [alt]="product?.name" class="lightbox-main-img"
+          [style.transform]="'scale(' + lightboxZoom + ')'" />
+
+        <button type="button" class="lightbox-arrow btn-lightbox-next" (click)="nextLightbox()">
+          <app-icon name="ChevronRight" size="24"></app-icon>
+        </button>
+      </div>
+
+      <div class="lightbox-thumbnails-reel" *ngIf="galleryImages.length > 1">
+        <button *ngFor="let img of galleryImages; let idx = index" type="button" class="lightbox-thumb-btn"
+          [class.active]="idx === lightboxIndex" (click)="lightboxIndex = idx; lightboxZoom = 1">
+          <img [src]="img" [alt]="'Thumb ' + (idx + 1)" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ĐẶT LỊCH TƯ VẤN TẠI SHOWROOM -->
+  <div class="pdp-modal-backdrop" *ngIf="isShowroomModalOpen" (click)="closeShowroomModal()">
+    <div class="modal-dialog-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <app-icon name="Building2" size="22" class="modal-title-icon"></app-icon>
+          <h3>Đặt lịch trải nghiệm tại Showroom</h3>
+        </div>
+        <button type="button" class="btn-modal-close" (click)="closeShowroomModal()">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </div>
+
+      <div class="modal-body" *ngIf="!consultationSuccessCode">
+        <p class="modal-desc">
+          Trải nghiệm thực tế chất liệu da, vải nỉ và kết cấu của <strong>{{ product?.name }}</strong> cùng chuyên
+          viên
+          kiến trúc nội thất DCOR.
+        </p>
+
+        <form class="consultation-form" (ngSubmit)="submitConsultation()">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Họ và tên <span class="req">*</span></label>
+              <input type="text" class="form-input" [(ngModel)]="consultationForm.fullName" name="fullName"
+                placeholder="Ví dụ: Nguyễn Văn An" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Số điện thoại <span class="req">*</span></label>
+              <input type="tel" class="form-input" [(ngModel)]="consultationForm.phone" name="phone"
+                placeholder="Ví dụ: 0912 345 678" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Chọn Showroom đón tiếp <span class="req">*</span></label>
+            <select class="form-select" [(ngModel)]="consultationForm.showroomId" name="showroomId">
+              <option *ngFor="let sr of showrooms" [value]="sr.id">
+                {{ sr.name }} — {{ sr.address }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Ngày hẹn dự kiến</label>
+              <input type="date" class="form-input" [(ngModel)]="consultationForm.preferredDate" name="preferredDate" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Khung giờ</label>
+              <select class="form-select" [(ngModel)]="consultationForm.preferredTime" name="preferredTime">
+                <option value="09:00">09:00 - 10:30 (Sáng)</option>
+                <option value="10:30">10:30 - 12:00 (Sáng)</option>
+                <option value="14:00">14:00 - 15:30 (Chiều)</option>
+                <option value="16:00">16:00 - 17:30 (Chiều)</option>
+                <option value="18:30">18:30 - 20:00 (Tối)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Ghi chú hoặc yêu cầu đặc biệt</label>
+            <textarea class="form-textarea" [(ngModel)]="consultationForm.notes" name="notes" rows="2"
+              placeholder="Ví dụ: Cần tư vấn phối cảnh phòng khách 35m2, xem mẫu da Cognac..."></textarea>
+          </div>
+
+          <div class="modal-footer-btns">
+            <button type="button" class="btn-modal-cancel" (click)="closeShowroomModal()">Hủy</button>
+            <button type="submit" class="btn-modal-submit" [disabled]="isSubmittingConsultation">
+              <span *ngIf="isSubmittingConsultation" class="spinner-circle"></span>
+              <span>{{ isSubmittingConsultation ? 'Đang gửi...' : 'Xác nhận đặt lịch' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Màn hình thành công -->
+      <div class="modal-body consultation-success-view" *ngIf="consultationSuccessCode">
+        <app-icon name="CircleCheck" size="48" class="success-icon"></app-icon>
+        <h3>Đặt lịch thành công!</h3>
+        <p>Mã cuộc hẹn của bạn: <strong class="code-highlight">{{ consultationSuccessCode }}</strong></p>
+        <p class="success-note">
+          Chuyên viên tư vấn tại showroom sẽ gọi điện xác nhận trong vòng 15 phút. Cảm ơn bạn đã lựa chọn DCOR Studio!
+        </p>
+        <button type="button" class="btn-modal-submit" (click)="closeShowroomModal()">Hoàn tất</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TÙY CHỈNH THIẾT KẾ THEO YÊU CẦU -->
+  <div class="pdp-modal-backdrop" *ngIf="isCustomModalOpen" (click)="closeCustomModal()">
+    <div class="modal-dialog-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <app-icon name="Sparkles" size="22" class="modal-title-icon"></app-icon>
+          <h3>Đặt làm theo kích thước & chất liệu riêng</h3>
+        </div>
+        <button type="button" class="btn-modal-close" (click)="closeCustomModal()">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </div>
+
+      <div class="modal-body" *ngIf="!customSuccess">
+        <p class="modal-desc">
+          Xưởng chế tác DCOR hỗ trợ may đo, điều chỉnh kích thước và bọc chất liệu vải/da độc bản theo thiết kế kiến
+          trúc của bạn.
+        </p>
+
+        <form class="consultation-form" (ngSubmit)="submitCustom()">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Họ và tên <span class="req">*</span></label>
+              <input type="text" class="form-input" [(ngModel)]="customForm.fullName" name="cFullName" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Số điện thoại <span class="req">*</span></label>
+              <input type="tel" class="form-input" [(ngModel)]="customForm.phone" name="cPhone" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Kích thước mong muốn (Dài x Rộng x Cao)</label>
+            <input type="text" class="form-input" [(ngModel)]="customForm.requestedDimensions" name="cDims"
+              placeholder="Ví dụ: 240 x 95 x 85 cm" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Yêu cầu chất liệu / Màu sắc</label>
+            <input type="text" class="form-input" [(ngModel)]="customForm.preferredMaterial" name="cMat"
+              placeholder="Ví dụ: Da bò Ý màu Nâu Caramel, chân inox mạ PVD vàng gương..." />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Mô tả thêm</label>
+            <textarea class="form-textarea" [(ngModel)]="customForm.notes" name="cNotes" rows="2"
+              placeholder="Ghi chú thêm về không gian hoặc gửi link bản vẽ..."></textarea>
+          </div>
+
+          <div class="modal-footer-btns">
+            <button type="button" class="btn-modal-cancel" (click)="closeCustomModal()">Hủy</button>
+            <button type="submit" class="btn-modal-submit" [disabled]="isSubmittingCustom">
+              <span *ngIf="isSubmittingCustom" class="spinner-circle"></span>
+              <span>Gửi yêu cầu chế tác</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-body consultation-success-view" *ngIf="customSuccess">
+        <app-icon name="CircleCheck" size="48" class="success-icon"></app-icon>
+        <h3>Đã tiếp nhận yêu cầu!</h3>
+        <p class="success-note">
+          Đội ngũ kiến trúc sư DCOR sẽ liên hệ tư vấn báo giá chi tiết và gửi bản vẽ phối cảnh cho bạn trong vòng 24
+          giờ.
+        </p>
+        <button type="button" class="btn-modal-submit" (click)="closeCustomModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VIẾT ĐÁNH GIÁ SẢN PHẨM -->
+  <div class="pdp-modal-backdrop" *ngIf="isWriteReviewModalOpen" (click)="closeWriteReviewModal()">
+    <div class="modal-dialog-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <app-icon name="Star" size="22" class="modal-title-icon" [filled]="true"></app-icon>
+          <h3>Đánh giá sản phẩm</h3>
+        </div>
+        <button type="button" class="btn-modal-close" (click)="closeWriteReviewModal()">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form class="consultation-form" (ngSubmit)="submitReview()">
+          <div class="form-group text-center">
+            <label class="form-label">Mức độ hài lòng của bạn</label>
+            <div class="interactive-star-rating">
+              <button type="button" *ngFor="let s of [1,2,3,4,5]" class="interactive-star-btn"
+                [class.active]="s <= newReview.rating" (click)="newReview.rating = s">
+                <app-icon name="Star" size="28" [filled]="s <= newReview.rating"></app-icon>
+              </button>
+            </div>
+            <div class="star-rating-text">
+              {{ newReview.rating === 5 ? 'Tuyệt vời, rất hài lòng' : (newReview.rating === 4 ? 'Hài lòng' :
+              (newReview.rating === 3 ? 'Bình thường' : 'Chưa hài lòng')) }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Họ và tên của bạn</label>
+            <input type="text" class="form-input" [(ngModel)]="newReview.reviewerName" name="revName"
+              placeholder="Tên hiển thị (sẽ được che một phần bảo vệ riêng tư)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nội dung đánh giá <span class="req">*</span></label>
+            <textarea class="form-textarea" [(ngModel)]="newReview.comment" name="revComment" rows="4"
+              placeholder="Chia sẻ cảm nhận về chất liệu, độ thoải mái, chất lượng hoàn thiện và trải nghiệm giao hàng..."
+              required></textarea>
+          </div>
+
+          <div class="modal-footer-btns">
+            <button type="button" class="btn-modal-cancel" (click)="closeWriteReviewModal()">Hủy</button>
+            <button type="submit" class="btn-modal-submit" [disabled]="isSubmittingReview">
+              <span *ngIf="isSubmittingReview" class="spinner-circle"></span>
+              <span>Gửi đánh giá</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Floating Compare Bar (Thanh so sánh nổi bên dưới) -->
+  <div class="floating-compare-dock" *ngIf="compareList.length > 0">
+    <div class="compare-dock-container">
+      <div class="dock-left">
+        <div class="compare-badge">
+          <app-icon name="Scale" size="16" color="#9A461E"></app-icon>
+          <span class="compare-tag-title">So sánh ({{ getRootCategoryName(compareList[0]) }})</span>
+        </div>
+        <span class="compare-counter">{{ compareList.length }} / 5 sản phẩm đã chọn</span>
+
+        <div class="compare-items-thumbs">
+          <div class="thumb-box" *ngFor="let item of compareList">
+            <img [src]="item.images?.[0] || item.images || item.image || ''" [alt]="item.name || 'Sản phẩm'">
+            <button type="button" class="thumb-remove" (click)="removeCompare(item.productId || item.id)"
+              title="Bỏ chọn">&times;</button>
+          </div>
+          <div class="thumb-placeholder" *ngIf="compareList.length < 5"
+            title="Chọn thêm sản phẩm cùng danh mục để so sánh">+</div>
+        </div>
+      </div>
+
+      <div class="dock-right">
+        <!-- Nút Xóa tất cả -->
+        <button type="button" class="btn-clear-compare" (click)="clearAllCompare()"
+          title="Xóa tất cả sản phẩm đang so sánh">
+          Xóa tất cả
+        </button>
+
+        <!-- Nút Sao chép liên kết chia sẻ -->
+        <button type="button" class="dock-share-btn" (click)="copyCompareShareLink()" title="Sao chép liên kết so sánh">
+          <app-icon name="Share2" size="16" color="#4b5563"></app-icon>
+        </button>
+
+        <!-- Nút So sánh ngay (bật khi chọn >= 2) -->
+        <button type="button" class="btn-compare-action" [disabled]="compareList.length < 2"
+          (click)="openCompareModal()"
+          [title]="compareList.length < 2 ? 'Chọn tối thiểu 2 sản phẩm để so sánh' : 'Mở bảng so sánh chi tiết'">
+          So sánh ngay ({{ compareList.length }}) &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Bảng So Sánh Sản Phẩm -->
+  <app-product-compare-modal [isOpen]="isCompareModalOpen" [products]="compareList" (onClose)="closeCompareModal()"
+    (onRemove)="removeCompare($event)">
+  </app-product-compare-modal>
+
 </div>

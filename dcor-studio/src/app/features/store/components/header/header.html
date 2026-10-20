@@ -7,6 +7,10 @@
     </div>
   </div>
   <div class="container store-header-main">
+    <!-- Nút Hamburger Menu trên Tablet & Mobile (Ẩn trên Desktop) -->
+    <button type="button" class="btn-mobile-menu-toggle" aria-label="Mở menu điều hướng" (click)="toggleMobileMenu()">
+      <app-icon name="Menu" size="22"></app-icon>
+    </button>
 
     <a routerLink="/" class="logo store-wordmark" aria-label="DCor - Trang chủ">
       <img src="/assets/favicon/logo.png" alt="DCor" />
@@ -67,6 +71,12 @@
     </nav>
 
     <div class="store-header-actions">
+      <!-- Nút mở tìm kiếm trên Mobile/Tablet -->
+      <button type="button" class="icon-btn search-toggle-btn" (click)="toggleMobileSearch()" title="Tìm kiếm sản phẩm">
+        <app-icon name="Search" size="18"></app-icon>
+      </button>
+
+      <!-- Thanh tìm kiếm desktop -->
       <div class="floating-search-bar">
         <div class="store-search-field">
           <app-icon class="store-search-icon" name="Search" size="16"></app-icon>
@@ -78,9 +88,9 @@
           </button>
         </div>
 
-        <!-- Dropdown -->
+        <!-- Dropdown Desktop -->
         <div *ngIf="isDropdownOpen && searchQuery.trim()" (mousedown)="$event.preventDefault()"
-          style="position: absolute; top: calc(100% + 12px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; z-index: 102;">
+          class="desktop-search-dropdown">
           <div *ngIf="searchResults.length > 0; else noResults"
             style="display: flex; flex-direction: column; gap: 8px;">
             <a *ngFor="let p of searchResults.slice(0, 5)" [routerLink]="['/explore', p.productId]"
@@ -114,10 +124,11 @@
       </div>
 
       <ng-container *ngIf="isLoggedIn; else guestTemplate">
-        <button class="icon-btn" title="Sản phẩm yêu thích" routerLink="/account/wishlist">
+        <button class="icon-btn" title="Sản phẩm yêu thích" routerLink="/account/wishlist" style="position: relative;">
           <app-icon name="Heart" size="20"></app-icon>
+          <span *ngIf="wishlistCount > 0" class="badge" id="wishlist-count">{{ wishlistCount }}</span>
         </button>
-        <button class="icon-btn" title="Thông báo">
+        <button class="icon-btn notification-icon-btn" title="Thông báo">
           <app-icon name="Bell" size="20"></app-icon>
         </button>
         <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
@@ -169,6 +180,10 @@
       </ng-container>
 
       <ng-template #guestTemplate>
+        <button class="icon-btn" title="Sản phẩm yêu thích" routerLink="/account/wishlist" style="position: relative;">
+          <app-icon name="Heart" size="20"></app-icon>
+          <span *ngIf="wishlistCount > 0" class="badge" id="wishlist-count">{{ wishlistCount }}</span>
+        </button>
         <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
           (click)="toggleCartDrawer()">
           <app-icon name="ShoppingCart" size="20"></app-icon>
@@ -176,12 +191,167 @@
         </button>
         <button (click)="openLoginModal()" class="store-login-button" onmouseenter="this.style.transform='scale(1.05)'"
           onmouseleave="this.style.transform='scale(1)'">
-          Đăng nhập
+          <span class="login-text">Đăng nhập</span>
+          <app-icon name="UserRound" size="16" class="login-mobile-icon"></app-icon>
         </button>
       </ng-template>
 
     </div>
   </div>
+
+  <!-- Thanh tìm kiếm mở rộng cho Mobile (Trượt xuống dưới Header) -->
+  <div class="mobile-search-bar-wrap" *ngIf="isMobileSearchOpen">
+    <div class="mobile-search-inner container">
+      <div class="store-search-field mobile-field">
+        <app-icon class="store-search-icon" name="Search" size="16"></app-icon>
+        <input type="text" [(ngModel)]="searchQuery" (focus)="onSearchFocus()" (blur)="onSearchBlur()"
+          (keydown)="handleSearch($event)" placeholder="Tìm kiếm sofa, bàn, ghế..." />
+        <button *ngIf="searchQuery" (click)="handleSearchSubmit()" class="store-search-submit">
+          <app-icon class="store-search-submit-icon" name="ArrowRight" size="14" color="#fff"></app-icon>
+        </button>
+      </div>
+      <button type="button" class="btn-close-mobile-search" (click)="toggleMobileSearch()" aria-label="Đóng tìm kiếm">
+        <app-icon name="X" size="18"></app-icon>
+      </button>
+    </div>
+
+    <!-- Dropdown kết quả trên mobile -->
+    <div *ngIf="isDropdownOpen && searchQuery.trim()" class="mobile-search-dropdown-wrap container" (mousedown)="$event.preventDefault()">
+      <div *ngIf="searchResults.length > 0; else noMobileResults" class="mobile-search-results-list">
+        <a *ngFor="let p of searchResults.slice(0, 4)" [routerLink]="['/explore', p.productId]"
+          (click)="isDropdownOpen = false; isMobileSearchOpen = false" class="mobile-search-item">
+          <img [src]="p.images[0] || ''" alt="" class="mobile-search-thumb" />
+          <div class="mobile-search-info">
+            <span class="mobile-search-name">{{ p.shortDescription_vi || p.shortDescription }}</span>
+            <span class="mobile-search-cat">{{ p.category }}</span>
+          </div>
+        </a>
+        <button *ngIf="searchResults.length > 4" (click)="handleSearchSubmit()" class="btn-mobile-view-all">
+          Xem tất cả {{ searchResults.length }} kết quả
+        </button>
+      </div>
+      <ng-template #noMobileResults>
+        <div class="mobile-search-empty">Không tìm thấy sản phẩm nào</div>
+      </ng-template>
+    </div>
+  </div>
 </header>
+
+<!-- Mobile Navigation Drawer & Backdrop -->
+<div class="mobile-nav-backdrop" [class.open]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+
+<aside class="mobile-nav-drawer" [class.open]="isMobileMenuOpen">
+  <div class="mobile-nav-header">
+    <a routerLink="/" class="mobile-nav-logo" (click)="closeMobileMenu()">
+      <img src="/assets/favicon/logo.png" alt="DCor" />
+    </a>
+    <button type="button" class="btn-close-mobile-nav" (click)="closeMobileMenu()" aria-label="Đóng menu">
+      <app-icon name="X" size="20"></app-icon>
+    </button>
+  </div>
+
+  <div class="mobile-nav-body">
+    <!-- User Card / Guest Card -->
+    <div class="mobile-nav-user" *ngIf="isLoggedIn; else mobileGuestCard">
+      <div class="mobile-user-avatar">
+        <app-icon name="UserRound" size="22"></app-icon>
+      </div>
+      <div class="mobile-user-details">
+        <span class="mobile-user-name">{{ user?.fullName || user?.name || 'Khách hàng' }}</span>
+        <span class="mobile-user-sub">{{ user?.email || user?.phone || 'Thành viên DCor' }}</span>
+      </div>
+    </div>
+    <ng-template #mobileGuestCard>
+      <div class="mobile-guest-card">
+        <div class="mobile-guest-msg">
+          <strong>Chào mừng đến với DCor!</strong>
+          <span>Đăng nhập để theo dõi giỏ hàng và danh sách yêu thích</span>
+        </div>
+        <button type="button" class="btn-mobile-login" (click)="closeMobileMenu(); openLoginModal()">
+          Đăng nhập
+        </button>
+      </div>
+    </ng-template>
+
+    <!-- Nav List -->
+    <div class="mobile-nav-links">
+      <!-- Sản phẩm Accordion -->
+      <div class="mobile-accordion-section" [class.expanded]="mobileShopOpen">
+        <div class="mobile-accordion-title-row">
+          <a routerLink="/explore" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Sản Phẩm</a>
+          <button type="button" class="mobile-accordion-btn" (click)="toggleMobileShop()" aria-label="Mở rộng danh mục">
+            <app-icon name="ChevronDown" size="18" [style.transform]="mobileShopOpen ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+          </button>
+        </div>
+        <div class="mobile-accordion-sublinks" *ngIf="mobileShopOpen">
+          <a routerLink="/explore" class="mobile-sublink-item" (click)="closeMobileMenu()">
+            <span>Tất cả sản phẩm</span>
+          </a>
+          <a *ngFor="let cat of storeCategories" [routerLink]="['/explore']" [queryParams]="{ category: cat.slug }" class="mobile-sublink-item" (click)="closeMobileMenu()">
+            <span>{{ cat.name }}</span>
+            <span class="mobile-sublink-badge" *ngIf="cat.productCount">({{ cat.productCount }})</span>
+          </a>
+        </div>
+      </div>
+
+      <a routerLink="/custom-design" routerLinkActive="active" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Thiết kế</a>
+      <a routerLink="/community" routerLinkActive="active" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Cộng đồng</a>
+      <a routerLink="/blog" routerLinkActive="active" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Blog</a>
+
+      <div class="mobile-nav-divider"></div>
+
+      <!-- Quick Action Links -->
+      <a routerLink="/account/wishlist" class="mobile-nav-link-secondary" (click)="closeMobileMenu()">
+        <app-icon name="Heart" size="18"></app-icon>
+        <span>Sản phẩm yêu thích</span>
+        <span class="mobile-badge-pill" *ngIf="wishlistCount > 0">{{ wishlistCount }}</span>
+      </a>
+
+      <a routerLink="/about" class="mobile-nav-link-secondary" (click)="closeMobileMenu()">
+        <app-icon name="Info" size="18"></app-icon>
+        <span>Về DCor</span>
+      </a>
+
+      <a routerLink="/blog" class="mobile-nav-link-secondary" (click)="closeMobileMenu()">
+        <app-icon name="FileText" size="18"></app-icon>
+        <span>Hướng dẫn mua hàng</span>
+      </a>
+
+      <a href="tel:19001234" class="mobile-nav-link-secondary mobile-hotline">
+        <app-icon name="Phone" size="18"></app-icon>
+        <span>Hotline: 1900 1234</span>
+      </a>
+
+      <div class="mobile-nav-divider"></div>
+
+      <!-- Theme Switcher -->
+      <button type="button" class="mobile-nav-link-secondary mobile-theme-btn" (click)="toggleTheme()">
+        <app-icon [name]="theme === 'dark' ? 'Sun' : 'Moon'" size="18"></app-icon>
+        <span>{{ theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối' }}</span>
+      </button>
+
+      <!-- User Links if logged in -->
+      <ng-container *ngIf="isLoggedIn">
+        <div class="mobile-nav-divider"></div>
+        <a routerLink="/account/profile" class="mobile-nav-link-secondary" (click)="closeMobileMenu()">
+          <app-icon name="UserRound" size="18"></app-icon>
+          <span>Hồ sơ cá nhân</span>
+        </a>
+        <a routerLink="/account/orders" class="mobile-nav-link-secondary" (click)="closeMobileMenu()">
+          <app-icon name="Package" size="18"></app-icon>
+          <span>Đơn hàng của tôi</span>
+        </a>
+        <a *ngIf="user?.role === 'ADMIN'" routerLink="/admin" class="mobile-nav-link-secondary" (click)="closeMobileMenu()">
+          <app-icon name="Shield" size="18"></app-icon>
+          <span>Hệ thống Admin</span>
+        </a>
+        <button type="button" class="mobile-nav-link-secondary mobile-logout-btn" (click)="closeMobileMenu(); logout()">
+          <app-icon name="LogOut" size="18"></app-icon>
+          <span>Đăng xuất</span>
+        </button>
+      </ng-container>
+    </div>
+  </div>
+</aside>
 
 <app-cart-drawer [isOpen]="isCartDrawerOpen" (close)="isCartDrawerOpen = false"></app-cart-drawer>
