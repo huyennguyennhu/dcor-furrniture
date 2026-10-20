@@ -18,6 +18,7 @@ import {
   Sparkles, 
   X, 
   ChevronDown,
+  ChevronRight,
   Gift,
   FileText,
   Tag,
@@ -26,7 +27,10 @@ import {
   Wallet,
   QrCode,
   ShoppingBag,
-  Trash2
+  Trash2,
+  MapPin,
+  Search,
+  Plus
 } from 'lucide-angular';
 import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { PromotionService, AppliedPromotion } from '../../../../core/services/promotion.service';
@@ -38,7 +42,12 @@ interface SavedAddress {
   id: string;
   receiverName: string;
   phone: string;
+  email?: string;
   address: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  detail?: string;
   isDefault?: boolean;
 }
 
@@ -66,6 +75,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     Sparkles,
     X,
     ChevronDown,
+    ChevronRight,
     Gift,
     FileText,
     Tag,
@@ -74,7 +84,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     Wallet,
     QrCode,
     ShoppingBag,
-    Trash2
+    Trash2,
+    MapPin,
+    Search,
+    Plus
   };
 
   // Trạng thái màn hình: 'checkout' hoặc 'success'
@@ -121,9 +134,42 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   savedAddresses: SavedAddress[] = [];
   selectedAddressId: string | null = null;
   isAddressModalOpen = false;
+  // Chế độ modal: 'select' = chọn địa chỉ có sẵn, 'add' = thêm mới
+  addressModalMode: 'select' | 'add' = 'select';
+
+  // Form thêm địa chỉ mới
+  newAddress = {
+    receiverName: '',
+    phone: '',
+    email: '',
+    province: 'Thành phố Hồ Chí Minh',
+    district: '',
+    ward: '',
+    detail: '',
+    isDefault: false
+  };
+  newAddressDistricts: string[] = [];
+  newAddressWards: string[] = [];
+  isSavingNewAddress = false;
+  newAddressError = '';
+
+  // Guest / Gmail không SĐT: Tra cứu địa chỉ qua số điện thoại
+  guestPhoneLookup = '';
+  isLookingUpAddress = false;
+  guestFoundAddresses: SavedAddress[] = [];
+  guestLookupMessage = '';
+
+  get hasUserPhone(): boolean {
+    return !!(this.currentUser && this.currentUser.phone && this.currentUser.phone.trim().length >= 9);
+  }
+
+  get hasSelectedAddress(): boolean {
+    return !!(this.fullName && this.fullName.trim() && this.phone && this.phone.trim() && this.address && this.address.trim());
+  }
 
   // OTP Xác thực số điện thoại
   isPhoneVerified = false;
+  verifiedPhone = '';
   isOtpModalOpen = false;
   otpCode = '';
   otpCountdown = 0;
@@ -287,7 +333,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.email = this.currentUser.email || '';
         this.phone = this.currentUser.phone || '';
         this.isGoogleAccount = !this.currentUser.phone || this.currentUser.authProvider === 'GOOGLE';
-        this.isPhoneVerified = !!this.currentUser.phone && this.currentUser.isPhoneVerified !== false;
+        this.isPhoneVerified = !!this.currentUser.phone && this.currentUser.isPhoneVerified !== false && !this.isGoogleAccount;
+        if (this.isPhoneVerified) {
+          this.verifiedPhone = this.currentUser.phone.trim();
+        } else {
+          this.verifiedPhone = '';
+        }
 
         // Chỉ lấy sổ địa chỉ thực tế nếu tài khoản có trường addresses hoặc đã lưu địa chỉ
         if (Array.isArray(this.currentUser.addresses) && this.currentUser.addresses.length > 0) {
@@ -309,12 +360,18 @@ export class CheckoutComponent implements OnInit, OnDestroy {
           // Nếu có 1 địa chỉ trong profile
           this.address = this.currentUser.address;
         }
+
+        // Tự động tải thêm các địa chỉ gắn với SĐT từ lịch sử đơn hàng
+        if (this.hasUserPhone) {
+          this.loadAddressesForUserPhone();
+        }
       } catch (e) {
         console.error('Lỗi đọc dữ liệu người dùng:', e);
       }
     } else {
       this.isLoggedIn = false;
       this.isPhoneVerified = false;
+      this.verifiedPhone = '';
       this.savedAddresses = [];
     }
   }
@@ -353,6 +410,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
           console.error('Lỗi đọc session checkout items:', e);
         }
 
+        // Lọc sản phẩm hợp lệ:
+        // - isActive undefined (guest cart): vẫn cho qua
+        // - isActive = true: cho qua
+        // - availableStock undefined: cho qua (guest cart không có thông tin tồn kho chi tiết)
         const validItems = items.filter(
           item => item.isActive !== false && (item.availableStock === undefined || item.availableStock > 0)
         );
@@ -528,12 +589,26 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     return (val || 0).toLocaleString('vi-VN') + ' ₫';
   }
 
-  // --- 6. Sổ địa chỉ (Address modal) ---
+  // --- 6. Sổ địa chỉ (Address modal & management) ---
   selectAddress(addr: SavedAddress) {
     this.selectedAddressId = addr.id;
     this.fullName = addr.receiverName;
     this.phone = addr.phone;
     this.address = addr.address;
+    if (addr.email) {
+      this.email = addr.email;
+    }
+
+    // Trạng thái xác thực SĐT:
+    // User đăng nhập thường có SĐT trong hệ thống -> đã xác thực
+    // Khách vãng lai / Google -> chỉ xác thực nếu số điện thoại trùng với số đã verify OTP trong phiên
+    if (this.isLoggedIn && this.hasUserPhone && !this.isGoogleAccount) {
+      this.isPhoneVerified = true;
+    } else if (this.verifiedPhone && addr.phone && addr.phone.trim() === this.verifiedPhone) {
+      this.isPhoneVerified = true;
+    } else {
+      this.isPhoneVerified = false;
+    }
 
     // Phân tách nếu chuỗi địa chỉ khớp định dạng
     const parts = (addr.address || '').split(',').map(p => p.trim());
@@ -563,24 +638,280 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     delete this.errors.fullName;
     delete this.errors.address;
     this.isAddressModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  /** Mở modal sổ địa chỉ */
+  openAddressBookModal(mode: 'select' | 'add' = 'select') {
+    this.newAddressError = '';
+    this.guestLookupMessage = '';
+    this.initNewAddressForm();
+
+    // Nếu người dùng đã đăng nhập có SĐT -> tự động load các địa chỉ gắn với SĐT đó
+    if (this.isLoggedIn && this.hasUserPhone) {
+      this.loadAddressesForUserPhone();
+      this.addressModalMode = this.savedAddresses.length > 0 ? mode : 'add';
+    } else {
+      // Khách vãng lai hoặc Google chưa có SĐT
+      this.addressModalMode = mode;
+      // Nếu có sẵn số điện thoại trên form thì điền vào ô tìm kiếm
+      if (this.phone) {
+        this.guestPhoneLookup = this.phone;
+      }
+    }
+
+    this.isAddressModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /** Khởi tạo form thêm địa chỉ mới */
+  initNewAddressForm() {
+    if (!this.newAddress.province) {
+      this.newAddress.province = this.selectedProvince || 'Thành phố Hồ Chí Minh';
+    }
+    this.newAddressDistricts = getDistrictsForProvince(this.newAddress.province);
+    if (!this.newAddress.district && this.newAddressDistricts.length > 0) {
+      this.newAddress.district = this.newAddressDistricts[0];
+    }
+    this.newAddressWards = this.newAddress.district
+      ? getWardsForDistrict(this.newAddress.province, this.newAddress.district)
+      : getWardsForProvince(this.newAddress.province);
+    if (!this.newAddress.ward && this.newAddressWards.length > 0) {
+      this.newAddress.ward = this.newAddressWards[0];
+    }
+    if (!this.newAddress.receiverName && this.fullName) {
+      this.newAddress.receiverName = this.fullName;
+    }
+    if (!this.newAddress.phone && this.phone) {
+      this.newAddress.phone = this.phone;
+    }
+    if (!this.newAddress.email && this.email) {
+      this.newAddress.email = this.email;
+    }
+
+    // Kiểm tra trạng thái verify của SĐT trong form mới
+    const phone = (this.newAddress.phone || '').trim();
+    if (phone) {
+      if (this.isLoggedIn && this.hasUserPhone && !this.isGoogleAccount && phone === (this.currentUser?.phone || '').trim()) {
+        this.isPhoneVerified = true;
+      } else if (this.verifiedPhone && phone === this.verifiedPhone) {
+        this.isPhoneVerified = true;
+      } else {
+        this.isPhoneVerified = false;
+      }
+    } else {
+      this.isPhoneVerified = false;
+    }
+  }
+
+  onNewAddressPhoneInput() {
+    const phone = (this.newAddress.phone || '').trim();
+    if (this.isLoggedIn && this.hasUserPhone && !this.isGoogleAccount && phone === (this.currentUser?.phone || '').trim()) {
+      this.isPhoneVerified = true;
+    } else if (this.verifiedPhone && phone === this.verifiedPhone) {
+      this.isPhoneVerified = true;
+    } else {
+      this.isPhoneVerified = false;
+    }
+    this.newAddressError = '';
+  }
+
+  onNewAddressProvinceChange() {
+    this.newAddressDistricts = getDistrictsForProvince(this.newAddress.province);
+    this.newAddress.district = this.newAddressDistricts.length > 0 ? this.newAddressDistricts[0] : '';
+    this.onNewAddressDistrictChange();
+  }
+
+  onNewAddressDistrictChange() {
+    this.newAddressWards = this.newAddress.district
+      ? getWardsForDistrict(this.newAddress.province, this.newAddress.district)
+      : getWardsForProvince(this.newAddress.province);
+    this.newAddress.ward = this.newAddressWards.length > 0 ? this.newAddressWards[0] : '';
+  }
+
+  /** Tự động tải tất cả địa chỉ gắn với SĐT của tài khoản đã đăng nhập */
+  loadAddressesForUserPhone() {
+    const userPhone = this.currentUser?.phone;
+    if (!userPhone) return;
+
+    fetch(`${environment.apiUrl}/store/orders/address-lookup?phone=${encodeURIComponent(userPhone)}`)
+      .then(res => res.ok ? res.json() : [])
+      .then((orders: any[]) => {
+        if (Array.isArray(orders) && orders.length > 0) {
+          const existingKeys = new Set(this.savedAddresses.map(a => `${a.receiverName}_${a.address}`.toLowerCase()));
+          orders.forEach((o: any, idx: number) => {
+            const addrStr = [o.detailAddress, o.ward, o.district, o.province].filter(Boolean).join(', ');
+            const key = `${o.receiverName || ''}_${addrStr}`.toLowerCase();
+            if (!existingKeys.has(key) && addrStr) {
+              existingKeys.add(key);
+              this.savedAddresses.push({
+                id: `phone-order-addr-${idx}`,
+                receiverName: o.receiverName || this.fullName,
+                phone: o.phone || userPhone,
+                address: addrStr,
+                isDefault: false
+              });
+            }
+          });
+
+          // Nếu chưa có địa chỉ nào được chọn trên form checkout, tự động chọn địa chỉ đầu tiên
+          if (!this.address && this.savedAddresses.length > 0) {
+            const def = this.savedAddresses.find(a => a.isDefault) || this.savedAddresses[0];
+            this.selectAddress(def);
+          }
+          this.cdr.detectChanges();
+        }
+      })
+      .catch(() => {});
+  }
+
+  /** Tra cứu địa chỉ đã đặt qua SĐT (dành cho khách vãng lai và Gmail chưa có SĐT) */
+  lookupGuestAddress() {
+    const phone = (this.guestPhoneLookup || '').trim();
+    if (!this.validatePhone(phone)) {
+      this.guestLookupMessage = 'Vui lòng nhập số điện thoại hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09).';
+      return;
+    }
+
+    this.isLookingUpAddress = true;
+    this.guestFoundAddresses = [];
+    this.guestLookupMessage = '';
+
+    fetch(`${environment.apiUrl}/store/orders/address-lookup?phone=${encodeURIComponent(phone)}`)
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((data: any[]) => {
+        if (!data || data.length === 0) {
+          this.guestLookupMessage = `Chưa có đơn hàng nào được lưu với số điện thoại ${phone}. Bạn có thể bấm "+ Thêm địa chỉ mới" để điền thông tin nhận hàng.`;
+          this.guestFoundAddresses = [];
+        } else {
+          this.guestFoundAddresses = data.map((o: any, idx: number) => ({
+            id: `guest-addr-${idx}`,
+            receiverName: o.receiverName || '',
+            phone: o.phone || phone,
+            address: [o.detailAddress, o.ward, o.district, o.province].filter(Boolean).join(', ')
+          }));
+          this.guestLookupMessage = '';
+        }
+      })
+      .catch(() => {
+        this.guestLookupMessage = 'Không thể tra cứu lúc này. Bạn có thể bấm "+ Thêm địa chỉ mới" để điền địa chỉ giao hàng.';
+      })
+      .finally(() => {
+        this.isLookingUpAddress = false;
+        this.cdr.detectChanges();
+      });
+  }
+
+  /** Lưu và chọn địa chỉ mới */
+  submitNewAddress() {
+    const { receiverName, phone, province, district, ward, detail, email, isDefault } = this.newAddress;
+    if (!receiverName || !receiverName.trim()) {
+      this.newAddressError = 'Vui lòng nhập họ và tên người nhận.';
+      return;
+    }
+    if (!phone || !this.validatePhone(phone.trim())) {
+      this.newAddressError = 'Vui lòng nhập số điện thoại hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09).';
+      return;
+    }
+    if (!province) {
+      this.newAddressError = 'Vui lòng chọn Tỉnh / Thành phố.';
+      return;
+    }
+    if (!ward) {
+      this.newAddressError = 'Vui lòng chọn Phường / Xã.';
+      return;
+    }
+    if (!detail || !detail.trim()) {
+      this.newAddressError = 'Vui lòng nhập số nhà, tên đường cụ thể.';
+      return;
+    }
+
+    // Bắt buộc xác thực OTP đối với khách vãng lai và tài khoản Google (hoặc chưa xác thực)
+    const requiresOtp = !this.isLoggedIn || this.isGoogleAccount || !this.hasUserPhone;
+    if (requiresOtp && !this.isPhoneVerified) {
+      this.newAddressError = 'Vui lòng bấm "Xác thực OTP" để xác minh số điện thoại trước khi lưu địa chỉ.';
+      this.sendOtp();
+      return;
+    }
+
+    this.isSavingNewAddress = true;
+    this.newAddressError = '';
+
+    const fullAddr = [detail.trim(), ward, district, province].filter(Boolean).join(', ');
+    const newAddr: SavedAddress = {
+      id: `addr-${Date.now()}`,
+      receiverName: receiverName.trim(),
+      phone: phone.trim(),
+      email: (email || '').trim() || this.email,
+      address: fullAddr,
+      province,
+      district,
+      ward,
+      detail: detail.trim(),
+      isDefault: !!isDefault
+    };
+
+    if (newAddr.isDefault) {
+      this.savedAddresses.forEach(a => a.isDefault = false);
+    }
+    this.savedAddresses.unshift(newAddr);
+
+    // Lưu cục bộ theo danh sách để khách tra cứu lại
+    try {
+      const localGuestAddrs = JSON.parse(localStorage.getItem('dcor_guest_addresses') || '[]');
+      localGuestAddrs.unshift(newAddr);
+      localStorage.setItem('dcor_guest_addresses', JSON.stringify(localGuestAddrs.slice(0, 10)));
+    } catch (e) {}
+
+    // Nếu đã login, gửi API lưu address vào hồ sơ
+    if (this.isLoggedIn) {
+      const token = localStorage.getItem('dcor_customer_token');
+      fetch(`${environment.apiUrl}/account/addresses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token || ''}`
+        },
+        body: JSON.stringify(this.newAddress)
+      }).catch(() => {});
+    }
+
+    this.isSavingNewAddress = false;
+    this.selectAddress(newAddr);
+    this.isAddressModalOpen = false;
+    this.cdr.detectChanges();
   }
 
   // --- 7. Xác thực OTP Số điện thoại (Cố định mã 111111) ---
   sendOtp() {
-    this.onPhoneBlur();
-    if (this.errors.phone) {
-      this.orderErrorMessage = this.errors.phone;
+    const targetPhone = (this.isAddressModalOpen && this.addressModalMode === 'add')
+      ? (this.newAddress.phone || '').trim()
+      : (this.phone || '').trim();
+
+    if (!this.validatePhone(targetPhone)) {
+      const msg = 'Vui lòng nhập số điện thoại hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09) trước khi gửi mã OTP.';
+      if (this.isAddressModalOpen && this.addressModalMode === 'add') {
+        this.newAddressError = msg;
+      } else {
+        this.orderErrorMessage = msg;
+      }
       return;
     }
 
+    this.phone = targetPhone;
+    this.newAddress.phone = targetPhone;
     this.isSendingOtp = true;
     this.otpErrorMessage = null;
+    this.newAddressError = '';
 
     // Gửi yêu cầu OTP đến server
     fetch(`${environment.apiUrl}/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: this.phone })
+      body: JSON.stringify({ phone: targetPhone })
     })
       .then(res => res.json())
       .catch(() => ({}))
@@ -613,11 +944,15 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const targetPhone = this.phone;
+
     // Mã OTP cố định 111111 cho khách vãng lai và mọi khách hàng theo yêu cầu
     if (code === '111111') {
       this.isPhoneVerified = true;
+      this.verifiedPhone = targetPhone;
       this.isOtpModalOpen = false;
       this.otpErrorMessage = null;
+      this.newAddressError = '';
       if (this.otpTimer) clearInterval(this.otpTimer);
       this.cdr.detectChanges();
       return;
@@ -627,7 +962,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     fetch(`${environment.apiUrl}/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: this.phone, otp: code })
+      body: JSON.stringify({ phone: targetPhone, otp: code })
     })
       .then(res => {
         if (!res.ok) throw new Error();
@@ -635,8 +970,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       })
       .then(() => {
         this.isPhoneVerified = true;
+        this.verifiedPhone = targetPhone;
         this.isOtpModalOpen = false;
         this.otpErrorMessage = null;
+        this.newAddressError = '';
         if (this.otpTimer) clearInterval(this.otpTimer);
       })
       .catch(() => {
@@ -691,6 +1028,13 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Kiểm tra đã có địa chỉ nhận hàng từ Sổ địa chỉ chưa
+    if (!this.hasSelectedAddress) {
+      this.orderErrorMessage = 'Vui lòng mở Sổ địa chỉ để chọn hoặc nhập thông tin nhận hàng trước khi thanh toán.';
+      this.openAddressBookModal('select');
+      return;
+    }
+
     // Trigger validation các trường
     this.onFullNameBlur();
     this.onPhoneBlur();
@@ -729,15 +1073,15 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
     // Gửi payload tạo đơn đến Server
     const orderPayload = {
-      receiverName: this.fullName.trim(),
-      phone: this.phone.trim(),
-      email: this.email.trim() || undefined,
+      receiverName: (this.fullName || '').trim(),
+      phone: (this.phone || '').trim(),
+      email: (this.email || '').trim() || undefined,
       province: this.selectedProvince,
       district: this.selectedDistrict,
       ward: this.selectedWard,
-      detailAddress: this.streetAddress.trim(),
-      address: this.address.trim(),
-      shippingNotes: this.shippingNotes.trim() || undefined,
+      detailAddress: (this.streetAddress || '').trim(),
+      address: (this.address || '').trim(),
+      shippingNotes: (this.shippingNotes || '').trim() || undefined,
       paymentMethod: this.paymentMethod,
       voucherCode: this.appliedVoucher?.code || undefined,
       isGift: this.isGift,
@@ -748,12 +1092,16 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         price: i.price
       })),
       invoice: this.isInvoiceRequired ? {
-        companyName: this.companyName.trim(),
-        taxCode: this.taxCode.trim(),
-        companyAddress: this.companyAddress.trim(),
-        invoiceEmail: this.invoiceEmail.trim()
+        companyName: (this.companyName || '').trim(),
+        taxCode: (this.taxCode || '').trim(),
+        companyAddress: (this.companyAddress || '').trim(),
+        invoiceEmail: (this.invoiceEmail || '').trim()
       } : undefined
     };
+
+    // Phân biệt lỗi server thật vs lỗi mạng để quyết định có fallback hay không
+    let serverRejected = false;
+    let serverErrorMessage = '';
 
     fetch(`${environment.apiUrl}/store/orders`, {
       method: 'POST',
@@ -766,7 +1114,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       .then(res => {
         if (!res.ok) {
           return res.json().then(errData => {
-            throw new Error(errData.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
+            serverRejected = true;
+            serverErrorMessage = errData.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+            throw new Error(serverErrorMessage);
           });
         }
         return res.json();
@@ -774,10 +1124,16 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       .then(orderData => {
         this.finishOrderCreation(orderData.orderNumber || `DC-${Math.floor(100000 + Math.random() * 900000)}`);
       })
-      .catch(() => {
-        // Fallback tạo mã đơn khi backend chưa mount endpoint
-        const randomNum = Math.floor(100000 + Math.random() * 900000);
-        this.finishOrderCreation(`DC-${randomNum}`);
+      .catch((err) => {
+        if (serverRejected) {
+          // Lỗi có chủ đích từ server (rate limit 429, validation 400, etc.)
+          // => KHÔNG tạo fallback, chỉ hiển thị thông báo lỗi
+          this.orderErrorMessage = serverErrorMessage || err?.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+        } else {
+          // Lỗi mạng / backend chưa mount endpoint => fallback tạo mã đơn local
+          const randomNum = Math.floor(100000 + Math.random() * 900000);
+          this.finishOrderCreation(`DC-${randomNum}`);
+        }
       })
       .finally(() => {
         this.isSubmittingOrder = false;

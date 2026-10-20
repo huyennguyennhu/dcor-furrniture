@@ -40,6 +40,22 @@ export const orderController = {
         return;
       }
 
+      // === RATE LIMITING: Tối đa 3 đơn hàng / số điện thoại / giờ ===
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentOrderCount = await prisma.order.count({
+        where: {
+          phone: phone.trim(),
+          createdAt: { gte: oneHourAgo }
+        }
+      });
+      if (recentOrderCount >= 3) {
+        res.status(429).json({
+          message: 'Số điện thoại này đã tạo tối đa 3 đơn hàng trong 1 giờ qua. Vui lòng thử lại sau hoặc liên hệ CSKH để được hỗ trợ.'
+        });
+        return;
+      }
+      // ===================================================
+
       // Xác thực khách hàng nếu có token
       let customerId: string | null = null;
       const authHeader = req.headers.authorization;
@@ -229,6 +245,46 @@ export const orderController = {
     } catch (error: any) {
       console.error('Lỗi khi lấy danh sách đơn hàng:', error);
       res.status(500).json({ message: 'Không thể lấy danh sách đơn hàng.' });
+    }
+  },
+
+  // Tra cứu địa chỉ đã đặt hàng qua số điện thoại (khách vãng lai)
+  getAddressByPhone: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const phone = (req.query.phone as string || '').trim();
+      if (!phone || !/^(0)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/.test(phone)) {
+        res.status(400).json({ message: 'Số điện thoại không hợp lệ.' });
+        return;
+      }
+
+      // Lấy tối đa 5 địa chỉ gần nhất từ các đơn hàng cũa số điện thoại này
+      const orders = await prisma.order.findMany({
+        where: { phone },
+        select: {
+          receiverName: true,
+          phone: true,
+          province: true,
+          district: true,
+          ward: true,
+          detailAddress: true
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      });
+
+      // Loại bỏ trùng lặp theo địa chỉ đầy đủ
+      const seen = new Set<string>();
+      const uniqueAddresses = orders.filter(o => {
+        const key = [o.detailAddress, o.ward, o.district, o.province].filter(Boolean).join(', ');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      res.json(uniqueAddresses);
+    } catch (error: any) {
+      console.error('Lỗi tra cứu địa chỉ:', error);
+      res.status(500).json({ message: 'Không thể tra cứu địa chỉ.' });
     }
   }
 };
