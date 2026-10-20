@@ -50,7 +50,7 @@ interface SeverityOption {
 }
 
 @Component({
-  selector: 'app-activity',
+  selector: 'app-audit-log',
   standalone: true,
   imports: [
     CommonModule, 
@@ -59,10 +59,10 @@ interface SeverityOption {
     LucideAngularModule
   ],
   providers: [DatePipe],
-  templateUrl: './activity.html',
-  styleUrls: ['./activity.css']
+  templateUrl: './audit-log.html',
+  styleUrls: ['./audit-log.css']
 })
-export class ActivityComponent implements OnInit, OnDestroy {
+export class AuditLogComponent implements OnInit, OnDestroy {
   // Lucide Icons Map
   icons = {
     Search, Calendar, Filter, SlidersHorizontal, RotateCcw, Download,
@@ -75,7 +75,7 @@ export class ActivityComponent implements OnInit, OnDestroy {
 
   // State Dữ liệu
   logs: AuditLogItem[] = [];
-  isLoading = false;
+  isLoading = true;
   errorMessage = '';
 
   // Phân trang & KPI Stats
@@ -651,3 +651,5 @@ export class ActivityComponent implements OnInit, OnDestroy {
     }
   }
 }
+
+export { AuditLogComponent as ActivityComponent };

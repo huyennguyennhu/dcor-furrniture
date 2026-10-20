@@ -17,7 +17,7 @@ import {
   mapAdminStatusToUserView 
 } from './models/order-v2.model';
 
-export type KpiTab = 'ALL' | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED';
+export type KpiTab = 'ALL' | 'CONFIRMATION' | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'RETURN';
 
 @Component({
   selector: 'app-orders-v2',
@@ -167,6 +167,10 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     return this.orders.length;
   }
 
+  get countConfirmation(): number {
+    return this.orders.filter(o => o.status === 'PENDING' || o.status === 'CONFIRMED').length;
+  }
+
   get countPending(): number {
     return this.orders.filter(o => o.status === 'PENDING').length;
   }
@@ -195,13 +199,27 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     return this.orders.filter(o => o.status === 'COMPLETED').length;
   }
 
+  get countCancelled(): number {
+    return this.orders.filter(o => o.status === 'CANCELLED').length;
+  }
+
+  get countReturns(): number {
+    return this.orders.filter(o => ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(o.status)).length;
+  }
+
   // --- FILTERED ORDERS ---
   get filteredOrders(): OrderV2[] {
     let list = [...this.orders];
 
     // Filter by KPI Tab
     if (this.activeTab !== 'ALL') {
-      list = list.filter(o => o.status === this.activeTab);
+      if (this.activeTab === 'CONFIRMATION') {
+        list = list.filter(o => o.status === 'PENDING' || o.status === 'CONFIRMED');
+      } else if (this.activeTab === 'RETURN') {
+        list = list.filter(o => ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(o.status));
+      } else {
+        list = list.filter(o => o.status === this.activeTab);
+      }
     }
 
     // Filter by Specific Status Dropdown

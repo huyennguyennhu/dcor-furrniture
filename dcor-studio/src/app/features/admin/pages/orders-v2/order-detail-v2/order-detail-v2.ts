@@ -95,6 +95,17 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     return '14:00';
   }
 
+  // Lấy thời gian giao hàng thực tế của đơn hàng
+  getDeliveredTime(): string {
+    if (!this.order) return 'Đã giao hàng';
+    if (this.order.deliveredAt) return this.order.deliveredAt;
+    const deliveredStep = this.order.delivery?.trackingHistory?.find(s => 
+      s.status.toLowerCase().includes('giao hàng') || s.status.toLowerCase().includes('đã giao') || s.status.toLowerCase().includes('bàn giao')
+    );
+    if (deliveredStep?.time) return deliveredStep.time;
+    return 'Vừa giao thành công';
+  }
+
   orderId = '';
   order?: OrderV2;
   allOrders: OrderV2[] = [];
@@ -176,6 +187,20 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
   toastType: 'success' | 'error' | 'info' = 'success';
   private toastTimer: any = null;
 
+  // 72h Return Window Countdown State
+  deliveredCountdown = {
+    hours: 72,
+    minutes: 0,
+    seconds: 0,
+    percentElapsed: 0,
+    isExpired: false
+  };
+  private countdownTimer: any = null;
+
+  padZero(n: number): string {
+    return n < 10 ? '0' + n : '' + n;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -198,6 +223,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     this.routeSub?.unsubscribe();
     this.ordersSub?.unsubscribe();
     if (this.toastTimer) clearTimeout(this.toastTimer);
+    if (this.countdownTimer) clearInterval(this.countdownTimer);
   }
 
   private loadOrder() {
@@ -212,7 +238,88 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
       };
       this.newTrackingCode = this.order.delivery.trackingCode || 'DCOR-SHIP-88992';
       this.viewingStepIndex = null;
+      this.initDeliveredCountdown();
     }
+  }
+
+  private parseCustomDate(dateStr?: string): Date | null {
+    if (!dateStr) return null;
+    const parts = dateStr.trim().split(' ');
+    if (parts.length >= 2) {
+      const dateParts = parts[0].split('/').map(Number);
+      const timeParts = parts[1].split(':').map(Number);
+      if (dateParts.length === 3) {
+        const [d, m, y] = dateParts;
+        const h = timeParts[0] || 0;
+        const min = timeParts[1] || 0;
+        const s = timeParts[2] || 0;
+        return new Date(y, m - 1, d, h, min, s);
+      }
+    }
+    const isoDate = new Date(dateStr);
+    return isNaN(isoDate.getTime()) ? null : isoDate;
+  }
+
+  private initDeliveredCountdown() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+
+    if (!this.order || this.order.status !== 'DELIVERED') {
+      return;
+    }
+
+    this.updateDeliveredCountdown();
+    this.countdownTimer = setInterval(() => {
+      this.updateDeliveredCountdown();
+    }, 1000);
+  }
+
+  private updateDeliveredCountdown() {
+    if (!this.order || this.order.status !== 'DELIVERED') {
+      if (this.countdownTimer) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+      }
+      return;
+    }
+
+    const deliveredDate = this.parseCustomDate(this.order.deliveredAt) || this.parseCustomDate(this.order.createdAt) || new Date();
+    const totalDurationMs = 72 * 60 * 60 * 1000; // 72 giờ
+    const expireTimeMs = deliveredDate.getTime() + totalDurationMs;
+    const nowMs = Date.now();
+    const remainingMs = expireTimeMs - nowMs;
+
+    if (remainingMs <= 0) {
+      this.deliveredCountdown = {
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        percentElapsed: 100,
+        isExpired: true
+      };
+      if (this.countdownTimer) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+      }
+      return;
+    }
+
+    const totalSec = Math.floor(remainingMs / 1000);
+    const hours = Math.floor(totalSec / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    const elapsedMs = totalDurationMs - remainingMs;
+    const percent = Math.min(100, Math.max(0, Math.round((elapsedMs / totalDurationMs) * 100)));
+
+    this.deliveredCountdown = {
+      hours,
+      minutes,
+      seconds,
+      percentElapsed: percent,
+      isExpired: false
+    };
   }
 
   switchOrder(newId: string) {

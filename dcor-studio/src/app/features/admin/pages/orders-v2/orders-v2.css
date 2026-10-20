@@ -200,18 +200,18 @@
    ========================================================================== */
 .orders-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 14px;
   margin-bottom: 24px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
   .orders-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 480px) {
   .orders-kpi-grid {
     grid-template-columns: 1fr;
   }
@@ -298,36 +298,24 @@
   color: var(--accent, #765337);
 }
 
-/* 2. PENDING */
+/* 2. CONFIRMATION (Gộp Pending & Confirmed) */
+.orders-kpi-card.card-confirmation .card-icon-wrapper,
 .orders-kpi-card.card-pending .card-icon-wrapper {
   background: rgba(245, 158, 11, 0.12);
   color: #d97706;
 }
+.orders-kpi-card.card-confirmation .card-subtitle,
 .orders-kpi-card.card-pending .card-subtitle {
   color: #d97706;
 }
+.orders-kpi-card.card-confirmation.active,
 .orders-kpi-card.card-pending.active {
   border-color: #f59e0b;
   background: rgba(245, 158, 11, 0.07);
 }
+.orders-kpi-card.card-confirmation.active .card-label,
 .orders-kpi-card.card-pending.active .card-label {
   color: #d97706;
-}
-
-/* 3. CONFIRMED */
-.orders-kpi-card.card-confirmed .card-icon-wrapper {
-  background: rgba(79, 70, 229, 0.12);
-  color: #4f46e5;
-}
-.orders-kpi-card.card-confirmed .card-subtitle {
-  color: #4f46e5;
-}
-.orders-kpi-card.card-confirmed.active {
-  border-color: #4f46e5;
-  background: rgba(79, 70, 229, 0.07);
-}
-.orders-kpi-card.card-confirmed.active .card-label {
-  color: #4f46e5;
 }
 
 /* 4. PROCESSING */
@@ -408,6 +396,38 @@
 }
 .orders-kpi-card.card-completed.active .card-label {
   color: #047857;
+}
+
+/* 8. CANCELLED */
+.orders-kpi-card.card-cancelled .card-icon-wrapper {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+.orders-kpi-card.card-cancelled .card-subtitle {
+  color: #dc2626;
+}
+.orders-kpi-card.card-cancelled.active {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.07);
+}
+.orders-kpi-card.card-cancelled.active .card-label {
+  color: #dc2626;
+}
+
+/* 9. RETURN */
+.orders-kpi-card.card-return .card-icon-wrapper {
+  background: rgba(234, 88, 12, 0.12);
+  color: #ea580c;
+}
+.orders-kpi-card.card-return .card-subtitle {
+  color: #ea580c;
+}
+.orders-kpi-card.card-return.active {
+  border-color: #f97316;
+  background: rgba(234, 88, 12, 0.07);
+}
+.orders-kpi-card.card-return.active .card-label {
+  color: #ea580c;
 }
 
 /* --- FILTER TOOLBAR --- */

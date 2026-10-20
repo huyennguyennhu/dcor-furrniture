@@ -47,9 +47,35 @@
   </div>
 
   <!-- 5-Step Stepper Timeline -->
-  <!-- Admin 6-Step Workflow Stepper Timeline (Chuẩn hóa: Gộp Chờ xác nhận & Đã xác nhận thành Bước 1: Xác nhận đơn) -->
-  <div class="v2-stepper-card">
-    <div class="stepper-track">
+  <!-- Admin Workflow Stepper Timeline (Khi CANCELLED: chỉ hiện 2 bước Confirmation -> Cancelled và căn giữa) -->
+  <div class="v2-stepper-card" [class.stepper-card-cancelled]="order.status === 'CANCELLED'">
+
+    <!-- TRƯỜNG HỢP ĐƠN HỦY: CHỈ HIỂN THỊ 2 CỤC TRẠNG THÁI (CONFIRMATION -> CANCELLED) CĂN GIỮA -->
+    <div class="stepper-track stepper-track-cancelled" *ngIf="order.status === 'CANCELLED'">
+      <!-- Cục 1: Confirmation (Xác nhận đơn) -->
+      <div class="stepper-step step-cancelled-prev">
+        <div class="step-circle step-circle-confirmation">
+          <span>1</span>
+        </div>
+        <div class="step-label">Confirmation</div>
+        <div class="step-sub">Xác nhận đơn</div>
+      </div>
+
+      <!-- Đường nối đỏ chuyển sang Cancelled -->
+      <div class="step-line line-cancelled"></div>
+
+      <!-- Cục 2: Cancelled (Đã hủy đơn) -->
+      <div class="stepper-step step-active-cancelled">
+        <div class="step-circle step-circle-cancelled">
+          <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+        </div>
+        <div class="step-label text-cancelled">Cancelled</div>
+        <div class="step-sub text-cancelled-sub">Đã hủy đơn</div>
+      </div>
+    </div>
+
+    <!-- TRƯỜNG HỢP ĐƠN HOẠT ĐỘNG: TIẾN TRÌNH 6 BƯỚC CHUẨN HÓA -->
+    <div class="stepper-track" *ngIf="order.status !== 'CANCELLED'">
       <!-- Step 1: CONFIRMATION (Pending & Confirmed) -->
       <div class="stepper-step" 
         [class.step-done]="isStepDone(0)" 
@@ -196,6 +222,40 @@
     <div class="stepper-branch-pill branch-return" *ngIf="['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status)">
       <lucide-angular [img]="icons.CornerDownLeft" size="16"></lucide-angular>
       <span>Quy trình nghiệp vụ Đổi/Trả hàng: <strong>{{ order.status }}</strong> — {{ order.returnInfo?.reason || 'Yêu cầu đổi/trả từ khách hàng' }}</span>
+    </div>
+  </div>
+
+  <!-- DELIVERED 72H COUNTDOWN WIDGET: ĐỒNG HỒ ĐẾM NGƯỢC 72H ĐỔI TRẢ (TỰ ĐỘNG CHUYỂN COMPLETED) -->
+  <div class="delivered-countdown-widget" *ngIf="order && order.status === 'DELIVERED'">
+    <div class="countdown-left-block">
+      <div class="countdown-badge-icon">
+        <lucide-angular [img]="icons.Clock" size="20"></lucide-angular>
+      </div>
+      <div class="countdown-info">
+        <div class="countdown-label-row">
+          <span class="countdown-title">Thời hạn hỗ trợ Đổi / Trả (72 Giờ)</span>
+        </div>
+        <div class="countdown-sub">
+          Khách hàng có quyền khiếu nại trong 72h. Hết thời gian này, hệ thống sẽ tự động chuyển <strong>Hoàn tất đơn hàng</strong> và kích hoạt bảo hành.
+        </div>
+      </div>
+    </div>
+
+    <div class="countdown-timer-boxes">
+      <div class="time-box">
+        <span class="time-num">{{ padZero(deliveredCountdown.hours) }}</span>
+        <span class="time-unit">Giờ</span>
+      </div>
+      <span class="time-colon">:</span>
+      <div class="time-box">
+        <span class="time-num">{{ padZero(deliveredCountdown.minutes) }}</span>
+        <span class="time-unit">Phút</span>
+      </div>
+      <span class="time-colon">:</span>
+      <div class="time-box">
+        <span class="time-num">{{ padZero(deliveredCountdown.seconds) }}</span>
+        <span class="time-unit">Giây</span>
+      </div>
     </div>
   </div>
 
@@ -631,16 +691,20 @@
       </div>
 
       <!-- MAP TRACKING CARD: Bản đồ Lộ trình & Giám sát Giao hàng Thời gian thực (Tương tự Shopee/Grab tracking) -->
-      <!-- Hiển thị trong trạng thái Đang vận chuyển SHIPPED (hoặc khi đang xem bước Đang vận chuyển) -->
-      <div class="v2-card live-map-tracking-card" *ngIf="['SHIPPED', 'FAILED_DELIVERY'].includes(order.status) || (order.status !== 'PENDING' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING' && activeViewingStep === 3)">
+      <!-- Hiển thị trong trạng thái Đang vận chuyển SHIPPED, Giao thất bại, Đã giao hàng DELIVERED (hoặc khi đang xem bước 3 hoặc 4) -->
+      <div class="v2-card live-map-tracking-card" *ngIf="['SHIPPED', 'FAILED_DELIVERY', 'DELIVERED'].includes(order.status) || (order.status !== 'PENDING' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING' && (activeViewingStep === 3 || activeViewingStep === 4))">
         <div class="v2-card-header" style="align-items: flex-start;">
           <div class="card-title-group" style="align-items: flex-start;">
-            <lucide-angular [img]="icons.MapPin" size="18" class="text-accent" style="margin-top: 3px; flex-shrink: 0;"></lucide-angular>
+            <lucide-angular [img]="icons.MapPin" size="18" [class.text-accent]="order.status !== 'DELIVERED'" [class.text-success]="order.status === 'DELIVERED'" style="margin-top: 3px; flex-shrink: 0;"></lucide-angular>
             <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
-              <h3>Bản đồ Giám sát Vận chuyển</h3>
-              <span class="live-pulse-badge">
+              <h3>{{ order.status === 'DELIVERED' ? 'Bản đồ & Lộ trình Bàn giao' : 'Bản đồ Giám sát Vận chuyển' }}</h3>
+              <span class="live-pulse-badge" *ngIf="order.status !== 'DELIVERED'">
                 <span class="pulse-beacon"></span>
                 <span>Đang lưu thông (Live GPS)</span>
+              </span>
+              <span class="live-pulse-badge badge-delivered" *ngIf="order.status === 'DELIVERED'">
+                <lucide-angular [img]="icons.CheckCircle2" size="13"></lucide-angular>
+                <span>Đã giao hàng thành công</span>
               </span>
             </div>
           </div>
@@ -679,20 +743,31 @@
                 <!-- Kênh rạch / Sông uốn lượn phong cách TP.HCM -->
                 <path d="M 0,280 C 180,260 260,340 420,310 C 580,280 680,340 800,320 L 800,360 L 0,360 Z" fill="url(#riverGrad)" opacity="0.6" />
 
-                <!-- Tuyến đường thực tế xe tải đã đi qua (Cam đậm nổi bật) -->
-                <path d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170" 
+                <!-- Khi DELIVERED: Tuyến đường hoàn chỉnh 100% nối từ kho tới tận nhà khách (Xanh lá hoàn tất) -->
+                <path *ngIf="order.status === 'DELIVERED'"
+                      d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170 C 580,160 620,100 680,90" 
                       fill="none" 
-                      stroke="#F58025" 
+                      stroke="#16A34A" 
                       stroke-width="5" 
                       stroke-linecap="round" />
 
-                <!-- Tuyến đường còn lại xe đang hướng tới khách (Xanh dương nét đứt) -->
-                <path d="M 520,170 C 580,160 620,100 680,90" 
-                      fill="none" 
-                      stroke="#3B82F6" 
-                      stroke-width="4" 
-                      stroke-dasharray="6,6" 
-                      stroke-linecap="round" />
+                <!-- Khi đang SHIPPED hoặc FAILED_DELIVERY -->
+                <ng-container *ngIf="order.status !== 'DELIVERED'">
+                  <!-- Tuyến đường thực tế xe tải đã đi qua (Cam đậm nổi bật) -->
+                  <path d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170" 
+                        fill="none" 
+                        stroke="#F58025" 
+                        stroke-width="5" 
+                        stroke-linecap="round" />
+
+                  <!-- Tuyến đường còn lại xe đang hướng tới khách (Xanh dương nét đứt) -->
+                  <path d="M 520,170 C 580,160 620,100 680,90" 
+                        fill="none" 
+                        stroke="#3B82F6" 
+                        stroke-width="4" 
+                        stroke-dasharray="6,6" 
+                        stroke-linecap="round" />
+                </ng-container>
               </svg>
 
               <!-- MARKER 1: Kho xuất hàng DCOR -->
@@ -705,25 +780,30 @@
               </div>
 
               <!-- MARKER 2: Xe tải / Shipper LIVE GPS -->
-              <div class="map-pin-marker live-truck-pin" style="left: 65%; top: 47%;">
+              <div class="map-pin-marker live-truck-pin" [style.left]="order.status === 'DELIVERED' ? '79%' : '65%'" [style.top]="order.status === 'DELIVERED' ? '30%' : '47%'">
                 <!-- Tooltip thông tin tài xế lơ lửng -->
-                <div class="truck-floating-card">
+                <div class="truck-floating-card" [class.card-delivered]="order.status === 'DELIVERED'">
                   <div class="floating-header">
-                    <span class="live-dot-mini"></span>
+                    <span class="live-dot-mini" *ngIf="order.status !== 'DELIVERED'"></span>
+                    <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.CheckCircle2" size="13" class="text-success"></lucide-angular>
                     <strong>{{ order.delivery.driverName || 'Nguyễn Văn Tài' }} (Xe tải)</strong>
                   </div>
-                  <div class="floating-sub">
+                  <div class="floating-sub" *ngIf="order.status !== 'DELIVERED'">
                     Cách điểm nhận: <strong>2.8 km</strong> • ~20 phút nữa đến
+                  </div>
+                  <div class="floating-sub" *ngIf="order.status === 'DELIVERED'" style="color: #15803D; font-weight: 600;">
+                    Đã bàn giao kiện hàng tận nơi
                   </div>
                 </div>
 
                 <!-- Radar Pulse Ripple Animation -->
-                <div class="radar-pulse-ring"></div>
-                <div class="radar-pulse-ring delay-1"></div>
+                <div class="radar-pulse-ring" [class.ring-delivered]="order.status === 'DELIVERED'"></div>
+                <div class="radar-pulse-ring delay-1" [class.ring-delivered]="order.status === 'DELIVERED'"></div>
 
                 <!-- Truck Circle Icon -->
-                <div class="truck-icon-circle">
-                  <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
+                <div class="truck-icon-circle" [class.truck-delivered]="order.status === 'DELIVERED'">
+                  <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Truck" size="18"></lucide-angular>
+                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="18"></lucide-angular>
                 </div>
               </div>
 
@@ -739,7 +819,7 @@
               <!-- Street Name Tags -->
               <div class="map-street-label street-nguyen-huu-tho">Đ. Nguyễn Hữu Thọ</div>
               <div class="map-street-label street-nguyen-thi-thap">Đ. Nguyễn Thị Thập</div>
-              <div class="map-street-label street-rach-dia">Cầu Rạch Đĩa</div>
+              <div class="map-street-label street-nguyen-thi-thap street-rach-dia">Cầu Rạch Đĩa</div>
 
               <!-- Floating Control Buttons -->
               <div class="map-floating-controls">
@@ -754,21 +834,25 @@
           <!-- THÔNG BÁO VỊ TRÍ & ĐIỀU PHỐI (Live Telemetry & Driver Control Panel) -->
           <div class="telemetry-grid">
             <div class="tele-card">
-              <span class="tele-label">Vị trí hiện tại của xe</span>
+              <span class="tele-label">{{ order.status === 'DELIVERED' ? 'Địa chỉ giao hàng thành công' : 'Vị trí hiện tại của xe' }}</span>
               <div class="tele-val">
-                <lucide-angular [img]="icons.Navigation" size="15" class="text-accent"></lucide-angular>
-                <span>Đường Nguyễn Hữu Thọ, P. Tân Hưng, Q.7</span>
+                <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Navigation" size="15" class="text-accent"></lucide-angular>
+                <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.MapPin" size="15" class="text-success"></lucide-angular>
+                <span>{{ order.status === 'DELIVERED' ? (order.address || 'Đã giao tới địa chỉ khách') : 'Đường Nguyễn Hữu Thọ, P. Tân Hưng, Q.7' }}</span>
               </div>
-              <div class="tele-sub">Cập nhật GPS: {{ lastGpsUpdate }}</div>
+              <div class="tele-sub" *ngIf="order.status !== 'DELIVERED'">Cập nhật GPS: {{ lastGpsUpdate }}</div>
+              <div class="tele-sub font-semibold" *ngIf="order.status === 'DELIVERED'" style="color: #15803D;">Biên bản bàn giao: Khách hàng đã ký nhận điện tử</div>
             </div>
 
             <div class="tele-card">
-              <span class="tele-label">Khoảng cách & Thời gian (ETA)</span>
-              <div class="tele-val text-accent font-semibold">
-                <lucide-angular [img]="icons.Clock" size="15"></lucide-angular>
-                <span>Còn 2.8 km (khoảng 20 - 30 phút)</span>
+              <span class="tele-label">{{ order.status === 'DELIVERED' ? 'Trạng thái giao nhận' : 'Khoảng cách & Thời gian (ETA)' }}</span>
+              <div class="tele-val" [class.text-accent]="order.status !== 'DELIVERED'" [class.text-success]="order.status === 'DELIVERED'" style="font-weight: 700;">
+                <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Clock" size="15"></lucide-angular>
+                <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+                <span>{{ order.status === 'DELIVERED' ? 'Giao thành công (0 km còn lại)' : 'Còn 2.8 km (khoảng 20 - 30 phút)' }}</span>
               </div>
-              <div class="tele-sub">Tốc độ xe: 32 km/h • Giao thông thông thoáng</div>
+              <div class="tele-sub" *ngIf="order.status !== 'DELIVERED'">Tốc độ xe: 32 km/h • Giao thông thông thoáng</div>
+              <div class="tele-sub font-semibold" *ngIf="order.status === 'DELIVERED'">Thời gian hoàn tất: {{ getDeliveredTime() }}</div>
             </div>
           </div>
 
@@ -860,7 +944,7 @@
   <!-- =========================================================================
        CRITICAL REQUIREMENT: BOTTOM ACTION CARD (Placed at bottom of page!)
        ========================================================================= -->
-  <div class="v2-bottom-action-card" *ngIf="!isHistoricalView">
+  <div class="v2-bottom-action-card" *ngIf="!isHistoricalView && order.status !== 'DELIVERED'">
     <div class="bottom-action-inner">
       <!-- LIVE CONTEXTUAL BUTTONS -->
       <div class="action-buttons-group">
@@ -937,17 +1021,6 @@
           </button>
         </ng-container>
 
-        <!-- 7. DELIVERED -->
-        <ng-container *ngIf="order.status === 'DELIVERED'">
-          <button type="button" class="btn-simulate-return" [disabled]="isSubmitting" (click)="onSimulateCustomerReturn()">
-            <lucide-angular [img]="icons.CornerDownLeft" size="16"></lucide-angular>
-            <span>Giả lập Khách yêu cầu Đổi trả (Trong 72h)</span>
-          </button>
-          <button type="button" class="btn-primary-action" [disabled]="isSubmitting" [class.btn-disabled]="isSubmitting" (click)="onCompleteOrder()">
-            <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
-            <span>{{ isSubmitting ? 'Đang xử lý...' : 'Chốt Hoàn tất đơn sớm (Completed)' }}</span>
-          </button>
-        </ng-container>
 
         <!-- 8. RETURN_REQUESTED -->
         <ng-container *ngIf="order.status === 'RETURN_REQUESTED'">

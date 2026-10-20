@@ -407,12 +407,12 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Loading State Skeleton -->
+          <!-- Loading State: hiển thị khi vừa vào trang đang tải dữ liệu (đồng bộ chuẩn Tổng quan kho) -->
           <tr *ngIf="isLoading" class="loading-row">
-            <td colspan="8" style="text-align: center; padding: 48px 16px;">
-              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-secondary);">
-                <lucide-angular [img]="icons.RefreshCw" size="26" class="spinning" style="color: var(--accent);"></lucide-angular>
-                <span style="font-size: 13.5px; font-weight: 500;">Đang đồng bộ nhật ký kiểm toán...</span>
+            <td colspan="8" style="padding: 60px 16px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu nhật ký hoạt động...</span>
               </div>
             </td>
           </tr>

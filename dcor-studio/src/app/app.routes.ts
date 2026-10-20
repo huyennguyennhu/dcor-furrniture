@@ -60,7 +60,7 @@ export const routes: Routes = [
       { path: 'staff/accounts', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
       { path: 'staff/permissions', loadComponent: () => import('./features/admin/pages/staff/staff-permissions/staff-permissions').then(m => m.StaffPermissionsComponent) },
       { path: 'settings', loadComponent: () => import('./features/admin/pages/settings/settings').then(m => m.SettingsComponent) },
-      { path: 'audit-log', loadComponent: () => import('./features/admin/pages/activity/activity').then(m => m.ActivityComponent) },
+      { path: 'audit-log', loadComponent: () => import('./features/admin/pages/audit-log/audit-log').then(m => m.AuditLogComponent) },
       { path: 'activity', redirectTo: 'audit-log', pathMatch: 'full' },
       { path: '**', redirectTo: 'dashboard' },
     ]

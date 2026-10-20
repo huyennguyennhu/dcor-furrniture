@@ -45,37 +45,22 @@
       <div class="card-subtitle">Toàn bộ đơn hàng</div>
     </div>
 
-    <!-- Card 2: Pending (Chờ xác nhận) -->
-    <div class="orders-kpi-card card-pending" 
-         [class.active]="activeTab === 'PENDING'"
-         (click)="setTab('PENDING')"
-         title="Lọc đơn chờ xác nhận">
+    <!-- Card 2: Confirmation (Xác nhận đơn - Gộp Pending & Confirmed) -->
+    <div class="orders-kpi-card card-confirmation" 
+         [class.active]="activeTab === 'CONFIRMATION'"
+         (click)="setTab('CONFIRMATION')"
+         title="Lọc đơn trong quy trình xác nhận">
       <div class="card-header">
-        <span class="card-label">Pending</span>
-        <div class="card-icon-wrapper icon-pending">
+        <span class="card-label">Confirmation</span>
+        <div class="card-icon-wrapper icon-confirmation">
           <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
         </div>
       </div>
-      <div class="card-count">{{ countPending }}</div>
-      <div class="card-subtitle">Chờ xác nhận</div>
+      <div class="card-count">{{ countConfirmation }}</div>
+      <div class="card-subtitle">Xác nhận đơn</div>
     </div>
 
-    <!-- Card 3: Confirmed (Đã xác nhận) -->
-    <div class="orders-kpi-card card-confirmed" 
-         [class.active]="activeTab === 'CONFIRMED'"
-         (click)="setTab('CONFIRMED')"
-         title="Lọc đơn đã xác nhận">
-      <div class="card-header">
-        <span class="card-label">Confirmed</span>
-        <div class="card-icon-wrapper icon-confirmed">
-          <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
-        </div>
-      </div>
-      <div class="card-count">{{ countConfirmed }}</div>
-      <div class="card-subtitle">Đã xác nhận</div>
-    </div>
-
-    <!-- Card 4: Processing (Đang chuẩn bị) -->
+    <!-- Card 3: Processing (Đang chuẩn bị) -->
     <div class="orders-kpi-card card-processing" 
          [class.active]="activeTab === 'PROCESSING'"
          (click)="setTab('PROCESSING')"
@@ -90,7 +75,7 @@
       <div class="card-subtitle">Đang chuẩn bị</div>
     </div>
 
-    <!-- Card 5: Ready to Ship (Sẵn sàng xuất) -->
+    <!-- Card 4: Ready to Ship (Sẵn sàng xuất) -->
     <div class="orders-kpi-card card-ready" 
          [class.active]="activeTab === 'READY_TO_SHIP'"
          (click)="setTab('READY_TO_SHIP')"
@@ -105,7 +90,7 @@
       <div class="card-subtitle">Sẵn sàng xuất</div>
     </div>
 
-    <!-- Card 6: Shipped (Đang vận chuyển) -->
+    <!-- Card 5: Shipped (Đang vận chuyển) -->
     <div class="orders-kpi-card card-shipped" 
          [class.active]="activeTab === 'SHIPPED'"
          (click)="setTab('SHIPPED')"
@@ -120,7 +105,7 @@
       <div class="card-subtitle">Đang vận chuyển</div>
     </div>
 
-    <!-- Card 7: Delivered (Đã giao hàng) -->
+    <!-- Card 6: Delivered (Đã giao hàng) -->
     <div class="orders-kpi-card card-delivered" 
          [class.active]="activeTab === 'DELIVERED'"
          (click)="setTab('DELIVERED')"
@@ -135,7 +120,7 @@
       <div class="card-subtitle">Đã giao hàng</div>
     </div>
 
-    <!-- Card 8: Completed (Hoàn tất đơn) -->
+    <!-- Card 7: Completed (Hoàn tất đơn) -->
     <div class="orders-kpi-card card-completed" 
          [class.active]="activeTab === 'COMPLETED'"
          (click)="setTab('COMPLETED')"
@@ -148,6 +133,36 @@
       </div>
       <div class="card-count">{{ countCompleted }}</div>
       <div class="card-subtitle">Hoàn tất đơn</div>
+    </div>
+
+    <!-- Card 8: Cancel (Đã hủy đơn) -->
+    <div class="orders-kpi-card card-cancelled" 
+         [class.active]="activeTab === 'CANCELLED'"
+         (click)="setTab('CANCELLED')"
+         title="Lọc đơn đã hủy">
+      <div class="card-header">
+        <span class="card-label">Cancel</span>
+        <div class="card-icon-wrapper icon-cancelled">
+          <lucide-angular [img]="icons.XCircle" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ countCancelled }}</div>
+      <div class="card-subtitle">Đã hủy đơn</div>
+    </div>
+
+    <!-- Card 9: Return (Đổi / Trả hàng) -->
+    <div class="orders-kpi-card card-return" 
+         [class.active]="activeTab === 'RETURN'"
+         (click)="setTab('RETURN')"
+         title="Lọc đơn yêu cầu đổi / trả hàng">
+      <div class="card-header">
+        <span class="card-label">Return</span>
+        <div class="card-icon-wrapper icon-return">
+          <lucide-angular [img]="icons.CornerDownLeft" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ countReturns }}</div>
+      <div class="card-subtitle">Đổi / Trả hàng</div>
     </div>
   </div>
 
