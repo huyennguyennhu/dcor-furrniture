@@ -40,182 +40,77 @@
         <!-- CỘT TRÁI: THÔNG TIN GIAO HÀNG & PHƯƠNG THỨC -->
         <div class="checkout-main-col">
 
-          <!-- KHUNG 1: THÔNG TIN NGƯỜI NHẬN -->
-          <div class="checkout-card">
+          <!-- KHUNG 1: SỔ ĐỊA CHỈ & THÔNG TIN GIAO HÀNG -->
+          <div class="checkout-card" id="shippingSection">
             <div class="card-header">
               <div class="header-badge-title">
                 <span class="step-num">1</span>
-                <h2>Thông tin người nhận</h2>
-              </div>
-
-              <!-- Chỉ hiển thị khi có sổ địa chỉ nạp từ tài khoản -->
-              <div *ngIf="isLoggedIn && savedAddresses.length > 0" class="address-book-action">
-                <button type="button" class="btn-address-book" (click)="isAddressModalOpen = true">
-                  <span>Sổ địa chỉ ({{ savedAddresses.length }})</span>
-                  <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
-                </button>
-              </div>
-
-              <!-- Nếu khách đăng nhập nhưng chưa có địa chỉ, có liên kết đến trang Profile -->
-              <div *ngIf="isLoggedIn && savedAddresses.length === 0" class="address-book-action">
-                <a routerLink="/account/profile" class="link-manage-address">Quản lý hồ sơ</a>
+                <h2>Địa chỉ nhận hàng</h2>
               </div>
             </div>
 
-            <!-- Khách đã đăng nhập: Thông báo tự điền từ hồ sơ -->
-            <div *ngIf="isLoggedIn" class="user-status-strip">
-              <span class="strip-text">
-                Thông tin được tự động điền từ hồ sơ tài khoản <b>{{ currentUser?.fullName || currentUser?.email }}</b>. Bạn vẫn có thể chỉnh sửa trực tiếp bên dưới.
-              </span>
-            </div>
-
-            <div class="form-fields-grid">
-              
-              <!-- Họ và tên -->
-              <div class="form-group">
-                <label for="fullName">Họ và tên người nhận <span class="req">*</span></label>
-                <input 
-                  type="text" 
-                  id="fullName" 
-                  name="fullName"
-                  [(ngModel)]="fullName" 
-                  (blur)="onFullNameBlur()"
-                  [class.is-invalid]="errors.fullName"
-                  placeholder="Ví dụ: Nguyễn Văn A"
-                  class="custom-input" />
-                <span *ngIf="errors.fullName" class="field-error-text">{{ errors.fullName }}</span>
+            <!-- Trường hợp 1: ĐÃ CÓ ĐỊA CHỈ ĐƯỢC CHỌN (Card hiển thị đẹp, chuẩn TMĐT) -->
+            <div *ngIf="hasSelectedAddress" class="selected-address-card" (click)="openAddressBookModal()">
+              <div class="addr-card-icon">
+                <lucide-angular [img]="icons.MapPin" size="22" color="#765337"></lucide-angular>
               </div>
-
-              <!-- Số điện thoại & Luồng kiểm tra định dạng + OTP -->
-              <div class="form-group">
-                <div class="label-with-verify">
-                  <label for="phone">Số điện thoại <span class="req">*</span></label>
+              <div class="addr-card-content">
+                <div class="addr-card-title-row">
+                  <span class="addr-receiver-name">{{ fullName }}</span>
+                  <span class="addr-divider">•</span>
+                  <span class="addr-receiver-phone">{{ phone }}</span>
                   <span *ngIf="isPhoneVerified" class="verify-badge verified">
                     <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
                     <span>Đã xác thực</span>
                   </span>
-                  <span *ngIf="!isPhoneVerified" class="verify-badge unverified">
-                    Chưa xác thực SĐT
+                  <span 
+                    *ngIf="!isPhoneVerified" 
+                    class="verify-badge unverified" 
+                    (click)="$event.stopPropagation(); sendOtp()" 
+                    style="cursor:pointer;" 
+                    title="Nhấn để gửi mã xác thực OTP ngay">
+                    Chưa xác thực SĐT • Xác thực ngay
                   </span>
                 </div>
-
-                <div class="phone-input-wrap">
-                  <input 
-                    type="tel" 
-                    id="phone" 
-                    name="phone"
-                    [(ngModel)]="phone" 
-                    (blur)="onPhoneBlur()"
-                    (input)="isPhoneVerified = false"
-                    [class.is-invalid]="errors.phone"
-                    placeholder="Ví dụ: 0912345678"
-                    class="custom-input" />
-                  
-                  <button 
-                    *ngIf="!isPhoneVerified" 
-                    type="button" 
-                    class="btn-send-otp" 
-                    (click)="sendOtp()"
-                    [disabled]="isSendingOtp">
-                    {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
-                  </button>
+                <div class="addr-full-text">{{ address }}</div>
+                <div *ngIf="email" class="addr-email-text">
+                  Email nhận thông báo: <strong>{{ email }}</strong>
                 </div>
-                <span *ngIf="errors.phone" class="field-error-text">{{ errors.phone }}</span>
-                <small *ngIf="!errors.phone && !isPhoneVerified" class="hint-text">
-                  * Số điện thoại gồm 10 chữ số, bắt đầu bằng đầu số hợp lệ (03, 05, 07, 08, 09).
-                </small>
               </div>
+              <div class="addr-card-action">
+                <button type="button" class="btn-change-addr">
+                  <span>Thay đổi</span>
+                  <lucide-angular [img]="icons.ChevronRight" size="14"></lucide-angular>
+                </button>
+              </div>
+            </div>
 
-              <!-- Email nhận thông báo đơn (Kiểm tra đúng định dạng) -->
-              <div class="form-group full-width">
-                <label for="email">Địa chỉ Email (Nhận thông báo đơn hàng & bảo hành)</label>
-                <input 
-                  type="email" 
-                  id="email" 
-                  name="email"
-                  [(ngModel)]="email" 
-                  (blur)="onEmailBlur()"
-                  [class.is-invalid]="errors.email"
-                  placeholder="Ví dụ: hoten@gmail.com"
-                  class="custom-input" />
-                <span *ngIf="errors.email" class="field-error-text">{{ errors.email }}</span>
+            <!-- Trường hợp 2: CHƯA CÓ ĐỊA CHỈ (Nhấn vào để mở Sổ địa chỉ điền form / tra cứu) -->
+            <div *ngIf="!hasSelectedAddress" class="empty-address-card" (click)="openAddressBookModal()">
+              <div class="empty-addr-icon">
+                <lucide-angular [img]="icons.MapPin" size="28" color="#765337"></lucide-angular>
               </div>
+              <div class="empty-addr-content">
+                <h4>Bạn chưa chọn địa chỉ nhận hàng</h4>
+                <p>Bấm vào đây để mở <strong>Sổ địa chỉ</strong>, tra cứu hoặc điền thông tin người nhận của bạn.</p>
+              </div>
+              <button type="button" class="btn-primary-cta-addr">
+                <lucide-angular [img]="icons.Plus" size="15"></lucide-angular>
+                <span>Mở Sổ địa chỉ</span>
+              </button>
+            </div>
 
-              <!-- PHÂN ĐƠN VỊ HÀNH CHÍNH VIỆT NAM (TỈNH/THÀNH PHỐ - QUẬN/HUYỆN - PHƯỜNG/XÃ) -->
-              <div class="form-group">
-                <label for="province">Tỉnh / Thành phố <span class="req">*</span></label>
-                <select 
-                  id="province" 
-                  name="province"
-                  [(ngModel)]="selectedProvince"
-                  (change)="onProvinceChange()"
-                  class="custom-select">
-                  <option *ngFor="let prov of provinces" [value]="prov">{{ prov }}</option>
-                </select>
-              </div>
-
-              <div class="form-group" *ngIf="districts.length > 0">
-                <label for="district">Quận / Huyện / Thị xã <span class="req">*</span></label>
-                <select 
-                  id="district" 
-                  name="district"
-                  [(ngModel)]="selectedDistrict"
-                  (change)="onDistrictChange()"
-                  [disabled]="!selectedProvince"
-                  class="custom-select">
-                  <option value="" disabled>-- Chọn Quận / Huyện --</option>
-                  <option *ngFor="let dist of districts" [value]="dist">{{ dist }}</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="ward">Phường / Xã / Thị trấn <span class="req">*</span></label>
-                <select 
-                  id="ward" 
-                  name="ward"
-                  [(ngModel)]="selectedWard"
-                  (change)="onWardChange()"
-                  [disabled]="!selectedProvince || (districts.length > 0 && !selectedDistrict)"
-                  class="custom-select">
-                  <option value="" disabled>-- Chọn Phường / Xã --</option>
-                  <option *ngFor="let w of wards" [value]="w">{{ w }}</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="streetAddress">Số nhà, tên đường cụ thể <span class="req">*</span></label>
-                <input 
-                  type="text" 
-                  id="streetAddress" 
-                  name="streetAddress"
-                  [(ngModel)]="streetAddress" 
-                  (input)="onStreetAddressChange()"
-                  (blur)="onAddressBlur()"
-                  [class.is-invalid]="errors.address"
-                  placeholder="Ví dụ: 123 Nguyễn Huệ, Tòa nhà A"
-                  class="custom-input" />
-              </div>
-
-              <div *ngIf="errors.address" class="form-group full-width">
-                <span class="field-error-text">{{ errors.address }}</span>
-              </div>
-
-              <div *ngIf="address" class="form-group full-width full-address-preview">
-                <span class="preview-label">Địa chỉ nhận hàng đầy đủ:</span>
-                <span class="preview-text">{{ address }}</span>
-              </div>
-
-              <!-- Ghi chú giao hàng -->
-              <div class="form-group full-width">
-                <label for="shippingNotes">Ghi chú giao hàng</label>
-                <textarea 
-                  id="shippingNotes" 
-                  name="shippingNotes"
-                  [(ngModel)]="shippingNotes" 
-                  rows="2" 
-                  placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến 15 phút, nhà có thang máy..."
-                  class="custom-textarea"></textarea>
-              </div>
+            <!-- Ghi chú giao hàng -->
+            <div class="form-group full-width" style="margin-top: 18px;">
+              <label for="shippingNotes">Ghi chú giao hàng (tùy chọn)</label>
+              <textarea 
+                id="shippingNotes" 
+                name="shippingNotes"
+                [(ngModel)]="shippingNotes" 
+                rows="2" 
+                placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến 15 phút, nhà có thang máy..."
+                class="custom-textarea"></textarea>
+            </div>
 
               <!-- TẶNG QUÀ CHO NGƯỜI THÂN & ẨN GIÁ ĐƠN HÀNG -->
               <div class="gift-order-wrapper full-width">
@@ -253,7 +148,6 @@
                 </div>
               </div>
 
-            </div>
           </div>
 
           <!-- KHUNG 2: PHƯƠNG THỨC THANH TOÁN -->
@@ -758,42 +652,292 @@
   </div>
 </div>
 
-<!-- MODAL SỔ ĐỊA CHỈ (Chỉ mở khi có địa chỉ thực tế từ tài khoản) -->
-<div *ngIf="isAddressModalOpen && savedAddresses.length > 0" class="modal-backdrop-overlay" (click)="isAddressModalOpen = false">
-  <div class="address-modal-box" (click)="$event.stopPropagation()">
+<!-- MODAL SỔ ĐỊA CHỈ TOÀN DIỆN -->
+<div *ngIf="isAddressModalOpen" class="modal-backdrop-overlay" (click)="isAddressModalOpen = false">
+  <div class="address-modal-box unified-address-modal" (click)="$event.stopPropagation()">
+    <!-- Header Modal -->
     <div class="modal-header">
-      <h3>Chọn địa chỉ giao hàng</h3>
+      <div class="modal-title-with-icon">
+        <lucide-angular [img]="icons.ShoppingBag" size="20" color="#765337"></lucide-angular>
+        <h3>Sổ địa chỉ nhận hàng</h3>
+      </div>
       <button type="button" class="modal-close-btn" (click)="isAddressModalOpen = false">
         <lucide-angular [img]="icons.X" size="18"></lucide-angular>
       </button>
     </div>
 
-    <div class="modal-body">
-      <div class="saved-address-list">
-        <div 
-          *ngFor="let addr of savedAddresses" 
-          class="saved-addr-card"
-          [class.selected]="selectedAddressId === addr.id"
-          (click)="selectAddress(addr)">
-          <div class="addr-card-top">
-            <strong>{{ addr.receiverName }}</strong>
-            <span class="addr-phone">{{ addr.phone }}</span>
-            <span *ngIf="addr.isDefault" class="default-badge">Mặc định</span>
+    <!-- Tabs chuyển đổi: Sổ địa chỉ vs Thêm địa chỉ mới -->
+    <div class="address-modal-tabs">
+      <button
+        type="button"
+        class="addr-tab-btn"
+        [class.active]="addressModalMode === 'select'"
+        (click)="addressModalMode = 'select'">
+        <span>Sổ địa chỉ</span>
+        <span *ngIf="isLoggedIn && hasUserPhone && savedAddresses.length > 0" class="tab-count-badge">({{ savedAddresses.length }})</span>
+      </button>
+      <button
+        type="button"
+        class="addr-tab-btn"
+        [class.active]="addressModalMode === 'add'"
+        (click)="addressModalMode = 'add'; newAddressError = ''; initNewAddressForm()">
+        <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
+        <span>+ Thêm địa chỉ mới</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: SỔ ĐỊA CHỈ (CHỌN ĐỊA CHỈ HOẶC TRA CỨU) -->
+    <div *ngIf="addressModalMode === 'select'" class="modal-body address-select-tab-body">
+      
+      <!-- PHÂN LOẠI 1: KHÁCH VÃNG LAI HOẶC NGƯỜI ĐĂNG NHẬP GMAIL CHƯA CÓ SỐ ĐIỆN THOẠI -->
+      <div *ngIf="!isLoggedIn || !hasUserPhone" class="guest-search-section">
+        <div class="guest-search-intro">
+          <lucide-angular [img]="icons.Smartphone" size="16" color="#765337"></lucide-angular>
+          <span>Tra cứu các địa chỉ bạn đã từng đặt hàng qua Số điện thoại:</span>
+        </div>
+        
+        <div class="guest-lookup-row">
+          <input
+            type="tel"
+            [(ngModel)]="guestPhoneLookup"
+            name="guestPhoneLookup"
+            placeholder="Tra cứu địa chỉ qua số điện thoại..."
+            class="custom-input"
+            (keyup.enter)="lookupGuestAddress()" />
+          <button
+            type="button"
+            class="btn-lookup-phone"
+            (click)="lookupGuestAddress()"
+            [disabled]="isLookingUpAddress">
+            <lucide-angular *ngIf="!isLookingUpAddress" [img]="icons.Search" size="14"></lucide-angular>
+            <span>{{ isLookingUpAddress ? 'Đang tìm...' : 'Tra cứu' }}</span>
+          </button>
+        </div>
+
+        <div *ngIf="guestLookupMessage" class="lookup-status-message">
+          <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+          <span>{{ guestLookupMessage }}</span>
+        </div>
+
+        <!-- Kết quả tra cứu qua SĐT -->
+        <div *ngIf="guestFoundAddresses.length > 0" class="lookup-results-list">
+          <div class="list-section-title">Địa chỉ tìm thấy qua SĐT {{ guestPhoneLookup }}:</div>
+          <div
+            *ngFor="let addr of guestFoundAddresses"
+            class="saved-addr-card"
+            [class.selected]="selectedAddressId === addr.id || address === addr.address"
+            (click)="selectAddress(addr)">
+            <div class="addr-card-top">
+              <strong>{{ addr.receiverName }}</strong>
+              <span class="addr-phone">{{ addr.phone }}</span>
+            </div>
+            <div class="addr-detail">{{ addr.address }}</div>
+            <div class="addr-card-bottom">
+              <span class="btn-use-addr">Giao đến địa chỉ này</span>
+            </div>
           </div>
-          <div class="addr-detail">{{ addr.address }}</div>
+        </div>
+
+        <!-- Nếu chưa tìm hoặc không có kết quả: nút thêm địa chỉ mới -->
+        <div *ngIf="guestFoundAddresses.length === 0 && !isLookingUpAddress" class="guest-no-lookup-box">
+          <p>Nếu bạn chưa từng đặt hàng tại DCor, vui lòng bấm <strong>"+ Thêm địa chỉ mới"</strong> để điền thông tin người nhận.</p>
+          <button type="button" class="btn-switch-add" (click)="addressModalMode = 'add'; initNewAddressForm()">
+            + Điền thông tin người nhận mới
+          </button>
+        </div>
+      </div>
+
+      <!-- PHÂN LOẠI 2: NGƯỜI ĐÃ ĐĂNG NHẬP CÓ SỐ ĐIỆN THOẠI (HIỆN NGAY CÁC ĐỊA CHỈ GẮN VỚI SĐT ĐÓ) -->
+      <div *ngIf="isLoggedIn && hasUserPhone" class="user-addresses-section">
+        <div class="user-phone-badge-row">
+          <span>Các địa chỉ gắn với SĐT: <strong>{{ currentUser?.phone }}</strong></span>
+          <button type="button" class="btn-add-inline" (click)="addressModalMode = 'add'; initNewAddressForm()">
+            + Thêm mới
+          </button>
+        </div>
+
+        <div *ngIf="savedAddresses.length > 0" class="saved-address-list">
+          <div
+            *ngFor="let addr of savedAddresses"
+            class="saved-addr-card"
+            [class.selected]="selectedAddressId === addr.id || address === addr.address"
+            (click)="selectAddress(addr)">
+            <div class="addr-card-top">
+              <div class="addr-name-wrap">
+                <strong>{{ addr.receiverName }}</strong>
+                <span class="addr-phone">{{ addr.phone }}</span>
+              </div>
+              <span *ngIf="addr.isDefault" class="default-badge">Mặc định</span>
+            </div>
+            <div class="addr-detail">{{ addr.address }}</div>
+            <div class="addr-card-bottom">
+              <span class="btn-use-addr">Giao đến địa chỉ này</span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="savedAddresses.length === 0" class="empty-list-placeholder">
+          <p>Chưa có địa chỉ nào được lưu với số điện thoại này.</p>
+          <button type="button" class="btn-switch-add" (click)="addressModalMode = 'add'; initNewAddressForm()">
+            + Thêm địa chỉ nhận hàng đầu tiên
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- TAB 2: FORM ĐIỀN THÔNG TIN NGƯỜI NHẬN / THÊM ĐỊA CHỈ MỚI -->
+    <div *ngIf="addressModalMode === 'add'" class="modal-body addr-add-form">
+      <div class="form-fields-grid modal-form-grid">
+        <!-- Họ và tên -->
+        <div class="form-group">
+          <label>Họ và tên người nhận <span class="req">*</span></label>
+          <input 
+            type="text" 
+            [(ngModel)]="newAddress.receiverName" 
+            name="naReceiverName" 
+            placeholder="Ví dụ: Nguyễn Văn A" 
+            class="custom-input" />
+        </div>
+
+        <!-- Số điện thoại nhận hàng kèm OTP -->
+        <div class="form-group">
+          <div class="label-with-verify">
+            <label for="naPhone">Số điện thoại nhận hàng <span class="req">*</span></label>
+            <span *ngIf="isPhoneVerified" class="verify-badge verified">
+              <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
+              <span>Đã xác thực</span>
+            </span>
+            <span *ngIf="!isPhoneVerified" class="verify-badge unverified">
+              Chưa xác thực SĐT
+            </span>
+          </div>
+
+          <div class="phone-input-wrap">
+            <input 
+              type="tel" 
+              id="naPhone" 
+              name="naPhone" 
+              [(ngModel)]="newAddress.phone" 
+              (input)="onNewAddressPhoneInput()"
+              placeholder="Ví dụ: 0912345678" 
+              class="custom-input" />
+            
+            <button 
+              *ngIf="!isPhoneVerified" 
+              type="button" 
+              class="btn-send-otp" 
+              (click)="sendOtp()"
+              [disabled]="isSendingOtp">
+              {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
+            </button>
+          </div>
+          <small *ngIf="!isPhoneVerified" class="hint-text" style="display:block;margin-top:4px;">
+            * Bắt buộc xác thực OTP để đảm bảo đơn hàng được xác nhận chuẩn xác.
+          </small>
+        </div>
+
+        <!-- Email nhận thông báo -->
+        <div class="form-group full-width">
+          <label>Email nhận thông báo đơn (tùy chọn)</label>
+          <input 
+            type="email" 
+            [(ngModel)]="newAddress.email" 
+            name="naEmail" 
+            placeholder="hoten@gmail.com" 
+            class="custom-input" />
+        </div>
+
+        <!-- Tỉnh / Thành phố -->
+        <div class="form-group">
+          <label>Tỉnh / Thành phố <span class="req">*</span></label>
+          <select 
+            [(ngModel)]="newAddress.province" 
+            (change)="onNewAddressProvinceChange()"
+            name="naProvince" 
+            class="custom-select">
+            <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
+          </select>
+        </div>
+
+        <!-- Quận / Huyện -->
+        <div class="form-group" *ngIf="newAddressDistricts.length > 0">
+          <label>Quận / Huyện / Thị xã <span class="req">*</span></label>
+          <select 
+            [(ngModel)]="newAddress.district" 
+            (change)="onNewAddressDistrictChange()"
+            name="naDistrict" 
+            class="custom-select">
+            <option value="" disabled>-- Chọn Quận / Huyện --</option>
+            <option *ngFor="let d of newAddressDistricts" [value]="d">{{ d }}</option>
+          </select>
+        </div>
+
+        <!-- Phường / Xã -->
+        <div class="form-group">
+          <label>Phường / Xã / Thị trấn <span class="req">*</span></label>
+          <select 
+            [(ngModel)]="newAddress.ward" 
+            name="naWard" 
+            class="custom-select">
+            <option value="" disabled>-- Chọn Phường / Xã --</option>
+            <option *ngFor="let w of newAddressWards" [value]="w">{{ w }}</option>
+          </select>
+        </div>
+
+        <!-- Số nhà, tên đường -->
+        <div class="form-group full-width">
+          <label>Số nhà, tên đường cụ thể <span class="req">*</span></label>
+          <input 
+            type="text" 
+            [(ngModel)]="newAddress.detail" 
+            name="naDetail" 
+            placeholder="Ví dụ: 123 Nguyễn Huệ, Tòa nhà A, Căn hộ 402" 
+            class="custom-input" />
+        </div>
+
+        <!-- Lưu làm mặc định (user đăng nhập) -->
+        <div *ngIf="isLoggedIn" class="form-group full-width">
+          <label class="checkbox-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" [(ngModel)]="newAddress.isDefault" name="naIsDefault" />
+            <span>Lưu làm địa chỉ mặc định trong tài khoản</span>
+          </label>
+        </div>
+      </div>
+
+      <div *ngIf="newAddressError" class="addr-error-msg">{{ newAddressError }}</div>
+    </div>
+
+    <!-- Modal Footer -->
     <div class="modal-footer">
-      <a routerLink="/account/profile" (click)="isAddressModalOpen = false" class="btn-link-edit-addr">Quản lý địa chỉ trong Hồ sơ</a>
-      <button type="button" class="btn-modal-close" (click)="isAddressModalOpen = false">Đóng</button>
+      <ng-container *ngIf="addressModalMode === 'select'">
+        <button type="button" class="btn-modal-add-addr" (click)="addressModalMode = 'add'; newAddressError = ''; initNewAddressForm()">
+          + Thêm địa chỉ mới
+        </button>
+        <button type="button" class="btn-modal-close" (click)="isAddressModalOpen = false">Đóng</button>
+      </ng-container>
+
+      <ng-container *ngIf="addressModalMode === 'add'">
+        <button
+          type="button"
+          class="btn-modal-save-addr"
+          (click)="submitNewAddress()"
+          [disabled]="isSavingNewAddress">
+          {{ isSavingNewAddress ? 'Đang lưu...' : 'Xác nhận & Sử dụng địa chỉ này' }}
+        </button>
+        <button
+          type="button"
+          class="btn-modal-close"
+          (click)="addressModalMode = 'select'">
+          Quay lại sổ địa chỉ
+        </button>
+      </ng-container>
     </div>
   </div>
 </div>
 
+
 <!-- MODAL XÁC THỰC SỐ ĐIỆN THOẠI BẰNG OTP -->
-<div *ngIf="isOtpModalOpen" class="modal-backdrop-overlay" (click)="isOtpModalOpen = false">
+<div *ngIf="isOtpModalOpen" class="modal-backdrop-overlay otp-modal-overlay" (click)="isOtpModalOpen = false">
   <div class="otp-modal-box" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>Xác thực Số điện thoại</h3>

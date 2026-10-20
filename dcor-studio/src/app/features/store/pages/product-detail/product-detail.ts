@@ -936,11 +936,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   addToCart(redirectAfter = false) {
     if (!this.product) return;
 
-    if (!localStorage.getItem('dcor_customer_token')) {
-      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
-      return;
-    }
-
     const variant = this.matchedVariant || this.product.variants?.[0];
     if (!variant) {
       this.cartMessage = 'Sản phẩm hiện chưa có biến thể khả dụng.';
@@ -965,7 +960,25 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       sku: this.currentSku
     };
 
-    this.cartService.addToCart(variant.id, this.quantity, selectedOptions)
+    // Lấy thông tin cho guest cart (hỗ trợ mua hàng không cần đăng nhập trước)
+    const rawPrice = this.currentPrice || variant.price || this.product.prices?.[0]?.price || 0;
+    const productImages = Array.isArray(this.product.images) ? this.product.images : [];
+    const variantImages = (variant.optionValues as any)?.images;
+    const imageUrl = (Array.isArray(variantImages) && variantImages.length > 0)
+      ? variantImages[0]
+      : (this.galleryImages?.[0] || (productImages.length > 0 ? productImages[0] : ''));
+
+    const guestProductInfo = {
+      productId: this.product.productId || (this.product as any).id || '',
+      name: this.product.shortDescription_vi || this.product.shortDescription || (this.product as any).name || 'Sản phẩm',
+      variantName: variant.name !== 'Phân loại mặc định' ? variant.name : undefined,
+      image: typeof imageUrl === 'string' ? imageUrl : '',
+      price: rawPrice,
+      originalPrice: this.originalPrice || undefined,
+      availableStock: this.maxStock
+    };
+
+    this.cartService.addToCart(variant.id, this.quantity, selectedOptions, guestProductInfo)
       .pipe(
         timeout({ first: 15000 }),
         finalize(() => {
