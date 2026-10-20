@@ -1,0 +1,106 @@
+<div class="summary-panel-container">
+  
+  <!-- Header -->
+  <div class="summary-header">
+    <div class="header-left">
+      <h3 class="summary-title">Nội thất trong phòng</h3>
+      <span class="count-badge">{{ plannerService.totalItemsCount() }} món</span>
+    </div>
+    <button 
+      *ngIf="plannerService.totalItemsCount() > 0" 
+      type="button" 
+      class="clear-all-btn" 
+      (click)="handleClearAll()"
+      title="Xóa tất cả vật thể chưa khóa">
+      <app-icon name="Trash2" size="14"></app-icon>
+      <span>Xóa hết</span>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="summary-body">
+    
+    <!-- Empty State -->
+    <div *ngIf="plannerService.summaryItems().length === 0" class="empty-summary-box">
+      <div class="empty-icon-circle">
+        <app-icon name="ShoppingBag" size="32"></app-icon>
+      </div>
+      <h4 class="empty-title">Chưa có nội thất nào</h4>
+      <p class="empty-desc">
+        Chọn hoặc kéo thả các mẫu sofa, bàn, ghế từ cột bên trái vào phòng để bắt đầu sắp đặt và ước tính chi phí.
+      </p>
+    </div>
+
+    <!-- Items List -->
+    <div *ngIf="plannerService.summaryItems().length > 0" class="summary-items-list">
+      @for (item of plannerService.summaryItems(); track item.productId) {
+        <div 
+          class="summary-item-card" 
+          [class.selected]="isItemSelected(item)"
+          (click)="selectItem(item)">
+          
+          <div class="item-row-top">
+            <img [src]="item.imageUrl" [alt]="item.name" class="item-thumb" />
+            
+            <div class="item-meta">
+              <div class="item-title-row">
+                <h4 class="item-name" [title]="item.name">{{ item.name }}</h4>
+                <span class="item-count-tag">× {{ item.count }}</span>
+              </div>
+
+              <div class="item-dim-line">
+                <span class="dim-badge" [class.estimated]="item.isEstimatedDimension">
+                  <app-icon name="Ruler" size="11"></app-icon>
+                  <span>{{ item.dimensionCm.width }} × {{ item.dimensionCm.depth }} cm</span>
+                </span>
+              </div>
+            </div>
+
+            <button 
+              type="button" 
+              class="item-delete-btn" 
+              (click)="removeProduct($event, item)" 
+              title="Xóa khỏi phòng"
+              aria-label="Xóa sản phẩm">
+              <app-icon name="Trash2" size="14"></app-icon>
+            </button>
+          </div>
+
+          <!-- Placeholder chọn màu sắc biến thể (Lượt sau) -->
+          <div class="color-placeholder-box">
+            <div class="color-header">
+              <span class="color-label">Biến thể màu sắc:</span>
+              <span class="color-val">Tiêu chuẩn</span>
+            </div>
+            <p class="color-hint">
+              * Tùy chọn phối màu vải / chất liệu chân sẽ khả dụng ở lượt cập nhật tiếp theo.
+            </p>
+          </div>
+
+          <!-- Price Row -->
+          <div class="item-price-footer">
+            <span class="unit-price-hint" *ngIf="item.count > 1">
+              Đơn giá: {{ formatPrice(item.unitPrice) }}
+            </span>
+            <span class="total-item-price">{{ formatPrice(item.totalPrice) }}</span>
+          </div>
+
+        </div>
+      }
+    </div>
+
+  </div>
+
+  <!-- Footer Total -->
+  <div class="summary-footer">
+    <div class="total-row">
+      <span class="total-label">Tổng tiền ước tính</span>
+      <span class="total-amount">{{ formatPrice(plannerService.totalPrice()) }}</span>
+    </div>
+    
+    <p class="total-note">
+      * Giá tính trên cấu hình tiêu chuẩn tối thiểu. Lưu bản nháp và thêm trọn bộ vào giỏ hàng sẽ được mở ở lượt kế tiếp.
+    </p>
+  </div>
+
+</div>

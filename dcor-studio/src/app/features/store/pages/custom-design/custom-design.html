@@ -1,14 +1,140 @@
-<div style="padding: 60px 0; min-height: 80vh; background-color: var(--bg-primary);">
-  <div class="container">
-    <div style="text-align: center; margin-bottom: 60px;">
-      <h1 style="font-size: 36px; font-weight: 800; font-family: var(--font-title);">Thiết kế Phòng (3D Planner)</h1>
-      <p style="color: var(--text-muted); margin-top: 10px;">Tính năng đang được nâng cấp để mang đến trải nghiệm tốt nhất cho bạn.</p>
-    </div>
+<div class="room-planner-page">
 
-    <div style="background: var(--bg-secondary); border: 1px dashed var(--border-color); border-radius: 12px; height: 500px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-      <app-icon name="Package" size="64" style="margin-bottom: 20px;" color="var(--text-muted)"></app-icon>
-      <div style="font-size: 18px; color: var(--text-secondary); font-weight: 600;">Coming Soon</div>
+  <!-- ============================================== -->
+  <!-- 1. MÀN HÌNH KHỞI TẠO & KÍCH THƯỚC (SETUP STEP) -->
+  <!-- ============================================== -->
+  <ng-container *ngIf="plannerService.currentStep() === 'setup'">
+    <app-setup-step></app-setup-step>
+  </ng-container>
+
+  <!-- ============================================== -->
+  <!-- 2. MÀN HÌNH CANVAS 3 CỘT (PLANNER WORKSPACE)   -->
+  <!-- ============================================== -->
+  <ng-container *ngIf="plannerService.currentStep() === 'planner'">
+    <div class="planner-workspace-shell">
+      
+      <!-- Top Bar điều hướng & Thao tác chính -->
+      <header class="planner-topbar">
+        <!-- Nhóm bên trái: Đổi phòng & Thông tin phòng -->
+        <div class="topbar-left">
+          <button 
+            type="button" 
+            class="topbar-back-btn" 
+            (click)="plannerService.backToSetup()"
+            title="Quay lại đổi mặt bằng hoặc chỉnh lại kích thước phòng"
+            aria-label="Đổi phòng">
+            <app-icon name="ArrowLeft" size="16"></app-icon>
+            <span class="back-text">Đổi phòng</span>
+          </button>
+
+          <div class="topbar-room-badge">
+            <span class="room-name">{{ plannerService.background()?.name }}</span>
+            <span class="room-dims">{{ plannerService.dimensions()?.length }}m × {{ plannerService.dimensions()?.width }}m</span>
+          </div>
+        </div>
+
+        <!-- Nhóm ở giữa: Undo / Redo & Tiện ích -->
+        <div class="topbar-center">
+          <div class="history-controls-group">
+            <button 
+              type="button" 
+              class="topbar-icon-btn" 
+              [disabled]="!plannerService.canUndo()"
+              (click)="plannerService.undo()"
+              title="Hoàn tác (Ctrl+Z)"
+              aria-label="Hoàn tác">
+              <app-icon name="Undo2" size="16"></app-icon>
+              <span class="btn-text">Hoàn tác</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="topbar-icon-btn" 
+              [disabled]="!plannerService.canRedo()"
+              (click)="plannerService.redo()"
+              title="Làm lại (Ctrl+Y)"
+              aria-label="Làm lại">
+              <app-icon name="Redo2" size="16"></app-icon>
+              <span class="btn-text">Làm lại</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Nhóm bên phải: Tổng tiền & Nút Drawer trên mobile -->
+        <div class="topbar-right">
+          <!-- Mobile Drawer Toggles (chỉ hiện khi màn hình < 1024px) -->
+          <div class="mobile-toggles-row">
+            <button 
+              type="button" 
+              class="mobile-drawer-toggle-btn"
+              [class.active]="mobileDrawer() === 'products'"
+              (click)="toggleMobileDrawer('products')">
+              <app-icon name="Package" size="16"></app-icon>
+              <span>Nội thất</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="mobile-drawer-toggle-btn"
+              [class.active]="mobileDrawer() === 'summary'"
+              (click)="toggleMobileDrawer('summary')">
+              <app-icon name="ShoppingBag" size="16"></app-icon>
+              <span>Đã chọn ({{ plannerService.totalItemsCount() }})</span>
+            </button>
+          </div>
+
+          <!-- Thông tin tổng tiền nổi bật -->
+          <div class="topbar-price-card">
+            <span class="price-label">Tổng ước tính:</span>
+            <strong class="price-val">{{ plannerService.totalPrice() | number }} ₫</strong>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Layout 3 Cột -->
+      <div class="planner-columns-layout">
+        
+        <!-- Cột Trái: Danh mục & Tìm kiếm nội thất -->
+        <aside 
+          class="planner-left-column" 
+          [class.mobile-open]="mobileDrawer() === 'products'">
+          <div class="mobile-column-header">
+            <h4>Chọn nội thất DCor</h4>
+            <button type="button" class="close-drawer-btn" (click)="closeMobileDrawer()" aria-label="Đóng danh mục">
+              <app-icon name="X" size="18"></app-icon>
+            </button>
+          </div>
+          <app-product-panel></app-product-panel>
+        </aside>
+
+        <!-- Cột Giữa: Sân khấu Canvas tương tác chính -->
+        <main class="planner-center-column">
+          <app-planner-canvas></app-planner-canvas>
+        </main>
+
+        <!-- Cột Phải: Danh sách món & Tổng tiền ước tính -->
+        <aside 
+          class="planner-right-column" 
+          [class.mobile-open]="mobileDrawer() === 'summary'">
+          <div class="mobile-column-header">
+            <h4>Nội thất trong phòng</h4>
+            <button type="button" class="close-drawer-btn" (click)="closeMobileDrawer()" aria-label="Đóng tóm tắt">
+              <app-icon name="X" size="18"></app-icon>
+            </button>
+          </div>
+          <app-summary-panel></app-summary-panel>
+        </aside>
+
+        <!-- Lớp phủ đóng Drawer trên Mobile -->
+        <div 
+          *ngIf="mobileDrawer() !== 'none'" 
+          class="mobile-backdrop" 
+          (click)="closeMobileDrawer()">
+        </div>
+
+      </div>
+
     </div>
-  </div>
+  </ng-container>
+
 </div>
-
