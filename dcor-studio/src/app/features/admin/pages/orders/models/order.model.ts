@@ -34,7 +34,7 @@ export interface UserStatusView {
   canRequestWarranty: boolean;
 }
 
-export interface OrderProductV2 {
+export interface OrderProduct {
   id: string;
   name: string;
   sku: string;
@@ -45,6 +45,7 @@ export interface OrderProductV2 {
   lineTotal: number;
   stockAvailable: number;
 }
+export type OrderProductV2 = OrderProduct;
 
 export interface DeliveryTrackingEntry {
   time: string;
@@ -53,7 +54,7 @@ export interface DeliveryTrackingEntry {
   location: string;
 }
 
-export interface DeliveryInfoV2 {
+export interface DeliveryInfo {
   provider: string; // 'Xe tải DCOR Express' | 'Giao Hàng Nhanh (GHN)' | 'Viettel Post'
   trackingCode?: string;
   driverName?: string;
@@ -64,6 +65,7 @@ export interface DeliveryInfoV2 {
   failureReason?: string;
   trackingHistory: DeliveryTrackingEntry[];
 }
+export type DeliveryInfoV2 = DeliveryInfo;
 
 export interface ReturnQcReport {
   inspector: string;
@@ -73,7 +75,7 @@ export interface ReturnQcReport {
   restockOption: 'RESTOCK_SALE' | 'SEND_TO_REPAIR' | 'LIQUIDATION';
 }
 
-export interface ReturnInfoV2 {
+export interface ReturnInfo {
   requestedAt?: string;
   reason?: string;
   type?: 'REFUND' | 'EXCHANGE';
@@ -84,23 +86,26 @@ export interface ReturnInfoV2 {
   refundAmount?: number;
   refundTransactionCode?: string;
 }
+export type ReturnInfoV2 = ReturnInfo;
 
-export interface AuditLogV2 {
+export interface AuditLog {
   id: string;
   timestamp: string;
   actor: string;
   action: string;
   detail: string;
 }
+export type AuditLogV2 = AuditLog;
 
-export interface QcChecklistV2 {
+export interface QcChecklist {
   surfaceChecked: boolean;
   structureChecked: boolean;
   cushionLeatherChecked: boolean;
   protectiveWrapDone: boolean;
 }
+export type QcChecklistV2 = QcChecklist;
 
-export interface OrderV2 {
+export interface Order {
   id: string;
   orderNumber: string;
   createdAt: string;
@@ -115,7 +120,7 @@ export interface OrderV2 {
   district: string;
   ward: string;
   showroom: string;
-  items: OrderProductV2[];
+  items: OrderProduct[];
   subTotal: number;
   shippingFee: number;
   discountAmount: number;
@@ -137,11 +142,12 @@ export interface OrderV2 {
   deliveredAt?: string;
   completedAt?: string;
   warrantyCode?: string;
-  delivery: DeliveryInfoV2;
-  returnInfo?: ReturnInfoV2;
-  qcChecklist: QcChecklistV2;
-  auditLogs: AuditLogV2[];
+  delivery: DeliveryInfo;
+  returnInfo?: ReturnInfo;
+  qcChecklist: QcChecklist;
+  auditLogs: AuditLog[];
 }
+export type OrderV2 = Order;
 
 export function mapAdminStatusToUserView(status: AdminOrderStatus): UserStatusView {
   switch (status) {

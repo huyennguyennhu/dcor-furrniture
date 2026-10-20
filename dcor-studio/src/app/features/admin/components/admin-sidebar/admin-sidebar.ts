@@ -90,8 +90,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
       href: '/admin/orders',
       module: 'orders',
       subItems: [
-        { title: 'Danh sách đơn hàng (Cũ)', href: '/admin/orders' },
-        { title: 'Đơn hàng V2 (Workflow Chuẩn)', href: '/admin/orders-v2' },
+        { title: 'Danh sách đơn hàng', href: '/admin/orders' },
         { title: 'Yêu cầu đổi trả', href: '/admin/orders/returns' },
         { title: 'Bảo hành', href: '/admin/orders/warranty' },
         { title: 'Cài đặt đơn hàng', href: '/admin/orders/settings' },

@@ -1,21 +1,28 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { 
-  OrderV2, AdminOrderStatus, PaymentStatus, OrderProductV2, 
-  DeliveryInfoV2, ReturnInfoV2, QcChecklistV2, AuditLogV2 
-} from '../models/order-v2.model';
+  Order, OrderV2, AdminOrderStatus, PaymentStatus, OrderProduct, OrderProductV2, 
+  DeliveryInfo, DeliveryInfoV2, ReturnInfo, ReturnInfoV2, 
+  QcChecklist, QcChecklistV2, AuditLog, AuditLogV2 
+} from '../models/order.model';
 
 const STORAGE_KEY = 'dcor_orders_v2_store';
 
 @Injectable({
   providedIn: 'root'
 })
-export class OrdersV2Service {
+export class OrdersService {
   private ordersSubject = new BehaviorSubject<OrderV2[]>([]);
   public orders$: Observable<OrderV2[]> = this.ordersSubject.asObservable();
 
+  private autoCheckInterval: any = null;
+
   constructor() {
     this.initOrders();
+    // Tự động kiểm tra định kỳ mỗi 1 giây để chốt đơn DELIVERED khi hết hạn 72h
+    this.autoCheckInterval = setInterval(() => {
+      this.checkAndAutoCompleteDeliveredOrders();
+    }, 1000);
   }
 
   private initOrders() {
@@ -304,22 +311,23 @@ export class OrdersV2Service {
     return true;
   }
 
-  // 10. DELIVERED -> RETURN_REQUESTED
+  // 10. DELIVERED -> RETURNED (Khách trả hàng cho tài xế mang về luôn)
   requestReturn(orderId: string, returnData: { reason: string; customerNote?: string; type: 'REFUND' | 'EXCHANGE'; proofImages: string[] }): boolean {
     const orders = this.orders;
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
-    order.status = 'RETURN_REQUESTED';
+    order.status = 'RETURNED';
     order.returnInfo = {
       requestedAt: this.getNowFormatted(),
       reason: returnData.reason,
       type: returnData.type,
       proofImages: returnData.proofImages,
-      customerNote: returnData.customerNote
+      customerNote: returnData.customerNote,
+      refundAmount: order.totalAmount
     };
 
-    this.addAuditLog(order, 'Khách hàng', 'Gửi yêu cầu đổi/trả hàng', `Lý do: ${returnData.reason}. Kèm ${returnData.proofImages.length} ảnh chứng cứ.`);
+    this.addAuditLog(order, 'Tài xế DCOR Express', 'Nhận hàng trả về kho', `Khách trả lại sản phẩm cho tài xế DCOR Express mang về kho. Lý do: ${returnData.reason}.`);
     this.save(orders);
     return true;
   }
@@ -410,6 +418,81 @@ export class OrdersV2Service {
     const d = new Date();
     const pad = (n: number) => n < 10 ? '0' + n : n;
     return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  public parseCustomDate(dateStr?: string): Date | null {
+    if (!dateStr) return null;
+    const parts = dateStr.trim().split(' ');
+    if (parts.length >= 2) {
+      const dateParts = parts[0].split('/').map(Number);
+      const timeParts = parts[1].split(':').map(Number);
+      if (dateParts.length === 3) {
+        const [d, m, y] = dateParts;
+        const h = timeParts[0] || 0;
+        const min = timeParts[1] || 0;
+        const s = timeParts[2] || 0;
+        return new Date(y, m - 1, d, h, min, s);
+      }
+    }
+    const isoDate = new Date(dateStr);
+    return isNaN(isoDate.getTime()) ? null : isoDate;
+  }
+
+  public formatCustomDate(d: Date): string {
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  // Tự động quét và hoàn tất các đơn DELIVERED đã quá 72h
+  public checkAndAutoCompleteDeliveredOrders(): void {
+    const orders = this.orders;
+    if (!orders || orders.length === 0) return;
+    let hasChanges = false;
+    const now = Date.now();
+    const duration72hMs = 72 * 60 * 60 * 1000;
+
+    orders.forEach(order => {
+      if (order.status === 'DELIVERED') {
+        const deliveredDate = this.parseCustomDate(order.deliveredAt) || this.parseCustomDate(order.createdAt);
+        if (deliveredDate) {
+          const elapsed = now - deliveredDate.getTime();
+          if (elapsed >= duration72hMs) {
+            order.status = 'COMPLETED';
+            order.completedAt = this.getNowFormatted();
+            order.warrantyCode = `BH-DCOR-${order.orderNumber.replace('DCOR-ORD-', '')}`;
+            this.addAuditLog(
+              order, 
+              'Hệ thống tự động', 
+              'Hoàn tất đơn hàng vĩnh viễn (Hết 72h Đổi/Trả)', 
+              `Đã hết thời hạn 72h hỗ trợ đổi trả kể từ lúc giao hàng (${order.deliveredAt || 'N/A'}). Hệ thống tự động khóa đơn, ghi nhận doanh thu ${order.totalAmount.toLocaleString('vi-VN')}đ và kích hoạt bảo hành ${order.warrantyCode}.`
+            );
+            hasChanges = true;
+          }
+        }
+      }
+    });
+
+    if (hasChanges) {
+      this.save(orders);
+    }
+  }
+
+  // Phương thức giả lập cho demo: Đặt thời gian giao hàng sao cho còn đúng `remainingSeconds` giây
+  public simulateCountdownEnding(orderId: string, remainingSeconds: number = 10): boolean {
+    const orders = this.orders;
+    const order = orders.find(o => o.id === orderId);
+    if (!order || order.status !== 'DELIVERED') return false;
+
+    const targetDate = new Date(Date.now() - (72 * 3600 - remainingSeconds) * 1000);
+    order.deliveredAt = this.formatCustomDate(targetDate);
+    this.addAuditLog(
+      order, 
+      'Admin Demo', 
+      'Giả lập đếm ngược 72h', 
+      `Đã chỉnh thời gian giao hàng về ${order.deliveredAt} để demo đếm ngược còn ${remainingSeconds} giây.`
+    );
+    this.save(orders);
+    return true;
   }
 
   // =========================================================================
@@ -1183,3 +1266,5 @@ export class OrdersV2Service {
     this.save(initialOrders);
   }
 }
+
+export { OrdersService as OrdersV2Service };

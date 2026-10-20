@@ -1,315 +1,292 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { 
   LucideAngularModule, 
-  Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard,
-  RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X, Settings,
-  Clock, XCircle
+  Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck, 
+  Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, 
+  ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
+  Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown
 } from 'lucide-angular';
+import { IconComponent } from '../../../../shared/components/icon/icon';
+import { OrdersService } from './services/orders.service';
+import { 
+  Order, OrderV2, AdminOrderStatus, PaymentStatus, UserStatusView, 
+  mapAdminStatusToUserView 
+} from './models/order.model';
 
-interface OrderProduct {
-  name: string;
-  sku: string;
-  quantity: number;
-  price: number;
-}
-
-interface Order {
-  id: string;
-  customerName: string;
-  phone: string;
-  address: string;
-  products: OrderProduct[];
-  totalAmount: number;
-  status: 'PENDING' | 'PROCESSING' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
-  paymentStatus: 'PAID' | 'UNPAID' | 'PARTIAL';
-  paymentMethod: string;
-  showroom: string;
-  createdAt: string;
-  isGift: boolean;
-  giftMessage?: string;
-  hidePrice: boolean;
-  isHighValue?: boolean;
-}
-
-const mockOrders: Order[] = [
-  {
-    id: 'DCOR-ORD-001',
-    customerName: 'Nguyễn Văn Minh',
-    phone: '0901234567',
-    address: '239 Hoàng Diệu, Phường 8, Quận 4, Tp. Hồ Chí Minh',
-    products: [
-      { name: 'Sofa Indivi 2,5 chỗ (Chân gỗ sồi, vải nỉ Copenhagen nâu)', sku: 'SF-IND-01', quantity: 1, price: 51290000 }
-    ],
-    totalAmount: 51290000,
-    status: 'PENDING',
-    paymentStatus: 'UNPAID',
-    paymentMethod: 'Chuyển khoản',
-    showroom: 'Showroom Quận 1',
-    createdAt: '2026-06-14 10:30',
-    isGift: false,
-    hidePrice: false,
-    isHighValue: false,
-  },
-  {
-    id: 'DCOR-ORD-002',
-    customerName: 'Lê Thu Trang',
-    phone: '0912345678',
-    address: 'Khu công nghệ cao, Quận 9, Tp. Hồ Chí Minh',
-    products: [
-      { name: 'Sofa Indivi 3 chỗ (Chân thép, da Napoli đen)', sku: 'SF-IND-02', quantity: 1, price: 80000000 },
-      { name: 'Bàn trà Coda', sku: 'TB-CODA-01', quantity: 1, price: 10000000 }
-    ],
-    totalAmount: 90000000,
-    status: 'PROCESSING',
-    paymentStatus: 'PARTIAL',
-    paymentMethod: 'Tiền mặt',
-    showroom: 'Showroom Thủ Đức',
-    createdAt: '2026-06-13 15:45',
-    isGift: true,
-    giftMessage: 'Chúc mừng tân gia em gái! Chúc gia đình luôn hạnh phúc.',
-    hidePrice: true,
-    isHighValue: true,
-  },
-  {
-    id: 'DCOR-ORD-003',
-    customerName: 'Trần Đại Quang',
-    phone: '0933445566',
-    address: '12 Nguyễn Huệ, Quận 1, Tp. Hồ Chí Minh',
-    products: [
-      { name: 'Bàn ăn 6 ghế Gỗ Sồi', sku: 'TB-OAK-06', quantity: 1, price: 25000000 }
-    ],
-    totalAmount: 25000000,
-    status: 'SHIPPING',
-    paymentStatus: 'PAID',
-    paymentMethod: 'Thẻ tín dụng',
-    showroom: 'Kho Tổng',
-    createdAt: '2026-06-12 09:00',
-    isGift: false,
-    hidePrice: false,
-    isHighValue: false,
-  },
-  {
-    id: 'DCOR-ORD-004',
-    customerName: 'Phạm Thị Hương',
-    phone: '0988776655',
-    address: '45 Lê Lợi, Quận 1, Tp. Hồ Chí Minh',
-    products: [
-      { name: 'Giường ngủ thông minh 1m8', sku: 'BD-SMART-18', quantity: 1, price: 125000000 }
-    ],
-    totalAmount: 125000000,
-    status: 'PENDING',
-    paymentStatus: 'UNPAID',
-    paymentMethod: 'Trả góp',
-    showroom: 'Showroom Quận 1',
-    createdAt: '2026-06-15 14:20',
-    isGift: false,
-    hidePrice: false,
-    isHighValue: true,
-  },
-  {
-    id: 'DCOR-ORD-005',
-    customerName: 'Hoàng Quốc Việt',
-    phone: '0977112233',
-    address: '120 Võ Văn Tần, Phường 6, Quận 3, Tp. Hồ Chí Minh',
-    products: [
-      { name: 'Bàn làm việc Minimalist Gỗ Óc Chó', sku: 'DK-MINI-01', quantity: 1, price: 18500000 }
-    ],
-    totalAmount: 18500000,
-    status: 'DELIVERED',
-    paymentStatus: 'PAID',
-    paymentMethod: 'Chuyển khoản',
-    showroom: 'Showroom Quận 1',
-    createdAt: '2026-06-10 11:15',
-    isGift: false,
-    hidePrice: false,
-    isHighValue: false,
-  },
-  {
-    id: 'DCOR-ORD-006',
-    customerName: 'Đỗ Mỹ Linh',
-    phone: '0944556677',
-    address: '78 Thảo Điền, Quận 2, Tp. Thủ Đức, Tp. Hồ Chí Minh',
-    products: [
-      { name: 'Ghế bành thư giãn Armchair Como', sku: 'AC-COMO-01', quantity: 1, price: 16000000 },
-      { name: 'Đèn sàn đứng Scandinavia', sku: 'LP-SCAN-02', quantity: 1, price: 8000000 }
-    ],
-    totalAmount: 24000000,
-    status: 'DELIVERED',
-    paymentStatus: 'PAID',
-    paymentMethod: 'Thẻ tín dụng',
-    showroom: 'Showroom Thủ Đức',
-    createdAt: '2026-06-08 16:30',
-    isGift: false,
-    hidePrice: false,
-    isHighValue: false,
-  },
-  {
-    id: 'DCOR-ORD-007',
-    customerName: 'Vũ Đức Thành',
-    phone: '0966889900',
-    address: '55 Hai Bà Trưng, Bến Nghé, Quận 1, Tp. Hồ Chí Minh',
-    products: [
-      { name: 'Kệ tivi Como gỗ sồi tự nhiên', sku: 'TV-COMO-02', quantity: 1, price: 22000000 }
-    ],
-    totalAmount: 22000000,
-    status: 'CANCELLED',
-    paymentStatus: 'UNPAID',
-    paymentMethod: 'Chuyển khoản',
-    showroom: 'Showroom Quận 1',
-    createdAt: '2026-06-11 08:45',
-    isGift: false,
-    hidePrice: false,
-    isHighValue: false,
-  }
-];
+export type KpiTab = 'ALL' | 'CONFIRMATION' | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'RETURN';
 
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, IconComponent],
   templateUrl: './orders.html',
   styleUrls: ['./orders.css']
 })
-export class OrdersComponent implements OnInit {
-  icons = { 
-    Search, Filter, Printer, Package, AlertCircle, CheckCircle2, FileText, Truck, CreditCard,
-    RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Building2, CircleDollarSign, X, Settings,
-    Clock, XCircle
+export class OrdersComponent implements OnInit, OnDestroy {
+  icons = {
+    Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck,
+    Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft,
+    ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
+    Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown
   };
-  
-  orders = mockOrders;
-  activeStatus = 'ALL';
-  activePrintOrder: Order | null = null;
 
-  // Search & Filter State
+  orders: OrderV2[] = [];
+  private sub?: Subscription;
+
+  // Filters & State
+  activeTab: KpiTab = 'ALL';
   searchQuery = '';
   selectedShowroom = 'ALL';
-  selectedPaymentStatus = 'ALL';
-  selectedPaymentMethod = 'ALL';
+  selectedPayment = 'ALL';
+  selectedStatus = 'ALL';
+  sortBy: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc' = 'date-desc';
 
-  // Dropdown open states
+  // Dropdowns UI State
   showShowroomDropdown = false;
-  showPaymentStatusDropdown = false;
-  showPaymentMethodDropdown = false;
+  showPaymentDropdown = false;
+  showSortDropdown = false;
 
-  // Dropdown options
-  showroomOptions = [
-    { label: 'Tất cả Showroom', value: 'ALL' },
-    { label: 'Showroom Quận 1', value: 'Showroom Quận 1' },
-    { label: 'Showroom Thủ Đức', value: 'Showroom Thủ Đức' },
-    { label: 'Kho Tổng', value: 'Kho Tổng' },
+  readonly SORT_OPTIONS: { value: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc'; label: string }[] = [
+    { value: 'date-desc', label: 'Mới nhất trước' },
+    { value: 'date-asc', label: 'Cũ nhất trước' },
+    { value: 'total-desc', label: 'Giá trị cao nhất' },
+    { value: 'total-asc', label: 'Giá trị thấp nhất' }
   ];
 
-  paymentStatusOptions = [
-    { label: 'Tất cả thanh toán', value: 'ALL', color: '' },
-    { label: 'Đã thanh toán', value: 'PAID', color: '#22c55e' },
-    { label: 'Đã cọc', value: 'PARTIAL', color: '#eab308' },
-    { label: 'Chưa thanh toán', value: 'UNPAID', color: '#ef4444' },
-  ];
+  get selectedShowroomLabel(): string {
+    const found = this.SHOWROOMS.find(s => (s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name) === this.selectedShowroom);
+    return found ? found.name : 'Tất cả chi nhánh';
+  }
 
-  paymentMethodOptions = [
-    { label: 'Tất cả phương thức', value: 'ALL' },
-    { label: 'Tiền mặt', value: 'Tiền mặt' },
-    { label: 'Chuyển khoản', value: 'Chuyển khoản' },
-    { label: 'Thẻ tín dụng', value: 'Thẻ tín dụng' },
-    { label: 'Trả góp', value: 'Trả góp' },
-  ];
+  get selectedPaymentLabel(): string {
+    const found = this.PAYMENT_STATUSES.find(p => p.id === this.selectedPayment);
+    return found ? found.name : 'Tất cả thanh toán';
+  }
 
-  // Pagination State (same as Inventory)
+  get selectedSortLabel(): string {
+    const found = this.SORT_OPTIONS.find(s => s.value === this.sortBy);
+    return found ? found.label : 'Mới nhất trước';
+  }
+
+  toggleDropdown(type: 'showroom' | 'payment' | 'sort', event: MouseEvent) {
+    event.stopPropagation();
+    if (type === 'showroom') {
+      this.showShowroomDropdown = !this.showShowroomDropdown;
+      this.showPaymentDropdown = false;
+      this.showSortDropdown = false;
+    } else if (type === 'payment') {
+      this.showPaymentDropdown = !this.showPaymentDropdown;
+      this.showShowroomDropdown = false;
+      this.showSortDropdown = false;
+    } else if (type === 'sort') {
+      this.showSortDropdown = !this.showSortDropdown;
+      this.showShowroomDropdown = false;
+      this.showPaymentDropdown = false;
+    }
+  }
+
+  setShowroom(name: string) {
+    this.selectedShowroom = name;
+    this.currentPage = 1;
+    this.showShowroomDropdown = false;
+  }
+
+  setPayment(id: string) {
+    this.selectedPayment = id;
+    this.currentPage = 1;
+    this.showPaymentDropdown = false;
+  }
+
+  setSort(val: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc') {
+    this.sortBy = val;
+    this.currentPage = 1;
+    this.showSortDropdown = false;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.showShowroomDropdown = false;
+    this.showPaymentDropdown = false;
+    this.showSortDropdown = false;
+  }
+
+  // Pagination
   currentPage = 1;
   pageSize = 10;
 
-  constructor(private router: Router) {}
+  // Toast
+  showToast = false;
+  toastTitle = '';
+  toastMessage = '';
+  toastType: 'success' | 'error' | 'info' = 'success';
+  private toastTimer: any = null;
 
-  ngOnInit() {}
+  // Showrooms list
+  readonly SHOWROOMS = [
+    { id: 'ALL', name: 'Tất cả chi nhánh' },
+    { id: 'Showroom Quận 7 (Flagship)', name: 'Showroom Quận 7' },
+    { id: 'Showroom Thảo Điền (TP. Thủ Đức)', name: 'Showroom Thảo Điền' },
+    { id: 'Kho Tổng Bình Dương', name: 'Kho Tổng Bình Dương' },
+    { id: 'Online Store DCOR.vn', name: 'Online Store DCOR.vn' }
+  ];
 
-  @HostListener('document:mousedown', ['$event'])
-  onGlobalClick(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.showroom-filter-wrapper')) {
-      this.showShowroomDropdown = false;
-    }
-    if (!target.closest('.payment-status-filter-wrapper')) {
-      this.showPaymentStatusDropdown = false;
-    }
-    if (!target.closest('.payment-method-filter-wrapper')) {
-      this.showPaymentMethodDropdown = false;
-    }
-  }
+  // Payment statuses
+  readonly PAYMENT_STATUSES: { id: string; name: string }[] = [
+    { id: 'ALL', name: 'Tất cả thanh toán' },
+    { id: 'UNPAID', name: 'Chưa thanh toán' },
+    { id: 'AWAITING_PAYMENT', name: 'Chờ thanh toán online' },
+    { id: 'AWAITING_DEPOSIT', name: 'Chờ đặt cọc (≥30%)' },
+    { id: 'PARTIAL', name: 'Đã cọc 30%' },
+    { id: 'PAID', name: 'Đã thanh toán đủ' },
+    { id: 'REFUND_PENDING', name: 'Chờ hoàn tiền' },
+    { id: 'REFUNDED', name: 'Đã hoàn tiền' }
+  ];
 
-  get selectedShowroomLabel(): string {
-    const found = this.showroomOptions.find(o => o.value === this.selectedShowroom);
-    return found ? found.label : 'Tất cả Showroom';
-  }
+  constructor(
+    private ordersService: OrdersService,
+    private router: Router
+  ) {}
 
-  get selectedPaymentStatusLabel(): string {
-    const found = this.paymentStatusOptions.find(o => o.value === this.selectedPaymentStatus);
-    return found ? found.label : 'Tất cả thanh toán';
-  }
-
-  get selectedPaymentMethodLabel(): string {
-    const found = this.paymentMethodOptions.find(o => o.value === this.selectedPaymentMethod);
-    return found ? found.label : 'Tất cả phương thức';
-  }
-
-  onSelectShowroom(value: string) {
-    this.selectedShowroom = value;
-    this.showShowroomDropdown = false;
-    this.currentPage = 1;
-  }
-
-  onSelectPaymentStatus(value: string) {
-    this.selectedPaymentStatus = value;
-    this.showPaymentStatusDropdown = false;
-    this.currentPage = 1;
-  }
-
-  onSelectPaymentMethod(value: string) {
-    this.selectedPaymentMethod = value;
-    this.showPaymentMethodDropdown = false;
-    this.currentPage = 1;
-  }
-
-
-  get filteredOrders() {
-    const q = (this.searchQuery || '').trim().toLowerCase();
-    return this.orders.filter(order => {
-      // 1. Status Pill Filter
-      if (this.activeStatus === 'HIGH_VALUE' && !order.isHighValue) return false;
-      if (this.activeStatus !== 'ALL' && this.activeStatus !== 'HIGH_VALUE' && order.status !== this.activeStatus) return false;
-
-      // 2. Search Query (id, customer name, phone)
-      if (q) {
-        const matchId = (order.id || '').toLowerCase().includes(q);
-        const matchCustomer = (order.customerName || '').toLowerCase().includes(q);
-        const matchPhone = (order.phone || '').toLowerCase().includes(q);
-        if (!matchId && !matchCustomer && !matchPhone) return false;
-      }
-
-      // 3. Showroom
-      if (this.selectedShowroom !== 'ALL' && order.showroom !== this.selectedShowroom) return false;
-
-      // 4. Payment status
-      if (this.selectedPaymentStatus !== 'ALL' && order.paymentStatus !== this.selectedPaymentStatus) return false;
-
-      // 5. Payment method
-      if (this.selectedPaymentMethod !== 'ALL' && order.paymentMethod !== this.selectedPaymentMethod) return false;
-
-      return true;
+  ngOnInit() {
+    this.sub = this.ordersService.orders$.subscribe(orders => {
+      this.orders = orders;
     });
   }
 
-  // Pagination getters & methods
-  get totalPages(): number {
-    return Math.ceil(this.filteredOrders.length / this.pageSize) || 1;
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
+    if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 
-  get paginatedOrders(): Order[] {
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    return this.filteredOrders.slice(startIndex, startIndex + this.pageSize);
+  // --- KPI COUNTS ---
+  get countAll(): number {
+    return this.orders.length;
+  }
+
+  get countConfirmation(): number {
+    return this.orders.filter(o => o.status === 'PENDING' || o.status === 'CONFIRMED').length;
+  }
+
+  get countPending(): number {
+    return this.orders.filter(o => o.status === 'PENDING').length;
+  }
+
+  get countConfirmed(): number {
+    return this.orders.filter(o => o.status === 'CONFIRMED').length;
+  }
+
+  get countProcessing(): number {
+    return this.orders.filter(o => o.status === 'PROCESSING').length;
+  }
+
+  get countReadyToShip(): number {
+    return this.orders.filter(o => o.status === 'READY_TO_SHIP').length;
+  }
+
+  get countShipped(): number {
+    return this.orders.filter(o => o.status === 'SHIPPED').length;
+  }
+
+  get countDelivered(): number {
+    return this.orders.filter(o => o.status === 'DELIVERED').length;
+  }
+
+  get countCompleted(): number {
+    return this.orders.filter(o => o.status === 'COMPLETED').length;
+  }
+
+  get countCancelled(): number {
+    return this.orders.filter(o => o.status === 'CANCELLED').length;
+  }
+
+  get countReturns(): number {
+    return this.orders.filter(o => ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(o.status)).length;
+  }
+
+  // --- FILTERED ORDERS ---
+  get filteredOrders(): OrderV2[] {
+    let list = [...this.orders];
+
+    // Filter by KPI Tab
+    if (this.activeTab !== 'ALL') {
+      if (this.activeTab === 'CONFIRMATION') {
+        list = list.filter(o => o.status === 'PENDING' || o.status === 'CONFIRMED');
+      } else if (this.activeTab === 'RETURN') {
+        list = list.filter(o => ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(o.status));
+      } else {
+        list = list.filter(o => o.status === this.activeTab);
+      }
+    }
+
+    // Filter by Specific Status Dropdown
+    if (this.selectedStatus !== 'ALL') {
+      list = list.filter(o => o.status === this.selectedStatus);
+    }
+
+    // Filter by Showroom
+    if (this.selectedShowroom !== 'ALL') {
+      list = list.filter(o => o.showroom.includes(this.selectedShowroom) || o.showroom === this.selectedShowroom);
+    }
+
+    // Filter by Payment Status
+    if (this.selectedPayment !== 'ALL') {
+      if (this.selectedPayment === 'AWAITING_PAYMENT' || this.selectedPayment === 'AWAITING_DEPOSIT') {
+        list = list.filter(o => o.paymentHoldReason === this.selectedPayment);
+      } else {
+        list = list.filter(o => o.paymentStatus === this.selectedPayment);
+      }
+    }
+
+    // Filter by Search Query
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase().trim();
+      list = list.filter(o => 
+        o.orderNumber.toLowerCase().includes(q) ||
+        o.customerName.toLowerCase().includes(q) ||
+        o.phone.includes(q) ||
+        (o.delivery.trackingCode && o.delivery.trackingCode.toLowerCase().includes(q)) ||
+        o.items.some(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      if (this.sortBy === 'date-desc') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else if (this.sortBy === 'date-asc') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (this.sortBy === 'total-desc') {
+        return b.totalAmount - a.totalAmount;
+      } else if (this.sortBy === 'total-asc') {
+        return a.totalAmount - b.totalAmount;
+      }
+      return 0;
+    });
+
+    return list;
+  }
+
+  // --- PAGINATION ---
+  get totalItems(): number {
+    return this.filteredOrders.length;
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.totalItems / this.pageSize) || 1;
+  }
+
+  get paginatedOrders(): OrderV2[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredOrders.slice(start, start + this.pageSize);
+  }
+
+  setTab(tab: KpiTab) {
+    this.activeTab = tab;
+    this.currentPage = 1;
   }
 
   goToPage(page: number) {
@@ -322,11 +299,9 @@ export class OrdersComponent implements OnInit {
     const maxVisible = 5;
     let start = Math.max(1, this.currentPage - 2);
     let end = Math.min(this.totalPages, start + maxVisible - 1);
-    
-    if (end - start + 1 < maxVisible) {
+    if (end - start < maxVisible - 1) {
       start = Math.max(1, end - maxVisible + 1);
     }
-    
     for (let i = start; i <= end; i++) {
       pages.push(i);
     }
@@ -334,84 +309,261 @@ export class OrdersComponent implements OnInit {
   }
 
   getStartIndex(): number {
-    if (this.filteredOrders.length === 0) return 0;
+    if (this.totalItems === 0) return 0;
     return (this.currentPage - 1) * this.pageSize + 1;
   }
 
   getEndIndex(): number {
-    return Math.min(this.currentPage * this.pageSize, this.filteredOrders.length);
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
   }
 
   hasActiveFilters(): boolean {
-    return (
-      (this.searchQuery || '').trim() !== '' ||
+    return Boolean(
+      this.activeTab !== 'ALL' ||
+      this.searchQuery.trim() ||
       this.selectedShowroom !== 'ALL' ||
-      this.selectedPaymentStatus !== 'ALL' ||
-      this.selectedPaymentMethod !== 'ALL' ||
-      this.activeStatus !== 'ALL'
+      this.selectedPayment !== 'ALL' ||
+      this.selectedStatus !== 'ALL' ||
+      this.sortBy !== 'date-desc'
     );
   }
 
   resetFilters() {
+    this.activeTab = 'ALL';
     this.searchQuery = '';
     this.selectedShowroom = 'ALL';
-    this.selectedPaymentStatus = 'ALL';
-    this.selectedPaymentMethod = 'ALL';
-    this.activeStatus = 'ALL';
-    this.showShowroomDropdown = false;
-    this.showPaymentStatusDropdown = false;
-    this.showPaymentMethodDropdown = false;
+    this.selectedPayment = 'ALL';
+    this.selectedStatus = 'ALL';
+    this.sortBy = 'date-desc';
     this.currentPage = 1;
+    this.triggerToast('Đã làm mới bộ lọc!', 'Toàn bộ danh sách đơn hàng đã được hiển thị lại.', 'info');
   }
 
-  onFilterChange() {
-    this.currentPage = 1;
+  // --- ACTIONS ---
+  resetMockData() {
+    this.ordersService.resetToDefaultData();
+    this.triggerToast('Khôi phục dữ liệu gốc thành công!', 'Đã tạo lại 11 đơn hàng mẫu đại diện cho đầy đủ 11 trạng thái workflow.', 'success');
   }
 
-  onStatusFilterClick(statusId: string) {
-    if (this.activeStatus === statusId) {
-      this.activeStatus = 'ALL';
-    } else {
-      this.activeStatus = statusId;
+  quickAction(order: OrderV2, event: MouseEvent) {
+    event.stopPropagation();
+    let success = false;
+    let title = '';
+    let msg = '';
+
+    switch (order.status) {
+      case 'PENDING':
+        if (order.isHighValue && order.paymentStatus === 'UNPAID') {
+          // Open detail to let user simulate deposit first or read rule
+          this.triggerToast('Cần cọc trước!', 'Đơn hàng >= 50 triệu bắt buộc cọc tối thiểu 30% trước khi xác nhận. Đang chuyển sang trang chi tiết...', 'error');
+          setTimeout(() => this.router.navigate(['/admin/orders', order.id]), 1200);
+          return;
+        }
+        success = this.ordersService.confirmOrder(order.id, 'Admin Trần');
+        title = 'Xác nhận đơn thành công!';
+        msg = `Đơn ${order.orderNumber} đã chuyển sang trạng thái CONFIRMED (Đã xác nhận).`;
+        break;
+
+      case 'CONFIRMED':
+        success = this.ordersService.startProcessing(order.id, 'Kho DCOR');
+        title = 'Đã chuyển sang Kho chuẩn bị!';
+        msg = `Đơn ${order.orderNumber} đã chuyển sang trạng thái PROCESSING (Đang đóng gói).`;
+        break;
+
+      case 'PROCESSING':
+        success = this.ordersService.finishPackaging(order.id, order.qcChecklist, 'Thủ kho Hoàng Sơn');
+        title = 'Đóng gói hoàn tất!';
+        msg = `Đơn ${order.orderNumber} đã chuyển sang trạng thái READY_TO_SHIP (Sẵn sàng xuất kho).`;
+        break;
+
+      case 'READY_TO_SHIP':
+        success = this.ordersService.dispatchOrder(order.id, {
+          provider: order.delivery.provider,
+          trackingCode: order.delivery.trackingCode || 'DCOR-SHIP-EXPRESS'
+        }, 'Điều phối kho');
+        title = 'Xuất kho thành công!';
+        msg = `Đơn ${order.orderNumber} đã bàn giao cho ĐVC và chuyển sang SHIPPED (Đang giao hàng).`;
+        break;
+
+      case 'SHIPPED':
+        success = this.ordersService.markDelivered(order.id, 'Tài xế DCOR Express');
+        title = 'Giao hàng thành công!';
+        msg = `Đơn ${order.orderNumber} đã chuyển sang DELIVERED (Bắt đầu đếm ngược 72h).`;
+        break;
+
+      case 'FAILED_DELIVERY':
+        success = this.ordersService.rescheduleDelivery(order.id, 'Giao lại ca sáng');
+        title = 'Đã lên lịch giao lại!';
+        msg = `Đơn ${order.orderNumber} đã quay lại trạng thái SHIPPED để giao lại lần 2.`;
+        break;
+
+      case 'DELIVERED':
+        success = this.ordersService.completeOrder(order.id, 'Hệ thống tự động / Admin');
+        title = 'Chốt đơn hoàn tất!';
+        msg = `Đơn ${order.orderNumber} đã hoàn tất (COMPLETED). Doanh thu và bảo hành đã ghi nhận.`;
+        break;
+
+      case 'RETURN_REQUESTED':
+        success = this.ordersService.approveReturn(order.id, 'CSKH DCOR duyệt đổi trả', 'CSKH DCOR');
+        title = 'Đã chấp nhận yêu cầu trả hàng!';
+        msg = `Đơn ${order.orderNumber} chuyển sang RETURNING (Đang thu hồi sản phẩm về kho).`;
+        break;
+
+      case 'RETURNING':
+        success = this.ordersService.receiveReturnQC(order.id, {
+          inspector: 'QC Kho Bình Dương',
+          condition: 'Đầy đủ phụ kiện, nguyên thùng',
+          defectAssessment: 'Lỗi thẩm mỹ nhẹ trong quá trình vận chuyển',
+          refundPercent: 100,
+          restockOption: 'RESTOCK_SALE'
+        }, 'QC Kho');
+        title = 'QC tiếp nhận thành công!';
+        msg = `Đơn ${order.orderNumber} đã kiểm định xong, chuyển sang RETURNED (Chờ hoàn tiền).`;
+        break;
+
+      case 'RETURNED':
+        success = this.ordersService.refundOrder(order.id, 'REFUND-VNPAY-88992', 'Kế toán DCOR');
+        title = 'Hoàn tiền thành công!';
+        msg = `Đã hoàn tiền cho đơn ${order.orderNumber}. Quy trình đổi trả kết thúc.`;
+        break;
+
+      default:
+        this.router.navigate(['/admin/orders', order.id]);
+        return;
     }
-    this.currentPage = 1;
+
+    if (success) {
+      this.triggerToast(title, msg, 'success');
+    }
   }
 
-  formatVND(value: number) {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(value);
+  // --- HELPERS & FORMATTERS ---
+  formatVND(value: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   }
 
-  handlePrint(order: Order) {
-    this.activePrintOrder = order;
-    setTimeout(() => {
-      window.print();
-    }, 300);
+  private parseDateSafe(dateStr?: string): Date {
+    if (!dateStr) return new Date();
+    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = parseInt(match[3], 10);
+      const hour = match[4] ? parseInt(match[4], 10) : 0;
+      const min = match[5] ? parseInt(match[5], 10) : 0;
+      const sec = match[6] ? parseInt(match[6], 10) : 0;
+      return new Date(year, month, day, hour, min, sec);
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
   }
 
-  getPendingCount(): number {
-    return this.orders.filter(o => o.status === 'PENDING').length;
+  formatDate(dateStr: string): string {
+    const d = this.parseDateSafe(dateStr);
+    return d.toLocaleString('vi-VN', { 
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit' 
+    });
   }
 
-  getProcessingCount(): number {
-    return this.orders.filter(o => o.status === 'PROCESSING').length;
+  formatTimeOnly(dateStr: string): string {
+    const d = this.parseDateSafe(dateStr);
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   }
 
-  getShippingCount(): number {
-    return this.orders.filter(o => o.status === 'SHIPPING').length;
+  formatDateOnly(dateStr: string): string {
+    const d = this.parseDateSafe(dateStr);
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  getDeliveredCount(): number {
-    return this.orders.filter(o => o.status === 'DELIVERED').length;
+  getOrderTotalQty(order: OrderV2): number {
+    if (!order.items || order.items.length === 0) return 0;
+    return order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   }
 
-  getCancelledCount(): number {
-    return this.orders.filter(o => o.status === 'CANCELLED').length;
+  getAdminStatusMeta(status: AdminOrderStatus) {
+    switch (status) {
+      case 'PENDING':
+        return { label: 'Chờ xác nhận', bg: '#FEF3C7', color: '#D97706', border: '#FDE68A', dept: 'CSKH', nextBtn: 'Xác nhận đơn' };
+      case 'CONFIRMED':
+        return { label: 'Đã xác nhận', bg: '#E0F2FE', color: '#0284C7', border: '#BAE6FD', dept: 'Thủ kho', nextBtn: 'Nhặt hàng' };
+      case 'PROCESSING':
+        return { label: 'Đang chuẩn bị', bg: '#EDE9FE', color: '#7C3AED', border: '#DDD6FE', dept: 'Đóng gói', nextBtn: 'Đóng gói xong' };
+      case 'READY_TO_SHIP':
+        return { label: 'Sẵn sàng xuất kho', bg: '#FCE7F3', color: '#DB2777', border: '#FBCFE8', dept: 'Xuất kho', nextBtn: 'Xuất kho ĐVC' };
+      case 'SHIPPED':
+        return { label: 'Đang giao hàng', bg: '#E0E7FF', color: '#4F46E5', border: '#C7D2FE', dept: 'Vận chuyển', nextBtn: 'Giao xong' };
+      case 'FAILED_DELIVERY':
+        return { label: 'Giao thất bại', bg: '#FEE2E2', color: '#DC2626', border: '#FECACA', dept: 'Điều phối', nextBtn: 'Giao lại' };
+      case 'DELIVERED':
+        return { label: 'Đã giao hàng (72h)', bg: '#D1FAE5', color: '#059669', border: '#A7F3D0', dept: 'Khách hàng', nextBtn: 'Chốt sớm' };
+      case 'COMPLETED':
+        return { label: 'Đã hoàn tất', bg: '#DCFCE7', color: '#16A34A', border: '#86EFAC', dept: 'Kế toán', nextBtn: 'Chi tiết' };
+      case 'CANCELLED':
+        return { label: 'Đã hủy', bg: '#F3F4F6', color: '#6B7280', border: '#E5E7EB', dept: 'Đóng đơn', nextBtn: 'Xem đơn' };
+      case 'RETURN_REQUESTED':
+        return { label: 'Yêu cầu trả hàng', bg: '#FFEDD5', color: '#EA580C', border: '#FED7AA', dept: 'CSKH duyệt', nextBtn: 'Duyệt trả' };
+      case 'RETURNING':
+        return { label: 'Đang thu hồi', bg: '#FEF3C7', color: '#B45309', border: '#FDE68A', dept: 'Kho nhận', nextBtn: 'Nhận & QC' };
+      case 'RETURNED':
+        return { label: 'Đã trả hàng', bg: '#FEE2E2', color: '#B91C1C', border: '#FECACA', dept: 'Kế toán', nextBtn: 'Hoàn tiền' };
+      default:
+        return { label: status, bg: '#F3F4F6', color: '#6B7280', border: '#E5E7EB', dept: 'Hệ thống', nextBtn: 'Xem' };
+    }
   }
 
-  getHighValueCount(): number {
-    return this.orders.filter(o => o.isHighValue).length;
+  getUserView(status: AdminOrderStatus): UserStatusView {
+    return mapAdminStatusToUserView(status);
+  }
+
+  getPaymentMeta(status: PaymentStatus, order?: OrderV2) {
+    switch (status) {
+      case 'PAID':
+        return { label: 'Đã thanh toán', bg: '#DCFCE7', color: '#16A34A' };
+      case 'PARTIAL': {
+        let percent = 30;
+        if (order && order.depositPaid && order.totalAmount) {
+          percent = Math.round((order.depositPaid / order.totalAmount) * 100);
+        }
+        return { label: `Đã cọc ${percent}%`, bg: '#E0F2FE', color: '#0284C7' };
+      }
+      case 'UNPAID':
+        return { label: 'Chưa thanh toán', bg: '#FEF3C7', color: '#D97706' };
+      case 'REFUND_PENDING':
+        return { label: 'Chờ hoàn tiền', bg: '#FFEDD5', color: '#EA580C' };
+      case 'REFUNDED':
+        return { label: 'Đã hoàn tiền', bg: '#FEE2E2', color: '#DC2626' };
+      default:
+        return { label: status, bg: '#F3F4F6', color: '#6B7280' };
+    }
+  }
+
+  getPaymentMethodLabel(method?: string): string {
+    switch (method) {
+      case 'BANK_TRANSFER': return 'Chuyển khoản';
+      case 'COD': return 'Tiền mặt (COD)';
+      case 'VNPAY': return 'Cổng VNPAY';
+      case 'CREDIT_CARD': return 'Thẻ tín dụng';
+      case 'INSTALLMENT': return 'Trả góp 0%';
+      default: return method || '---';
+    }
+  }
+
+  triggerToast(title: string, message: string, type: 'success' | 'error' | 'info' = 'success') {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTitle = title;
+    this.toastMessage = message;
+    this.toastType = type;
+    this.showToast = true;
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+    }, 4500);
+  }
+
+  closeToast() {
+    this.showToast = false;
+    if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 }
+
+export { OrdersComponent as OrdersV2Component };
