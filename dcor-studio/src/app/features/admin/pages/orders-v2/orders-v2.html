@@ -260,14 +260,28 @@
           <!-- Thanh toán -->
           <td>
             <div class="payment-cell">
-              <span 
-                class="payment-badge"
-                [style.background]="getPaymentMeta(order.paymentStatus, order).bg"
-                [style.color]="getPaymentMeta(order.paymentStatus, order).color"
-              >
-                {{ getPaymentMeta(order.paymentStatus, order).label }}
-              </span>
-              <span class="payment-method-text">{{ order.paymentMethod }}</span>
+              <div class="payment-badges-row">
+                <span 
+                  class="payment-badge"
+                  [style.background]="getPaymentMeta(order.paymentStatus, order).bg"
+                  [style.color]="getPaymentMeta(order.paymentStatus, order).color"
+                >
+                  {{ getPaymentMeta(order.paymentStatus, order).label }}
+                </span>
+
+                <!-- Cờ phân loại chờ theo điều kiện thanh toán/cọc -->
+                <span *ngIf="order.status === 'PENDING' && order.paymentHoldReason === 'AWAITING_PAYMENT'" 
+                      class="hold-badge badge-amber" 
+                      title="Đơn hàng thanh toán trực tuyến chưa hoàn tất">
+                  Chờ TT
+                </span>
+                <span *ngIf="order.status === 'PENDING' && order.paymentHoldReason === 'AWAITING_DEPOSIT'" 
+                      class="hold-badge badge-orange" 
+                      title="Đơn giá trị cao/may đo bắt buộc cọc tối thiểu 30%">
+                  Chờ cọc 30%
+                </span>
+              </div>
+              <span class="payment-method-text">{{ getPaymentMethodLabel(order.paymentMethod) }}</span>
             </div>
           </td>
 

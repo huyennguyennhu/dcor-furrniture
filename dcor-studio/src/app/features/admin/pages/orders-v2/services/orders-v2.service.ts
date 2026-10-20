@@ -22,8 +22,29 @@ export class OrdersV2Service {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed: OrderV2[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Auto migrate new fields for PENDING logic
+          parsed.forEach(o => {
+            if (o.status === 'PENDING') {
+              const isHigh = o.isHighValue || o.isCustomDesign || (o.totalAmount >= 50000000);
+              const minDep = o.depositRequired || Math.round(o.totalAmount * 0.3);
+              if (isHigh && (o.depositPaid || 0) < minDep && o.paymentStatus !== 'PAID') {
+                o.isDepositRequired = true;
+                o.depositRequired = minDep;
+                o.paymentHoldReason = 'AWAITING_DEPOSIT';
+              } else if (o.paymentMethod !== 'COD' && o.paymentStatus === 'UNPAID') {
+                o.paymentHoldReason = 'AWAITING_PAYMENT';
+              } else {
+                o.paymentHoldReason = 'NONE';
+              }
+            } else if (o.status === 'CONFIRMED') {
+              o.status = 'PROCESSING';
+              o.paymentHoldReason = 'NONE';
+            } else {
+              o.paymentHoldReason = 'NONE';
+            }
+          });
           this.ordersSubject.next(parsed);
           return;
         }
@@ -52,19 +73,55 @@ export class OrdersV2Service {
   // =========================================================================
 
   // 1. PENDING -> CONFIRMED
-  confirmOrder(orderId: string, staffName: string = 'Admin Tran'): boolean {
+  confirmOrder(orderId: string, staffName: string = 'Admin Trần'): boolean {
     const orders = this.orders;
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
-    // Rule: Nếu đơn lớn (>50tr) bắt buộc phải cọc >= 30%
-    if (order.isHighValue && order.paymentStatus === 'UNPAID') {
-      alert('Không thể xác nhận: Đơn hàng giá trị lớn (>= 50 triệu) bắt buộc phải thu cọc tối thiểu 30% trước khi duyệt vào kho!');
+    // Rule 1: Đơn cần cọc (>= 50tr hoặc hàng custom)
+    const isDepositRequired = order.isDepositRequired || order.isHighValue || order.isCustomDesign;
+    if (isDepositRequired) {
+      const minDeposit = order.depositRequired || Math.round(order.totalAmount * 0.3);
+      if ((order.depositPaid || 0) < minDeposit && order.paymentStatus !== 'PAID') {
+        alert(`Không thể xác nhận: Đơn hàng giá trị cao / may đo bắt buộc phải thu cọc tối thiểu 30% (${minDeposit.toLocaleString('vi-VN')}đ) trước khi duyệt vào kho!`);
+        return false;
+      }
+    } 
+    // Rule 2: Đơn thanh toán trực tuyến (Chuyển khoản / VNPAY)
+    else if (order.paymentMethod !== 'COD' && order.paymentStatus !== 'PAID') {
+      alert('Không thể xác nhận: Đơn hàng thanh toán trực tuyến chưa hoàn tất thanh toán tiền vào tài khoản!');
       return false;
     }
 
-    order.status = 'CONFIRMED';
-    this.addAuditLog(order, staffName, 'Xác nhận đơn hàng', 'Đã liên hệ xác minh thông tin khách và chỉ định kho xuất.');
+    // Khi Xác nhận đơn hàng: Đơn hoàn tất bước Xác nhận và chuyển thẳng sang PROCESSING (Kho chuẩn bị hàng & QC)
+    order.status = 'PROCESSING';
+    order.paymentHoldReason = 'NONE';
+    this.addAuditLog(order, staffName, 'Xác nhận đơn & Chuyển kho chuẩn bị', 'Đã xác minh thông tin khách và điều kiện thanh toán/cọc. Đơn duyệt hoàn tất, chuyển lệnh kho nhặt hàng & in Pick-list.');
+    this.save(orders);
+    return true;
+  }
+
+  // Xác nhận thanh toán / thu cọc thủ công (dành cho Admin/Kế toán khi tiền đã về tài khoản)
+  confirmManualPayment(orderId: string, type: 'FULL' | 'DEPOSIT', staffName: string = 'Kế toán DCOR'): boolean {
+    const orders = this.orders;
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return false;
+
+    if (type === 'FULL') {
+      order.paymentStatus = 'PAID';
+      order.depositPaid = order.totalAmount;
+      order.remainingAmount = 0;
+      order.paymentHoldReason = 'NONE';
+      this.addAuditLog(order, staffName, 'Xác nhận thanh toán 100%', `Kế toán đối soát tiền đã vào tài khoản: ${order.totalAmount.toLocaleString('vi-VN')}đ qua ${order.paymentMethod}. Đơn đủ điều kiện duyệt.`);
+    } else {
+      order.paymentStatus = 'PARTIAL';
+      const deposit = order.depositRequired || Math.round(order.totalAmount * 0.3);
+      order.depositPaid = deposit;
+      order.remainingAmount = Math.max(0, order.totalAmount - deposit);
+      order.paymentHoldReason = 'NONE';
+      this.addAuditLog(order, staffName, 'Xác nhận thu cọc 30%', `Kế toán đối soát đã nhận tiền cọc: ${deposit.toLocaleString('vi-VN')}đ (30%). Đơn đủ điều kiện duyệt.`);
+    }
+
     this.save(orders);
     return true;
   }
@@ -97,7 +154,7 @@ export class OrdersV2Service {
     if (!order) return false;
 
     order.status = 'PROCESSING';
-    this.addAuditLog(order, staffName, 'Bắt đầu xử lý kho', 'In phiếu nhặt hàng (Pick-list) và đưa sản phẩm vào khu vực đóng gói.');
+    this.addAuditLog(order, staffName, 'Bắt đầu xử lý kho', 'In phiếu soạn hàng và đưa sản phẩm vào khu vực đóng gói.');
     this.save(orders);
     return true;
   }
@@ -342,7 +399,7 @@ export class OrdersV2Service {
   private getNowFormatted(): string {
     const d = new Date();
     const pad = (n: number) => n < 10 ? '0' + n : n;
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
   // =========================================================================
@@ -350,7 +407,119 @@ export class OrdersV2Service {
   // =========================================================================
   resetToDefaultData() {
     const initialOrders: OrderV2[] = [
-      // 1. PENDING (Đơn lớn >50tr chưa cọc)
+      // 1A. PENDING - TRƯỜNG HỢP 1: Đơn COD thông thường (< 50 triệu) -> Duyệt bình thường, không hiện cảnh báo
+      {
+        id: 'ord-100',
+        orderNumber: 'DCOR-ORD-100',
+        createdAt: '19/10/2026 11:15',
+        status: 'PENDING',
+        paymentStatus: 'UNPAID',
+        paymentMethod: 'COD',
+        customerName: 'Trần Hoàng Long',
+        phone: '0908889900',
+        email: 'hoanglong.tran@gmail.com',
+        address: '45 Lê Duẩn, Phường Bến Nghé, Quận 1',
+        province: 'Thành phố Hồ Chí Minh',
+        district: 'Quận 1',
+        ward: 'Phường Bến Nghé',
+        showroom: 'Showroom Quận 1',
+        items: [
+          {
+            id: 'item-100-1',
+            name: 'Ghế Armchair Scandinavia Mini',
+            sku: 'AC-SCAN-01',
+            variant: 'Vải bố xám tiêu, Chân tiện gỗ tần bì',
+            imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80',
+            price: 6500000,
+            quantity: 1,
+            lineTotal: 6500000,
+            stockAvailable: 8
+          }
+        ],
+        subTotal: 6500000,
+        shippingFee: 200000,
+        discountAmount: 200000,
+        totalAmount: 6500000,
+        depositRequired: 0,
+        depositPaid: 0,
+        remainingAmount: 6500000,
+        isDepositRequired: false,
+        paymentHoldReason: 'NONE',
+        isHighValue: false,
+        isCustomDesign: false,
+        isGift: false,
+        customerNote: 'Gọi điện trước khi giao, giao giờ hành chính.',
+        internalNotes: 'Đơn COD giá trị nhỏ. Đã check SĐT khách đúng chuẩn.',
+        delivery: {
+          provider: 'Xe tải DCOR Express',
+          failedAttempts: 0,
+          trackingHistory: [
+            { time: '19/10/2026 11:15', status: 'Đã tạo đơn', description: 'Đơn hàng mới tạo trên website (COD)', location: 'Website DCor' }
+          ]
+        },
+        qcChecklist: { surfaceChecked: false, structureChecked: false, cushionLeatherChecked: false, protectiveWrapDone: false },
+        auditLogs: [
+          { id: 'log-100-1', timestamp: '19/10/2026 11:15', actor: 'Trần Hoàng Long (Khách hàng)', action: 'Đặt hàng COD', detail: 'Đơn hàng tiền mặt khi nhận.' }
+        ]
+      },
+
+      // 1B. PENDING - TRƯỜNG HỢP 2: Đơn Chuyển khoản / VNPAY (< 50tr) chưa thanh toán
+      {
+        id: 'ord-101-online',
+        orderNumber: 'DCOR-ORD-101-VNP',
+        createdAt: '19/10/2026 10:45',
+        status: 'PENDING',
+        paymentStatus: 'UNPAID',
+        paymentMethod: 'VNPAY',
+        customerName: 'Phạm Thị Bích Ngọc',
+        phone: '0938112233',
+        email: 'bichngoc.pham@gmail.com',
+        address: '128 Nguyễn Thị Minh Khai, Phường 6, Quận 3',
+        province: 'Thành phố Hồ Chí Minh',
+        district: 'Quận 3',
+        ward: 'Phường 6',
+        showroom: 'Showroom Quận 1',
+        items: [
+          {
+            id: 'item-101o-1',
+            name: 'Bàn trà Mặt đá Marble Ý',
+            sku: 'TB-MAR-02',
+            variant: 'Mặt đá trắng vân mây, Khung inox mạ PVD vàng',
+            imageUrl: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=400&q=80',
+            price: 14800000,
+            quantity: 1,
+            lineTotal: 14800000,
+            stockAvailable: 4
+          }
+        ],
+        subTotal: 14800000,
+        shippingFee: 200000,
+        discountAmount: 200000,
+        totalAmount: 14800000,
+        depositRequired: 0,
+        depositPaid: 0,
+        remainingAmount: 14800000,
+        isDepositRequired: false,
+        paymentHoldReason: 'AWAITING_PAYMENT',
+        isHighValue: false,
+        isCustomDesign: false,
+        isGift: false,
+        customerNote: 'Kiểm tra kỹ mặt đá giúp mình nhé, không bị trầy.',
+        internalNotes: 'Khách chọn thanh toán qua VNPAY nhưng giao dịch bị gián đoạn hoặc chưa quét QR.',
+        delivery: {
+          provider: 'Xe tải DCOR Express',
+          failedAttempts: 0,
+          trackingHistory: [
+            { time: '19/10/2026 10:45', status: 'Đã tạo đơn', description: 'Chờ khách hoàn tất thanh toán VNPAY', location: 'Cổng VNPAY' }
+          ]
+        },
+        qcChecklist: { surfaceChecked: false, structureChecked: false, cushionLeatherChecked: false, protectiveWrapDone: false },
+        auditLogs: [
+          { id: 'log-101o-1', timestamp: '19/10/2026 10:45', actor: 'Hệ thống DCor', action: 'Chờ thanh toán', detail: 'Chưa nhận được webhook thành công từ cổng VNPAY.' }
+        ]
+      },
+
+      // 1C. PENDING - TRƯỜNG HỢP 3: Đơn Giá trị lớn (≥ 50 triệu) hoặc Hàng thiết kế bắt buộc cọc 30%
       {
         id: 'ord-101',
         orderNumber: 'DCOR-ORD-101',
@@ -386,21 +555,23 @@ export class OrdersV2Service {
         depositRequired: 15387000, // 30%
         depositPaid: 0,
         remainingAmount: 51290000,
+        isDepositRequired: true,
+        paymentHoldReason: 'AWAITING_DEPOSIT',
         isHighValue: true,
         isCustomDesign: false,
         isGift: false,
         customerNote: 'Giao hàng buổi sáng giúp mình, gọi trước 30 phút nhé!',
-        internalNotes: 'Khách VIP căn hộ Masteri Millennium. Cần gọi xác nhận cọc sớm.',
+        internalNotes: 'Khách VIP căn hộ Masteri Millennium. Đơn trên 50tr bắt buộc thu cọc tối thiểu 30% trước khi duyệt đơn.',
         delivery: {
           provider: 'Xe tải DCOR Express',
           failedAttempts: 0,
           trackingHistory: [
-            { time: '19/10/2026 10:30', status: 'Đã tạo đơn', description: 'Đơn hàng mới tạo trên website', location: 'Website DCor' }
+            { time: '19/10/2026 10:30', status: 'Đã tạo đơn', description: 'Đơn hàng mới tạo trên website (Chờ cọc)', location: 'Website DCor' }
           ]
         },
         qcChecklist: { surfaceChecked: false, structureChecked: false, cushionLeatherChecked: false, protectiveWrapDone: false },
         auditLogs: [
-          { id: 'log-1', timestamp: '19/10/2026 10:30', actor: 'Nguyễn Văn Minh (Khách hàng)', action: 'Đặt hàng qua Web', detail: 'Tạo đơn hàng chuyển khoản.' }
+          { id: 'log-1', timestamp: '19/10/2026 10:30', actor: 'Nguyễn Văn Minh (Khách hàng)', action: 'Đặt hàng qua Web', detail: 'Tạo đơn hàng chuyển khoản (Chờ cọc).' }
         ]
       },
 

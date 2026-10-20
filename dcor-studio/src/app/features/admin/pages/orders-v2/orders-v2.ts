@@ -68,6 +68,8 @@ export class OrdersV2Component implements OnInit, OnDestroy {
   readonly PAYMENT_STATUSES: { id: string; name: string }[] = [
     { id: 'ALL', name: 'Tất cả thanh toán' },
     { id: 'UNPAID', name: 'Chưa thanh toán' },
+    { id: 'AWAITING_PAYMENT', name: 'Chờ thanh toán online' },
+    { id: 'AWAITING_DEPOSIT', name: 'Chờ đặt cọc (≥30%)' },
     { id: 'PARTIAL', name: 'Đã cọc 30%' },
     { id: 'PAID', name: 'Đã thanh toán đủ' },
     { id: 'REFUND_PENDING', name: 'Chờ hoàn tiền' },
@@ -144,7 +146,11 @@ export class OrdersV2Component implements OnInit, OnDestroy {
 
     // Filter by Payment Status
     if (this.selectedPayment !== 'ALL') {
-      list = list.filter(o => o.paymentStatus === this.selectedPayment);
+      if (this.selectedPayment === 'AWAITING_PAYMENT' || this.selectedPayment === 'AWAITING_DEPOSIT') {
+        list = list.filter(o => o.paymentHoldReason === this.selectedPayment);
+      } else {
+        list = list.filter(o => o.paymentStatus === this.selectedPayment);
+      }
     }
 
     // Filter by Search Query
@@ -430,6 +436,17 @@ export class OrdersV2Component implements OnInit, OnDestroy {
         return { label: 'Đã hoàn tiền', bg: '#FEE2E2', color: '#DC2626' };
       default:
         return { label: status, bg: '#F3F4F6', color: '#6B7280' };
+    }
+  }
+
+  getPaymentMethodLabel(method?: string): string {
+    switch (method) {
+      case 'BANK_TRANSFER': return 'Chuyển khoản';
+      case 'COD': return 'Tiền mặt (COD)';
+      case 'VNPAY': return 'Cổng VNPAY';
+      case 'CREDIT_CARD': return 'Thẻ tín dụng';
+      case 'INSTALLMENT': return 'Trả góp 0%';
+      default: return method || '---';
     }
   }
 

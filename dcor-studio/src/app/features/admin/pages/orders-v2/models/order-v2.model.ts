@@ -124,6 +124,9 @@ export interface OrderV2 {
   depositRequired: number;
   depositPaid: number;
   remainingAmount: number;
+  isDepositRequired?: boolean;
+  paymentHoldReason?: 'NONE' | 'AWAITING_PAYMENT' | 'AWAITING_DEPOSIT';
+  expiresAt?: string;
   isHighValue: boolean;
   isCustomDesign: boolean;
   isGift: boolean;

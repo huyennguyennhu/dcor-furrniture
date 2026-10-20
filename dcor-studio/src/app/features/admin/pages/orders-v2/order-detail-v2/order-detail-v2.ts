@@ -8,13 +8,22 @@ import {
   ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock, Truck, Package, 
   AlertTriangle, ShieldCheck, DollarSign, CornerDownLeft, FileText, 
   Check, X, Building2, CreditCard, User, MapPin, Printer, RefreshCw,
-  ExternalLink, Eye, ChevronRight, Phone, Mail, Box, ShieldAlert, Lock
+  ExternalLink, Eye, ChevronRight, Phone, Mail, Box, ShieldAlert, Lock, Info,
+  Square, CheckSquare
 } from 'lucide-angular';
 import { OrdersV2Service } from '../services/orders-v2.service';
 import { 
   OrderV2, AdminOrderStatus, PaymentStatus, UserStatusView, 
   mapAdminStatusToUserView, ReturnQcReport 
 } from '../models/order-v2.model';
+
+export interface PaymentCheckStatus {
+  canConfirm: boolean;
+  holdType: 'NONE' | 'AWAITING_PAYMENT' | 'AWAITING_DEPOSIT';
+  title?: string;
+  message?: string;
+  depositRequiredAmount?: number;
+}
 
 @Component({
   selector: 'app-order-detail-v2',
@@ -28,7 +37,8 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock, Truck, Package,
     AlertTriangle, ShieldCheck, DollarSign, CornerDownLeft, FileText,
     Check, X, Building2, CreditCard, User, MapPin, Printer, RefreshCw,
-    ExternalLink, Eye, ChevronRight, Phone, Mail, Box, ShieldAlert, Lock
+    ExternalLink, Eye, ChevronRight, Phone, Mail, Box, ShieldAlert, Lock, Info,
+    Square, CheckSquare
   };
 
   orderId = '';
@@ -107,7 +117,12 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     if (!this.orderId) return;
     this.order = this.ordersService.getOrderById(this.orderId);
     if (this.order) {
-      this.checklist = { ...this.order.qcChecklist };
+      this.checklist = {
+        surfaceChecked: !!this.order.qcChecklist?.surfaceChecked,
+        structureChecked: !!this.order.qcChecklist?.structureChecked,
+        cushionLeatherChecked: !!this.order.qcChecklist?.cushionLeatherChecked,
+        protectiveWrapDone: !!this.order.qcChecklist?.protectiveWrapDone
+      };
       this.newTrackingCode = this.order.delivery.trackingCode || 'DCOR-SHIP-88992';
       this.viewingStepIndex = null;
     }
@@ -121,22 +136,135 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     this.router.navigate(['/admin/orders-v2']);
   }
 
+  // --- PENDING PAYMENT & DEPOSIT VERIFICATION (3 SCENARIOS) ---
+  get paymentCheck(): PaymentCheckStatus {
+    if (!this.order || this.order.status !== 'PENDING') {
+      return { canConfirm: true, holdType: 'NONE' };
+    }
+
+    // Trường hợp 3: Đơn Giá trị lớn (≥ 50 triệu) hoặc Hàng thiết kế riêng (Custom)
+    const isHighOrCustom = this.order.isHighValue || this.order.isCustomDesign || (this.order.totalAmount >= 50000000) || !!this.order.isDepositRequired;
+    const minDeposit = this.order.depositRequired || Math.round(this.order.totalAmount * 0.3);
+
+    if (isHighOrCustom) {
+      const isDepositSatisfied = (this.order.depositPaid || 0) >= minDeposit || this.order.paymentStatus === 'PAID';
+      if (!isDepositSatisfied) {
+        return {
+          canConfirm: false,
+          holdType: 'AWAITING_DEPOSIT',
+          title: `Đơn hàng chờ đặt cọc tối thiểu 30% (${this.formatVND(minDeposit)})`,
+          message: '',
+          depositRequiredAmount: minDeposit
+        };
+      }
+    }
+
+    // Trường hợp 2: Đơn Chuyển khoản / VNPAY (Thanh toán trực tuyến)
+    if (this.order.paymentMethod !== 'COD' && this.order.paymentStatus === 'UNPAID') {
+      return {
+        canConfirm: false,
+        holdType: 'AWAITING_PAYMENT',
+        title: 'Đơn hàng chưa thanh toán trực tuyến (Chuyển khoản / VNPAY)',
+        message: ''
+      };
+    }
+
+    // Trường hợp 1: Đơn COD thông thường (< 50 triệu) hoặc đã đủ điều kiện
+    return {
+      canConfirm: true,
+      holdType: 'NONE'
+    };
+  }
+
+  // Nhãn tiền hiển thị: "Thực tế đã cọc:" nếu là đơn cọc, "Thực tế đã thanh toán:" nếu thanh toán đủ hoặc đơn thanh toán online
+  get actualPaidOrDepositLabel(): string {
+    if (!this.order) return 'Thực tế đã thanh toán:';
+    if (this.order.paymentStatus === 'PAID') {
+      return 'Thực tế đã thanh toán:';
+    }
+    const isDeposit = this.order.isDepositRequired || (this.order.depositRequired && this.order.depositRequired > 0) || this.order.paymentStatus === 'PARTIAL';
+    if (isDeposit) {
+      return 'Thực tế đã cọc:';
+    }
+    return 'Thực tế đã thanh toán:';
+  }
+
+  // Số tiền thực tế khách đã cọc hoặc đã thanh toán
+  get actualPaidOrDepositAmount(): number {
+    if (!this.order) return 0;
+    if (this.order.paymentStatus === 'PAID') {
+      return this.order.depositPaid || this.order.totalAmount;
+    }
+    return this.order.depositPaid || 0;
+  }
+
+  // Trạng thái đạt điều kiện tiền cọc hoặc tiền thanh toán
+  get isPaidOrDepositSatisfied(): boolean {
+    if (!this.order) return false;
+    if (this.order.paymentStatus === 'PAID') return true;
+    if (this.order.depositRequired && this.order.depositRequired > 0) {
+      return (this.order.depositPaid || 0) >= this.order.depositRequired;
+    }
+    return false;
+  }
+
+  // Admin/Kế toán ghi nhận thanh toán trực tuyến hoặc cọc thủ công
+  onConfirmManualPayment(type: 'FULL' | 'DEPOSIT') {
+    if (!this.order) return;
+    const ok = this.ordersService.confirmManualPayment(this.order.id, type, 'Kế toán DCOR');
+    if (ok) {
+      if (type === 'FULL') {
+        this.triggerToast(
+          'Đã ghi nhận thanh toán trực tuyến!', 
+          `Kế toán đối soát thành công thanh toán qua ${this.getPaymentMethodLabel(this.order.paymentMethod)}. Nút [Xác nhận đơn hàng] đã được kích hoạt.`, 
+          'success'
+        );
+      } else {
+        const deposit = this.order.depositRequired || Math.round(this.order.totalAmount * 0.3);
+        this.triggerToast(
+          'Đã ghi nhận tiền cọc 30%!', 
+          `Kế toán đã ghi nhận cọc ${this.formatVND(deposit)} thành công. Nút [Xác nhận đơn hàng] đã được kích hoạt để duyệt vào kho.`, 
+          'success'
+        );
+      }
+    }
+  }
+
+  // Cuộn mượt mà lên đầu trang khi chuyển bước
+  scrollToTop(): void {
+    const doScroll = () => {
+      try {
+        const mainEl = document.querySelector('.admin-layout-main');
+        if (mainEl) {
+          mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+        document.body.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (_) {}
+    };
+
+    doScroll();
+    setTimeout(doScroll, 80);
+  }
+
   // --- TRANSITION ACTIONS TRIGGERED BY BOTTOM ACTION CARD ---
 
   // 1. PENDING -> CONFIRMED
   onConfirmOrder() {
     if (!this.order) return;
+    if (!this.paymentCheck.canConfirm) {
+      const reason = this.paymentCheck.depositRequiredAmount 
+        ? `Đơn hàng cần thu cọc tối thiểu ${this.formatVND(this.paymentCheck.depositRequiredAmount)} trước khi duyệt.`
+        : 'Đơn hàng thanh toán trực tuyến cần xác nhận đã nhận tiền trước khi duyệt.';
+      this.triggerToast('Chưa đủ điều kiện duyệt đơn!', reason, 'error');
+      return;
+    }
     const ok = this.ordersService.confirmOrder(this.order.id, 'Admin Trần');
     if (ok) {
-      this.triggerToast('Xác nhận đơn hàng thành công!', 'Đơn đã duyệt vào kho, gửi thông báo xác nhận cho khách hàng.', 'success');
+      this.triggerToast('Xác nhận đơn hàng thành công!', 'Đơn hàng đã được duyệt và chuyển vào kho để in Pick-list & kiểm tra QC.', 'success');
+      this.scrollToTop();
     }
-  }
-
-  // Simulate customer paid deposit
-  onSimulateDeposit() {
-    if (!this.order) return;
-    this.ordersService.mockSimulateDepositPaid(this.order.id);
-    this.triggerToast('Đã ghi nhận cọc 30%!', 'Khách đã thanh toán cọc thành công qua Chuyển khoản ngân hàng. Điều kiện duyệt đơn đã được thỏa mãn!', 'success');
   }
 
   // 2. CONFIRMED -> PROCESSING
@@ -144,7 +272,8 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     if (!this.order) return;
     const ok = this.ordersService.startProcessing(this.order.id, 'Thủ kho Hoàng Sơn');
     if (ok) {
-      this.triggerToast('Chuyển kho chuẩn bị thành công!', 'Đã xuất phiếu nhặt hàng (Pick-list) cho nhân viên kho.', 'success');
+      this.triggerToast('Chuyển kho chuẩn bị thành công!', 'Đã in phiếu soạn hàng cho nhân viên kho.', 'success');
+      this.scrollToTop();
     }
   }
 
@@ -156,6 +285,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.finishPackaging(this.order.id, this.checklist, 'Thủ kho Hoàng Sơn');
     if (ok) {
       this.triggerToast('Hoàn tất đóng gói!', 'Đã kiểm định QC 4 bước, dán nhãn niêm phong và sẵn sàng bàn giao cho đơn vị vận chuyển.', 'success');
+      this.scrollToTop();
     }
   }
 
@@ -169,6 +299,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     }, 'Bộ phận Điều phối Kho');
     if (ok) {
       this.triggerToast('Xuất kho thành công!', `Đã bàn giao hàng cho tài xế/ĐVC với mã vận đơn ${tracking}.`, 'success');
+      this.scrollToTop();
     }
   }
 
@@ -178,6 +309,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.markDelivered(this.order.id, 'Tài xế DCOR Express');
     if (ok) {
       this.triggerToast('Giao hàng thành công!', 'Khách đã ký nhận. Hệ thống kích hoạt đếm ngược 72 giờ khiếu nại đổi trả.', 'success');
+      this.scrollToTop();
     }
   }
 
@@ -188,6 +320,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.markDeliveryFailed(this.order.id, reason, 'Tài xế DCOR Express');
     if (ok) {
       this.triggerToast('Ghi nhận giao thất bại!', `Đã lưu lý do và lên lịch hẹn hỗ trợ giao lại.`, 'info');
+      this.scrollToTop();
     }
   }
 
@@ -198,6 +331,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.rescheduleDelivery(this.order.id, note, 'Điều phối viên DCOR');
     if (ok) {
       this.triggerToast('Đã lên lịch giao lại!', 'Đơn hàng đã được đưa lại vào ca giao tiếp theo của đội vận tải.', 'success');
+      this.scrollToTop();
     }
   }
 
@@ -207,6 +341,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.completeOrder(this.order.id, 'Admin Trần');
     if (ok) {
       this.triggerToast('Đơn hàng đã Hoàn tất!', 'Khóa hồ sơ đơn hàng, kích hoạt chính sách bảo hành 2 năm và ghi nhận doanh thu.', 'success');
+      this.scrollToTop();
     }
   }
 
@@ -220,6 +355,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
       type: 'REFUND'
     });
     this.triggerToast('Giả lập khiếu nại thành công!', 'Đơn hàng đã chuyển sang nhánh RETURN_REQUESTED (Yêu cầu trả hàng).', 'info');
+    this.scrollToTop();
   }
 
   // 7. RETURN_REQUESTED -> RETURNING
@@ -228,6 +364,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.approveReturn(this.order.id, 'Chấp thuận đổi trả và điều phối xe lấy hàng', 'CSKH DCOR');
     if (ok) {
       this.triggerToast('Chấp thuận yêu cầu đổi trả!', 'Đã hướng dẫn khách đóng gói lại và cử xe tải DCOR Express qua thu hồi sản phẩm.', 'success');
+      this.scrollToTop();
     }
   }
 
@@ -242,6 +379,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     this.showRejectReturnModal = false;
     if (ok) {
       this.triggerToast('Đã từ chối yêu cầu đổi trả!', 'Đã gửi email giải thích lý do cho khách hàng và hoàn tất đơn hàng.', 'info');
+      this.scrollToTop();
     }
   }
 
@@ -258,6 +396,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.receiveReturnQC(this.order.id, qcReport, 'Thủ kho Hoàng Sơn');
     if (ok) {
       this.triggerToast('Tiếp nhận & QC hàng hoàn tất!', 'Đã chuyển lệnh hoàn tiền 100% sang phòng Kế toán.', 'success');
+      this.scrollToTop();
     }
   }
 
@@ -268,6 +407,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     const ok = this.ordersService.refundOrder(this.order.id, txCode, 'Kế toán trưởng DCOR');
     if (ok) {
       this.triggerToast('Hoàn tiền thành công!', `Đã chuyển khoản hoàn tiền cho khách qua mã GD ${txCode}.`, 'success');
+      this.scrollToTop();
     }
   }
 
@@ -283,6 +423,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     this.showCancelModal = false;
     if (ok) {
       this.triggerToast('Đã hủy đơn hàng!', `Lý do hủy: ${reason}.`, 'info');
+      this.scrollToTop();
     }
   }
 
@@ -291,19 +432,42 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     window.print();
   }
 
-  // View customer details (pending Customer module)
+  // View customer details (navigate to Customers module)
   onViewCustomerDetail() {
-    this.triggerToast(
-      'Module Khách hàng',
-      'Đang chuẩn bị liên kết... Vui lòng đợi hoàn thành module Khách hàng!',
-      'info'
-    );
-    alert('Vui lòng đợi hoàn thành module Khách hàng nhé!');
+    this.router.navigate(['/admin/customers']);
   }
 
   // --- HELPERS ---
   formatVND(value: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+  }
+
+  getPaymentMethodLabel(method?: string): string {
+    switch (method) {
+      case 'BANK_TRANSFER': return 'Chuyển khoản ngân hàng';
+      case 'COD': return 'Thanh toán khi nhận hàng (COD)';
+      case 'VNPAY': return 'Cổng thanh toán VNPAY';
+      case 'CREDIT_CARD': return 'Thẻ tín dụng / Ghi nợ';
+      case 'INSTALLMENT': return 'Trả góp 0%';
+      default: return method || '---';
+    }
+  }
+
+  getPaymentStatusLabel(status?: string, order?: OrderV2): string {
+    switch (status) {
+      case 'UNPAID': return 'Chưa thanh toán';
+      case 'PARTIAL': {
+        let percent = 30;
+        if (order && order.depositPaid && order.totalAmount) {
+          percent = Math.round((order.depositPaid / order.totalAmount) * 100);
+        }
+        return `Đã đặt cọc (${percent}%)`;
+      }
+      case 'PAID': return 'Đã thanh toán đủ';
+      case 'REFUND_PENDING': return 'Chờ hoàn tiền';
+      case 'REFUNDED': return 'Đã hoàn tiền';
+      default: return status || '---';
+    }
   }
 
   formatDate(dateStr?: string): string {
@@ -329,20 +493,40 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     });
   }
 
-  // Admin Pipeline Stepper Helpers
+  formatAuditTime(dateStr?: string): string {
+    if (!dateStr) return '---';
+    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    let d: Date;
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = parseInt(match[3], 10);
+      const hour = match[4] ? parseInt(match[4], 10) : 0;
+      const min = match[5] ? parseInt(match[5], 10) : 0;
+      const sec = match[6] ? parseInt(match[6], 10) : 0;
+      d = new Date(year, month, day, hour, min, sec);
+    } else {
+      d = new Date(dateStr);
+    }
+    if (isNaN(d.getTime())) return dateStr;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+
+  // Admin Pipeline Stepper Helpers (Chuẩn hóa 6 bước: Gộp Pending & Confirmed thành bước 1: Xác nhận đơn)
   getAdminStepIndex(status?: AdminOrderStatus): number {
     switch (status) {
       case 'PENDING': return 0;
-      case 'CONFIRMED': return 1;
-      case 'PROCESSING': return 2;
-      case 'READY_TO_SHIP': return 3;
-      case 'SHIPPED': return 4;
-      case 'FAILED_DELIVERY': return 4;
-      case 'DELIVERED': return 5;
+      case 'CONFIRMED':
+      case 'PROCESSING': return 1;
+      case 'READY_TO_SHIP': return 2;
+      case 'SHIPPED':
+      case 'FAILED_DELIVERY': return 3;
+      case 'DELIVERED':
       case 'RETURN_REQUESTED':
       case 'RETURNING':
-      case 'RETURNED': return 5;
-      case 'COMPLETED': return 6;
+      case 'RETURNED': return 4;
+      case 'COMPLETED': return 5;
       case 'CANCELLED': return -1;
       default: return 0;
     }
@@ -366,16 +550,24 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     return false;
   }
 
+  // Khóa checkbox QC chỉ khi đơn hàng đã hoàn tất hoặc bị hủy
+  get isQcLocked(): boolean {
+    if (!this.order) return true;
+    if (this.order.status === 'COMPLETED' || this.order.status === 'CANCELLED') return true;
+    return false;
+  }
+
+  // Tự động lưu trạng thái checklist QC khi người dùng check/uncheck
+  onQcChange(): void {
+    if (this.order) {
+      this.ordersService.updateQcChecklist(this.order.id, this.checklist);
+    }
+  }
+
   onStepClick(stepIndex: number) {
     if (!this.order) return;
     if (this.isStepDone(stepIndex)) {
       this.viewingStepIndex = stepIndex;
-      const step = this.STEP_CONFIG[stepIndex];
-      this.triggerToast(
-        `Xem lại bước: ${step.en} (${step.vi})`,
-        'Dữ liệu ở bước này đã hoàn tất và được khóa bảo vệ (Chế độ chỉ đọc).',
-        'info'
-      );
     } else if (this.isStepActive(stepIndex)) {
       this.viewingStepIndex = null;
     }
@@ -411,7 +603,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     if (!this.order) return false;
     const current = this.getAdminStepIndex(this.order.status);
     if (current === -1) return false; // cancelled
-    if (current === 6) return true;   // completed
+    if (current === 5) return true;   // completed
     return current > stepIndex;
   }
 

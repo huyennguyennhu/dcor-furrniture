@@ -317,15 +317,21 @@ model Order {
   hideInvoicePrice Boolean  @default(false)
   
   // TÀI CHÍNH (BigInt cho chống tràn với B2B)
-  subTotal         BigInt
-  shippingFee      BigInt
-  discountAmount   BigInt   @default(0)
-  totalAmount      BigInt
-  promoCode        String?  
+  subTotal            BigInt
+  shippingFee         BigInt
+  discountAmount      BigInt        @default(0)
+  totalAmount         BigInt
+  promoCode           String?  
   
-  status           OrderStatus   @default(PENDING)
-  paymentMethod    PaymentMethod 
-  paymentStatus    PaymentStatus @default(UNPAID)
+  // Điều kiện Đặt cọc & Thanh toán
+  isDepositRequired   Boolean       @default(false)
+  depositRequired     BigInt        @default(0)
+  depositPaid         BigInt        @default(0)
+  paymentHoldReason   String?       @default("NONE") // NONE | AWAITING_PAYMENT | AWAITING_DEPOSIT
+  
+  status              OrderStatus   @default(PENDING)
+  paymentMethod       PaymentMethod 
+  paymentStatus       PaymentStatus @default(UNPAID)
   
   notes            String?  @db.Text
   internalNotes    String?  @db.Text
