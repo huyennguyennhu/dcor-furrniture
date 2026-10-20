@@ -91,7 +91,7 @@ export const authController = {
           type: 'STAFF' 
         },
         JWT_SECRET,
-        { expiresIn: '1d' } // Token hết hạn sau 1 ngày
+        { expiresIn: '4h' } // Token hết hạn sau 4 tiếng (Quy định phiên làm việc)
       );
 
       res.status(200).json({
@@ -186,7 +186,7 @@ export const authController = {
           type: 'STAFF' 
         },
         JWT_SECRET,
-        { expiresIn: '1d' }
+        { expiresIn: '4h' }
       );
 
       res.status(200).json({ 

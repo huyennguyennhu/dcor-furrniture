@@ -1,330 +1,624 @@
-<div>
-  <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start;">
+<div class="categories-page-container">
+  
+  <!-- =========================================================================
+       1. HEADER BREADCRUMB & TOP ACTIONS
+       ========================================================================= -->
+  <div class="categories-header">
     <div>
-      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Quản lý Danh mục</h1>
-      <p style="color: var(--text-secondary);">Thiết lập các thuộc tính phân loại sản phẩm để hỗ trợ tìm kiếm và lọc dữ liệu.</p>
-    </div>
-    <button 
-      (click)="isAddTypeOpen = true"
-      class="admin-btn admin-btn-primary"
-    >
-      <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
-      Thêm loại
-    </button>
-  </div>
-
-  <app-admin-page-tabs [tabs]="TABS" [activeTab]="activeTab" (tabChange)="onTabChange($event)"></app-admin-page-tabs>
-
-  <div style="display: flex; gap: 16px; margin-bottom: 24px; justify-content: space-between;">
-    <div class="admin-search-wrapper" style="width: 300px; padding: 10px 16px; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-      <input 
-        type="text" 
-        placeholder="Tìm kiếm danh mục..." 
-        [(ngModel)]="search"
-        style="border: none; background: transparent; outline: none; font-size: 14px; color: var(--text-primary); width: 100%;"
-      />
+      <div class="breadcrumb-trail">
+        <a [routerLink]="['/admin/products']">Sản phẩm</a>
+        <span class="sep">/</span>
+        <span class="current">Danh mục & Phân loại</span>
+      </div>
+      <h1 class="page-title">Quản lý Danh mục & Nhóm Phân loại</h1>
+      <p class="page-subtitle">Thiết lập cây thư mục sản phẩm chính, phân loại không gian phòng, bộ sưu tập, phong cách và chất liệu.</p>
     </div>
 
-    <div style="display: flex; gap: 12px; align-items: center;">
+    <div class="header-actions">
+      <!-- Nút Làm mới -->
       <button 
-        *ngIf="selectedKeys.size > 0"
-        (click)="deleteSelected()"
-        class="admin-btn"
-        style="background: #ef4444; color: white; border: 1px solid #ef4444; display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 40px; border-radius: 8px; font-weight: 600;"
-      >
-        <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular>
-        Xóa danh mục ({{ selectedKeys.size }})
+        type="button" 
+        class="admin-btn admin-btn-secondary" 
+        (click)="loadCategories()"
+        title="Tải lại danh mục">
+        <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
+        <span>Làm mới</span>
       </button>
+
+      <!-- Nút Thêm mới theo Tab hiện tại -->
       <button 
-        (click)="openCategoryModal('add')"
-        class="admin-btn admin-btn-primary"
-        style="display: flex; align-items: center; gap: 8px; height: 40px;"
-      >
+        type="button" 
+        class="admin-btn admin-btn-primary" 
+        (click)="openAddModal()">
         <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
-        Thêm danh mục
+        <span>+ Thêm mới {{ activeGroupLabel }}</span>
       </button>
     </div>
   </div>
 
-  <div *ngIf="loading" style="padding: 40px; text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</div>
+  <!-- =========================================================================
+       2. THANH TAB CHUYỂN ĐỔI 5 NHÓM PHÂN LOẠI
+       ========================================================================= -->
+  <nav class="group-tabs-nav" aria-label="Chuyển đổi nhóm phân loại">
+    <button 
+      type="button" 
+      class="group-tab-btn" 
+      *ngFor="let tab of groupTabs"
+      [class.active]="activeTab === tab.id"
+      (click)="setTab(tab.id)">
+      <lucide-angular [img]="tab.icon" size="16" class="tab-icon"></lucide-angular>
+      <span>{{ tab.label }}</span>
+      <span class="tab-count-badge">{{ getCountByGroup(tab.id) }}</span>
+    </button>
+  </nav>
 
-  <div *ngIf="!loading" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
-    <div style="width: 100%; overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+  <!-- =========================================================================
+       3. THANH TÌM KIẾM & BỘ LỌC
+       ========================================================================= -->
+  <div class="filter-bar-card">
+    <div class="filter-row">
+      <!-- Ô tìm kiếm -->
+      <div class="search-input-box">
+        <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Tìm theo tên danh mục, đường dẫn tĩnh slug..." 
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="applyFilters()"
+        />
+        <button 
+          type="button" 
+          class="clear-search-btn" 
+          *ngIf="searchQuery" 
+          (click)="searchQuery = ''; applyFilters()">
+          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- Dropdown Lọc trạng thái -->
+      <div class="status-filter-wrap">
+        <select class="form-select" [(ngModel)]="statusFilter" (change)="applyFilters()">
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="Hiển thị">Chỉ mục Hiển thị</option>
+          <option value="Đã ẩn">Chỉ mục Đã ẩn</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       4. BẢNG DỮ LIỆU DANH MỤC & PHÂN CẤP
+       ========================================================================= -->
+  <section class="categories-table-card">
+    <div class="table-responsive">
+      <table class="data-table">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 40px; text-align: center;">
-              <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll($event)" style="cursor: pointer;" />
-            </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tên danh mục</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Số lượng sản phẩm</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Thứ tự hiển thị</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Trạng thái</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;"></th>
+          <tr>
+            <th style="width: 70px; text-align: center;">STT</th>
+            <th style="width: 65px;">Ảnh</th>
+            <th>Tên & Cấu trúc phân cấp</th>
+            <th style="width: 220px;">Đường dẫn tĩnh (Slug)</th>
+            <th style="width: 140px; text-align: center;">Số sản phẩm</th>
+            <th style="width: 140px; text-align: center;">Trạng thái</th>
+            <th style="width: 120px; text-align: right;">Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of filtered" 
-              style="border-bottom: 1px solid var(--border-color);"
-              onmouseover="this.style.background='var(--bg-tertiary)'" 
-              onmouseout="this.style.background='transparent'">
-            
-            <td style="padding: 16px; text-align: center;">
-              <input type="checkbox" [checked]="selectedKeys.has(item.id)" (change)="toggleSelection(item.id, $event)" style="cursor: pointer;" />
-            </td>
-
-            <td style="padding: 16px;">
-              <div style="font-weight: 600; color: var(--text-primary);">{{ item.name }}</div>
-              <div style="font-size: 12px; color: var(--text-muted);">/{{ item.slug }}</div>
-            </td>
-
-            <td style="padding: 16px;">
-              <span>{{ item.productsCount }} SP</span>
-            </td>
-
-            <td style="padding: 16px;">
-              <span>{{ item.order }}</span>
-            </td>
-
-            <td style="padding: 16px;">
-              <span [ngStyle]="{
-                'padding': '4px 8px',
-                'border-radius': '4px',
-                'font-size': '12px',
-                'font-weight': 600,
-                'background': item.status === 'Hiển thị' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-                'color': item.status === 'Hiển thị' ? '#10b981' : '#64748b'
-              }">
-                {{ item.status }}
-              </span>
-            </td>
-
-            <td style="padding: 16px; position: relative;">
-              <button (click)="toggleActionMenu(item.id, $event)" class="action-menu-container" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='transparent'">
-                <app-icon name="MoreVertical" size="16"></app-icon>
-              </button>
-
-              <div *ngIf="activeActionMenu === item.id" class="action-menu-container" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; position: absolute; right: 0; top: 40px; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); min-width: 160px; display: flex; flex-direction: column;">
-                <button (click)="openCategoryModal('edit', item)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: var(--text-primary);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Chỉnh sửa</button>
-                <button (click)="handleToggleStatus(item)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: var(--text-primary);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                  {{ item.status === 'Hiển thị' ? 'Ẩn danh mục' : 'Hiển thị danh mục' }}
-                </button>
-                <button (click)="activeActionMenu = null" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: var(--text-primary);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Xem sản phẩm</button>
-                <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
-                <button (click)="handleDeleteCategory(item)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; border-radius: 4px; color: #ef4444;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Xóa</button>
+          <!-- Empty State -->
+          <tr *ngIf="rootCategories.length === 0" class="empty-row">
+            <td colspan="7">
+              <div class="empty-state-box">
+                <lucide-angular [img]="icons.Folder" size="36" class="empty-icon"></lucide-angular>
+                <h3>Chưa có mục nào trong nhóm này</h3>
+                <p>Nhấn nút "+ Thêm mới {{ activeGroupLabel }}" ở trên để khởi tạo.</p>
               </div>
             </td>
+          </tr>
 
-          </tr>
-          <tr *ngIf="filtered.length === 0">
-            <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">Không tìm thấy danh mục nào.</td>
-          </tr>
+          <!-- Lặp danh mục gốc (Cấp 1) -->
+          <ng-container *ngFor="let item of rootCategories; let idx = index">
+            <tr 
+              class="category-row root-row"
+              [class.has-children]="getSubcategories(item.id).length > 0"
+              [class.row-expanded]="isExpanded(item.id)"
+              [class.row-hidden]="item.status === 'Đã ẩn'">
+              
+              <!-- Cột STT bình thường -->
+              <td style="text-align: center;">
+                <span class="stt-badge font-bold">#{{ idx + 1 }}</span>
+              </td>
+
+              <!-- Cột Ảnh đại diện -->
+              <td>
+                <div class="cat-thumb-wrap">
+                  <img [src]="item.image" [alt]="item.name" loading="lazy" />
+                </div>
+              </td>
+
+              <!-- Cột Tên & Nút ấn mở danh mục con -->
+              <td>
+                <div class="name-cell-wrap">
+                  <!-- Nút bấm mở rộng danh mục con -->
+                  <button 
+                    type="button" 
+                    class="expand-chevron-btn" 
+                    *ngIf="getSubcategories(item.id).length > 0"
+                    (click)="toggleExpand(item.id, $event)"
+                    [title]="isExpanded(item.id) ? 'Thu gọn danh mục con' : 'Xem danh mục con'">
+                    <lucide-angular [img]="icons.ChevronRight" size="15" [class.rotated]="isExpanded(item.id)"></lucide-angular>
+                  </button>
+                  <span class="expand-spacer" *ngIf="getSubcategories(item.id).length === 0"></span>
+
+                  <div class="name-text-group">
+                    <div class="cat-title-row">
+                      <span class="cat-name-text font-bold" (click)="toggleExpand(item.id, $event)" style="cursor: pointer;">
+                        {{ item.name }}
+                      </span>
+                      <!-- Badge số lượng danh mục con được gộp -->
+                      <span 
+                        class="children-count-pill" 
+                        *ngIf="getSubcategories(item.id).length > 0"
+                        (click)="toggleExpand(item.id, $event)"
+                        title="Bấm để xem các danh mục con">
+                        {{ getSubcategories(item.id).length }} danh mục con
+                      </span>
+                    </div>
+                    <div class="cat-desc-text" *ngIf="item.description">
+                      {{ item.description }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Cột Slug tĩnh -->
+              <td>
+                <span class="slug-badge font-mono">{{ item.slug }}</span>
+              </td>
+
+              <!-- Cột Số lượng sản phẩm liên kết -->
+              <td style="text-align: center;">
+                <span 
+                  class="products-count-badge"
+                  [class.has-products]="item.productsCount > 0"
+                  [class.zero-products]="item.productsCount === 0"
+                  [title]="item.productsCount > 0 ? (item.productsCount + ' sản phẩm đang liên kết') : 'Chưa có sản phẩm nào'">
+                  {{ item.productsCount }} sản phẩm
+                </span>
+              </td>
+
+              <!-- Cột Trạng thái (Bấm có cảnh báo xác nhận) -->
+              <td style="text-align: center;">
+                <div class="status-cell-wrap">
+                  <button 
+                    type="button" 
+                    class="status-toggle-badge"
+                    [class.status-active]="item.status === 'Hiển thị'"
+                    [class.status-hidden]="item.status === 'Đã ẩn'"
+                    (click)="requestToggleStatus(item, $event)"
+                    title="Nhấn để đổi trạng thái (Có xác nhận bảo vệ)">
+                    <span class="status-dot"></span>
+                    <span>{{ item.status }}</span>
+                  </button>
+                </div>
+              </td>
+
+              <!-- Cột Thao tác -->
+              <td style="text-align: right;">
+                <div class="row-actions">
+                  <button 
+                    type="button" 
+                    class="action-btn edit-btn" 
+                    (click)="openEditModal(item, $event)"
+                    title="Chỉnh sửa thông tin">
+                    <lucide-angular [img]="icons.Edit" size="15"></lucide-angular>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="action-btn delete-btn" 
+                    (click)="handleDeleteClick(item, $event)"
+                    [title]="item.productsCount > 0 ? 'Có sản phẩm liên kết - Không thể xóa' : 'Xóa mục này'">
+                    <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                  </button>
+                </div>
+              </td>
+
+            </tr>
+
+            <!-- CÁC DÒNG DANH MỤC CON ĐƯỢC GỘP (HIỂN THỊ KHI ẤN VÀO DANH MỤC CHA) -->
+            <ng-container *ngIf="isExpanded(item.id)">
+              <tr 
+                *ngFor="let child of getSubcategories(item.id); let childIdx = index"
+                class="category-row child-row"
+                [class.row-hidden]="child.status === 'Đã ẩn'">
+                
+                <!-- STT con (ví dụ: 1.1, 1.2) -->
+                <td style="text-align: center;">
+                  <span class="sub-stt-badge">{{ idx + 1 }}.{{ childIdx + 1 }}</span>
+                </td>
+
+                <!-- Ảnh con -->
+                <td>
+                  <div class="cat-thumb-wrap child-thumb">
+                    <img [src]="child.image" [alt]="child.name" loading="lazy" />
+                  </div>
+                </td>
+
+                <!-- Tên con kèm nhánh gạch phân cấp -->
+                <td>
+                  <div class="name-cell-wrap child-indent">
+                    <div class="tree-branch">
+                      <lucide-angular [img]="icons.CornerDownRight" size="15" class="branch-icon"></lucide-angular>
+                    </div>
+                    <div class="name-text-group">
+                      <div class="cat-title-row">
+                        <span class="cat-name-text child-name">{{ child.name }}</span>
+                        <span class="parent-tag">Thuộc: {{ item.name }}</span>
+                      </div>
+                      <div class="cat-desc-text" *ngIf="child.description">
+                        {{ child.description }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Slug con -->
+                <td>
+                  <span class="slug-badge font-mono child-slug">{{ child.slug }}</span>
+                </td>
+
+                <!-- SP con -->
+                <td style="text-align: center;">
+                  <span 
+                    class="products-count-badge"
+                    [class.has-products]="child.productsCount > 0"
+                    [class.zero-products]="child.productsCount === 0">
+                    {{ child.productsCount }} sản phẩm
+                  </span>
+                </td>
+
+                <!-- Trạng thái con (Có cảnh báo xác nhận) -->
+                <td style="text-align: center;">
+                  <div class="status-cell-wrap">
+                    <button 
+                      type="button" 
+                      class="status-toggle-badge"
+                      [class.status-active]="child.status === 'Hiển thị'"
+                      [class.status-hidden]="child.status === 'Đã ẩn'"
+                      (click)="requestToggleStatus(child, $event)"
+                      title="Nhấn để đổi trạng thái">
+                      <span class="status-dot"></span>
+                      <span>{{ child.status }}</span>
+                    </button>
+                  </div>
+                </td>
+
+                <!-- Thao tác con -->
+                <td style="text-align: right;">
+                  <div class="row-actions">
+                    <button 
+                      type="button" 
+                      class="action-btn edit-btn" 
+                      (click)="openEditModal(child, $event)"
+                      title="Chỉnh sửa thông tin">
+                      <lucide-angular [img]="icons.Edit" size="15"></lucide-angular>
+                    </button>
+
+                    <button 
+                      type="button" 
+                      class="action-btn delete-btn" 
+                      (click)="handleDeleteClick(child, $event)"
+                      [title]="child.productsCount > 0 ? 'Có sản phẩm liên kết - Không thể xóa' : 'Xóa mục này'">
+                      <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                    </button>
+                  </div>
+                </td>
+
+              </tr>
+            </ng-container>
+          </ng-container>
         </tbody>
       </table>
     </div>
-  </div>
 
-  <!-- Modal Thêm Loại Danh Mục -->
-  <div *ngIf="isAddTypeOpen" style="position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
-    <div (click)="isAddTypeOpen = false; resetTypeForm();" style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"></div>
-    <div style="background: var(--bg-secondary); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); position: relative; z-index: 1001; display: flex; flex-direction: column; width: 100%; max-width: 500px; max-height: calc(100vh - 40px);">
-      <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">Thêm loại danh mục mới</h2>
-        <button (click)="isAddTypeOpen = false; resetTypeForm();" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-          <app-icon name="X" size="20"></app-icon>
+    <!-- Footer Summary -->
+    <div class="table-footer-bar">
+      <span>Tổng số trong nhóm <strong>{{ activeGroupLabel }}</strong>: <strong>{{ filteredCategories.length }}</strong> mục</span>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       5. MODAL THÊM / CHỈNH SỬA DANH MỤC (FORM MODAL)
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-dialog modal-md" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 class="modal-title">
+            {{ modalMode === 'add' ? ('+ Thêm mới ' + activeGroupLabel) : ('Chỉnh sửa: ' + formData.name) }}
+          </h3>
+          <p class="modal-subtitle">Điền thông tin và cấu trúc phân cấp hiển thị ngoài cửa hàng DCor.</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeModal()">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
         </button>
       </div>
-      
-      <div style="padding: 24px; overflow-y: auto;">
-        <div style="display: flex; flex-direction: column; gap: 16px;">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Tên loại <span style="color: red;">*</span></label>
+
+      <div class="modal-body">
+        
+        <!-- Tên danh mục -->
+        <div class="form-group">
+          <label class="form-label" for="cat-name-input">
+            Tên {{ activeGroupLabel }} <span class="required-star">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="cat-name-input"
+            class="form-control" 
+            [class.is-invalid]="formErrors['name']"
+            placeholder="Ví dụ: Sofa & Ghế bành, Phòng khách, Bộ sưu tập Como..."
+            [(ngModel)]="formData.name"
+            (ngModelChange)="onNameInput()"
+          />
+          <span class="field-error" *ngIf="formErrors['name']">{{ formErrors['name'] }}</span>
+        </div>
+
+        <!-- Đường dẫn tĩnh (Slug) - Tự động sinh -->
+        <div class="form-group">
+          <label class="form-label" for="cat-slug-input">
+            Đường dẫn tĩnh (Slug) <span class="required-star">*</span>
+          </label>
+          <div class="slug-input-wrap">
+            <span class="slug-prefix">dcor.vn/catalog/</span>
             <input 
               type="text" 
-              placeholder="VD: Không gian, Màu sắc..." 
-              [ngModel]="newTypeName"
-              (ngModelChange)="handleTypeNameChange($event)"
-              class="admin-input" 
-              [ngStyle]="typeNameError ? { 'border-color': 'red' } : {}"
+              id="cat-slug-input"
+              class="form-control font-mono" 
+              [class.is-invalid]="formErrors['slug']"
+              placeholder="duong-dan-tinh"
+              [(ngModel)]="formData.slug"
+              (input)="onSlugInput()"
             />
-            <div *ngIf="typeNameError" style="color: red; font-size: 12px; margin-top: 4px;">{{ typeNameError }}</div>
           </div>
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Mã (ID) <span style="color: red;">*</span></label>
+          <span class="field-hint">Được tự động sinh từ tên tiếng Việt, có thể sửa đổi nếu cần.</span>
+          <span class="field-error" *ngIf="formErrors['slug']">{{ formErrors['slug'] }}</span>
+        </div>
+
+        <!-- Chọn Danh mục cha (Chỉ áp dụng khi activeTab === 'main') -->
+        <div class="form-group" *ngIf="activeTab === 'main'">
+          <label class="form-label" for="cat-parent-select">
+            Danh mục cha (Tạo phân cấp)
+          </label>
+          <select 
+            id="cat-parent-select"
+            class="form-control" 
+            [(ngModel)]="formData.parentId">
+            <option [ngValue]="null">-- Không có (Danh mục gốc cấp 1) --</option>
+            <option *ngFor="let p of availableParentCategories" [value]="p.id">
+              {{ p.name }}
+            </option>
+          </select>
+          <span class="field-hint">Chọn danh mục cha để tạo cấu trúc nhánh con (Sub-category).</span>
+        </div>
+
+        <!-- Thứ tự & Trạng thái -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="cat-order-input">Thứ tự hiển thị</label>
             <input 
-              type="text" 
-              placeholder="VD: space, color..." 
-              [ngModel]="newTypeId"
-              (ngModelChange)="handleTypeIdChange($event)"
-              class="admin-input"
-              [ngStyle]="typeIdError ? { 'border-color': 'red' } : {}"
+              type="number" 
+              id="cat-order-input"
+              class="form-control" 
+              [(ngModel)]="formData.sortOrder" 
+              min="1"
             />
-            <div *ngIf="typeIdError" style="color: red; font-size: 12px; margin-top: 4px;">{{ typeIdError }}</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Trạng thái xuất bản</label>
+            <select class="form-control font-semibold" [(ngModel)]="formData.status">
+              <option value="Hiển thị">Hiển thị trực tuyến</option>
+              <option value="Đã ẩn">Đã ẩn (Tạm khóa)</option>
+            </select>
           </div>
         </div>
+
+        <!-- Ảnh đại diện danh mục -->
+        <div class="form-group">
+          <label class="form-label" for="cat-img-input">Ảnh đại diện danh mục</label>
+          <div class="img-input-row">
+            <input 
+              type="text" 
+              id="cat-img-input"
+              class="form-control" 
+              placeholder="Nhập đường dẫn URL ảnh (Unsplash, Cloudinary...)"
+              [(ngModel)]="formData.image"
+            />
+            <div class="img-preview-mini" *ngIf="formData.image">
+              <img [src]="formData.image" alt="" />
+            </div>
+          </div>
+          <!-- Gợi ý ảnh nhanh -->
+          <div class="sample-images-bar">
+            <span class="sample-label">Gợi ý ảnh:</span>
+            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80')">Sofa</button>
+            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80')">Bàn trà</button>
+            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80')">Phòng ngủ</button>
+            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=300&q=80')">Bàn ăn</button>
+          </div>
+        </div>
+
+        <!-- Mô tả ngắn -->
+        <div class="form-group">
+          <label class="form-label" for="cat-desc-input">Mô tả ngắn</label>
+          <textarea 
+            id="cat-desc-input"
+            class="form-control form-textarea" 
+            rows="3"
+            placeholder="Mô tả tóm tắt ý nghĩa và định vị của nhóm phân loại này..."
+            [(ngModel)]="formData.description">
+          </textarea>
+        </div>
+
       </div>
-      
-      <div style="padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px;">
-        <button (click)="isAddTypeOpen = false; resetTypeForm();" class="admin-btn admin-btn-secondary">Hủy</button>
-        <button class="admin-btn admin-btn-primary" [disabled]="!!typeIdError || !!typeNameError || !newTypeName || !newTypeId">Lưu loại danh mục</button>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeModal()">
+          Hủy bỏ
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveCategory()">
+          <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
+          <span>Lưu {{ activeGroupLabel }}</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Danh Mục (Thêm/Sửa/Xem) -->
-  <div *ngIf="isCategoryModalOpen" style="position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
-    <div (click)="isCategoryModalOpen = false; resetCatForm();" style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);"></div>
-    <div style="background: var(--bg-secondary); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); position: relative; z-index: 1001; display: flex; flex-direction: column; width: 100%; max-width: 600px; max-height: calc(100vh - 40px);">
-      <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">{{ categoryModalMode === 'add' ? 'Thêm danh mục mới' : categoryModalMode === 'edit' ? 'Chỉnh sửa danh mục' : 'Xem chi tiết danh mục' }}</h2>
-        <button (click)="isCategoryModalOpen = false; resetCatForm();" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-          <app-icon name="X" size="20"></app-icon>
-        </button>
-      </div>
-      
-      <div style="padding: 24px; overflow-y: auto;">
-        <div style="display: flex; flex-direction: column; gap: 16px;" [ngStyle]="{'opacity': categoryModalMode === 'view' ? 0.8 : 1, 'pointer-events': categoryModalMode === 'view' ? 'none' : 'auto'}">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Thuộc loại <span style="color: red;">*</span></label>
-            <div style="position: relative;" #typeDropdownRef>
-              <div 
-                (click)="categoryModalMode !== 'view' && (showTypeDropdown = !showTypeDropdown); showStatusDropdown = false"
-                class="admin-input"
-                style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
-                [ngStyle]="{'border-color': showTypeDropdown ? 'var(--accent)' : 'var(--border-color)'}"
-              >
-                <span>{{ getTabLabel(newCatType) }}</span>
-                <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTypeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-              </div>
-              <div *ngIf="showTypeDropdown" style="position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; padding: 4px;">
-                <div *ngFor="let tab of TABS" 
-                  (click)="newCatType = tab.id; showTypeDropdown = false"
-                  style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
-                  [ngStyle]="{'color': newCatType === tab.id ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': newCatType === tab.id ? 600 : 400}"
-                  onmouseover="this.style.background='var(--bg-tertiary)'"
-                  onmouseout="this.style.background='transparent'"
-                >
-                  {{ tab.label }}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 16px;">
-            <div style="flex: 1;">
-              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Tên danh mục <span style="color: red;">*</span></label>
-              <input 
-                type="text" 
-                placeholder="Nhập tên..." 
-                [ngModel]="newCatName"
-                (ngModelChange)="handleCatNameChange($event)"
-                class="admin-input" 
-                [ngStyle]="catNameError ? { 'border-color': 'red' } : {}"
-                [readOnly]="categoryModalMode === 'view'"
-              />
-              <div *ngIf="catNameError" style="color: red; font-size: 12px; margin-top: 4px;">{{ catNameError }}</div>
-            </div>
-            <div style="flex: 1;">
-              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Đường dẫn (Slug)</label>
-              <input 
-                type="text" 
-                placeholder="Tự động tạo..." 
-                [ngModel]="newCatSlug"
-                (ngModelChange)="handleCatSlugChange($event)"
-                class="admin-input"
-                [ngStyle]="catSlugError ? { 'border-color': 'red' } : {}"
-                [readOnly]="categoryModalMode === 'view'"
-              />
-              <div *ngIf="catSlugError" style="color: red; font-size: 12px; margin-top: 4px;">{{ catSlugError }}</div>
-            </div>
-          </div>
-
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Ảnh minh họa</label>
-            <div 
-              (click)="categoryModalMode !== 'view' && fileInput.click()"
-              style="border: 1px dashed var(--border-color); border-radius: 8px; padding: 32px; text-align: center; cursor: pointer; background: var(--bg-secondary); display: flex; flex-direction: column; align-items: center; gap: 8px;"
-            >
-              <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--bg-primary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
-                <lucide-angular [img]="icons.Plus" size="20"></lucide-angular>
-              </div>
-              <span style="font-size: 13px; color: var(--text-muted);">Click hoặc kéo thả ảnh vào đây</span>
-              <input type="file" #fileInput accept="image/*" style="display: none;" />
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="flex: 1;">
-              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Thứ tự hiển thị</label>
-              <input 
-                type="number" 
-                [(ngModel)]="newCatOrder"
-                class="admin-input" 
-                [readOnly]="categoryModalMode === 'view'"
-              />
-              <button 
-                type="button" 
-                (click)="showOrderDetails = !showOrderDetails"
-                style="background: none; border: none; color: var(--accent); font-size: 12px; margin-top: 8px; cursor: pointer; text-decoration: underline; padding: 0;"
-              >
-                {{ showOrderDetails ? 'Ẩn chi tiết' : 'Xem chi tiết thứ tự hiện tại' }}
-              </button>
-              <div *ngIf="showOrderDetails" style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px;">
-                <div style="margin-bottom: 8px; font-weight: 600;">Thứ tự hiện tại ({{ getTabLabel(newCatType) }}):</div>
-                <div style="max-height: 120px; overflow-y: auto; padding-right: 4px;">
-                  <div *ngFor="let c of getSortedCategoriesForOrder()" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
-                    <span style="color: var(--text-secondary);">{{ c.name }}</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">{{ c.order }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style="flex: 1;">
-              <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">Trạng thái</label>
-              <div style="position: relative;" #statusDropdownRef>
-                <div 
-                  (click)="categoryModalMode !== 'view' && (showStatusDropdown = !showStatusDropdown); showTypeDropdown = false"
-                  class="admin-input"
-                  style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
-                  [ngStyle]="{'border-color': showStatusDropdown ? 'var(--accent)' : 'var(--border-color)'}"
-                >
-                  <span>{{ newCatStatus }}</span>
-                  <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showStatusDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-                </div>
-                <div *ngIf="showStatusDropdown" style="position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; padding: 4px;">
-                  <div *ngFor="let status of ['Hiển thị', 'Đã ẩn']" 
-                    (click)="newCatStatus = status; showStatusDropdown = false"
-                    style="padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; background: transparent;"
-                    [ngStyle]="{'color': newCatStatus === status ? 'var(--accent)' : 'var(--text-primary)', 'font-weight': newCatStatus === status ? 600 : 400}"
-                    onmouseover="this.style.background='var(--bg-tertiary)'"
-                    onmouseout="this.style.background='transparent'"
-                  >
-                    {{ status }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+  <!-- =========================================================================
+       6. MODAL CẢNH BÁO RÀNG BUỘC KHI XÓA (DELETE CONSTRAINT MODAL - >0 SP)
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isConstraintModalOpen" (click)="closeConstraintModal()">
+    <div class="modal-dialog modal-md" (click)="$event.stopPropagation()">
+      <div class="modal-header header-warning">
+        <div class="warning-icon-box">
+          <lucide-angular [img]="icons.AlertTriangle" size="24"></lucide-angular>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title text-warning-dark">Không thể xóa danh mục đang có sản phẩm liên kết</h3>
+          <p class="modal-subtitle">Ràng buộc toàn vẹn cơ sở dữ liệu ngăn chặn việc xóa danh mục chứa dữ liệu.</p>
         </div>
       </div>
-      
-      <div style="padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; gap: 12px;" [ngStyle]="{'justify-content': categoryModalMode === 'view' ? 'flex-end' : 'space-between'}">
-        <ng-container *ngIf="categoryModalMode === 'view'">
-          <button (click)="isCategoryModalOpen = false" class="admin-btn admin-btn-secondary">Đóng</button>
-          <button (click)="setCategoryModalMode('edit')" class="admin-btn admin-btn-primary">Chỉnh sửa danh mục</button>
-        </ng-container>
-        <ng-container *ngIf="categoryModalMode !== 'view'">
-          <div>
-            <button *ngIf="categoryModalMode === 'edit'" (click)="setCategoryModalMode('view')" class="admin-btn admin-btn-secondary">Chuyển sang Chế độ Xem</button>
-          </div>
-          <div style="display: flex; gap: 12px;">
-            <button (click)="isCategoryModalOpen = false; resetCatForm();" class="admin-btn admin-btn-secondary">Hủy</button>
-            <button class="admin-btn admin-btn-primary" [disabled]="!!catSlugError || !!catNameError || !newCatName || !newCatSlug">
-              {{ categoryModalMode === 'add' ? 'Thêm danh mục' : 'Lưu thay đổi' }}
+
+      <div class="modal-body" *ngIf="categoryTarget">
+        <div class="constraint-alert-message">
+          Danh mục <strong>"{{ categoryTarget.name }}"</strong> hiện đang chứa <strong>{{ categoryTarget.productsCount }} sản phẩm</strong>. Vui lòng gỡ liên kết hoặc chuyển các sản phẩm sau sang danh mục khác trước khi thực hiện xóa:
+        </div>
+
+        <!-- Danh sách cuộn sản phẩm đang liên kết -->
+        <div class="linked-products-scroll-list">
+          <div 
+            class="linked-product-item" 
+            *ngFor="let p of categoryTarget.linkedProducts">
+            <div class="lp-info">
+              <span class="lp-sku font-mono">{{ p.sku }}</span>
+              <strong class="lp-name">{{ p.name }}</strong>
+            </div>
+            <button 
+              type="button" 
+              class="lp-view-btn" 
+              (click)="viewProduct(p.id)"
+              title="Mở chỉnh sửa sản phẩm này">
+              <span>Xem sản phẩm</span>
+              <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
             </button>
           </div>
-        </ng-container>
+        </div>
+
+        <div class="modal-guide-notice">
+          <lucide-angular [img]="icons.Info" size="16"></lucide-angular>
+          <span>Mẹo: Bạn có thể chuyển danh mục này sang trạng thái <strong>"Đã ẩn"</strong> nếu tạm thời không muốn hiển thị trên Website mà không làm mất liên kết sản phẩm.</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-primary" (click)="closeConstraintModal()">
+          Đã hiểu / Đóng
+        </button>
       </div>
     </div>
   </div>
+
+  <!-- =========================================================================
+       7. MODAL XÁC NHẬN XÓA BÌNH THƯỜNG (KHI PRODUCTS COUNT === 0)
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isConfirmDeleteModalOpen" (click)="closeConfirmDeleteModal()">
+    <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="danger-icon-box">
+          <lucide-angular [img]="icons.Trash2" size="22"></lucide-angular>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title">Xác nhận xóa danh mục</h3>
+          <p class="modal-subtitle">Thao tác này sẽ xóa mục khỏi hệ thống.</p>
+        </div>
+      </div>
+
+      <div class="modal-body" *ngIf="categoryTarget">
+        Bạn có chắc chắn muốn xóa mục <strong>"{{ categoryTarget.name }}"</strong>?
+        <div class="field-hint" style="margin-top: 6px;">
+          Mục này hiện không có sản phẩm nào liên kết. Thao tác có thể thực hiện an toàn.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeConfirmDeleteModal()">
+          Hủy bỏ
+        </button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDelete()">
+          <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+          <span>Xác nhận xóa</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       7.5. MODAL CẢNH BÁO XÁC NHẬN CHUYỂN TRẠNG THÁI (ẨN / HIỆN DANH MỤC)
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isConfirmToggleModalOpen" (click)="closeToggleModal()">
+    <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="warning-icon-box" style="width: 42px; height: 42px; border-radius: 50%; background: #FFF4E5; color: #D97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <lucide-angular [img]="icons.AlertTriangle" size="22"></lucide-angular>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title">Xác nhận thay đổi trạng thái</h3>
+          <p class="modal-subtitle">Thao tác này ảnh hưởng đến khả năng hiển thị ngoài Website.</p>
+        </div>
+      </div>
+
+      <div class="modal-body" *ngIf="statusToggleTarget">
+        <p style="margin-bottom: 12px; font-size: 14px; line-height: 1.5;">
+          Bạn có chắc chắn muốn chuyển danh mục <strong>"{{ statusToggleTarget.name }}"</strong> sang trạng thái 
+          <strong [style.color]="statusToggleTarget.status === 'Hiển thị' ? '#C42326' : '#107C41'">
+            {{ statusToggleTarget.status === 'Hiển thị' ? 'ĐÃ ẨN' : 'HIỂN THỊ' }}
+          </strong> không?
+        </p>
+
+        <div class="modal-guide-notice" *ngIf="statusToggleTarget.status === 'Hiển thị'" style="background: #FFF9F2; border-left: 3px solid #D97706; padding: 10px 12px; border-radius: 6px; font-size: 13px; color: #78350F;">
+          <lucide-angular [img]="icons.Info" size="15" style="display: inline; vertical-align: middle; margin-right: 4px;"></lucide-angular>
+          <span><strong>Lưu ý:</strong> Khi ẩn danh mục, khách hàng trên Store sẽ tạm thời không tìm thấy danh mục này cùng các sản phẩm đang liên kết.</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeToggleModal()">
+          Hủy bỏ
+        </button>
+        <button 
+          type="button" 
+          class="admin-btn" 
+          [class.admin-btn-danger]="statusToggleTarget?.status === 'Hiển thị'"
+          [class.admin-btn-primary]="statusToggleTarget?.status !== 'Hiển thị'"
+          (click)="confirmToggleStatus()">
+          <span>Xác nhận thực hiện</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       8. FLOATING TOAST NOTIFICATION
+       ========================================================================= -->
+  <div class="admin-toast-notice" *ngIf="toastMessage" [class]="'toast-' + toastType">
+    <lucide-angular [img]="icons.CheckCircle2" size="18" *ngIf="toastType === 'success'"></lucide-angular>
+    <lucide-angular [img]="icons.AlertTriangle" size="18" *ngIf="toastType === 'warning' || toastType === 'error'"></lucide-angular>
+    <lucide-angular [img]="icons.Info" size="18" *ngIf="toastType === 'info'"></lucide-angular>
+    <span class="toast-text">{{ toastMessage }}</span>
+    <button type="button" class="toast-dismiss-btn" (click)="dismissToast()">
+      <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+    </button>
+  </div>
+
 </div>

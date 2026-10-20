@@ -1,288 +1,1024 @@
-<div style="display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px;">
-      
-  <!-- Header -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+<div class="products-page-container">
+  
+  <!-- =========================================================================
+       1. HEADER BREADCRUMB & TOP ACTIONS
+       ========================================================================= -->
+  <div class="products-header">
     <div>
-      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Quản lý sản phẩm</h1>
-      <p style="color: var(--text-secondary); font-size: 14px;">Danh sách sản phẩm, giá bán và tình trạng tồn kho.</p>
+      <div class="breadcrumb-trail">
+        <span>Quản trị</span>
+        <span class="sep">/</span>
+        <span class="current">Sản phẩm</span>
+      </div>
+      <h1 class="page-title">Quản lý Sản phẩm</h1>
+      <p class="page-subtitle">Quản lý danh mục sản phẩm DCor, bảng giá phân tầng, tồn kho đa chi nhánh và biến thể.</p>
     </div>
-    <div style="display: flex; gap: 12px;">
-      <div class="admin-search-wrapper" style="width: 280px; padding: 10px 16px; display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-        <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="margin-right: 8px;"></lucide-angular>
+
+    <div class="header-actions">
+      <!-- Nút Làm mới -->
+      <button 
+        type="button" 
+        class="admin-btn admin-btn-secondary" 
+        (click)="loadProducts()"
+        title="Tải lại danh sách">
+        <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
+        <span>Làm mới</span>
+      </button>
+
+      <!-- Nút Nhập Excel -->
+      <button 
+        type="button" 
+        class="admin-btn admin-btn-secondary" 
+        (click)="openImportModal()"
+        title="Nhập dữ liệu từ file Excel">
+        <lucide-angular [img]="icons.Upload" size="16"></lucide-angular>
+        <span>Nhập Excel</span>
+      </button>
+
+      <!-- Nút Xuất Excel -->
+      <button 
+        type="button" 
+        class="admin-btn admin-btn-secondary" 
+        (click)="exportExcel()"
+        title="Xuất danh sách ra file CSV / Excel">
+        <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
+        <span>Xuất Excel</span>
+      </button>
+
+      <!-- Nút Thêm sản phẩm -->
+      <button 
+        type="button" 
+        class="admin-btn admin-btn-primary" 
+        (click)="goToNew()"
+        *ngIf="canCreate">
+        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+        <span>+ Thêm sản phẩm</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       2. KPI SUMMARY METRICS CARDS
+       ========================================================================= -->
+  <section class="kpi-grid">
+    <!-- Card 1: Tổng sản phẩm -->
+    <article class="kpi-card">
+      <div class="kpi-icon-wrapper kpi-blue">
+        <lucide-angular [img]="icons.Package" size="20"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-label">Tổng sản phẩm</div>
+        <div class="kpi-value">{{ totalNonTrashCount }}</div>
+        <div class="kpi-subtext positive">
+          <lucide-angular [img]="icons.TrendingUp" size="12"></lucide-angular>
+          <span>{{ categories.length - 1 }} danh mục hoạt động</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- Card 2: Đang bán -->
+    <article class="kpi-card">
+      <div class="kpi-icon-wrapper kpi-green">
+        <lucide-angular [img]="icons.Tag" size="20"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-label">Đang mở bán</div>
+        <div class="kpi-value">{{ totalActiveCount }}</div>
+        <div class="kpi-subtext">Hiển thị trực tuyến trên Website</div>
+      </div>
+    </article>
+
+    <!-- Card 3: Sắp hết hàng -->
+    <article class="kpi-card" [class.highlight]="totalLowStockCount > 0">
+      <div class="kpi-icon-wrapper kpi-yellow">
+        <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-label">Sắp hết hàng</div>
+        <div class="kpi-value text-warning">{{ totalLowStockCount }}</div>
+        <div class="kpi-subtext">Tồn kho khả dụng &lt; 10 cái</div>
+      </div>
+    </article>
+
+    <!-- Card 4: Hết hàng -->
+    <article class="kpi-card" [class.danger]="totalOutOfStockCount > 0">
+      <div class="kpi-icon-wrapper kpi-red">
+        <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-label">Hết hàng</div>
+        <div class="kpi-value text-danger">{{ totalOutOfStockCount }}</div>
+        <div class="kpi-subtext">Cần nhập kho hoặc tạm ẩn</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- =========================================================================
+       3. TABS CHUYỂN ĐỔI TRẠNG THÁI & QUICK EXPAND
+       ========================================================================= -->
+  <div class="tabs-and-tools">
+    <nav class="status-tabs-nav" aria-label="Lọc trạng thái sản phẩm">
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab === 'ALL'" 
+        (click)="setTab('ALL')">
+        <span>Tất cả</span>
+        <span class="tab-badge">{{ totalNonTrashCount }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab === 'ACTIVE'" 
+        (click)="setTab('ACTIVE')">
+        <span class="status-dot dot-active"></span>
+        <span>Đang bán</span>
+        <span class="tab-badge">{{ totalActiveCount }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab === 'DRAFT'" 
+        (click)="setTab('DRAFT')">
+        <span class="status-dot dot-draft"></span>
+        <span>Bản nháp</span>
+        <span class="tab-badge">{{ totalDraftCount }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-btn" 
+        [class.active]="activeTab === 'HIDDEN'" 
+        (click)="setTab('HIDDEN')">
+        <span class="status-dot dot-hidden"></span>
+        <span>Đã ẩn</span>
+        <span class="tab-badge">{{ totalHiddenCount }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="tab-btn tab-trash" 
+        [class.active]="activeTab === 'TRASH'" 
+        (click)="setTab('TRASH')">
+        <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+        <span>Thùng rác</span>
+        <span class="tab-badge trash-badge" *ngIf="totalTrashCount > 0">{{ totalTrashCount }}</span>
+      </button>
+    </nav>
+
+    <!-- Công cụ mở / thu gọn toàn bộ biến thể -->
+    <div class="quick-accordion-tools" *ngIf="filteredProducts.length > 0">
+      <button type="button" class="tool-btn" (click)="expandAll()" title="Mở rộng tất cả dòng biến thể">
+        <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+        <span>Mở tất cả</span>
+      </button>
+      <span class="tool-sep">|</span>
+      <button type="button" class="tool-btn" (click)="collapseAll()" title="Thu gọn tất cả dòng biến thể">
+        <lucide-angular [img]="icons.ChevronRight" size="14"></lucide-angular>
+        <span>Thu gọn tất cả</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       4. THANH TÌM KIẾM & BỘ LỌC (FILTER BAR)
+       ========================================================================= -->
+  <div #filterContainerRef class="filter-bar-card">
+    <div class="filter-row">
+      
+      <!-- Ô Tìm kiếm -->
+      <div class="search-input-box">
+        <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
         <input 
           type="text" 
-          placeholder="Tìm kiếm sản phẩm, mã SKU..." 
-          [(ngModel)]="search"
+          class="search-input" 
+          placeholder="Tìm theo tên sản phẩm, mã SKU tổng hoặc SKU biến thể..." 
+          [(ngModel)]="searchQuery"
           (ngModelChange)="onSearchChange()"
-          style="border: none; background: transparent; outline: none; font-size: 14px; color: var(--text-primary); width: 100%;"
         />
+        <button 
+          type="button" 
+          class="clear-search-btn" 
+          *ngIf="searchQuery" 
+          (click)="clearSearch()">
+          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+        </button>
       </div>
-      <button class="admin-btn admin-btn-secondary" style="height: 40px; padding: 0 16px; display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-primary);">
-        <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất
-      </button>
-      <button (click)="goToDetail('new')" *ngIf="canCreate" class="admin-btn admin-btn-primary" style="height: 40px; padding: 0 16px; display: flex; align-items: center; gap: 8px;">
-        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular> Thêm sản phẩm
-      </button>
+
+      <!-- Dropdown Lọc Danh mục -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedCategory !== 'ALL'"
+          (click)="toggleCategoryDropdown($event)">
+          <lucide-angular [img]="icons.Filter" size="14"></lucide-angular>
+          <span class="dropdown-label">{{ selectedCategoryLabel }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+        </button>
+        <div class="dropdown-menu" *ngIf="isCategoryDropdownOpen">
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            *ngFor="let cat of categories"
+            [class.selected]="selectedCategory === cat.id"
+            (click)="selectCategory(cat.id)">
+            <span>{{ cat.name }}</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedCategory === cat.id"></lucide-angular>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dropdown Lọc Tồn kho -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedStockFilter !== 'ALL'"
+          (click)="toggleStockDropdown($event)">
+          <lucide-angular [img]="icons.Package" size="14"></lucide-angular>
+          <span class="dropdown-label">{{ selectedStockLabel }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+        </button>
+        <div class="dropdown-menu" *ngIf="isStockDropdownOpen">
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="selectedStockFilter === 'ALL'"
+            (click)="selectStockFilter('ALL')">
+            <span>Tất cả tồn kho</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedStockFilter === 'ALL'"></lucide-angular>
+          </button>
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="selectedStockFilter === 'IN_STOCK'"
+            (click)="selectStockFilter('IN_STOCK')">
+            <span class="stock-pill stock-in">Còn hàng (> 10)</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedStockFilter === 'IN_STOCK'"></lucide-angular>
+          </button>
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="selectedStockFilter === 'LOW_STOCK'"
+            (click)="selectStockFilter('LOW_STOCK')">
+            <span class="stock-pill stock-low">Sắp hết (1 - 9)</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedStockFilter === 'LOW_STOCK'"></lucide-angular>
+          </button>
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="selectedStockFilter === 'OUT_OF_STOCK'"
+            (click)="selectStockFilter('OUT_OF_STOCK')">
+            <span class="stock-pill stock-out">Hết hàng (0)</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedStockFilter === 'OUT_OF_STOCK'"></lucide-angular>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dropdown Sắp xếp -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          (click)="toggleSortDropdown($event)">
+          <lucide-angular [img]="icons.ArrowUpDown" size="14"></lucide-angular>
+          <span class="dropdown-label">{{ selectedSortLabel }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" *ngIf="isSortDropdownOpen">
+          <button type="button" class="dropdown-item" [class.selected]="sortBy === 'newest'" (click)="selectSort('newest')">
+            <span>Mới nhất</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="sortBy === 'newest'"></lucide-angular>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="sortBy === 'price_asc'" (click)="selectSort('price_asc')">
+            <span>Giá: Thấp đến cao</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="sortBy === 'price_asc'"></lucide-angular>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="sortBy === 'price_desc'" (click)="selectSort('price_desc')">
+            <span>Giá: Cao đến thấp</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="sortBy === 'price_desc'"></lucide-angular>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="sortBy === 'stock_desc'" (click)="selectSort('stock_desc')">
+            <span>Tồn kho: Cao đến thấp</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="sortBy === 'stock_desc'"></lucide-angular>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="sortBy === 'stock_asc'" (click)="selectSort('stock_asc')">
+            <span>Tồn kho: Thấp đến cao</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="sortBy === 'stock_asc'"></lucide-angular>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="sortBy === 'name_asc'" (click)="selectSort('name_asc')">
+            <span>Tên A → Z</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="sortBy === 'name_asc'"></lucide-angular>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <!-- KPI Cards -->
-  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
-    <div class="report-card kpi-card">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center; color: #3b82f6;">
-          <lucide-angular [img]="icons.Package" size="20"></lucide-angular>
-        </div>
-        <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">Tổng sản phẩm</span>
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ products.length }}</div>
-      <div style="font-size: 12px; color: #10b981; margin-top: 8px; display: flex; align-items: center; gap: 4px;">
-        <lucide-angular [img]="icons.TrendingUp" size="12"></lucide-angular> +12 sản phẩm mới
-      </div>
-    </div>
-
-    <div class="report-card kpi-card">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
-          <lucide-angular [img]="icons.Tag" size="20"></lucide-angular>
-        </div>
-        <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">Đang bán</span>
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">0</div>
-      <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Hiển thị trên website</div>
-    </div>
-
-    <div class="report-card kpi-card">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
-          <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
-        </div>
-        <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">Gần hết hàng</span>
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">0</div>
-      <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Tồn kho dưới 10</div>
-    </div>
-
-    <div class="report-card kpi-card">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; color: #ef4444;">
-          <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
-        </div>
-        <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">Hết hàng</span>
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">0</div>
-      <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Tồn kho bằng 0</div>
-    </div>
-  </div>
-
-  <!-- Filter Bar -->
-  <div #filterRef class="admin-filter-bar" style="margin-bottom: 24px; display: flex; gap: 16px; flex-wrap: nowrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
-    
-    <!-- Sort Filter -->
-    <div style="display: flex; gap: 4px;">
-      <button 
-        (click)="toggleSortDirection()"
-        style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; color: var(--text-muted);"
-      >
-        <lucide-angular *ngIf="sortDirection === 'asc'" [img]="icons.ArrowUp" size="16"></lucide-angular>
-        <lucide-angular *ngIf="sortDirection === 'desc'" [img]="icons.ArrowDown" size="16"></lucide-angular>
-      </button>
-      <div style="position: relative;">
-        <div (click)="toggleDropdown('sort', $event)" style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 36px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-          <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ SORT_LABELS[activeSort] }}</span>
-          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-        </div>
-        <div [ngStyle]="{
-               'opacity': showSortDropdown ? 1 : 0, 
-               'visibility': showSortDropdown ? 'visible' : 'hidden', 
-               'transform': showSortDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-               'transition': 'all 0.2s ease', 'pointer-events': showSortDropdown ? 'auto' : 'none', 
-               'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-               'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-               'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-             }">
-          <div *ngFor="let key of sortLabelKeys" 
-               (click)="setDropdownValue('sort', key)" 
-               [ngStyle]="{
-                 'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-                 'border-bottom': '1px solid var(--border-color)', 
-                 'background': activeSort === key ? 'var(--bg-tertiary)' : 'transparent', 
-                 'color': activeSort === key ? 'var(--accent)' : 'var(--text-primary)',
-                 'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis'
-               }">
-            {{ SORT_LABELS[key] }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Category Filter -->
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('category', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ categoryFilter }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showCategoryDropdown ? 1 : 0, 
-             'visibility': showCategoryDropdown ? 'visible' : 'hidden', 
-             'transform': showCategoryDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showCategoryDropdown ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div *ngFor="let opt of categories" 
-             (click)="setDropdownValue('category', opt)" 
-             [ngStyle]="{
-               'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-               'border-bottom': '1px solid var(--border-color)', 
-               'background': categoryFilter === opt ? 'var(--bg-tertiary)' : 'transparent', 
-               'color': categoryFilter === opt ? 'var(--accent)' : 'var(--text-primary)',
-               'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis'
-             }">
-          {{ opt }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Status Filter -->
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('status', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ statusFilter }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showStatusDropdown ? 1 : 0, 
-             'visibility': showStatusDropdown ? 'visible' : 'hidden', 
-             'transform': showStatusDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showStatusDropdown ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div *ngFor="let opt of statuses" 
-             (click)="setDropdownValue('status', opt)" 
-             [ngStyle]="{
-               'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-               'border-bottom': '1px solid var(--border-color)', 
-               'background': statusFilter === opt ? 'var(--bg-tertiary)' : 'transparent', 
-               'color': statusFilter === opt ? 'var(--accent)' : 'var(--text-primary)',
-               'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis'
-             }">
-          {{ opt }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Bulk Actions -->
-    <div *ngIf="selectedProducts.size > 0" style="position: relative;">
-      <div (click)="toggleDropdown('bulk', $event)" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--accent); border: 1px solid var(--accent); border-radius: 8px; cursor: pointer; color: white;">
-        <span style="font-size: 12px; font-weight: 600; white-space: nowrap;">Thao tác ({{ selectedProducts.size }})</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="white"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showBulkActions ? 1 : 0, 
-             'visibility': showBulkActions ? 'visible' : 'hidden', 
-             'transform': showBulkActions ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showBulkActions ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div (click)="handleBulkAction('hide', $event)" style="padding: 10px 16px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border-color); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Ẩn {{ selectedProducts.size }} SP</div>
-        <div (click)="handleBulkAction('show', $event)" style="padding: 10px 16px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border-color); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Hiện {{ selectedProducts.size }} SP</div>
-        <div *ngIf="canDelete" (click)="handleBulkAction('delete', $event)" style="padding: 10px 16px; font-size: 13px; cursor: pointer; color: #ef4444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Xóa {{ selectedProducts.size }} SP</div>
-      </div>
-    </div>
-    
-  </div>
-
-  <!-- Data Table -->
-  <div *ngIf="isLoading" style="padding: 40px; text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</div>
-  
-  <div *ngIf="!isLoading" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
-    <div style="width: 100%; overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+  <!-- =========================================================================
+       5. BẢNG DỮ LIỆU MASTER-DETAIL (ACCORDION ROW)
+       ========================================================================= -->
+  <section class="products-table-card">
+    <div class="table-responsive">
+      <table class="products-master-table">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 40px; text-align: center;">
-              <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll($event)" style="cursor: pointer;" />
+          <tr>
+            <th class="col-expand"></th>
+            <th class="col-checkbox">
+              <input 
+                type="checkbox" 
+                class="admin-checkbox" 
+                [checked]="isAllSelected"
+                [indeterminate]="isPartiallySelected"
+                (change)="toggleSelectAll()"
+                title="Chọn tất cả"
+              />
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;">Hình ảnh</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Sản phẩm</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Biến thể</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Danh mục</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Giá từ</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Tồn kho</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Trạng thái</th>
+            <th class="col-image">Ảnh</th>
+            <th class="col-name">Tên sản phẩm & Mã SKU</th>
+            <th class="col-category">Danh mục</th>
+            <th class="col-price">Khoảng giá</th>
+            <th class="col-variants">Biến thể</th>
+            <th class="col-stock">Tồn khả dụng</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-date">Ngày tạo</th>
+            <th class="col-actions">Thao tác</th>
           </tr>
         </thead>
-        <tbody>
-          <tr *ngFor="let item of sortedAndFiltered" 
-              (click)="goToDetail(item.id)"
-              style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
-              onmouseover="this.style.background='var(--bg-tertiary)'" 
-              onmouseout="this.style.background='transparent'">
-            
-            <td style="padding: 16px; text-align: center;" (click)="$event.stopPropagation()">
-              <input type="checkbox" [checked]="selectedProducts.has(item.id)" (change)="toggleSelection(item.id, $event)" style="cursor: pointer;" />
-            </td>
 
-            <td style="padding: 16px; white-space: nowrap;">
-              <div style="width: 48px; height: 48px; padding: 5px; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
-                <img *ngIf="item.image" [src]="item.image" [alt]="item.name" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;" />
+        <tbody>
+          <!-- Empty State -->
+          <tr *ngIf="filteredProducts.length === 0" class="empty-row">
+            <td colspan="11">
+              <div class="empty-state-box">
+                <div class="empty-icon-wrap">
+                  <lucide-angular [img]="icons.Package" size="36"></lucide-angular>
+                </div>
+                <h3>Không tìm thấy sản phẩm nào</h3>
+                <p>Không có sản phẩm nào phù hợp với bộ lọc hoặc từ khóa tìm kiếm hiện tại.</p>
+                <button type="button" class="admin-btn admin-btn-secondary" (click)="clearSearch(); setTab('ALL'); selectCategory('ALL'); selectStockFilter('ALL')">
+                  Xóa bộ lọc
+                </button>
               </div>
             </td>
-
-            <td style="padding: 16px;">
-              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">{{ item.name }}</div>
-              <div style="font-size: 12px; color: var(--text-muted);">SKU: {{ item.sku }}</div>
-            </td>
-
-            <td style="padding: 16px; white-space: nowrap;">
-              <span style="font-size: 13px; color: var(--text-secondary);">{{ item.variants }} loại</span>
-            </td>
-
-            <td style="padding: 16px; white-space: nowrap;">
-              <span style="font-size: 13px; color: var(--text-secondary);">{{ item.category }}</span>
-            </td>
-
-            <td style="padding: 16px; white-space: nowrap;">
-              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ item.price | number:'1.0-0':'en-US' }} ₫</span>
-            </td>
-
-            <td style="padding: 16px; white-space: nowrap;">
-              <span [ngStyle]="{
-                'font-size': '13px', 
-                'color': getStockColor(item.stock), 
-                'font-weight': getStockWeight(item.stock)
-              }">
-                {{ item.stock }}
-              </span>
-            </td>
-
-            <td style="padding: 16px; white-space: nowrap;">
-              <span [ngStyle]="{
-                'display': 'inline-flex',
-                'align-items': 'center',
-                'gap': '6px',
-                'font-size': '12px',
-                'font-weight': 600,
-                'padding': '4px 8px',
-                'border-radius': '24px',
-                'background': getStatusBg(item.status),
-                'color': getStatusColor(item.status)
-              }">
-                {{ item.status }}
-              </span>
-            </td>
-
           </tr>
-          <tr *ngIf="sortedAndFiltered.length === 0">
-            <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">Không tìm thấy sản phẩm nào.</td>
-          </tr>
+
+          <!-- Product Rows Loop -->
+          <ng-container *ngFor="let product of filteredProducts">
+            
+            <!-- MASTER ROW -->
+            <tr 
+              class="master-row" 
+              [class.row-expanded]="product.isExpanded"
+              [class.row-selected]="selectedProductIds.has(product.id)"
+              [class.row-deleted]="product.isDeleted"
+              (click)="toggleRowExpand(product, $event)">
+              
+              <!-- Nút Expand / Collapse Accordion -->
+              <td class="col-expand" (click)="$event.stopPropagation()">
+                <button 
+                  type="button" 
+                  class="accordion-toggle-btn" 
+                  [class.expanded]="product.isExpanded"
+                  (click)="toggleRowExpand(product, $event)"
+                  [title]="product.isExpanded ? 'Thu gọn biến thể' : 'Xem ' + product.totalVariants + ' biến thể chi tiết'">
+                  <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+                </button>
+              </td>
+
+              <!-- Checkbox chọn dòng -->
+              <td class="col-checkbox" (click)="$event.stopPropagation()">
+                <input 
+                  type="checkbox" 
+                  class="admin-checkbox"
+                  [checked]="selectedProductIds.has(product.id)"
+                  (click)="toggleSelectProduct(product.id, $event)"
+                />
+              </td>
+
+              <!-- Ảnh đại diện (48x48px) -->
+              <td class="col-image">
+                <div class="product-thumb-wrap">
+                  <img [src]="product.image" [alt]="product.name" loading="lazy" />
+                </div>
+              </td>
+
+              <!-- Tên sản phẩm & SKU tổng -->
+              <td class="col-name">
+                <a 
+                  [routerLink]="['/admin/products', product.id]" 
+                  (click)="$event.stopPropagation()"
+                  class="product-title-link"
+                  [title]="'Xem chi tiết: ' + product.name">
+                  {{ product.name }}
+                </a>
+                <div class="sku-badge-wrap">
+                  <span class="base-sku-badge">{{ product.baseSku }}</span>
+                  <span class="orders-tag" *ngIf="product.hasOrders" title="Sản phẩm đã từng phát sinh đơn hàng">
+                    Đã có đơn
+                  </span>
+                </div>
+              </td>
+
+              <!-- Danh mục -->
+              <td class="col-category">
+                <span class="category-pill">{{ product.categoryName }}</span>
+              </td>
+
+              <!-- Khoảng giá bán -->
+              <td class="col-price">
+                <span class="price-value">{{ formatPriceRange(product.priceRange) }}</span>
+              </td>
+
+              <!-- Số lượng biến thể -->
+              <td class="col-variants">
+                <span class="variants-count-badge">
+                  {{ product.totalVariants }} biến thể
+                </span>
+              </td>
+
+              <!-- Tổng tồn khả dụng & Badge trạng thái kho -->
+              <td class="col-stock">
+                <div class="stock-cell-wrap">
+                  <span 
+                    class="stock-status-badge"
+                    [class.in-stock]="product.totalAvailableStock >= 10"
+                    [class.low-stock]="product.totalAvailableStock > 0 && product.totalAvailableStock < 10"
+                    [class.out-of-stock]="product.totalAvailableStock === 0">
+                    <span class="stock-dot"></span>
+                    <span class="stock-text" *ngIf="product.totalAvailableStock >= 10">Còn hàng ({{ product.totalAvailableStock }})</span>
+                    <span class="stock-text" *ngIf="product.totalAvailableStock > 0 && product.totalAvailableStock < 10">Sắp hết ({{ product.totalAvailableStock }})</span>
+                    <span class="stock-text" *ngIf="product.totalAvailableStock === 0">Hết hàng (0)</span>
+                  </span>
+                </div>
+              </td>
+
+              <!-- Badge trạng thái sản phẩm -->
+              <td class="col-status">
+                <span 
+                  class="product-status-badge"
+                  [class.status-active]="product.status === 'Đang bán'"
+                  [class.status-draft]="product.status === 'Nháp'"
+                  [class.status-hidden]="product.status === 'Đã ẩn'">
+                  {{ product.status }}
+                </span>
+              </td>
+
+              <!-- Ngày tạo -->
+              <td class="col-date">
+                <span class="date-text">{{ product.createdAt }}</span>
+              </td>
+
+              <!-- Thao tác nhanh -->
+              <td class="col-actions" (click)="$event.stopPropagation()">
+                
+                <!-- Chế độ thường (Không phải Thùng rác) -->
+                <div class="actions-group" *ngIf="!product.isDeleted">
+                  <!-- Sửa -->
+                  <button 
+                    type="button" 
+                    class="row-action-btn edit-btn" 
+                    (click)="goToEdit(product.id)" 
+                    title="Chỉnh sửa chi tiết sản phẩm">
+                    <lucide-angular [img]="icons.Edit" size="15"></lucide-angular>
+                  </button>
+
+                  <!-- Ẩn / Hiện -->
+                  <button 
+                    type="button" 
+                    class="row-action-btn eye-btn" 
+                    (click)="toggleProductVisibility(product, $event)" 
+                    [title]="product.status === 'Đang bán' ? 'Tạm ẩn sản phẩm' : 'Bật bán sản phẩm'">
+                    <lucide-angular [img]="product.status === 'Đang bán' ? icons.Eye : icons.EyeOff" size="15"></lucide-angular>
+                  </button>
+
+                  <!-- Nhân bản -->
+                  <button 
+                    type="button" 
+                    class="row-action-btn clone-btn" 
+                    (click)="cloneProduct(product, $event)" 
+                    title="Nhân bản sản phẩm">
+                    <lucide-angular [img]="icons.Copy" size="15"></lucide-angular>
+                  </button>
+
+                  <!-- Xóa (Đưa vào Thùng rác) -->
+                  <button 
+                    type="button" 
+                    class="row-action-btn trash-btn" 
+                    (click)="moveToTrash(product, $event)" 
+                    title="Đưa vào Thùng rác">
+                    <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                  </button>
+                </div>
+
+                <!-- Chế độ Thùng rác (Trash Tab) -->
+                <div class="actions-group" *ngIf="product.isDeleted">
+                  <!-- Khôi phục -->
+                  <button 
+                    type="button" 
+                    class="row-action-btn restore-btn" 
+                    (click)="restoreFromTrash(product, $event)" 
+                    title="Khôi phục sản phẩm về danh sách">
+                    <lucide-angular [img]="icons.RotateCcw" size="15"></lucide-angular>
+                    <span class="btn-text-sm">Khôi phục</span>
+                  </button>
+
+                  <!-- Xóa vĩnh viễn -->
+                  <div class="permanent-delete-wrapper">
+                    <button 
+                      type="button" 
+                      class="row-action-btn delete-perm-btn" 
+                      [disabled]="product.hasOrders"
+                      (click)="openPermanentDeleteModal(product, $event)"
+                      [title]="product.hasOrders ? 'Không thể xóa vĩnh viễn vì sản phẩm đã có lịch sử đơn hàng' : 'Xóa vĩnh viễn khỏi cơ sở dữ liệu'">
+                      <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                    </button>
+                    <!-- Tooltip khi có đơn -->
+                    <div class="order-warning-tooltip" *ngIf="product.hasOrders">
+                      Đã có lịch sử đơn hàng, không thể xóa vĩnh viễn
+                    </div>
+                  </div>
+                </div>
+
+              </td>
+            </tr>
+
+            <!-- DETAIL ROW (ACCORDION MỞ RỘNG) -->
+            <tr class="detail-accordion-row" *ngIf="product.isExpanded">
+              <td colspan="11" class="detail-accordion-cell">
+                <div class="variant-detail-box">
+                  
+                  <div class="variant-box-header">
+                    <div class="header-left">
+                      <lucide-angular [img]="icons.Package" size="16" class="box-icon"></lucide-angular>
+                      <h4 class="box-title">Danh sách biến thể & Phân rã tồn kho theo Chi nhánh ({{ product.variants.length }})</h4>
+                    </div>
+                    <div class="header-right">
+                      <span class="hint-text">
+                        <lucide-angular [img]="icons.Info" size="13"></lucide-angular>
+                        Gạt công tắc để bật / tắt bán biến thể tương ứng
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Bảng biến thể con -->
+                  <div class="variant-table-wrap">
+                    <table class="variant-subtable">
+                      <thead>
+                        <tr>
+                          <th style="width: 50px;">Ảnh</th>
+                          <th style="width: 140px;">Mã SKU biến thể</th>
+                          <th>Tên biến thể / Quy cách</th>
+                          <th style="width: 160px;">Giá bán</th>
+                          <th>Tồn kho theo Chi nhánh / Showroom</th>
+                          <th style="width: 90px; text-align: center;">Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let variant of product.variants" [class.variant-disabled]="!variant.isActive">
+                          
+                          <!-- Ảnh biến thể (36x36px) -->
+                          <td>
+                            <div class="variant-img-wrap">
+                              <img [src]="variant.image" [alt]="variant.name" loading="lazy" />
+                            </div>
+                          </td>
+
+                          <!-- SKU riêng của biến thể -->
+                          <td>
+                            <span class="variant-sku">{{ variant.sku }}</span>
+                          </td>
+
+                          <!-- Tên biến thể -->
+                          <td>
+                            <div class="variant-name-text">{{ variant.name }}</div>
+                          </td>
+
+                          <!-- Giá bán & Giá gốc -->
+                          <td>
+                            <div class="variant-price-block">
+                              <span class="current-price">{{ formatVND(variant.price) }}</span>
+                              <span class="original-price" *ngIf="variant.originalPrice">
+                                {{ formatVND(variant.originalPrice) }}
+                              </span>
+                            </div>
+                          </td>
+
+                          <!-- Phân rã tồn kho chi nhánh -->
+                          <td>
+                            <div class="branch-stock-tags">
+                              <span 
+                                class="branch-pill" 
+                                *ngFor="let b of variant.branchStocks"
+                                [class.zero-stock]="b.stock === 0"
+                                [class.has-stock]="b.stock > 0">
+                                <span class="b-name">{{ b.branchName }}:</span>
+                                <strong class="b-qty">{{ b.stock }}</strong>
+                              </span>
+                            </div>
+                          </td>
+
+                          <!-- Toggle kích hoạt bán biến thể -->
+                          <td style="text-align: center;">
+                            <label class="switch-toggle" [title]="variant.isActive ? 'Đang mở bán biến thể này' : 'Tạm dừng bán biến thể này'">
+                              <input 
+                                type="checkbox" 
+                                [checked]="variant.isActive" 
+                                (click)="toggleVariantActive(product, variant, $event)"
+                              />
+                              <span class="slider"></span>
+                            </label>
+                          </td>
+
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              </td>
+            </tr>
+
+          </ng-container>
         </tbody>
       </table>
     </div>
+
+    <!-- Table Footer Pagination / Summary -->
+    <div class="table-footer-bar">
+      <div class="footer-count">
+        Hiển thị <strong>{{ filteredProducts.length }}</strong> / <strong>{{ allProducts.length }}</strong> sản phẩm
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       6. THANH THAO TÁC HÀNG LOẠT (FLOATING BULK ACTIONS BAR)
+       ========================================================================= -->
+  <div class="floating-bulk-bar" *ngIf="selectedProductIds.size > 0">
+    <div class="bulk-info">
+      <span class="bulk-count-badge">{{ selectedProductIds.size }}</span>
+      <span class="bulk-text">sản phẩm đã được chọn</span>
+    </div>
+
+    <div class="bulk-actions-group">
+      <!-- Khi ở các tab thường -->
+      <ng-container *ngIf="activeTab !== 'TRASH'">
+        <button type="button" class="bulk-btn" (click)="bulkShow()">
+          <lucide-angular [img]="icons.Eye" size="15"></lucide-angular>
+          <span>Mở bán hàng loạt</span>
+        </button>
+
+        <button type="button" class="bulk-btn" (click)="bulkHide()">
+          <lucide-angular [img]="icons.EyeOff" size="15"></lucide-angular>
+          <span>Ẩn hàng loạt</span>
+        </button>
+
+        <button type="button" class="bulk-btn danger" (click)="bulkMoveToTrash()">
+          <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+          <span>Đưa vào thùng rác</span>
+        </button>
+      </ng-container>
+
+      <!-- Khi ở tab Thùng rác -->
+      <ng-container *ngIf="activeTab === 'TRASH'">
+        <button type="button" class="bulk-btn" (click)="bulkRestore()">
+          <lucide-angular [img]="icons.RotateCcw" size="15"></lucide-angular>
+          <span>Khôi phục hàng loạt</span>
+        </button>
+
+        <button type="button" class="bulk-btn danger" (click)="bulkPermanentDelete()">
+          <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+          <span>Xóa vĩnh viễn (các mục đủ điều kiện)</span>
+        </button>
+      </ng-container>
+
+      <button type="button" class="bulk-close-btn" (click)="clearSelection()" title="Bỏ chọn">
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
   </div>
+
+  <!-- =========================================================================
+       7. MODAL XÁC NHẬN XÓA VĨNH VIỄN
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isDeleteConfirmModalOpen" (click)="closeDeleteConfirmModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-danger-icon">
+          <lucide-angular [img]="icons.AlertCircle" size="24"></lucide-angular>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title">Xác nhận xóa vĩnh viễn</h3>
+          <p class="modal-subtitle">Thao tác này sẽ xóa hoàn toàn khỏi cơ sở dữ liệu và không thể hoàn tác.</p>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="!isBulkPermanentDelete && productToDelete">
+          Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm:
+          <div class="delete-target-preview">
+            <img [src]="productToDelete.image" alt="" />
+            <div>
+              <strong>{{ productToDelete.name }}</strong>
+              <div class="target-sku">Mã SKU: {{ productToDelete.baseSku }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="isBulkPermanentDelete">
+          Bạn có chắc chắn muốn xóa vĩnh viễn tất cả các sản phẩm đã chọn (không có lịch sử đơn hàng)?
+        </div>
+
+        <div class="modal-warning-notice">
+          <lucide-angular [img]="icons.Info" size="16"></lucide-angular>
+          <span>Dữ liệu biến thể, tồn kho và hình ảnh liên kết sẽ bị xóa hoàn toàn.</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeDeleteConfirmModal()">
+          Hủy bỏ
+        </button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmPermanentDelete()">
+          <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular>
+          <span>Xác nhận xóa vĩnh viễn</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       8. MODAL NHẬP DỮ LIỆU EXCEL THÔNG MINH & BẢO MẬT (3 GIAI ĐOẠN)
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isImportModalOpen" (click)="closeImportModal()">
+    <div class="modal-dialog modal-xl-import" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-title-with-icon">
+            <div class="modal-icon-badge">
+              <lucide-angular [img]="icons.FileSpreadsheet" size="22"></lucide-angular>
+            </div>
+            <div>
+              <h3 class="modal-title">Nhập danh sách sản phẩm từ Excel</h3>
+              <p class="modal-subtitle">
+                <span *ngIf="importStage === 'upload'">Giai đoạn 1: Tải tệp mẫu & Upload dữ liệu (Kiểm tra Magic Bytes chống file giả mạo)</span>
+                <span *ngIf="importStage === 'precheck'">Giai đoạn 2: Phân tích & Bảng Kiểm tra Lỗi (Error Pre-check Grid)</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeImportModal()" title="Đóng">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- ==================== GIAI ĐOẠN 1: TẢI TỆP MẪU & UPLOAD ==================== -->
+      <div class="modal-body" *ngIf="importStage === 'upload'">
+        <!-- Card tải file mẫu chuẩn -->
+        <div class="template-download-card">
+          <div class="template-info">
+            <div class="template-icon-wrap">
+              <lucide-angular [img]="icons.Info" size="18"></lucide-angular>
+            </div>
+            <div>
+              <strong class="template-title">Chưa có tệp bảng tính theo cấu trúc chuẩn?</strong>
+              <p class="template-desc">Tải file mẫu Excel chuẩn DCor đã thiết lập sẵn tiêu đề cột và 2 dòng ví dụ minh họa.</p>
+            </div>
+          </div>
+          <button type="button" class="admin-btn admin-btn-outline" (click)="downloadTemplate()">
+            <lucide-angular [img]="icons.Download" size="15"></lucide-angular>
+            <span>Tải file mẫu Excel chuẩn</span>
+          </button>
+        </div>
+
+        <!-- Vùng kéo thả (Dropzone) tải file -->
+        <div 
+          class="upload-dropzone"
+          [class.drag-active]="isDraggingFile"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onFileDrop($event)">
+          
+          <input 
+            type="file" 
+            (change)="onFileSelected($event)" 
+            accept=".xlsx, .xls" 
+            class="dropzone-input" 
+            id="excel-file-input"
+          />
+
+          <div class="dropzone-content" *ngIf="!isAnalyzingFile">
+            <div class="dropzone-icon-circle">
+              <lucide-angular [img]="icons.Upload" size="30"></lucide-angular>
+            </div>
+            <p class="dropzone-title">Kéo & thả tệp Excel vào đây, hoặc <span class="browse-link">chọn từ thiết bị</span></p>
+            <p class="dropzone-sub">Định dạng hỗ trợ: .xlsx, .xls • Dung lượng tối đa: 5MB • Tự động quét mã độc & kiểm tra chữ ký Magic Bytes</p>
+          </div>
+
+          <!-- Trạng thái đang đọc và phân tích file -->
+          <div class="dropzone-loading" *ngIf="isAnalyzingFile">
+            <div class="spinner-brand"></div>
+            <p class="dropzone-loading-text">Đang xác thực Magic Bytes và phân tích dữ liệu bảng tính...</p>
+          </div>
+        </div>
+
+        <!-- Cảnh báo lỗi cấu trúc / chữ ký file giả mạo nếu có -->
+        <div class="import-error-banner" *ngIf="importFileError">
+          <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
+          <span>{{ importFileError }}</span>
+        </div>
+
+        <!-- Hướng dẫn quy chuẩn dữ liệu -->
+        <div class="import-instructions">
+          <h4>Quy chuẩn định dạng các cột bắt buộc:</h4>
+          <div class="standards-grid">
+            <div class="standard-item">
+              <span class="col-tag">Mã SKU (*)</span>
+              <span>Bắt buộc. Mã không trùng với sản phẩm hiện có và không trùng trong file.</span>
+            </div>
+            <div class="standard-item">
+              <span class="col-tag">Tên sản phẩm (*)</span>
+              <span>Bắt buộc. Tên đầy đủ theo chuẩn DCor, tối thiểu 3 ký tự.</span>
+            </div>
+            <div class="standard-item">
+              <span class="col-tag">Danh mục chính (*)</span>
+              <span>Bắt buộc. Phải khớp với danh mục đang có trong hệ thống (Sofa & Ghế bành, Bàn trà...).</span>
+            </div>
+            <div class="standard-item">
+              <span class="col-tag">Giá bán (*)</span>
+              <span>Bắt buộc. Đơn vị VNĐ, phải là số dương lớn hơn 0.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== GIAI ĐOẠN 2: BẢNG KIỂM TRA LỖI (PRE-CHECK GRID) ==================== -->
+      <div class="modal-body precheck-body" *ngIf="importStage === 'precheck'">
+        
+        <!-- Thanh thống kê dòng hợp lệ / có lỗi -->
+        <div class="precheck-summary-bar">
+          <div class="summary-left">
+            <div class="summary-stat-badge stat-valid">
+              <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+              <span><strong>{{ validRowsCount }}</strong> dòng hợp lệ</span>
+            </div>
+            <div class="summary-stat-badge stat-error" *ngIf="errorRowsCount > 0">
+              <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+              <span><strong>{{ errorRowsCount }}</strong> dòng có lỗi</span>
+            </div>
+          </div>
+
+          <div class="summary-right">
+            <button type="button" class="change-file-btn" (click)="resetImportState()">
+              <lucide-angular [img]="icons.RefreshCw" size="14"></lucide-angular>
+              <span>Tải tệp khác</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Cảnh báo nếu có dòng lỗi -->
+        <div class="precheck-alert-banner" *ngIf="errorRowsCount > 0">
+          <lucide-angular [img]="icons.AlertTriangle" size="20" class="alert-icon-warning"></lucide-angular>
+          <div class="alert-content">
+            <strong>Phát hiện {{ errorRowsCount }} dòng dữ liệu không đạt chuẩn kiểm tra!</strong>
+            <p>Các dòng lỗi được tô nền đỏ nhạt bên dưới. Bạn có thể tick chọn bỏ qua dòng lỗi để chỉ nhập các dòng hợp lệ.</p>
+          </div>
+        </div>
+
+        <!-- Bảng đối chiếu xem trước (Pre-check Table) -->
+        <div class="precheck-table-wrap">
+          <table class="precheck-table">
+            <thead>
+              <tr>
+                <th style="width: 55px; text-align: center;">Dòng</th>
+                <th style="width: 140px;">Mã SKU</th>
+                <th>Tên sản phẩm</th>
+                <th style="width: 160px;">Danh mục</th>
+                <th style="width: 130px; text-align: right;">Giá bán</th>
+                <th style="width: 220px;">Trạng thái kiểm tra</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                *ngFor="let row of precheckRows" 
+                [class.row-valid]="row.isValid"
+                [class.row-error]="!row.isValid">
+                
+                <td style="text-align: center; font-weight: 600; color: #757575;">
+                  {{ row.rowNumber }}
+                </td>
+
+                <td>
+                  <span class="font-mono sku-cell">{{ row.sku || '—' }}</span>
+                </td>
+
+                <td>
+                  <strong class="product-name-cell">{{ row.name || '—' }}</strong>
+                  <div class="desc-sub" *ngIf="row.description">{{ row.description }}</div>
+                </td>
+
+                <td>
+                  <span class="cat-cell">{{ row.categoryName || '—' }}</span>
+                </td>
+
+                <td style="text-align: right; font-weight: 600;">
+                  {{ row.price ? formatVND(row.price) : '0 ₫' }}
+                </td>
+
+                <td>
+                  <!-- Dòng Hợp lệ -->
+                  <div class="row-status-box status-valid-box" *ngIf="row.isValid">
+                    <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular>
+                    <span>Hợp lệ</span>
+                  </div>
+
+                  <!-- Dòng Có lỗi -->
+                  <div class="row-status-box status-error-box" *ngIf="!row.isValid">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <div class="error-reasons-list">
+                      <span class="error-reason-item" *ngFor="let err of row.errors">
+                        {{ err }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ==================== GIAI ĐOẠN 3: TÙY CHỌN XÁC NHẬN NHẬP DỮ LIỆU ==================== -->
+        <div class="import-options-card">
+          <!-- Tùy chọn bỏ qua dòng lỗi -->
+          <div class="option-skip-wrap" *ngIf="errorRowsCount > 0">
+            <label class="custom-checkbox-label">
+              <input type="checkbox" [(ngModel)]="skipErrorRows" />
+              <span class="checkbox-text">
+                Bỏ qua <strong>{{ errorRowsCount }}</strong> dòng lỗi, chỉ nhập <strong>{{ validRowsCount }}</strong> dòng hợp lệ vào hệ thống
+              </span>
+            </label>
+          </div>
+
+          <!-- Tùy chọn trạng thái khi nhập -->
+          <div class="status-option-wrap">
+            <span class="status-option-label">Trạng thái phát hành ban đầu:</span>
+            <div class="status-radio-group">
+              <label class="radio-chip" [class.selected]="importStatusOption === 'Đang bán'">
+                <input type="radio" name="importStatus" value="Đang bán" [(ngModel)]="importStatusOption" />
+                <span>Đang bán (Trực tuyến)</span>
+              </label>
+              <label class="radio-chip" [class.selected]="importStatusOption === 'Nháp'">
+                <input type="radio" name="importStatus" value="Nháp" [(ngModel)]="importStatusOption" />
+                <span>Nháp (Tạm ẩn)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="admin-btn admin-btn-secondary" 
+          (click)="closeImportModal()">
+          Hủy bỏ
+        </button>
+
+        <button 
+          type="button" 
+          class="admin-btn admin-btn-primary" 
+          *ngIf="importStage === 'precheck'"
+          [disabled]="!canConfirmImport"
+          (click)="confirmImport()">
+          <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
+          <span>Xác nhận nhập dữ liệu ({{ validRowsCount }} sản phẩm)</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       9. FLOATING TOAST NOTIFICATION
+       ========================================================================= -->
+  <div class="admin-toast-notice" *ngIf="toastMessage" [class]="'toast-' + toastType">
+    <lucide-angular [img]="icons.CheckCircle2" size="18" *ngIf="toastType === 'success'"></lucide-angular>
+    <lucide-angular [img]="icons.AlertCircle" size="18" *ngIf="toastType === 'warning' || toastType === 'error'"></lucide-angular>
+    <lucide-angular [img]="icons.Info" size="18" *ngIf="toastType === 'info'"></lucide-angular>
+    <span class="toast-text">{{ toastMessage }}</span>
+    <button type="button" class="toast-dismiss-btn" (click)="dismissToast()">
+      <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+    </button>
+  </div>
+
 </div>
