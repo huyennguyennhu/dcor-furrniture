@@ -316,6 +316,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.forgotError = '';
     this.resetError = '';
     this.isForgotOtpOpen = false;
+    this.forgotDevOtpHint = '';
     this.phoneTouched = false;
     this.passwordTouched = false;
     this.cdr.markForCheck();
@@ -476,6 +477,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.isForgotOtpOpen = false;
+          this.forgotDevOtpHint = '';
           this.resetToken = res.resetToken;
           this.viewMode = 'FORGOT_RESET'; // Chuyển sang bước 3: Đặt mật khẩu mới
           this.cdr.markForCheck();
@@ -490,6 +492,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   handleForgotOtpResend(): void {
     this.forgotOtpLoading = true;
     this.forgotOtpErrorMessage = '';
+    this.forgotDevOtpHint = '';
     this.cdr.markForCheck();
 
     this.authService
@@ -518,6 +521,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   handleForgotOtpClose(): void {
     this.isForgotOtpOpen = false;
     this.forgotOtpErrorMessage = '';
+    this.forgotDevOtpHint = '';
     this.cdr.markForCheck();
   }
 

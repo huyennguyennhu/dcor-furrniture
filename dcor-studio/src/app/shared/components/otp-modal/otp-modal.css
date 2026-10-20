@@ -31,3 +31,184 @@
 @keyframes scaleUp{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (max-width:480px){.otp-inputs{gap:6px}.otp-box{width:38px;height:46px;font-size:18px}.modal-footer{flex-direction:column-reverse;gap:8px}.resend-btn,.confirm-btn{width:100%;justify-content:center}}
+
+/* ==========================================================================
+   SMS Mockup Toast (DCor Demo OTP)
+   ========================================================================== */
+.sms-toast-wrapper {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1050;
+  max-width: 380px;
+  width: calc(100% - 48px);
+  pointer-events: auto;
+  animation: smsSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smsSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sms-toast {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-card, 14px);
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sms-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary, #765337), var(--color-accent, #bc5f13));
+}
+
+.sms-toast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.sms-toast-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text, #0a0a0a);
+}
+
+.sms-toast-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-primary, #765337) 12%, transparent);
+  color: var(--color-primary, #765337);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sms-toast-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-heading, #0a0a0a);
+  letter-spacing: -0.01em;
+}
+
+.sms-toast-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted, #757575);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.sms-toast-close:hover {
+  background: var(--color-surface-subtle, #f5f5f5);
+  color: var(--color-text, #0a0a0a);
+}
+
+.sms-toast-body {
+  padding: 2px 0;
+}
+
+.sms-toast-message {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #616161);
+}
+
+.sms-otp-code {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--color-primary, #765337);
+  background: color-mix(in srgb, var(--color-primary, #765337) 8%, transparent);
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin: 0 2px;
+}
+
+.sms-toast-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.sms-toast-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--radius-control, 8px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.sms-toast-btn.btn-copy {
+  background: var(--color-surface-subtle, #f5f5f5);
+  border-color: var(--color-border, #e0e0e0);
+  color: var(--color-text, #0a0a0a);
+}
+
+.sms-toast-btn.btn-copy:hover {
+  background: var(--color-surface-muted, #ededed);
+  border-color: var(--color-text-muted, #757575);
+}
+
+.sms-toast-btn.btn-copy.copied {
+  background: var(--color-success-bg, #e9f8e9);
+  border-color: var(--color-success, #00a30b);
+  color: var(--color-success, #00a30b);
+}
+
+.sms-toast-btn.btn-fill {
+  background: var(--color-primary, #765337);
+  color: #ffffff;
+}
+
+.sms-toast-btn.btn-fill:hover {
+  background: var(--color-primary-hover, #bc5f13);
+}
+
+@media (max-width: 640px) {
+  .sms-toast-wrapper {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+}
+
