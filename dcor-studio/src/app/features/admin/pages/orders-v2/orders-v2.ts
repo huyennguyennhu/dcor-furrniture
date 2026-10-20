@@ -229,6 +229,17 @@ export class OrdersV2Component implements OnInit, OnDestroy {
     return Math.min(this.currentPage * this.pageSize, this.totalItems);
   }
 
+  hasActiveFilters(): boolean {
+    return Boolean(
+      this.activeTab !== 'ALL' ||
+      this.searchQuery.trim() ||
+      this.selectedShowroom !== 'ALL' ||
+      this.selectedPayment !== 'ALL' ||
+      this.selectedStatus !== 'ALL' ||
+      this.sortBy !== 'date-desc'
+    );
+  }
+
   resetFilters() {
     this.activeTab = 'ALL';
     this.searchQuery = '';

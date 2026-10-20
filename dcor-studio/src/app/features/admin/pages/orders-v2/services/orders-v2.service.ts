@@ -165,6 +165,11 @@ export class OrdersV2Service {
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
+    if (!checklist.surfaceChecked || !checklist.structureChecked || !checklist.cushionLeatherChecked || !checklist.protectiveWrapDone) {
+      alert('Không thể hoàn tất đóng gói: Biên bản kiểm tra chất lượng (QC) chưa đạt đủ 4 tiêu chuẩn!');
+      return false;
+    }
+
     order.qcChecklist = { ...checklist };
     order.status = 'READY_TO_SHIP';
     this.addAuditLog(order, staffName, 'Hoàn tất đóng gói', 'Đã kiểm tra ngoại quan QC, bọc xốp EVA 4 cạnh và đưa kiện ra sàn chờ xe lấy.');
@@ -186,6 +191,11 @@ export class OrdersV2Service {
     const orders = this.orders;
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
+
+    if (order.qcChecklist && (!order.qcChecklist.surfaceChecked || !order.qcChecklist.structureChecked || !order.qcChecklist.cushionLeatherChecked || !order.qcChecklist.protectiveWrapDone)) {
+      alert('Không thể xuất kho: Biên bản kiểm tra chất lượng (QC) chưa được kiểm duyệt đủ 4 mục!');
+      return false;
+    }
 
     if (!deliveryData.trackingCode || deliveryData.trackingCode.trim() === '') {
       alert('Vui lòng nhập Mã vận đơn trước khi xác nhận xuất kho!');

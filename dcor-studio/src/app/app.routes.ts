@@ -60,6 +60,7 @@ export const routes: Routes = [
       { path: 'staff/accounts', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
       { path: 'staff/permissions', loadComponent: () => import('./features/admin/pages/staff/staff-permissions/staff-permissions').then(m => m.StaffPermissionsComponent) },
       { path: 'settings', loadComponent: () => import('./features/admin/pages/settings/settings').then(m => m.SettingsComponent) },
+      { path: 'activity', loadComponent: () => import('./features/admin/pages/activity/activity').then(m => m.ActivityComponent) },
       { path: '**', redirectTo: 'dashboard' },
     ]
   },

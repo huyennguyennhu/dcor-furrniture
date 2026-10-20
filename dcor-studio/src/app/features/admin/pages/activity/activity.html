@@ -1,0 +1,715 @@
+<div class="audit-log-page-container">
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="header-title-row">
+        <div class="header-icon-box">
+          <lucide-angular [img]="icons.Clock" size="24" class="header-icon"></lucide-angular>
+        </div>
+        <div>
+          <h1 class="page-title">Nhật ký hoạt động</h1>
+          <p class="page-subtitle">Kiểm toán, giám sát và lưu trữ toàn bộ lịch sử thao tác hệ thống theo thời gian thực</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button 
+        type="button" 
+        class="btn-secondary" 
+        (click)="loadAuditLogs()" 
+        [disabled]="isLoading" 
+        title="Làm mới dữ liệu">
+        <lucide-angular [img]="icons.RefreshCw" size="16" [class.spinning]="isLoading"></lucide-angular>
+        <span>Làm mới</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="btn-export" 
+        (click)="exportToCsv()" 
+        [disabled]="logs.length === 0"
+        title="Xuất danh sách ra file CSV">
+        <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
+        <span>Xuất CSV</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI SUMMARY CARDS -->
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper bg-blue-soft">
+        <lucide-angular [img]="icons.Layers" size="20" class="text-blue"></lucide-angular>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Tổng số sự kiện</span>
+        <span class="kpi-value">{{ stats.totalLogs | number }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper bg-emerald-soft">
+        <lucide-angular [img]="icons.CheckCircle" size="20" class="text-emerald"></lucide-angular>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Sự kiện hôm nay</span>
+        <span class="kpi-value">{{ stats.todayLogs | number }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper bg-amber-soft">
+        <lucide-angular [img]="icons.AlertTriangle" size="20" class="text-amber"></lucide-angular>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Cảnh báo (Warning)</span>
+        <span class="kpi-value text-amber-val">{{ stats.warningLogs | number }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper bg-rose-soft">
+        <lucide-angular [img]="icons.ShieldAlert" size="20" class="text-rose"></lucide-angular>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Nguy hiểm (Critical)</span>
+        <span class="kpi-value text-rose-val">{{ stats.criticalLogs | number }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper bg-purple-soft">
+        <lucide-angular [img]="icons.Users" size="20" class="text-purple"></lucide-angular>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Nhân sự thực hiện</span>
+        <span class="kpi-value">{{ stats.activeActors | number }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTER CONTROLS SECTION -->
+  <section class="filter-card">
+    <!-- A. BỘ LỌC CƠ BẢN (Hiển thị sẵn trên thanh Filter) -->
+    <div class="basic-filter-bar">
+      <!-- 1. Search Bar -->
+      <div class="search-input-wrapper">
+        <lucide-angular [img]="icons.Search" size="18" class="search-icon"></lucide-angular>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Tìm theo: Mã đơn, SKU, Phiếu kho, Tên nhân viên, Email, Mã log..."
+          [ngModel]="filters.search"
+          (ngModelChange)="onSearchInput($event)"
+          (keyup.enter)="loadAuditLogs()"
+        />
+        <button 
+          *ngIf="filters.search" 
+          type="button" 
+          class="btn-clear-search" 
+          (click)="clearSearch()" 
+          title="Xóa tìm kiếm">
+          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- 2. Date Range Picker Dropdown -->
+      <div class="filter-dropdown-wrapper date-dropdown-wrapper">
+        <button 
+          type="button" 
+          class="filter-trigger-btn" 
+          [class.active]="filters.datePreset !== 'ALL'"
+          [class.dropdown-open]="showDateDropdown"
+          (click)="toggleDateDropdown()">
+          <lucide-angular [img]="icons.Calendar" size="16" class="trigger-icon"></lucide-angular>
+          <span class="trigger-label">{{ getDateFilterLabel() }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14" class="chevron-icon"></lucide-angular>
+        </button>
+
+        <!-- Date Popup Menu -->
+        <div class="filter-menu-dropdown date-menu-dropdown" *ngIf="showDateDropdown">
+          <div class="date-menu-header">Chọn khoảng thời gian</div>
+          <div class="preset-buttons-grid">
+            <button 
+              type="button" 
+              class="btn-preset" 
+              [class.active]="filters.datePreset === 'ALL'"
+              (click)="selectDatePreset('ALL')">
+              Tất cả
+            </button>
+            <button 
+              type="button" 
+              class="btn-preset" 
+              [class.active]="filters.datePreset === 'TODAY'"
+              (click)="selectDatePreset('TODAY')">
+              Hôm nay
+            </button>
+            <button 
+              type="button" 
+              class="btn-preset" 
+              [class.active]="filters.datePreset === 'LAST_7_DAYS'"
+              (click)="selectDatePreset('LAST_7_DAYS')">
+              7 ngày qua
+            </button>
+            <button 
+              type="button" 
+              class="btn-preset" 
+              [class.active]="filters.datePreset === 'LAST_30_DAYS'"
+              (click)="selectDatePreset('LAST_30_DAYS')">
+              30 ngày qua
+            </button>
+            <button 
+              type="button" 
+              class="btn-preset" 
+              [class.active]="filters.datePreset === 'THIS_MONTH'"
+              (click)="selectDatePreset('THIS_MONTH')">
+              Tháng này
+            </button>
+          </div>
+
+          <div class="date-custom-section">
+            <div class="custom-title">Hoặc chọn khoảng ngày tự do:</div>
+            <div class="date-inputs-row">
+              <div class="date-field">
+                <label>Từ ngày</label>
+                <input type="date" [(ngModel)]="customStartDate" />
+              </div>
+              <div class="date-field">
+                <label>Đến ngày</label>
+                <input type="date" [(ngModel)]="customEndDate" />
+              </div>
+            </div>
+            <div class="date-actions">
+              <button 
+                type="button" 
+                class="btn-apply-date" 
+                [disabled]="!customStartDate && !customEndDate"
+                (click)="applyCustomDate()">
+                Áp dụng ngày
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Module Dropdown -->
+      <div class="filter-dropdown-wrapper module-dropdown-wrapper">
+        <button 
+          type="button" 
+          class="filter-trigger-btn" 
+          [class.active]="filters.module !== 'ALL'"
+          [class.dropdown-open]="showModuleDropdown"
+          (click)="toggleModuleDropdown()">
+          <lucide-angular [img]="icons.Layers" size="16" class="trigger-icon"></lucide-angular>
+          <span class="trigger-label">{{ getSelectedModuleLabel() }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14" class="chevron-icon"></lucide-angular>
+        </button>
+
+        <!-- Module Popup Menu -->
+        <div class="filter-menu-dropdown module-menu-dropdown" *ngIf="showModuleDropdown">
+          <div class="dropdown-header-title">Chọn phân hệ nghiệp vụ</div>
+          <div class="dropdown-options-list">
+            <button 
+              type="button" 
+              class="dropdown-option-item" 
+              *ngFor="let mod of MODULE_OPTIONS"
+              [class.selected]="filters.module === mod.key"
+              (click)="selectModule(mod.key)">
+              <div class="option-content">
+                <lucide-angular [img]="getModuleIcon(mod.key)" size="16" class="option-icon"></lucide-angular>
+                <span class="option-text">{{ mod.label }}</span>
+              </div>
+              <lucide-angular *ngIf="filters.module === mod.key" [img]="icons.Check" size="16" class="selected-check"></lucide-angular>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Advanced Filters Trigger Button -->
+      <button 
+        type="button" 
+        class="btn-advanced-toggle" 
+        [class.active]="showAdvancedFilters || activeAdvancedFilterCount > 0"
+        (click)="toggleAdvancedFilters()">
+        <lucide-angular [img]="icons.SlidersHorizontal" size="16"></lucide-angular>
+        <span>Lọc nâng cao</span>
+        <span *ngIf="activeAdvancedFilterCount > 0" class="filter-count-badge">
+          {{ activeAdvancedFilterCount }}
+        </span>
+      </button>
+
+      <!-- 5. Reset All Filters Button -->
+      <button 
+        type="button" 
+        class="btn-reset-filter" 
+        (click)="resetAllFilters()" 
+        title="Đặt lại toàn bộ bộ lọc">
+        <lucide-angular [img]="icons.RotateCcw" size="15"></lucide-angular>
+        <span>Đặt lại</span>
+      </button>
+    </div>
+
+    <!-- B. BỘ LỌC NÂNG CAO (Advanced Filters Panel) -->
+    <div class="advanced-filter-panel" *ngIf="showAdvancedFilters">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <lucide-angular [img]="icons.Filter" size="16"></lucide-angular>
+          <span class="panel-title">Tiêu chí lọc nâng cao</span>
+        </div>
+        <button type="button" class="btn-close-panel" (click)="showAdvancedFilters = false">
+          <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="advanced-grid">
+        <!-- 1. Loại hành động (Action Type) -->
+        <div class="advanced-field-group">
+          <label class="group-label">Loại hành động (Action Type)</label>
+          <div class="chips-selector">
+            <button 
+              type="button" 
+              class="chip-btn" 
+              *ngFor="let act of ACTION_OPTIONS"
+              [class.active]="filters.actionType === act.key"
+              (click)="filters.actionType = act.key">
+              {{ act.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Người thực hiện (User / Role) -->
+        <div class="advanced-field-group">
+          <label class="group-label">Người thực hiện (User / Role)</label>
+          <div class="actor-filter-row">
+            <div class="select-wrapper">
+              <label class="sub-label">Vai trò (Role)</label>
+              <select class="custom-select" [(ngModel)]="filters.role">
+                <option *ngFor="let role of ROLE_OPTIONS" [value]="role.key">
+                  {{ role.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="input-wrapper">
+              <label class="sub-label">Tên nhân viên cụ thể</label>
+              <div class="input-with-icon">
+                <lucide-angular [img]="icons.User" size="16" class="input-icon"></lucide-angular>
+                <input 
+                  type="text" 
+                  class="custom-input" 
+                  placeholder="Ví dụ: Nguyễn Văn A..." 
+                  [(ngModel)]="filters.staffName"
+                  (keyup.enter)="applyAdvancedFilters()"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Mức độ nghiêm trọng (Severity Level) -->
+        <div class="advanced-field-group">
+          <label class="group-label">Mức độ nghiêm trọng / Loại Log (Severity Level)</label>
+          <div class="severity-cards-grid">
+            <div 
+              class="severity-option-card" 
+              *ngFor="let sev of SEVERITY_OPTIONS"
+              [class.active]="filters.severity === sev.key"
+              (click)="filters.severity = sev.key">
+              <div class="card-radio">
+                <div class="radio-indicator" [class.checked]="filters.severity === sev.key"></div>
+              </div>
+              <div class="card-details">
+                <span class="card-name" [ngClass]="sev.badgeClass">{{ sev.label }}</span>
+                <span *ngIf="sev.desc" class="card-desc">{{ sev.desc }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <div class="active-count-text" *ngIf="activeAdvancedFilterCount > 0">
+          Đang áp dụng <strong>{{ activeAdvancedFilterCount }}</strong> tiêu chí nâng cao
+        </div>
+        <div class="action-buttons-group">
+          <button type="button" class="btn-cancel" (click)="showAdvancedFilters = false">Đóng</button>
+          <button type="button" class="btn-primary" (click)="applyAdvancedFilters()">Áp dụng bộ lọc</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABLE SECTION -->
+  <section class="table-card">
+    <div class="table-top-bar">
+      <div class="table-info">
+        <span class="table-info-title">Danh sách Nhật ký</span>
+        <span class="table-info-count">({{ pagination.total | number }} sự kiện)</span>
+      </div>
+
+      <div class="table-tools">
+        <div class="limit-selector">
+          <span>Hiển thị:</span>
+          <select [ngModel]="filters.limit" (ngModelChange)="onLimitChange($event)">
+            <option [value]="10">10 dòng</option>
+            <option [value]="25">25 dòng</option>
+            <option [value]="50">50 dòng</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Alert Banner -->
+    <div *ngIf="errorMessage" class="error-banner">
+      <lucide-angular [img]="icons.AlertTriangle" size="18"></lucide-angular>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- Table Container -->
+    <div class="table-responsive">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th class="col-id">Mã sự kiện / ID</th>
+            <th class="col-timestamp">Thời gian</th>
+            <th class="col-actor">Người thực hiện</th>
+            <th class="col-action">Hành động</th>
+            <th class="col-module">Phân hệ</th>
+            <th class="col-target">Đối tượng tác động</th>
+            <th class="col-severity">Mức độ</th>
+            <th class="col-details text-center">Chi tiết thay đổi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading State Skeleton -->
+          <tr *ngIf="isLoading" class="loading-row">
+            <td colspan="8" class="text-center py-8">
+              <div class="loading-spinner-box">
+                <lucide-angular [img]="icons.RefreshCw" size="24" class="spinning"></lucide-angular>
+                <span>Đang tải nhật ký kiểm toán...</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="!isLoading && logs.length === 0" class="empty-row">
+            <td colspan="8" class="text-center py-12">
+              <div class="empty-box">
+                <lucide-angular [img]="icons.FileText" size="44" class="empty-icon"></lucide-angular>
+                <h3 class="empty-title">Không tìm thấy bản ghi nhật ký phù hợp</h3>
+                <p class="empty-desc">Hãy thử thay đổi điều kiện tìm kiếm, khoảng thời gian hoặc nhấn "Đặt lại bộ lọc".</p>
+                <button type="button" class="btn-primary mt-3" (click)="resetAllFilters()">
+                  <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+                  <span>Đặt lại bộ lọc</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Data Rows -->
+          <tr *ngFor="let log of logs" class="table-data-row">
+            <!-- 1. Mã sự kiện / ID -->
+            <td class="col-id">
+              <div class="log-code-badge" (click)="copyLogCode(log.log_code || log.id, $event)" title="Nhấn để copy mã sự kiện">
+                <span class="code-text">{{ log.log_code || log.id }}</span>
+                <lucide-angular 
+                  [img]="copiedLogCode === (log.log_code || log.id) ? icons.Check : icons.Copy" 
+                  size="13" 
+                  class="copy-icon"
+                  [class.text-emerald]="copiedLogCode === (log.log_code || log.id)">
+                </lucide-angular>
+              </div>
+            </td>
+
+            <!-- 2. Thời gian (Timestamp) -->
+            <td class="col-timestamp">
+              <div class="timestamp-box">
+                <span class="timestamp-date">{{ formatTimestamp(log.timestamp) }}</span>
+                <span *ngIf="log.ip_address" class="ip-meta">IP: {{ log.ip_address }}</span>
+              </div>
+            </td>
+
+            <!-- 3. Người thực hiện (User/Actor) -->
+            <td class="col-actor">
+              <div class="actor-cell">
+                <div class="actor-avatar" [class.bg-avatar-admin]="log.actor_role === 'ADMIN'">
+                  {{ getActorInitial(log.actor_name) }}
+                </div>
+                <div class="actor-info">
+                  <div class="actor-name-row">
+                    <span class="actor-name">{{ log.actor_name }}</span>
+                  </div>
+                  <div class="actor-sub">
+                    <span class="role-badge" [ngClass]="getActorRoleBadgeClass(log.actor_role)">
+                      Role: {{ getRoleLabel(log.actor_role) }}
+                    </span>
+                    <span *ngIf="log.actor_id" class="actor-id-badge">- ID: {{ log.actor_id }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- 4. Hành động (Action) -->
+            <td class="col-action">
+              <span class="action-badge" [ngClass]="getActionBadgeClass(log.action)">
+                {{ log.action_label || log.action }}
+              </span>
+            </td>
+
+            <!-- 5. Phân khu / Phân hệ (Module) -->
+            <td class="col-module">
+              <div class="module-tag">
+                <lucide-angular [img]="getModuleIcon(log.module)" size="14" class="module-icon"></lucide-angular>
+                <span>{{ log.module_label || log.module }}</span>
+              </div>
+            </td>
+
+            <!-- 6. Đối tượng tác động (Target / Entity) -->
+            <td class="col-target">
+              <div class="target-cell">
+                <div class="target-name" [title]="log.target_name || log.target_id || ''">
+                  {{ log.target_name || log.target_id || 'Hệ thống' }}
+                </div>
+                <div *ngIf="log.description" class="target-desc" [title]="log.description">
+                  {{ log.description }}
+                </div>
+              </div>
+            </td>
+
+            <!-- 7. Mức độ (Severity) -->
+            <td class="col-severity">
+              <span class="severity-badge" [ngClass]="getSeverityBadgeClass(log.severity)">
+                <span class="severity-dot"></span>
+                <span>{{ log.severity }}</span>
+              </span>
+            </td>
+
+            <!-- 8. Chi tiết thay đổi (Change Details) -->
+            <td class="col-details text-center">
+              <button 
+                type="button" 
+                class="btn-view-detail" 
+                (click)="openDetailModal(log)" 
+                title="Xem chi tiết thay đổi giá trị Trước và Sau">
+                <lucide-angular [img]="icons.Eye" size="14"></lucide-angular>
+                <span>Xem chi tiết</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAGINATION FOOTER -->
+    <div class="pagination-footer" *ngIf="!isLoading && pagination.total > 0">
+      <div class="pagination-summary">
+        Hiển thị 
+        <strong>{{ (pagination.page - 1) * pagination.limit + 1 }}</strong>
+        đến 
+        <strong>{{ (pagination.page * pagination.limit) > pagination.total ? pagination.total : (pagination.page * pagination.limit) }}</strong>
+        trên tổng số 
+        <strong>{{ pagination.total | number }}</strong> sự kiện
+      </div>
+
+      <div class="pagination-controls">
+        <button 
+          type="button" 
+          class="page-nav-btn" 
+          [disabled]="pagination.page <= 1"
+          (click)="goToPage(pagination.page - 1)" 
+          title="Trang trước">
+          <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
+        </button>
+
+        <div class="page-numbers-list">
+          <button 
+            type="button" 
+            class="page-num-btn" 
+            *ngFor="let p of pagesArray"
+            [class.active]="p === pagination.page"
+            (click)="goToPage(p)">
+            {{ p }}
+          </button>
+        </div>
+
+        <button 
+          type="button" 
+          class="page-nav-btn" 
+          [disabled]="pagination.page >= pagination.totalPages"
+          (click)="goToPage(pagination.page + 1)" 
+          title="Trang sau">
+          <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL XEM CHI TIẾT THAY ĐỔI (Old Value vs New Value Diff Modal) -->
+  <div class="modal-backdrop" *ngIf="showDetailModal" (click)="closeDetailModal()">
+    <div class="modal-dialog-audit" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon-badge">
+            <lucide-angular [img]="icons.FileText" size="20"></lucide-angular>
+          </div>
+          <div>
+            <div class="modal-title-row">
+              <h2 class="modal-title">Chi tiết sự kiện kiểm toán</h2>
+              <span class="modal-code-badge">{{ selectedLog?.log_code }}</span>
+              <span class="severity-badge" [ngClass]="getSeverityBadgeClass(selectedLog?.severity || 'INFO')">
+                <span class="severity-dot"></span>
+                {{ selectedLog?.severity }}
+              </span>
+            </div>
+            <p class="modal-subtitle">Ghi nhận lúc: {{ formatTimestamp(selectedLog?.timestamp || '') }}</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn-close-modal" (click)="closeDetailModal()">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body" *ngIf="selectedLog">
+        <!-- Event Overview Cards -->
+        <div class="event-meta-grid">
+          <div class="meta-card">
+            <div class="meta-label">Người thực hiện</div>
+            <div class="meta-val font-semibold">{{ selectedLog.actor_name }}</div>
+            <div class="meta-sub">
+              <span>Vai trò: {{ getRoleLabel(selectedLog.actor_role) }}</span>
+              <span *ngIf="selectedLog.actor_id"> • Mã: {{ selectedLog.actor_id }}</span>
+            </div>
+            <div *ngIf="selectedLog.actor_email" class="meta-email">{{ selectedLog.actor_email }}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-label">Phân hệ & Hành động</div>
+            <div class="meta-val">
+              <span class="action-badge" [ngClass]="getActionBadgeClass(selectedLog.action)">
+                {{ selectedLog.action_label || selectedLog.action }}
+              </span>
+            </div>
+            <div class="meta-sub mt-1">
+              Phân hệ: <strong>{{ selectedLog.module_label || selectedLog.module }}</strong>
+            </div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-label">Đối tượng tác động</div>
+            <div class="meta-val font-semibold">{{ selectedLog.target_name || selectedLog.target_id || 'Hệ thống' }}</div>
+            <div class="meta-sub" *ngIf="selectedLog.target_id">ID: {{ selectedLog.target_id }}</div>
+            <div class="meta-desc">{{ selectedLog.description }}</div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-label">Môi trường & Mạng</div>
+            <div class="meta-val font-mono">IP: {{ selectedLog.ip_address || '127.0.0.1' }}</div>
+            <div class="meta-sub user-agent-text" [title]="selectedLog.user_agent || ''">
+              {{ selectedLog.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64)' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Diff / Changes Section -->
+        <div class="diff-section">
+          <div class="diff-section-header">
+            <div class="diff-title-row">
+              <lucide-angular [img]="icons.Database" size="16"></lucide-angular>
+              <h3 class="diff-title">Chi tiết thay đổi dữ liệu (Audit Difference)</h3>
+            </div>
+
+            <!-- View Mode Switcher -->
+            <div class="view-mode-tabs">
+              <button 
+                type="button" 
+                class="tab-btn" 
+                [class.active]="detailViewMode === 'visual'"
+                (click)="detailViewMode = 'visual'">
+                Bảng so sánh Trước / Sau
+              </button>
+              <button 
+                type="button" 
+                class="tab-btn" 
+                [class.active]="detailViewMode === 'raw'"
+                (click)="detailViewMode = 'raw'">
+                Dữ liệu JSON thô
+              </button>
+            </div>
+          </div>
+
+          <!-- 1. Visual Diff Mode -->
+          <div *ngIf="detailViewMode === 'visual'" class="diff-visual-box">
+            <!-- Trường hợp có old_value hoặc new_value -->
+            <table class="diff-table" *ngIf="selectedLog.old_value || selectedLog.new_value">
+              <thead>
+                <tr>
+                  <th class="th-field">Trường dữ liệu</th>
+                  <th class="th-old">
+                    <span class="diff-header-badge badge-old">Giá trị Trước (Old Value)</span>
+                  </th>
+                  <th class="th-new">
+                    <span class="diff-header-badge badge-new">Giá trị Sau (New Value)</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let diff of getDiffEntries(selectedLog.old_value, selectedLog.new_value)" [class.row-changed]="diff.isChanged">
+                  <td class="td-field">
+                    <span class="field-key">{{ diff.label }}</span>
+                    <span class="field-raw-name">({{ diff.key }})</span>
+                  </td>
+                  <td class="td-old">
+                    <div class="diff-val old-val" [class.highlight-old]="diff.isChanged">
+                      {{ diff.oldStr }}
+                    </div>
+                  </td>
+                  <td class="td-new">
+                    <div class="diff-val new-val" [class.highlight-new]="diff.isChanged">
+                      {{ diff.newStr }}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Trường hợp không có payload thay đổi (ví dụ login/logout) -->
+            <div *ngIf="!selectedLog.old_value && !selectedLog.new_value" class="diff-empty-notice">
+              <lucide-angular [img]="icons.Info" size="20" class="text-blue"></lucide-angular>
+              <div class="notice-content">
+                <strong>Thao tác không làm thay đổi bản ghi dữ liệu</strong>
+                <p>Đây là sự kiện thông tin xác thực, tra cứu hoặc báo cáo hệ thống. Không có sự biến động trên các trường dữ liệu thực thể.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Raw JSON Mode -->
+          <div *ngIf="detailViewMode === 'raw'" class="diff-raw-box">
+            <div class="json-columns-grid">
+              <div class="json-column">
+                <div class="json-column-header">Old Value (Trước)</div>
+                <pre class="json-pre"><code>{{ formatJson(selectedLog.old_value) }}</code></pre>
+              </div>
+              <div class="json-column">
+                <div class="json-column-header">New Value (Sau)</div>
+                <pre class="json-pre"><code>{{ formatJson(selectedLog.new_value) }}</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn-copy-full" (click)="copyLogCode(selectedLog?.log_code || '')">
+          <lucide-angular [img]="copiedLogCode === selectedLog?.log_code ? icons.Check : icons.Copy" size="14"></lucide-angular>
+          <span>{{ copiedLogCode === selectedLog?.log_code ? 'Đã sao chép mã sự kiện' : 'Sao chép mã sự kiện' }}</span>
+        </button>
+        <button type="button" class="btn-primary" (click)="closeDetailModal()">Đóng cửa sổ</button>
+      </div>
+    </div>
+  </div>
+</div>

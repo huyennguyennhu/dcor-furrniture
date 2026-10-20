@@ -8,7 +8,7 @@ import {
   ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock, Truck, Package, 
   AlertTriangle, ShieldCheck, DollarSign, CornerDownLeft, FileText, 
   Check, X, Building2, CreditCard, User, MapPin, Printer, RefreshCw,
-  ExternalLink, Eye, ChevronRight, Phone, Mail, Box, ShieldAlert, Lock, Info,
+  ExternalLink, Eye, ChevronRight, ChevronDown, Phone, Mail, Box, ShieldAlert, Lock, Info,
   Square, CheckSquare
 } from 'lucide-angular';
 import { OrdersV2Service } from '../services/orders-v2.service';
@@ -37,7 +37,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock, Truck, Package,
     AlertTriangle, ShieldCheck, DollarSign, CornerDownLeft, FileText,
     Check, X, Building2, CreditCard, User, MapPin, Printer, RefreshCw,
-    ExternalLink, Eye, ChevronRight, Phone, Mail, Box, ShieldAlert, Lock, Info,
+    ExternalLink, Eye, ChevronRight, ChevronDown, Phone, Mail, Box, ShieldAlert, Lock, Info,
     Square, CheckSquare
   };
 
@@ -77,7 +77,28 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
   showRejectReturnModal = false;
   rejectReason = 'Sản phẩm không có lỗi từ nhà sản xuất hoặc đã quá thời hạn 72h hỗ trợ';
 
+  showDeliveryFailedModal = false;
+  deliveryFailedReason = '';
+  customDeliveryFailedNote = '';
+  showDeliveryFailedDropdown = false;
+
+  readonly deliveryFailedOptions = [
+    { value: 'Không liên lạc được với khách hàng', label: 'Không liên lạc được với khách hàng (Gọi không nghe máy / Thuê bao)' },
+    { value: 'Khách bận, hẹn giao lại vào thời gian khác', label: 'Khách bận, hẹn giao lại vào thời gian khác' },
+    { value: 'Sai địa chỉ nhận hàng / Không tìm thấy địa chỉ', label: 'Sai địa chỉ nhận hàng / Không tìm thấy địa chỉ' },
+    { value: 'Khách từ chối nhận hàng do đổi ý', label: 'Khách từ chối nhận hàng do đổi ý' },
+    { value: 'Khách không đồng ý thanh toán phần tiền còn lại', label: 'Khách không đồng ý thanh toán phần tiền còn lại' },
+    { value: 'Khác', label: 'Lý do khác...' }
+  ];
+
+  showRescheduleModal = false;
+  rescheduleSlot = 'Ca sáng (08:30 - 11:30) ngày mai';
+  customRescheduleNote = '';
+
   showUserViewModal = false;
+
+  // Trạng thái đang xử lý hành động (chống spam click / double-submit)
+  isSubmitting = false;
 
   // New tracking code input for READY_TO_SHIP
   newTrackingCode = '';
@@ -208,26 +229,41 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     return false;
   }
 
+  // Helper chống spam click / double-submit
+  private withSubmittingLock(actionFn: () => void, lockDuration = 600): void {
+    if (this.isSubmitting) return;
+    this.isSubmitting = true;
+    try {
+      actionFn();
+    } finally {
+      setTimeout(() => {
+        this.isSubmitting = false;
+      }, lockDuration);
+    }
+  }
+
   // Admin/Kế toán ghi nhận thanh toán trực tuyến hoặc cọc thủ công
   onConfirmManualPayment(type: 'FULL' | 'DEPOSIT') {
-    if (!this.order) return;
-    const ok = this.ordersService.confirmManualPayment(this.order.id, type, 'Kế toán DCOR');
-    if (ok) {
-      if (type === 'FULL') {
-        this.triggerToast(
-          'Đã ghi nhận thanh toán trực tuyến!', 
-          `Kế toán đối soát thành công thanh toán qua ${this.getPaymentMethodLabel(this.order.paymentMethod)}. Nút [Xác nhận đơn hàng] đã được kích hoạt.`, 
-          'success'
-        );
-      } else {
-        const deposit = this.order.depositRequired || Math.round(this.order.totalAmount * 0.3);
-        this.triggerToast(
-          'Đã ghi nhận tiền cọc 30%!', 
-          `Kế toán đã ghi nhận cọc ${this.formatVND(deposit)} thành công. Nút [Xác nhận đơn hàng] đã được kích hoạt để duyệt vào kho.`, 
-          'success'
-        );
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const ok = this.ordersService.confirmManualPayment(this.order!.id, type, 'Kế toán DCOR');
+      if (ok) {
+        if (type === 'FULL') {
+          this.triggerToast(
+            'Đã ghi nhận thanh toán trực tuyến!', 
+            `Kế toán đối soát thành công thanh toán qua ${this.getPaymentMethodLabel(this.order!.paymentMethod)}. Nút [Xác nhận đơn hàng] đã được kích hoạt.`, 
+            'success'
+          );
+        } else {
+          const deposit = this.order!.depositRequired || Math.round(this.order!.totalAmount * 0.3);
+          this.triggerToast(
+            'Đã ghi nhận tiền cọc 30%!', 
+            `Kế toán đã ghi nhận cọc ${this.formatVND(deposit)} thành công. Nút [Xác nhận đơn hàng] đã được kích hoạt để duyệt vào kho.`, 
+            'success'
+          );
+        }
       }
-    }
+    });
   }
 
   // Cuộn mượt mà lên đầu trang khi chuyển bước
@@ -252,7 +288,7 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
 
   // 1. PENDING -> CONFIRMED
   onConfirmOrder() {
-    if (!this.order) return;
+    if (!this.order || this.isSubmitting) return;
     if (!this.paymentCheck.canConfirm) {
       const reason = this.paymentCheck.depositRequiredAmount 
         ? `Đơn hàng cần thu cọc tối thiểu ${this.formatVND(this.paymentCheck.depositRequiredAmount)} trước khi duyệt.`
@@ -260,112 +296,213 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
       this.triggerToast('Chưa đủ điều kiện duyệt đơn!', reason, 'error');
       return;
     }
-    const ok = this.ordersService.confirmOrder(this.order.id, 'Admin Trần');
-    if (ok) {
-      this.triggerToast('Xác nhận đơn hàng thành công!', 'Đơn hàng đã được duyệt và chuyển vào kho để in Pick-list & kiểm tra QC.', 'success');
-      this.scrollToTop();
-    }
+    this.withSubmittingLock(() => {
+      const ok = this.ordersService.confirmOrder(this.order!.id, 'Admin Trần');
+      if (ok) {
+        this.triggerToast('Xác nhận đơn hàng thành công!', 'Đơn hàng đã được duyệt và chuyển vào kho để in Pick-list & kiểm tra QC.', 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // 2. CONFIRMED -> PROCESSING
   onStartProcessing() {
-    if (!this.order) return;
-    const ok = this.ordersService.startProcessing(this.order.id, 'Thủ kho Hoàng Sơn');
-    if (ok) {
-      this.triggerToast('Chuyển kho chuẩn bị thành công!', 'Đã in phiếu soạn hàng cho nhân viên kho.', 'success');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const ok = this.ordersService.startProcessing(this.order!.id, 'Thủ kho Hoàng Sơn');
+      if (ok) {
+        this.triggerToast('Chuyển kho chuẩn bị thành công!', 'Đã in phiếu soạn hàng cho nhân viên kho.', 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // 3. PROCESSING -> READY_TO_SHIP
   onFinishPackaging() {
-    if (!this.order) return;
-    // Update checklist in order
-    this.ordersService.updateQcChecklist(this.order.id, this.checklist);
-    const ok = this.ordersService.finishPackaging(this.order.id, this.checklist, 'Thủ kho Hoàng Sơn');
-    if (ok) {
-      this.triggerToast('Hoàn tất đóng gói!', 'Đã kiểm định QC 4 bước, dán nhãn niêm phong và sẵn sàng bàn giao cho đơn vị vận chuyển.', 'success');
-      this.scrollToTop();
+    if (!this.order || this.isSubmitting) return;
+    if (!this.isQcAllChecked) {
+      this.triggerToast('Chưa đạt tiêu chuẩn QC!', 'Vui lòng kiểm tra và tích chọn đủ 4 tiêu chuẩn kiểm định chất lượng trước khi hoàn tất đóng gói.', 'error');
+      return;
     }
+    this.withSubmittingLock(() => {
+      // Update checklist in order
+      this.ordersService.updateQcChecklist(this.order!.id, this.checklist);
+      const ok = this.ordersService.finishPackaging(this.order!.id, this.checklist, 'Thủ kho Hoàng Sơn');
+      if (ok) {
+        this.triggerToast('Hoàn tất đóng gói!', 'Đã kiểm định QC 4 bước, dán nhãn niêm phong và sẵn sàng bàn giao cho đơn vị vận chuyển.', 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // 4. READY_TO_SHIP -> SHIPPED
   onDispatchOrder() {
-    if (!this.order) return;
-    const tracking = this.newTrackingCode.trim() || 'DCOR-EXP-' + Math.floor(100000 + Math.random() * 900000);
-    const ok = this.ordersService.dispatchOrder(this.order.id, {
-      provider: this.order.delivery.provider,
-      trackingCode: tracking
-    }, 'Bộ phận Điều phối Kho');
-    if (ok) {
-      this.triggerToast('Xuất kho thành công!', `Đã bàn giao hàng cho tài xế/ĐVC với mã vận đơn ${tracking}.`, 'success');
-      this.scrollToTop();
+    if (!this.order || this.isSubmitting) return;
+    if (!this.isQcAllChecked) {
+      this.triggerToast('Chưa đủ điều kiện xuất kho!', 'Biên bản kiểm tra chất lượng (QC) chưa hoàn tất đủ 4 mục.', 'error');
+      return;
     }
+    this.withSubmittingLock(() => {
+      const tracking = this.newTrackingCode.trim() || 'DCOR-EXP-' + Math.floor(100000 + Math.random() * 900000);
+      const ok = this.ordersService.dispatchOrder(this.order!.id, {
+        provider: this.order!.delivery.provider,
+        trackingCode: tracking
+      }, 'Bộ phận Điều phối Kho');
+      if (ok) {
+        this.triggerToast('Xuất kho thành công!', `Đã bàn giao hàng cho đơn vị vận chuyển với mã vận đơn ${tracking}.`, 'success');
+        this.scrollToTop();
+      }
+    });
+  }
+
+  // Tự động sinh mã vận đơn ngẫu nhiên mới
+  generateNewTrackingCode(): void {
+    this.newTrackingCode = 'DCOR-EXP-' + Math.floor(100000 + Math.random() * 900000);
   }
 
   // 5. SHIPPED -> DELIVERED
   onMarkDelivered() {
-    if (!this.order) return;
-    const ok = this.ordersService.markDelivered(this.order.id, 'Tài xế DCOR Express');
-    if (ok) {
-      this.triggerToast('Giao hàng thành công!', 'Khách đã ký nhận. Hệ thống kích hoạt đếm ngược 72 giờ khiếu nại đổi trả.', 'success');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const ok = this.ordersService.markDelivered(this.order!.id, 'Tài xế DCOR Express');
+      if (ok) {
+        this.triggerToast('Giao hàng thành công!', 'Khách đã ký nhận. Hệ thống kích hoạt đếm ngược 72 giờ khiếu nại đổi trả.', 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
-  // SHIPPED -> FAILED_DELIVERY
-  onMarkDeliveryFailed() {
-    if (!this.order) return;
-    const reason = prompt('Nhập lý do giao không thành công:', 'Khách bận họp không nghe máy, hẹn giao lại') || 'Không liên lạc được khách';
-    const ok = this.ordersService.markDeliveryFailed(this.order.id, reason, 'Tài xế DCOR Express');
-    if (ok) {
-      this.triggerToast('Ghi nhận giao thất bại!', `Đã lưu lý do và lên lịch hẹn hỗ trợ giao lại.`, 'info');
-      this.scrollToTop();
-    }
+  // SHIPPED -> FAILED_DELIVERY (Mở Popup Modal ghi nhận lý do)
+  openDeliveryFailedModal(): void {
+    this.deliveryFailedReason = '';
+    this.customDeliveryFailedNote = '';
+    this.showDeliveryFailedDropdown = false;
+    this.showDeliveryFailedModal = true;
   }
 
-  // FAILED_DELIVERY -> SHIPPED (Re-attempt)
-  onRescheduleDelivery() {
-    if (!this.order) return;
-    const note = prompt('Ghi chú ca giao lại:', 'Giao lại ca sáng 9h00 theo hẹn của khách') || 'Lên lịch giao lại';
-    const ok = this.ordersService.rescheduleDelivery(this.order.id, note, 'Điều phối viên DCOR');
-    if (ok) {
-      this.triggerToast('Đã lên lịch giao lại!', 'Đơn hàng đã được đưa lại vào ca giao tiếp theo của đội vận tải.', 'success');
-      this.scrollToTop();
+  closeDeliveryFailedModal(): void {
+    this.showDeliveryFailedModal = false;
+    this.showDeliveryFailedDropdown = false;
+  }
+
+  get selectedDeliveryFailedLabel(): string {
+    if (!this.deliveryFailedReason) return 'Chọn lý do';
+    const opt = this.deliveryFailedOptions.find(o => o.value === this.deliveryFailedReason);
+    return opt ? opt.label : this.deliveryFailedReason;
+  }
+
+  toggleDeliveryFailedDropdown(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
     }
+    this.showDeliveryFailedDropdown = !this.showDeliveryFailedDropdown;
+  }
+
+  selectDeliveryFailedReason(val: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.deliveryFailedReason = val;
+    this.showDeliveryFailedDropdown = false;
+  }
+
+  // Điều kiện để kích hoạt nút Xác nhận giao thất bại
+  get canConfirmDeliveryFailed(): boolean {
+    if (!this.deliveryFailedReason) return false;
+    if (this.deliveryFailedReason === 'Khác') {
+      return !!this.customDeliveryFailedNote && this.customDeliveryFailedNote.trim().length > 0;
+    }
+    return true;
+  }
+
+  confirmDeliveryFailed(): void {
+    if (!this.order || this.isSubmitting) return;
+    if (!this.canConfirmDeliveryFailed) {
+      if (!this.deliveryFailedReason) {
+        this.triggerToast('Chưa chọn lý do!', 'Vui lòng chọn lý do giao thất bại trước khi xác nhận.', 'error');
+      } else if (this.deliveryFailedReason === 'Khác') {
+        this.triggerToast('Thiếu thông tin!', 'Vui lòng nhập nội dung chi tiết khi chọn Lý do khác.', 'error');
+      }
+      return;
+    }
+    this.withSubmittingLock(() => {
+      const finalReason = this.deliveryFailedReason === 'Khác'
+        ? this.customDeliveryFailedNote.trim()
+        : (this.customDeliveryFailedNote.trim() ? `${this.deliveryFailedReason} - ${this.customDeliveryFailedNote.trim()}` : this.deliveryFailedReason);
+
+      const ok = this.ordersService.markDeliveryFailed(this.order!.id, finalReason, 'Tài xế DCOR Express');
+      this.showDeliveryFailedModal = false;
+      if (ok) {
+        this.triggerToast('Ghi nhận giao thất bại!', `Đã lưu lý do và chuyển trạng thái để hỗ trợ hủy hoàn kho hoặc hẹn giao lại.`, 'info');
+        this.scrollToTop();
+      }
+    });
+  }
+
+  // FAILED_DELIVERY -> SHIPPED (Mở Popup Lên lịch giao lại)
+  openRescheduleModal(): void {
+    this.rescheduleSlot = 'Ca sáng (08:30 - 11:30) ngày mai';
+    this.customRescheduleNote = '';
+    this.showRescheduleModal = true;
+  }
+
+  closeRescheduleModal(): void {
+    this.showRescheduleModal = false;
+  }
+
+  confirmRescheduleDelivery(): void {
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const finalPlan = this.customRescheduleNote.trim()
+        ? `${this.rescheduleSlot} (${this.customRescheduleNote.trim()})`
+        : this.rescheduleSlot;
+
+      const ok = this.ordersService.rescheduleDelivery(this.order!.id, finalPlan, 'Điều phối viên DCOR');
+      this.showRescheduleModal = false;
+      if (ok) {
+        this.triggerToast('Đã lên lịch giao lại!', `Đơn hàng đã được đưa lại vào lộ trình giao vận: ${finalPlan}.`, 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // 6. DELIVERED -> COMPLETED
   onCompleteOrder() {
-    if (!this.order) return;
-    const ok = this.ordersService.completeOrder(this.order.id, 'Admin Trần');
-    if (ok) {
-      this.triggerToast('Đơn hàng đã Hoàn tất!', 'Khóa hồ sơ đơn hàng, kích hoạt chính sách bảo hành 2 năm và ghi nhận doanh thu.', 'success');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const ok = this.ordersService.completeOrder(this.order!.id, 'Admin Trần');
+      if (ok) {
+        this.triggerToast('Đơn hàng đã Hoàn tất!', 'Khóa hồ sơ đơn hàng, kích hoạt chính sách bảo hành 2 năm và ghi nhận doanh thu.', 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // Simulate customer requesting return during 72h
   onSimulateCustomerReturn() {
-    if (!this.order) return;
-    this.ordersService.requestReturn(this.order.id, {
-      reason: 'Sản phẩm bị xước nhẹ ở góc chân gỗ do va quẹt khi vận chuyển vào nhà',
-      proofImages: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80'],
-      customerNote: 'Khách muốn đổi sản phẩm mới hoặc hoàn tiền nếu không có hàng thay thế.',
-      type: 'REFUND'
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      this.ordersService.requestReturn(this.order!.id, {
+        reason: 'Sản phẩm bị xước nhẹ ở góc chân gỗ do va quẹt khi vận chuyển vào nhà',
+        proofImages: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80'],
+        customerNote: 'Khách muốn đổi sản phẩm mới hoặc hoàn tiền nếu không có hàng thay thế.',
+        type: 'REFUND'
+      });
+      this.triggerToast('Giả lập khiếu nại thành công!', 'Đơn hàng đã chuyển sang nhánh RETURN_REQUESTED (Yêu cầu trả hàng).', 'info');
+      this.scrollToTop();
     });
-    this.triggerToast('Giả lập khiếu nại thành công!', 'Đơn hàng đã chuyển sang nhánh RETURN_REQUESTED (Yêu cầu trả hàng).', 'info');
-    this.scrollToTop();
   }
 
   // 7. RETURN_REQUESTED -> RETURNING
   onApproveReturn() {
-    if (!this.order) return;
-    const ok = this.ordersService.approveReturn(this.order.id, 'Chấp thuận đổi trả và điều phối xe lấy hàng', 'CSKH DCOR');
-    if (ok) {
-      this.triggerToast('Chấp thuận yêu cầu đổi trả!', 'Đã hướng dẫn khách đóng gói lại và cử xe tải DCOR Express qua thu hồi sản phẩm.', 'success');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const ok = this.ordersService.approveReturn(this.order!.id, 'Chấp thuận đổi trả và điều phối xe lấy hàng', 'CSKH DCOR');
+      if (ok) {
+        this.triggerToast('Chấp thuận yêu cầu đổi trả!', 'Đã hướng dẫn khách đóng gói lại và cử xe tải DCOR Express qua thu hồi sản phẩm.', 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // RETURN_REQUESTED -> REJECT
@@ -374,41 +511,47 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
   }
 
   confirmRejectReturn() {
-    if (!this.order) return;
-    const ok = this.ordersService.rejectReturn(this.order.id, this.rejectReason, 'CSKH DCOR');
-    this.showRejectReturnModal = false;
-    if (ok) {
-      this.triggerToast('Đã từ chối yêu cầu đổi trả!', 'Đã gửi email giải thích lý do cho khách hàng và hoàn tất đơn hàng.', 'info');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const ok = this.ordersService.rejectReturn(this.order!.id, this.rejectReason, 'CSKH DCOR');
+      this.showRejectReturnModal = false;
+      if (ok) {
+        this.triggerToast('Đã từ chối yêu cầu đổi trả!', 'Đã gửi email giải thích lý do cho khách hàng và hoàn tất đơn hàng.', 'info');
+        this.scrollToTop();
+      }
+    });
   }
 
   // 8. RETURNING -> RETURNED (Receive & QC in Warehouse)
   onReceiveReturnQC() {
-    if (!this.order) return;
-    const qcReport: ReturnQcReport = {
-      inspector: 'Kỹ thuật viên Trịnh Văn Bách (Kho Bình Dương)',
-      condition: 'Nguyên vẹn 98%, đủ tem mác phụ kiện',
-      defectAssessment: 'Xước dăm chân gỗ 2cm, khung sườn và đệm mút đạt chuẩn xuất xưởng',
-      refundPercent: 100,
-      restockOption: 'RESTOCK_SALE'
-    };
-    const ok = this.ordersService.receiveReturnQC(this.order.id, qcReport, 'Thủ kho Hoàng Sơn');
-    if (ok) {
-      this.triggerToast('Tiếp nhận & QC hàng hoàn tất!', 'Đã chuyển lệnh hoàn tiền 100% sang phòng Kế toán.', 'success');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const qcReport: ReturnQcReport = {
+        inspector: 'Kỹ thuật viên Trịnh Văn Bách (Kho Bình Dương)',
+        condition: 'Nguyên vẹn 98%, đủ tem mác phụ kiện',
+        defectAssessment: 'Xước dăm chân gỗ 2cm, khung sườn và đệm mút đạt chuẩn xuất xưởng',
+        refundPercent: 100,
+        restockOption: 'RESTOCK_SALE'
+      };
+      const ok = this.ordersService.receiveReturnQC(this.order!.id, qcReport, 'Thủ kho Hoàng Sơn');
+      if (ok) {
+        this.triggerToast('Tiếp nhận & QC hàng hoàn tất!', 'Đã chuyển lệnh hoàn tiền 100% sang phòng Kế toán.', 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // 9. RETURNED -> REFUNDED
   onRefundOrder() {
-    if (!this.order) return;
-    const txCode = 'VNPAY-REF-' + Math.floor(100000 + Math.random() * 900000);
-    const ok = this.ordersService.refundOrder(this.order.id, txCode, 'Kế toán trưởng DCOR');
-    if (ok) {
-      this.triggerToast('Hoàn tiền thành công!', `Đã chuyển khoản hoàn tiền cho khách qua mã GD ${txCode}.`, 'success');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const txCode = 'VNPAY-REF-' + Math.floor(100000 + Math.random() * 900000);
+      const ok = this.ordersService.refundOrder(this.order!.id, txCode, 'Kế toán trưởng DCOR');
+      if (ok) {
+        this.triggerToast('Hoàn tiền thành công!', `Đã chuyển khoản hoàn tiền cho khách qua mã GD ${txCode}.`, 'success');
+        this.scrollToTop();
+      }
+    });
   }
 
   // Cancel Order Modal
@@ -417,14 +560,16 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
   }
 
   confirmCancelOrder() {
-    if (!this.order) return;
-    const reason = this.customCancelReason.trim() || this.cancelReason;
-    const ok = this.ordersService.cancelOrder(this.order.id, reason, 'Admin Trần');
-    this.showCancelModal = false;
-    if (ok) {
-      this.triggerToast('Đã hủy đơn hàng!', `Lý do hủy: ${reason}.`, 'info');
-      this.scrollToTop();
-    }
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      const reason = this.customCancelReason.trim() || this.cancelReason;
+      const ok = this.ordersService.cancelOrder(this.order!.id, reason, 'Admin Trần');
+      this.showCancelModal = false;
+      if (ok) {
+        this.triggerToast('Đã hủy đơn hàng!', `Lý do hủy: ${reason}.`, 'info');
+        this.scrollToTop();
+      }
+    });
   }
 
   // Print invoice / Packing list
@@ -555,6 +700,17 @@ export class OrderDetailV2Component implements OnInit, OnDestroy {
     if (!this.order) return true;
     if (this.order.status === 'COMPLETED' || this.order.status === 'CANCELLED') return true;
     return false;
+  }
+
+  // Trạng thái đạt đủ 4 tiêu chuẩn kiểm tra chất lượng (QC Checklist)
+  get isQcAllChecked(): boolean {
+    if (!this.checklist) return false;
+    return !!(
+      this.checklist.surfaceChecked &&
+      this.checklist.structureChecked &&
+      this.checklist.cushionLeatherChecked &&
+      this.checklist.protectiveWrapDone
+    );
   }
 
   // Tự động lưu trạng thái checklist QC khi người dùng check/uncheck

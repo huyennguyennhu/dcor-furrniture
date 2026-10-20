@@ -11,6 +11,7 @@ import staffRoutes from './routes/staff.routes';
 import reportRoutes from './routes/report.routes';
 import orderRoutes from './routes/order.routes';
 import administrativeRoutes from './routes/administrative.routes';
+import auditLogRoutes from './routes/audit-log.routes';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -218,11 +219,18 @@ app.get('/api/products/:id', async (req, res) => {
 // Gắn router đơn vị hành chính (Tỉnh/Thành, Phường/Xã)
 app.use('/api/administrative', administrativeRoutes);
 
+// Gắn router nhật ký hoạt động kiểm toán (Audit Logs / Activity)
+app.use('/api/admin/audit-logs', auditLogRoutes);
+app.use('/api/admin/activity', auditLogRoutes);
+
 import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
 import { initAdministrativeDatabase } from './lib/init-administrative-db';
+import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
   initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
   initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
+  initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
 });
+

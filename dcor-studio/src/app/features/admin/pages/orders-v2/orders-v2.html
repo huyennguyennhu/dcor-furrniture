@@ -26,10 +26,6 @@
   <!-- Page Header (Formatted like v1) -->
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
     <h2 style="font-size: 24px; font-weight: 700; margin: 0; color: var(--text-primary, #111827);">Danh sách đơn hàng V2</h2>
-    <button type="button" class="v2-btn-secondary" (click)="resetMockData()" title="Khôi phục lại 11 đơn hàng mẫu đại diện cho 11 trạng thái">
-      <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
-      <span>Khôi phục 11 Đơn Mẫu</span>
-    </button>
   </div>
 
   <!-- Order Status KPI Filter Cards (8 Cards: 4 per row) -->
@@ -157,15 +153,16 @@
 
   <!-- Filter & Search Toolbar -->
   <div class="v2-toolbar">
-    <div class="v2-search-box">
-      <lucide-angular [img]="icons.Search" size="18" class="search-icon"></lucide-angular>
+    <div class="filter-search-box v2-search-box">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
       <input 
         type="text" 
         [(ngModel)]="searchQuery" 
         (ngModelChange)="currentPage = 1"
         placeholder="Tìm theo mã đơn (DCOR-ORD-...), tên khách, SĐT, sản phẩm, mã vận đơn..."
+        class="filter-search-input"
       />
-      <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; currentPage = 1">
+      <button *ngIf="searchQuery" type="button" class="search-clear-btn clear-search" (click)="searchQuery = ''; currentPage = 1" title="Xóa tìm kiếm">
         <lucide-angular [img]="icons.X" size="14"></lucide-angular>
       </button>
     </div>
@@ -199,10 +196,16 @@
         </select>
       </div>
 
-      <!-- Reset Filters Button -->
-      <button type="button" class="v2-btn-reset" (click)="resetFilters()" title="Xóa toàn bộ bộ lọc">
-        <lucide-angular [img]="icons.RefreshCw" size="14"></lucide-angular>
-        <span>Đặt lại</span>
+      <!-- Nút Đặt lại tất cả bộ lọc -->
+      <button 
+        *ngIf="hasActiveFilters()" 
+        type="button" 
+        (click)="resetFilters()" 
+        class="reset-filters-btn" 
+        title="Đặt lại toàn bộ bộ lọc về mặc định"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+        <span>Xóa bộ lọc</span>
       </button>
     </div>
   </div>

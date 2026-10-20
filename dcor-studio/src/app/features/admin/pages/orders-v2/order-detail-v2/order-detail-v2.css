@@ -1419,6 +1419,55 @@
   border: 1px dashed #d1c4b7;
 }
 
+.tracking-edit-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.tracking-input-card {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  background: #ffffff;
+  border: 1px solid #D6C7BC;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #765337;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.tracking-input-card:focus {
+  border-color: #765337;
+  box-shadow: 0 0 0 3px rgba(118, 83, 55, 0.12);
+}
+
+.btn-refresh-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #FAF7F4;
+  border: 1px solid #D6C7BC;
+  border-radius: 6px;
+  color: #765337;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-refresh-code:hover {
+  background: #765337;
+  color: #ffffff;
+  border-color: #765337;
+}
+
 .ship-driver-box {
   display: flex;
   flex-direction: column;
@@ -1756,6 +1805,18 @@
   cursor: not-allowed !important;
   box-shadow: none !important;
   opacity: 0.65 !important;
+  pointer-events: none !important;
+}
+
+.btn-verify-action:disabled,
+.btn-verify-action.btn-disabled {
+  background: #E5E7EB !important;
+  border-color: #D1D5DB !important;
+  color: #9CA3AF !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.65 !important;
+  pointer-events: none !important;
 }
 
 .btn-secondary-action {
@@ -1885,7 +1946,7 @@
 .v2-modal-card {
   background: #ffffff;
   border-radius: 16px;
-  overflow: hidden; /* Cực kỳ quan trọng để bo tròn đồng bộ 4 góc */
+  overflow: visible; /* Cho phép custom dropdown menu bung ra không bị cắt */
   width: 100%;
   max-width: 500px;
   box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.06);
@@ -1987,6 +2048,132 @@
   background-color: #FFFFFF;
 }
 
+/* Custom Dropdown in Modal (format chuẩn theo Dropdown Tổng quan) */
+.filter-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.modal-filter-trigger {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1.5px solid #D1D5DB;
+  background: #FFFFFF;
+  color: #111827;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.modal-filter-trigger:hover {
+  border-color: #765337;
+  background: #FDFBF7;
+}
+
+.modal-filter-trigger.active {
+  border-color: #765337;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3.5px rgba(118, 83, 55, 0.15), 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.modal-filter-trigger .trigger-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.modal-filter-trigger .trigger-icon {
+  flex-shrink: 0;
+  color: #D97706; /* Icon cam cảnh báo */
+}
+
+.modal-filter-trigger .truncate-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #111827;
+  text-align: left;
+}
+
+.modal-filter-trigger .truncate-label.placeholder {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+.modal-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: #FFFFFF;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+  padding: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  animation: fadeInModalDrop 0.18s ease;
+}
+
+@keyframes fadeInModalDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-dropdown-item {
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: all 0.15s ease;
+  user-select: none;
+  line-height: 1.4;
+}
+
+.modal-dropdown-item:hover {
+  background: #FAF7F4;
+  color: #765337;
+}
+
+.modal-dropdown-item.selected {
+  background: #F5EFEB;
+  color: #765337;
+  font-weight: 600;
+}
+
+.modal-dropdown-item .item-check-icon {
+  color: #765337;
+  flex-shrink: 0;
+}
+
 .modal-textarea {
   width: 100%;
   padding: 12px 14px;
@@ -2024,6 +2211,32 @@
   border-bottom-right-radius: 16px;
 }
 
+.modal-footer .btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  background: #FFFFFF;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.modal-footer .btn-cancel:hover {
+  background: #F3F4F6;
+  border-color: #6B7280;
+  color: #111827;
+}
+
+.modal-footer .btn-cancel:active {
+  background: #E5E7EB;
+}
+
 .btn-confirm-cancel {
   padding: 8px 16px;
   background: #DC2626;
@@ -2033,6 +2246,57 @@
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-cancel:hover {
+  background: #B91C1C;
+  border-color: #B91C1C;
+}
+
+.btn-confirm-cancel:disabled,
+.btn-confirm-cancel.btn-disabled {
+  background: #E5E7EB !important;
+  border-color: #D1D5DB !important;
+  color: #9CA3AF !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.65 !important;
+  pointer-events: none !important;
+}
+
+.btn-confirm-warning {
+  padding: 8px 16px;
+  background: #D97706;
+  border: 1px solid #D97706;
+  border-radius: 6px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-warning:hover:not(:disabled) {
+  background: #B45309;
+  border-color: #B45309;
+}
+
+.btn-confirm-warning:disabled,
+.btn-confirm-warning.btn-disabled {
+  background: #E5E7EB !important;
+  border-color: #D1D5DB !important;
+  color: #9CA3AF !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.65 !important;
+  pointer-events: none !important;
+}
+
+.modal-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* User View Simulation Modal */
