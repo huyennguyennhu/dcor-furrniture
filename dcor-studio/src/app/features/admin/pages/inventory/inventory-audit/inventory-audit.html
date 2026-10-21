@@ -544,9 +544,53 @@
             </div>
           </div>
 
-          <!-- HÀNG 2: Chi nhánh / Kho * | Loại kiểm kê * -->
+          <!-- HÀNG 2: Phân công kiểm kê * | Chi nhánh / Kho * | Loại kiểm kê * -->
           <div class="audit-info-row-2">
-            <!-- 1. Chi nhánh / Kho kiểm kê -->
+            <!-- 1. Phân công kiểm kê * -->
+            <div class="info-field-group">
+              <label class="info-field-label">Phân công kiểm kê <span class="required-mark" style="color: #ef4444;">*</span></label>
+              <ng-container *ngIf="canEditInitialFields">
+                <div class="filter-dropdown-wrapper modal-auditor-wrapper" style="min-width: 100%;">
+                  <button 
+                    type="button" 
+                    class="filter-trigger-btn"
+                    (click)="toggleModalAuditorDropdown($event)"
+                    [title]="modalAuditorName || 'Chọn nhân viên kiểm kê'"
+                  >
+                    <div class="trigger-label">
+                      <lucide-angular [img]="icons.UserCheck" size="15" class="trigger-icon"></lucide-angular>
+                      <span class="truncate-label" [style.color]="modalAuditorName ? 'var(--text-primary)' : 'var(--text-muted)'">
+                        {{ modalAuditorName || 'Chọn nhân viên kiểm kê' }}
+                      </span>
+                    </div>
+                    <app-icon name="ChevronDown" size="14" [ngStyle]="{'transform': showModalAuditorDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></app-icon>
+                  </button>
+
+                  <div *ngIf="showModalAuditorDropdown" class="filter-menu-dropdown" style="width: 100%; max-width: 100%;">
+                    <div 
+                      *ngFor="let s of staffList"
+                      class="filter-menu-item"
+                      [class.selected]="modalAuditorId === s.id"
+                      (click)="onModalAuditorSelect(s)"
+                    >
+                      <div style="display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0;">
+                        <span style="font-weight: 500; font-size: 13px;">{{ s.name }}</span>
+                        <span style="font-size: 11.5px; color: var(--text-muted);" *ngIf="s.role">{{ s.role }}</span>
+                      </div>
+                      <lucide-angular *ngIf="modalAuditorId === s.id" [img]="icons.Check" size="14"></lucide-angular>
+                    </div>
+                    <div *ngIf="staffList.length === 0" style="padding: 10px 12px; font-size: 12.5px; color: var(--text-muted); text-align: center;">
+                      Không có nhân viên khả dụng
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+              <ng-container *ngIf="!canEditInitialFields">
+                <input type="text" [value]="modalAuditorName || 'Chưa phân công'" disabled class="info-field-readonly" />
+              </ng-container>
+            </div>
+
+            <!-- 2. Chi nhánh / Kho kiểm kê -->
             <div class="info-field-group">
               <label class="info-field-label">Chi nhánh / Kho <span class="required-mark" style="color: #ef4444;">*</span></label>
               <ng-container *ngIf="canEditInitialFields">

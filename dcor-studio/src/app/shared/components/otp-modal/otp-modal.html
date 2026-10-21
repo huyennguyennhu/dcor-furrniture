@@ -1,3 +1,55 @@
+<!-- Thẻ thông báo SMS giả lập (DCor Mockup OTP) -->
+<div 
+  *ngIf="isOpen && demoOtp && showToast && !isToastDismissed" 
+  class="sms-toast-wrapper" 
+  role="status" 
+  aria-live="polite">
+  <div class="sms-toast" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="sms-toast-header">
+      <div class="sms-toast-brand">
+        <span class="sms-toast-icon">
+          <app-icon name="MessageCircle" size="16"></app-icon>
+        </span>
+        <span class="sms-toast-title">Tin nhắn mới · DCor SMS (giả lập)</span>
+      </div>
+      <button 
+        type="button" 
+        class="sms-toast-close" 
+        (click)="dismissToast()" 
+        aria-label="Đóng thông báo">
+        <app-icon name="X" size="14"></app-icon>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="sms-toast-body">
+      <p class="sms-toast-message">
+        Mã OTP xác thực DCor của bạn là <strong class="sms-otp-code">{{ formattedDemoOtp }}</strong>. Mã có hiệu lực trong 90 giây.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="sms-toast-actions">
+      <button 
+        type="button" 
+        class="sms-toast-btn btn-copy" 
+        [class.copied]="copied"
+        (click)="copyOtp()">
+        <app-icon [name]="copied ? 'Check' : 'Copy'" size="14"></app-icon>
+        <span>{{ copied ? 'Đã sao chép' : 'Sao chép' }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="sms-toast-btn btn-fill" 
+        (click)="fillDemoOtp()">
+        <app-icon name="Key" size="14"></app-icon>
+        <span>Điền vào ô</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div *ngIf="isOpen" class="modal-backdrop" (click)="closeModal()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">

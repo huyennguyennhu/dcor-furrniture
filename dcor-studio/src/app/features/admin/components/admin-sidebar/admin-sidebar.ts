@@ -93,6 +93,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
         { title: 'Danh sách đơn hàng', href: '/admin/orders' },
         { title: 'Yêu cầu đổi trả', href: '/admin/orders/returns' },
         { title: 'Bảo hành', href: '/admin/orders/warranty' },
+        { title: 'Cài đặt đơn hàng', href: '/admin/orders/settings' },
       ]
     },
     {
@@ -150,7 +151,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
     {
       title: 'Nhật ký hoạt động',
       icon: 'ClipboardList',
-      href: '/admin/activity',
+      href: '/admin/audit-log',
       module: 'settings'
     }
   ];

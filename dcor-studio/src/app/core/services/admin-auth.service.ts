@@ -367,6 +367,8 @@ export class AdminAuthService {
   private readonly USER_KEY = 'dcor_admin_user';
   private readonly PERMISSIONS_KEY = 'dcor_role_permissions';
   private readonly ROLES_LIST_KEY = 'dcor_admin_roles_list';
+  private readonly SESSION_EXPIRY_KEY = 'dcor_admin_session_expires_at';
+  private readonly SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 tiếng tối đa cho mỗi phiên
 
   // State Management
   readonly currentUser$ = new BehaviorSubject<AdminUser | null>(null);
@@ -391,7 +393,12 @@ export class AdminAuthService {
   }
 
   get token(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY));
+    if (expiresAt && Date.now() > expiresAt) {
+      this.logout();
+      return null;
+    }
+    return sessionStorage.getItem(this.TOKEN_KEY);
   }
 
   get roles(): RoleDefinition[] {
@@ -411,7 +418,12 @@ export class AdminAuthService {
   }
 
   isLoggedIn(): boolean {
-    return !!this.token && !!this.currentUser$.value;
+    const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY));
+    if (expiresAt && Date.now() > expiresAt) {
+      this.logout();
+      return false;
+    }
+    return !!sessionStorage.getItem(this.TOKEN_KEY) && !!this.currentUser$.value;
   }
 
   // =========================================================================
@@ -704,6 +716,9 @@ export class AdminAuthService {
   }
 
   logout(): void {
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.USER_KEY);
+    sessionStorage.removeItem(this.SESSION_EXPIRY_KEY);
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.PERMISSIONS_KEY);
@@ -779,9 +794,16 @@ export class AdminAuthService {
 
   private handleAuthSuccess(token: string, user: AdminUser): LoginResponse {
     const rolePermissions = this.calculateEffectivePermissions(user.roles || [user.role]);
+    const expiresAt = Date.now() + this.SESSION_DURATION_MS;
 
-    localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    // Lưu vào sessionStorage (phiên làm việc sẽ tự hủy khi đóng trình duyệt/tab)
+    sessionStorage.setItem(this.TOKEN_KEY, token);
+    sessionStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    sessionStorage.setItem(this.SESSION_EXPIRY_KEY, expiresAt.toString());
+
+    // Xóa triệt để các token cũ trong localStorage để tránh phiên vô hạn
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
     localStorage.setItem(this.PERMISSIONS_KEY, JSON.stringify(rolePermissions));
     localStorage.setItem('dcor_user', JSON.stringify({ ...user, role: 'ADMIN' }));
 
@@ -793,8 +815,19 @@ export class AdminAuthService {
 
   private loadStateFromStorage(): void {
     try {
-      const token = localStorage.getItem(this.TOKEN_KEY);
-      const userStr = localStorage.getItem(this.USER_KEY);
+      // Dọn dẹp token vĩnh cửu cũ nếu có
+      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.USER_KEY);
+
+      const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY));
+      const token = sessionStorage.getItem(this.TOKEN_KEY);
+      const userStr = sessionStorage.getItem(this.USER_KEY);
+
+      // Nếu đã quá hạn phiên làm việc (hoặc không có hạn phiên hợp lệ)
+      if (expiresAt && Date.now() > expiresAt) {
+        this.logout();
+        return;
+      }
 
       if (token && userStr) {
         const user: AdminUser = JSON.parse(userStr);

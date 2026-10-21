@@ -48,68 +48,67 @@
   text-transform: uppercase;
 }
 
-/* 5 Tabs Navigation Bar */
-.settings-tabs-bar {
+/* Underline Tabs Navigation Bar (matching screenshot & DCor brown theme) */
+.settings-tabs-wrapper {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 6px;
+}
+
+.settings-tabs-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-color);
-  padding: 6px;
-  border-radius: 12px;
+  gap: 32px; /* Tailwind space-x-8 */
+  margin-bottom: -1px; /* Tailwind -mb-px to overlay border */
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.settings-tabs-bar::-webkit-scrollbar {
+.settings-tabs-nav::-webkit-scrollbar {
   display: none;
 }
 
-.tab-item {
-  display: flex;
+.tab-underline-btn {
+  white-space: nowrap;
+  padding-bottom: 14px;
+  padding-top: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
-  border-radius: 8px;
-  background: transparent;
-  border: none;
-  font-size: 13.5px;
-  font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  line-height: 1.25;
 }
 
-.tab-item:hover {
-  background: var(--bg-secondary);
+.tab-underline-btn lucide-angular {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  transition: color 0.2s ease;
+}
+
+.tab-underline-btn:hover:not(.active) {
   color: var(--text-primary);
+  border-bottom-color: var(--border-color);
 }
 
-.tab-item.active {
-  background: var(--accent, #765337);
-  color: #ffffff;
+.tab-underline-btn.active {
+  border-bottom-color: var(--accent, #765337);
+  color: var(--accent, #765337);
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);
 }
 
-.tab-badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.08);
-  color: currentColor;
-}
-
-.tab-item.active .tab-badge {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-.tab-badge.active-highlight {
-  background: #f59e0b;
-  color: #ffffff;
+.tab-underline-btn.active lucide-angular {
+  color: var(--accent, #765337);
 }
 
 /* Tab Content Panel */

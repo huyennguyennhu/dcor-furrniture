@@ -721,19 +721,19 @@ export const inventoryController = {
       let customReasons: any[] = [];
       try {
         customReasons = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT type, reason, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
+          `SELECT type, reason, prefix, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
            FROM "InventoryReasons" WHERE is_active = TRUE ORDER BY is_system DESC, created_at ASC`
         );
       } catch (err) {
         try {
           customReasons = await prisma.$queryRawUnsafe<any[]>(
-            `SELECT type, reason, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
+            `SELECT type, reason, prefix, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
              FROM inventory_reasons WHERE is_active = TRUE ORDER BY is_system DESC, created_at ASC`
           );
         } catch (err2) {
           try {
             customReasons = await prisma.$queryRawUnsafe<any[]>(
-              `SELECT type, reason, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
+              `SELECT type, reason, prefix, requires_partner as "requiresPartner", partner_label as "partnerLabel" 
                FROM inventory_custom_reasons ORDER BY created_at ASC`
             );
           } catch (err3) {
@@ -742,17 +742,7 @@ export const inventoryController = {
         }
       }
 
-      // 2. Lấy các lý do thực tế từ StockOrder
-      const orders = await (prisma as any).stockOrder.findMany({
-        where: {
-          NOT: { reason: '' }
-        },
-        select: {
-          reason: true,
-          type: true
-        }
-      });
-
+      // 2. Lấy các lý do cấu hình từ DB trước tiên
       const importReasons: string[] = [];
       const exportReasons: string[] = [];
 
@@ -762,24 +752,37 @@ export const inventoryController = {
           const t = (c.type || '').toUpperCase();
           if (t === 'IMPORT') {
             if (!importReasons.includes(r)) importReasons.push(r);
-          } else {
+          } else if (t === 'EXPORT') {
             if (!exportReasons.includes(r)) exportReasons.push(r);
           }
         }
       });
 
-      (orders || []).forEach((o: any) => {
-        if (o.reason && typeof o.reason === 'string') {
-          const trimmed = o.reason.trim();
-          if (trimmed) {
-            if (o.type === 'IMPORT') {
-              if (!importReasons.includes(trimmed)) importReasons.push(trimmed);
-            } else {
-              if (!exportReasons.includes(trimmed)) exportReasons.push(trimmed);
+      // Nếu trong DB chưa có cấu hình thì mới quét dự phòng từ StockOrder
+      if (importReasons.length === 0 || exportReasons.length === 0) {
+        const orders = await (prisma as any).stockOrder.findMany({
+          where: {
+            NOT: { reason: '' }
+          },
+          select: {
+            reason: true,
+            type: true
+          }
+        });
+
+        (orders || []).forEach((o: any) => {
+          if (o.reason && typeof o.reason === 'string') {
+            const trimmed = o.reason.trim();
+            if (trimmed) {
+              if (o.type === 'IMPORT' && importReasons.length === 0) {
+                if (!importReasons.includes(trimmed)) importReasons.push(trimmed);
+              } else if (o.type === 'EXPORT' && exportReasons.length === 0) {
+                if (!exportReasons.includes(trimmed)) exportReasons.push(trimmed);
+              }
             }
           }
-        }
-      });
+        });
+      }
 
       res.json({
         importReasons,
@@ -2021,7 +2024,8 @@ export const inventoryController = {
             }
           },
           warehouse: true,
-          creator: { select: { fullName: true } }
+          creator: { select: { fullName: true } },
+          auditor: { select: { id: true, fullName: true } }
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -2043,7 +2047,8 @@ export const inventoryController = {
         items, 
         status, 
         auditCode: clientAuditCode, 
-        createdAt: clientCreatedAt 
+        createdAt: clientCreatedAt,
+        auditorId
       } = req.body;
       const now = new Date();
       const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -2103,6 +2108,7 @@ export const inventoryController = {
           discrepancyCount,
           createdAt: clientCreatedAt ? new Date(clientCreatedAt) : now,
           completedAt: auditStatus === 'COMPLETED' ? new Date() : null,
+          auditorId: auditorId || null,
           items: {
             create: auditItems
           }
@@ -2120,7 +2126,9 @@ export const inventoryController = {
               }
             }
           },
-          warehouse: true
+          warehouse: true,
+          auditor: { select: { id: true, fullName: true } },
+          creator: { select: { fullName: true } }
         }
       });
 
@@ -2189,7 +2197,7 @@ export const inventoryController = {
   updateStockAudit: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { notes, items, status, scope } = req.body;
+      const { notes, items, status, scope, auditorId } = req.body;
       const now = new Date();
       const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
 
@@ -2208,6 +2216,10 @@ export const inventoryController = {
         status: status || existingAudit.status,
         completedAt: status === 'COMPLETED' ? now : existingAudit.completedAt,
       };
+
+      if (auditorId !== undefined) {
+        updateData.auditorId = auditorId || null;
+      }
 
       let auditItems: any[] = [];
       if (items !== undefined) {
@@ -2265,7 +2277,9 @@ export const inventoryController = {
               }
             }
           },
-          warehouse: true
+          warehouse: true,
+          auditor: { select: { id: true, fullName: true } },
+          creator: { select: { fullName: true } }
         }
       });
 

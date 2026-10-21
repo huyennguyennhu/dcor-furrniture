@@ -11,6 +11,10 @@ import staffRoutes from './routes/staff.routes';
 import reportRoutes from './routes/report.routes';
 import orderRoutes from './routes/order.routes';
 import administrativeRoutes from './routes/administrative.routes';
+import auditLogRoutes from './routes/audit-log.routes';
+import productRoutes from './routes/product.routes';
+import categoryRoutes from './routes/category.routes';
+import uploadRoutes from './routes/upload.routes';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -67,6 +71,13 @@ app.use('/api/admin/warehouses', (req, res, next) => {
 
 // Gắn router báo cáo & thống kê
 app.use('/api/admin/reports', reportRoutes);
+
+// Gắn router quản trị sản phẩm & danh mục
+app.use('/api/admin/products', productRoutes);
+app.use('/api/admin/categories', categoryRoutes);
+
+// Gắn router upload hình ảnh lên Cloudinary nén WebP
+app.use('/api/upload', uploadRoutes);
 
 // API danh mục sản phẩm từ database thực
 app.get('/api/categories', async (req, res) => {
@@ -501,11 +512,18 @@ app.post('/api/consultations', async (req, res) => {
 // Gắn router đơn vị hành chính (Tỉnh/Thành, Phường/Xã)
 app.use('/api/administrative', administrativeRoutes);
 
+// Gắn router nhật ký hoạt động kiểm toán (Audit Logs / Activity)
+app.use('/api/admin/audit-logs', auditLogRoutes);
+app.use('/api/admin/activity', auditLogRoutes);
+
 import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
 import { initAdministrativeDatabase } from './lib/init-administrative-db';
+import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
   initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
   initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
+  initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
 });
+

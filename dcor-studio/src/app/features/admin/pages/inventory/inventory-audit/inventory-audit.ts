@@ -8,7 +8,8 @@ import {
   LucideAngularModule, 
   ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
   ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw, Printer
+  ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw, Printer,
+  UserCheck
 } from 'lucide-angular';
 import { environment } from '../../../../../../environments/environment';
 
@@ -57,7 +58,8 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   icons = { 
     ClipboardCheck, Plus, Search, Filter, CheckCircle2, FileText, X, Trash2, Loader2,
     ChevronDown, Check, CheckSquare, Square, Package, Download, Upload, Calendar, Building2, Layers, AlertCircle,
-    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw, Printer
+    ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Tag, Save, Clock, Lock, Play, XCircle, RotateCcw, Printer,
+    UserCheck
   };
 
   private http = inject(HttpClient);
@@ -212,6 +214,10 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   
   modalAuditCode = '';
   modalAuditDate = '';
+  modalAuditorId = '';
+  modalAuditorName = '';
+  staffList: any[] = [];
+  showModalAuditorDropdown = false;
   modalAuditScope = '';
   modalWarehouseId = '';
   modalLocation = '';
@@ -391,6 +397,27 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     this.fetchCategories();
     this.fetchProducts();
     this.fetchAudits();
+    this.fetchAuditScopes();
+    this.fetchStaff();
+  }
+
+  fetchStaff() {
+    this.http.get<any[]>(`${environment.apiUrl}/admin/staff`).subscribe({
+      next: (res) => {
+        if (Array.isArray(res)) {
+          this.staffList = res.filter(s => s.status === 'Đã kích hoạt' || s.rawStatus === 'ACTIVE');
+          if (this.staffList.length === 0 && res.length > 0) {
+            this.staffList = res;
+          }
+          if (this.modalAuditorId && !this.modalAuditorName) {
+            const found = this.staffList.find(s => s.id === this.modalAuditorId);
+            if (found) this.modalAuditorName = found.name;
+          }
+          this.cdr.markForCheck();
+        }
+      },
+      error: (err) => console.error('Error fetching staff list:', err)
+    });
   }
 
   ngOnDestroy() {
@@ -402,6 +429,27 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       clearTimeout(this.toastTimer);
       this.toastTimer = null;
     }
+  }
+
+  fetchAuditScopes() {
+    this.http.get<{ reasons: any[] }>(`${environment.apiUrl}/admin/inventory/settings/reasons?type=AUDIT`).subscribe({
+      next: (res) => {
+        if (res && Array.isArray(res.reasons)) {
+          const activeScopes = res.reasons
+            .filter((r: any) => r.isActive)
+            .map((r: any) => (r.reason || '').trim())
+            .filter((name: string) => !!name);
+          if (activeScopes.length > 0) {
+            this.auditScopeOptions = activeScopes;
+            if (!this.modalAuditScope || !this.auditScopeOptions.includes(this.modalAuditScope)) {
+              this.modalAuditScope = this.auditScopeOptions[0];
+            }
+            this.cdr.markForCheck();
+          }
+        }
+      },
+      error: (err) => console.warn('Could not fetch audit scopes from settings:', err)
+    });
   }
 
   fetchCategories() {
@@ -420,6 +468,11 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target) return;
+
+    // 0. Phân công kiểm kê trong modal
+    if (this.showModalAuditorDropdown && !target.closest('.modal-auditor-wrapper')) {
+      this.showModalAuditorDropdown = false;
+    }
 
     // 1. Chi nhánh / Kho trong modal
     if (this.showModalWarehouseDropdown && !target.closest('.modal-warehouse-wrapper')) {
@@ -474,11 +527,13 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
   onBackdropClick(event: MouseEvent) {
     if (event.target === event.currentTarget) {
-      const hasOpenDropdown = this.showModalWarehouseDropdown || 
+      const hasOpenDropdown = this.showModalAuditorDropdown ||
+                              this.showModalWarehouseDropdown || 
                               this.showModalScopeDropdown || 
                               this.showLoadStockDropdown || 
                               this.auditItems.some(r => r.showProductDropdown || r.showVariantDropdown);
       if (hasOpenDropdown) {
+        this.showModalAuditorDropdown = false;
         this.showModalWarehouseDropdown = false;
         this.showModalScopeDropdown = false;
         this.showLoadStockDropdown = false;
@@ -490,10 +545,30 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
   }
 
+  toggleModalAuditorDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.showModalAuditorDropdown = !this.showModalAuditorDropdown;
+    if (this.showModalAuditorDropdown) {
+      this.showModalWarehouseDropdown = false;
+      this.showModalScopeDropdown = false;
+      this.showLoadStockDropdown = false;
+      this.closeAllRowDropdowns();
+    }
+    this.cdr.markForCheck();
+  }
+
+  onModalAuditorSelect(s: any) {
+    this.modalAuditorId = s.id;
+    this.modalAuditorName = s.name;
+    this.showModalAuditorDropdown = false;
+    this.cdr.markForCheck();
+  }
+
   toggleModalWarehouseDropdown(event?: Event) {
     if (event) event.stopPropagation();
     this.showModalWarehouseDropdown = !this.showModalWarehouseDropdown;
     if (this.showModalWarehouseDropdown) {
+      this.showModalAuditorDropdown = false;
       this.warehouseSelectorHighlighted = false;
       this.showModalScopeDropdown = false;
       this.showLoadStockDropdown = false;
@@ -506,6 +581,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     if (event) event.stopPropagation();
     this.showModalScopeDropdown = !this.showModalScopeDropdown;
     if (this.showModalScopeDropdown) {
+      this.showModalAuditorDropdown = false;
       this.showModalWarehouseDropdown = false;
       this.showLoadStockDropdown = false;
       this.closeAllRowDropdowns();
@@ -521,6 +597,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
     this.showLoadStockDropdown = !this.showLoadStockDropdown;
     if (this.showLoadStockDropdown) {
+      this.showModalAuditorDropdown = false;
       this.showModalWarehouseDropdown = false;
       this.showModalScopeDropdown = false;
       this.closeAllRowDropdowns();
@@ -531,6 +608,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   promptSelectWarehouse(event?: Event) {
     if (event) event.stopPropagation();
     this.closeAllRowDropdowns();
+    this.showModalAuditorDropdown = false;
     this.showLoadStockDropdown = false;
     this.showModalScopeDropdown = false;
     this.showModalWarehouseDropdown = true;
@@ -624,7 +702,10 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
             date: a.createdAt ? this.formatDisplayDate(a.createdAt) : '',
             location: a.warehouse?.name || a.location || 'Kho Tổng (TP.HCM)',
             warehouseId: a.warehouseId,
-            creator: a.creator?.fullName || 'Admin',
+            auditorId: a.auditorId,
+            auditorName: a.auditor?.fullName || '',
+            auditor: a.auditor,
+            creator: a.auditor?.fullName || a.creator?.fullName || 'Admin',
             totalItems: (a.items && a.items.length > 0) ? a.items.length : (a.totalItemsCount || 0),
             discrepancyItems: a.discrepancyCount || 0,
             status: statusText,
@@ -792,28 +873,16 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
     this.cdr.detectChanges();
 
-    // Nếu đang là Kiểm kê toàn bộ và chưa có sản phẩm thì tự động nạp tất cả sản phẩm của kho này luôn
-    if (this.modalAuditScope === 'Kiểm kê toàn bộ' && !this.hasActiveAuditItems) {
-      this.isLoadingStock = true;
-      this.cdr.detectChanges();
-      setTimeout(() => {
-        this.loadWarehouseStockByCategory('ALL', 'Tất cả sản phẩm');
-        this.isLoadingStock = false;
-        this.cdr.markForCheck();
-      }, 50);
-      return;
-    } else {
-      // Recalculate system stock for all rows currently loaded
-      this.auditItems.forEach(row => {
-        if (row.variantId) {
-          const v = this.allVariants.find(p => p.id === row.variantId);
-          if (v) {
-            row.systemStock = this.getSystemStockForWarehouse(v, this.modalWarehouseId);
-            this.recalcRow(row);
-          }
+    // Recalculate system stock for all rows currently loaded
+    this.auditItems.forEach(row => {
+      if (row.variantId) {
+        const v = this.allVariants.find(p => p.id === row.variantId);
+        if (v) {
+          row.systemStock = this.getSystemStockForWarehouse(v, this.modalWarehouseId);
+          this.recalcRow(row);
         }
-      });
-    }
+      }
+    });
     this.cdr.markForCheck();
   }
 
@@ -821,24 +890,18 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     this.modalAuditScope = scope;
     this.showModalScopeDropdown = false;
     this.closeAllRowDropdowns();
-    // Đóng ngay dropdown trên giao diện trước khi tải dữ liệu lớn
-    this.cdr.detectChanges();
-
-    // Nếu chọn 'Kiểm kê toàn bộ' và đã có kho nhưng chưa có sản phẩm: tự động nạp luôn
-    if (scope === 'Kiểm kê toàn bộ' && this.modalWarehouseId && !this.hasActiveAuditItems) {
-      this.isLoadingStock = true;
-      this.cdr.detectChanges();
-      setTimeout(() => {
-        this.loadWarehouseStockByCategory('ALL', 'Tất cả sản phẩm');
-        this.isLoadingStock = false;
-        this.cdr.markForCheck();
-      }, 50);
-      return;
+    // Nếu chọn Kiểm kê toàn bộ mà chưa có sản phẩm (chỉ có dòng trống ban đầu) thì xóa dòng trống để hiện thông báo nhấn nút Nạp tồn kho
+    if (scope === 'Kiểm kê toàn bộ' && !this.hasActiveAuditItems) {
+      this.auditItems = [];
+    } else if (scope !== 'Kiểm kê toàn bộ' && this.auditItems.length === 0) {
+      this.auditItems = [this.createEmptyRow()];
     }
     this.cdr.markForCheck();
   }
 
   openModal(item?: any) {
+    this.fetchAuditScopes();
+    this.fetchStaff();
     if (!item) {
       // Create new audit
       this.currentAuditStatus = 'CREATE';
@@ -846,6 +909,9 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       this.existingDraftId = '';
       this.modalAuditCode = this.generateAuditCode();
       this.modalAuditDate = this.getCurrentDateTimeLocal();
+      this.modalAuditorId = '';
+      this.modalAuditorName = '';
+      this.showModalAuditorDropdown = false;
       this.modalAuditScope = '';
       
       const userStr = localStorage.getItem('user') || localStorage.getItem('currentUser');
@@ -876,6 +942,13 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
       this.existingDraftId = item.rawId;
       this.modalAuditCode = item.auditCode || item.id;
       this.modalAuditDate = item.createdAt ? this.formatDateTimeLocal(item.createdAt) : this.getCurrentDateTimeLocal();
+      this.modalAuditorId = item.auditorId || item.auditor?.id || '';
+      this.modalAuditorName = item.auditorName || item.auditor?.fullName || '';
+      if (!this.modalAuditorName && this.modalAuditorId && this.staffList.length > 0) {
+        const found = this.staffList.find(s => s.id === this.modalAuditorId);
+        if (found) this.modalAuditorName = found.name;
+      }
+      this.showModalAuditorDropdown = false;
       this.modalAuditScope = item.scope || '';
       this.modalWarehouseId = item.warehouseId || '';
       this.modalLocation = item.location || '';
@@ -1577,7 +1650,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   }
 
   get canCreateOrPlanAudit(): boolean {
-    if (!this.modalWarehouseId || !this.modalAuditScope) return false;
+    if (!this.modalAuditorId || !this.modalWarehouseId || !this.modalAuditScope) return false;
     if (!this.auditItems || this.auditItems.length === 0) return false;
     return this.auditItems.every(it => !!it.productId && !!it.variantId);
   }
@@ -1823,6 +1896,10 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     }
 
     if (targetStatus === 'PLANNED') {
+      if (!this.modalAuditorId) {
+        this.triggerToast('Vui lòng chọn nhân viên phân công kiểm kê!', 'warning');
+        return;
+      }
       if (!this.modalWarehouseId) {
         this.triggerToast('Vui lòng chọn Chi nhánh / Kho kiểm kê!', 'warning');
         return;
@@ -1904,6 +1981,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
     const payload = {
       auditCode: this.modalAuditCode,
       createdAt: this.modalAuditDate ? new Date(this.modalAuditDate).toISOString() : new Date().toISOString(),
+      auditorId: this.modalAuditorId || null,
       warehouseId: this.modalWarehouseId || null,
       location: this.modalLocation,
       scope: this.modalAuditScope,

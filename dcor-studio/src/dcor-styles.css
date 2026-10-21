@@ -210,7 +210,8 @@ img {
   padding: 0 40px;
 }
 
-header {
+header.site-header,
+header.store-site-header {
   position: fixed;
   top: 0;
   left: 0;

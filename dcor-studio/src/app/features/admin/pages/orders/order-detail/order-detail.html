@@ -1,292 +1,1319 @@
-﻿<div style="padding-bottom: 40px;">
-  <!-- HEADER -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; gap: 16px;">
-      <button 
-        (click)="goBack()"
-        style="border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-secondary);"
-      >
-        <lucide-angular [img]="icons.ArrowLeft" size="18" color="var(--text-primary)"></lucide-angular>
-      </button>
-      <div>
-        <h2 style="font-size: 24px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 12px;">
-          Đơn hàng #{{orderId}}
-          <span style="padding: 4px 8px; background: #dbeafe; color: #2563eb; border-radius: 4px; font-size: 13px; font-weight: 600;">Đang xử lý</span>
-        </h2>
-        <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
-          Đặt lúc: 01/09/2026 - 09:24
-        </div>
+<div class="order-detail-container" *ngIf="order; else notFound">
+
+  <!-- Floating Toast Notification -->
+  <div *ngIf="showToast" 
+    class="v2-toast"
+    [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'"
+    [class.toast-info]="toastType === 'info'"
+  >
+    <div class="v2-toast-inner">
+      <div class="v2-toast-icon">
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.XCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.Clock" size="20"></lucide-angular>
       </div>
-    </div>
-    
-    <div style="display: flex; gap: 12px;">
-      <button style="padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; font-weight: 600;">
-        In hóa đơn
-      </button>
-      <button style="padding: 8px 16px; border-radius: 8px; border: none; background: var(--text-primary); color: var(--bg-primary); display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; font-weight: 600;">
-        Xác nhận xuất kho
+      <div class="v2-toast-content">
+        <div class="v2-toast-title">{{ toastTitle }}</div>
+        <div class="v2-toast-msg">{{ toastMessage }}</div>
+      </div>
+      <button type="button" class="v2-toast-close" (click)="closeToast()">
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
       </button>
     </div>
   </div>
 
-  <!-- GRID LAYOUT -->
-  <div style="display: grid; grid-template-columns: 1fr 350px; gap: 24px;">
-    
-    <!-- LEFT COLUMN -->
-    <div style="display: flex; flex-direction: column; gap: 24px;">
-      
-      <!-- TIMELINE -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px;">Tiến trình đơn hàng</h3>
-        <div style="display: flex; justify-content: space-between; position: relative;">
-          <!-- Progress Line -->
-          <div style="position: absolute; top: 16px; left: 40px; right: 40px; height: 2px; background: var(--border-color); z-index: 0;"></div>
-          <div style="position: absolute; top: 16px; left: 40px; width: 50%; height: 2px; background: #059669; z-index: 1;"></div>
+  <!-- Top Navigation & Header Bar -->
+  <div class="v2-detail-header">
+    <div class="v2-header-nav">
+      <button type="button" class="v2-btn-back" (click)="goBack()" title="Quay lại danh sách">
+        <lucide-angular [img]="icons.ArrowLeft" size="14"></lucide-angular>
+        <span>Trở về danh sách đơn hàng</span>
+      </button>
+    </div>
 
-          <div style="display: flex; flex-direction: column; align-items: center; z-index: 2; width: 80px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #059669; color: white;">
-              <lucide-angular [img]="icons.FileText" size="16"></lucide-angular>
-            </div>
-            <div style="font-size: 12px; font-weight: 500; color: var(--text-primary); text-align: center;">Đặt hàng</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">01/09 - 09:24</div>
-          </div>
+    <div class="v2-header-main">
+      <div class="order-meta-title">
+        <div class="title-with-tags">
+          <h1>Đơn hàng #{{ order.orderNumber }}</h1>
+        </div>
+        <div class="order-sub-meta">
+          <span>Ngày đặt: <strong>{{ formatDate(order.createdAt) }}</strong></span>
+          <span class="dot">•</span>
+          <span>Khách hàng: <strong>{{ order.customerName }}</strong> ({{ order.phone }})</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          <div style="display: flex; flex-direction: column; align-items: center; z-index: 2; width: 80px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #059669; color: white;">
-              <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
-            </div>
-            <div style="font-size: 12px; font-weight: 500; color: var(--text-primary); text-align: center;">Xác nhận</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">01/09 - 10:00</div>
-          </div>
+  <!-- 5-Step Stepper Timeline -->
+  <!-- Admin Workflow Stepper Timeline (Khi CANCELLED: chỉ hiện 2 bước Confirmation -> Cancelled và căn giữa) -->
+  <div class="v2-stepper-card" [class.stepper-card-cancelled]="order.status === 'CANCELLED'">
 
-          <div style="display: flex; flex-direction: column; align-items: center; z-index: 2; width: 80px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #2563eb; color: white;">
-              <lucide-angular [img]="icons.Package" size="16"></lucide-angular>
-            </div>
-            <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); text-align: center;">Đang xử lý</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">01/09 - 14:30</div>
-          </div>
+    <!-- TRƯỜNG HỢP ĐƠN HỦY: CHỈ HIỂN THỊ 2 CỤC TRẠNG THÁI (CONFIRMATION -> CANCELLED) CĂN GIỮA -->
+    <div class="stepper-track stepper-track-cancelled" *ngIf="order.status === 'CANCELLED'">
+      <!-- Cục 1: Confirmation (Xác nhận đơn) -->
+      <div class="stepper-step step-cancelled-prev">
+        <div class="step-circle step-circle-confirmation">
+          <span>1</span>
+        </div>
+        <div class="step-label">Confirmation</div>
+        <div class="step-sub">Xác nhận đơn</div>
+      </div>
 
-          <div style="display: flex; flex-direction: column; align-items: center; z-index: 2; width: 80px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: var(--bg-secondary); color: var(--text-muted); border: 1px solid var(--border-color);">
-              <lucide-angular [img]="icons.Truck" size="16"></lucide-angular>
-            </div>
-            <div style="font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: center;">Đang giao</div>
-          </div>
+      <!-- Đường nối đỏ chuyển sang Cancelled -->
+      <div class="step-line line-cancelled"></div>
 
-          <div style="display: flex; flex-direction: column; align-items: center; z-index: 2; width: 80px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: var(--bg-secondary); color: var(--text-muted); border: 1px solid var(--border-color);">
-              <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
-            </div>
-            <div style="font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: center;">Hoàn thành</div>
-          </div>
+      <!-- Cục 2: Cancelled (Đã hủy đơn) -->
+      <div class="stepper-step step-active-cancelled">
+        <div class="step-circle step-circle-cancelled">
+          <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+        </div>
+        <div class="step-label text-cancelled">Cancelled</div>
+        <div class="step-sub text-cancelled-sub">Đã hủy đơn</div>
+      </div>
+    </div>
+
+    <!-- TRƯỜNG HỢP ĐƠN HOẠT ĐỘNG: TIẾN TRÌNH 6 BƯỚC CHUẨN HÓA -->
+    <div class="stepper-track" *ngIf="order.status !== 'CANCELLED'">
+      <!-- Step 1: CONFIRMATION (Pending & Confirmed) -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(0)" 
+        [class.step-active]="isStepActive(0)"
+        [class.step-viewing]="isStepViewing(0)"
+        [class.step-clickable]="isStepDone(0) || isStepActive(0)"
+        (click)="onStepClick(0)"
+        [title]="getStepTooltip(0)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(0)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(0)">1</span>
+        </div>
+        <div class="step-label">Confirmation</div>
+        <div class="step-sub">Xác nhận đơn</div>
+        <div class="step-viewing-dot-wrap">
+          <span class="step-viewing-dot" *ngIf="isStepViewing(0)"></span>
         </div>
       </div>
 
-      <!-- SẢN PHẨM -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Danh sách sản phẩm</h3>
-        
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 13px;">
-              <th style="text-align: left; padding-bottom: 12px; font-weight: 500;">Sản phẩm</th>
-              <th style="text-align: right; padding-bottom: 12px; font-weight: 500;">Đơn giá</th>
-              <th style="text-align: center; padding-bottom: 12px; font-weight: 500;">Số lượng</th>
-              <th style="text-align: right; padding-bottom: 12px; font-weight: 500;">Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom: 1px solid var(--border-color);">
-              <td style="padding: 16px 0; display: flex; gap: 12px; align-items: center;">
-                <div style="width: 60px; height: 60px; background: var(--bg-secondary); border-radius: 8px;"></div>
-                <div>
-                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Sofa Indivi 3 chỗ</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Mã: SF-IND-02 | Da Napoli đen</div>
-                </div>
-              </td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 500;">{{ formatVND(80000000) }}</td>
-              <td style="padding: 16px 0; text-align: center; font-size: 14px; font-weight: 500;">1</td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 600; color: var(--accent);">{{ formatVND(80000000) }}</td>
-            </tr>
-            <tr>
-              <td style="padding: 16px 0; display: flex; gap: 12px; align-items: center;">
-                <div style="width: 60px; height: 60px; background: var(--bg-secondary); border-radius: 8px;"></div>
-                <div>
-                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Bàn trà Coda</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Mã: TB-CODA-01</div>
-                </div>
-              </td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 500;">{{ formatVND(10000000) }}</td>
-              <td style="padding: 16px 0; text-align: center; font-size: 14px; font-weight: 500;">1</td>
-              <td style="padding: 16px 0; text-align: right; font-size: 14px; font-weight: 600; color: var(--accent);">{{ formatVND(10000000) }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="step-line" [class.line-done]="isLineDone(0)"></div>
 
-        <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
-          <div style="width: 300px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
-              <span style="color: var(--text-secondary);">Tạm tính</span>
-              <span style="font-weight: 500;">{{ formatVND(90000000) }}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
-              <span style="color: var(--text-secondary);">Phí vận chuyển</span>
-              <span style="font-weight: 500;">{{ formatVND(500000) }}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 14px;">
-              <span style="color: var(--text-secondary);">Giảm giá</span>
-              <span style="font-weight: 500; color: #059669;">-{{ formatVND(500000) }}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 16px;">
-              <span style="font-weight: 600;">Tổng thanh toán</span>
-              <span style="font-weight: 700; color: var(--accent);">{{ formatVND(90000000) }}</span>
-            </div>
-          </div>
+      <!-- Step 2: PROCESSING (Kho chuẩn bị & QC) -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(1)" 
+        [class.step-active]="isStepActive(1)"
+        [class.step-viewing]="isStepViewing(1)"
+        [class.step-clickable]="isStepDone(1) || isStepActive(1)"
+        (click)="onStepClick(1)"
+        [title]="getStepTooltip(1)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(1)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(1)">2</span>
+        </div>
+        <div class="step-label">Processing</div>
+        <div class="step-sub">Chuẩn bị hàng</div>
+        <div class="step-viewing-dot-wrap">
+          <span class="step-viewing-dot" *ngIf="isStepViewing(1)"></span>
         </div>
       </div>
 
-      <!-- LỊCH SỬ XỬ LÝ (AUDIT TRAIL) -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 20px;">Lịch sử xử lý đơn</h3>
-        <div style="display: flex; flex-direction: column; gap: 16px;">
-          <div style="display: flex; gap: 16px;">
-            <div style="width: 130px; font-size: 14px; color: var(--text-muted);">14:30 - 01/09/2026</div>
-            <div>
-              <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">Ghi nhận thanh toán thành công (Mã GD: TXN-99812)</div>
-              <div style="font-size: 14px; color: var(--text-muted);">Bởi: Hệ thống</div>
-            </div>
-          </div>
-          <div style="display: flex; gap: 16px;">
-            <div style="width: 130px; font-size: 14px; color: var(--text-muted);">10:00 - 01/09/2026</div>
-            <div>
-              <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">Chuyển trạng thái sang Đang xử lý</div>
-              <div style="font-size: 14px; color: var(--text-muted);">Bởi: Admin Tran</div>
-            </div>
-          </div>
-          <div style="display: flex; gap: 16px;">
-            <div style="width: 130px; font-size: 14px; color: var(--text-muted);">09:45 - 01/09/2026</div>
-            <div>
-              <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">Xác nhận đơn hàng</div>
-              <div style="font-size: 14px; color: var(--text-muted);">Bởi: Admin Tran</div>
-            </div>
-          </div>
-          <div style="display: flex; gap: 16px;">
-            <div style="width: 130px; font-size: 14px; color: var(--text-muted);">09:24 - 01/09/2026</div>
-            <div>
-              <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">Tạo đơn hàng mới</div>
-              <div style="font-size: 14px; color: var(--text-muted);">Bởi: Lê Thu Trang (Khách hàng)</div>
-            </div>
-          </div>
+      <div class="step-line" [class.line-done]="isLineDone(1)"></div>
+
+      <!-- Step 3: READY_TO_SHIP (Sẵn sàng xuất kho) -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(2)" 
+        [class.step-active]="isStepActive(2)"
+        [class.step-viewing]="isStepViewing(2)"
+        [class.step-clickable]="isStepDone(2) || isStepActive(2)"
+        (click)="onStepClick(2)"
+        [title]="getStepTooltip(2)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(2)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(2)">3</span>
+        </div>
+        <div class="step-label">Ready to Ship</div>
+        <div class="step-sub">Sẵn sàng xuất</div>
+        <div class="step-viewing-dot-wrap">
+          <span class="step-viewing-dot" *ngIf="isStepViewing(2)"></span>
+        </div>
+      </div>
+
+      <div class="step-line" [class.line-done]="isLineDone(2)"></div>
+
+      <!-- Step 4: SHIPPED (Vận chuyển) -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(3)" 
+        [class.step-active]="isStepActive(3)"
+        [class.step-viewing]="isStepViewing(3)"
+        [class.step-clickable]="isStepDone(3) || isStepActive(3)"
+        (click)="onStepClick(3)"
+        [title]="getStepTooltip(3)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(3)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(3)">4</span>
+        </div>
+        <div class="step-label">Shipped</div>
+        <div class="step-sub">Đang vận chuyển</div>
+        <div class="step-viewing-dot-wrap">
+          <span class="step-viewing-dot" *ngIf="isStepViewing(3)"></span>
+        </div>
+      </div>
+
+      <div class="step-line" [class.line-done]="isLineDone(3)"></div>
+
+      <!-- Step 5: DELIVERED (Đã giao hàng) -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(4)" 
+        [class.step-active]="isStepActive(4)"
+        [class.step-viewing]="isStepViewing(4)"
+        [class.step-clickable]="isStepDone(4) || isStepActive(4)"
+        (click)="onStepClick(4)"
+        [title]="getStepTooltip(4)"
+      >
+        <div class="step-circle">
+          <lucide-angular *ngIf="isStepDone(4)" [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isStepDone(4)">5</span>
+        </div>
+        <div class="step-label">Delivered</div>
+        <div class="step-sub">Đã giao hàng</div>
+        <div class="step-viewing-dot-wrap">
+          <span class="step-viewing-dot" *ngIf="isStepViewing(4)"></span>
+        </div>
+      </div>
+
+      <div class="step-line" [class.line-done]="isLineDone(4)"></div>
+
+      <!-- Step 6: COMPLETED / RETURN -->
+      <div class="stepper-step" 
+        [class.step-done]="isStepDone(5)" 
+        [class.step-active]="isStepActive(5) && order.status !== 'COMPLETED'"
+        [class.step-completed]="order.status === 'COMPLETED'"
+        [class.step-return-active]="isReturnFlow && order.status !== 'RETURNED'"
+        [class.step-return-done]="order.status === 'RETURNED'"
+        [class.step-viewing]="isStepViewing(5)"
+        [class.step-clickable]="isStepDone(5) || isStepActive(5)"
+        (click)="onStepClick(5)"
+        [title]="getStepTooltip(5)"
+      >
+        <div class="step-circle" 
+             [class.circle-completed]="order.status === 'COMPLETED'"
+             [class.circle-return-active]="isReturnFlow && order.status !== 'RETURNED'"
+             [class.circle-return-done]="order.status === 'RETURNED'">
+          <ng-container *ngIf="isReturnFlow">
+            <lucide-angular *ngIf="order.status === 'RETURNED'" [img]="icons.Check" size="16"></lucide-angular>
+            <lucide-angular *ngIf="order.status !== 'RETURNED'" [img]="icons.CornerDownLeft" size="16"></lucide-angular>
+          </ng-container>
+          <ng-container *ngIf="!isReturnFlow">
+            <lucide-angular *ngIf="isStepDone(5) || order.status === 'COMPLETED'" [img]="icons.Check" size="16"></lucide-angular>
+            <span *ngIf="!isStepDone(5) && order.status !== 'COMPLETED'">6</span>
+          </ng-container>
+        </div>
+        <div class="step-label" 
+             [class.text-completed]="order.status === 'COMPLETED'"
+             [class.text-return]="isReturnFlow && order.status !== 'RETURNED'"
+             [class.text-return-done]="order.status === 'RETURNED'">
+          {{ isReturnFlow ? 'Return' : 'Completed' }}
+        </div>
+        <div class="step-sub" 
+             [class.text-return-sub]="isReturnFlow && order.status !== 'RETURNED'"
+             [class.text-return-done-sub]="order.status === 'RETURNED'">
+          {{ isReturnFlow ? (order.status === 'RETURNED' ? 'Đã nhận trả kho' : 'Đổi / Trả hàng') : 'Hoàn tất đơn' }}
+        </div>
+        <div class="step-viewing-dot-wrap">
+          <span class="step-viewing-dot" *ngIf="isStepViewing(5)"></span>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT COLUMN -->
-    <div style="display: flex; flex-direction: column; gap: 24px;">
-      
-      <!-- KHÁCH HÀNG -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 style="font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-            <lucide-angular [img]="icons.User" size="18"></lucide-angular> Khách hàng
-          </h3>
+
+    <!-- Edge Branch Indicators for Exceptions -->
+    <div class="stepper-branch-pill branch-cancelled" *ngIf="order.status === 'CANCELLED'">
+      <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
+      <span>Trạng thái kết thúc: <strong>CANCELLED (Đã hủy đơn)</strong> — {{ order.cancelReason || 'Đã hủy đơn hàng' }} (Bởi: {{ order.cancelledBy || 'Admin' }})</span>
+    </div>
+
+    <div class="stepper-branch-pill branch-failed" *ngIf="order.status === 'FAILED_DELIVERY'">
+      <lucide-angular [img]="icons.AlertTriangle" size="16"></lucide-angular>
+      <span>Trạng thái ngoại lệ: <strong>Giao thất bại</strong> — Lý do: "{{ order.delivery.failureReason || 'Không liên lạc được' }}". Chờ CSKH gọi lại lên lịch giao lần tiếp theo.</span>
+    </div>
+
+    <div class="stepper-branch-pill branch-return" *ngIf="isReturnFlow">
+      <lucide-angular [img]="icons.CornerDownLeft" size="16"></lucide-angular>
+      <span>Trạng thái kết thúc: <strong>RETURN (Đã nhận trả hàng)</strong> — {{ order.returnInfo?.reason || 'Khách hàng đã trả hàng cho tài xế mang về kho' }}</span>
+    </div>
+  </div>
+
+  <!-- DELIVERED 72H COUNTDOWN WIDGET: ĐỒNG HỒ ĐẾM NGƯỢC 72H ĐỔI TRẢ (TỰ ĐỘNG CHUYỂN COMPLETED) -->
+  <div class="delivered-countdown-widget" *ngIf="order && order.status === 'DELIVERED'">
+    <div class="countdown-left-block">
+      <div class="countdown-badge-icon">
+        <lucide-angular [img]="icons.Clock" size="20"></lucide-angular>
+      </div>
+      <div class="countdown-info">
+        <div class="countdown-label-row">
+          <span class="countdown-title">Thời hạn hỗ trợ Đổi / Trả (72 Giờ)</span>
         </div>
-        <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px;">Lê Thu Trang</div>
-        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-          <div>Email: le.thu.trang@gmail.com</div>
-          <div>SĐT: 0912345678</div>
+        <div class="countdown-sub">
+          Khách hàng có quyền khiếu nại trong 72h. Hết thời gian này, hệ thống sẽ tự động chuyển <strong>Hoàn tất đơn hàng</strong> và kích hoạt bảo hành.
         </div>
-        <button style="margin-top: 16px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; cursor: pointer; font-size: 13px; font-weight: 500;">
-          Xem hồ sơ khách hàng
+      </div>
+    </div>
+
+    <div class="countdown-right-actions">
+      <div class="countdown-timer-boxes">
+        <div class="time-box">
+          <span class="time-num">{{ padZero(deliveredCountdown.hours) }}</span>
+          <span class="time-unit">Giờ</span>
+        </div>
+        <span class="time-colon">:</span>
+        <div class="time-box">
+          <span class="time-num">{{ padZero(deliveredCountdown.minutes) }}</span>
+          <span class="time-unit">Phút</span>
+        </div>
+        <span class="time-colon">:</span>
+        <div class="time-box">
+          <span class="time-num">{{ padZero(deliveredCountdown.seconds) }}</span>
+          <span class="time-unit">Giây</span>
+        </div>
+
+        <!-- Nút test kiểm thử đếm ngược 10 giây cuối -->
+        <button type="button" 
+                class="btn-demo-countdown" 
+                (click)="simulateExpiringCountdown(10)" 
+                title="Thử nghiệm: Đặt đồng hồ còn 10 giây để kiểm tra hệ thống tự động hoàn tất đơn hàng">
+          <lucide-angular [img]="icons.Zap" size="13"></lucide-angular>
+          <span>Test 10s</span>
         </button>
       </div>
 
-      <!-- GIAO HÀNG -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-          <lucide-angular [img]="icons.MapPin" size="18"></lucide-angular> Giao hàng
-        </h3>
-        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-secondary);">
-          <div>
-            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Lê Thu Trang</div>
-            <div>0912345678</div>
+      <!-- Nút Khách hàng trả hàng (Giả lập khiếu nại trả hàng trong 72h) -->
+      <button type="button" 
+              class="btn-customer-return" 
+              (click)="onSimulateCustomerReturn()" 
+              title="Giả lập khách hàng gửi yêu cầu đổi/trả sản phẩm trong thời hạn 72h">
+        <lucide-angular [img]="icons.CornerDownLeft" size="15"></lucide-angular>
+        <span>Khách hàng trả hàng</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KHUNG THÔNG BÁO CHO PENDING (TRƯỜNG HỢP 2 & TRƯỜNG HỢP 3) - ĐẶT NGAY DƯỚI STEPPER -->
+  <div class="pending-hold-banner" 
+       *ngIf="order && order.status === 'PENDING' && !paymentCheck.canConfirm"
+       [ngClass]="{
+         'banner-amber': paymentCheck.holdType === 'AWAITING_PAYMENT',
+         'banner-orange': paymentCheck.holdType === 'AWAITING_DEPOSIT'
+       }">
+    <div class="hold-banner-left">
+      <div class="hold-banner-icon">
+        <lucide-angular *ngIf="paymentCheck.holdType === 'AWAITING_PAYMENT'" [img]="icons.Info" size="22"></lucide-angular>
+        <lucide-angular *ngIf="paymentCheck.holdType === 'AWAITING_DEPOSIT'" [img]="icons.AlertTriangle" size="22"></lucide-angular>
+      </div>
+      <div class="hold-banner-body">
+        <div class="hold-banner-title">{{ paymentCheck.title }}</div>
+        <div class="hold-banner-message" *ngIf="paymentCheck.message">{{ paymentCheck.message }}</div>
+      </div>
+    </div>
+
+    <div class="hold-banner-actions">
+      <!-- Nút nhỏ Trường hợp 2: Xác nhận đã nhận chuyển khoản -->
+      <button *ngIf="paymentCheck.holdType === 'AWAITING_PAYMENT'"
+              type="button" 
+              class="btn-verify-action btn-verify-payment"
+              [disabled]="isSubmitting"
+              [class.btn-disabled]="isSubmitting"
+              (click)="onConfirmManualPayment('FULL')"
+              title="Dành cho Admin/Kế toán khi tiền đã vào tài khoản">
+        <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+        <span>{{ isSubmitting ? 'Đang ghi nhận...' : 'Xác nhận đã nhận chuyển khoản' }}</span>
+      </button>
+
+      <!-- Nút nhỏ Trường hợp 3: Xác nhận đã nhận cọc 30% -->
+      <button *ngIf="paymentCheck.holdType === 'AWAITING_DEPOSIT'"
+              type="button" 
+              class="btn-verify-action btn-verify-deposit"
+              [disabled]="isSubmitting"
+              [class.btn-disabled]="isSubmitting"
+              (click)="onConfirmManualPayment('DEPOSIT')"
+              title="Dành cho Admin/Kế toán khi đã nhận tiền cọc tối thiểu 30%">
+        <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+        <span>{{ isSubmitting ? 'Đang ghi nhận...' : 'Xác nhận đã nhận cọc 30%' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main 2-Column Responsive Layout -->
+  <div class="v2-content-grid">
+    
+    <!-- LEFT COLUMN (Main Details: Products, Pricing, QC, Return Claim, Audit Log) -->
+    <div class="v2-col-left">
+
+      <!-- CARD 1: Danh sách Sản phẩm -->
+      <div class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Package" size="18" class="text-accent"></lucide-angular>
+            <h3>Danh sách Sản phẩm ({{ order.items.length }})</h3>
           </div>
-          <div style="line-height: 1.5;">
-            Khu công nghệ cao, Phường Tân Phú, Quận 9, Tp. Hồ Chí Minh
-          </div>
-          <div style="border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 4px;">
-            <div style="margin-bottom: 4px;"><strong>Đơn vị:</strong> Giao Hàng Nhanh (GHN)</div>
-            <div style="margin-bottom: 4px;"><strong>Dự kiến:</strong> 03/09/2026</div>
-            <div style="color: #2563eb; font-weight: 500; cursor: pointer;">Xem chi tiết vận đơn</div>
-          </div>
+        </div>
+
+        <div class="v2-table-responsive">
+          <table class="detail-product-table">
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th>SKU</th>
+                <th style="text-align: right;">Đơn giá</th>
+                <th style="text-align: center;">SL</th>
+                <th style="text-align: right;">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of order.items">
+                <td>
+                  <div class="prod-row-item">
+                    <img [src]="item.imageUrl" [alt]="item.name" class="item-img" />
+                    <div class="item-names">
+                      <span class="item-title">{{ item.name }}</span>
+                      <span class="item-variant" *ngIf="item.variant">{{ item.variant }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="sku-cell">{{ item.sku }}</td>
+                <td style="text-align: right;">{{ formatVND(item.price) }}</td>
+                <td style="text-align: center; font-weight: 700;">{{ item.quantity }}</td>
+                <td style="text-align: right; font-weight: 700; color: #111827;">{{ formatVND(item.lineTotal) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- THANH TOÁN -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-          <lucide-angular [img]="icons.CreditCard" size="18"></lucide-angular> Thanh toán
-        </h3>
-        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-secondary);">
-          <div>
-            <span style="padding: 2px 8px; background: #d1fae5; color: #059669; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã thanh toán</span>
+      <!-- CARD 2: Hóa đơn & Thanh toán (Đồng bộ Phương thức & Hóa đơn) -->
+      <div class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.DollarSign" size="18" class="text-accent"></lucide-angular>
+            <h3>Hóa đơn & Thanh toán</h3>
           </div>
-          <div><strong>Phương thức:</strong> Chuyển khoản qua VNPAY</div>
-          <div><strong>Mã GD:</strong> VNP1234567890</div>
-          <div><strong>Thời gian:</strong> 01/09/2026 09:25</div>
+        </div>
+
+        <!-- Đồng bộ Phương thức & Trạng thái thanh toán -->
+        <div class="payment-sync-info">
+          <div class="pm-sync-col">
+            <span class="pm-sync-lbl">Phương thức:</span>
+            <strong class="pm-sync-val">{{ getPaymentMethodLabel(order.paymentMethod) }}</strong>
+          </div>
+          <div class="pm-sync-col">
+            <span class="pm-sync-lbl">Trạng thái:</span>
+            <span class="pm-badge pm-{{ order.paymentStatus }}">{{ getPaymentStatusLabel(order.paymentStatus, order) }}</span>
+          </div>
+        </div>
+
+        <div class="pricing-divider"></div>
+
+        <div class="pricing-summary-grid">
+          <div class="pricing-row">
+            <span>Tạm tính:</span>
+            <strong>{{ formatVND(order.subTotal) }}</strong>
+          </div>
+          <div class="pricing-row" *ngIf="order.discountAmount > 0">
+            <span>Khuyến mãi:</span>
+            <span class="text-discount">-{{ formatVND(order.discountAmount) }}</span>
+          </div>
+          <div class="pricing-row">
+            <span>Phí vận chuyển & lắp đặt:</span>
+            <strong>{{ order.shippingFee === 0 ? 'Miễn phí' : formatVND(order.shippingFee) }}</strong>
+          </div>
+          <div class="pricing-row">
+            <span>Thuế VAT ({{ vatRate }}%):</span>
+            <strong>{{ formatVND(vatAmount) }}</strong>
+          </div>
+
+          <div class="pricing-divider"></div>
+
+          <div class="pricing-row total-highlight">
+            <span>Tổng thanh toán (Đã bao gồm VAT):</span>
+            <span class="total-big-val">{{ formatVND(order.totalAmount) }}</span>
+          </div>
+
+          <!-- Đơn có yêu cầu cọc (Hàng giá trị lớn >= 50tr hoặc hàng thiết kế riêng) -->
+          <ng-container *ngIf="order.depositRequired && order.depositRequired > 0">
+            <div class="pricing-row deposit-row">
+              <span class="text-deposit-lbl">Cọc tối thiểu theo quy định (30%):</span>
+              <strong class="text-deposit-val">{{ formatVND(order.depositRequired) }}</strong>
+            </div>
+            <div class="pricing-row deposit-row">
+              <span class="text-deposit-lbl">{{ actualPaidOrDepositLabel }}</span>
+              <strong [style.color]="isPaidOrDepositSatisfied ? '#16A34A' : '#D97706'">
+                {{ formatVND(actualPaidOrDepositAmount) }}
+              </strong>
+            </div>
+            <!-- Nếu đã cọc một phần thì hiển thị số tiền còn lại cần thu khi nhận hàng -->
+            <div class="pricing-row deposit-row" *ngIf="order.paymentStatus === 'PARTIAL' && (order.depositPaid || 0) > 0">
+              <span class="text-deposit-lbl">Còn lại cần thanh toán khi giao hàng (COD):</span>
+              <strong style="color: #765337;">
+                {{ formatVND(order.remainingAmount || (order.totalAmount - (order.depositPaid || 0))) }}
+              </strong>
+            </div>
+          </ng-container>
+
+          <!-- Đơn thanh toán trực tuyến (Chuyển khoản / VNPAY) KHÔNG yêu cầu cọc -->
+          <ng-container *ngIf="(!order.depositRequired || order.depositRequired === 0) && order.paymentMethod !== 'COD'">
+            <div class="pricing-row deposit-row">
+              <span class="text-deposit-lbl">Thực tế đã thanh toán:</span>
+              <strong [style.color]="order.paymentStatus === 'PAID' ? '#16A34A' : '#D97706'">
+                {{ formatVND(order.paymentStatus === 'PAID' ? order.totalAmount : 0) }}
+              </strong>
+            </div>
+          </ng-container>
         </div>
       </div>
 
-      <!-- KHO XỬ LÝ -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-          <lucide-angular [img]="icons.Box" size="18"></lucide-angular> Kho xử lý
-        </h3>
-        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-          <div style="font-weight: 600; color: var(--accent);">Showroom Thủ Đức</div>
-          
-          <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
-            <div style="font-weight: 600; margin-bottom: 8px;">Sofa Indivi 3 chỗ</div>
-            <div style="display: flex; justify-content: space-between; color: var(--text-secondary); margin-bottom: 4px;">
-              <span>Tồn trước:</span> <span>5</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; color: #dc2626; margin-bottom: 4px;">
-              <span>Xuất kho:</span> <span>-1</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 4px; margin-top: 4px;">
-              <span>Tồn sau:</span> <span>4</span>
-            </div>
+      <!-- CARD 3: Kiểm tra chất lượng (QC Checklist & Đóng gói) - Chỉ hiển thị từ khâu chuẩn bị kho & Sẵn sàng xuất trở đi -->
+      <div class="v2-card" *ngIf="order.status !== 'PENDING' && activeViewingStep >= 1">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.ShieldCheck" size="18" class="text-accent"></lucide-angular>
+            <h3>Biên bản Kiểm tra Chất lượng</h3>
           </div>
+          <span *ngIf="isQcLocked" class="badge-qc-locked" title="Đã khóa kết quả (Đã xuất kho)">
+            <lucide-angular [img]="icons.Lock" size="14"></lucide-angular>
+          </span>
+          <span *ngIf="!isQcLocked && isQcAllChecked" class="badge-qc-ready">
+            <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+            <span>Đạt 4/4 tiêu chí QC</span>
+          </span>
+        </div>
 
-          <div style="color: #2563eb; font-weight: 500; cursor: pointer; margin-top: 4px;">
-            Xem biến động kho
-          </div>
+        <div class="qc-checklist-grid">
+          <label class="qc-checkbox-item" [class.is-locked]="isQcLocked">
+            <input type="checkbox" [(ngModel)]="checklist.surfaceChecked" [disabled]="isQcLocked" (change)="onQcChange()" />
+            <span class="qc-custom-check" [class.checked]="checklist.surfaceChecked">
+              <lucide-angular *ngIf="checklist.surfaceChecked" [img]="icons.CheckSquare" size="18"></lucide-angular>
+              <lucide-angular *ngIf="!checklist.surfaceChecked" [img]="icons.Square" size="18"></lucide-angular>
+            </span>
+            <div class="qc-content">
+              <strong>1. Kiểm tra Bề mặt Gỗ & Lớp sơn bóng</strong>
+              <p>Không trầy xước dăm, không rỗ sơn bóng PU, màu vân gỗ đồng nhất tiêu chuẩn.</p>
+            </div>
+          </label>
+
+          <label class="qc-checkbox-item" [class.is-locked]="isQcLocked">
+            <input type="checkbox" [(ngModel)]="checklist.structureChecked" [disabled]="isQcLocked" (change)="onQcChange()" />
+            <span class="qc-custom-check" [class.checked]="checklist.structureChecked">
+              <lucide-angular *ngIf="checklist.structureChecked" [img]="icons.CheckSquare" size="18"></lucide-angular>
+              <lucide-angular *ngIf="!checklist.structureChecked" [img]="icons.Square" size="18"></lucide-angular>
+            </span>
+            <div class="qc-content">
+              <strong>2. Kiểm tra Kết cấu chịu lực & Chân đế</strong>
+              <p>Khung sườn gỗ sồi nguyên khối ổn định, chân đế cân bằng, các mối ghép keo mộng chắc chắn.</p>
+            </div>
+          </label>
+
+          <label class="qc-checkbox-item" [class.is-locked]="isQcLocked">
+            <input type="checkbox" [(ngModel)]="checklist.cushionLeatherChecked" [disabled]="isQcLocked" (change)="onQcChange()" />
+            <span class="qc-custom-check" [class.checked]="checklist.cushionLeatherChecked">
+              <lucide-angular *ngIf="checklist.cushionLeatherChecked" [img]="icons.CheckSquare" size="18"></lucide-angular>
+              <lucide-angular *ngIf="!checklist.cushionLeatherChecked" [img]="icons.Square" size="18"></lucide-angular>
+            </span>
+            <div class="qc-content">
+              <strong>3. Kiểm tra Đệm mút D40 & Chất liệu Da / Vải nỉ</strong>
+              <p>Đệm mút đàn hồi cao, chỉ may đường viền sắc nét, không nhăn nhúm hoặc sờn mép.</p>
+            </div>
+          </label>
+
+          <label class="qc-checkbox-item" [class.is-locked]="isQcLocked">
+            <input type="checkbox" [(ngModel)]="checklist.protectiveWrapDone" [disabled]="isQcLocked" (change)="onQcChange()" />
+            <span class="qc-custom-check" [class.checked]="checklist.protectiveWrapDone">
+              <lucide-angular *ngIf="checklist.protectiveWrapDone" [img]="icons.CheckSquare" size="18"></lucide-angular>
+              <lucide-angular *ngIf="!checklist.protectiveWrapDone" [img]="icons.Square" size="18"></lucide-angular>
+            </span>
+            <div class="qc-content">
+              <strong>4. Bọc màng PE 3 lớp & Chèn xốp góc bảo vệ</strong>
+              <p>Bọc mút xốp định hình 4 góc, quấn 3 lớp màng PE co nhiệt, dán tem cảnh báo 'Hàng dễ vỡ'.</p>
+            </div>
+          </label>
         </div>
       </div>
 
-      <!-- GHI CHÚ -->
-      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Ghi chú</h3>
-        
-        <div style="margin-bottom: 16px;">
-          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Của khách hàng</div>
-          <div style="font-size: 13px; background: #fef3c7; padding: 12px; border-radius: 8px; color: #92400e; font-style: italic;">
-            "Giao hàng buổi sáng giúp mình, gọi trước 30p nhé!"
+
+
+      <!-- CARD 5: Nhật ký thao tác & Audit Trail -->
+      <div class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Clock" size="18" class="text-accent"></lucide-angular>
+            <h3>Lịch sử thao tác</h3>
           </div>
+          <span class="sub-label">{{ order.auditLogs.length }} bản ghi</span>
         </div>
 
-        <div>
-          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">Nội bộ (Chỉ Admin)</div>
-          <textarea 
-            placeholder="Nhập ghi chú nội bộ..." 
-            value="Khách hàng VIP, cần kiểm tra kỹ đóng gói."
-            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; min-height: 80px; outline: none; background: var(--bg-secondary); color: var(--text-primary); resize: vertical;"
-          ></textarea>
-          <button style="margin-top: 8px; padding: 6px 12px; border-radius: 6px; border: none; background: var(--text-primary); color: var(--bg-primary); cursor: pointer; font-size: 12px; font-weight: 600;">Lưu ghi chú</button>
+        <div class="audit-timeline">
+          <div class="audit-entry" *ngFor="let log of order.auditLogs">
+            <div class="audit-dot"></div>
+            <div class="audit-body">
+              <span class="audit-time">
+                <lucide-angular [img]="icons.Clock" size="12"></lucide-angular>
+                {{ formatAuditTime(log.timestamp) }}
+              </span>
+              <div class="audit-content">
+                <div class="audit-top">
+                  <div class="audit-meta-left">
+                    <span class="audit-action">{{ log.action }}</span>
+                    <span class="audit-actor">{{ log.actor }}</span>
+                  </div>
+                </div>
+                <p class="audit-detail">{{ log.detail }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
     </div>
+
+    <!-- RIGHT COLUMN (Sidebar: Customer, Delivery, Payment info) -->
+    <div class="v2-col-right">
+
+      <!-- Customer Info Card -->
+      <div class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.User" size="18" class="text-accent"></lucide-angular>
+            <h3>Thông tin Khách hàng</h3>
+          </div>
+        </div>
+
+        <div class="customer-info-box">
+          <div class="cust-profile">
+            <div class="cust-avatar">{{ order.customerName.charAt(0) }}</div>
+            <div class="cust-meta">
+              <div class="cust-name">{{ order.customerName }}</div>
+              <button type="button" class="btn-customer-nav" (click)="onViewCustomerDetail()" title="Xem chi tiết hồ sơ khách hàng">
+                <lucide-angular [img]="icons.User" size="12"></lucide-angular>
+                <span>Chi tiết khách hàng</span>
+                <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+              </button>
+            </div>
+          </div>
+
+          <div class="cust-rows">
+            <div class="cust-row">
+              <lucide-angular [img]="icons.Phone" size="15" class="row-icon"></lucide-angular>
+              <span>{{ order.phone }}</span>
+            </div>
+            <div class="cust-row">
+              <lucide-angular [img]="icons.Mail" size="15" class="row-icon"></lucide-angular>
+              <span>{{ order.email }}</span>
+            </div>
+            <div class="cust-row address-row">
+              <lucide-angular [img]="icons.MapPin" size="15" class="row-icon"></lucide-angular>
+              <span>{{ order.address }}</span>
+            </div>
+          </div>
+
+          <div class="customer-note-box" *ngIf="order.customerNote">
+            <span class="note-lbl">Ghi chú từ khách:</span>
+            <p>"{{ order.customerNote }}"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shipping & Logistics Card (Chỉ hiển thị từ bước Sẵn sàng xuất kho READY_TO_SHIP trở đi) -->
+      <div class="v2-card" *ngIf="order.status !== 'PENDING' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING' && activeViewingStep >= 2">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Truck" size="18" class="text-accent"></lucide-angular>
+            <h3>Vận chuyển</h3>
+          </div>
+          <span class="delivery-provider-badge">{{ order.delivery.provider }}</span>
+        </div>
+
+        <div class="shipping-info-box">
+          <div class="ship-metric">
+            <span class="lbl">Mã vận đơn</span>
+
+            <!-- Khi ở bước Sẵn sàng xuất kho READY_TO_SHIP: Cho phép nhập/chỉnh sửa hoặc tự sinh mã ngay tại Card -->
+            <div class="tracking-edit-box" *ngIf="order.status === 'READY_TO_SHIP'">
+              <input type="text" [(ngModel)]="newTrackingCode" [disabled]="isDataLocked" placeholder="Nhập mã vận đơn..." class="tracking-input-card" />
+              <button type="button" class="btn-refresh-code" (click)="generateNewTrackingCode()" title="Tự động sinh mã mới">
+                <lucide-angular [img]="icons.RefreshCw" size="14"></lucide-angular>
+              </button>
+            </div>
+
+            <!-- Khi đã xuất kho SHIPPED trở đi hoặc xem lịch sử: Hiển thị dạng chữ chốt cố định -->
+            <div class="tracking-display" *ngIf="order.status !== 'READY_TO_SHIP'">
+              <strong>{{ order.delivery.trackingCode || 'Chưa phát sinh mã' }}</strong>
+            </div>
+          </div>
+
+          <div class="ship-driver-box" *ngIf="order.delivery.driverName">
+            <div class="driver-row">
+              <span>Tài xế giao nhận:</span>
+              <strong>{{ order.delivery.driverName }}</strong>
+            </div>
+            <div class="driver-row" *ngIf="order.delivery.driverPhone">
+              <span>Số điện thoại:</span>
+              <strong>{{ order.delivery.driverPhone }}</strong>
+            </div>
+            <div class="driver-row" *ngIf="order.delivery.vehiclePlate">
+              <span>Biển số xe tải:</span>
+              <strong>{{ order.delivery.vehiclePlate }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAP TRACKING CARD: Bản đồ Lộ trình & Giám sát Giao hàng Thời gian thực (Tương tự Shopee/Grab tracking) -->
+      <!-- Hiển thị trong trạng thái Đang vận chuyển SHIPPED, Giao thất bại, Đã giao hàng DELIVERED (hoặc khi đang xem bước 3 hoặc 4) -->
+      <div class="v2-card live-map-tracking-card" *ngIf="['SHIPPED', 'FAILED_DELIVERY', 'DELIVERED'].includes(order.status) || (order.status !== 'PENDING' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING' && (activeViewingStep === 3 || activeViewingStep === 4))">
+        <div class="v2-card-header" style="align-items: flex-start;">
+          <div class="card-title-group" style="align-items: flex-start;">
+            <lucide-angular [img]="icons.MapPin" size="18" [class.text-accent]="order.status !== 'DELIVERED'" [class.text-success]="order.status === 'DELIVERED'" style="margin-top: 3px; flex-shrink: 0;"></lucide-angular>
+            <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
+              <h3>{{ order.status === 'DELIVERED' ? 'Bản đồ & Lộ trình Bàn giao' : 'Bản đồ Giám sát Vận chuyển' }}</h3>
+              <span class="live-pulse-badge" *ngIf="order.status !== 'DELIVERED'">
+                <span class="pulse-beacon"></span>
+                <span>Đang lưu thông (Live GPS)</span>
+              </span>
+              <span class="live-pulse-badge badge-delivered" *ngIf="order.status === 'DELIVERED'">
+                <lucide-angular [img]="icons.CheckCircle2" size="13"></lucide-angular>
+                <span>Đã giao hàng thành công</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="live-map-card-body">
+          <!-- BẢN ĐỒ VECTOR SVG NGHỆ THUẬT (Simulated Interactive Route Map) -->
+          <div class="map-visual-container">
+            <div class="map-background-canvas">
+              <!-- River / Land forms SVG -->
+              <svg class="map-bg-svg" width="100%" height="100%" viewBox="0 0 800 360" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="riverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#E0F2FE" />
+                    <stop offset="100%" stop-color="#BAE6FD" />
+                  </linearGradient>
+                </defs>
+
+                <!-- City Grid Lines (Mô phỏng mạng lưới đường phố) -->
+                <g class="city-streets" stroke="#E2E8F0" stroke-width="1.5">
+                  <line x1="0" y1="60" x2="800" y2="60" />
+                  <line x1="0" y1="140" x2="800" y2="140" stroke-width="2.5" stroke="#CBD5E1" />
+                  <line x1="0" y1="220" x2="800" y2="220" />
+                  <line x1="0" y1="300" x2="800" y2="300" />
+                  
+                  <line x1="120" y1="0" x2="120" y2="360" />
+                  <line x1="280" y1="0" x2="280" y2="360" stroke-width="2.5" stroke="#CBD5E1" />
+                  <line x1="460" y1="0" x2="460" y2="360" />
+                  <line x1="640" y1="0" x2="640" y2="360" stroke-width="2.5" stroke="#CBD5E1" />
+
+                  <!-- Secondary diagonal roads -->
+                  <line x1="40" y1="0" x2="320" y2="360" stroke="#F1F5F9" stroke-width="2" />
+                  <line x1="420" y1="0" x2="780" y2="360" stroke="#F1F5F9" stroke-width="2" />
+                </g>
+
+                <!-- Kênh rạch / Sông uốn lượn phong cách TP.HCM -->
+                <path d="M 0,280 C 180,260 260,340 420,310 C 580,280 680,340 800,320 L 800,360 L 0,360 Z" fill="url(#riverGrad)" opacity="0.6" />
+
+                <!-- Khi DELIVERED: Tuyến đường hoàn chỉnh 100% nối từ kho tới tận nhà khách (Xanh lá hoàn tất) -->
+                <path *ngIf="order.status === 'DELIVERED'"
+                      d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170 C 580,160 620,100 680,90" 
+                      fill="none" 
+                      stroke="#16A34A" 
+                      stroke-width="5" 
+                      stroke-linecap="round" />
+
+                <!-- Khi đang SHIPPED hoặc FAILED_DELIVERY -->
+                <ng-container *ngIf="order.status !== 'DELIVERED'">
+                  <!-- Tuyến đường thực tế xe tải đã đi qua (Cam đậm nổi bật) -->
+                  <path d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170" 
+                        fill="none" 
+                        stroke="#F58025" 
+                        stroke-width="5" 
+                        stroke-linecap="round" />
+
+                  <!-- Tuyến đường còn lại xe đang hướng tới khách (Xanh dương nét đứt) -->
+                  <path d="M 520,170 C 580,160 620,100 680,90" 
+                        fill="none" 
+                        stroke="#3B82F6" 
+                        stroke-width="4" 
+                        stroke-dasharray="6,6" 
+                        stroke-linecap="round" />
+                </ng-container>
+              </svg>
+
+              <!-- MARKER 1: Kho xuất hàng DCOR -->
+              <div class="map-pin-marker start-warehouse-pin" style="left: 15%; top: 66%;">
+                <div class="pin-bubble origin-bubble">
+                  <lucide-angular [img]="icons.Building2" size="13"></lucide-angular>
+                  <span>Kho xuất DCOR (Q7)</span>
+                </div>
+                <div class="pin-dot origin-dot"></div>
+              </div>
+
+              <!-- MARKER 2: Xe tải / Shipper LIVE GPS -->
+              <div class="map-pin-marker live-truck-pin" [style.left]="order.status === 'DELIVERED' ? '79%' : '65%'" [style.top]="order.status === 'DELIVERED' ? '30%' : '47%'">
+                <!-- Tooltip thông tin tài xế lơ lửng -->
+                <div class="truck-floating-card" [class.card-delivered]="order.status === 'DELIVERED'">
+                  <div class="floating-header">
+                    <span class="live-dot-mini" *ngIf="order.status !== 'DELIVERED'"></span>
+                    <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.CheckCircle2" size="13" class="text-success"></lucide-angular>
+                    <strong>{{ order.delivery.driverName || 'Nguyễn Văn Tài' }} (Xe tải)</strong>
+                  </div>
+                  <div class="floating-sub" *ngIf="order.status !== 'DELIVERED'">
+                    Cách điểm nhận: <strong>2.8 km</strong> • ~20 phút nữa đến
+                  </div>
+                  <div class="floating-sub" *ngIf="order.status === 'DELIVERED'" style="color: #15803D; font-weight: 600;">
+                    Đã bàn giao kiện hàng tận nơi
+                  </div>
+                </div>
+
+                <!-- Radar Pulse Ripple Animation -->
+                <div class="radar-pulse-ring" [class.ring-delivered]="order.status === 'DELIVERED'"></div>
+                <div class="radar-pulse-ring delay-1" [class.ring-delivered]="order.status === 'DELIVERED'"></div>
+
+                <!-- Truck Circle Icon -->
+                <div class="truck-icon-circle" [class.truck-delivered]="order.status === 'DELIVERED'">
+                  <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Truck" size="18"></lucide-angular>
+                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="18"></lucide-angular>
+                </div>
+              </div>
+
+              <!-- MARKER 3: Điểm giao hàng (Địa chỉ khách) -->
+              <div class="map-pin-marker destination-client-pin" style="left: 85%; top: 25%;">
+                <div class="pin-bubble destination-bubble">
+                  <lucide-angular [img]="icons.MapPin" size="13"></lucide-angular>
+                  <span>Giao: {{ order.customerName }}</span>
+                </div>
+                <div class="pin-dot dest-dot"></div>
+              </div>
+
+              <!-- Street Name Tags -->
+              <div class="map-street-label street-nguyen-huu-tho">Đ. Nguyễn Hữu Thọ</div>
+              <div class="map-street-label street-nguyen-thi-thap">Đ. Nguyễn Thị Thập</div>
+              <div class="map-street-label street-nguyen-thi-thap street-rach-dia">Cầu Rạch Đĩa</div>
+
+              <!-- Floating Control Buttons -->
+              <div class="map-floating-controls">
+                <button type="button" class="btn-map-ctrl" (click)="openGoogleMapsRoute()" title="Mở lộ trình trên Google Maps">
+                  <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+                  <span>Google Maps</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- THÔNG BÁO VỊ TRÍ & ĐIỀU PHỐI (Live Telemetry & Driver Control Panel) -->
+          <div class="telemetry-grid">
+            <div class="tele-card">
+              <span class="tele-label">{{ order.status === 'DELIVERED' ? 'Địa chỉ giao hàng thành công' : 'Vị trí hiện tại của xe' }}</span>
+              <div class="tele-val">
+                <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Navigation" size="15" class="text-accent"></lucide-angular>
+                <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.MapPin" size="15" class="text-success"></lucide-angular>
+                <span>{{ order.status === 'DELIVERED' ? (order.address || 'Đã giao tới địa chỉ khách') : 'Đường Nguyễn Hữu Thọ, P. Tân Hưng, Q.7' }}</span>
+              </div>
+              <div class="tele-sub" *ngIf="order.status !== 'DELIVERED'">Cập nhật GPS: {{ lastGpsUpdate }}</div>
+              <div class="tele-sub font-semibold" *ngIf="order.status === 'DELIVERED'" style="color: #15803D;">Biên bản bàn giao: Khách hàng đã ký nhận điện tử</div>
+            </div>
+
+            <div class="tele-card">
+              <span class="tele-label">{{ order.status === 'DELIVERED' ? 'Trạng thái giao nhận' : 'Khoảng cách & Thời gian (ETA)' }}</span>
+              <div class="tele-val" [class.text-accent]="order.status !== 'DELIVERED'" [class.text-success]="order.status === 'DELIVERED'" style="font-weight: 700;">
+                <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Clock" size="15"></lucide-angular>
+                <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+                <span>{{ order.status === 'DELIVERED' ? 'Giao thành công (0 km còn lại)' : 'Còn 2.8 km (khoảng 20 - 30 phút)' }}</span>
+              </div>
+              <div class="tele-sub" *ngIf="order.status !== 'DELIVERED'">Tốc độ xe: 32 km/h • Giao thông thông thoáng</div>
+              <div class="tele-sub font-semibold" *ngIf="order.status === 'DELIVERED'">Thời gian hoàn tất: {{ getDeliveredTime() }}</div>
+            </div>
+          </div>
+
+          <!-- LỘ TRÌNH VẬN CHUYỂN TỪ LÚC XUẤT KHO (XỔ XUỐNG DỌC KHÔNG BỊ TRÀN HAY CẮT) -->
+          <div class="trip-milestones-vertical">
+            <div class="milestones-vertical-header">
+              <lucide-angular [img]="icons.Clock" size="14" class="text-accent"></lucide-angular>
+              <span>Lộ trình vận chuyển từ lúc xuất kho</span>
+            </div>
+
+            <!-- Chặng 1: Xuất kho -->
+            <div class="milestone-v-step completed">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon">
+                  <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                </div>
+                <div class="milestone-v-line completed"></div>
+              </div>
+              <div class="milestone-v-content">
+                <span class="m-v-title">1. Xuất kho thành công</span>
+                <span class="m-v-time">{{ getShippedTime() }} • Kiện hàng bàn giao cho xe tải</span>
+              </div>
+            </div>
+
+            <!-- Chặng 2: Xe lưu thông -->
+            <div class="milestone-v-step completed">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon">
+                  <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                </div>
+                <div class="milestone-v-line" [class.completed]="order.status === 'DELIVERED'"></div>
+              </div>
+              <div class="milestone-v-content">
+                <span class="m-v-title">2. Xe lưu thông trên đường</span>
+                <span class="m-v-time">Tài xế đang vận chuyển kiện hàng đến địa chỉ người nhận</span>
+              </div>
+            </div>
+
+            <!-- Chặng 3: Đang giao hoặc Giao thất bại -->
+            <div class="milestone-v-step" 
+                 [class.active]="order.status === 'SHIPPED'"
+                 [class.failed]="order.status === 'FAILED_DELIVERY'"
+                 [class.completed]="order.status === 'DELIVERED'">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon" [class.pulse-active]="order.status === 'SHIPPED'">
+                  <lucide-angular *ngIf="order.status === 'SHIPPED'" [img]="icons.Truck" size="14"></lucide-angular>
+                  <lucide-angular *ngIf="order.status === 'FAILED_DELIVERY'" [img]="icons.AlertTriangle" size="14" class="text-danger"></lucide-angular>
+                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="13"></lucide-angular>
+                </div>
+                <div class="milestone-v-line" [class.completed]="order.status === 'DELIVERED'"></div>
+              </div>
+              <div class="milestone-v-content">
+                <div class="m-v-title-row">
+                  <span class="m-v-title" *ngIf="order.status === 'FAILED_DELIVERY'" style="color: #DC2626;">3. Giao thất bại (Lần {{ order.delivery.failedAttempts || 1 }})</span>
+                  <span class="m-v-title" *ngIf="order.status === 'SHIPPED'">3. Đang giao chặng cuối</span>
+                  <span class="m-v-title" *ngIf="order.status === 'DELIVERED'">3. Đã tới nhà khách</span>
+                </div>
+                <div class="m-v-time-row">
+                  <span class="m-v-time" *ngIf="order.status === 'FAILED_DELIVERY'" style="color: #DC2626; font-weight: 600;">Lý do: "{{ order.delivery.failureReason || 'Khách bận, hẹn giao lại' }}" • Hẹn giao lại</span>
+                  <span class="m-v-time text-accent font-semibold" *ngIf="order.status === 'SHIPPED'">Dự kiến: khoảng 20 - 30 phút • Còn 2.8 km</span>
+                  <span class="m-v-time font-semibold" *ngIf="order.status === 'DELIVERED'">Đã đến nơi giao nhận</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chặng 4: Bàn giao & Ký nhận -->
+            <div class="milestone-v-step" [class.completed]="order.status === 'DELIVERED'" [class.pending]="order.status !== 'DELIVERED'">
+              <div class="milestone-v-left">
+                <div class="milestone-v-icon">
+                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="13"></lucide-angular>
+                  <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.MapPin" size="13"></lucide-angular>
+                </div>
+              </div>
+              <div class="milestone-v-content">
+                <span class="m-v-title">4. Bàn giao & Ký nhận</span>
+                <span class="m-v-time" *ngIf="order.status === 'DELIVERED'">Khách hàng đã nhận hàng và ký biên bản hoàn tất</span>
+                <span class="m-v-time" *ngIf="order.status === 'FAILED_DELIVERY'">Chờ điều phối xếp lịch giao lại lần {{ (order.delivery.failedAttempts || 1) + 1 }}</span>
+                <span class="m-v-time" *ngIf="order.status === 'SHIPPED'">Chờ khách nhận và thanh toán (nếu có thu COD)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
+
+  <!-- =========================================================================
+       CRITICAL REQUIREMENT: BOTTOM ACTION CARD (Placed at bottom of page!)
+       ========================================================================= -->
+  <div class="v2-bottom-action-card" *ngIf="!isHistoricalView && order.status !== 'DELIVERED' && !isReturnFlow">
+    <div class="bottom-action-inner">
+      <!-- LIVE CONTEXTUAL BUTTONS -->
+      <div class="action-buttons-group">
+
+        <!-- 1. PENDING -->
+        <ng-container *ngIf="order.status === 'PENDING'">
+          <button type="button" class="btn-cancel" [disabled]="isSubmitting" (click)="openCancelModal()">
+            <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+            <span>Hủy đơn</span>
+          </button>
+
+          <!-- Primary Confirm Order Button: Sáng xanh khi thỏa mãn, Disable + mờ + icon Khóa khi chưa thỏa mãn -->
+          <button type="button" 
+                  class="btn-primary-action"
+                  [class.btn-disabled]="!paymentCheck.canConfirm || isSubmitting"
+                  [disabled]="!paymentCheck.canConfirm || isSubmitting"
+                  [title]="!paymentCheck.canConfirm ? 'Đơn hàng chưa đủ điều kiện thanh toán/cọc để duyệt' : 'Xác nhận duyệt đơn hàng vào kho'"
+                  (click)="onConfirmOrder()">
+            <lucide-angular [img]="paymentCheck.canConfirm ? icons.Check : icons.Lock" size="18"></lucide-angular>
+            <span>{{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận đơn hàng' }}</span>
+          </button>
+        </ng-container>
+
+        <!-- 2. PROCESSING (Đang chuẩn bị hàng & In Pick-list / QC) -->
+        <ng-container *ngIf="order.status === 'PROCESSING' || order.status === 'CONFIRMED'">
+          <button type="button" class="btn-secondary-action" (click)="handlePrint()">
+            <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
+            <span>In phiếu soạn hàng</span>
+          </button>
+          <button type="button" 
+                  class="btn-primary-action"
+                  [class.btn-disabled]="!isQcAllChecked || isSubmitting"
+                  [disabled]="!isQcAllChecked || isSubmitting"
+                  [title]="!isQcAllChecked ? 'Cần kiểm tra và tick chọn đủ 4 tiêu chuẩn QC trước khi hoàn tất đóng gói!' : 'Hoàn tất Đóng gói & Dán tem QC'"
+                  (click)="onFinishPackaging()">
+            <lucide-angular [img]="isQcAllChecked ? icons.Check : icons.Lock" size="18"></lucide-angular>
+            <span>{{ isSubmitting ? 'Đang xử lý...' : 'Hoàn tất Đóng gói & Dán tem QC' }}</span>
+          </button>
+        </ng-container>
+
+        <!-- 4. READY_TO_SHIP -->
+        <ng-container *ngIf="order.status === 'READY_TO_SHIP'">
+          <button type="button" 
+                  class="btn-primary-action"
+                  [class.btn-disabled]="!isQcAllChecked || isSubmitting"
+                  [disabled]="!isQcAllChecked || isSubmitting"
+                  [title]="!isQcAllChecked ? 'Chưa hoàn tất 4 tiêu chuẩn kiểm tra chất lượng (QC Checklist)!' : 'Xác nhận xuất kho cho đơn vị vận chuyển'"
+                  (click)="onDispatchOrder()">
+            <lucide-angular [img]="isQcAllChecked ? icons.Truck : icons.Lock" size="18"></lucide-angular>
+            <span>{{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận Xuất kho' }}</span>
+          </button>
+        </ng-container>
+
+        <!-- 5. SHIPPED -->
+        <ng-container *ngIf="order.status === 'SHIPPED'">
+          <button type="button" class="btn-warning-action" [disabled]="isSubmitting" (click)="openDeliveryFailedModal()">
+            <lucide-angular [img]="icons.AlertTriangle" size="16"></lucide-angular>
+            <span>Báo Giao thất bại</span>
+          </button>
+          <button type="button" class="btn-primary-action" [disabled]="isSubmitting" [class.btn-disabled]="isSubmitting" (click)="onMarkDelivered()">
+            <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
+            <span>{{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận Giao thành công' }}</span>
+          </button>
+        </ng-container>
+
+        <!-- 6. FAILED_DELIVERY -->
+        <ng-container *ngIf="order.status === 'FAILED_DELIVERY'">
+          <button type="button" class="btn-cancel" [disabled]="isSubmitting" (click)="openCancelModal()">
+            <span>Hủy đơn hoàn kho</span>
+          </button>
+          <button type="button" class="btn-primary-action" [disabled]="isSubmitting" [class.btn-disabled]="isSubmitting" (click)="openRescheduleModal()">
+            <lucide-angular [img]="icons.RefreshCw" size="18"></lucide-angular>
+            <span>Lên lịch Giao lại lần 2</span>
+          </button>
+        </ng-container>
+
+        <!-- 11. COMPLETED / CANCELLED -->
+        <ng-container *ngIf="order.status === 'COMPLETED' || order.status === 'CANCELLED'">
+          <span class="closed-order-note">
+            {{ order.status === 'COMPLETED' ? 'Đơn hàng đã hoàn tất thành công và khóa dữ liệu.' : 'Đơn hàng đã hủy bỏ.' }}
+          </span>
+          <button type="button" class="btn-secondary-action" (click)="handlePrint()">
+            <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
+            <span>In phiếu lưu trữ</span>
+          </button>
+        </ng-container>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODALS: CANCEL ORDER, REJECT RETURN, USER VIEW PREVIEW
+       ========================================================================= -->
+
+  <!-- CANCEL ORDER MODAL -->
+  <div class="v2-modal-backdrop" *ngIf="showCancelModal" (click)="closeCancelModal()">
+    <div class="v2-modal-card" (click)="$event.stopPropagation(); showCancelDropdown = false">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <lucide-angular [img]="icons.XCircle" size="20" style="color: #DC2626;"></lucide-angular>
+          <h3>Hủy đơn hàng #{{ order.orderNumber }}</h3>
+        </div>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="closeCancelModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtext" style="font-size: 13px; color: var(--text-muted, #6B7280); margin-bottom: 14px;">
+          Xác nhận hủy đơn hàng <strong>#{{ order.orderNumber }}</strong> và hoàn lại số lượng tồn kho vật lý:
+        </p>
+
+        <label class="modal-label">
+          Chọn lý do hủy: <span style="color: #DC2626; font-size: 13px; font-weight: 700; margin-left: 2px;">*</span>
+        </label>
+        <div class="filter-dropdown-wrapper" (click)="$event.stopPropagation()">
+          <button 
+            type="button" 
+            class="filter-trigger-btn modal-filter-trigger"
+            [class.active]="showCancelDropdown || !!cancelReason"
+            title="Chọn lý do hủy"
+            (click)="toggleCancelDropdown($event)">
+            <div class="trigger-label">
+              <lucide-angular [img]="icons.XCircle" size="15" class="trigger-icon" style="color: #DC2626;"></lucide-angular>
+              <span class="truncate-label" [class.placeholder]="!cancelReason">
+                {{ selectedCancelReasonLabel }}
+              </span>
+            </div>
+            <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showCancelDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+          </button>
+
+          <div *ngIf="showCancelDropdown" class="filter-menu-dropdown modal-dropdown-menu">
+            <div *ngFor="let opt of cancelOptions"
+                 (click)="selectCancelReason(opt.value, $event)"
+                 class="filter-menu-item modal-dropdown-item"
+                 [class.selected]="cancelReason === opt.value">
+              <span>{{ opt.label }}</span>
+              <lucide-angular *ngIf="cancelReason === opt.value" [img]="icons.Check" size="14" class="item-check-icon"></lucide-angular>
+            </div>
+          </div>
+        </div>
+
+        <label class="modal-label" style="margin-top: 14px;">
+          Ghi chú chi tiết thêm: <span style="color: #DC2626; font-size: 13px; font-weight: 700; margin-left: 2px;">*</span>
+        </label>
+        <textarea [(ngModel)]="customCancelReason" 
+                  rows="3" 
+                  class="modal-textarea" 
+                  [disabled]="isCancelling"
+                  [style.border-color]="cancelReason && (!customCancelReason || !customCancelReason.trim()) ? '#EF4444' : ''"
+                  placeholder="Nhập ghi chú chi tiết lý do hủy (bắt buộc)..."></textarea>
+        <p *ngIf="cancelReason && (!customCancelReason || !customCancelReason.trim())" 
+           style="color: #DC2626; font-size: 11px; margin: 4px 0 0; display: flex; align-items: center; gap: 4px;">
+          * Bạn cần nhập nội dung chi tiết lý do hủy để mở khóa nút Xác nhận.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" [disabled]="isCancelling || isSubmitting" (click)="closeCancelModal()">Hủy</button>
+        <button type="button" 
+                class="btn-confirm-cancel" 
+                [disabled]="!canConfirmCancel || isCancelling || isSubmitting" 
+                [class.btn-disabled]="!canConfirmCancel || isCancelling || isSubmitting" 
+                [title]="!cancelReason ? 'Vui lòng chọn lý do hủy' : (!customCancelReason || !customCancelReason.trim() ? 'Vui lòng nhập nội dung chi tiết lý do hủy' : (isCancelling ? 'Đang xử lý hủy đơn...' : 'Xác nhận Hủy đơn'))"
+                (click)="confirmCancelOrder()">
+          <lucide-angular *ngIf="isCancelling" [img]="icons.RefreshCw" size="14" class="btn-spin-icon" style="margin-right: 6px;"></lucide-angular>
+          <span>{{ isCancelling ? 'Đang xử lý hủy...' : 'Xác nhận Hủy đơn' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REJECT RETURN MODAL -->
+  <div class="v2-modal-backdrop" *ngIf="showRejectReturnModal" (click)="showRejectReturnModal = false">
+    <div class="v2-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Từ chối yêu cầu đổi trả</h3>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="showRejectReturnModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label class="modal-label">Lý do từ chối (gửi cho khách):</label>
+        <textarea [(ngModel)]="rejectReason" rows="3" class="modal-textarea"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" [disabled]="isSubmitting" (click)="showRejectReturnModal = false">Hủy</button>
+        <button type="button" class="btn-confirm-cancel" [disabled]="isSubmitting" [class.btn-disabled]="isSubmitting" (click)="confirmRejectReturn()">
+          {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận Từ chối' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELIVERY FAILED MODAL -->
+  <div class="v2-modal-backdrop" *ngIf="showDeliveryFailedModal" (click)="closeDeliveryFailedModal()">
+    <div class="v2-modal-card" (click)="$event.stopPropagation(); showDeliveryFailedDropdown = false">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <lucide-angular [img]="icons.AlertTriangle" size="20" style="color: #D97706;"></lucide-angular>
+          <h3>Báo cáo Giao hàng không thành công</h3>
+        </div>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="closeDeliveryFailedModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtext" style="font-size: 13px; color: var(--text-muted, #6B7280); margin-bottom: 14px;">
+          Vui lòng chọn hoặc ghi chú nguyên nhân không thể giao đơn hàng <strong>#{{ order.orderNumber }}</strong>:
+        </p>
+
+        <label class="modal-label">Chọn lý do giao thất bại:</label>
+        <div class="filter-dropdown-wrapper" (click)="$event.stopPropagation()">
+          <button 
+            type="button" 
+            class="filter-trigger-btn modal-filter-trigger"
+            [class.active]="showDeliveryFailedDropdown || !!deliveryFailedReason"
+            title="Chọn lý do giao thất bại"
+            (click)="toggleDeliveryFailedDropdown($event)">
+            <div class="trigger-label">
+              <lucide-angular [img]="icons.AlertTriangle" size="15" class="trigger-icon"></lucide-angular>
+              <span class="truncate-label" [class.placeholder]="!deliveryFailedReason">
+                {{ selectedDeliveryFailedLabel }}
+              </span>
+            </div>
+            <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showDeliveryFailedDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+          </button>
+
+          <div *ngIf="showDeliveryFailedDropdown" class="filter-menu-dropdown modal-dropdown-menu">
+            <div *ngFor="let opt of deliveryFailedOptions"
+                 (click)="selectDeliveryFailedReason(opt.value, $event)"
+                 class="filter-menu-item modal-dropdown-item"
+                 [class.selected]="deliveryFailedReason === opt.value">
+              <span>{{ opt.label }}</span>
+              <lucide-angular *ngIf="deliveryFailedReason === opt.value" [img]="icons.Check" size="14" class="item-check-icon"></lucide-angular>
+            </div>
+          </div>
+        </div>
+
+        <label class="modal-label" style="margin-top: 14px;">
+          Ghi chú chi tiết từ tài xế/điều phối:
+        </label>
+        <textarea [(ngModel)]="customDeliveryFailedNote" 
+                  rows="3" 
+                  class="modal-textarea" 
+                  [style.border-color]="deliveryFailedReason === 'Khác' && (!customDeliveryFailedNote || !customDeliveryFailedNote.trim()) ? '#EF4444' : ''"
+                  [placeholder]="deliveryFailedReason === 'Khác' ? 'Vui lòng nhập chi tiết nguyên nhân giao không thành công...' : 'Ví dụ: Gọi 3 cuộc lúc 10h15 và 11h00 khách đều không bắt máy, hẹn giao lại ca sau...'"></textarea>
+        <p *ngIf="deliveryFailedReason === 'Khác' && (!customDeliveryFailedNote || !customDeliveryFailedNote.trim())" style="color: #DC2626; font-size: 11px; margin: 4px 0 0; display: flex; align-items: center; gap: 4px;">
+          * Bạn cần nhập nội dung lý do cụ thể.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" [disabled]="isSubmitting" (click)="closeDeliveryFailedModal()">Hủy</button>
+        <button type="button" 
+                class="btn-confirm-warning" 
+                [disabled]="!canConfirmDeliveryFailed || isSubmitting" 
+                [class.btn-disabled]="!canConfirmDeliveryFailed || isSubmitting"
+                [title]="!deliveryFailedReason ? 'Vui lòng chọn lý do giao thất bại trước khi xác nhận' : (deliveryFailedReason === 'Khác' && (!customDeliveryFailedNote || !customDeliveryFailedNote.trim()) ? 'Vui lòng nhập nội dung chi tiết cho Lý do khác' : 'Xác nhận giao thất bại')"
+                (click)="confirmDeliveryFailed()">
+          {{ isSubmitting ? 'Đang ghi nhận...' : 'Xác nhận Giao thất bại' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESCHEDULE DELIVERY MODAL -->
+  <div class="v2-modal-backdrop" *ngIf="showRescheduleModal" (click)="closeRescheduleModal()">
+    <div class="v2-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <lucide-angular [img]="icons.RefreshCw" size="20" class="text-accent"></lucide-angular>
+          <h3>Lên lịch Giao hàng lại lần 2</h3>
+        </div>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="closeRescheduleModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtext" style="font-size: 13px; color: var(--text-muted, #6B7280); margin-bottom: 14px;">
+          Lên kế hoạch điều phối ca giao lại cho đơn hàng <strong>#{{ order.orderNumber }}</strong>:
+        </p>
+
+        <!-- Khung chọn ngày và chọn giờ -->
+        <div class="reschedule-grid">
+          <div class="reschedule-col">
+            <label class="modal-label">
+              <lucide-angular [img]="icons.Calendar" size="14" style="color: #765337;"></lucide-angular>
+              Chọn ngày giao lại:
+            </label>
+            <input type="date" 
+                   [(ngModel)]="rescheduleDate" 
+                   [min]="minRescheduleDate"
+                   class="modal-input" />
+          </div>
+
+          <div class="reschedule-col">
+            <label class="modal-label">
+              <lucide-angular [img]="icons.Clock" size="14" style="color: #765337;"></lucide-angular>
+              Chọn giờ giao lại:
+            </label>
+            <input type="time" 
+                   [(ngModel)]="rescheduleTime" 
+                   class="modal-input" />
+          </div>
+        </div>
+
+        <label class="modal-label" style="margin-top: 14px;">Ghi chú dặn dò tài xế giao nhận:</label>
+        <textarea [(ngModel)]="customRescheduleNote" rows="3" class="modal-textarea" placeholder="Ví dụ: Khách dặn giao sau 9h sáng, gọi trước 15 phút khi đến chân chung cư..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" [disabled]="isSubmitting" (click)="closeRescheduleModal()">Hủy</button>
+        <button type="button" 
+                class="btn-primary-action" 
+                style="padding: 8px 16px;" 
+                [disabled]="!rescheduleDate || isSubmitting" 
+                [class.btn-disabled]="!rescheduleDate || isSubmitting" 
+                (click)="confirmRescheduleDelivery()">
+          <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
+          <span>{{ isSubmitting ? 'Đang lưu lịch...' : 'Xác nhận Lên lịch' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- USER VIEW (CUSTOMER PREVIEW) MODAL -->
+  <div class="v2-modal-backdrop" *ngIf="showUserViewModal" (click)="showUserViewModal = false">
+    <div class="user-view-simulation-card" (click)="$event.stopPropagation()">
+      <div class="user-view-header">
+        <div class="user-view-title">
+          <span>Góc nhìn Khách hàng (User View Simulation)</span>
+          <p>Màn hình hiển thị tại <code>/account/orders</code> của khách</p>
+        </div>
+        <button type="button" class="admin-close-btn modal-close" title="Đóng" (click)="showUserViewModal = false">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="mobile-mockup-body">
+        <!-- Status highlight for customer -->
+        <div class="customer-status-card" [style.border-left-color]="userView.color">
+          <div class="status-top">
+            <span class="user-status-text" [style.color]="userView.color">{{ userView.label }}</span>
+            <span class="user-group-tag">{{ userView.group }}</span>
+          </div>
+          <p class="user-desc-text">{{ userView.description }}</p>
+        </div>
+
+        <!-- Customer Order Summary -->
+        <div class="mockup-order-info">
+          <div class="m-row"><span>Mã đơn:</span> <strong>#{{ order.orderNumber }}</strong></div>
+          <div class="m-row"><span>Ngày đặt:</span> <strong>{{ formatDate(order.createdAt) }}</strong></div>
+          <div class="m-row"><span>Đơn vị giao:</span> <strong>{{ order.delivery.provider }}</strong></div>
+          <div class="m-row" *ngIf="order.delivery.trackingCode">
+            <span>Mã vận đơn:</span> <strong>{{ order.delivery.trackingCode }}</strong>
+          </div>
+        </div>
+
+        <!-- Product preview for customer -->
+        <div class="mockup-products">
+          <div class="mock-item" *ngFor="let item of order.items">
+            <img [src]="item.imageUrl" [alt]="item.name" />
+            <div class="mock-meta">
+              <span class="m-name">{{ item.name }}</span>
+              <span class="m-sub">{{ item.variant }} | x{{ item.quantity }}</span>
+              <span class="m-price">{{ formatVND(item.lineTotal) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mockup-total">
+          <span>Tổng tiền thanh toán:</span>
+          <strong>{{ formatVND(order.totalAmount) }}</strong>
+        </div>
+
+        <!-- Customer Action Buttons Simulation -->
+        <div class="mockup-customer-actions">
+          <button *ngIf="userView.canCancel" class="m-btn-cancel">Hủy đơn hàng này</button>
+          <button *ngIf="userView.canRequestReturn" class="m-btn-return">Yêu cầu Đổi trả / Hoàn tiền</button>
+          <button *ngIf="userView.canReview" class="m-btn-review">Đánh giá sản phẩm</button>
+          <button *ngIf="userView.canRequestWarranty" class="m-btn-warranty">Yêu cầu bảo hành 2 năm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+<!-- Not Found State -->
+<ng-template #notFound>
+  <div class="v2-empty-state" style="padding: 100px 24px;">
+    <h2>Không tìm thấy đơn hàng #{{ orderId }}</h2>
+    <p>Đơn hàng này không tồn tại trong hệ thống V2.</p>
+    <button type="button" class="btn-primary-action" (click)="goBack()">Quay lại danh sách</button>
+  </div>
+</ng-template>

@@ -80,8 +80,16 @@ import {
   Zap,
   Maximize2,
   ZoomIn,
+  ZoomOut,
   ThumbsUp,
   Calendar,
+  Undo2,
+  Redo2,
+  Lock,
+  Unlock,
+  Grid3x3,
+  RotateCw,
+  ArrowDown,
 } from 'lucide-angular';
 
 const ICONS = {
@@ -164,8 +172,16 @@ const ICONS = {
   Zap,
   Maximize2,
   ZoomIn,
+  ZoomOut,
   ThumbsUp,
   Calendar,
+  Undo2,
+  Redo2,
+  Lock,
+  Unlock,
+  Grid3x3,
+  RotateCw,
+  ArrowDown,
 } as const;
 
 export type IconName = keyof typeof ICONS;

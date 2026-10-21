@@ -269,6 +269,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.isOtpModalOpen = false;
+          this.devOtpHint = '';
           this.authService.saveSession(res.token, res.user);
           this.success = 'Đăng ký thành công! Đang chuyển hướng về trang chủ...';
           this.cdr.markForCheck();
@@ -287,6 +288,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   handleOtpResend(): void {
     this.otpLoading = true;
     this.otpErrorMessage = '';
+    this.devOtpHint = '';
     this.cdr.markForCheck();
 
     this.authService
@@ -315,6 +317,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   handleOtpClose(): void {
     this.isOtpModalOpen = false;
     this.otpErrorMessage = '';
+    this.devOtpHint = '';
     this.cdr.markForCheck();
   }
 }
