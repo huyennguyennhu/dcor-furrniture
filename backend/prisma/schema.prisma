@@ -272,9 +272,14 @@ enum OrderStatus {
   PENDING
   CONFIRMED
   PROCESSING
+  READY_TO_SHIP
   SHIPPED
+  FAILED_DELIVERY
   DELIVERED
+  COMPLETED
   CANCELLED
+  RETURN_REQUESTED
+  RETURNING
   RETURNED
 }
 
@@ -282,6 +287,8 @@ enum PaymentStatus {
   UNPAID
   PARTIAL
   PAID
+  REFUND_PENDING
+  REFUNDED
 }
 
 enum PaymentMethod {
@@ -289,6 +296,7 @@ enum PaymentMethod {
   VNPAY
   BANK_TRANSFER
   CREDIT_CARD
+  INSTALLMENT
 }
 
 model Order {
@@ -327,25 +335,45 @@ model Order {
   isDepositRequired   Boolean       @default(false)
   depositRequired     BigInt        @default(0)
   depositPaid         BigInt        @default(0)
+  remainingAmount     BigInt?       @default(0)
   paymentHoldReason   String?       @default("NONE") // NONE | AWAITING_PAYMENT | AWAITING_DEPOSIT
+  vatRate             Float?        @default(0.1) // Thuế VAT (8% hoặc 10%)
   
   status              OrderStatus   @default(PENDING)
   paymentMethod       PaymentMethod 
   paymentStatus       PaymentStatus @default(UNPAID)
   
-  notes            String?  @db.Text
-  internalNotes    String?  @db.Text
-  cancelReason     String?  @db.Text
+  // Showroom & Phân loại đơn
+  showroom            String?       @default("Showroom Tổng")
+  isHighValue         Boolean       @default(false)
+  isCustomDesign      Boolean       @default(false)
   
-  // Vận chuyển
-  shippingProvider String?
-  trackingCode     String?
+  notes               String?  @db.Text
+  internalNotes       String?  @db.Text
+  cancelReason        String?  @db.Text
+  cancelledBy         String?  // 'CUSTOMER' | 'STAFF' | 'SYSTEM'
+  warrantyCode        String?  // Mã bảo hành kích hoạt sau khi COMPLETED
   
+  // Vận chuyển chi tiết & Theo dõi tài xế
+  shippingProvider       String?
+  trackingCode           String?
+  driverName             String?
+  driverPhone            String?
+  vehiclePlate           String?
+  estimatedDeliveryDate  DateTime?
+  failedDeliveryAttempts Int      @default(0)
+  failedDeliveryReason   String?
+  deliveryTimeline       Json?    // Array of { time, status, description, location }
+  
+  // Kiểm tra chất lượng QC trước khi xuất hàng
+  qcChecklist            Json?    // { surfaceChecked: bool, structureChecked: bool, cushionLeatherChecked: bool, protectiveWrapDone: bool }
+
   // Dòng đời Đơn hàng
   expiresAt        DateTime? // Hạn nhả tồn kho nếu không thanh toán
   paidAt           DateTime?
   shippedAt        DateTime?
   deliveredAt      DateTime?
+  completedAt      DateTime? // Hoàn tất giao dịch
   cancelledAt      DateTime?
   
   createdAt        DateTime @default(now())
@@ -388,21 +416,24 @@ model OrderItem {
   @@index([variantId])
 }
 
-// Bảng Lịch sử trạng thái đơn hàng (Tracking / Tranh chấp)
+// Bảng Lịch sử trạng thái & Audit Log đơn hàng (Tracking / Tranh chấp / Ghi chú)
 model OrderStatusHistory {
-  id         String      @id @default(uuid())
-  orderId    String
-  order      Order       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  id           String      @id @default(uuid())
+  orderId      String
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Restrict)
   
   status       OrderStatus
   fromStatus   OrderStatus?
   actorType    String      // 'CUSTOMER', 'SYSTEM', 'STAFF'
+  actorName    String?     // 'Admin Trần', 'Tài xế Nguyễn Văn A', 'Khách hàng'
+  action       String?     // 'CONFIRM_ORDER', 'QC_CHECKED', 'ASSIGN_DELIVERY', 'RECORD_DEPOSIT', 'ADD_NOTE', 'CANCEL_ORDER', 'COMPLETE_ORDER'
   notes        String?     @db.Text
+  metadata     Json?       // Lưu dữ liệu phụ trợ
   
   staffId      String?
   staff        StaffUser?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
   
-  createdAt  DateTime    @default(now())
+  createdAt    DateTime    @default(now())
 
   @@index([orderId, createdAt])
   @@index([staffId])
@@ -681,25 +712,17 @@ model StockTransaction {
 
 // ============================================================================
 // 8. CẤU HÌNH QUẢN TRỊ TỒN KHO & THUẾ (INVENTORY SETTINGS)
-// ============================================================================
-
-enum InventoryReasonType {
-  EXPORT
-  IMPORT
-  AUDIT
-}
-
 model InventoryReason {
-  id              String              @id @default(uuid())
-  type            InventoryReasonType
+  id              String    @id @default(uuid())
+  type            String
   reason          String
   prefix          String
-  requiresPartner Boolean             @default(false)
-  partnerLabel    String?
-  isActive        Boolean             @default(true)
-  isSystem        Boolean             @default(false)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  requiresPartner Boolean?  @default(false) @map("requires_partner")
+  partnerLabel    String?   @map("partner_label")
+  isActive        Boolean?  @default(true) @map("is_active")
+  isSystem        Boolean?  @default(false) @map("is_system")
+  createdAt       DateTime? @default(now()) @map("created_at")
+  updatedAt       DateTime? @updatedAt @map("updated_at")
 
   @@unique([type, reason])
   @@index([type, isActive])
@@ -707,25 +730,25 @@ model InventoryReason {
 }
 
 model TaxRate {
-  id          String   @id @default(uuid())
-  code        String   @unique
+  id          String    @id @default(uuid())
+  code        String    @unique
   name        String
   rate        Float
   description String?
-  isDefault   Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isDefault   Boolean?  @default(false) @map("is_default")
+  isActive    Boolean?  @default(true) @map("is_active")
+  createdAt   DateTime? @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
 
   @@index([isActive])
   @@map("TaxRates")
 }
 
 model InventorySetting {
-  key         String   @id
+  key         String    @id
   value       String
   description String?
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime? @updatedAt @map("updated_at")
 
   @@map("InventorySettings")
 }
