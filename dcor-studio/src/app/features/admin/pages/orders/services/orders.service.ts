@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from '../../../../../../environments/environment';
 import { 
   Order, OrderV2, AdminOrderStatus, PaymentStatus, OrderProduct, OrderProductV2, 
   DeliveryInfo, DeliveryInfoV2, ReturnInfo, ReturnInfoV2, 
@@ -14,15 +16,66 @@ const STORAGE_KEY = 'dcor_orders_v2_store';
 export class OrdersService {
   private ordersSubject = new BehaviorSubject<OrderV2[]>([]);
   public orders$: Observable<OrderV2[]> = this.ordersSubject.asObservable();
+  private apiUrl = `${environment.apiUrl}/admin/orders`;
 
+  private lastOrdersJson = '';
+  private pollingInterval: any = null;
   private autoCheckInterval: any = null;
 
-  constructor() {
+  constructor(private http: HttpClient) {
     this.initOrders();
+    this.fetchOrders();
+
+    // 1. Tự động đồng bộ đơn hàng mới từ Database mỗi 4 giây (Real-time polling)
+    this.pollingInterval = setInterval(() => {
+      this.fetchOrders();
+    }, 4000);
+
+    // 2. Tự động cập nhật ngay lập tức khi người dùng quay lại tab trình duyệt
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => this.fetchOrders());
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.fetchOrders();
+        }
+      });
+    }
+
     // Tự động kiểm tra định kỳ mỗi 1 giây để chốt đơn DELIVERED khi hết hạn 72h
     this.autoCheckInterval = setInterval(() => {
       this.checkAndAutoCompleteDeliveredOrders();
     }, 1000);
+  }
+
+  // Tải danh sách đơn hàng thực tế từ cơ sở dữ liệu PostgreSQL
+  public fetchOrders(): Observable<OrderV2[]> {
+    this.http.get<OrderV2[]>(this.apiUrl).subscribe({
+      next: (realOrders) => {
+        if (Array.isArray(realOrders)) {
+          // Fingerprint so sánh để chỉ cập nhật khi có đơn mới hoặc có thay đổi trạng thái
+          const fingerprint = JSON.stringify(realOrders.map(o => ({
+            id: o.id,
+            status: o.status,
+            pay: o.paymentStatus,
+            dep: o.depositPaid,
+            tot: o.totalAmount,
+            del: (o.delivery?.trackingCode || '') + '-' + (o.delivery?.failedAttempts || 0)
+          })));
+
+          if (fingerprint !== this.lastOrdersJson || this.ordersSubject.getValue().length === 0) {
+            this.lastOrdersJson = fingerprint;
+            this.ordersSubject.next(realOrders);
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(realOrders));
+            } catch (_) {}
+          }
+        }
+      },
+      error: (err) => {
+        console.warn('Lỗi tải đơn hàng từ PostgreSQL backend, sử dụng cache:', err);
+      }
+    });
+    return this.orders$;
   }
 
   private initOrders() {
@@ -31,27 +84,6 @@ export class OrdersService {
       try {
         const parsed: OrderV2[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Auto migrate new fields for PENDING logic
-          parsed.forEach(o => {
-            if (o.status === 'PENDING') {
-              const isHigh = o.isHighValue || o.isCustomDesign || (o.totalAmount >= 50000000);
-              const minDep = o.depositRequired || Math.round(o.totalAmount * 0.3);
-              if (isHigh && (o.depositPaid || 0) < minDep && o.paymentStatus !== 'PAID') {
-                o.isDepositRequired = true;
-                o.depositRequired = minDep;
-                o.paymentHoldReason = 'AWAITING_DEPOSIT';
-              } else if (o.paymentMethod !== 'COD' && o.paymentStatus === 'UNPAID') {
-                o.paymentHoldReason = 'AWAITING_PAYMENT';
-              } else {
-                o.paymentHoldReason = 'NONE';
-              }
-            } else if (o.status === 'CONFIRMED') {
-              o.status = 'PROCESSING';
-              o.paymentHoldReason = 'NONE';
-            } else {
-              o.paymentHoldReason = 'NONE';
-            }
-          });
           this.ordersSubject.next(parsed);
           return;
         }
@@ -72,11 +104,29 @@ export class OrdersService {
   }
 
   getOrderById(id: string): OrderV2 | undefined {
-    return this.orders.find(o => o.id === id || o.orderNumber === id);
+    const found = this.orders.find(o => o.id === id || o.orderNumber === id);
+    if (!found) {
+      this.http.get<OrderV2>(`${this.apiUrl}/${id}`).subscribe({
+        next: (order) => {
+          if (order) {
+            const current = this.orders;
+            const idx = current.findIndex(o => o.id === order.id || o.orderNumber === order.orderNumber);
+            if (idx >= 0) {
+              current[idx] = order;
+            } else {
+              current.unshift(order);
+            }
+            this.ordersSubject.next([...current]);
+          }
+        },
+        error: () => {}
+      });
+    }
+    return found;
   }
 
   // =========================================================================
-  // STATE MACHINE TRANSITIONS (MOCK ACTION METHODS WITH AUDIT TRAIL)
+  // STATE MACHINE TRANSITIONS (ĐỒNG BỘ TRỰC TIẾP LÊN POSTGRESQL & AUDIT LOGS)
   // =========================================================================
 
   // 1. PENDING -> CONFIRMED
@@ -105,6 +155,12 @@ export class OrdersService {
     order.paymentHoldReason = 'NONE';
     this.addAuditLog(order, staffName, 'Xác nhận đơn & Chuyển kho chuẩn bị', 'Đã xác minh thông tin khách và điều kiện thanh toán/cọc. Đơn duyệt hoàn tất, chuyển lệnh kho nhặt hàng & in Pick-list.');
     this.save(orders);
+
+    // Gửi request đồng bộ lên database PostgreSQL
+    this.http.patch(`${this.apiUrl}/${orderId}/confirm`, { staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ xác nhận đơn:', e)
+    });
+
     return true;
   }
 
@@ -114,11 +170,13 @@ export class OrdersService {
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
+    let depositAmount = 0;
     if (type === 'FULL') {
       order.paymentStatus = 'PAID';
       order.depositPaid = order.totalAmount;
       order.remainingAmount = 0;
       order.paymentHoldReason = 'NONE';
+      depositAmount = order.totalAmount;
       this.addAuditLog(order, staffName, 'Xác nhận thanh toán 100%', `Kế toán đối soát tiền đã vào tài khoản: ${order.totalAmount.toLocaleString('vi-VN')}đ qua ${order.paymentMethod}. Đơn đủ điều kiện duyệt.`);
     } else {
       order.paymentStatus = 'PARTIAL';
@@ -126,10 +184,16 @@ export class OrdersService {
       order.depositPaid = deposit;
       order.remainingAmount = Math.max(0, order.totalAmount - deposit);
       order.paymentHoldReason = 'NONE';
+      depositAmount = deposit;
       this.addAuditLog(order, staffName, 'Xác nhận thu cọc 30%', `Kế toán đối soát đã nhận tiền cọc: ${deposit.toLocaleString('vi-VN')}đ (30%). Đơn đủ điều kiện duyệt.`);
     }
 
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/deposit`, { amount: depositAmount, staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ cọc lên database:', e)
+    });
+
     return true;
   }
 
@@ -151,6 +215,11 @@ export class OrdersService {
     }
 
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/cancel`, { reason: order.cancelReason, staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ hủy đơn:', e)
+    });
+
     return true;
   }
 
@@ -181,6 +250,11 @@ export class OrdersService {
     order.status = 'READY_TO_SHIP';
     this.addAuditLog(order, staffName, 'Hoàn tất đóng gói', 'Đã kiểm tra ngoại quan QC, bọc xốp EVA 4 cạnh và đưa kiện ra sàn chờ xe lấy.');
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/qc`, { qcChecklist: checklist, staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ QC & đóng gói:', e)
+    });
+
     return true;
   }
 
@@ -190,6 +264,11 @@ export class OrdersService {
     if (!order) return false;
     order.qcChecklist = { ...checklist };
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/qc`, { qcChecklist: checklist }).subscribe({
+      error: (e) => console.error('Lỗi cập nhật checklist QC:', e)
+    });
+
     return true;
   }
 
@@ -226,6 +305,11 @@ export class OrdersService {
 
     this.addAuditLog(order, staffName, 'Xác nhận xuất kho & Bàn giao xe', `Đã trừ tồn kho vật lý. Đơn vị vận chuyển: ${deliveryData.provider} (${deliveryData.trackingCode}).`);
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/dispatch`, { ...deliveryData, staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ xuất kho:', e)
+    });
+
     return true;
   }
 
@@ -250,6 +334,11 @@ export class OrdersService {
 
     this.addAuditLog(order, staffName, 'Giao hàng thành công', 'Khách đã nhận hàng. Bắt đầu kích hoạt thời hạn 72h hỗ trợ đổi trả.');
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/deliver`, { staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ giao hàng thành công:', e)
+    });
+
     return true;
   }
 
@@ -272,6 +361,11 @@ export class OrdersService {
 
     this.addAuditLog(order, staffName, `Ghi nhận giao thất bại (Lần ${order.delivery.failedAttempts})`, order.delivery.failureReason);
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/delivery-failed`, { reason, staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ giao thất bại:', e)
+    });
+
     return true;
   }
 
@@ -293,6 +387,11 @@ export class OrdersService {
 
     this.addAuditLog(order, staffName, 'Hẹn lịch giao lại', `Đã liên lạc khách hẹn lịch giao lại: ${order.delivery.estimatedDate}`);
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/reschedule`, { newDateStr, staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ hẹn giao lại:', e)
+    });
+
     return true;
   }
 
@@ -308,6 +407,11 @@ export class OrdersService {
 
     this.addAuditLog(order, staffName, 'Hoàn tất đơn hàng vĩnh viễn', `Đã hết hạn 72h đổi trả. Ghi nhận doanh thu thực nhận: ${order.totalAmount.toLocaleString('vi-VN')}đ. Kích hoạt mã bảo hành ${order.warrantyCode}.`);
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/complete`, { staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ hoàn tất đơn:', e)
+    });
+
     return true;
   }
 
@@ -327,7 +431,13 @@ export class OrdersService {
       refundAmount: order.totalAmount
     };
 
-    this.addAuditLog(order, 'Tài xế DCOR Express', 'Nhận hàng trả về kho', `Khách trả lại sản phẩm cho tài xế DCOR Express mang về kho. Lý do: ${returnData.reason}.`);
+    const isExchange = returnData.type === 'EXCHANGE';
+    const actionTitle = isExchange ? 'Nhận đổi hàng về kho' : 'Nhận hàng trả về kho (Hoàn tiền)';
+    const logDesc = isExchange
+      ? `Khách yêu cầu Đổi hàng trong thời hạn 72h. Tài xế DCOR Express nhận sản phẩm mang về kho để xử lý đổi sản phẩm. Lý do: ${returnData.reason}.`
+      : `Khách yêu cầu Trả hàng & Hoàn tiền trong 72h. Tài xế DCOR Express mang hàng về kho làm thủ tục hoàn tiền. Lý do: ${returnData.reason}.`;
+
+    this.addAuditLog(order, 'Tài xế DCOR Express', actionTitle, logDesc);
     this.save(orders);
     return true;
   }

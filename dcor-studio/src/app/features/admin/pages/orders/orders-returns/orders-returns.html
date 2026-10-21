@@ -1,242 +1,379 @@
-<div>
-  <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 24px;">Yêu cầu Đổi trả</h2>
-  
-  <!-- Stat Cards -->
-  <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 24px;">
-    <div style="background: var(--bg-primary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.RotateCcw" size="20" color="var(--accent)"></lucide-angular> Tổng yêu cầu
+<div class="orders-container">
+
+  <!-- Floating Toast Notification -->
+  <div *ngIf="showToast" 
+    class="v2-toast"
+    [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'"
+    [class.toast-info]="toastType === 'info'"
+  >
+    <div class="v2-toast-inner">
+      <div class="v2-toast-icon">
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.XCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.Clock" size="20"></lucide-angular>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ mockReturns.length }}</div>
-    </div>
-    <div style="background: #fffbeb; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.Clock" size="20" color="#d97706"></lucide-angular> Chờ xử lý
+      <div class="v2-toast-content">
+        <div class="v2-toast-title">{{ toastType === 'success' ? 'Thao tác thành công' : 'Thông báo' }}</div>
+        <div class="v2-toast-msg">{{ toastMessage }}</div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getPendingCount() }}</div>
-    </div>
-    <div style="background: #eff6ff; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.Package" size="20" color="#2563eb"></lucide-angular> Đang xử lý
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getProcessingCount() }}</div>
-    </div>
-    <div style="background: #faf5ff; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.CheckCircle2" size="20" color="#9333ea"></lucide-angular> Đã duyệt
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getApprovedCount() }}</div>
-    </div>
-    <div style="background: #ecfdf5; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.CheckCircle2" size="20" color="#059669"></lucide-angular> Đã hoàn tất
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getCompletedCount() }}</div>
-    </div>
-    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.XCircle" size="20" color="#dc2626"></lucide-angular> Đã từ chối
-      </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getRejectedCount() }}</div>
+      <button type="button" class="v2-toast-close" (click)="showToast = false" title="Đóng">
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
     </div>
   </div>
 
-  <!-- Status Filters (Pills) -->
-  <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
-    <button *ngFor="let filter of statusFilters"
-      (click)="onStatusFilterClick(filter.id)"
-      [ngStyle]="{
-        'padding': '6px 16px',
-        'border-radius': '20px',
-        'font-size': '13px',
-        'font-weight': activeStatus === filter.id ? 600 : 500,
-        'background': activeStatus === filter.id ? 'var(--text-primary)' : 'var(--bg-primary)',
-        'color': activeStatus === filter.id ? 'var(--bg-primary)' : 'var(--text-secondary)',
-        'border': '1px solid ' + (activeStatus === filter.id ? 'var(--text-primary)' : 'var(--border-color)'),
-        'cursor': 'pointer',
-        'display': 'flex',
-        'align-items': 'center',
-        'gap': '6px',
-        'transition': 'all 0.2s'
-      }"
-    >
-      {{ filter.label }}
-      <span *ngIf="filter.count !== undefined" [ngStyle]="{
-        'background': activeStatus === filter.id ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
-        'color': activeStatus === filter.id ? '#fff' : 'inherit',
-        'padding': '2px 6px',
-        'border-radius': '10px',
-        'font-size': '11px'
-      }">
-        {{ filter.count }}
-      </span>
-    </button>
+  <!-- Page Header (Đồng bộ chuẩn 100% từ Danh sách đơn hàng) -->
+  <div style="margin-bottom: 24px;">
+    <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-primary, #111827);">Yêu cầu đổi trả</h2>
+    <p style="font-size: 14px; color: var(--text-secondary, #6B7280); margin: 0;">Theo dõi, tiếp nhận và xử lý các yêu cầu đổi hàng hoặc trả hàng hoàn tiền theo chính sách 72 giờ.</p>
   </div>
 
-  <!-- Filters Bar -->
-  <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
-    <!-- Search Input with Clear Button -->
-    <div class="filter-search-box">
+  <!-- Order Return KPI Filter Cards (Đồng bộ chuẩn 100% format từ Danh sách đơn hàng) -->
+  <div class="orders-kpi-grid">
+    <!-- Card 1: Tất cả -->
+    <div class="orders-kpi-card card-all" 
+         [class.active]="activeTab === 'ALL'"
+         (click)="setTab('ALL')"
+         title="Xem toàn bộ yêu cầu đổi trả">
+      <div class="card-header">
+        <span class="card-label">Tất cả</span>
+        <div class="card-icon-wrapper icon-all">
+          <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ totalCount }}</div>
+      <div class="card-subtitle">Toàn bộ yêu cầu</div>
+    </div>
+
+    <!-- Card 2: Confirmation / Tiếp nhận -->
+    <div class="orders-kpi-card card-confirmation" 
+         [class.active]="activeTab === 'STAGE_1'"
+         (click)="setTab('STAGE_1')"
+         title="Lọc các yêu cầu ở giai đoạn Tiếp nhận">
+      <div class="card-header">
+        <span class="card-label">Tiếp nhận</span>
+        <div class="card-icon-wrapper icon-confirmation">
+          <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ stage1Count }}</div>
+      <div class="card-subtitle">Chờ duyệt & xem xét</div>
+    </div>
+
+    <!-- Card 3: Thu hồi -->
+    <div class="orders-kpi-card card-return" 
+         [class.active]="activeTab === 'STAGE_2'"
+         (click)="setTab('STAGE_2')"
+         title="Lọc các yêu cầu ở giai đoạn Thu hồi">
+      <div class="card-header">
+        <span class="card-label">Thu hồi</span>
+        <div class="card-icon-wrapper icon-return">
+          <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ stage2Count }}</div>
+      <div class="card-subtitle">Điều xe & nhận kho</div>
+    </div>
+
+    <!-- Card 4: Processing / Xử lý -->
+    <div class="orders-kpi-card card-processing" 
+         [class.active]="activeTab === 'STAGE_3'"
+         (click)="setTab('STAGE_3')"
+         title="Lọc các yêu cầu ở giai đoạn Xử lý">
+      <div class="card-header">
+        <span class="card-label">Xử lý</span>
+        <div class="card-icon-wrapper icon-processing">
+          <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ stage3Count }}</div>
+      <div class="card-subtitle">QC & hoàn tiền/đổi</div>
+    </div>
+
+    <!-- Card 5: Completed / Hoàn tất -->
+    <div class="orders-kpi-card card-completed" 
+         [class.active]="activeTab === 'STAGE_4'"
+         (click)="setTab('STAGE_4')"
+         title="Lọc các yêu cầu ở giai đoạn Hoàn tất">
+      <div class="card-header">
+        <span class="card-label">Hoàn tất</span>
+        <div class="card-icon-wrapper icon-completed">
+          <lucide-angular [img]="icons.ShieldCheck" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ stage4Count }}</div>
+      <div class="card-subtitle">Đổi trả thành công</div>
+    </div>
+
+    <!-- Card 6: Cancel / Đã từ chối -->
+    <div class="orders-kpi-card card-cancelled" 
+         [class.active]="activeTab === 'REJECTED'"
+         (click)="setTab('REJECTED')"
+         title="Lọc các yêu cầu đã từ chối">
+      <div class="card-header">
+        <span class="card-label">Đã từ chối</span>
+        <div class="card-icon-wrapper icon-cancelled">
+          <lucide-angular [img]="icons.XCircle" size="18"></lucide-angular>
+        </div>
+      </div>
+      <div class="card-count">{{ rejectedCount }}</div>
+      <div class="card-subtitle">Không đủ điều kiện</div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar (Đồng bộ chuẩn 100% từ Danh sách đơn hàng) -->
+  <div class="v2-toolbar">
+    <div class="filter-search-box v2-search-box">
       <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
       <input 
         type="text" 
         [(ngModel)]="searchQuery" 
-        (ngModelChange)="onFilterChange()"
-        placeholder="Tìm mã yêu cầu, đơn hàng, khách hàng hoặc sản phẩm..." 
-        class="filter-search-input" 
+        (ngModelChange)="currentPage = 1"
+        placeholder="Tìm theo mã yêu cầu (RET-...), đơn hàng (DCOR-ORD-...), tên khách, SĐT, sản phẩm..."
+        class="filter-search-input"
       />
-      <button *ngIf="searchQuery" (click)="searchQuery = ''; onFilterChange()" class="search-clear-btn" title="Xóa tìm kiếm">
+      <button *ngIf="searchQuery" type="button" class="search-clear-btn clear-search" (click)="searchQuery = ''; currentPage = 1" title="Xóa tìm kiếm">
         <lucide-angular [img]="icons.X" size="14"></lucide-angular>
       </button>
     </div>
 
-    <!-- 1. Dropdown Loại yêu cầu -->
-    <div class="filter-dropdown-wrapper type-filter-wrapper">
-      <button 
-        type="button"
-        (click)="showTypeDropdown = !showTypeDropdown; showReasonDropdown = false"
-        class="filter-trigger-btn"
-        [class.active]="selectedType !== 'ALL'"
-        title="Chọn loại yêu cầu"
-      >
-        <div class="trigger-label">
-          <lucide-angular [img]="icons.ArrowRightLeft" size="15" class="trigger-icon"></lucide-angular>
-          <span class="truncate-label">{{ selectedTypeLabel }}</span>
-        </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTypeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-      </button>
-      
-      <div *ngIf="showTypeDropdown" class="filter-menu-dropdown">
-        <div *ngFor="let opt of typeOptions"
-          (click)="onSelectType(opt.value)"
-          class="filter-menu-item"
-          [class.selected]="selectedType === opt.value"
+    <div class="v2-filter-group">
+      <!-- 1. Dropdown Loại yêu cầu (Đổi hàng / Trả hàng) -->
+      <div class="filter-dropdown-wrapper type-filter-wrapper">
+        <button 
+          type="button" 
+          title="Chọn phân loại yêu cầu: Đổi hàng hoặc Trả hàng" 
+          class="filter-trigger-btn"
+          [class.active]="selectedType !== 'ALL'"
+          (click)="toggleDropdown('type', $event)"
         >
-          <span>{{ opt.label }}</span>
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.ArrowRightLeft" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedTypeLabel }}</span>
+          </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showTypeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+        </button>
+        <div *ngIf="showTypeDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let opt of typeOptions" 
+               (click)="selectedType = opt.value; showTypeDropdown = false; currentPage = 1" 
+               class="filter-menu-item" 
+               [class.selected]="selectedType === opt.value">
+            <span>{{ opt.label }}</span>
+            <lucide-angular *ngIf="selectedType === opt.value" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 2. Dropdown Lý do đổi trả -->
-    <div class="filter-dropdown-wrapper reason-filter-wrapper">
-      <button 
-        type="button"
-        (click)="showReasonDropdown = !showReasonDropdown; showTypeDropdown = false"
-        class="filter-trigger-btn"
-        [class.active]="selectedReason !== 'ALL'"
-        title="Chọn lý do đổi trả"
-      >
-        <div class="trigger-label">
-          <lucide-angular [img]="icons.HelpCircle" size="15" class="trigger-icon"></lucide-angular>
-          <span class="truncate-label">{{ selectedReasonLabel }}</span>
-        </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showReasonDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-      </button>
-      
-      <div *ngIf="showReasonDropdown" class="filter-menu-dropdown">
-        <div *ngFor="let opt of reasonOptions"
-          (click)="onSelectReason(opt.value)"
-          class="filter-menu-item"
-          [class.selected]="selectedReason === opt.value"
+      <!-- 2. Dropdown Lý do khiếu nại -->
+      <div class="filter-dropdown-wrapper reason-filter-wrapper">
+        <button 
+          type="button" 
+          title="Chọn lý do khách gửi yêu cầu" 
+          class="filter-trigger-btn"
+          [class.active]="selectedReason !== 'ALL'"
+          (click)="toggleDropdown('reason', $event)"
         >
-          <span>{{ opt.label }}</span>
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.AlertTriangle" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedReasonLabel }}</span>
+          </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showReasonDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+        </button>
+        <div *ngIf="showReasonDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let opt of reasonOptions" 
+               (click)="selectedReason = opt.value; showReasonDropdown = false; currentPage = 1" 
+               class="filter-menu-item" 
+               [class.selected]="selectedReason === opt.value">
+            <span>{{ opt.label }}</span>
+            <lucide-angular *ngIf="selectedReason === opt.value" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Nút Đặt lại tất cả bộ lọc -->
-    <button 
-      *ngIf="hasActiveFilters()" 
-      type="button" 
-      (click)="resetFilters()" 
-      class="reset-filters-btn" 
-      title="Đặt lại toàn bộ bộ lọc về mặc định"
-    >
-      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
-      <span>Xóa bộ lọc</span>
-    </button>
+      <!-- 3. Dropdown Người phụ trách -->
+      <div class="filter-dropdown-wrapper assignee-filter-wrapper">
+        <button 
+          type="button" 
+          title="Lọc theo nhân sự xử lý" 
+          class="filter-trigger-btn"
+          [class.active]="selectedAssignee !== 'ALL'"
+          (click)="toggleDropdown('assignee', $event)"
+        >
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.User" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedAssigneeLabel }}</span>
+          </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showAssigneeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+        </button>
+        <div *ngIf="showAssigneeDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let opt of assigneeOptions" 
+               (click)="selectedAssignee = opt.value; showAssigneeDropdown = false; currentPage = 1" 
+               class="filter-menu-item" 
+               [class.selected]="selectedAssignee === opt.value">
+            <span>{{ opt.label }}</span>
+            <lucide-angular *ngIf="selectedAssignee === opt.value" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Dropdown Sắp xếp -->
+      <div class="filter-dropdown-wrapper sort-filter-wrapper">
+        <button 
+          type="button" 
+          title="Sắp xếp danh sách yêu cầu" 
+          class="filter-trigger-btn"
+          [class.active]="selectedSort !== 'date-desc'"
+          (click)="toggleDropdown('sort', $event)"
+        >
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.Clock" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedSortLabel }}</span>
+          </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showSortDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+        </button>
+        <div *ngIf="showSortDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let opt of sortOptions" 
+               (click)="selectedSort = opt.value; showSortDropdown = false; currentPage = 1" 
+               class="filter-menu-item" 
+               [class.selected]="selectedSort === opt.value">
+            <span>{{ opt.label }}</span>
+            <lucide-angular *ngIf="selectedSort === opt.value" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nút Đặt lại tất cả bộ lọc -->
+      <button 
+        *ngIf="hasActiveFilters()" 
+        type="button" 
+        (click)="resetFilters()" 
+        class="reset-filters-btn" 
+        title="Đặt lại toàn bộ bộ lọc về mặc định"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+        <span>Xóa bộ lọc</span>
+      </button>
+    </div>
   </div>
 
-  <!-- Data Table -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
-    <div style="width: 100%; overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
-        <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-left-radius: 11px;">Mã yêu cầu</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Ngày YC</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Đơn hàng</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Khách hàng</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 15%; min-width: 200px;">Sản phẩm</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Loại YC</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Trạng thái</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-right-radius: 11px;">Người xử lý</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of paginatedReturns" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
-              [routerLink]="['/admin/orders/returns', item.id]"
-              onmouseover="this.style.background='#F3E5D3'" 
-              onmouseout="this.style.background='transparent'">
-            <td style="padding: 16px; white-space: nowrap;">
-              <span style="font-weight: 600; color: var(--accent); font-family: monospace; font-size: 13px;">{{ item.id }}</span>
-            </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <div>
-                <div style="font-weight: 500; font-size: 13px;">{{ item.createdAt.split(' ')[0] }}</div>
-                <div style="font-size: 11.5px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
+  <!-- Returns Table (Đồng bộ cấu trúc hoàn toàn từ v2-table của Danh sách đơn hàng) -->
+  <div class="v2-table-wrapper">
+    <table class="v2-table">
+      <thead>
+        <tr>
+          <th style="width: 175px;">Mã yêu cầu</th>
+          <th style="width: 140px;">Thời gian gửi</th>
+          <th style="width: 180px;">Khách hàng</th>
+          <th style="width: 240px;">Sản phẩm đổi / trả</th>
+          <th style="width: 180px;">Trạng thái xử lý</th>
+          <th style="width: 140px;">Người phụ trách</th>
+          <th style="width: 160px;">Đơn hàng gốc</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Empty State -->
+        <tr *ngIf="filteredReturns.length === 0">
+          <td colspan="7">
+            <div class="v2-empty-state">
+              <div class="empty-icon-wrap">
+                <lucide-angular [img]="icons.Package" size="36"></lucide-angular>
               </div>
-            </td>
-            <td style="padding: 16px; white-space: nowrap; font-family: monospace; font-weight: 600; color: var(--text-secondary);">{{ item.orderId }}</td>
-            <td style="padding: 16px; white-space: nowrap; font-weight: 600; font-size: 13.5px; color: var(--text-primary);">{{ item.customerName }}</td>
-            <td style="padding: 16px;">
-              <span style="font-weight: 500; font-size: 13px; color: var(--text-primary);">{{ item.productName }}</span>
-              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Lý do: {{ item.reason }}</div>
-            </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <span style="padding: 4px 10px; background: rgba(245, 128, 37, 0.1); color: var(--accent); border-radius: 6px; font-size: 12px; font-weight: 600;">
-                {{ getTypeBadgeText(item.type) }}
-              </span>
-            </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 10px; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
-              <span *ngIf="item.status === 'REVIEWING'" style="padding: 4px 10px; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang xem xét</span>
-              <span *ngIf="item.status === 'APPROVED'" style="padding: 4px 10px; background: rgba(168, 85, 247, 0.12); color: #9333ea; border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đã duyệt</span>
-              <span *ngIf="item.status === 'RETURNING'" style="padding: 4px 10px; background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang thu hồi</span>
-              <span *ngIf="item.status === 'RECEIVED'" style="padding: 4px 10px; background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đã nhận hàng</span>
-              <span *ngIf="item.status === 'REFUNDING'" style="padding: 4px 10px; background: rgba(219, 39, 119, 0.12); color: #db2777; border: 1px solid rgba(219, 39, 119, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang hoàn tiền</span>
-              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 10px; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
-              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 10px; background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đã từ chối</span>
-            </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <span [ngStyle]="{
-                'color': item.assignee === 'Chưa phân công' ? '#dc2626' : 'var(--text-primary)',
-                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500,
-                'font-size': '13px'
-              }">
-                {{ item.assignee }}
-              </span>
-            </td>
-          </tr>
+              <h3>Không tìm thấy yêu cầu đổi / trả phù hợp</h3>
+              <p>Thử điều chỉnh từ khóa tìm kiếm hoặc bấm nút đặt lại bộ lọc bên dưới.</p>
+              <button type="button" class="v2-btn-secondary" (click)="resetFilters()">
+                <lucide-angular [img]="icons.RefreshCw" size="15"></lucide-angular>
+                <span>Xóa bộ lọc</span>
+              </button>
+            </div>
+          </td>
+        </tr>
 
-          <!-- Empty State -->
-          <tr *ngIf="filteredReturns.length === 0">
-            <td colspan="8" style="padding: 64px 20px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
-              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-                <lucide-angular [img]="icons.Package" size="36" style="color: var(--text-muted); opacity: 0.45;"></lucide-angular>
-                <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">Không tìm thấy yêu cầu đổi trả nào phù hợp</span>
-                <span style="font-size: 12.5px; color: var(--text-muted);">Vui lòng thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn.</span>
+        <!-- Table Rows -->
+        <tr *ngFor="let req of paginatedReturns" class="v2-table-row" (click)="openDetail(req)">
+
+          <!-- Mã yêu cầu -->
+          <td>
+            <div class="order-code-cell">
+              <span class="order-number">{{ req.id }}</span>
+            </div>
+          </td>
+
+          <!-- Thời gian gửi (2 dòng: giờ:phút và Ngày/tháng/năm) -->
+          <td>
+            <div class="order-time-cell">
+              <span class="time-clock">{{ formatTimeOnly(req.createdAt) }}</span>
+              <span class="time-date">{{ formatDateOnly(req.createdAt) }}</span>
+            </div>
+          </td>
+
+          <!-- Khách hàng -->
+          <td>
+            <div class="customer-cell">
+              <span class="customer-name">{{ req.customer.name }}</span>
+              <span class="customer-phone">{{ req.customer.phone }}</span>
+            </div>
+          </td>
+
+          <!-- Sản phẩm đổi / trả (Hình ảnh co tỉ lệ cách viền khung đúng 1px) -->
+          <td>
+            <div class="prod-row-item">
+              <img 
+                loading="lazy" 
+                class="item-img" 
+                [src]="req.item.imageUrl" 
+                [alt]="req.item.name"
+              />
+              <div class="item-names">
+                <span class="item-title" [title]="req.item.name">{{ req.item.name }}</span>
+                <span class="item-variant">{{ req.item.variant }}</span>
+                <span class="item-price">{{ formatVND(req.item.price) }} (SL: {{ req.item.quantity }})</span>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+          </td>
 
-    <!-- Pagination Footer -->
-    <div *ngIf="filteredReturns.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
-      <div style="font-size: 13px; color: var(--text-secondary);">
-        Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ filteredReturns.length }}</span> yêu cầu
+          <!-- Trạng thái xử lý -->
+          <td>
+            <div class="admin-status-cell">
+              <span 
+                class="admin-status-badge"
+                [style.background]="getStatusMeta(req.status, req.type).bg"
+                [style.color]="getStatusMeta(req.status, req.type).color"
+                [style.border-color]="getStatusMeta(req.status, req.type).border"
+              >
+                {{ getStatusMeta(req.status, req.type).labelAdmin }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Người phụ trách -->
+          <td>
+            <div class="assignee-cell">
+              <lucide-angular [img]="icons.User" size="13" class="assignee-icon"></lucide-angular>
+              <span class="assignee-name">{{ req.assignee }}</span>
+            </div>
+          </td>
+
+          <!-- Đơn hàng gốc -->
+          <td>
+            <div class="order-code-cell">
+              <a class="orig-order-link" 
+                 [routerLink]="['/admin/orders', req.orderNumber]" 
+                 (click)="$event.stopPropagation()" 
+                 title="Xem chi tiết đơn hàng gốc {{ req.orderNumber }}">
+                <span>#{{ req.orderNumber }}</span>
+                <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
+              </a>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination Footer (Đồng bộ chuẩn 100% từ Danh sách đơn hàng) -->
+    <div *ngIf="filteredReturns.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color, #e5e7eb); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary, #ffffff); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+      <div style="font-size: 13px; color: var(--text-secondary, #4b5563);">
+        Hiển thị <span style="font-weight: 600; color: var(--text-primary, #111827);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary, #111827);">{{ filteredReturns.length }}</span> yêu cầu
       </div>
 
       <div style="display: flex; align-items: center; gap: 6px;">
@@ -301,4 +438,5 @@
       </div>
     </div>
   </div>
+
 </div>

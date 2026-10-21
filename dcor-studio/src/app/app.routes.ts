@@ -32,6 +32,7 @@ export const routes: Routes = [
       { path: 'products/:id', loadComponent: () => import('./features/admin/pages/products/product-form/product-form').then(m => m.ProductFormComponent) },
       { path: 'orders', loadComponent: () => import('./features/admin/pages/orders/orders').then(m => m.OrdersComponent) },
       { path: 'orders/returns', loadComponent: () => import('./features/admin/pages/orders/orders-returns/orders-returns').then(m => m.OrdersReturnsComponent) },
+      { path: 'orders/returns/:id', loadComponent: () => import('./features/admin/pages/orders/orders-returns/order-return-detail/order-return-detail').then(m => m.OrderReturnDetailComponent) },
       { path: 'orders/warranty', loadComponent: () => import('./features/admin/pages/orders/orders-warranty/orders-warranty').then(m => m.OrdersWarrantyComponent) },
       { path: 'orders/settings', loadComponent: () => import('./features/admin/pages/orders/orders-settings/orders-settings').then(m => m.OrdersSettingsComponent) },
       { path: 'orders/:id', loadComponent: () => import('./features/admin/pages/orders/order-detail/order-detail').then(m => m.OrderDetailComponent) },

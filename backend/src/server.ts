@@ -15,6 +15,7 @@ import auditLogRoutes from './routes/audit-log.routes';
 import productRoutes from './routes/product.routes';
 import categoryRoutes from './routes/category.routes';
 import uploadRoutes from './routes/upload.routes';
+import adminOrderRoutes from './routes/admin-order.routes';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -60,8 +61,9 @@ app.use('/api/admin/staff', staffRoutes);
 // Gắn router giỏ hàng
 app.use('/api/store/cart', cartRoutes);
 
-// Gắn router đơn hàng phía Store
+// Gắn router đơn hàng phía Store & Admin
 app.use('/api/store/orders', orderRoutes);
+app.use('/api/admin/orders', adminOrderRoutes);
 
 // Gắn router phân hệ quản lý kho
 app.use('/api/admin/inventory', inventoryRoutes);

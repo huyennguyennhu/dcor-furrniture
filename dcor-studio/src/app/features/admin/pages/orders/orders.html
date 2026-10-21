@@ -23,9 +23,10 @@
     </div>
   </div>
 
-  <!-- Page Header (Formatted like v1) -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
-    <h2 style="font-size: 24px; font-weight: 700; margin: 0; color: var(--text-primary, #111827);">Danh sách đơn hàng V2</h2>
+  <!-- Page Header -->
+  <div style="margin-bottom: 24px;">
+    <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-primary, #111827);">Danh sách đơn hàng</h2>
+    <p style="font-size: 14px; color: var(--text-secondary, #6B7280); margin: 0;">Theo dõi, xử lý và kiểm soát toàn bộ chu trình đơn hàng theo thời gian thực.</p>
   </div>
 
   <!-- Order Status KPI Filter Cards (8 Cards: 4 per row) -->
@@ -358,14 +359,14 @@
             <div class="admin-status-cell">
               <span 
                 class="admin-status-badge"
-                [style.background]="getAdminStatusMeta(order.status).bg"
-                [style.color]="getAdminStatusMeta(order.status).color"
-                [style.border-color]="getAdminStatusMeta(order.status).border"
+                [style.background]="getAdminStatusMeta(order.status, order).bg"
+                [style.color]="getAdminStatusMeta(order.status, order).color"
+                [style.border-color]="getAdminStatusMeta(order.status, order).border"
               >
-                {{ getAdminStatusMeta(order.status).label }}
+                {{ getAdminStatusMeta(order.status, order).label }}
               </span>
               <span class="dept-indicator">
-                Bộ phận: <strong>{{ getAdminStatusMeta(order.status).dept }}</strong>
+                Bộ phận: <strong>{{ getAdminStatusMeta(order.status, order).dept }}</strong>
               </span>
             </div>
           </td>

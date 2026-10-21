@@ -41,6 +41,16 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     Square, CheckSquare, Navigation, Copy, Calendar, Zap
   };
 
+  // Hình ảnh sản phẩm mặc định sang trọng khi gặp lỗi mạng/ảnh không tồn tại
+  readonly defaultItemImage = 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400890/dcor/products/dcor_products_d19a6dcdd9edef86900855cf030c65c5.webp';
+
+  handleImageError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    if (target && target.src !== this.defaultItemImage) {
+      target.src = this.defaultItemImage;
+    }
+  }
+
   // Live GPS Map Tracking States
   isGpsRefreshing = false;
   lastGpsUpdate = '16:48:20 (Hôm nay)';
@@ -334,11 +344,6 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   simulateExpiringCountdown(seconds: number = 10): void {
     if (!this.order || this.order.status !== 'DELIVERED') return;
     this.ordersService.simulateCountdownEnding(this.order.id, seconds);
-    this.triggerToast(
-      'Chế độ Demo Đếm ngược',
-      `Đã đồng bộ mốc thời gian: Đơn hàng chỉ còn ${seconds} giây trước khi tự động chuyển sang Hoàn tất!`,
-      'info'
-    );
     this.updateDeliveredCountdown();
   }
 
@@ -694,17 +699,32 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Simulate customer requesting return during 72h
+  // Giả lập khách hàng gửi yêu cầu Đổi hàng trong thời hạn 72h
+  onSimulateCustomerExchange() {
+    if (!this.order || this.isSubmitting) return;
+    this.withSubmittingLock(() => {
+      this.ordersService.requestReturn(this.order!.id, {
+        reason: 'Khách hàng yêu cầu đổi sang mẫu mã / kích thước khác trong thời hạn 72h',
+        proofImages: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80'],
+        customerNote: 'Khách hàng có nguyện vọng đổi sang mẫu sofa / màu sắc phù hợp hơn với không gian phòng khách.',
+        type: 'EXCHANGE'
+      });
+      this.triggerToast('Ghi nhận Yêu cầu đổi hàng!', 'Đơn hàng đã chuyển sang trạng thái Return (Yêu cầu đổi hàng).', 'info');
+      this.scrollToTop();
+    });
+  }
+
+  // Giả lập khách hàng gửi yêu cầu Trả hàng & Hoàn tiền trong thời hạn 72h
   onSimulateCustomerReturn() {
     if (!this.order || this.isSubmitting) return;
     this.withSubmittingLock(() => {
       this.ordersService.requestReturn(this.order!.id, {
-        reason: 'Khách hàng trả hàng cho tài xế mang về kho',
+        reason: 'Khách hàng yêu cầu trả hàng và hoàn tiền trong thời hạn 72h',
         proofImages: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80'],
-        customerNote: 'Tài xế đã nhận lại sản phẩm và đưa về kho.',
+        customerNote: 'Tài xế đã tiếp nhận lại sản phẩm và đưa về kho để hoàn tiền vào tài khoản.',
         type: 'REFUND'
       });
-      this.triggerToast('Ghi nhận trả hàng thành công!', 'Đơn hàng đã chuyển sang trạng thái Return (Đã nhận trả kho).', 'info');
+      this.triggerToast('Ghi nhận Yêu cầu Trả hàng!', 'Đơn hàng đã chuyển sang trạng thái Return (Yêu cầu Trả hàng).', 'info');
       this.scrollToTop();
     });
   }

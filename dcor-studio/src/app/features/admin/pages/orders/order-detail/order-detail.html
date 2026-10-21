@@ -203,8 +203,8 @@
              [class.circle-return-active]="isReturnFlow && order.status !== 'RETURNED'"
              [class.circle-return-done]="order.status === 'RETURNED'">
           <ng-container *ngIf="isReturnFlow">
-            <lucide-angular *ngIf="order.status === 'RETURNED'" [img]="icons.Check" size="16"></lucide-angular>
-            <lucide-angular *ngIf="order.status !== 'RETURNED'" [img]="icons.CornerDownLeft" size="16"></lucide-angular>
+            <lucide-angular *ngIf="order.status === 'RETURNED'" [img]="order.returnInfo?.type === 'EXCHANGE' ? icons.RefreshCw : icons.Check" size="16"></lucide-angular>
+            <lucide-angular *ngIf="order.status !== 'RETURNED'" [img]="order.returnInfo?.type === 'EXCHANGE' ? icons.RefreshCw : icons.CornerDownLeft" size="16"></lucide-angular>
           </ng-container>
           <ng-container *ngIf="!isReturnFlow">
             <lucide-angular *ngIf="isStepDone(5) || order.status === 'COMPLETED'" [img]="icons.Check" size="16"></lucide-angular>
@@ -220,7 +220,7 @@
         <div class="step-sub" 
              [class.text-return-sub]="isReturnFlow && order.status !== 'RETURNED'"
              [class.text-return-done-sub]="order.status === 'RETURNED'">
-          {{ isReturnFlow ? (order.status === 'RETURNED' ? 'Đã nhận trả kho' : 'Đổi / Trả hàng') : 'Hoàn tất đơn' }}
+          {{ isReturnFlow ? (order.returnInfo?.type === 'EXCHANGE' ? 'Yêu cầu đổi hàng' : 'Yêu cầu Trả hàng') : 'Hoàn tất đơn' }}
         </div>
         <div class="step-viewing-dot-wrap">
           <span class="step-viewing-dot" *ngIf="isStepViewing(5)"></span>
@@ -241,8 +241,8 @@
     </div>
 
     <div class="stepper-branch-pill branch-return" *ngIf="isReturnFlow">
-      <lucide-angular [img]="icons.CornerDownLeft" size="16"></lucide-angular>
-      <span>Trạng thái kết thúc: <strong>RETURN (Đã nhận trả hàng)</strong> — {{ order.returnInfo?.reason || 'Khách hàng đã trả hàng cho tài xế mang về kho' }}</span>
+      <lucide-angular [img]="order.returnInfo?.type === 'EXCHANGE' ? icons.RefreshCw : icons.CornerDownLeft" size="16"></lucide-angular>
+      <span>Trạng thái ngoại lệ: <strong>{{ order.returnInfo?.type === 'EXCHANGE' ? 'EXCHANGE (Yêu cầu đổi hàng)' : 'RETURN (Yêu cầu Trả hàng)' }}</strong> — {{ order.returnInfo?.reason || 'Khách hàng đã yêu cầu đổi/trả sản phẩm trong thời hạn 72h' }}</span>
     </div>
   </div>
 
@@ -289,13 +289,22 @@
         </button>
       </div>
 
-      <!-- Nút Khách hàng trả hàng (Giả lập khiếu nại trả hàng trong 72h) -->
+      <!-- Nút Đổi hàng (Giả lập khiếu nại đổi mẫu/kích thước trong 72h) -->
+      <button type="button" 
+              class="btn-customer-exchange" 
+              (click)="onSimulateCustomerExchange()" 
+              title="Giả lập khách hàng gửi yêu cầu đổi sang sản phẩm khác trong thời hạn 72h">
+        <lucide-angular [img]="icons.RefreshCw" size="14"></lucide-angular>
+        <span>Đổi hàng</span>
+      </button>
+
+      <!-- Nút Trả hàng hoàn tiền (Giả lập khiếu nại trả hàng hoàn tiền trong 72h) -->
       <button type="button" 
               class="btn-customer-return" 
               (click)="onSimulateCustomerReturn()" 
-              title="Giả lập khách hàng gửi yêu cầu đổi/trả sản phẩm trong thời hạn 72h">
+              title="Giả lập khách hàng gửi yêu cầu trả hàng và hoàn tiền trong thời hạn 72h">
         <lucide-angular [img]="icons.CornerDownLeft" size="15"></lucide-angular>
-        <span>Khách hàng trả hàng</span>
+        <span>Trả hàng hoàn tiền</span>
       </button>
     </div>
   </div>
@@ -375,7 +384,7 @@
               <tr *ngFor="let item of order.items">
                 <td>
                   <div class="prod-row-item">
-                    <img [src]="item.imageUrl" [alt]="item.name" class="item-img" />
+                    <img [src]="item.imageUrl || defaultItemImage" [alt]="item.name" class="item-img" (error)="handleImageError($event)" loading="lazy" />
                     <div class="item-names">
                       <span class="item-title">{{ item.name }}</span>
                       <span class="item-variant" *ngIf="item.variant">{{ item.variant }}</span>
@@ -1282,7 +1291,7 @@
         <!-- Product preview for customer -->
         <div class="mockup-products">
           <div class="mock-item" *ngFor="let item of order.items">
-            <img [src]="item.imageUrl" [alt]="item.name" />
+            <img [src]="item.imageUrl || defaultItemImage" [alt]="item.name" (error)="handleImageError($event)" loading="lazy" />
             <div class="mock-meta">
               <span class="m-name">{{ item.name }}</span>
               <span class="m-sub">{{ item.variant }} | x{{ item.quantity }}</span>

@@ -152,6 +152,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.ordersService.fetchOrders();
     this.sub = this.ordersService.orders$.subscribe(orders => {
       this.orders = orders;
     });
@@ -336,13 +337,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.selectedStatus = 'ALL';
     this.sortBy = 'date-desc';
     this.currentPage = 1;
-    this.triggerToast('Đã làm mới bộ lọc!', 'Toàn bộ danh sách đơn hàng đã được hiển thị lại.', 'info');
   }
 
   // --- ACTIONS ---
   resetMockData() {
     this.ordersService.resetToDefaultData();
-    this.triggerToast('Khôi phục dữ liệu gốc thành công!', 'Đã tạo lại 11 đơn hàng mẫu đại diện cho đầy đủ 11 trạng thái workflow.', 'success');
   }
 
   quickAction(order: OrderV2, event: MouseEvent) {
@@ -481,7 +480,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   }
 
-  getAdminStatusMeta(status: AdminOrderStatus) {
+  getAdminStatusMeta(status: AdminOrderStatus, order?: OrderV2) {
     switch (status) {
       case 'PENDING':
         return { label: 'Chờ xác nhận', bg: '#FEF3C7', color: '#D97706', border: '#FDE68A', dept: 'CSKH', nextBtn: 'Xác nhận đơn' };
@@ -502,11 +501,20 @@ export class OrdersComponent implements OnInit, OnDestroy {
       case 'CANCELLED':
         return { label: 'Đã hủy', bg: '#F3F4F6', color: '#6B7280', border: '#E5E7EB', dept: 'Đóng đơn', nextBtn: 'Xem đơn' };
       case 'RETURN_REQUESTED':
-        return { label: 'Yêu cầu trả hàng', bg: '#FFEDD5', color: '#EA580C', border: '#FED7AA', dept: 'CSKH duyệt', nextBtn: 'Duyệt trả' };
+        if (order?.returnInfo?.type === 'EXCHANGE') {
+          return { label: 'Yêu cầu đổi hàng', bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE', dept: 'CSKH duyệt', nextBtn: 'Duyệt đổi' };
+        }
+        return { label: 'Yêu cầu Trả hàng', bg: '#FFEDD5', color: '#EA580C', border: '#FED7AA', dept: 'CSKH duyệt', nextBtn: 'Duyệt trả' };
       case 'RETURNING':
+        if (order?.returnInfo?.type === 'EXCHANGE') {
+          return { label: 'Đang đổi hàng', bg: '#FEF3C7', color: '#B45309', border: '#FDE68A', dept: 'Kho nhận', nextBtn: 'Nhận & QC' };
+        }
         return { label: 'Đang thu hồi', bg: '#FEF3C7', color: '#B45309', border: '#FDE68A', dept: 'Kho nhận', nextBtn: 'Nhận & QC' };
       case 'RETURNED':
-        return { label: 'Đã trả hàng', bg: '#FEE2E2', color: '#B91C1C', border: '#FECACA', dept: 'Kế toán', nextBtn: 'Hoàn tiền' };
+        if (order?.returnInfo?.type === 'EXCHANGE') {
+          return { label: 'Yêu cầu đổi hàng', bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE', dept: 'Kho đổi hàng', nextBtn: 'Xử lý đổi' };
+        }
+        return { label: 'Yêu cầu Trả hàng', bg: '#FEE2E2', color: '#B91C1C', border: '#FECACA', dept: 'Kế toán', nextBtn: 'Hoàn tiền' };
       default:
         return { label: status, bg: '#F3F4F6', color: '#6B7280', border: '#E5E7EB', dept: 'Hệ thống', nextBtn: 'Xem' };
     }
@@ -558,6 +566,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.toastTimer = setTimeout(() => {
       this.showToast = false;
     }, 4500);
+  }
+
+  refreshOrders() {
+    this.ordersService.fetchOrders();
   }
 
   closeToast() {
