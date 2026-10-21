@@ -90,7 +90,7 @@ export const categoryController = {
   // Cập nhật danh mục
   updateCategory: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { name, parentId, sortOrder, isActive } = req.body;
 
       const existing = await prisma.category.findUnique({ where: { id } });
@@ -119,8 +119,8 @@ export const categoryController = {
   // Đổi trạng thái Ẩn / Hiện (có kiểm tra)
   toggleStatus: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
-      const existing = await prisma.category.findUnique({
+      const id = req.params.id as string;
+      const existing: any = await prisma.category.findUnique({
         where: { id },
         include: {
           _count: { select: { products: true, children: true } }
@@ -142,8 +142,8 @@ export const categoryController = {
       res.json({
         message: `Đã ${newStatus ? 'hiển thị' : 'ẩn'} danh mục "${existing.name}" thành công!`,
         isActive: newStatus,
-        productsCount: existing._count.products,
-        childrenCount: existing._count.children
+        productsCount: existing._count?.products || 0,
+        childrenCount: existing._count?.children || 0
       });
     } catch (error: any) {
       console.error('Lỗi chuyển trạng thái danh mục:', error);
@@ -154,8 +154,8 @@ export const categoryController = {
   // Xóa danh mục
   deleteCategory: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
-      const existing = await prisma.category.findUnique({
+      const id = req.params.id as string;
+      const existing: any = await prisma.category.findUnique({
         where: { id },
         include: {
           _count: { select: { products: true, children: true } }
@@ -167,16 +167,16 @@ export const categoryController = {
         return;
       }
 
-      if (existing._count.products > 0) {
+      if ((existing._count?.products || 0) > 0) {
         res.status(400).json({
-          message: `Không thể xóa danh mục vì đang có ${existing._count.products} sản phẩm trực thuộc!`
+          message: `Không thể xóa danh mục vì đang có ${existing._count?.products} sản phẩm trực thuộc!`
         });
         return;
       }
 
-      if (existing._count.children > 0) {
+      if ((existing._count?.children || 0) > 0) {
         res.status(400).json({
-          message: `Không thể xóa danh mục này vì đang có ${existing._count.children} danh mục con!`
+          message: `Không thể xóa danh mục này vì đang có ${existing._count?.children} danh mục con!`
         });
         return;
       }

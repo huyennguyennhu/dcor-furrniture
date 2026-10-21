@@ -92,7 +92,7 @@ export const productController = {
   // Lấy chi tiết sản phẩm theo ID hoặc slug
   getDetail: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const product = await prisma.product.findUnique({
         where: { id },
         include: {
@@ -254,7 +254,7 @@ export const productController = {
   // Cập nhật sản phẩm
   updateProduct: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const {
         name,
         categoryId,
@@ -383,7 +383,7 @@ export const productController = {
   // Xóa / Ẩn sản phẩm
   deleteProduct: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       await prisma.product.update({
         where: { id },
         data: { deletedAt: new Date(), isActive: false }
