@@ -1,5 +1,5 @@
 import { IconComponent } from '../../../../shared/components/icon/icon';
-import { Component, HostListener, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,6 +7,7 @@ import { filter } from 'rxjs/operators';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CartDrawerComponent } from '../../../../shared/components/cart-drawer/cart-drawer';
 import { CartService } from '../../../../core/services/cart.service';
+import { WishlistService } from '../../../../core/services/wishlist.service';
 import { environment } from '../../../../../environments/environment';
 import { getParentCategory } from '../../utils/category-grouping';
 
@@ -32,13 +33,16 @@ interface StoreCategory {
   templateUrl: './header.html',
   styleUrls: ['./header.css']
 })
-export class Header implements OnInit {
+export class Header implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('shopNavItem') shopNavItem!: ElementRef<HTMLElement>;
 
   theme = 'light';
   isLoggedIn = false;
   userMenuOpen = false;
+  isMobileMenuOpen = false;
+  mobileShopOpen = false;
+  isMobileSearchOpen = false;
   searchQuery = '';
   isDropdownOpen = false;
   isCartDrawerOpen = false;
@@ -48,25 +52,70 @@ export class Header implements OnInit {
   isStoreCategoriesLoading = true;
   storeCategories: StoreCategory[] = [];
   cartCount = 0;
+  wishlistCount = 0;
   products: CatalogProduct[] = [];
   user: StoreUser | null = null;
   private lastCartToken: string | null = null;
 
-  constructor(private router: Router, private cartService: CartService) {
+  constructor(
+    private router: Router, 
+    private cartService: CartService,
+    private wishlistService: WishlistService
+  ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
       this.searchQuery = '';
       this.isDropdownOpen = false;
       this.shopMenuOpen = false;
+      this.closeMobileMenu();
+      this.isMobileSearchOpen = false;
       this.syncUser();
     });
+  }
+
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = this.isMobileMenuOpen ? 'hidden' : '';
+    }
+  }
+
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen = false;
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  }
+
+  toggleMobileShop(): void {
+    this.mobileShopOpen = !this.mobileShopOpen;
+  }
+
+  toggleMobileSearch(): void {
+    this.isMobileSearchOpen = !this.isMobileSearchOpen;
+    if (this.isMobileSearchOpen) {
+      setTimeout(() => {
+        if (this.searchInput) {
+          this.searchInput.nativeElement.focus();
+        }
+      }, 100);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
   }
   ngOnInit() {
     this.syncUser();
     void this.loadSearchProducts();
     this.cartService.cart$.subscribe(items => {
       this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
+    });
+    this.wishlistService.count$.subscribe(count => {
+      this.wishlistCount = count;
     });
 
     // Init theme

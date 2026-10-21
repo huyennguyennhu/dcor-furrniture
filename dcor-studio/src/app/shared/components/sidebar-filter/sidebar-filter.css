@@ -11,7 +11,7 @@
   align-items: baseline;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f3f4f6;
+  /* border-bottom: 1px solid #f3f4f6; */
 }
 
 .sidebar-title {
@@ -206,6 +206,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .price-input-sublabel {
@@ -480,4 +481,109 @@
 .filter-pager-row button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Responsive Sidebar Filter (Mobile Drawer & Small Screens)
+   ========================================================================== */
+@media (max-width: 992px) {
+  .sidebar-filter-wrapper {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  /* Header đã được hiển thị trên thanh header của drawer */
+  .sidebar-header-row {
+    display: none;
+  }
+
+  .section-plain-title,
+  .filter-header h4 {
+    font-size: 16px;
+  }
+
+  .filter-section {
+    padding: 14px 0;
+  }
+
+  .filter-header {
+    padding: 2px 0;
+  }
+
+  /* Biến danh mục thành danh sách chip bo tròn dễ bấm */
+  .category-link-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cat-link-btn {
+    padding: 7px 14px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    font-size: 13px;
+    color: #374151;
+    transition: all 0.15s ease;
+  }
+
+  .cat-link-btn:hover {
+    background: #f3f4f6;
+    color: #111827;
+  }
+
+  .cat-link-btn.active {
+    background: #765337;
+    border-color: #765337;
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  /* Kích thước nút màu to hơn cho màn hình cảm ứng */
+  .color-swatches-grid {
+    gap: 12px;
+  }
+
+  .swatch-circle-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .swatch-circle-btn.active {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #765337;
+  }
+
+  /* Tăng khoảng cách các ô chọn cho dễ chạm trên điện thoại */
+  .filter-radio-item,
+  .filter-checkbox-label {
+    padding: 5px 0;
+    min-height: 32px;
+    font-size: 14px;
+  }
+
+  .rating-filter-row {
+    padding: 6px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .price-inputs-row {
+    gap: 6px;
+  }
+
+  .price-input-box {
+    padding: 5px 6px;
+  }
+
+  .price-manual-input {
+    font-size: 12px;
+  }
+
+  .price-currency-suffix {
+    font-size: 11px;
+    margin-left: 2px;
+  }
 }

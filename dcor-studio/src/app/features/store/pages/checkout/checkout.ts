@@ -258,6 +258,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.checkUserAuth();
+    this.checkPendingBuyNow();
     this.initPromotionSync();
     this.initAdministrativeAddress();
     this.loadCheckoutItems();
@@ -373,6 +374,32 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       this.isPhoneVerified = false;
       this.verifiedPhone = '';
       this.savedAddresses = [];
+    }
+  }
+
+  // --- 1.1 Xử lý mua ngay khi vừa đăng nhập xong chuyển đến checkout ---
+  checkPendingBuyNow() {
+    try {
+      const pendingRaw = sessionStorage.getItem('dcor_pending_buy_now');
+      if (pendingRaw) {
+        sessionStorage.removeItem('dcor_pending_buy_now');
+        const pending = JSON.parse(pendingRaw);
+        if (pending && pending.variantId) {
+          this.cartService.addToCart(pending.variantId, pending.quantity || 1, pending.selectedConfig)
+            .subscribe({
+              next: (res) => {
+                if (res?.cartItem?.id) {
+                  try {
+                    sessionStorage.setItem('dcor_checkout_items', JSON.stringify([res.cartItem.id]));
+                  } catch (e) {}
+                }
+                this.cartService.loadCart().subscribe();
+              }
+            });
+        }
+      }
+    } catch (e) {
+      console.error('Lỗi xử lý pending buy now:', e);
     }
   }
 

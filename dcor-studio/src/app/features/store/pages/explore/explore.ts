@@ -7,7 +7,10 @@ import { CatalogProduct, ProductCategory, ProductColorSwatch } from '../../../..
 import { CustomSelect } from '../../../../shared/components/custom-select/custom-select';
 import { SidebarFilterComponent, FilterState as SidebarFilterState } from '../../../../shared/components/sidebar-filter/sidebar-filter'; 
 import { QuickViewDrawerComponent } from '../../../../shared/components/quick-view-drawer/quick-view-drawer';
-import { LucideAngularModule, Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star } from 'lucide-angular';
+import { ProductCompareModalComponent } from '../../../../shared/components/product-compare-modal/product-compare-modal';
+import { Subscription } from 'rxjs';
+import { WishlistService } from '../../../../core/services/wishlist.service';
+import { LucideAngularModule, Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star, SlidersHorizontal, X } from 'lucide-angular';
 
 import { environment } from '../../../../../environments/environment';
 
@@ -34,13 +37,14 @@ const INITIAL_FILTER_STATE: FilterState = {
     CustomSelect, 
     SidebarFilterComponent, 
     QuickViewDrawerComponent, 
+    ProductCompareModalComponent,
     LucideAngularModule
   ],
   templateUrl: './explore.html',
   styleUrls: ['./explore.css']
 })
 export class ExploreComponent implements OnInit, OnDestroy {
-  icons = { Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star };
+  icons = { Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star, SlidersHorizontal, X };
 
   products: CatalogProduct[] = [];
   rawCategories: ProductCategory[] = [];
@@ -58,17 +62,60 @@ export class ExploreComponent implements OnInit, OnDestroy {
   isQuickViewOpen = false;
   
   wishlist: string[] = [];
+  private wishlistSub?: Subscription;
   compareList: CatalogProduct[] = [];
+  isCompareModalOpen = false;
+  compareToastMessage: string | null = null;
+  compareToastType: 'warning' | 'info' | 'success' = 'warning';
+  private compareToastTimer: any = null;
+  private pendingCompareParam: string | null = null;
+
   showScrollTop = false;
+  heroParallaxY = 0;
+  isFilterDrawerOpen = false;
   selectedVariantMap: Record<string, ProductColorSwatch> = {};
 
-  constructor(private route: ActivatedRoute, private router: Router, private cdr: ChangeDetectorRef) {}
+  get activeFilterCount(): number {
+    let count = 0;
+    count += (this.filters.categories?.length || 0);
+    count += (this.filters.materials?.length || 0);
+    count += (this.filters.colors?.length || 0);
+    count += (this.filters.rooms?.length || 0);
+    count += (this.filters.styles?.length || 0);
+    if (this.filters.minRating !== undefined) count++;
+    if (this.filters.priceRange && (this.filters.priceRange[0] > 0 || this.filters.priceRange[1] < this.dynamicMaxPrice)) count++;
+    return count;
+  }
+
+  toggleFilterDrawer() {
+    this.isFilterDrawerOpen = !this.isFilterDrawerOpen;
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = this.isFilterDrawerOpen ? 'hidden' : '';
+    }
+  }
+
+  closeFilterDrawer() {
+    this.isFilterDrawerOpen = false;
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  }
+
+  constructor(
+    private route: ActivatedRoute, 
+    private router: Router, 
+    private cdr: ChangeDetectorRef,
+    private wishlistService: WishlistService
+  ) {}
 
   @HostListener('window:scroll', [])
   onWindowScroll() {
     if (typeof window !== 'undefined') {
       const scrollOffset = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
       this.showScrollTop = scrollOffset > 300;
+      if (scrollOffset <= 650) {
+        this.heroParallaxY = Math.round(scrollOffset * 0.35);
+      }
     }
   }
 
@@ -82,11 +129,20 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.wishlistSub = this.wishlistService.wishlist$.subscribe(ids => {
+      this.wishlist = ids;
+      this.cdr.detectChanges();
+    });
+
     this.route.queryParams.subscribe(params => {
       this.filters.categories = params['category'] ? [params['category']] : [];
       this.filters.rooms = params['room'] ? [params['room']] : [];
       this.filters.styles = params['style'] ? [params['style']] : [];
+      this.filters.colors = params['color'] ? [params['color']] : (params['colors'] ? [params['colors']] : []);
       this.searchQuery = params['q'] || '';
+      if (params['compare']) {
+        this.pendingCompareParam = params['compare'];
+      }
       this.currentPage = 1;
       this.fetchData();
       this.scrollToTop();
@@ -197,29 +253,46 @@ export class ExploreComponent implements OnInit, OnDestroy {
             finalImages.push('https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80');
           }
 
-          // Helper phân tích màu sắc từ tên biến thể trong DB
+          // Helper phân tích màu sắc từ tên biến thể trong DB (xử lý chính xác cả biến thể ghép dạng "/")
           const getVariantColorInfo = (variantName: string): { name: string; hex: string } => {
-            const lower = (variantName || '').toLowerCase();
-            if (lower.includes('dark marble') || lower.includes('marble')) return { name: 'Cẩm thạch', hex: '#2E3136' };
-            if (lower.includes('dark oak')) return { name: 'Sồi tối', hex: '#4A3728' };
-            if (lower.includes('natural oak') || lower.includes('oak')) return { name: 'Gỗ sồi', hex: '#C4A482' };
-            if (lower.includes('ash') || lower.includes('smoke') || lower.includes('khói')) return { name: 'Ghi khói', hex: '#6b7280' };
-            if (lower.includes('dark grey') || lower.includes('charcoal')) return { name: 'Xám đậm', hex: '#374151' };
-            if (lower.includes('light grey') || lower.includes('warm grey') || lower.includes('grey') || lower.includes('gray') || lower.includes('xám')) return { name: 'Xám', hex: '#9ca3af' };
-            if (lower.includes('white') || lower.includes('trắng') || lower.includes('clear')) return { name: 'Trắng', hex: '#f3f4f6' };
-            if (lower.includes('black') || lower.includes('đen')) return { name: 'Đen', hex: '#18181b' };
-            if (lower.includes('brown') || lower.includes('nâu') || lower.includes('walnut')) return { name: 'Nâu', hex: '#6B4423' };
-            if (lower.includes('green') || lower.includes('xanh lá') || lower.includes('olive')) return { name: 'Xanh lá', hex: '#3B5E45' };
-            if (lower.includes('beige') || lower.includes('be') || lower.includes('sand') || lower.includes('cream')) return { name: 'Be', hex: '#D8C8B8' };
-            if (lower.includes('cognac') || lower.includes('camel') || lower.includes('cam')) return { name: 'Cam đất', hex: '#9A461E' };
-            if (lower.includes('blue') || lower.includes('xanh dương') || lower.includes('navy')) return { name: 'Xanh dương', hex: '#2B4C7E' };
-            if (lower.includes('yellow') || lower.includes('vàng')) return { name: 'Vàng', hex: '#E6B800' };
-            if (lower.includes('red') || lower.includes('đỏ') || lower.includes('burgundy')) return { name: 'Đỏ', hex: '#991b1b' };
-            if (lower.includes('pink') || lower.includes('hồng')) return { name: 'Hồng', hex: '#ec4899' };
+            const raw = (variantName || '').trim();
+            const parts = raw.split('/').map(p => p.trim()).filter(Boolean);
+
+            const detect = (text: string): { name: string; hex: string } | null => {
+              const lower = text.toLowerCase();
+              if (lower.includes('green') || lower.includes('xanh lá') || lower.includes('olive')) return { name: 'Xanh lá', hex: '#3B5E45' };
+              if (lower.includes('sky blue') || lower.includes('blue') || lower.includes('xanh dương') || lower.includes('navy')) return { name: 'Xanh dương', hex: '#2B4C7E' };
+              if (lower.includes('yellow') || lower.includes('vàng') || lower.includes('ochre') || lower.includes('celestial')) return { name: 'Vàng', hex: '#E6B800' };
+              if (/\brose\b/i.test(lower) || lower.includes('pink') || lower.includes('hồng')) return { name: 'Hồng', hex: '#ec4899' };
+              if (/\bred\b/i.test(lower) || lower.includes('brick red') || lower.includes('đỏ') || lower.includes('burgundy')) return { name: 'Đỏ', hex: '#991b1b' };
+              if (lower.includes('cognac') || lower.includes('camel') || lower.includes('amber') || lower.includes('terracotta') || lower.includes('cam đất') || /\bcam\b/i.test(lower)) return { name: 'Cam đất', hex: '#9A461E' };
+              if (lower.includes('beige') || lower.includes('sand') || lower.includes('cream') || lower.includes('taupe') || /\bbe\b/i.test(lower)) return { name: 'Be', hex: '#D8C8B8' };
+              if (lower.includes('dark marble') || lower.includes('marble') || lower.includes('cẩm thạch')) return { name: 'Cẩm thạch', hex: '#2E3136' };
+              if (lower.includes('dark oak')) return { name: 'Sồi tối', hex: '#4A3728' };
+              if (lower.includes('dark grey') || lower.includes('charcoal')) return { name: 'Xám đậm', hex: '#374151' };
+              if (lower.includes('light grey') || lower.includes('warm grey') || lower.includes('grey') || lower.includes('gray') || lower.includes('xám')) return { name: 'Xám', hex: '#9ca3af' };
+              if (/\bash\b/i.test(lower) || lower.includes('smoke') || lower.includes('khói')) return { name: 'Ghi khói', hex: '#6b7280' };
+              if (lower.includes('white') || lower.includes('trắng') || lower.includes('clear')) return { name: 'Trắng', hex: '#f3f4f6' };
+              if (lower.includes('black') || lower.includes('đen')) return { name: 'Đen', hex: '#18181b' };
+              if (lower.includes('natural oak') || /\boak\b/i.test(lower) || lower.includes('sồi')) return { name: 'Gỗ sồi', hex: '#C4A482' };
+              if (lower.includes('brown') || lower.includes('nâu') || lower.includes('walnut') || lower.includes('gỗ')) return { name: 'Nâu', hex: '#6B4423' };
+              return null;
+            };
+
+            // Nếu biến thể có nhiều phần ngăn cách bởi "/", duyệt từ phải sang trái (phần nệm/vải thường nằm phía sau)
+            for (let i = parts.length - 1; i >= 0; i--) {
+              const p = parts[i];
+              if (/^[HhWwLlØø\d]/.test(p) && (p.includes('cm') || p.includes('Ø') || p.includes('x'))) continue;
+              const res = detect(p);
+              if (res) return res;
+            }
+
+            const res = detect(raw);
+            if (res) return res;
 
             const earthTones = ['#78716c', '#a8a29e', '#d6d3d1', '#737373', '#525252'];
-            const hash = lower.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-            return { name: variantName || 'Tiêu chuẩn', hex: earthTones[hash % earthTones.length] };
+            const hash = raw.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+            return { name: raw || 'Tiêu chuẩn', hex: earthTones[hash % earthTones.length] };
           };
 
           // Xây dựng danh sách Color Swatches tương tác thực tế từ các biến thể trong DB
@@ -231,12 +304,12 @@ export class ExploreComponent implements OnInit, OnDestroy {
             const vRaw = v.optionValues?.images || v.images || [];
             const vClean = (Array.isArray(vRaw) ? vRaw : []).filter(isCleanUrl);
             const colorInfo = getVariantColorInfo(v.name);
+            const vImages = vClean.length > 0 ? [...vClean] : [...finalImages];
 
-            if (!seenHex.has(colorInfo.hex) && vClean.length > 0) {
+            if (!seenHex.has(colorInfo.hex) && vImages.length > 0) {
               seenHex.add(colorInfo.hex);
 
               // Nếu là biến thể đầu tiên và có pMain hợp lệ, chèn pMain lên đầu làm góc chính diện
-              const vImages = [...vClean];
               if (vIdx === 0 && pMain && !vImages.includes(pMain)) {
                 vImages.unshift(pMain);
               }
@@ -301,6 +374,21 @@ export class ExploreComponent implements OnInit, OnDestroy {
         });
 
         this.generateDynamicFilters(this.products);
+        this.syncSelectedVariantsWithColorFilter();
+
+        // Phục hồi danh sách so sánh từ liên kết chia sẻ URL (?compare=id1,id2,...)
+        if (this.pendingCompareParam) {
+          const ids = this.pendingCompareParam.split(',').map((id: string) => id.trim()).filter(Boolean);
+          const matched = this.products.filter(p => ids.includes(p.productId || (p as any).id));
+          if (matched.length > 0) {
+            const first = matched[0];
+            this.compareList = matched.filter(p => this.isSameMainCategory(first, p)).slice(0, 5);
+            if (this.compareList.length >= 2) {
+              this.isCompareModalOpen = true;
+            }
+          }
+          this.pendingCompareParam = null;
+        }
       }
     } catch (e) {
       console.error('Lỗi khi tải dữ liệu trang Explore:', e);
@@ -517,28 +605,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (!matchesMaterial) return false;
       }
 
-      // 6. Lọc theo màu sắc thật từ biến thể
+      // 6. Lọc nghiêm ngặt theo màu sắc: Chỉ hiển thị sản phẩm thực sự có biến thể màu được chọn, sản phẩm không có màu này sẽ bị ẩn
       if (this.filters.colors.length > 0) {
         const matchesColor = this.filters.colors.some(cSlug => {
-          const variantText = (prod.variants || []).map((v: any) => v.name || '').join(' ').toLowerCase();
-          const desc = (prod.description || '').toLowerCase();
-          const combined = `${variantText} ${desc}`;
-          
-          if (cSlug === 'white') return combined.includes('white') || combined.includes('trắng') || combined.includes('clear');
-          if (cSlug === 'black') return combined.includes('black') || combined.includes('đen');
-          if (cSlug === 'grey') return combined.includes('grey') || combined.includes('gray') || combined.includes('xám');
-          if (cSlug === 'ash-grey') return combined.includes('ash') || combined.includes('tro');
-          if (cSlug === 'brown') return combined.includes('brown') || combined.includes('nâu');
-          if (cSlug === 'oak') return combined.includes('oak') || combined.includes('sồi');
-          if (cSlug === 'dark-oak') return combined.includes('dark oak');
-          if (cSlug === 'marble') return combined.includes('marble');
-          if (cSlug === 'green') return combined.includes('green') || combined.includes('xanh');
-          if (cSlug === 'beige') return combined.includes('beige') || combined.includes('be');
-          if (cSlug === 'cognac') return combined.includes('cognac') || combined.includes('camel');
-          if (cSlug === 'blue') return combined.includes('blue');
-          if (cSlug === 'smoke') return combined.includes('smoke');
-          if (cSlug === 'yellow') return combined.includes('yellow') || combined.includes('vàng');
-          return combined.includes(cSlug);
+          return Boolean(prod.colorSwatches && prod.colorSwatches.some(sw => this.isColorSlugMatch(cSlug, sw)));
         });
         if (!matchesColor) return false;
       }
@@ -605,7 +675,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   getProductPriceFormatted(prod: CatalogProduct): string {
-    const selected = this.selectedVariantMap[prod.productId];
+    const selected = this.getSelectedSwatch(prod);
     if (selected && selected.price) {
       let pPrice = selected.price;
       if (prod.discountValue) {
@@ -624,7 +694,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   getOriginalPriceFormatted(prod: CatalogProduct): string | null {
-    const selected = this.selectedVariantMap[prod.productId];
+    const selected = this.getSelectedSwatch(prod);
     if (selected && selected.price && prod.discountValue) {
       return new Intl.NumberFormat('vi-VN').format(selected.price) + ' đ';
     }
@@ -635,7 +705,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   isOnSale(prod: CatalogProduct): boolean {
-    return Boolean(prod.lowestPrices && prod.lowestPrices.length > 0 && prod.lowestPrices[0].price < (prod.prices?.[0]?.price ?? 0));
+    return Boolean(
+      (prod.discountValue && prod.discountValue > 0) ||
+      (prod.lowestPrices && prod.lowestPrices.length > 0 && prod.lowestPrices[0].price < (prod.prices?.[0]?.price ?? 0))
+    );
   }
 
   getCategoryLabel(catKey: string): string {
@@ -686,6 +759,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
     if (this.filters[key]) {
       this.filters[key] = (this.filters[key] as string[]).filter(item => item !== val);
     }
+    if (key === 'colors') {
+      this.syncSelectedVariantsWithColorFilter();
+    }
     this.currentPage = 1;
     this.scrollToTop();
   }
@@ -697,7 +773,12 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   onFilterChange(newFilters: FilterState) {
+    const prevColor = this.filters.colors?.[0];
+    const newColor = newFilters.colors?.[0];
     this.filters = newFilters;
+    if (prevColor !== newColor) {
+      this.syncSelectedVariantsWithColorFilter();
+    }
     this.currentPage = 1;
     this.scrollToTop();
   }
@@ -716,6 +797,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.filters.rooms = [];
     this.filters.styles = [];
     this.filters.minRating = undefined;
+    this.syncSelectedVariantsWithColorFilter();
     this.currentPage = 1;
     this.scrollToTop();
   }
@@ -727,24 +809,149 @@ export class ExploreComponent implements OnInit, OnDestroy {
   toggleWishlist(e: Event, productId: string) {
     e.stopPropagation();
     e.preventDefault();
-    if (this.wishlist.includes(productId)) {
-      this.wishlist = this.wishlist.filter(id => id !== productId);
-    } else {
-      this.wishlist.push(productId);
+    this.wishlistService.toggle(productId);
+  }
+
+  getProductMainCategoryKey(p: CatalogProduct): string {
+    if (!p) return 'accessories';
+    const parentName = (p.categoryObj?.parent?.name || '').toLowerCase();
+    const parentSlug = (p.categoryObj?.parent?.slug || '').toLowerCase();
+    const catName = (p.categoryObj?.name || p.category || '').toLowerCase();
+    const catSlug = (p.categoryObj?.slug || '').toLowerCase();
+    const name = (p.name || '').toLowerCase();
+
+    // 1. Sofa check (Sofa, lounge sofa, sofa bed, v.v.)
+    if (parentName.includes('sofa') || parentSlug.includes('sofa') || 
+        catName.includes('sofa') || catSlug.includes('sofa') || 
+        name.includes('sofa')) {
+      return 'sofas';
     }
+
+    // 2. Rugs / Thảm check (Rug, plaid, carpet, throw)
+    if (parentName.includes('rug') || parentSlug.includes('rug') || 
+        catName.includes('rug') || catSlug.includes('rug') || 
+        name.includes('rug') || name.includes('plaid') || 
+        catName.includes('throw') || catSlug.includes('throw')) {
+      return 'rugs';
+    }
+
+    // 3. Tables / Bàn check (Table, desk)
+    if (parentName.includes('table') || parentSlug.includes('table') || 
+        catName.includes('table') || catSlug.includes('table') || 
+        name.includes('table') || name.includes('desk') || 
+        catName.includes('desk') || catSlug.includes('desk')) {
+      return 'tables';
+    }
+
+    // 4. Chairs / Ghế check (Chair, bench, stool, recliner, armchair)
+    if (parentName.includes('chair') || parentSlug.includes('chair') || 
+        catName.includes('chair') || catSlug.includes('chair') || 
+        name.includes('chair') || name.includes('bench') || 
+        name.includes('stool') || name.includes('armchair') || 
+        name.includes('recliner')) {
+      return 'chairs';
+    }
+
+    // 5. Beds / Giường check
+    if (parentName.includes('bed') || parentSlug.includes('bed') || 
+        catName.includes('bed') || catSlug.includes('bed') || 
+        name.includes('bed') || name.includes('daybed')) {
+      return 'beds';
+    }
+
+    // 6. Storage / Tủ kệ check
+    if (parentName.includes('storage') || parentSlug.includes('storage') || 
+        catName.includes('storage') || catSlug.includes('storage') || 
+        name.includes('storage') || name.includes('drawer') || 
+        name.includes('shelf') || name.includes('sideboard') || 
+        name.includes('nightstand') || name.includes('night stand') || 
+        name.includes('bookcase') || name.includes('tv')) {
+      return 'storage';
+    }
+
+    // 7. Lamps / Đèn check
+    if (parentName.includes('lamp') || parentSlug.includes('lamp') || 
+        catName.includes('lamp') || catSlug.includes('lamp') || 
+        name.includes('lamp') || name.includes('pendant') || 
+        name.includes('light')) {
+      return 'lamps';
+    }
+
+    // 8. Outdoor check
+    if (parentName.includes('outdoor') || parentSlug.includes('outdoor') || 
+        catName.includes('outdoor') || catSlug.includes('outdoor') || 
+        name.includes('outdoor')) {
+      return 'outdoor';
+    }
+
+    return 'accessories';
+  }
+
+  getRootCategoryName(prod: CatalogProduct): string {
+    const key = this.getProductMainCategoryKey(prod);
+    const map: Record<string, string> = {
+      sofas: 'Sofas',
+      chairs: 'Chairs',
+      tables: 'Tables',
+      storage: 'Storage',
+      beds: 'Beds',
+      rugs: 'Rugs',
+      lamps: 'Lamps',
+      outdoor: 'Outdoor',
+      accessories: 'Accessories'
+    };
+    return map[key] || 'Sản phẩm';
+  }
+
+  isSameMainCategory(prodA: CatalogProduct, prodB: CatalogProduct): boolean {
+    if (!prodA || !prodB) return false;
+    if (prodA.productId === prodB.productId) return true;
+    return this.getProductMainCategoryKey(prodA) === this.getProductMainCategoryKey(prodB);
+  }
+
+  isCompareDisabledForProduct(prod: CatalogProduct): boolean {
+    // Khi chưa có sản phẩm nào được chọn, tất cả đều được bật
+    if (!this.compareList || this.compareList.length === 0) return false;
+    // Nếu sản phẩm đã được chọn trong compareList, không bị disable (để người dùng có thể click bỏ chọn)
+    if (this.isInCompare(prod.productId)) return false;
+    // Nếu khác danh mục chính với sản phẩm đầu tiên đã chọn, bị làm mờ và vô hiệu hóa
+    return !this.isSameMainCategory(this.compareList[0], prod);
+  }
+
+  getCompareButtonTooltip(prod: CatalogProduct): string {
+    if (this.isInCompare(prod.productId)) {
+      return 'Bỏ so sánh';
+    }
+    if (this.isCompareDisabledForProduct(prod)) {
+      return `Chỉ so sánh các sản phẩm cùng danh mục chính (${this.getRootCategoryName(this.compareList[0])})`;
+    }
+    return 'Thêm vào so sánh';
   }
 
   toggleCompare(e: Event, prod: CatalogProduct) {
     e.stopPropagation();
     e.preventDefault();
+
+    // Nếu sản phẩm bị vô hiệu hóa vì khác danh mục chính
+    if (this.isCompareDisabledForProduct(prod)) {
+      this.showCompareToast(`Chỉ có thể so sánh sản phẩm cùng danh mục chính (${this.getRootCategoryName(this.compareList[0])})`, 'info');
+      return;
+    }
+
     const index = this.compareList.findIndex(p => p.productId === prod.productId);
     if (index > -1) {
-      this.compareList.splice(index, 1);
-    } else {
-      if (this.compareList.length < 5) {
-        this.compareList.push(prod);
+      this.compareList = this.compareList.filter(p => p.productId !== prod.productId);
+      if (this.compareList.length <= 1) {
+        this.isCompareModalOpen = false;
       }
+    } else {
+      if (this.compareList.length >= 5) {
+        this.showCompareToast('Tối đa 5 sản phẩm', 'warning');
+        return;
+      }
+      this.compareList = [...this.compareList, prod];
     }
+    this.cdr.detectChanges();
   }
 
   isInCompare(productId: string): boolean {
@@ -753,6 +960,76 @@ export class ExploreComponent implements OnInit, OnDestroy {
 
   removeCompare(productId: string) {
     this.compareList = this.compareList.filter(p => p.productId !== productId);
+    if (this.compareList.length <= 1) {
+      this.isCompareModalOpen = false;
+    }
+    this.cdr.detectChanges();
+  }
+
+  clearAllCompare() {
+    this.compareList = [];
+    this.isCompareModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  openCompareModal() {
+    if (this.compareList.length < 2) {
+      this.showCompareToast('Chọn tối thiểu 2 sản phẩm để so sánh', 'info');
+      return;
+    }
+    this.isCompareModalOpen = true;
+  }
+
+  closeCompareModal() {
+    this.isCompareModalOpen = false;
+  }
+
+  onRemoveCompareProduct(productId: string) {
+    this.removeCompare(productId);
+  }
+
+  copyCompareShareLink() {
+    if (typeof window === 'undefined') return;
+    const ids = this.compareList.map(p => p.productId || (p as any).id).filter(Boolean);
+    const shareUrl = `${window.location.origin}/explore?compare=${ids.join(',')}`;
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        this.showCompareToast('Đã sao chép liên kết so sánh!', 'success');
+      }).catch(() => {
+        this.fallbackCopyLink(shareUrl);
+      });
+    } else {
+      this.fallbackCopyLink(shareUrl);
+    }
+  }
+
+  private fallbackCopyLink(text: string) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      this.showCompareToast('Đã sao chép liên kết so sánh!', 'success');
+    } catch (e) {
+      this.showCompareToast('Không thể sao chép liên kết.', 'warning');
+    }
+    document.body.removeChild(textArea);
+  }
+
+  showCompareToast(msg: string, type: 'warning' | 'info' | 'success' = 'warning') {
+    this.compareToastMessage = msg;
+    this.compareToastType = type;
+    this.cdr.detectChanges();
+    if (this.compareToastTimer) clearTimeout(this.compareToastTimer);
+    this.compareToastTimer = setTimeout(() => {
+      this.compareToastMessage = null;
+      this.cdr.detectChanges();
+    }, 3200);
   }
 
   handleBuyClick(e: Event, prod: CatalogProduct) {
@@ -764,7 +1041,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
   openQuickView(e: Event, prod: CatalogProduct) {
     e.stopPropagation();
     e.preventDefault();
-    const selected = this.selectedVariantMap[prod.productId];
+    const selected = this.getSelectedSwatch(prod);
     if (selected && selected.images && selected.images.length > 0) {
       prod.images = selected.images;
     }
@@ -777,8 +1054,69 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   // --- Quản lý biến thể màu sắc & ảnh tương ứng trên thẻ sản phẩm ---
+  isColorSlugMatch(slug: string, target: string | ProductColorSwatch): boolean {
+    const text = (typeof target === 'string'
+      ? target
+      : `${target.name || ''} ${target.rawName || ''} ${target.hex || ''}`
+    ).toLowerCase();
+
+    if (slug === 'white') return text.includes('white') || text.includes('trắng') || text.includes('clear') || text.includes('#f3f4f6') || text.includes('#f8f8f8');
+    if (slug === 'black') return text.includes('black') || text.includes('đen') || text.includes('#18181b') || text.includes('#222222');
+    if (slug === 'grey') return text.includes('grey') || text.includes('gray') || text.includes('xám') || /\bash\b/i.test(text) || text.includes('charcoal') || text.includes('#808080') || text.includes('#9ca3af') || text.includes('#374151');
+    if (slug === 'ash-grey') return /\bash\b/i.test(text) || text.includes('tro') || text.includes('ghi khói') || text.includes('#6b7280');
+    if (slug === 'brown') return text.includes('brown') || text.includes('nâu') || text.includes('walnut') || text.includes('espresso') || text.includes('#6b4423');
+    if (slug === 'oak') return ((text.includes('oak') || text.includes('sồi')) && !text.includes('dark oak')) || text.includes('#c4a482');
+    if (slug === 'dark-oak') return text.includes('dark oak') || (text.includes('sồi') && (text.includes('tối') || text.includes('đậm'))) || text.includes('#4a3728');
+    if (slug === 'marble') return text.includes('marble') || text.includes('cẩm thạch') || text.includes('#2e3136');
+    if (slug === 'green') return text.includes('green') || text.includes('xanh lá') || text.includes('olive') || text.includes('#3b5e45');
+    if (slug === 'beige') return text.includes('beige') || text.includes('sand') || text.includes('cream') || text.includes('taupe') || /\bbe\b/i.test(text) || text.includes('#d8c8b8');
+    if (slug === 'cognac') return text.includes('cognac') || text.includes('camel') || text.includes('amber') || text.includes('terracotta') || text.includes('cam đất') || /\bcam\b/i.test(text) || text.includes('#9a461e');
+    if (slug === 'blue') return text.includes('blue') || text.includes('xanh dương') || text.includes('navy') || text.includes('#2b4c7e');
+    if (slug === 'smoke') return text.includes('smoke') || text.includes('khói') || text.includes('ghi khói') || text.includes('#5c5c5c') || text.includes('#6b7280');
+    if (slug === 'yellow') return text.includes('yellow') || text.includes('vàng') || text.includes('ochre') || text.includes('celestial') || text.includes('#e6b800');
+    return text.includes(slug.toLowerCase());
+  }
+
+  syncSelectedVariantsWithColorFilter() {
+    const activeColor = this.filters.colors?.[0];
+    this.products.forEach(prod => {
+      if (!prod.colorSwatches || prod.colorSwatches.length === 0) return;
+      if (activeColor) {
+        const matched = prod.colorSwatches.find(sw => this.isColorSlugMatch(activeColor, sw));
+        if (matched) {
+          this.selectedVariantMap[prod.productId] = matched;
+          this.activeImageMap[prod.productId] = 0;
+          return;
+        }
+      }
+      this.selectedVariantMap[prod.productId] = prod.colorSwatches[0];
+      this.activeImageMap[prod.productId] = 0;
+    });
+    this.cdr.detectChanges();
+  }
+
+  getSelectedSwatch(prod: CatalogProduct): ProductColorSwatch | undefined {
+    return this.selectedVariantMap[prod.productId] || prod.colorSwatches?.[0];
+  }
+
+  getVisibleSwatches(prod: CatalogProduct): ProductColorSwatch[] {
+    if (!prod.colorSwatches || prod.colorSwatches.length <= 5) {
+      return prod.colorSwatches || [];
+    }
+    const active = this.getSelectedSwatch(prod);
+    const swatches = [...prod.colorSwatches];
+    if (active) {
+      const idx = swatches.findIndex(s => s.id === active.id);
+      if (idx >= 5) {
+        const [activeSw] = swatches.splice(idx, 1);
+        swatches.unshift(activeSw);
+      }
+    }
+    return swatches.slice(0, 5);
+  }
+
   getCardImages(prod: CatalogProduct): string[] {
-    const selected = this.selectedVariantMap[prod.productId];
+    const selected = this.getSelectedSwatch(prod);
     if (selected && selected.images && selected.images.length > 0) {
       return selected.images;
     }
@@ -786,7 +1124,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   isSwatchActive(prod: CatalogProduct, sw: ProductColorSwatch): boolean {
-    const current = this.selectedVariantMap[prod.productId];
+    const current = this.getSelectedSwatch(prod);
     return current ? current.id === sw.id : (prod.colorSwatches?.[0]?.id === sw.id);
   }
 
@@ -906,6 +1244,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+    this.wishlistSub?.unsubscribe();
     Object.keys(this.hoverTimerMap).forEach(id => clearInterval(this.hoverTimerMap[id]));
     Object.keys(this.mouseDebounceMap).forEach(id => clearTimeout(this.mouseDebounceMap[id]));
     this.hoverTimerMap = {};

@@ -233,6 +233,18 @@ export class SidebarFilterComponent implements OnChanges {
     this.onFilterChange.emit({ ...this.filters, minRating: newRating });
   }
 
+  // --- Lọc Màu sắc: Mỗi lần chỉ chọn 1 màu (toggle chọn/bỏ chọn) ---
+  isColorActive(slug: string): boolean {
+    return Boolean(this.filters.colors && this.filters.colors.includes(slug));
+  }
+
+  selectColor(slug: string) {
+    const isCurrentlySelected = this.filters.colors?.includes(slug);
+    // Click vào màu đang chọn sẽ bỏ chọn (toggle), click màu khác sẽ chọn duy nhất màu đó
+    const newColors = isCurrentlySelected ? [] : [slug];
+    this.onFilterChange.emit({ ...this.filters, colors: newColors });
+  }
+
   // --- Lọc Phòng: Chỉ được chọn 1 phòng tại 1 thời điểm ---
   isRoomActive(slug: string): boolean {
     return Boolean(this.filters.rooms && this.filters.rooms.includes(slug));

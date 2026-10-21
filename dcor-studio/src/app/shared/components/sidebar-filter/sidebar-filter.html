@@ -186,10 +186,10 @@
             class="swatch-circle-btn" 
             *ngFor="let c of currentColors" 
             [style.background-color]="c.hex" 
-            [class.active]="filters.colors.includes(c.slug)"
+            [class.active]="isColorActive(c.slug)"
             [title]="c.name"
-            (click)="handleCheckboxChange('colors', c.slug)">
-            <lucide-angular *ngIf="filters.colors.includes(c.slug)" [img]="icons.Check" size="12" [color]="c.hex === '#F8F8F8' ? '#000' : '#fff'"></lucide-angular>
+            (click)="selectColor(c.slug)">
+            <lucide-angular *ngIf="isColorActive(c.slug)" [img]="icons.Check" size="12" [color]="c.hex === '#F8F8F8' ? '#000' : '#fff'"></lucide-angular>
           </button>
         </div>
 

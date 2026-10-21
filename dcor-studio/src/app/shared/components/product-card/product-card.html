@@ -1,0 +1,122 @@
+<div class="product-item-card"
+  [class.is-compact]="compact"
+  [class.is-hovered]="isHovered"
+  [id]="'product-' + productId"
+  (mouseenter)="onCardMouseEnter()"
+  (mouseleave)="onCardMouseLeave()"
+  (click)="onCardClick()">
+
+  <!-- Vùng ảnh sản phẩm -->
+  <div class="card-image-box" (mousemove)="onImageMouseMove($event)">
+
+    <!-- Badge Khuyến mãi / Hàng mới -->
+    <div class="card-badge-wrap" *ngIf="discountBadgeText">
+      <span *ngIf="isOnSale" class="badge-hotdeal">
+        HOT DEAL {{ discountBadgeText }}
+      </span>
+      <span *ngIf="!isOnSale && discountBadgeText" class="badge-new">
+        {{ discountBadgeText }}
+      </span>
+    </div>
+
+    <!-- Cụm nút thao tác góc trên: Xem nhanh + So sánh + Yêu thích -->
+    <div class="card-corner-actions">
+      <!-- Nút xem nhanh -->
+      <button *ngIf="showQuickView" type="button" class="round-action-btn quickview-btn" title="Xem nhanh"
+        (click)="onQuickViewClick($event)">
+        <app-icon name="Eye" size="16" color="#4b5563"></app-icon>
+      </button>
+
+      <!-- Nút so sánh -->
+      <button *ngIf="showCompare" type="button" class="round-action-btn compare-btn"
+        [class.active]="isInCompare"
+        [class.disabled-compare]="isCompareDisabled"
+        [disabled]="isCompareDisabled"
+        [title]="compareTooltip"
+        (click)="toggleCompare($event)">
+        <app-icon name="Scale" size="16"
+          [color]="isInCompare ? '#b45309' : (isCompareDisabled ? '#9ca3af' : '#4b5563')"></app-icon>
+      </button>
+
+      <!-- Nút thêm yêu thích -->
+      <button *ngIf="showWishlist" type="button" class="round-action-btn wishlist-btn"
+        [class.active]="isWishlisted"
+        [title]="isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+        (click)="toggleWishlist($event)">
+        <app-icon name="Heart" size="16"
+          [color]="isWishlisted ? '#b45309' : '#4b5563'"
+          [filled]="isWishlisted"></app-icon>
+      </button>
+    </div>
+
+    <!-- Ảnh sản phẩm đa góc nhìn (Stack) -->
+    <div class="card-img-stack">
+      <img *ngFor="let img of cardImages; let idx = index"
+        [src]="img"
+        [alt]="displayName + ' - Góc ' + (idx + 1)"
+        class="product-main-img"
+        [class.active-img]="activeImageIndex === idx"
+        [attr.loading]="idx === 0 ? 'eager' : 'lazy'"
+        (error)="onImageError(idx)" />
+    </div>
+  </div>
+
+  <!-- Vùng thông tin sản phẩm -->
+  <div class="card-body-box">
+
+    <!-- Hàng biến thể màu sắc & Đánh giá sao -->
+    <div class="meta-row">
+      <!-- Preview Swatches màu -->
+      <div class="swatches-preview" *ngIf="colorSwatches && colorSwatches.length > 0">
+        <button type="button" *ngFor="let sw of visibleSwatches"
+          class="swatch-btn"
+          [class.active]="selectedSwatch?.id === sw.id"
+          [title]="sw.name"
+          [style.background-color]="sw.hex"
+          (mouseenter)="selectSwatch($event, sw)"
+          (click)="selectSwatch($event, sw)">
+        </button>
+
+        <span *ngIf="colorSwatches.length > 5" class="variant-count">
+          +{{ colorSwatches.length - 5 }}
+        </span>
+        <span *ngIf="colorSwatches.length <= 5 && colorSwatches.length > 1" class="variant-count">
+          {{ colorSwatches.length }} màu
+        </span>
+      </div>
+
+      <div class="swatches-preview" *ngIf="!colorSwatches || colorSwatches.length === 0">
+        <span class="variant-count">1 màu tiêu chuẩn</span>
+      </div>
+
+      <!-- Rating Badge -->
+      <div class="rating-badge">
+        <app-icon name="Star" size="13" color="#f59e0b" [filled]="true" class="star-gold"></app-icon>
+        <span class="rating-val">{{ ratingVal }}</span>
+        <span class="rating-total">({{ reviewCount }})</span>
+      </div>
+    </div>
+
+    <!-- Tên sản phẩm -->
+    <h3 class="product-name" [title]="displayName">
+      {{ displayName }}
+    </h3>
+
+    <!-- Hàng giá bán & Nút mua -->
+    <div class="price-buy-row">
+      <div class="price-stack">
+        <span class="price-current">{{ formattedCurrentPrice }}</span>
+        <span *ngIf="formattedOriginalPrice" class="price-original">
+          {{ formattedOriginalPrice }}
+        </span>
+      </div>
+
+      <button *ngIf="showBuyButton" type="button" class="btn-buy" (click)="onBuyClick($event)">
+        <app-icon name="ShoppingCart" size="14" color="#ffffff"></app-icon>
+        <span>MUA</span>
+      </button>
+    </div>
+
+  </div>
+
+</div>

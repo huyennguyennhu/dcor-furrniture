@@ -4,4 +4,10 @@
     <router-outlet></router-outlet>
   </main>
   <app-footer></app-footer>
+
+  <!-- Nút Cuộn Về Đầu Trang Toàn Cục (Global Back to Top Button cho tất cả các trang) -->
+  <button type="button" class="btn-back-to-top" [class.visible]="showScrollTop"
+    [class.dock-active]="isDockActive" (click)="scrollToTop()" aria-label="Về đầu trang" title="Về đầu trang">
+    <app-icon name="ArrowUp" size="20" color="#ffffff"></app-icon>
+  </button>
 </div>

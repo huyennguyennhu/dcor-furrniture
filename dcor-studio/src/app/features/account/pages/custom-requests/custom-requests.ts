@@ -1,5 +1,5 @@
 import { IconComponent } from '../../../../shared/components/icon/icon';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ContractModalComponent } from '../../../../shared/components/contract-modal/contract-modal';
 import { OtpModalComponent } from '../../../../shared/components/otp-modal/otp-modal';
@@ -11,26 +11,60 @@ import { OtpModalComponent } from '../../../../shared/components/otp-modal/otp-m
   templateUrl: './custom-requests.html',
   styleUrls: ['./custom-requests.css']
 })
-export class CustomRequestsComponent {
-  // Mock Data
-  requests = [
-    {
-      id: 'REQ-101',
-      title: 'Thiết kế Sofa góc chữ L phong cách Bắc Âu',
-      date: '2026-10-01',
-      status: 'contract_signing', // draft, 3d_drawing, contract_signing, deposit_pending, processing, completed
-      customerName: 'Nguyễn Huyền',
-      customerPhone: '0912345678'
-    },
-    {
-      id: 'REQ-102',
-      title: 'Thiết kế trọn bộ Bàn ăn mặt đá Ceramic',
-      date: '2026-09-25',
-      status: 'drawing_3d',
-      customerName: 'Nguyễn Huyền',
-      customerPhone: '0912345678'
+export class CustomRequestsComponent implements OnInit {
+  requests: any[] = [];
+
+  ngOnInit() {
+    this.loadRequests();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('dcor_custom_requests_updated', () => this.loadRequests());
     }
-  ];
+  }
+
+  loadRequests() {
+    const baseMock = [
+      {
+        id: 'REQ-101',
+        title: 'Thiết kế Sofa góc chữ L phong cách Bắc Âu',
+        date: '2026-10-01',
+        status: 'contract_signing',
+        customerName: 'Nguyễn Huyền',
+        customerPhone: '0912345678'
+      },
+      {
+        id: 'REQ-102',
+        title: 'Thiết kế trọn bộ Bàn ăn mặt đá Ceramic',
+        date: '2026-09-25',
+        status: 'drawing_3d',
+        customerName: 'Nguyễn Huyền',
+        customerPhone: '0912345678'
+      }
+    ];
+
+    try {
+      const stored = localStorage.getItem('dcor_custom_requests');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped = parsed.map((item: any) => ({
+            id: item.requestCode || item.id,
+            title: `Custom: ${item.productName || 'Sản phẩm DCOR'}`,
+            date: item.createdAt || new Date().toISOString(),
+            status: item.status || 'draft',
+            customerName: item.customer?.fullName || '',
+            customerPhone: item.customer?.phone || '',
+            thumbnail: item.productThumbnail,
+            customizations: item.customizations || item.specifications
+          }));
+          this.requests = [...mapped, ...baseMock];
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    this.requests = baseMock;
+  }
 
   selectedRequest: any = null;
   
