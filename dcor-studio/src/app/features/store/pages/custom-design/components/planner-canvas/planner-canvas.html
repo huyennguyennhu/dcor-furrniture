@@ -1,0 +1,284 @@
+<div 
+  #viewport 
+  class="canvas-viewport" 
+  (wheel)="onWheel($event)"
+  (dragover)="onDragOver($event)"
+  (drop)="onDrop($event)">
+
+  <!-- KHÔNG GIAN BẢNG VẼ NỀN (STAGE) -->
+  <div 
+    #stage 
+    class="canvas-stage"
+    [style.width.px]="plannerService.roomPixelWidth()"
+    [style.height.px]="plannerService.roomPixelHeight()"
+    [style.transform]="'translate(' + plannerService.pan().x + 'px, ' + plannerService.pan().y + 'px) scale(' + plannerService.zoom() + ')'">
+
+    <!-- 1. Ảnh nền phòng -->
+    <img 
+      *ngIf="plannerService.background()?.imageUrl"
+      [src]="plannerService.background()?.imageUrl" 
+      alt="Mặt bằng phòng" 
+      class="room-canvas-background" 
+      draggable="false" 
+    />
+
+    <!-- 2. Lưới tham chiếu 1 mét (SVG Grid Overlay) -->
+    <svg 
+      *ngIf="plannerService.showGrid()" 
+      class="canvas-grid-svg" 
+      [attr.width]="plannerService.roomPixelWidth()" 
+      [attr.height]="plannerService.roomPixelHeight()">
+      <defs>
+        <!-- Lưới phụ 0.5m -->
+        <pattern 
+          id="sub-grid" 
+          [attr.width]="gridMeterSize() / 2" 
+          [attr.height]="gridMeterSize() / 2" 
+          patternUnits="userSpaceOnUse">
+          <path 
+            [attr.d]="'M ' + (gridMeterSize() / 2) + ' 0 L 0 0 0 ' + (gridMeterSize() / 2)" 
+            fill="none" 
+            stroke="rgba(255, 255, 255, 0.12)" 
+            stroke-width="0.8" 
+          />
+        </pattern>
+        <!-- Lưới chính 1m -->
+        <pattern 
+          id="main-grid" 
+          [attr.width]="gridMeterSize()" 
+          [attr.height]="gridMeterSize()" 
+          patternUnits="userSpaceOnUse">
+          <rect [attr.width]="gridMeterSize()" [attr.height]="gridMeterSize()" fill="url(#sub-grid)" />
+          <path 
+            [attr.d]="'M ' + gridMeterSize() + ' 0 L 0 0 0 ' + gridMeterSize()" 
+            fill="none" 
+            stroke="rgba(255, 255, 255, 0.35)" 
+            stroke-width="1.2" 
+          />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#main-grid)" />
+    </svg>
+
+    <!-- 3. Lớp tương tác Pan nền (nhận sự kiện khi bấm vào vùng trống) -->
+    <div 
+      class="canvas-pan-surface"
+      [class.panning]="currentMode === 'pan'"
+      (pointerdown)="onBackgroundPointerDown($event)"
+      (pointermove)="onBackgroundPointerMove($event)"
+      (pointerup)="onBackgroundPointerUp($event)">
+    </div>
+
+    <!-- 4. Lớp chứa các vật thể nội thất (Objects Layer) -->
+    <div class="canvas-objects-layer">
+      @for (obj of plannerService.objects(); track obj.id) {
+        <div 
+          class="canvas-object-item"
+          [id]="'planner-obj-' + obj.id"
+          [class.selected]="obj.id === plannerService.selectedObjectId()"
+          [class.locked]="obj.isLocked"
+          [style.left.px]="obj.x"
+          [style.top.px]="obj.y"
+          [style.width.px]="obj.width"
+          [style.height.px]="obj.height"
+          [style.z-index]="obj.zIndex"
+          [style.transform]="'rotate(' + obj.rotation + 'deg)'"
+          (pointerdown)="onObjectPointerDown($event, obj)"
+          (pointermove)="onObjectPointerMove($event, obj)"
+          (pointerup)="onObjectPointerUp($event, obj)">
+          
+          <!-- Hình ảnh đại diện vật thể -->
+          <div class="object-inner-box">
+            <img [src]="obj.imageUrl" [alt]="obj.name" class="object-image" draggable="false" />
+            
+            <!-- Nhãn kích thước và tên hiển thị khi chọn -->
+            <div class="object-label-tag">
+              <span>{{ obj.name }}</span>
+              <span class="dim-small">({{ obj.dimensionCm.width }}×{{ obj.dimensionCm.depth }}cm)</span>
+            </div>
+
+            <!-- Khóa biểu tượng nếu bị khóa -->
+            <div *ngIf="obj.isLocked" class="object-lock-badge" title="Vật thể đang bị khóa">
+              <app-icon name="Lock" size="12"></app-icon>
+            </div>
+          </div>
+
+          <!-- Các tay cầm điều khiển (Handles) khi vật thể ĐANG ĐƯỢC CHỌN -->
+          <ng-container *ngIf="obj.id === plannerService.selectedObjectId() && !obj.isLocked">
+            <!-- Khung viền chọn -->
+            <div class="selection-box-outline"></div>
+
+            <!-- Tay cầm xoay (Rotation Handle ở hướng 12h) -->
+            <div 
+              class="transform-handle-rotate" 
+              (pointerdown)="onRotateHandlePointerDown($event, obj)"
+              (pointermove)="onRotateHandlePointerMove($event, obj)"
+              (pointerup)="onRotateHandlePointerUp($event, obj)"
+              title="Kéo để xoay (Giữ Shift để bước 15°)">
+              <div class="rotate-stem"></div>
+              <div class="rotate-knob">
+                <app-icon name="RefreshCw" size="10"></app-icon>
+              </div>
+            </div>
+
+            <!-- 4 Tay cầm đổi kích thước ở 4 góc (Resize Handles) -->
+            <div 
+              class="transform-handle-corner nw" 
+              (pointerdown)="onResizeHandlePointerDown($event, obj, 'nw')"
+              (pointermove)="onResizeHandlePointerMove($event, obj)"
+              (pointerup)="onResizeHandlePointerUp($event, obj)">
+            </div>
+            <div 
+              class="transform-handle-corner ne" 
+              (pointerdown)="onResizeHandlePointerDown($event, obj, 'ne')"
+              (pointermove)="onResizeHandlePointerMove($event, obj)"
+              (pointerup)="onResizeHandlePointerUp($event, obj)">
+            </div>
+            <div 
+              class="transform-handle-corner se" 
+              (pointerdown)="onResizeHandlePointerDown($event, obj, 'se')"
+              (pointermove)="onResizeHandlePointerMove($event, obj)"
+              (pointerup)="onResizeHandlePointerUp($event, obj)">
+            </div>
+            <div 
+              class="transform-handle-corner sw" 
+              (pointerdown)="onResizeHandlePointerDown($event, obj, 'sw')"
+              (pointermove)="onResizeHandlePointerMove($event, obj)"
+              (pointerup)="onResizeHandlePointerUp($event, obj)">
+            </div>
+          </ng-container>
+
+        </div>
+      }
+    </div>
+
+  </div>
+
+  <!-- FLOATING QUICK ACTIONS BAR (HIỆN TRÊN MÀN HÌNH KHI CÓ VẬT THỂ ĐƯỢC CHỌN) -->
+  <div *ngIf="plannerService.selectedObject() as sel" class="selected-obj-toolbar">
+    <div class="toolbar-obj-name">
+      <span class="name-text">{{ sel.name }}</span>
+      <span class="deg-text">{{ sel.rotation }}°</span>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <button 
+      type="button" 
+      class="action-btn" 
+      [disabled]="sel.isLocked"
+      (click)="rotateSelected90()" 
+      title="Xoay 90 độ"
+      aria-label="Xoay 90 độ">
+      <app-icon name="RotateCw" size="15"></app-icon>
+      <span>90°</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="action-btn" 
+      (click)="bringSelectedForward()" 
+      title="Đưa lên lớp trên"
+      aria-label="Đưa lên lớp trên">
+      <app-icon name="ArrowUp" size="15"></app-icon>
+    </button>
+
+    <button 
+      type="button" 
+      class="action-btn" 
+      (click)="sendSelectedBackward()" 
+      title="Đưa xuống lớp dưới"
+      aria-label="Đưa xuống lớp dưới">
+      <app-icon name="ArrowDown" size="15"></app-icon>
+    </button>
+
+    <button 
+      type="button" 
+      class="action-btn" 
+      [class.active]="sel.isLocked"
+      (click)="toggleSelectedLock()" 
+      [title]="sel.isLocked ? 'Mở khóa vật thể' : 'Khóa vị trí vật thể'"
+      [aria-label]="sel.isLocked ? 'Mở khóa' : 'Khóa'">
+      <app-icon [name]="sel.isLocked ? 'Lock' : 'Unlock'" size="15"></app-icon>
+    </button>
+
+    <button 
+      type="button" 
+      class="action-btn" 
+      (click)="duplicateSelected()" 
+      title="Nhân bản (Ctrl+D)"
+      aria-label="Nhân bản">
+      <app-icon name="Copy" size="15"></app-icon>
+    </button>
+
+    <button 
+      type="button" 
+      class="action-btn btn-danger" 
+      [disabled]="sel.isLocked"
+      (click)="deleteSelected()" 
+      title="Xóa vật thể (Delete)"
+      aria-label="Xóa">
+      <app-icon name="Trash2" size="15"></app-icon>
+    </button>
+  </div>
+
+  <!-- HUD ĐIỀU KHIỂN GÓC DƯỚI PHẢI (ZOOM, GRID, RESET) -->
+  <div class="canvas-hud-controls">
+    <button 
+      type="button" 
+      class="hud-btn" 
+      [class.active]="plannerService.showGrid()"
+      (click)="plannerService.toggleGrid()"
+      title="Bật/Tắt lưới tham chiếu 1 mét"
+      aria-label="Lưới 1 mét">
+      <app-icon name="Grid3x3" size="16"></app-icon>
+      <span class="hud-label">Lưới</span>
+    </button>
+
+    <div class="hud-divider"></div>
+
+    <button 
+      type="button" 
+      class="hud-btn" 
+      [disabled]="plannerService.zoom() <= 0.25"
+      (click)="plannerService.zoomOut()"
+      title="Thu nhỏ"
+      aria-label="Thu nhỏ">
+      <app-icon name="ZoomOut" size="16"></app-icon>
+    </button>
+
+    <span class="hud-zoom-text">{{ Math.round(plannerService.zoom() * 100) }}%</span>
+
+    <button 
+      type="button" 
+      class="hud-btn" 
+      [disabled]="plannerService.zoom() >= 4.0"
+      (click)="plannerService.zoomIn()"
+      title="Phóng to"
+      aria-label="Phóng to">
+      <app-icon name="ZoomIn" size="16"></app-icon>
+    </button>
+
+    <button 
+      type="button" 
+      class="hud-btn" 
+      (click)="plannerService.resetZoom()"
+      title="Khôi phục góc nhìn 100%"
+      aria-label="Khôi phục góc nhìn">
+      <app-icon name="Maximize2" size="16"></app-icon>
+    </button>
+  </div>
+
+  <!-- HUD THÔNG TIN MẶT BẰNG GÓC TRÊN TRÁI -->
+  <div class="canvas-room-info-badge">
+    <div class="room-badge-title">
+      <span class="indicator-dot"></span>
+      <strong>{{ plannerService.background()?.name }}</strong>
+    </div>
+    <div class="room-badge-dims">
+      <span>{{ plannerService.dimensions()?.length }}m × {{ plannerService.dimensions()?.width }}m</span>
+      <span class="scale-text">· 1m ≈ {{ gridMeterSize() }}px</span>
+    </div>
+  </div>
+
+</div>

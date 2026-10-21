@@ -1,0 +1,304 @@
+<div class="setup-container">
+  
+  <!-- ============================================== -->
+  <!-- BƯỚC 1: CHỌN NGUỒN KHỞI TẠO (BẢN MẪU / TẢI ẢNH) -->
+  <!-- ============================================== -->
+  <ng-container *ngIf="plannerService.setupSubStep() === 'source'">
+    <div class="setup-header text-center">
+      <div class="header-badge">
+        <app-icon name="Sparkles" size="16"></app-icon>
+        <span>DCor 2D Room Planner</span>
+      </div>
+      <h1 class="setup-title">Bắt đầu thiết kế không gian phòng</h1>
+      <p class="setup-subtitle">
+        Khởi tạo mặt bằng phòng khách, phòng ngủ hoặc phòng ăn từ bản mẫu có sẵn, hoặc tải lên ảnh mặt bằng thực tế của bạn.
+      </p>
+
+      <!-- 2 Tabs chọn lựa -->
+      <div class="source-tabs" role="tablist">
+        <button 
+          type="button" 
+          class="source-tab-btn" 
+          [class.active]="activeTab() === 'template'"
+          (click)="setTab('template')"
+          role="tab"
+          aria-label="Chọn bản mẫu có sẵn">
+          <app-icon name="Layers" size="18"></app-icon>
+          <span>Bản mẫu có sẵn (3 phòng)</span>
+        </button>
+        <button 
+          type="button" 
+          class="source-tab-btn" 
+          [class.active]="activeTab() === 'upload'"
+          (click)="setTab('upload')"
+          role="tab"
+          aria-label="Tải ảnh phòng thật">
+          <app-icon name="Image" size="18"></app-icon>
+          <span>Tải ảnh mặt bằng thật</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 1: BẢN MẪU CÓ SẴN -->
+    <div *ngIf="activeTab() === 'template'" class="template-grid">
+      @for (tmpl of templates; track tmpl.id) {
+        <div 
+          class="template-card" 
+          [class.selected]="selectedTemplate()?.id === tmpl.id"
+          (click)="selectTemplateCard(tmpl)">
+          <div class="template-image-wrapper">
+            <img [src]="tmpl.imageUrl" [alt]="tmpl.name" class="template-image" />
+            <div class="template-type-badge">{{ tmpl.roomType }}</div>
+            <div class="template-selected-badge" *ngIf="selectedTemplate()?.id === tmpl.id">
+              <app-icon name="Check" size="16"></app-icon>
+            </div>
+          </div>
+          <div class="template-info">
+            <h3 class="template-name">{{ tmpl.name }}</h3>
+            <p class="template-desc">{{ tmpl.description }}</p>
+            <div class="template-footer">
+              <div class="dim-tag">
+                <app-icon name="Ruler" size="14"></app-icon>
+                <span>Gợi ý: {{ tmpl.defaultDimensions.length }}m × {{ tmpl.defaultDimensions.width }}m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- TAB 2: TẢI ẢNH PHÒNG THẬT -->
+    <div *ngIf="activeTab() === 'upload'" class="upload-zone-wrapper">
+      <div 
+        class="upload-dropzone" 
+        [class.dragging]="isDraggingFile()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onFileDrop($event)">
+        
+        <input 
+          #fileInput 
+          type="file" 
+          accept="image/jpeg,image/png,image/webp" 
+          class="hidden-file-input" 
+          (change)="onFileSelected($event)" 
+        />
+
+        <div *ngIf="!uploadedImage() && !isCompressing()" class="upload-prompt" (click)="fileInput.click()">
+          <div class="upload-icon-circle">
+            <app-icon name="Image" size="32"></app-icon>
+          </div>
+          <h4 class="upload-prompt-title">Kéo thả ảnh mặt bằng vào đây hoặc bấm để chọn tệp</h4>
+          <p class="upload-prompt-hint">Hỗ trợ JPG, PNG, WEBP (tối đa 10MB). Hệ thống sẽ tự động tối ưu hóa cạnh ảnh tối đa 1600px.</p>
+          <button type="button" class="upload-browse-btn">
+            <app-icon name="Plus" size="16"></app-icon>
+            <span>Chọn ảnh từ máy tính</span>
+          </button>
+        </div>
+
+        <!-- Trạng thái đang nén -->
+        <div *ngIf="isCompressing()" class="upload-loading-state">
+          <div class="spinner-large"></div>
+          <p>Đang kiểm tra và tối ưu hóa độ phân giải hình ảnh...</p>
+        </div>
+
+        <!-- Xem trước ảnh đã tải lên -->
+        <div *ngIf="uploadedImage() && !isCompressing()" class="upload-preview-card">
+          <img [src]="uploadedImage()?.imageUrl" alt="Mặt bằng tải lên" class="upload-preview-img" />
+          <div class="upload-preview-details">
+            <div class="preview-name-row">
+              <span class="preview-name">{{ uploadedImage()?.name }}</span>
+              <span class="preview-res">{{ uploadedImage()?.naturalWidth }} × {{ uploadedImage()?.naturalHeight }} px</span>
+            </div>
+            <p class="preview-note">Ảnh đã được nén tối ưu (JPEG 85%), sẵn sàng thiết lập tỉ lệ mét.</p>
+            <button type="button" class="reupload-btn" (click)="fileInput.click()">
+              <app-icon name="RefreshCw" size="14"></app-icon>
+              <span>Chọn ảnh khác</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thông báo lỗi nếu có -->
+      <div *ngIf="uploadError()" class="upload-error-alert">
+        <app-icon name="AlertCircle" size="18"></app-icon>
+        <span>{{ uploadError() }}</span>
+      </div>
+    </div>
+
+    <!-- Nút hành động bước 1 -->
+    <div class="setup-actions-bar text-center">
+      <button 
+        type="button" 
+        class="setup-primary-btn" 
+        [disabled]="activeTab() === 'template' ? !selectedTemplate() : !uploadedImage()"
+        (click)="confirmSource()">
+        <span>Tiếp tục: Nhập kích thước phòng</span>
+        <app-icon name="ArrowRight" size="18"></app-icon>
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- ============================================== -->
+  <!-- BƯỚC 2: THIẾT LẬP KÍCH THƯỚC (DÀI × RỘNG × CAO) -->
+  <!-- ============================================== -->
+  <ng-container *ngIf="plannerService.setupSubStep() === 'dimensions'">
+    <div class="setup-header text-center">
+      <div class="header-badge">
+        <app-icon name="Ruler" size="16"></app-icon>
+        <span>Bước 2 / 2</span>
+      </div>
+      <h1 class="setup-title">Xác định kích thước phòng</h1>
+      <p class="setup-subtitle">
+        Nhập kích thước thực tế (mét) để hệ thống tự động quy đổi và hiển thị đúng tỉ lệ vật thể nội thất trên canvas.
+      </p>
+    </div>
+
+    <div class="dimensions-layout">
+      <!-- Cột trái: Form nhập số đo -->
+      <div class="dimensions-form-card">
+        <div class="form-card-header">
+          <h3 class="form-title">Thông số mặt bằng</h3>
+          <p class="form-desc">Giá trị hợp lệ từ 1.0 m đến 30.0 m</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dim-length">
+            Chiều dài mặt ngang (m) <span class="required-star">*</span>
+          </label>
+          <div class="input-with-unit">
+            <input 
+              id="dim-length"
+              type="number" 
+              [(ngModel)]="lengthMeters" 
+              name="lengthMeters"
+              min="1" 
+              max="30" 
+              step="0.1" 
+              required
+              class="dimension-input"
+              [class.has-error]="lengthMeters < 1 || lengthMeters > 30"
+              placeholder="VD: 5.0"
+            />
+            <span class="unit-badge">mét</span>
+          </div>
+          <span class="field-hint" *ngIf="lengthMeters < 1 || lengthMeters > 30">
+            Chiều dài phải nằm trong khoảng từ 1.0 đến 30.0 mét
+          </span>
+          <span class="field-hint helper" *ngIf="lengthMeters >= 1 && lengthMeters <= 30">
+            Quy ước: tương ứng với toàn bộ cạnh ngang của ảnh phòng
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dim-width">
+            Chiều rộng / chiều sâu (m) <span class="required-star">*</span>
+          </label>
+          <div class="input-with-unit">
+            <input 
+              id="dim-width"
+              type="number" 
+              [(ngModel)]="widthMeters" 
+              name="widthMeters"
+              min="1" 
+              max="30" 
+              step="0.1" 
+              required
+              class="dimension-input"
+              [class.has-error]="widthMeters < 1 || widthMeters > 30"
+              placeholder="VD: 4.0"
+            />
+            <span class="unit-badge">mét</span>
+          </div>
+          <span class="field-hint" *ngIf="widthMeters < 1 || widthMeters > 30">
+            Chiều rộng phải nằm trong khoảng từ 1.0 đến 30.0 mét
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dim-height">
+            Chiều cao trần (m) <span class="optional-tag">(tùy chọn)</span>
+          </label>
+          <div class="input-with-unit">
+            <input 
+              id="dim-height"
+              type="number" 
+              [(ngModel)]="heightMeters" 
+              name="heightMeters"
+              min="1" 
+              max="30" 
+              step="0.1" 
+              class="dimension-input"
+              [class.has-error]="heightMeters && (heightMeters < 1 || heightMeters > 30)"
+              placeholder="VD: 2.8"
+            />
+            <span class="unit-badge">mét</span>
+          </div>
+          <span class="field-hint" *ngIf="heightMeters && (heightMeters < 1 || heightMeters > 30)">
+            Chiều cao phải từ 1.0 đến 30.0 mét
+          </span>
+        </div>
+
+        <div class="rule-box">
+          <app-icon name="Info" size="18"></app-icon>
+          <div class="rule-box-content">
+            <strong>Tỉ lệ quy đổi tự động:</strong>
+            <p>1 mét thực tế ≈ <strong>{{ calculatedPxPerMeter }}</strong> pixels trên canvas. Nội thất 180×90 cm sẽ hiển thị đúng chuẩn tỉ lệ này.</p>
+          </div>
+        </div>
+
+        <div class="form-buttons-row">
+          <button type="button" class="setup-secondary-btn" (click)="plannerService.backToSourceSelection()">
+            <app-icon name="ArrowLeft" size="16"></app-icon>
+            <span>Đổi nguồn ảnh</span>
+          </button>
+
+          <button 
+            type="button" 
+            class="setup-primary-btn" 
+            [disabled]="!isDimensionsValid()"
+            (click)="handleStartPlanner()">
+            <span>Vào không gian thiết kế</span>
+            <app-icon name="ArrowRight" size="18"></app-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cột phải: Xem trước không gian với thước đo -->
+      <div class="dimensions-preview-card">
+        <div class="preview-header">
+          <span class="preview-title">{{ previewBg?.name }}</span>
+          <span class="preview-dims-badge">{{ lengthMeters }}m × {{ widthMeters }}m</span>
+        </div>
+
+        <div class="preview-viewport">
+          <!-- Thước đo ngang trên -->
+          <div class="dimension-ruler horizontal-ruler">
+            <span class="ruler-line"></span>
+            <span class="ruler-text">{{ lengthMeters }} m (Chiều dài)</span>
+            <span class="ruler-line"></span>
+          </div>
+
+          <div class="preview-image-container">
+            <img [src]="previewBg?.imageUrl" alt="Preview phòng" class="preview-room-image" />
+            
+            <!-- Lưới mờ minh họa -->
+            <div class="preview-grid-overlay"></div>
+          </div>
+
+          <!-- Thước đo dọc bên cạnh -->
+          <div class="dimension-ruler vertical-ruler">
+            <span class="ruler-line"></span>
+            <span class="ruler-text">{{ widthMeters }} m (Chiều rộng)</span>
+            <span class="ruler-line"></span>
+          </div>
+        </div>
+
+        <p class="preview-caption text-center">
+          Ảnh nền phòng được căn chuẩn tỉ lệ {{ lengthMeters }}m × {{ widthMeters }}m. Bạn có thể bật/tắt lưới tham chiếu 1m khi vào canvas.
+        </p>
+      </div>
+    </div>
+  </ng-container>
+
+</div>

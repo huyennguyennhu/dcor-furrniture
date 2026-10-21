@@ -107,22 +107,51 @@ export class ProductDetailComponent implements OnInit {
   addToCart() {
     if (!this.product) return;
 
-    if (!localStorage.getItem('dcor_customer_token')) {
-      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
-      return;
-    }
-
+    // Tìm variant còn hàng
     const variant = this.product.variants?.find(item =>
       item.isActive !== false && item.stock > item.reservedStock
     );
+
+    // Kiểm tra tồn kho trước khi thêm
     if (!variant) {
-      this.cartMessage = 'Sản phẩm hiện chưa có biến thể còn hàng để thêm vào giỏ.';
+      // Fallback: dùng variant đầu tiên nếu không có thông tin tồn kho
+      const firstVariant = this.product.variants?.[0];
+      if (!firstVariant?.id) {
+        this.cartMessage = 'Sản phẩm hiện chưa có biến thể còn hàng để thêm vào giỏ.';
+        return;
+      }
+    }
+
+    const targetVariant = variant || this.product.variants?.[0];
+    if (!targetVariant?.id) {
+      this.cartMessage = 'Không tìm thấy biến thể sản phẩm.';
       return;
     }
 
+    // Lấy giá sản phẩm
+    const rawPrice = this.product.prices?.[0]?.price || targetVariant.price || 0;
+    const productImages = Array.isArray(this.product.images) ? this.product.images : [];
+    const variantImages = (targetVariant.optionValues as any)?.images;
+    const imageUrl = (Array.isArray(variantImages) && variantImages.length > 0)
+      ? variantImages[0]
+      : (productImages.length > 0 ? productImages[0] : '');
+
     this.isAddingToCart = true;
     this.cartMessage = '';
-    this.cartService.addToCart(variant.id, 1, variant.optionValues || {})
+
+    // Thông tin sản phẩm cho guest cart
+    const guestProductInfo = {
+      productId: this.product.productId || (this.product as any).id || '',
+      name: this.product.shortDescription_vi || this.product.shortDescription || (this.product as any).name || 'Sản phẩm',
+      variantName: targetVariant.name !== 'Phân loại mặc định' ? targetVariant.name : undefined,
+      image: typeof imageUrl === 'string' ? imageUrl : '',
+      price: rawPrice,
+      availableStock: typeof targetVariant.stock === 'number'
+        ? Math.max(0, targetVariant.stock - (targetVariant.reservedStock || 0))
+        : undefined
+    };
+
+    this.cartService.addToCart(targetVariant.id, 1, targetVariant.optionValues || {}, guestProductInfo)
       .pipe(
         timeout({ first: 15000 }),
         finalize(() => {

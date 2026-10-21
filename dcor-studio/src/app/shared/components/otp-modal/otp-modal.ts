@@ -34,6 +34,7 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
   @Input() title = 'Xác thực mã OTP';
   @Input() description?: string;
   @Input() confirmText = 'Xác nhận';
+  @Input() demoOtp: string | null = null;
 
   // Optional @Output()
   @Output() resend = new EventEmitter<void>();
@@ -44,6 +45,13 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
   remainingSeconds = 90;
   remainingResendSeconds = 60;
 
+  // SMS Demo Toast State (Giả lập đồ án)
+  showToast = false;
+  isToastDismissed = false;
+  copied = false;
+  private toastTimeout: any = null;
+  private copiedTimeout: any = null;
+
   private timerInterval: any = null;
   private resendInterval: any = null;
   private focusTimeout: any = null;
@@ -51,15 +59,38 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    let shouldScheduleToast = false;
+
     if (changes['isOpen']) {
       if (this.isOpen) {
         this.resetState();
         this.startTimers();
         if (this.focusTimeout) clearTimeout(this.focusTimeout);
         this.focusTimeout = setTimeout(() => this.focusInput(0), 100);
+        this.isToastDismissed = false;
+        if (this.demoOtp) {
+          shouldScheduleToast = true;
+        }
       } else {
         this.stopTimers();
+        this.clearToastTimer();
+        this.showToast = false;
+        this.isToastDismissed = false;
       }
+    }
+
+    if (changes['demoOtp']) {
+      this.isToastDismissed = false;
+      if (this.isOpen && this.demoOtp) {
+        shouldScheduleToast = true;
+      } else if (!this.demoOtp) {
+        this.clearToastTimer();
+        this.showToast = false;
+      }
+    }
+
+    if (shouldScheduleToast) {
+      this.scheduleToast();
     }
 
     if (changes['countdown'] && this.isOpen && changes['countdown'].currentValue) {
@@ -81,6 +112,20 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
       clearTimeout(this.focusTimeout);
       this.focusTimeout = null;
     }
+    this.clearToastTimer();
+    if (this.copiedTimeout) {
+      clearTimeout(this.copiedTimeout);
+      this.copiedTimeout = null;
+    }
+  }
+
+  get formattedDemoOtp(): string {
+    if (!this.demoOtp) return '';
+    const digits = this.demoOtp.replace(/\D/g, '');
+    if (digits.length === 6) {
+      return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    }
+    return this.demoOtp;
   }
 
   get formattedTime(): string {
@@ -165,6 +210,9 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
 
   closeModal(): void {
     this.stopTimers();
+    this.clearToastTimer();
+    this.showToast = false;
+    this.isToastDismissed = false;
     this.isOpen = false;
     this.close.emit();
     this.cdr.markForCheck();
@@ -282,6 +330,9 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
       const el = document.getElementById(`otp-${i}`) as HTMLInputElement;
       if (el) el.value = '';
     }
+    this.isToastDismissed = false;
+    this.clearToastTimer();
+    this.showToast = false;
     this.resend.emit();
     this.remainingResendSeconds = this.resendCountdown || 60;
     this.remainingSeconds = this.countdown || 90;
@@ -306,5 +357,78 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
     this.localError = '';
     this.cdr.markForCheck();
     this.verify.emit(this.otpValues.join(''));
+  }
+
+  // --- SMS DEMO TOAST ACTIONS (Giả lập đồ án) ---
+
+  scheduleToast(): void {
+    this.clearToastTimer();
+    this.showToast = false;
+    this.toastTimeout = setTimeout(() => {
+      if (this.isOpen && this.demoOtp && !this.isToastDismissed) {
+        this.showToast = true;
+        this.cdr.markForCheck();
+      }
+    }, 600);
+  }
+
+  clearToastTimer(): void {
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+      this.toastTimeout = null;
+    }
+  }
+
+  dismissToast(): void {
+    this.isToastDismissed = true;
+    this.showToast = false;
+    this.clearToastTimer();
+    this.cdr.markForCheck();
+  }
+
+  copyOtp(): void {
+    if (!this.demoOtp) return;
+    const code = this.demoOtp.replace(/\D/g, '').slice(0, 6) || this.demoOtp;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(code).then(() => {
+        this.triggerCopiedState();
+      }).catch(() => {
+        this.fallbackCopy(code);
+      });
+    } else {
+      this.fallbackCopy(code);
+    }
+  }
+
+  private fallbackCopy(text: string): void {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      this.triggerCopiedState();
+    } catch {
+      // fallback
+    }
+  }
+
+  private triggerCopiedState(): void {
+    this.copied = true;
+    this.cdr.markForCheck();
+    if (this.copiedTimeout) clearTimeout(this.copiedTimeout);
+    this.copiedTimeout = setTimeout(() => {
+      this.copied = false;
+      this.cdr.markForCheck();
+    }, 1500);
+  }
+
+  fillDemoOtp(): void {
+    if (!this.demoOtp) return;
+    this.fillAllOtp(this.demoOtp);
   }
 }

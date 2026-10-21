@@ -76,6 +76,16 @@ import {
   Image,
   Scale,
   Star,
+  Undo2,
+  Redo2,
+  ZoomIn,
+  ZoomOut,
+  Lock,
+  Unlock,
+  Grid3x3,
+  Maximize2,
+  RotateCw,
+  ArrowDown,
 } from 'lucide-angular';
 
 const ICONS = {
@@ -154,6 +164,16 @@ const ICONS = {
   Image,
   Scale,
   Star,
+  Undo2,
+  Redo2,
+  ZoomIn,
+  ZoomOut,
+  Lock,
+  Unlock,
+  Grid3x3,
+  Maximize2,
+  RotateCw,
+  ArrowDown,
 } as const;
 
 export type IconName = keyof typeof ICONS;

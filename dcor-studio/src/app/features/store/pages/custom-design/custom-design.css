@@ -1,0 +1,324 @@
+.room-planner-page {
+  min-height: calc(100vh - 80px);
+  background-color: var(--color-page, #fcf8f3);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================== */
+/* PLANNER WORKSPACE SHELL (FULL SCREEN CANVAS)   */
+/* ============================================== */
+.planner-workspace-shell {
+  height: calc(100vh - 80px);
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--color-page, #fcf8f3);
+}
+
+/* TOPBAR */
+.planner-topbar {
+  height: 58px;
+  background: var(--color-surface, #ffffff);
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 45;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--color-surface-subtle, #f5f5f5);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-control, 8px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #0a0a0a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.topbar-back-btn:hover {
+  background: var(--color-surface-muted, #ededed);
+  color: var(--color-primary, #765337);
+  border-color: var(--color-text-muted, #757575);
+}
+
+.topbar-room-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: var(--color-surface-subtle, #f9fafb);
+  border: 1px solid var(--color-border-subtle, #ededed);
+  border-radius: var(--radius-control, 8px);
+}
+
+.topbar-room-badge .room-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-heading, #0a0a0a);
+}
+
+.topbar-room-badge .room-dims {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary, #765337);
+  background: var(--color-sub-bg, #fff3e3);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Center History Controls */
+.topbar-center {
+  display: flex;
+  align-items: center;
+}
+
+.history-controls-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-surface-subtle, #f5f5f5);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-control, 8px);
+  padding: 3px 5px;
+}
+
+.topbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-text, #0a0a0a);
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.topbar-icon-btn:hover:not(:disabled) {
+  background: var(--color-surface, #ffffff);
+  color: var(--color-primary, #765337);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.topbar-icon-btn:disabled {
+  color: var(--color-text-muted, #9ca3af);
+  cursor: not-allowed;
+}
+
+/* Right Topbar */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-price-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--color-sub-bg, #fff3e3);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #765337) 25%, transparent);
+  border-radius: var(--radius-control, 8px);
+}
+
+.price-label {
+  font-size: 12px;
+  color: var(--color-text-secondary, #616161);
+}
+
+.price-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary, #765337);
+}
+
+/* Mobile Toggles */
+.mobile-toggles-row {
+  display: none;
+  gap: 6px;
+}
+
+.mobile-drawer-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text, #0a0a0a);
+  border-radius: var(--radius-control, 8px);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mobile-drawer-toggle-btn.active {
+  background: var(--color-primary, #765337);
+  color: #ffffff;
+  border-color: var(--color-primary, #765337);
+}
+
+/* ============================================== */
+/* 3-COLUMN LAYOUT                                */
+/* ============================================== */
+.planner-columns-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.planner-left-column {
+  width: 320px;
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-surface, #ffffff);
+}
+
+.planner-center-column {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.planner-right-column {
+  width: 290px;
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-surface, #ffffff);
+}
+
+.mobile-column-header {
+  display: none;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-surface, #ffffff);
+}
+
+.mobile-column-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-heading, #0a0a0a);
+}
+
+.close-drawer-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary, #616161);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.mobile-backdrop {
+  display: none;
+}
+
+/* ============================================== */
+/* RESPONSIVE (< 1024px)                          */
+/* ============================================== */
+@media (max-width: 1023px) {
+  .topbar-room-badge {
+    display: none;
+  }
+
+  .mobile-toggles-row {
+    display: flex;
+  }
+
+  .btn-text {
+    display: none;
+  }
+
+  .mobile-column-header {
+    display: flex;
+  }
+
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 85;
+  }
+
+  .planner-left-column {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 330px;
+    max-width: 85vw;
+    z-index: 90;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .planner-left-column.mobile-open {
+    transform: translateX(0);
+  }
+
+  .planner-right-column {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 320px;
+    max-width: 85vw;
+    z-index: 90;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .planner-right-column.mobile-open {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .back-text {
+    display: none;
+  }
+
+  .price-label {
+    display: none;
+  }
+
+  .topbar-price-card {
+    padding: 4px 10px;
+  }
+}

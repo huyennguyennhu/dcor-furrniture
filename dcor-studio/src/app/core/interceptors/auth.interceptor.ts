@@ -2,9 +2,9 @@ import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Lấy token của Customer (nếu có)
-  const customerToken = localStorage.getItem('dcor_customer_token');
-  // Lấy token của Admin (nếu có)
-  const adminToken = localStorage.getItem('dcor_admin_token');
+  const customerToken = sessionStorage.getItem('dcor_customer_token') || localStorage.getItem('dcor_customer_token');
+  // Lấy token của Admin từ sessionStorage (phiên làm việc) hoặc localStorage
+  const adminToken = sessionStorage.getItem('dcor_admin_token') || localStorage.getItem('dcor_admin_token');
 
   // Phân luồng Token tùy theo prefix của API để tránh gửi lộn Token
   let token = null;
