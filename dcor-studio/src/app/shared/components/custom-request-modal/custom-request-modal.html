@@ -1,0 +1,453 @@
+<div class="custom-modal-backdrop" *ngIf="isOpen" (click)="handleCloseClick()">
+  <div class="custom-drawer-box" (click)="$event.stopPropagation()">
+
+    <!-- MODAL HEADER -->
+    <div class="drawer-header">
+      <div class="header-main-info">
+        <div class="header-icon-badge">
+          <lucide-angular [img]="icons.Sparkles" size="22" color="#b45309"></lucide-angular>
+        </div>
+        <div class="header-titles">
+          <h3>Đặt hàng theo yêu cầu</h3>
+          <div class="header-product-snippet" *ngIf="product">
+            <img [src]="productThumbnail" [alt]="productName" class="product-mini-thumb" />
+            <div class="product-mini-info">
+              <span class="product-mini-name">{{ productName }}</span>
+              <span class="product-mini-sku">SKU: {{ productSku }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn-drawer-close" (click)="handleCloseClick()" aria-label="Đóng">
+        <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- MODAL BODY: FORM STATE -->
+    <div class="drawer-scroll-body" *ngIf="!isSubmittedSuccess">
+      <div class="custom-intro-banner">
+        <div class="banner-icon">
+          <lucide-angular [img]="icons.Layers" size="20" color="#765337"></lucide-angular>
+        </div>
+        <p>
+          DCor nhận gia công theo kích thước riêng cùng tùy chọn thay đổi chất liệu khung, mặt đá, vải bọc hoặc da nhập
+          khẩu sao cho vừa vặn nhất với ngôi nhà của bạn.
+        </p>
+      </div>
+
+      <form (submit)="$event.preventDefault(); submitCustomRequest()" class="custom-main-form">
+
+        <!-- ================================================================= -->
+        <!-- KHỐI 1: THÔNG SỐ KỸ THUẬT & TÙY BIẾN SẢN PHẨM (DỮ LIỆU THẬT) -->
+        <!-- ================================================================= -->
+        <section class="form-section-card">
+          <div class="section-card-header">
+            <div class="section-badge-num">1</div>
+            <div class="section-header-text">
+              <h4>Thông số kỹ thuật & Tùy biến sản phẩm</h4>
+              <p>Đối chiếu thông số tiêu chuẩn và tùy chỉnh các thuộc tính sẵn có của sản phẩm</p>
+            </div>
+          </div>
+
+          <div class="section-card-body">
+
+            <!-- Card đối chiếu thông số nguyên bản của sản phẩm này -->
+            <div class="specs-reference-box">
+              <div class="ref-box-title">
+                <lucide-angular [img]="icons.Info" size="15" color="#b45309"></lucide-angular>
+                <span>Thông số tiêu chuẩn của sản phẩm gốc:</span>
+              </div>
+              <div class="ref-specs-grid">
+                <!-- Kích thước gốc (chỉ hiện nếu sản phẩm có kích thước) -->
+                <div class="ref-spec-item" *ngIf="hasDimensions && originalDimensions">
+                  <span class="ref-label">Kích thước gốc:</span>
+                  <strong class="ref-value">{{ originalDimensions }}</strong>
+                </div>
+
+                <!-- Các thuộc tính thực tế mà sản phẩm sở hữu -->
+                <div class="ref-spec-item" *ngFor="let attr of activeCustomAttributes">
+                  <span class="ref-label">{{ attr.label }} gốc:</span>
+                  <strong class="ref-value">{{ attr.originalValue }}</strong>
+                </div>
+
+                <!-- Giá niêm yết tham chiếu -->
+                <div class="ref-spec-item" *ngIf="productPrice > 0">
+                  <span class="ref-label">Giá niêm yết gốc:</span>
+                  <strong class="ref-value price-val">{{ productPrice | number:'1.0-0' }} VNĐ</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- 1. Tùy chỉnh Kích thước (Chỉ hiển thị nếu sản phẩm có kích thước) -->
+            <div class="form-field-group" *ngIf="hasDimensions">
+              <div class="field-label-row">
+                <label for="cDimensions">
+                  <lucide-angular [img]="icons.Ruler" size="15" color="#765337"></lucide-angular>
+                  <span>Kích thước tùy chỉnh (Dài x Rộng x Cao hoặc Đường kính)</span>
+                </label>
+                <span class="field-current-tag" *ngIf="originalDimensions">Gốc: {{ originalDimensions }}</span>
+              </div>
+
+              <!-- Chips chọn nhanh kích thước tiêu chuẩn nếu có nhiều cỡ -->
+              <div class="chips-selector-wrap" *ngIf="dimensionSizeOptions.length > 0">
+                <button type="button" *ngFor="let sOpt of dimensionSizeOptions" class="spec-chip"
+                  [class.active]="selectedDimensionOptionId === sOpt.id" (click)="selectDimensionChip(sOpt)">
+                  <lucide-angular [img]="icons.Check" size="12" *ngIf="selectedDimensionOptionId === sOpt.id"></lucide-angular>
+                  <span>{{ sOpt.name }}</span>
+                </button>
+              </div>
+
+              <input type="text" id="cDimensions" [(ngModel)]="requestedDimensions" name="requestedDimensions"
+                [placeholder]="'Nhập kích thước may đo mong muốn (VD: ' + (originalDimensions || '260 x 95 x 85 cm') + ')'"
+                class="custom-input" />
+              <input type="text" [(ngModel)]="customDimensionNote" name="customDimensionNote"
+                placeholder="Ghi chú chi tiết kích thước (VD: Hạ thấp 5cm, bo góc cạnh bàn...)"
+                class="custom-input custom-spec-input" />
+              <span class="field-hint-text">Ghi chú kích thước theo cm hoặc mm để đội ngũ kỹ thuật ra phôi chính xác.</span>
+            </div>
+
+            <!-- 2. Danh sách thuộc tính thực tế của sản phẩm (Chỉ cho phép custom thuộc tính mà sản phẩm có) -->
+            <ng-container *ngFor="let attr of activeCustomAttributes">
+              <div class="form-field-group">
+                <div class="field-label-row">
+                  <label>
+                    <lucide-angular [img]="attr.type === 'color' ? icons.Palette : icons.Layers" size="15" color="#765337"></lucide-angular>
+                    <span>Tùy biến {{ attr.label }}</span>
+                  </label>
+                  <span class="field-current-tag">Gốc: {{ attr.originalValue }}</span>
+                </div>
+
+                <!-- Chips các lựa chọn thực tế của sản phẩm này -->
+                <div class="chips-selector-wrap" *ngIf="attr.options.length > 0">
+                  <button type="button" *ngFor="let opt of attr.options" class="spec-chip"
+                    [class.active]="attr.selectedOptionId === opt.id" (click)="selectAttributeOption(attr, opt)"
+                    [title]="opt.name">
+                    <span class="swatch-dot" *ngIf="attr.type === 'color' || opt.hexColor"
+                      [style.background-color]="opt.hexColor || detectColor(opt.name).hex"></span>
+                    <lucide-angular [img]="icons.Check" size="12" *ngIf="attr.selectedOptionId === opt.id"></lucide-angular>
+                    <span>{{ opt.name }}</span>
+                  </button>
+                </div>
+
+                <!-- Ô nhập yêu cầu may đo riêng cho thuộc tính này -->
+                <input type="text" [(ngModel)]="attr.customNote" [name]="'customNote_' + attr.groupId"
+                  [placeholder]="'Hoặc nhập yêu cầu riêng cho ' + attr.label + ' (VD: ' + (attr.type === 'color' ? 'Mã màu sơn / vải riêng, gam màu Pantone...' : 'Vật liệu nhập khẩu riêng, độ bóng / nhám...') + ')'"
+                  class="custom-input custom-spec-input" />
+              </div>
+            </ng-container>
+
+            <!-- 3. Mô tả chi tiết nhu cầu / Ghi chú chung -->
+            <div class="form-field-group">
+              <label for="cRequirements">
+                <lucide-angular [img]="icons.FileText" size="15" color="#765337"></lucide-angular>
+                <span>Ghi chú thêm về không gian & yêu cầu đặc biệt</span>
+              </label>
+              <textarea id="cRequirements" [(ngModel)]="requirementDetails" name="requirementDetails" rows="3"
+                placeholder="Ví dụ: Đặt tại phòng khách căn hộ chung cư lầu 18 (cần lưu ý kích thước thang máy); Muốn tích hợp thêm ngăn kéo phụ dưới gầm sofa..."
+                class="custom-textarea"></textarea>
+            </div>
+
+            <!-- 4. Khoảng ngân sách chi trả (Dự toán theo giá sản phẩm thực tế) -->
+            <div class="form-field-group">
+              <div class="field-label-row">
+                <label>
+                  <lucide-angular [img]="icons.Coins" size="15" color="#765337"></lucide-angular>
+                  <span>Khoảng ngân sách dự kiến <span class="req">*</span></span>
+                </label>
+                <span class="field-current-tag" *ngIf="productPrice > 0">Giá niêm yết: {{ productPrice | number:'1.0-0' }} VNĐ</span>
+              </div>
+
+              <!-- Chips khoảng giá động theo giá sản phẩm -->
+              <div class="chips-selector-wrap">
+                <button type="button" *ngFor="let b of dynamicBudgetRanges" class="spec-chip"
+                  [class.active]="selectedBudgetRange === b.value" (click)="selectBudgetChip(b.value)"
+                  [title]="b.hint || ''">
+                  <span>{{ b.label }}</span>
+                </button>
+              </div>
+
+              <div class="budget-input-wrap">
+                <input type="text" [value]="estimatedBudget" (input)="formatBudgetInput($event)"
+                  (blur)="onBlurField('budget')" placeholder="Hoặc nhập số tiền dự kiến chính xác (VD: 35.000.000)"
+                  class="custom-input" [class.is-invalid]="formErrors['budget']" />
+                <span class="currency-suffix">VNĐ</span>
+              </div>
+              <span class="field-error-text" *ngIf="formErrors['budget']">{{ formErrors['budget'] }}</span>
+              <span class="field-hint-text">Ngân sách dự kiến giúp KTS DCOR đề xuất phương án may đo và vật liệu tối ưu nhất.</span>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- KHỐI 2: TẢI TỆP TƯ LIỆU & MẪU THIẾT KẾ THAM KHẢO -->
+        <!-- ================================================================= -->
+        <section class="form-section-card">
+          <div class="section-card-header">
+            <div class="section-badge-num">2</div>
+            <div class="section-header-text">
+              <h4>Tệp tư liệu & Mẫu thiết kế tham khảo</h4>
+              <p>Tải lên bản phác thảo mặt bằng, hình ảnh phối cảnh 3D hoặc mẫu vân gỗ, màu vải thực tế</p>
+            </div>
+          </div>
+
+          <div class="section-card-body">
+            <!-- Vùng Drag & Drop -->
+            <div class="file-dropzone" [class.is-dragging]="isDraggingFile" (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)" (drop)="onFileDrop($event)">
+              <input type="file" multiple accept="image/*,application/pdf" id="fileUploadInput"
+                (change)="onFileInputChange($event)" class="hidden-file-input" />
+
+              <div class="dropzone-content">
+                <div class="dropzone-icon-circle">
+                  <lucide-angular [img]="icons.Upload" size="24" color="#b45309"></lucide-angular>
+                </div>
+                <div class="dropzone-texts">
+                  <strong>Kéo thả tệp vào đây, hoặc <label for="fileUploadInput" class="browse-link">chọn từ thiết
+                      bị</label></strong>
+                  <p>Hỗ trợ ảnh JPG, PNG, WEBP, HEIC hoặc tệp bản vẽ PDF (Tối đa 8 tệp, dung lượng &le; 15MB/tệp)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Danh sách ảnh/file đã upload -->
+            <div class="uploaded-files-grid" *ngIf="uploadedFiles.length > 0">
+              <div class="uploaded-file-card" *ngFor="let f of uploadedFiles">
+                <!-- Preview ảnh hoặc icon tài liệu -->
+                <div class="file-preview-thumb">
+                  <img *ngIf="f.type.startsWith('image/')" [src]="f.previewUrl" [alt]="f.name" />
+                  <div *ngIf="!f.type.startsWith('image/')" class="doc-icon-wrap">
+                    <lucide-angular [img]="icons.FileText" size="24" color="#765337"></lucide-angular>
+                  </div>
+                </div>
+
+                <div class="file-details">
+                  <span class="file-name" [title]="f.name">{{ f.name }}</span>
+                  <span class="file-size">{{ f.size }}</span>
+                </div>
+
+                <button type="button" class="btn-remove-file" (click)="removeFile(f.id, $event)" title="Xóa tệp này">
+                  <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- KHỐI 3: THÔNG TIN LIÊN HỆ -->
+        <!-- ================================================================= -->
+        <section class="form-section-card">
+          <div class="section-card-header">
+            <div class="section-badge-num">3</div>
+            <div class="section-header-text">
+              <h4>Thông tin liên hệ</h4>
+            </div>
+          </div>
+
+          <div class="section-card-body">
+            <div class="form-grid-two-col">
+              <!-- Họ và tên -->
+              <div class="form-field-group">
+                <label for="cFullName">Họ và tên người liên hệ <span class="req">*</span></label>
+                <input type="text" id="cFullName" [(ngModel)]="fullName" (input)="onFullNameInput()"
+                  (blur)="onBlurField('fullName')" name="fullName" placeholder="Ví dụ: Nguyễn Văn A"
+                  class="custom-input" [class.is-invalid]="formErrors['fullName']" />
+                <span class="field-error-text" *ngIf="formErrors['fullName']">{{ formErrors['fullName'] }}</span>
+              </div>
+
+              <!-- Số điện thoại kèm nút/badge xác thực OTP -->
+              <div class="form-field-group">
+                <div class="label-with-badge">
+                  <label for="cPhone">Số điện thoại liên hệ <span class="req">*</span></label>
+                  <span *ngIf="isPhoneVerified" class="verify-badge verified">
+                    <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
+                    <span>Đã xác thực</span>
+                  </span>
+                  <span *ngIf="!isPhoneVerified" class="verify-badge unverified" (click)="sendOtp()"
+                    title="Nhấn để gửi mã xác thực OTP ngay">
+                    Chưa xác thực SĐT
+                  </span>
+                </div>
+                <div class="phone-input-row">
+                  <input type="tel" id="cPhone" [(ngModel)]="phone" (input)="onPhoneInput()"
+                    (blur)="onBlurField('phone')" name="phone" placeholder="Ví dụ: 0912345678" class="custom-input"
+                    [class.is-invalid]="formErrors['phone']" />
+                  <button *ngIf="!isPhoneVerified" type="button" class="btn-action-otp" (click)="sendOtp()"
+                    [disabled]="isSendingOtp">
+                    {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
+                  </button>
+                </div>
+                <span class="field-error-text" *ngIf="formErrors['phone']">{{ formErrors['phone'] }}</span>
+              </div>
+
+              <!-- Email nhận Draft Hợp đồng & Báo giá -->
+              <div class="form-field-group full-width">
+                <label for="cEmail">Email<span class="req">*</span></label>
+                <input type="email" id="cEmail" [(ngModel)]="email" (input)="onEmailInput()"
+                  (blur)="onBlurField('email')" name="email" placeholder="Ví dụ: hoten@gmail.com" class="custom-input"
+                  [class.is-invalid]="formErrors['email']" />
+                <span class="field-error-text" *ngIf="formErrors['email']">{{ formErrors['email'] }}</span>
+                <span class="field-hint-text">
+                  DCor sẽ gửi hồ sơ kỹ thuật, bản vẽ 3D và phụ lục vật liệu chi tiết về hòm thư này.
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </form>
+    </div>
+
+    <!-- MODAL BODY: SUCCESS STATE -->
+    <div class="drawer-scroll-body success-state-body" *ngIf="isSubmittedSuccess">
+      <div class="success-card-view">
+        <div class="success-icon-big">
+          <lucide-angular [img]="icons.CheckCircle2" size="48" color="#00A30B"></lucide-angular>
+        </div>
+        <h3>Đã tiếp nhận yêu cầu chế tác!</h3>
+        <p class="success-intro">
+          Cảm ơn quý khách <b>{{ fullName }}</b>. Đội ngũ Kiến trúc sư và Xưởng chế tác DCOR sẽ hoàn thiện bóc tách kỹ
+          thuật và phản hồi trong vòng <b>24 giờ làm việc</b>.
+        </p>
+
+        <!-- Thông tin tóm tắt yêu cầu -->
+        <div class="success-summary-box">
+          <div class="sum-line">
+            <span class="sum-label">Mã phiếu yêu cầu:</span>
+            <strong class="sum-val code-highlight">{{ createdRequestCode }}</strong>
+          </div>
+          <div class="sum-line">
+            <span class="sum-label">Sản phẩm tham chiếu:</span>
+            <strong class="sum-val">{{ productName }} (SKU: {{ productSku }})</strong>
+          </div>
+          <div class="sum-line">
+            <span class="sum-label">Số điện thoại liên hệ:</span>
+            <strong class="sum-val">{{ phone }}</strong>
+          </div>
+          <div class="sum-line">
+            <span class="sum-label">Email gửi Dự thảo Hợp đồng:</span>
+            <strong class="sum-val">{{ email }}</strong>
+          </div>
+          <div class="sum-line" *ngIf="hasDimensions && (requestedDimensions || customDimensionNote)">
+            <span class="sum-label">Kích thước may đo:</span>
+            <strong class="sum-val">{{ requestedDimensions || originalDimensions }} {{ customDimensionNote ? '(' + customDimensionNote + ')' : '' }}</strong>
+          </div>
+          <ng-container *ngFor="let attr of activeCustomAttributes">
+            <div class="sum-line" *ngIf="attr.selectedOptionName !== attr.originalValue || attr.customNote">
+              <span class="sum-label">Tùy biến {{ attr.label }}:</span>
+              <strong class="sum-val">
+                {{ attr.selectedOptionName }}
+                {{ attr.customNote ? ' — Ghi chú: ' + attr.customNote : '' }}
+              </strong>
+            </div>
+          </ng-container>
+          <div class="sum-line" *ngIf="estimatedBudget || selectedBudgetRange">
+            <span class="sum-label">Dự toán ngân sách:</span>
+            <strong class="sum-val">{{ estimatedBudget ? estimatedBudget + ' VNĐ' : selectedBudgetRange }}</strong>
+          </div>
+          <div class="sum-line" *ngIf="uploadedFiles.length > 0">
+            <span class="sum-label">Tài liệu tham khảo đính kèm:</span>
+            <strong class="sum-val">{{ uploadedFiles.length }} tệp</strong>
+          </div>
+        </div>
+
+        <div class="success-actions-row">
+          <button type="button" class="btn-view-requests" (click)="viewMyRequests()">
+            <lucide-angular [img]="icons.ExternalLink" size="16"></lucide-angular>
+            <span>Xem danh sách yêu cầu của tôi</span>
+          </button>
+          <button type="button" class="btn-close-success" (click)="close.emit()">
+            <span>Hoàn tất & Đóng</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL FOOTER ACTIONS (KHI Ở FORM STATE) -->
+    <div class="drawer-footer-actions" *ngIf="!isSubmittedSuccess">
+      <div class="footer-hint-text">
+        <lucide-angular [img]="icons.ShieldCheck" size="16" color="#00A30B"></lucide-angular>
+        <span>Bảo mật thông tin & Cam kết tư vấn miễn phí 100%</span>
+      </div>
+
+      <div class="footer-buttons-group">
+        <button type="button" class="btn-cancel-custom" (click)="handleCloseClick()">
+          Hủy
+        </button>
+
+        <button type="button" class="btn-submit-custom" (click)="submitCustomRequest()" [disabled]="isSubmitDisabled">
+          <span *ngIf="isSubmitting" class="spinner-circle"></span>
+          <lucide-angular *ngIf="!isSubmitting" [img]="icons.Send" size="16"></lucide-angular>
+          <span>{{ isSubmitting ? 'Đang gửi yêu cầu...' : 'Gửi Yêu Cầu Custom' }}</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- SUB-MODAL: XÁC THỰC MÃ OTP SỐ ĐIỆN THOẠI -->
+<!-- ================================================================= -->
+<div class="modal-backdrop-otp" *ngIf="isOtpModalOpen" (click)="closeOtpModal()">
+  <div class="otp-dialog-box" (click)="$event.stopPropagation()">
+    <div class="otp-dialog-header">
+      <div class="otp-title-wrap">
+        <lucide-angular [img]="icons.ShieldCheck" size="22" color="#b45309"></lucide-angular>
+        <h4>Xác thực số điện thoại</h4>
+      </div>
+      <button type="button" class="btn-dialog-close" (click)="closeOtpModal()">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="otp-dialog-body">
+      <p class="otp-dialog-desc">
+        Mã xác thực OTP đã được gửi đến số điện thoại <b>{{ phone }}</b>. Quý khách vui lòng nhập mã để hoàn tất xác
+        minh danh tính.
+      </p>
+
+      <div class="otp-input-wrap">
+        <input type="text" maxlength="6" [(ngModel)]="otpCode" placeholder="Nhập 6 số OTP (Thử nghiệm: 111111)"
+          class="otp-digit-input" (keyup.enter)="verifyOtp()" />
+      </div>
+
+      <div *ngIf="otpErrorMessage" class="otp-error-alert">
+        <lucide-angular [img]="icons.AlertCircle" size="15"></lucide-angular>
+        <span>{{ otpErrorMessage }}</span>
+      </div>
+
+      <div class="otp-countdown-row">
+        <span *ngIf="otpCountdown > 0">Gửi lại mã sau: <b>{{ otpCountdown }}s</b></span>
+        <button *ngIf="otpCountdown === 0" type="button" class="btn-resend-link" (click)="sendOtp()">Gửi lại mã
+          OTP</button>
+      </div>
+    </div>
+
+    <div class="otp-dialog-footer">
+      <button type="button" class="btn-otp-cancel" (click)="closeOtpModal()">Đóng</button>
+      <button type="button" class="btn-otp-confirm" (click)="verifyOtp()">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- SUB-MODAL: CẢNH BÁO HỦY FORM DỞ DANG -->
+<!-- ================================================================= -->
+<div class="modal-backdrop-confirm" *ngIf="showConfirmClose" (click)="cancelDiscard()">
+  <div class="confirm-dialog-box" (click)="$event.stopPropagation()">
+    <div class="confirm-icon-wrap">
+      <lucide-angular [img]="icons.AlertCircle" size="32" color="#b45309"></lucide-angular>
+    </div>
+    <h4>Hủy thông tin yêu cầu?</h4>
+    <p>
+      Các thông số tùy biến và hình ảnh bạn đã điền sẽ không được lưu. Bạn có chắc chắn muốn đóng form yêu cầu?
+    </p>
+    <div class="confirm-actions-row">
+      <button type="button" class="btn-keep-editing" (click)="cancelDiscard()">Tiếp tục chỉnh sửa</button>
+      <button type="button" class="btn-discard" (click)="confirmDiscardAndClose()">Xác nhận Hủy</button>
+    </div>
+  </div>
+</div>

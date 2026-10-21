@@ -1,0 +1,581 @@
+.address-selector-wrapper {
+  width: 100%;
+}
+
+/* Card hiển thị khi đã chọn địa chỉ */
+.selected-address-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #FCFBF9;
+  border: 1.5px solid #D6CBC1;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selected-address-card:hover {
+  border-color: #b45309;
+  background: #FDF9F5;
+  box-shadow: 0 4px 14px rgba(118, 83, 55, 0.08);
+}
+
+.addr-card-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(118, 83, 55, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.addr-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.addr-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.addr-receiver-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+.addr-divider {
+  color: #C0C0C0;
+  font-size: 14px;
+}
+
+.addr-receiver-phone {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4A4A4A;
+}
+
+.verify-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.verify-badge.verified {
+  background: #E6F7EA;
+  color: #00A30B;
+}
+
+.verify-badge.unverified {
+  background: #FFFBE6;
+  color: #D48806;
+  border: 1px dashed #FADB14;
+}
+
+.addr-full-text {
+  font-size: 14px;
+  color: #333333;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.addr-email-text {
+  font-size: 12.5px;
+  color: #717171;
+}
+
+.addr-card-action {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.btn-change-addr {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #D1C5BA;
+  background: #FFFFFF;
+  color: #765337;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.selected-address-card:hover .btn-change-addr {
+  background: #765337;
+  color: #FFFFFF;
+  border-color: #765337;
+}
+
+/* Card trống khi chưa chọn địa chỉ */
+.empty-address-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 20px;
+  background: #FCFBF9;
+  border: 2px dashed #D6CBC1;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.empty-address-card:hover {
+  border-color: #b45309;
+  background: #FDF9F5;
+}
+
+.empty-addr-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(118, 83, 55, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-addr-content {
+  flex: 1;
+}
+
+.empty-addr-content h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0 0 4px;
+}
+
+.empty-addr-content p {
+  font-size: 13px;
+  color: #666666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.btn-primary-cta-addr {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: #b45309;
+  color: #FFFFFF;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(118, 83, 55, 0.25);
+  transition: all 0.2s;
+}
+
+.btn-primary-cta-addr:hover {
+  background: #92400E;
+  transform: translateY(-1px);
+}
+
+/* Modal Overlay & Box */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.unified-address-modal {
+  background: #FFFFFF;
+  border-radius: 16px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: slideUpScale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #EAEAEA;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+}
+
+.modal-title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-title-with-icon h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: #616161;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.modal-close-btn:hover {
+  background: #F0F0F0;
+  color: #111;
+}
+
+/* Modal Tabs */
+.address-modal-tabs {
+  display: flex;
+  border-bottom: 1px solid #EAEAEA;
+  padding: 0 24px;
+  background: #F9F8F6;
+}
+
+.addr-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #616161;
+  background: none;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.addr-tab-btn:hover {
+  color: #765337;
+}
+
+.addr-tab-btn.active {
+  color: #765337;
+  border-bottom-color: #765337;
+  font-weight: 700;
+  background: #FFFFFF;
+}
+
+.tab-count-badge {
+  font-size: 12px;
+  color: #765337;
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Guest Lookup */
+.guest-search-section {
+  margin-bottom: 16px;
+}
+
+.guest-search-intro {
+  font-size: 13px;
+  color: #555555;
+  margin-bottom: 10px;
+}
+
+.guest-lookup-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn-lookup-phone {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: #765337;
+  color: #FFFFFF;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-lookup-phone:hover {
+  background: #5d412b;
+}
+
+.guest-lookup-msg {
+  font-size: 13px;
+  color: #765337;
+  background: #FFF7EE;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.guest-no-lookup-box {
+  text-align: center;
+  padding: 24px 16px;
+  background: #FAF8F5;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
+.guest-no-lookup-box p {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 12px;
+}
+
+.btn-switch-add {
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: #b45309;
+  color: #fff;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Saved Addresses List */
+.list-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #444444;
+  margin: 12px 0 8px;
+}
+
+.saved-address-list, .lookup-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.saved-addr-card {
+  padding: 14px 16px;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #FFFFFF;
+}
+
+.saved-addr-card:hover {
+  border-color: #b45309;
+  background: #FDF9F5;
+}
+
+.saved-addr-card.selected {
+  border-color: #b45309;
+  background: #FDF6EE;
+  box-shadow: 0 2px 8px rgba(118, 83, 55, 0.12);
+}
+
+.addr-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.addr-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addr-card-top strong {
+  font-size: 14px;
+  color: #1A1A1A;
+}
+
+.addr-phone {
+  font-size: 13px;
+  color: #666;
+}
+
+.default-badge {
+  font-size: 11px;
+  background: #E8F5E9;
+  color: #2E7D32;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.addr-detail {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.4;
+}
+
+/* Form Add New Address */
+.address-alert-error {
+  padding: 10px 14px;
+  background: #FFF1F0;
+  color: #CF1322;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  border: 1px solid #FFA39E;
+}
+
+.form-grid-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.req {
+  color: #CF1322;
+}
+
+.custom-input, .custom-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #D6CBC1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  background: #FFFFFF;
+  color: #111;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.custom-input:focus, .custom-select:focus {
+  border-color: #b45309;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #EAEAEA;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #FDFDFD;
+}
+
+.btn-modal-close {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #D6CBC1;
+  background: #FFFFFF;
+  color: #444;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-modal-add-addr {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid #b45309;
+  background: #FFF7EE;
+  color: #b45309;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-modal-save-addr {
+  height: 40px;
+  padding: 0 20px;
+  background: #b45309;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-modal-save-addr:hover {
+  background: #92400E;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpScale {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 576px) {
+  .form-grid-two-col {
+    grid-template-columns: 1fr;
+  }
+  .empty-address-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  .btn-primary-cta-addr {
+    width: 100%;
+    justify-content: center;
+  }
+}

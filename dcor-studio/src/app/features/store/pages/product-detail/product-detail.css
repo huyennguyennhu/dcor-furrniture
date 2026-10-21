@@ -2068,7 +2068,7 @@
   gap: 10px;
   padding: 12px 32px;
   border-radius: 9999px;
-  background-color: #ffffff;
+  background-color: none;
   border: 1.5px solid #9A461E;
   color: #9A461E;
   font-family: inherit;
@@ -2754,6 +2754,7 @@
     transform: translate(-50%, 100%);
     opacity: 0;
   }
+
   to {
     transform: translate(-50%, 0);
     opacity: 1;
@@ -2919,6 +2920,7 @@
     padding: 8px 14px;
     border-radius: 20px;
   }
+
   .compare-tag-title,
   .compare-counter {
     display: none;

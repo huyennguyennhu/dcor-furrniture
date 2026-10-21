@@ -1,0 +1,220 @@
+<div class="address-selector-wrapper">
+
+  <!-- Trường hợp 1: ĐÃ CÓ ĐỊA CHỈ ĐƯỢC CHỌN -->
+  <div *ngIf="hasSelectedAddress" class="selected-address-card" (click)="openAddressModal('select')">
+    <div class="addr-card-icon">
+      <lucide-angular [img]="icons.MapPin" size="22" color="#765337"></lucide-angular>
+    </div>
+    <div class="addr-card-content">
+      <div class="addr-card-title-row">
+        <span class="addr-receiver-name">{{ receiverName }}</span>
+        <span class="addr-divider">•</span>
+        <span class="addr-receiver-phone">{{ phone }}</span>
+        <span *ngIf="isPhoneVerified" class="verify-badge verified">
+          <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
+          <span>Đã xác thực</span>
+        </span>
+        <span *ngIf="!isPhoneVerified" class="verify-badge unverified" (click)="onVerifyClick($event)"
+          title="Nhấn để gửi mã xác thực OTP ngay">
+          Chưa xác thực SĐT • Xác thực ngay
+        </span>
+      </div>
+      <div class="addr-full-text">{{ address }}</div>
+      <div *ngIf="showEmail && email" class="addr-email-text">
+        Email thông báo: <strong>{{ email }}</strong>
+      </div>
+    </div>
+    <div class="addr-card-action">
+      <button type="button" class="btn-change-addr">
+        <span>Thay đổi</span>
+        <lucide-angular [img]="icons.ChevronRight" size="14"></lucide-angular>
+      </button>
+    </div>
+  </div>
+
+  <!-- Trường hợp 2: CHƯA CÓ ĐỊA CHỈ -->
+  <div *ngIf="!hasSelectedAddress" class="empty-address-card" (click)="openAddressModal('add')">
+    <div class="empty-addr-icon">
+      <lucide-angular [img]="icons.MapPin" size="26" color="#765337"></lucide-angular>
+    </div>
+    <div class="empty-addr-content">
+      <h4>Bạn chưa chọn địa chỉ nhận hàng</h4>
+      <p>Bấm vào đây để mở <strong>Sổ địa chỉ</strong>, tra cứu hoặc điền thông tin người nhận của bạn.</p>
+    </div>
+    <button type="button" class="btn-primary-cta-addr">
+      <lucide-angular [img]="icons.Plus" size="15"></lucide-angular>
+      <span>Mở Sổ địa chỉ</span>
+    </button>
+  </div>
+
+  <!-- ====== UNIFIED ADDRESS MODAL ====== -->
+  <div class="modal-overlay address-modal-overlay" *ngIf="isAddressModalOpen" (click)="closeAddressModal()">
+    <div class="address-modal-box unified-address-modal" (click)="$event.stopPropagation()">
+
+      <!-- Header Modal -->
+      <div class="modal-header">
+        <div class="modal-title-with-icon">
+          <lucide-angular [img]="icons.ShoppingBag" size="20" color="#765337"></lucide-angular>
+          <h3>Sổ địa chỉ nhận hàng</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeAddressModal()">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- Tabs chuyển đổi: Sổ địa chỉ vs Thêm địa chỉ mới -->
+      <div class="address-modal-tabs">
+        <button type="button" class="addr-tab-btn" [class.active]="addressModalMode === 'select'"
+          (click)="addressModalMode = 'select'">
+          <span>Sổ địa chỉ</span>
+          <span *ngIf="savedAddresses.length > 0" class="tab-count-badge">({{ savedAddresses.length }})</span>
+        </button>
+        <button type="button" class="addr-tab-btn" [class.active]="addressModalMode === 'add'"
+          (click)="addressModalMode = 'add'; newAddressError = ''; initNewAddressForm()">
+          <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
+          <span>Thêm địa chỉ mới</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: SỔ ĐỊA CHỈ (CHỌN ĐỊA CHỈ HOẶC TRA CỨU) -->
+      <div *ngIf="addressModalMode === 'select'" class="modal-body address-select-tab-body">
+
+        <!-- Tra cứu SĐT nếu chưa có địa chỉ hoặc khách vãng lai -->
+        <div *ngIf="!isLoggedIn || !hasUserPhone" class="guest-search-section">
+          <div class="guest-search-intro">
+            <span>Tra cứu các địa chỉ bạn đã từng đặt hàng qua Số điện thoại:</span>
+          </div>
+
+          <div class="guest-lookup-row">
+            <input type="tel" [(ngModel)]="guestPhoneLookup" name="guestPhoneLookup"
+              placeholder="Tra cứu địa chỉ qua số điện thoại..." class="custom-input"
+              (keyup.enter)="lookupGuestAddress()" />
+            <button type="button" class="btn-lookup-phone" (click)="lookupGuestAddress()" [disabled]="isLookingUpAddress">
+              <lucide-angular *ngIf="!isLookingUpAddress" [img]="icons.Search" size="14"></lucide-angular>
+              <span>{{ isLookingUpAddress ? 'Đang tìm...' : 'Tra cứu' }}</span>
+            </button>
+          </div>
+
+          <!-- Kết quả tra cứu qua SĐT -->
+          <div *ngIf="guestFoundAddresses.length > 0" class="lookup-results-list">
+            <div class="list-section-title">Địa chỉ tìm thấy qua SĐT {{ guestPhoneLookup }}:</div>
+            <div *ngFor="let addr of guestFoundAddresses" class="saved-addr-card"
+              [class.selected]="selectedAddressId === addr.id || address === addr.address" (click)="selectAddress(addr)">
+              <div class="addr-card-top">
+                <strong>{{ addr.receiverName }}</strong>
+                <span class="addr-phone">{{ addr.phone }}</span>
+              </div>
+              <div class="addr-detail">{{ addr.address }}</div>
+            </div>
+          </div>
+
+          <div *ngIf="guestLookupMessage" class="guest-lookup-msg">
+            {{ guestLookupMessage }}
+          </div>
+
+          <!-- Nếu chưa tìm hoặc không có kết quả: nút thêm địa chỉ mới -->
+          <div *ngIf="guestFoundAddresses.length === 0 && !isLookingUpAddress && savedAddresses.length === 0" class="guest-no-lookup-box">
+            <p>Nếu bạn chưa từng đặt hàng tại DCor, vui lòng bấm <strong>"+ Thêm địa chỉ mới"</strong> để điền thông tin người nhận.</p>
+            <button type="button" class="btn-switch-add" (click)="addressModalMode = 'add'; initNewAddressForm()">
+              + Điền thông tin người nhận mới
+            </button>
+          </div>
+        </div>
+
+        <!-- Danh sách địa chỉ đã lưu -->
+        <div *ngIf="savedAddresses.length > 0" class="saved-address-list">
+          <div class="list-section-title" *ngIf="isLoggedIn">Địa chỉ của bạn:</div>
+          <div *ngFor="let addr of savedAddresses" class="saved-addr-card"
+            [class.selected]="selectedAddressId === addr.id || address === addr.address" (click)="selectAddress(addr)">
+            <div class="addr-card-top">
+              <div class="addr-name-wrap">
+                <strong>{{ addr.receiverName }}</strong>
+                <span class="default-badge" *ngIf="addr.isDefault">Mặc định</span>
+              </div>
+              <span class="addr-phone">{{ addr.phone }}</span>
+            </div>
+            <div class="addr-detail">{{ addr.address }}</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TAB 2: THÊM ĐỊA CHỈ MỚI -->
+      <div *ngIf="addressModalMode === 'add'" class="modal-body address-add-tab-body">
+        <div *ngIf="newAddressError" class="address-alert-error">
+          {{ newAddressError }}
+        </div>
+
+        <div class="form-grid-two-col">
+          <!-- Họ và tên -->
+          <div class="form-group">
+            <label>Họ và tên người nhận <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="newAddress.receiverName" name="naReceiverName"
+              placeholder="Ví dụ: Nguyễn Văn A" class="custom-input" />
+          </div>
+
+          <!-- Số điện thoại nhận hàng -->
+          <div class="form-group">
+            <label>Số điện thoại nhận hàng <span class="req">*</span></label>
+            <input type="tel" [(ngModel)]="newAddress.phone" name="naPhone"
+              placeholder="Ví dụ: 0912345678" class="custom-input" />
+          </div>
+
+          <!-- Email nhận thông báo -->
+          <div class="form-group full-width" *ngIf="showEmail">
+            <label>Email nhận thông báo (tùy chọn)</label>
+            <input type="email" [(ngModel)]="newAddress.email" name="naEmail" placeholder="hoten@gmail.com"
+              class="custom-input" />
+          </div>
+
+          <!-- Tỉnh / Thành phố -->
+          <div class="form-group">
+            <label>Tỉnh / Thành phố <span class="req">*</span></label>
+            <select [(ngModel)]="newAddress.province" (change)="onProvinceChange()" name="naProvince"
+              class="custom-select">
+              <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
+            </select>
+          </div>
+
+          <!-- Phường / Xã -->
+          <div class="form-group">
+            <label>Phường / Xã / Thị trấn <span class="req">*</span></label>
+            <select [(ngModel)]="newAddress.ward" name="naWard" class="custom-select">
+              <option value="" disabled>-- Chọn Phường / Xã --</option>
+              <option *ngFor="let w of wards" [value]="w">{{ w }}</option>
+            </select>
+          </div>
+
+          <!-- Số nhà, tên đường -->
+          <div class="form-group full-width">
+            <label>Số nhà, tên đường cụ thể <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="newAddress.detail" name="naDetail"
+              placeholder="Ví dụ: 123 Nguyễn Huệ, Tòa nhà A, Căn hộ 402" class="custom-input" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <ng-container *ngIf="addressModalMode === 'select'">
+          <button type="button" class="btn-modal-add-addr"
+            (click)="addressModalMode = 'add'; newAddressError = ''; initNewAddressForm()">
+            + Thêm địa chỉ mới
+          </button>
+          <button type="button" class="btn-modal-close" (click)="closeAddressModal()">Đóng</button>
+        </ng-container>
+
+        <ng-container *ngIf="addressModalMode === 'add'">
+          <button type="button" class="btn-modal-save-addr" (click)="submitNewAddress()" [disabled]="isSavingNewAddress">
+            {{ isSavingNewAddress ? 'Đang lưu...' : 'Xác nhận & Sử dụng địa chỉ này' }}
+          </button>
+          <button type="button" class="btn-modal-close" (click)="addressModalMode = 'select'">
+            Quay lại sổ địa chỉ
+          </button>
+        </ng-container>
+      </div>
+
+    </div>
+  </div>
+
+</div>

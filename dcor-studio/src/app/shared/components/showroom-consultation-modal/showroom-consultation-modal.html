@@ -1,0 +1,448 @@
+<div class="showroom-modal-backdrop" *ngIf="isOpen" (click)="handleCloseClick()">
+  <div class="showroom-drawer-box" (click)="$event.stopPropagation()">
+
+    <!-- DRAWER HEADER -->
+    <div class="drawer-header">
+      <div class="header-main-info">
+        <div class="header-icon-badge">
+          <lucide-angular [img]="icons.Building2" size="22" color="#b45309"></lucide-angular>
+        </div>
+        <div class="header-titles">
+          <h3>Đặt lịch tư vấn tại Showroom</h3>
+          <p class="header-subtitle">Trải nghiệm thực tế chất liệu, phom dáng và nhận tư vấn bài trí không gian 1-1</p>
+        </div>
+      </div>
+      <button type="button" class="btn-drawer-close" (click)="handleCloseClick()" aria-label="Đóng">
+        <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- PRODUCT PREVIEW STRIP (Nếu mở từ trang chi tiết sản phẩm) -->
+    <div class="drawer-product-strip" *ngIf="product && !isSubmittedSuccess">
+      <img [src]="productThumbnail" [alt]="productName" class="strip-thumb" />
+      <div class="strip-details">
+        <span class="strip-label">Sản phẩm quan tâm trải nghiệm:</span>
+        <span class="strip-name">{{ productName }}</span>
+        <span class="strip-sku">Mã: {{ productSku }}</span>
+      </div>
+      <div class="strip-tag">
+        <lucide-angular [img]="icons.Sparkles" size="14" color="#b45309"></lucide-angular>
+        <span>Ưu đãi tư vấn 1-1</span>
+      </div>
+    </div>
+
+
+
+    <!-- MAIN SCROLLABLE BODY (KHI CHƯA SUBMIT THÀNH CÔNG) -->
+    <div class="drawer-scroll-body" *ngIf="!isSubmittedSuccess">
+      <form (submit)="$event.preventDefault(); submitAppointment()" class="showroom-main-form">
+
+        <!-- ================================================================= -->
+        <!-- KHỐI 1: LỰA CHỌN SHOWROOM TRẢI NGHIỆM -->
+        <!-- ================================================================= -->
+        <section id="sr-section-1" class="form-section-card" [class.has-error]="formErrors['showroom']">
+          <div class="section-card-header">
+            <div class="section-header-text">
+              <h4>Lựa chọn Showroom trải nghiệm</h4>
+              <p>Chọn không gian trưng bày thuận tiện nhất cho việc di chuyển của bạn</p>
+            </div>
+          </div>
+
+          <div class="section-card-body">
+            <!-- Loading Showrooms -->
+            <div class="loading-state-box" *ngIf="isLoadingShowrooms">
+              <div class="spinner-sm"></div>
+              <span>Đang tải danh sách showroom trực thuộc DCOR...</span>
+            </div>
+
+            <!-- Showroom Selection Grid -->
+            <div class="showrooms-grid" *ngIf="!isLoadingShowrooms">
+              <div *ngFor="let sr of showrooms" class="showroom-card" [class.selected]="selectedShowroomId === sr.id"
+                (click)="selectShowroom(sr)">
+
+                <div class="sr-card-radio">
+                  <div class="radio-outer">
+                    <div class="radio-inner" *ngIf="selectedShowroomId === sr.id"></div>
+                  </div>
+                </div>
+
+                <div class="sr-card-content">
+                  <div class="sr-top-row">
+                    <span class="sr-name">{{ sr.name }}</span>
+                  </div>
+
+                  <p class="sr-address">
+                    <lucide-angular [img]="icons.MapPin" size="14" class="sr-icon"></lucide-angular>
+                    <span>{{ sr.address }}</span>
+                  </p>
+
+                  <div class="sr-meta-row">
+                    <span class="sr-meta-item">
+                      <lucide-angular [img]="icons.Phone" size="13"></lucide-angular>
+                      <span>Hotline: <strong>{{ sr.phone }}</strong></span>
+                    </span>
+                    <span class="sr-meta-item" *ngIf="sr.openingHours">
+                      <lucide-angular [img]="icons.Clock" size="13"></lucide-angular>
+                      <span>{{ sr.openingHours }}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-error-text" *ngIf="formErrors['showroom']">
+              <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+              <span>{{ formErrors['showroom'] }}</span>
+            </div>
+
+
+          </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- KHỐI 2: CHỌN NGÀY & KHUNG GIỜ TƯ VẤN -->
+        <!-- ================================================================= -->
+        <section id="sr-section-2" class="form-section-card"
+          [class.has-error]="formErrors['date'] || formErrors['time']">
+          <div class="section-card-header">
+            <div class="section-header-text">
+              <h4>Chọn Ngày & Khung giờ tư vấn</h4>
+              <p>Hệ thống tự động đồng bộ thời gian thực theo cấu hình ca làm việc và dung lượng slot đón tiếp</p>
+            </div>
+          </div>
+
+          <div class="section-card-body">
+
+            <!-- 2.1 Chọn ngày hẹn -->
+            <div class="date-selection-block">
+              <div class="date-header-row">
+                <label class="block-subtitle">
+                  <lucide-angular [img]="icons.Calendar" size="15" color="#b45309"></lucide-angular>
+                  <span>Lịch chọn ngày hẹn (14 ngày tới)</span>
+                </label>
+                <!-- Quick Date input fallback -->
+                <div class="direct-date-input-wrap">
+                  <span class="direct-date-label">Hoặc chọn ngày khác:</span>
+                  <input type="date" class="direct-date-input" [min]="todayStr" [(ngModel)]="selectedDate"
+                    name="selectedDateManual" (change)="selectDate(selectedDate)" />
+                </div>
+              </div>
+
+              <!-- Thanh cuộn ngày trực quan -->
+              <div class="date-carousel-strip">
+                <button type="button" *ngFor="let d of dayOptions" class="date-pill-btn"
+                  [class.active]="selectedDate === d.dateStr" (click)="selectDate(d.dateStr)">
+                  <span class="date-pill-day">{{ d.dayName }}</span>
+                  <span class="date-pill-value">{{ d.dateDisplay }}</span>
+                  <span class="date-pill-tag" *ngIf="d.isToday">Hôm nay</span>
+                </button>
+              </div>
+
+              <div class="field-error-text" *ngIf="formErrors['date']">
+                <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                <span>{{ formErrors['date'] }}</span>
+              </div>
+            </div>
+
+            <!-- Cảnh báo nếu ngày đóng cửa / bảo trì -->
+            <div class="closed-day-alert" *ngIf="isClosedDay">
+              <lucide-angular [img]="icons.AlertCircle" size="20" color="#dc2626"></lucide-angular>
+              <div class="alert-content">
+                <strong>Showroom tạm đóng cửa vào ngày này</strong>
+                <p>{{ closureReason || 'Ngày nghỉ lễ hoặc lịch bảo trì định kỳ. Quý khách vui lòng chọn ngày hẹn khác.'
+                  }}</p>
+              </div>
+            </div>
+
+            <!-- 2.2 Ma trận chọn khung giờ -->
+            <div class="time-matrix-block" *ngIf="!isClosedDay">
+              <div class="matrix-header-row">
+                <label class="block-subtitle">
+                  <lucide-angular [img]="icons.Clock" size="15" color="#b45309"></lucide-angular>
+                  <span>Khung giờ tư vấn khả dụng</span>
+                </label>
+                <span class="matrix-legend">
+                  <span class="legend-dot available"></span> Còn slot trống
+                  <span class="legend-dot full"></span> Đầy/Đã qua
+                </span>
+              </div>
+
+              <!-- Loading slots -->
+              <div class="loading-state-box" *ngIf="isLoadingSlots">
+                <div class="spinner-sm"></div>
+                <span>Đang truy vấn số lượng slot thực tế từ cơ sở dữ liệu...</span>
+              </div>
+
+              <!-- Matrix Slots Grid -->
+              <div class="slots-grid" *ngIf="!isLoadingSlots">
+                <button type="button" *ngFor="let s of slots" class="slot-card-btn"
+                  [class.selected]="selectedTime === s.time" [class.disabled]="!s.isAvailable"
+                  [disabled]="!s.isAvailable" (click)="selectSlot(s)">
+
+                  <div class="slot-time-range">{{ s.time }}</div>
+
+                  <div class="slot-status-pill" [class.available]="s.isAvailable" [class.full]="!s.isAvailable">
+                    <span *ngIf="s.isAvailable">Còn {{ s.remainingSlots }} slot</span>
+                    <span *ngIf="!s.isAvailable">{{ s.statusLabel }}</span>
+                  </div>
+
+                  <div class="slot-selected-mark" *ngIf="selectedTime === s.time">
+                    <lucide-angular [img]="icons.Check" size="14"></lucide-angular>
+                  </div>
+                </button>
+              </div>
+
+              <div class="field-error-text" *ngIf="formErrors['time']">
+                <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                <span>{{ formErrors['time'] }}</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- KHỐI 3: THÔNG TIN LIÊN HỆ -->
+        <!-- ================================================================= -->
+        <section id="sr-section-3" class="form-section-card"
+          [class.has-error]="formErrors['fullName'] || formErrors['phone'] || formErrors['email']">
+          <div class="section-card-header">
+            <div class="section-header-text">
+              <h4>Thông tin liên hệ</h4>
+            </div>
+          </div>
+
+          <div class="section-card-body">
+            <div class="form-grid-two-col">
+              <!-- Họ và tên -->
+              <div class="form-field-group">
+                <label for="srFullName">Họ và tên người liên hệ <span class="req">*</span></label>
+                <input type="text" id="srFullName" [(ngModel)]="fullName" (input)="onFullNameInput()"
+                  (blur)="onBlurField('fullName')" name="fullName" placeholder="Ví dụ: Nguyễn Văn A"
+                  class="custom-input" [class.is-invalid]="formErrors['fullName']" />
+                <span class="field-error-text" *ngIf="formErrors['fullName']">{{ formErrors['fullName'] }}</span>
+              </div>
+
+              <!-- Số điện thoại kèm nút/badge xác thực OTP -->
+              <div class="form-field-group">
+                <div class="label-with-badge">
+                  <label for="srPhone">Số điện thoại liên hệ <span class="req">*</span></label>
+                  <span *ngIf="isPhoneVerified" class="verify-badge verified">
+                    <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
+                    <span>Đã xác thực</span>
+                  </span>
+                  <span *ngIf="!isPhoneVerified" class="verify-badge unverified" (click)="sendOtp()"
+                    title="Nhấn để gửi mã xác thực OTP ngay">
+                    Chưa xác thực SĐT
+                  </span>
+                </div>
+                <div class="phone-input-row">
+                  <input type="tel" id="srPhone" [(ngModel)]="phone" (input)="onPhoneInput()"
+                    (blur)="onBlurField('phone')" name="phone" placeholder="Ví dụ: 0912345678" class="custom-input"
+                    [class.is-invalid]="formErrors['phone']" />
+                  <button *ngIf="!isPhoneVerified" type="button" class="btn-action-otp" (click)="sendOtp()"
+                    [disabled]="isSendingOtp">
+                    {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
+                  </button>
+                </div>
+                <span class="field-error-text" *ngIf="formErrors['phone']">{{ formErrors['phone'] }}</span>
+              </div>
+
+              <!-- Email -->
+              <div class="form-field-group full-width">
+                <label for="srEmail">Email<span class="req">*</span></label>
+                <input type="email" id="srEmail" [(ngModel)]="email" (input)="onEmailInput()"
+                  (blur)="onBlurField('email')" name="email" placeholder="Ví dụ: hoten@gmail.com" class="custom-input"
+                  [class.is-invalid]="formErrors['email']" />
+                <span class="field-error-text" *ngIf="formErrors['email']">{{ formErrors['email'] }}</span>
+                <span class="field-hint-text">
+                  DCor sẽ gửi phiếu xác nhận lịch hẹn, mã check-in và sơ đồ hướng dẫn chỉ đường chi tiết về hòm thư này.
+                </span>
+              </div>
+
+              <!-- Ghi chú nhu cầu tư vấn hoặc sản phẩm muốn thử (Khác cái ghi chú thôi) -->
+              <div class="form-field-group full-width">
+                <label for="srNotes">Ghi chú nhu cầu tư vấn hoặc sản phẩm muốn thử</label>
+                <textarea id="srNotes" [(ngModel)]="notes" name="notes" rows="3"
+                  placeholder="Ví dụ: Tôi muốn trải nghiệm sofa góc phòng khách kích thước 2.8m, xem trước mẫu da Bò Ý màu Cognac và chất liệu nỉ nhung chống bám bụi..."
+                  class="custom-textarea"></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </form>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- KHỐI 4: TÁC VỤ CHÂN POPUP (FOOTER ACTIONS) -->
+    <!-- ================================================================= -->
+    <div class="drawer-footer-actions" *ngIf="!isSubmittedSuccess">
+      <div class="footer-selection-summary" *ngIf="selectedShowroom">
+        <div class="summary-line">
+          <lucide-angular [img]="icons.Building2" size="14" color="#b45309"></lucide-angular>
+          <span><strong>{{ selectedShowroom.name }}</strong></span>
+        </div>
+        <div class="summary-line" *ngIf="selectedDate && selectedTime">
+          <lucide-angular [img]="icons.Calendar" size="14" color="#6b7280"></lucide-angular>
+          <span>{{ selectedDate }} ({{ selectedTime }})</span>
+        </div>
+      </div>
+
+      <div class="footer-btns-group">
+        <!-- Nút Hủy / Đóng -->
+        <button type="button" class="btn-footer-cancel" (click)="handleCloseClick()">
+          Đóng
+        </button>
+
+        <!-- Nút Gửi yêu cầu đặt lịch -->
+        <button type="button" class="btn-footer-submit" [disabled]="isSubmitDisabled" (click)="submitAppointment()">
+
+          <span *ngIf="isSubmitting" class="spinner-circle"></span>
+          <span *ngIf="!isSubmitting">
+            <span>Gửi yêu cầu đặt lịch</span>
+          </span>
+          <span *ngIf="isSubmitting">Đang kiểm tra & ghi lịch...</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MÀN HÌNH XÁC NHẬN ĐẶT LỊCH THÀNH CÔNG -->
+    <!-- ================================================================= -->
+    <div class="success-screen-view" *ngIf="isSubmittedSuccess">
+      <div class="success-icon-badge">
+        <lucide-angular [img]="icons.CheckCircle2" size="48" color="#059669"></lucide-angular>
+      </div>
+
+      <h3 class="success-title">Đặt lịch tư vấn Showroom thành công!</h3>
+      <p class="success-desc">
+        DCOR Studio trân trọng cảm ơn Quý khách <strong>{{ fullName }}</strong> đã tin tưởng lựa chọn dịch vụ.
+      </p>
+
+      <!-- Mã cuộc hẹn nổi bật -->
+      <div class="appointment-code-box">
+        <span class="code-label">MÃ LỊCH HẸN TRẢI NGHIỆM</span>
+        <div class="code-number">{{ appointmentCode }}</div>
+        <span class="code-hint">Vui lòng cung cấp mã này cho Lễ tân khi đến Showroom</span>
+      </div>
+
+      <!-- Tóm tắt chi tiết lịch hẹn -->
+      <div class="appointment-summary-card">
+        <div class="summary-row">
+          <span class="s-label">Địa điểm đón tiếp:</span>
+          <span class="s-val"><strong>{{ createdAppointment?.showroomName || selectedShowroom?.name }}</strong></span>
+        </div>
+        <div class="summary-row">
+          <span class="s-label">Địa chỉ:</span>
+          <span class="s-val">{{ createdAppointment?.showroomAddress || selectedShowroom?.address }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-label">Thời gian:</span>
+          <span class="s-val highlight-val">
+            {{ createdAppointment?.preferredTime || selectedTime }} — {{ createdAppointment?.preferredDate ||
+            selectedDate }}
+          </span>
+        </div>
+        <div class="summary-row" *ngIf="createdAppointment?.productName || productName">
+          <span class="s-label">Sản phẩm quan tâm:</span>
+          <span class="s-val">{{ createdAppointment?.productName || productName }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-label">Khách hàng:</span>
+          <span class="s-val">{{ fullName }} ({{ phone }})</span>
+        </div>
+      </div>
+
+      <!-- Cam kết dịch vụ 15 phút -->
+      <div class="service-commitment-box">
+        <lucide-angular [img]="icons.Clock" size="18" color="#b45309"></lucide-angular>
+        <p>
+          Chuyên viên tư vấn kiến trúc DCOR sẽ gọi điện đối soát và chuẩn bị trước vật liệu mẫu tại showroom trong vòng
+          <strong>15 phút</strong>.
+        </p>
+      </div>
+
+      <div class="success-action-btns">
+        <button type="button" class="btn-maps-success" (click)="openGoogleMaps()">
+          <lucide-angular [img]="icons.Navigation" size="16"></lucide-angular>
+          <span>Chỉ đường trên Google Maps</span>
+        </button>
+        <button type="button" class="btn-done-success" (click)="close.emit()">
+          Hoàn tất & Đóng cửa sổ
+        </button>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- SUB-MODAL: XÁC THỰC MÃ OTP CHO SĐT -->
+    <!-- ================================================================= -->
+    <div class="sub-modal-backdrop" *ngIf="isOtpModalOpen" (click)="closeOtpModal()">
+      <div class="sub-modal-card" (click)="$event.stopPropagation()">
+        <div class="sub-modal-header">
+          <div class="sub-header-icon">
+            <lucide-angular [img]="icons.ShieldCheck" size="20" color="#b45309"></lucide-angular>
+          </div>
+          <h4>Xác thực số điện thoại</h4>
+          <button type="button" class="btn-close-sub" (click)="closeOtpModal()">
+            <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+          </button>
+        </div>
+
+        <div class="sub-modal-body">
+          <p class="otp-dialog-desc">
+            Mã OTP gồm 6 chữ số đã được gửi tới số điện thoại <strong>{{ phone }}</strong>.
+          </p>
+
+          <div class="otp-code-input-wrap">
+            <input type="text" class="otp-digit-input" maxlength="6" [(ngModel)]="otpCode" name="otpCode"
+              placeholder="111111" (keyup.enter)="verifyOtp()" autofocus />
+          </div>
+
+          <div class="otp-test-tip">
+            <lucide-angular [img]="icons.Sparkles" size="14" color="#b45309"></lucide-angular>
+            <span>Mẹo thử nghiệm: Quý khách có thể nhập mã <strong>111111</strong> để duyệt ngay.</span>
+          </div>
+
+          <div class="otp-error-alert" *ngIf="otpErrorMessage">
+            <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+            <span>{{ otpErrorMessage }}</span>
+          </div>
+
+          <div class="resend-countdown-wrap">
+            <span *ngIf="otpCountdown > 0">Gửi lại mã sau <strong>{{ otpCountdown }}s</strong></span>
+            <button type="button" class="btn-resend-link" *ngIf="otpCountdown === 0" (click)="sendOtp()">
+              Gửi lại mã OTP
+            </button>
+          </div>
+        </div>
+
+        <div class="sub-modal-footer">
+          <button type="button" class="btn-sub-cancel" (click)="closeOtpModal()">Hủy</button>
+          <button type="button" class="btn-sub-confirm" (click)="verifyOtp()">Xác nhận mã</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- SUB-MODAL: XÁC NHẬN HỦY BỎ KHI FORM ĐANG ĐIỀN DỞ DANG -->
+    <!-- ================================================================= -->
+    <div class="sub-modal-backdrop" *ngIf="showConfirmClose" (click)="cancelDiscard()">
+      <div class="sub-modal-card confirm-discard-card" (click)="$event.stopPropagation()">
+        <div class="sub-header-icon warning-icon">
+          <lucide-angular [img]="icons.AlertCircle" size="24" color="#dc2626"></lucide-angular>
+        </div>
+        <h4>Hủy bỏ yêu cầu đặt lịch?</h4>
+        <p class="discard-desc">
+          Bạn đang có thông tin đặt lịch tư vấn chưa gửi. Các dữ liệu này sẽ không được lưu nếu bạn đóng cửa sổ bây giờ.
+        </p>
+
+        <div class="sub-modal-footer">
+          <button type="button" class="btn-sub-cancel" (click)="cancelDiscard()">Tiếp tục điền</button>
+          <button type="button" class="btn-sub-danger" (click)="confirmDiscardAndClose()">Đồng ý hủy</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

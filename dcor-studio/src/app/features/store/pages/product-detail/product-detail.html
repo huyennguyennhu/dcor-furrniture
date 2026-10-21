@@ -798,165 +798,26 @@
     </div>
   </div>
 
-  <!-- MODAL: ĐẶT LỊCH TƯ VẤN TẠI SHOWROOM -->
-  <div class="pdp-modal-backdrop" *ngIf="isShowroomModalOpen" (click)="closeShowroomModal()">
-    <div class="modal-dialog-box" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-header-title">
-          <app-icon name="Building2" size="22" class="modal-title-icon"></app-icon>
-          <h3>Đặt lịch trải nghiệm tại Showroom</h3>
-        </div>
-        <button type="button" class="btn-modal-close" (click)="closeShowroomModal()">
-          <app-icon name="X" size="18"></app-icon>
-        </button>
-      </div>
+  <!-- MODAL / DRAWER: ĐẶT LỊCH TƯ VẤN TẠI SHOWROOM (4 BƯỚC LOGIC) -->
+  <app-showroom-consultation-modal
+    [isOpen]="isShowroomModalOpen"
+    [product]="product"
+    [matchedVariant]="matchedVariant"
+    (close)="closeShowroomModal()"
+    (appointmentSuccess)="onConsultationSuccess($event)">
+  </app-showroom-consultation-modal>
 
-      <div class="modal-body" *ngIf="!consultationSuccessCode">
-        <p class="modal-desc">
-          Trải nghiệm thực tế chất liệu da, vải nỉ và kết cấu của <strong>{{ product?.name }}</strong> cùng chuyên
-          viên
-          kiến trúc nội thất DCOR.
-        </p>
-
-        <form class="consultation-form" (ngSubmit)="submitConsultation()">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Họ và tên <span class="req">*</span></label>
-              <input type="text" class="form-input" [(ngModel)]="consultationForm.fullName" name="fullName"
-                placeholder="Ví dụ: Nguyễn Văn An" required />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Số điện thoại <span class="req">*</span></label>
-              <input type="tel" class="form-input" [(ngModel)]="consultationForm.phone" name="phone"
-                placeholder="Ví dụ: 0912 345 678" required />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Chọn Showroom đón tiếp <span class="req">*</span></label>
-            <select class="form-select" [(ngModel)]="consultationForm.showroomId" name="showroomId">
-              <option *ngFor="let sr of showrooms" [value]="sr.id">
-                {{ sr.name }} — {{ sr.address }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Ngày hẹn dự kiến</label>
-              <input type="date" class="form-input" [(ngModel)]="consultationForm.preferredDate" name="preferredDate" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Khung giờ</label>
-              <select class="form-select" [(ngModel)]="consultationForm.preferredTime" name="preferredTime">
-                <option value="09:00">09:00 - 10:30 (Sáng)</option>
-                <option value="10:30">10:30 - 12:00 (Sáng)</option>
-                <option value="14:00">14:00 - 15:30 (Chiều)</option>
-                <option value="16:00">16:00 - 17:30 (Chiều)</option>
-                <option value="18:30">18:30 - 20:00 (Tối)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Ghi chú hoặc yêu cầu đặc biệt</label>
-            <textarea class="form-textarea" [(ngModel)]="consultationForm.notes" name="notes" rows="2"
-              placeholder="Ví dụ: Cần tư vấn phối cảnh phòng khách 35m2, xem mẫu da Cognac..."></textarea>
-          </div>
-
-          <div class="modal-footer-btns">
-            <button type="button" class="btn-modal-cancel" (click)="closeShowroomModal()">Hủy</button>
-            <button type="submit" class="btn-modal-submit" [disabled]="isSubmittingConsultation">
-              <span *ngIf="isSubmittingConsultation" class="spinner-circle"></span>
-              <span>{{ isSubmittingConsultation ? 'Đang gửi...' : 'Xác nhận đặt lịch' }}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Màn hình thành công -->
-      <div class="modal-body consultation-success-view" *ngIf="consultationSuccessCode">
-        <app-icon name="CircleCheck" size="48" class="success-icon"></app-icon>
-        <h3>Đặt lịch thành công!</h3>
-        <p>Mã cuộc hẹn của bạn: <strong class="code-highlight">{{ consultationSuccessCode }}</strong></p>
-        <p class="success-note">
-          Chuyên viên tư vấn tại showroom sẽ gọi điện xác nhận trong vòng 15 phút. Cảm ơn bạn đã lựa chọn DCOR Studio!
-        </p>
-        <button type="button" class="btn-modal-submit" (click)="closeShowroomModal()">Hoàn tất</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: TÙY CHỈNH THIẾT KẾ THEO YÊU CẦU -->
-  <div class="pdp-modal-backdrop" *ngIf="isCustomModalOpen" (click)="closeCustomModal()">
-    <div class="modal-dialog-box" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-header-title">
-          <app-icon name="Sparkles" size="22" class="modal-title-icon"></app-icon>
-          <h3>Đặt làm theo kích thước & chất liệu riêng</h3>
-        </div>
-        <button type="button" class="btn-modal-close" (click)="closeCustomModal()">
-          <app-icon name="X" size="18"></app-icon>
-        </button>
-      </div>
-
-      <div class="modal-body" *ngIf="!customSuccess">
-        <p class="modal-desc">
-          Xưởng chế tác DCOR hỗ trợ may đo, điều chỉnh kích thước và bọc chất liệu vải/da độc bản theo thiết kế kiến
-          trúc của bạn.
-        </p>
-
-        <form class="consultation-form" (ngSubmit)="submitCustom()">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Họ và tên <span class="req">*</span></label>
-              <input type="text" class="form-input" [(ngModel)]="customForm.fullName" name="cFullName" required />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Số điện thoại <span class="req">*</span></label>
-              <input type="tel" class="form-input" [(ngModel)]="customForm.phone" name="cPhone" required />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Kích thước mong muốn (Dài x Rộng x Cao)</label>
-            <input type="text" class="form-input" [(ngModel)]="customForm.requestedDimensions" name="cDims"
-              placeholder="Ví dụ: 240 x 95 x 85 cm" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Yêu cầu chất liệu / Màu sắc</label>
-            <input type="text" class="form-input" [(ngModel)]="customForm.preferredMaterial" name="cMat"
-              placeholder="Ví dụ: Da bò Ý màu Nâu Caramel, chân inox mạ PVD vàng gương..." />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Mô tả thêm</label>
-            <textarea class="form-textarea" [(ngModel)]="customForm.notes" name="cNotes" rows="2"
-              placeholder="Ghi chú thêm về không gian hoặc gửi link bản vẽ..."></textarea>
-          </div>
-
-          <div class="modal-footer-btns">
-            <button type="button" class="btn-modal-cancel" (click)="closeCustomModal()">Hủy</button>
-            <button type="submit" class="btn-modal-submit" [disabled]="isSubmittingCustom">
-              <span *ngIf="isSubmittingCustom" class="spinner-circle"></span>
-              <span>Gửi yêu cầu chế tác</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-body consultation-success-view" *ngIf="customSuccess">
-        <app-icon name="CircleCheck" size="48" class="success-icon"></app-icon>
-        <h3>Đã tiếp nhận yêu cầu!</h3>
-        <p class="success-note">
-          Đội ngũ kiến trúc sư DCOR sẽ liên hệ tư vấn báo giá chi tiết và gửi bản vẽ phối cảnh cho bạn trong vòng 24
-          giờ.
-        </p>
-        <button type="button" class="btn-modal-submit" (click)="closeCustomModal()">Đóng</button>
-      </div>
-    </div>
-  </div>
+  <!-- DRAWER / MODAL: TÙY CHỈNH THIẾT KẾ THEO YÊU CẦU -->
+  <app-custom-request-modal
+    [isOpen]="isCustomModalOpen"
+    [product]="product"
+    [matchedVariant]="matchedVariant"
+    [attributeGroups]="attributeGroups"
+    [selectedAttributes]="selectedAttributes"
+    [dimensionsText]="dimensionsText"
+    (close)="closeCustomModal()"
+    (submitSuccess)="onCustomSubmitSuccess($event)">
+  </app-custom-request-modal>
 
   <!-- MODAL: VIẾT ĐÁNH GIÁ SẢN PHẨM -->
   <div class="pdp-modal-backdrop" *ngIf="isWriteReviewModalOpen" (click)="closeWriteReviewModal()">

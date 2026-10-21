@@ -50,6 +50,8 @@ export interface ShowroomItem {
 
 import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
 import { ProductCompareModalComponent } from '../../../../shared/components/product-compare-modal/product-compare-modal';
+import { CustomRequestModalComponent } from '../../../../shared/components/custom-request-modal/custom-request-modal';
+import { ShowroomConsultationModalComponent } from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
 
 const GROUP_LABEL_MAP: Record<string, string> = {
   vaConfigurationSize: 'Kích thước',
@@ -72,7 +74,16 @@ const GROUP_LABEL_MAP: Record<string, string> = {
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [IconComponent, CommonModule, RouterModule, FormsModule, ProductCardComponent, ProductCompareModalComponent],
+  imports: [
+    IconComponent, 
+    CommonModule, 
+    RouterModule, 
+    FormsModule, 
+    ProductCardComponent, 
+    ProductCompareModalComponent,
+    CustomRequestModalComponent,
+    ShowroomConsultationModalComponent
+  ],
   templateUrl: './product-detail.html',
   styleUrls: ['./product-detail.css']
 })
@@ -1381,63 +1392,19 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
   // --- SHOWROOM CONSULTATION MODAL ---
-  async openShowroomModal() {
+  openShowroomModal() {
     this.isShowroomModalOpen = true;
-    this.consultationSuccessCode = '';
-    if (this.showrooms.length === 0) {
-      this.isLoadingShowrooms = true;
-      try {
-        const res = await fetch(`${environment.apiUrl}/showrooms`);
-        if (res.ok) {
-          this.showrooms = await res.json();
-          if (this.showrooms.length > 0) {
-            this.consultationForm.showroomId = this.showrooms[0].id;
-          }
-        }
-      } catch (e) {
-        console.error('Lỗi tải showrooms:', e);
-      } finally {
-        this.isLoadingShowrooms = false;
-        this.cdr.detectChanges();
-      }
-    }
   }
 
   closeShowroomModal() {
     this.isShowroomModalOpen = false;
   }
 
-  async submitConsultation() {
-    if (!this.consultationForm.fullName.trim() || !this.consultationForm.phone.trim()) {
-      this.showToast('Vui lòng nhập họ tên và số điện thoại liên hệ.', 'warning');
-      return;
-    }
-
-    this.isSubmittingConsultation = true;
-    try {
-      const res = await fetch(`${environment.apiUrl}/consultations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...this.consultationForm,
-          productId: this.productId,
-          variantId: this.matchedVariant?.id
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        this.consultationSuccessCode = data.appointmentCode || 'DL-2410-09';
-        this.showToast(data.message || 'Đặt lịch tư vấn thành công!', 'success');
-      } else {
-        throw new Error('Đặt lịch thất bại');
-      }
-    } catch {
-      this.showToast('Có lỗi xảy ra khi đặt lịch. Vui lòng liên hệ hotline.', 'warning');
-    } finally {
-      this.isSubmittingConsultation = false;
-      this.cdr.detectChanges();
-    }
+  onConsultationSuccess(appointment: any) {
+    this.showToast(
+      `Đặt lịch thành công! Mã: ${appointment?.appointmentCode || 'DCOR-DL'}`,
+      'success'
+    );
   }
 
   // --- CUSTOM REQUEST MODAL ---
@@ -1448,6 +1415,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   closeCustomModal() {
     this.isCustomModalOpen = false;
+  }
+
+  onCustomSubmitSuccess(requestData: any) {
+    this.showToast('Yêu cầu chế tác độc bản đã được gửi thành công!', 'success');
   }
 
   submitCustom() {

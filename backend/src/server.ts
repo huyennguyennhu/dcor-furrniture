@@ -15,6 +15,8 @@ import auditLogRoutes from './routes/audit-log.routes';
 import productRoutes from './routes/product.routes';
 import categoryRoutes from './routes/category.routes';
 import uploadRoutes from './routes/upload.routes';
+import consultationRoutes from './routes/consultation.routes';
+import { consultationController } from './controllers/consultation.controller';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -272,26 +274,7 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 // API lấy danh sách showroom thực tế
-app.get('/api/showrooms', async (req, res) => {
-  try {
-    const showrooms = await prisma.warehouse.findMany({
-      where: { type: 'SHOWROOM', isActive: true },
-      select: {
-        id: true,
-        code: true,
-        name: true,
-        address: true,
-        phone: true,
-        managerName: true
-      },
-      orderBy: { name: 'asc' }
-    });
-    res.json(showrooms);
-  } catch (error) {
-    console.error('Lỗi lấy danh sách showroom:', error);
-    res.status(503).json({ message: 'Không thể lấy danh sách showroom.' });
-  }
-});
+app.get('/api/showrooms', consultationController.getShowrooms);
 
 // API lấy danh sách đánh giá sản phẩm (FR3-C-14)
 app.get('/api/products/:id/reviews', async (req, res) => {
@@ -483,31 +466,8 @@ app.post('/api/products/:id/reviews', async (req, res) => {
   }
 });
 
-// API Đặt lịch tư vấn showroom
-app.post('/api/consultations', async (req, res) => {
-  try {
-    const { fullName, phone, email, showroomId, preferredDate, preferredTime, notes, productId, variantId } = req.body;
-    if (!fullName || !phone) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp họ tên và số điện thoại.' });
-    }
-    const appointmentCode = 'DL-' + Math.floor(100000 + Math.random() * 900000);
-    res.status(201).json({
-      success: true,
-      appointmentCode,
-      message: `Đặt lịch tư vấn thành công! Mã cuộc hẹn của bạn là ${appointmentCode}. Chuyên viên DCOR sẽ liên hệ xác nhận trong vòng 15 phút.`,
-      data: {
-        appointmentCode,
-        fullName,
-        phone,
-        preferredDate,
-        preferredTime,
-        showroomId
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Không thể đặt lịch tư vấn.' });
-  }
-});
+// Gắn router đặt lịch tư vấn Showroom
+app.use('/api/consultations', consultationRoutes);
 
 // Gắn router đơn vị hành chính (Tỉnh/Thành, Phường/Xã)
 app.use('/api/administrative', administrativeRoutes);
