@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { memoryCache, CACHE_KEYS } from '../lib/cache';
 
 function generateSlug(text: string): string {
   const base = text
@@ -19,6 +20,15 @@ export const productController = {
   getAllAdmin: async (req: Request, res: Response): Promise<void> => {
     try {
       const { search, categoryId, status } = req.query;
+
+      const isDefaultQuery = !search && (!categoryId || categoryId === 'all') && (!status || status === 'ALL');
+      if (isDefaultQuery) {
+        const cached = memoryCache.get<any[]>('admin_products_all', 60000);
+        if (cached) {
+          res.json(cached);
+          return;
+        }
+      }
 
       const whereClause: any = {
         deletedAt: null
@@ -82,6 +92,10 @@ export const productController = {
         };
       });
 
+      if (isDefaultQuery) {
+        memoryCache.set('admin_products_all', formatted);
+      }
+
       res.json(formatted);
     } catch (error: any) {
       console.error('Lỗi lấy danh sách sản phẩm Admin:', error);
@@ -142,6 +156,14 @@ export const productController = {
         return;
       }
 
+      const categoryExists = await prisma.category.findUnique({
+        where: { id: categoryId }
+      });
+      if (!categoryExists) {
+        res.status(400).json({ message: 'Danh mục được chọn không hợp lệ hoặc không tồn tại.' });
+        return;
+      }
+
       const cleanSlug = generateSlug(name);
 
       // Chuẩn bị configOptions bao gồm cờ allowCustom
@@ -156,7 +178,7 @@ export const productController = {
         select: { id: true }
       });
 
-      // Tạo trong Transaction
+      // Tạo trong Transaction có cấu hình timeout 30s để xử lý nhiều biến thể
       const newProduct = await prisma.$transaction(async (tx) => {
         // 1. Tạo Product
         const prod = await tx.product.create({
@@ -165,7 +187,7 @@ export const productController = {
             slug: cleanSlug,
             categoryId,
             description: description || '',
-            basePrice: Number(basePrice) || 0,
+            basePrice: Math.round(Number(basePrice)) || 0,
             images: Array.isArray(images) ? images : [],
             configOptions: mergedConfig,
             isBestSeller: !!isBestSeller,
@@ -182,10 +204,13 @@ export const productController = {
               {
                 sku: `DCOR-${cleanSlug.slice(0, 10).toUpperCase()}-DF`,
                 name: 'Tiêu chuẩn',
-                price: Number(basePrice) || 0,
+                price: Math.round(Number(basePrice)) || 0,
                 optionValues: {}
               }
             ];
+
+        const usedSkusInBatch = new Set<string>();
+        const stockRecordsToInsert: any[] = [];
 
         for (let idx = 0; idx < variantsToCreate.length; idx++) {
           const v = variantsToCreate[idx];
@@ -196,14 +221,23 @@ export const productController = {
             variantName = v.attributes.filter(Boolean).join(' / ');
           }
 
-          const sku = v.sku?.trim() || `SKU-${cleanSlug.slice(0, 8).toUpperCase()}-${idx + 1}`;
+          let baseVariantSku = v.sku?.trim() || `SKU-${cleanSlug.slice(0, 8).toUpperCase()}-${idx + 1}`;
+          let sku = baseVariantSku;
+
+          // Kiểm tra và tự động hóa giải xung đột trùng SKU
+          const skuInDb = await tx.productVariant.findUnique({ where: { sku } });
+          if (usedSkusInBatch.has(sku) || skuInDb) {
+            const randSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+            sku = `${baseVariantSku}-${randSuffix}`;
+          }
+          usedSkusInBatch.add(sku);
 
           const createdVariant = await tx.productVariant.create({
             data: {
               productId: prod.id,
               sku,
               name: variantName,
-              price: Number(v.price) || Number(basePrice) || 0,
+              price: Math.round(Number(v.price)) || Math.round(Number(basePrice)) || 0,
               stock: 0, // Bỏ nhập tồn kho: Mặc định 0, bộ phận kho sẽ xử lý nhập sau
               reservedStock: 0,
               optionValues: v.optionValues || {},
@@ -211,28 +245,30 @@ export const productController = {
             }
           });
 
-          // Khởi tạo bản ghi WarehouseStock tồn 0 cho từng điểm kho để hiển thị tức thì trên module kho
+          // Gom bản ghi kho để insert hàng loạt (batching)
           for (const wh of warehouses) {
-            await tx.warehouseStock.upsert({
-              where: {
-                warehouseId_variantId: {
-                  warehouseId: wh.id,
-                  variantId: createdVariant.id
-                }
-              },
-              create: {
-                warehouseId: wh.id,
-                variantId: createdVariant.id,
-                physicalStock: 0,
-                reservedStock: 0,
-                safetyThreshold: 5
-              },
-              update: {}
+            stockRecordsToInsert.push({
+              warehouseId: wh.id,
+              variantId: createdVariant.id,
+              physicalStock: 0,
+              reservedStock: 0,
+              safetyThreshold: 5
             });
           }
         }
 
+        // Tối ưu hóa hiệu năng: Thêm hàng loạt WarehouseStock trong 1 truy vấn duy nhất thay vì lặp tuần tự
+        if (stockRecordsToInsert.length > 0) {
+          await tx.warehouseStock.createMany({
+            data: stockRecordsToInsert,
+            skipDuplicates: true
+          });
+        }
+
         return prod;
+      }, {
+        maxWait: 10000,
+        timeout: 30000
       });
 
       // Lấy lại sản phẩm hoàn chỉnh cùng variants
@@ -240,6 +276,9 @@ export const productController = {
         where: { id: newProduct.id },
         include: { category: true, variants: true }
       });
+
+      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
+      memoryCache.invalidate('admin_products_all');
 
       res.status(201).json({
         message: 'Tạo sản phẩm thành công!',
@@ -279,6 +318,16 @@ export const productController = {
         return;
       }
 
+      if (categoryId) {
+        const categoryExists = await prisma.category.findUnique({
+          where: { id: categoryId }
+        });
+        if (!categoryExists) {
+          res.status(400).json({ message: 'Danh mục được chọn không hợp lệ hoặc không tồn tại.' });
+          return;
+        }
+      }
+
       const mergedConfig = {
         ...(typeof existing.configOptions === 'object' && existing.configOptions ? (existing.configOptions as any) : {}),
         ...(typeof configOptions === 'object' ? configOptions : {}),
@@ -293,7 +342,7 @@ export const productController = {
             name: name !== undefined ? name.trim() : existing.name,
             categoryId: categoryId || existing.categoryId,
             description: description !== undefined ? description : existing.description,
-            basePrice: basePrice !== undefined ? Number(basePrice) : existing.basePrice,
+            basePrice: basePrice !== undefined ? Math.round(Number(basePrice)) : existing.basePrice,
             images: images !== undefined ? images : existing.images,
             configOptions: mergedConfig,
             isBestSeller: isBestSeller !== undefined ? !!isBestSeller : existing.isBestSeller,
@@ -309,6 +358,9 @@ export const productController = {
             select: { id: true }
           });
 
+          const newStockRecords: any[] = [];
+          const usedSkusInBatch = new Set<string>();
+
           for (let idx = 0; idx < variants.length; idx++) {
             const v = variants[idx];
             let variantName = v.name?.trim() || 'Tiêu chuẩn';
@@ -323,7 +375,7 @@ export const productController = {
                 data: {
                   sku: v.sku?.trim(),
                   name: variantName,
-                  price: Number(v.price) || 0,
+                  price: Math.round(Number(v.price)) || 0,
                   isActive: v.isActive !== false,
                   optionValues: v.optionValues || undefined
                 }
@@ -331,13 +383,22 @@ export const productController = {
             } else {
               // Thêm variant mới
               const cleanSlug = existing.slug;
-              const sku = v.sku?.trim() || `SKU-${cleanSlug.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+              let baseSku = v.sku?.trim() || `SKU-${cleanSlug.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+              let sku = baseSku;
+
+              const skuInDb = await tx.productVariant.findUnique({ where: { sku } });
+              if (usedSkusInBatch.has(sku) || skuInDb) {
+                const randSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+                sku = `${baseSku}-${randSuffix}`;
+              }
+              usedSkusInBatch.add(sku);
+
               const newV = await tx.productVariant.create({
                 data: {
                   productId: id,
                   sku,
                   name: variantName,
-                  price: Number(v.price) || existing.basePrice,
+                  price: Math.round(Number(v.price)) || existing.basePrice,
                   stock: 0,
                   reservedStock: 0,
                   optionValues: v.optionValues || {},
@@ -346,32 +407,36 @@ export const productController = {
               });
 
               for (const wh of warehouses) {
-                await tx.warehouseStock.upsert({
-                  where: {
-                    warehouseId_variantId: {
-                      warehouseId: wh.id,
-                      variantId: newV.id
-                    }
-                  },
-                  create: {
-                    warehouseId: wh.id,
-                    variantId: newV.id,
-                    physicalStock: 0,
-                    reservedStock: 0,
-                    safetyThreshold: 5
-                  },
-                  update: {}
+                newStockRecords.push({
+                  warehouseId: wh.id,
+                  variantId: newV.id,
+                  physicalStock: 0,
+                  reservedStock: 0,
+                  safetyThreshold: 5
                 });
               }
             }
           }
+
+          if (newStockRecords.length > 0) {
+            await tx.warehouseStock.createMany({
+              data: newStockRecords,
+              skipDuplicates: true
+            });
+          }
         }
+      }, {
+        maxWait: 10000,
+        timeout: 30000
       });
 
       const updated = await prisma.product.findUnique({
         where: { id },
         include: { category: true, variants: true }
       });
+
+      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
+      memoryCache.invalidate('admin_products_all');
 
       res.json({ message: 'Cập nhật sản phẩm thành công!', product: updated });
     } catch (error: any) {
@@ -388,6 +453,8 @@ export const productController = {
         where: { id },
         data: { deletedAt: new Date(), isActive: false }
       });
+      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
+      memoryCache.invalidate('admin_products_all');
       res.json({ message: 'Đã xóa sản phẩm thành công.' });
     } catch (error: any) {
       console.error('Lỗi xóa sản phẩm:', error);

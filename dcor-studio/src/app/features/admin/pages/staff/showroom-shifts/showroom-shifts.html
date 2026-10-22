@@ -1,0 +1,302 @@
+<section class="admin-page showroom-shifts-page">
+
+  <!-- =========================================================================
+       1. TIÊU ĐỀ TRANG & CHUYỂN ĐỔI CHẾ ĐỘ XEM (TUẦN / CẢ THÁNG)
+       ========================================================================= -->
+  <header class="admin-page-heading">
+    <div>
+      <h1>Lịch Ca Làm Showroom & Chấm Công</h1>
+      <p>Theo dõi lịch làm việc sáng - chiều phân công theo tuần, chấm công thực tế và tổng hợp công cả tháng.</p>
+    </div>
+
+    <div class="admin-page-actions">
+      <!-- Bộ chuyển đổi chế độ xem Tuần vs Tháng -->
+      <div class="view-mode-toggle-group">
+        <button 
+          type="button" 
+          class="mode-btn" 
+          [class.active]="viewMode === 'week'"
+          (click)="viewMode = 'week'">
+          <app-icon name="Calendar" size="15"></app-icon>
+          <span>Xem theo Tuần</span>
+        </button>
+        <button 
+          type="button" 
+          class="mode-btn" 
+          [class.active]="viewMode === 'month'"
+          (click)="viewMode = 'month'">
+          <app-icon name="CalendarDays" size="15"></app-icon>
+          <span>Xem Cả Tháng</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. THẺ NHÂN SỰ & SHOWROOM CÔNG TÁC
+       - Nhân sự thường: Chỉ hiển thị thông tin ca trực của chính mình
+       - Quản lý có quyền: Có thêm dropdown chọn nhân sự khác để xem ca
+       ========================================================================= -->
+  <div class="staff-showroom-info-card" *ngIf="currentStaffShift">
+    <div class="info-left-identity">
+      <div class="staff-avatar avatar-profile">
+        <img *ngIf="currentStaffShift.avatarUrl" [src]="currentStaffShift.avatarUrl" [alt]="currentStaffShift.staffName" />
+        <span *ngIf="!currentStaffShift.avatarUrl" class="avatar-fallback">{{ getInitials(currentStaffShift.staffName) }}</span>
+      </div>
+      <div>
+        <div class="identity-badge-row">
+          <span class="badge-tag-workplace">{{ getShowroomBadge(currentStaffShift.branchId) }}</span>
+          <span class="badge-tag-role">{{ currentStaffShift.role }}</span>
+        </div>
+        <h2 class="staff-display-name">{{ currentStaffShift.staffName }}</h2>
+        <div class="staff-contact-line">
+          <span>Email: <strong>{{ currentStaffShift.email }}</strong></span>
+          <span class="dot">•</span>
+          <span>SĐT: <strong>{{ currentStaffShift.phone || '0903 888 999' }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bộ lọc dành riêng cho Quản lý được cấp quyền nhân sự -->
+    <div class="info-right-admin-picker" *ngIf="canManageStaff">
+      <div class="admin-notice-pill">
+        <app-icon name="Shield" size="13" color="#1E40AF"></app-icon>
+        <span>Chế độ Quản lý: Xem ca nhân sự khác</span>
+      </div>
+
+      <div class="picker-inputs-row">
+        <!-- Lọc Showroom -->
+        <div class="picker-group">
+          <label for="filter-sr">Showroom:</label>
+          <select id="filter-sr" class="admin-select select-compact" [(ngModel)]="selectedBranchFilter">
+            <option value="ALL">Tất cả Showroom</option>
+            <option value="SR_Q1">Showroom Q1</option>
+            <option value="SR_THU_DUC">Showroom Thủ Đức</option>
+            <option value="SR_HN_CAU_GIAY">Showroom Cầu Giấy HN</option>
+            <option value="SR_DN_HAI_CHAU">Showroom Đà Nẵng</option>
+          </select>
+        </div>
+
+        <!-- Chọn Nhân sự -->
+        <div class="picker-group">
+          <label for="filter-staff">Nhân viên:</label>
+          <select id="filter-staff" class="admin-select select-compact" [(ngModel)]="selectedStaffId">
+            <option *ngFor="let s of availableStaffList" [value]="s.staffId">
+              {{ s.staffName }} ({{ s.role }})
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       3. BẢNG MÀU CHÚ THÍCH CHẤM CÔNG (QUY TẮC MÀU CHUẨN DCOR)
+       - Xanh lá cây: Đã làm
+       - Màu vàng: Chưa làm (Sắp tới)
+       - Màu đỏ: Thiếu công
+       ========================================================================= -->
+  <div class="attendance-legend-bar">
+    <div class="legend-items-list">
+      <div class="legend-color-item legend-completed">
+        <span class="color-dot dot-green"></span>
+        <span class="legend-text"><strong>Xanh lá cây:</strong> Đã làm (Chấm công hợp lệ)</span>
+      </div>
+      <div class="legend-color-item legend-pending">
+        <span class="color-dot dot-yellow"></span>
+        <span class="legend-text"><strong>Màu vàng:</strong> Chưa làm (Ca sắp tới trong lịch)</span>
+      </div>
+      <div class="legend-color-item legend-missed">
+        <span class="color-dot dot-red"></span>
+        <span class="legend-text"><strong>Màu đỏ:</strong> Thiếu công (Quá hạn hoặc lỡ ca)</span>
+      </div>
+    </div>
+
+    <!-- Tóm tắt số ca -->
+    <div class="stats-pills-wrap" *ngIf="viewMode === 'week'">
+      <span class="stat-pill pill-total">Tổng: <strong>{{ totalWeekShiftsCount }}</strong> ca</span>
+      <span class="stat-pill pill-done">Đã làm: <strong>{{ completedWeekShiftsCount }}</strong> ca</span>
+      <span class="stat-pill pill-wait">Chưa làm: <strong>{{ pendingWeekShiftsCount }}</strong> ca</span>
+      <span class="stat-pill pill-alert" *ngIf="missedWeekShiftsCount > 0">Thiếu: <strong>{{ missedWeekShiftsCount }}</strong> ca</span>
+    </div>
+
+    <div class="stats-pills-wrap" *ngIf="viewMode === 'month'">
+      <span class="stat-pill pill-total">Cả tháng: <strong>{{ totalMonthShiftsCount }}</strong> ca</span>
+      <span class="stat-pill pill-done">Hoàn thành: <strong>{{ completedMonthShiftsCount }}</strong> ca</span>
+      <span class="stat-pill pill-wait">Sắp tới: <strong>{{ pendingMonthShiftsCount }}</strong> ca</span>
+      <span class="stat-pill pill-rate">Tỷ lệ công: <strong>{{ monthCompletionRate }}</strong></span>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       4. CHẾ ĐỘ XEM 1: LỊCH CA LÀM VIỆC TRONG TUẦN (WEEKLY VIEW)
+       ========================================================================= -->
+  <section class="shifts-content-view" *ngIf="viewMode === 'week'">
+    
+    <!-- Thanh điều hướng tuần -->
+    <div class="week-navigation-banner">
+      <button type="button" class="btn-nav-step" (click)="changeWeek(-1)" title="Tuần trước">
+        <app-icon name="ChevronLeft" size="16"></app-icon>
+        <span>Tuần trước</span>
+      </button>
+
+      <button type="button" class="btn-nav-current" (click)="resetCurrentWeek()" title="Trở về tuần hiện tại">
+        <app-icon name="Calendar" size="15"></app-icon>
+        <span>{{ currentWeekLabel }}</span>
+      </button>
+
+      <button type="button" class="btn-nav-step" (click)="changeWeek(1)" title="Tuần sau">
+        <span>Tuần sau</span>
+        <app-icon name="ChevronRight" size="16"></app-icon>
+      </button>
+    </div>
+
+    <!-- Lưới 7 ngày trong tuần -->
+    <div class="week-days-grid">
+      <div 
+        *ngFor="let day of weeklyDaysData" 
+        class="week-day-column" 
+        [class.is-today]="day.isToday"
+        [class.is-day-off]="day.isDayOff">
+        
+        <!-- Header ngày -->
+        <div class="day-col-header">
+          <div class="day-title-box">
+            <span class="day-short">{{ day.dayShort }}</span>
+            <span class="day-full">{{ day.dayLabel }}</span>
+          </div>
+          <span class="day-date-badge" [class.badge-today]="day.isToday">{{ day.dateStr }}</span>
+        </div>
+
+        <!-- Danh sách ca trực trong ngày -->
+        <div class="day-shifts-container">
+          <ng-container *ngIf="day.shifts.length > 0; else noShiftWeekTmpl">
+            
+            <div 
+              *ngFor="let s of day.shifts" 
+              class="shift-card-block"
+              [ngClass]="{
+                'status-completed': s.status === 'COMPLETED',
+                'status-pending': s.status === 'PENDING',
+                'status-missed': s.status === 'MISSED'
+              }">
+              
+              <!-- Tiêu đề ca & giờ -->
+              <div class="shift-card-head">
+                <span class="shift-name-txt">
+                  <span *ngIf="s.id === 'morning'">☀️ {{ s.name }}</span>
+                  <span *ngIf="s.id === 'afternoon'">🌤️ {{ s.name }}</span>
+                  <span *ngIf="s.id === 'evening'">🌙 {{ s.name }}</span>
+                </span>
+                <span class="shift-hours-txt">{{ s.timeRange }}</span>
+              </div>
+
+              <!-- Trạng thái chấm công theo đúng màu sắc -->
+              <div class="shift-card-footer">
+                <div class="status-indicator-pill" [ngClass]="'pill-' + s.status.toLowerCase()">
+                  <span *ngIf="s.status === 'COMPLETED'">🟢 Đã làm</span>
+                  <span *ngIf="s.status === 'PENDING'">🟡 Chưa làm</span>
+                  <span *ngIf="s.status === 'MISSED'">🔴 Thiếu công</span>
+                </div>
+
+                <!-- Thời gian check-in nếu có -->
+                <div class="checkin-time-note" *ngIf="s.checkInTime">
+                  <app-icon name="Clock" size="11"></app-icon>
+                  <span>{{ s.checkInTime }}</span>
+                </div>
+              </div>
+
+            </div>
+
+          </ng-container>
+
+          <ng-template #noShiftWeekTmpl>
+            <div class="day-off-box">
+              <span class="day-off-txt">Nghỉ ca</span>
+            </div>
+          </ng-template>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- =========================================================================
+       5. CHẾ ĐỘ XEM 2: LỊCH CA LÀM VIỆC CẢ THÁNG (MONTHLY CALENDAR VIEW)
+       ========================================================================= -->
+  <section class="shifts-content-view" *ngIf="viewMode === 'month'">
+    
+    <!-- Thanh điều hướng tháng -->
+    <div class="week-navigation-banner">
+      <button type="button" class="btn-nav-step" (click)="changeMonth(-1)" title="Tháng trước">
+        <app-icon name="ChevronLeft" size="16"></app-icon>
+        <span>Tháng trước</span>
+      </button>
+
+      <button type="button" class="btn-nav-current" (click)="resetCurrentMonth()" title="Trở về tháng hiện tại">
+        <app-icon name="CalendarDays" size="15"></app-icon>
+        <span>{{ currentMonthLabel }}</span>
+      </button>
+
+      <button type="button" class="btn-nav-step" (click)="changeMonth(1)" title="Tháng sau">
+        <span>Tháng sau</span>
+        <app-icon name="ChevronRight" size="16"></app-icon>
+      </button>
+    </div>
+
+    <!-- Bảng lịch tháng 7 cột (Thứ 2 đến Chủ nhật) -->
+    <div class="month-calendar-card">
+      
+      <!-- Hàng tiêu đề các thứ -->
+      <div class="month-calendar-head">
+        <div class="head-col">Thứ Hai</div>
+        <div class="head-col">Thứ Ba</div>
+        <div class="head-col">Thứ Tư</div>
+        <div class="head-col">Thứ Năm</div>
+        <div class="head-col">Thứ Sáu</div>
+        <div class="head-col">Thứ Bảy</div>
+        <div class="head-col col-sun">Chủ Nhật</div>
+      </div>
+
+      <!-- Lưới các ô ngày trong tháng -->
+      <div class="month-calendar-grid">
+        <div 
+          *ngFor="let mDay of monthlyDaysData" 
+          class="month-cell" 
+          [class.empty-cell]="!mDay.isCurrentMonth"
+          [class.cell-today]="mDay.isToday"
+          [class.cell-off]="mDay.dayOff">
+          
+          <ng-container *ngIf="mDay.isCurrentMonth">
+            <div class="cell-top-bar">
+              <span class="cell-day-num" [class.num-today]="mDay.isToday">{{ mDay.dayNumber }}</span>
+              <span class="cell-shifts-count" *ngIf="mDay.shiftsCount > 0">{{ mDay.shiftsCount }} ca</span>
+            </div>
+
+            <!-- Các chỉ báo màu sắc ca trực trong ngày -->
+            <div class="cell-shifts-badges">
+              <span *ngIf="mDay.completedCount > 0" class="badge-dot-row bg-green" title="Đã hoàn thành ca">
+                <span class="mini-dot"></span>
+                <span>{{ mDay.completedCount }} Đã làm</span>
+              </span>
+              <span *ngIf="mDay.pendingCount > 0" class="badge-dot-row bg-yellow" title="Ca sắp tới">
+                <span class="mini-dot"></span>
+                <span>{{ mDay.pendingCount }} Chưa làm</span>
+              </span>
+              <span *ngIf="mDay.missedCount > 0" class="badge-dot-row bg-red" title="Thiếu công">
+                <span class="mini-dot"></span>
+                <span>{{ mDay.missedCount }} Thiếu</span>
+              </span>
+              <span *ngIf="mDay.dayOff" class="cell-off-text">Nghỉ</span>
+            </div>
+          </ng-container>
+
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+</section>

@@ -28,6 +28,9 @@ export const adminGuard: CanActivateFn = (
     });
   }
 
+  // Luôn xác thực ngầm với database để thu hồi ngay nếu bị khóa từ tab khác/admin khác
+  authService.verifySession().subscribe();
+
   // 3. Kiểm tra quyền truy cập route theo Module và Action
   const requiredModule = (route.data?.['module'] as string) || extractModuleFromPath(state.url);
   const requiredAction = (route.data?.['action'] as keyof PermissionActions) || 'view';
@@ -70,7 +73,12 @@ function extractModuleFromPath(url: string): string | null {
       'customers': 'customers',
       'staff': 'staff',
       'reports': 'reports',
-      'settings': 'settings'
+      'designs': 'designs',
+      'appointments': 'appointments',
+      'content': 'content',
+      'chat': 'chat',
+      'settings': 'settings',
+      'audit-log': 'settings'
     };
     return mapping[section] || null;
   }

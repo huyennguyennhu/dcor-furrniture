@@ -112,7 +112,43 @@ export const orderController = {
         }
       }
 
-      const totalAmount = subTotal;
+      let discountAmountNum = 0;
+      let appliedVoucherCode: string | null = null;
+
+      if (voucherCode && typeof voucherCode === 'string') {
+        const cleanCode = voucherCode.trim().toUpperCase().replace(/\s+/g, '');
+        const voucher = await (prisma as any).voucher.findUnique({
+          where: { code: cleanCode }
+        }).catch(() => null);
+
+        if (voucher && voucher.isActive) {
+          const now = new Date();
+          const isDateValid = new Date(voucher.startDate) <= now && new Date(voucher.endDate) >= now;
+          const isQuotaValid = voucher.usageLimit <= 0 || voucher.usedCount < voucher.usageLimit;
+          const isMinOrderValid = Number(subTotal) >= voucher.minOrderValue;
+
+          if (isDateValid && isQuotaValid && isMinOrderValid) {
+            appliedVoucherCode = voucher.code;
+            if (voucher.discountType === 'PERCENT') {
+              discountAmountNum = Math.round((Number(subTotal) * voucher.discountValue) / 100);
+              if (voucher.maxDiscountCap && voucher.maxDiscountCap > 0) {
+                discountAmountNum = Math.min(discountAmountNum, voucher.maxDiscountCap);
+              }
+            } else {
+              discountAmountNum = Math.min(voucher.discountValue, Number(subTotal));
+            }
+
+            // Tự động tăng usedCount của voucher lên 1
+            await (prisma as any).voucher.update({
+              where: { code: voucher.code },
+              data: { usedCount: { increment: 1 } }
+            }).catch((e: any) => console.warn('[WARN] Không thể tăng usedCount của voucher:', e));
+          }
+        }
+      }
+
+      const discountAmount = BigInt(discountAmountNum);
+      const totalAmount = subTotal > discountAmount ? (subTotal - discountAmount) : BigInt(0);
       const isHighValue = totalAmount > BigInt(50000000);
 
       // Mã đơn hàng định dạng DC-xxxxxx
@@ -135,9 +171,9 @@ export const orderController = {
           giftMessage: shippingNotes || null,
           subTotal,
           shippingFee: BigInt(0),
-          discountAmount: BigInt(0),
+          discountAmount,
           totalAmount,
-          promoCode: voucherCode || null,
+          promoCode: appliedVoucherCode || (voucherCode ? String(voucherCode).trim().toUpperCase() : null),
           status: 'PENDING',
           paymentMethod: paymentMethod === 'COD' ? 'COD' : 'BANK_TRANSFER',
           paymentStatus: 'UNPAID',

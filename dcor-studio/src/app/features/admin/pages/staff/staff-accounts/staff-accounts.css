@@ -10,9 +10,9 @@
 /* Toast Floating */
 .toast-alert {
   position: fixed;
-  top: 24px;
+  top: 80px;
   right: 24px;
-  z-index: 2200;
+  z-index: 99999;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1008,5 +1008,213 @@
   border-color: #059669 !important;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
   cursor: default !important;
+}
+
+/* Security Field Locks */
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.security-chip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7A5600;
+  background: #FFF8E5;
+  border: 1px solid #F2BF3D;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.input-locked {
+  background-color: #F8F9FA !important;
+  color: #555555 !important;
+  border-color: #E2E8F0 !important;
+  cursor: not-allowed !important;
+}
+
+/* 2-Step Delete Modal */
+.delete-step-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #F8F9FA;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.step-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #718096;
+}
+
+.step-badge.active {
+  background: #C42326;
+  color: #FFFFFF;
+}
+
+.step-badge.done {
+  background: #E2E8F0;
+  color: #2D3748;
+}
+
+.step-divider {
+  color: #A0AEC0;
+}
+
+.delete-target-preview-box {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-left: 4px solid #C42326;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+
+.d-target-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A202C;
+}
+
+.d-target-email {
+  font-size: 13px;
+  color: #4A5568;
+  margin-top: 2px;
+}
+
+.d-target-meta {
+  font-size: 12px;
+  color: #718096;
+  margin-top: 4px;
+}
+
+.delete-warning-box {
+  background: #FFF5F5;
+  border: 1px solid rgba(196, 35, 38, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #C42326;
+}
+
+.delete-warning-box ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  line-height: 1.45;
+}
+
+.delete-critical-prompt-box {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #FFF5F5;
+  border: 1px solid rgba(196, 35, 38, 0.3);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 14px 0;
+}
+
+.yes-input-wrap {
+  margin-top: 14px;
+}
+
+.yes-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #2D3748;
+}
+
+.yes-confirm-input {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px !important;
+  text-align: center;
+  border: 2px solid #CBD5E0 !important;
+  text-transform: uppercase;
+}
+
+.yes-confirm-input:focus {
+  border-color: #C42326 !important;
+  box-shadow: 0 0 0 3px rgba(196, 35, 38, 0.15) !important;
+}
+
+.yes-match-indicator {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #00875A;
+}
+
+.yes-mismatch-indicator {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #BC5F13;
+}
+
+.btn-warning-action {
+  background: #BC5F13 !important;
+  color: #FFFFFF !important;
+  border-color: #9C4B08 !important;
+}
+
+.btn-warning-action:hover {
+  background: #9C4B08 !important;
+}
+
+/* Lock / Unlock Modal */
+.lock-target-box {
+  background: #F8F9FA;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+
+.l-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A202C;
+}
+
+.l-email {
+  font-size: 13px;
+  color: #4A5568;
+  margin-top: 2px;
+}
+
+.l-badge {
+  font-size: 12px;
+  color: #718096;
+  margin-top: 4px;
+}
+
+.lock-notice-box {
+  background: #FFF8E5;
+  border: 1px solid #F2BF3D;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #7A5600;
+}
+
+.lock-notice-box.is-unlock {
+  background: #E3FCEF;
+  border-color: #ABF5D1;
+  color: #006644;
 }
 

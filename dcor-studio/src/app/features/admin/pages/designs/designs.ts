@@ -1,8 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
-  selector: 'app-dummy',
+  selector: 'app-designs-redirect',
   standalone: true,
-  template: '<div style="padding: 40px; text-align: center; color: var(--text-muted);">Trang này đang trong quá trình phát triển (Placeholder)</div>'
+  template: '<div style="padding: 40px; text-align: center; color: #765337;">Đang chuyển hướng đến Quản lý Không gian...</div>'
 })
-export class DesignsComponent {}
+export class DesignsComponent implements OnInit {
+  constructor(private router: Router) {}
+
+  ngOnInit(): void {
+    this.router.navigate(['/admin/designs/settings'], { replaceUrl: true });
+  }
+}

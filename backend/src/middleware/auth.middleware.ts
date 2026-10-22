@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 
@@ -7,20 +8,49 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authenticateJWT = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers.authorization;
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-      if (err) {
-        res.status(403).json({ message: 'Token không hợp lệ hoặc đã hết hạn.' });
-        return;
+    try {
+      const user: any = jwt.verify(token, JWT_SECRET);
+
+      // Nếu là tài khoản Admin/Staff, kiểm tra trạng thái hoạt động trong cơ sở dữ liệu
+      if (user && user.email) {
+        const staff = await prisma.staffUser.findUnique({
+          where: { email: user.email.toLowerCase() },
+          select: { id: true, status: true, deletedAt: true }
+        });
+
+        if (staff) {
+          if (staff.deletedAt !== null) {
+            res.status(403).json({
+              active: false,
+              code: 'ACCOUNT_DELETED',
+              message: 'Tài khoản nhân sự đã bị xóa khỏi hệ thống.'
+            });
+            return;
+          }
+
+          if (staff.status !== 'ACTIVE') {
+            res.status(403).json({
+              active: false,
+              code: 'ACCOUNT_LOCKED',
+              message: 'Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ quản trị viên.'
+            });
+            return;
+          }
+        }
       }
+
       req.user = user;
       next();
-    });
+    } catch (err) {
+      res.status(403).json({ message: 'Token không hợp lệ hoặc đã hết hạn.' });
+      return;
+    }
   } else {
     res.status(401).json({ message: 'Vui lòng đăng nhập để tiếp tục.' });
   }

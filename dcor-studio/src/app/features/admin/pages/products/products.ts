@@ -1,6 +1,7 @@
 import { Component, OnInit, HostListener, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { 
   LucideAngularModule, 
@@ -640,6 +641,7 @@ export class ProductsComponent implements OnInit {
   constructor(
     private router: Router, 
     private cdr: ChangeDetectorRef,
+    private http: HttpClient,
     private adminAuthService: AdminAuthService
   ) {}
 
@@ -662,18 +664,12 @@ export class ProductsComponent implements OnInit {
   // Tải dữ liệu ban đầu từ Database thực tế (PostgreSQL / Prisma)
   loadProducts() {
     this.isLoading = true;
+    this.cdr.detectChanges();
     
-    // Tải song song danh sách sản phẩm và danh mục từ Database Backend (ưu tiên API Admin)
-    Promise.all([
-      fetch(`${environment.apiUrl}/admin/products`)
-        .then(r => r.ok ? r.json() : fetch(`${environment.apiUrl}/products`).then(r2 => r2.ok ? r2.json() : []))
-        .catch(() => fetch(`${environment.apiUrl}/products`).then(r2 => r2.ok ? r2.json() : [])),
-      fetch(`${environment.apiUrl}/admin/categories`)
-        .then(r => r.ok ? r.json() : fetch(`${environment.apiUrl}/categories`).then(r2 => r2.ok ? r2.json() : []))
-        .catch(() => fetch(`${environment.apiUrl}/categories`).then(r2 => r2.ok ? r2.json() : []))
-    ])
-      .then(([prodsData, catsData]: [any[], any[]]) => {
-        // 1. Cập nhật danh mục lọc từ Database
+    // 1. Tải danh mục ngầm
+    this.http.get<any>(`${environment.apiUrl}/admin/categories`).subscribe({
+      next: (catsRes) => {
+        const catsData = catsRes?.tree || (Array.isArray(catsRes) ? catsRes : []);
         if (Array.isArray(catsData) && catsData.length > 0) {
           const dbCats: Array<{ id: string; name: string }> = [];
           catsData.forEach((parentCat: any) => {
@@ -685,9 +681,15 @@ export class ProductsComponent implements OnInit {
             }
           });
           this.categories = [{ id: 'ALL', name: 'Tất cả danh mục' }, ...dbCats];
+          this.cdr.detectChanges();
         }
+      },
+      error: () => {}
+    });
 
-        // 2. Map sản phẩm thực tế từ Database
+    // 2. Tải sản phẩm trực tiếp từ API backend qua HttpClient (cập nhật Angular Zone tức thì)
+    this.http.get<any[]>(`${environment.apiUrl}/admin/products`).subscribe({
+      next: (prodsData) => {
         if (Array.isArray(prodsData) && prodsData.length > 0) {
           const apiProducts: ProductListItem[] = prodsData.map((p: any, idx: number) => {
             const rawVariants = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants : [];
@@ -749,21 +751,22 @@ export class ProductsComponent implements OnInit {
             };
           });
 
-          // Sử dụng trực tiếp danh sách sản phẩm từ Database
           this.allProducts = apiProducts;
         } else {
           this.allProducts = [...INITIAL_PRODUCTS];
         }
-      })
-      .catch((err) => {
-        console.warn('Không thể tải từ backend, dùng dữ liệu dự phòng:', err);
-        this.allProducts = [...INITIAL_PRODUCTS];
-      })
-      .finally(() => {
         this.isLoading = false;
         this.applyFilters();
         this.cdr.detectChanges();
-      });
+      },
+      error: (err) => {
+        console.warn('Không thể tải từ backend, dùng dữ liệu dự phòng:', err);
+        this.allProducts = [...INITIAL_PRODUCTS];
+        this.isLoading = false;
+        this.applyFilters();
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   // --- KPI COUNTERS ---

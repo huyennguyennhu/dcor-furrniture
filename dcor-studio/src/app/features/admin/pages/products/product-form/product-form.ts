@@ -232,6 +232,10 @@ export class ProductFormComponent implements OnInit {
           if (found) {
             this.categorySearchQuery = found.parentName ? `${found.parentName} > ${found.name}` : found.name;
           }
+        } else if (!this.isEditMode && catsList.length > 0) {
+          // Tự động gán danh mục đầu tiên cho sản phẩm mới
+          this.formData.classification.primaryCategoryId = catsList[0].id;
+          this.categorySearchQuery = catsList[0].parentName ? `${catsList[0].parentName} > ${catsList[0].name}` : catsList[0].name;
         }
         this.cdr.detectChanges();
       },
@@ -672,6 +676,18 @@ export class ProductFormComponent implements OnInit {
     if (!this.formData.basic.name.trim()) {
       this.formData.basic.name = 'Sản phẩm nháp mới';
     }
+    if (!this.formData.classification.primaryCategoryId) {
+      if (this.categories.length > 0) {
+        this.formData.classification.primaryCategoryId = this.categories[0].id;
+        this.categorySearchQuery = this.categories[0].parentName 
+          ? `${this.categories[0].parentName} > ${this.categories[0].name}` 
+          : this.categories[0].name;
+      } else {
+        this.showToast('Vui lòng chọn danh mục cho sản phẩm trước khi lưu nháp!', 'warning');
+        this.switchTab('classification');
+        return;
+      }
+    }
     this.formData.publication.status = 'Nháp';
     this.formData.publication.isPublished = false;
     this.saveToDatabase();
@@ -726,7 +742,8 @@ export class ProductFormComponent implements OnInit {
       error: (err) => {
         this.isLoading = false;
         console.error('Lỗi lưu sản phẩm vào database:', err);
-        this.showToast(err?.error?.message || 'Không thể lưu sản phẩm vào cơ sở dữ liệu.', 'error');
+        const errorMsg = err?.error?.message || err?.error?.error || 'Không thể lưu sản phẩm vào cơ sở dữ liệu.';
+        this.showToast(errorMsg, 'error');
         this.cdr.detectChanges();
       }
     });

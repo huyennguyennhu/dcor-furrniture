@@ -1,6 +1,11 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { catchError, throwError } from 'rxjs';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const router = inject(Router);
+
   // Lấy token của Customer (nếu có)
   const customerToken = sessionStorage.getItem('dcor_customer_token') || localStorage.getItem('dcor_customer_token');
   // Lấy token của Admin từ sessionStorage (phiên làm việc) hoặc localStorage
@@ -17,14 +22,42 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     token = customerToken || adminToken;
   }
 
-  if (token) {
-    const authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    return next(authReq);
-  }
+  const authReq = token
+    ? req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+    : req;
 
-  return next(req);
+  return next(authReq).pipe(
+    catchError((error: HttpErrorResponse) => {
+      // Khi tài khoản admin bị khóa hoặc xóa trong DB, thu hồi phiên ngay lập tức
+      const isAccountRevoked = 
+        error.error?.code === 'ACCOUNT_LOCKED' || 
+        error.error?.code === 'ACCOUNT_DELETED' || 
+        error.error?.active === false ||
+        (typeof error.error?.message === 'string' && (error.error.message.includes('tạm khóa') || error.error.message.includes('đã bị xóa')));
+
+      if (
+        (error.status === 401 || (error.status === 403 && isAccountRevoked)) &&
+        (req.url.includes('/api/admin') || req.url.includes('/api/auth/admin'))
+      ) {
+        if (!req.url.includes('/api/auth/admin/login')) {
+          const errMsg = error.error?.message || 'Tài khoản của bạn đã bị tạm khóa hoặc phiên làm việc đã hết hạn.';
+          sessionStorage.removeItem('dcor_admin_token');
+          sessionStorage.removeItem('dcor_admin_user');
+          sessionStorage.removeItem('dcor_admin_session_expires_at');
+          localStorage.removeItem('dcor_admin_token');
+          localStorage.removeItem('dcor_admin_user');
+          localStorage.removeItem('dcor_role_permissions');
+
+          router.navigate(['/admin-login'], {
+            queryParams: { error: errMsg }
+          });
+        }
+      }
+      return throwError(() => error);
+    })
+  );
 };

@@ -1,24 +1,559 @@
-<section class="admin-page">
+<div class="promotions-vouchers-page">
+  <!-- Toast Notification Floating -->
+  <div *ngIf="toastMessage" class="toast-alert" [ngClass]="'toast-' + toastType" role="alert">
+    <app-icon [name]="toastType === 'success' ? 'Check' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
+    <span>{{ toastMessage }}</span>
+    <button type="button" class="btn-close-toast" (click)="closeToast()" aria-label="Đóng thông báo">
+      <app-icon name="X" size="14"></app-icon>
+    </button>
+  </div>
+
+  <!-- Navigation Tab Bar: Vouchers vs Flash Sale / Campaigns -->
+  <div class="promo-submodule-tabs">
+    <a routerLink="/admin/vouchers" class="promo-tab-item active" aria-current="page">
+      <app-icon name="Ticket" size="18"></app-icon>
+      <span>Mã giảm giá (Vouchers)</span>
+      <span class="tab-badge">{{ records.length }}</span>
+    </a>
+    <a routerLink="/admin/campaigns" class="promo-tab-item">
+      <app-icon name="Zap" size="18"></app-icon>
+      <span>Chiến dịch Flash Sale & Combo</span>
+    </a>
+  </div>
+
+  <!-- Page Header -->
   <header class="admin-page-heading">
-    <div><h1>Mã giảm giá</h1><p>Tạo và theo dõi voucher áp dụng cho khách hàng.</p></div>
-    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button><button type="button" class="admin-btn admin-btn-primary">+ Tạo voucher</button></div>
+    <div class="heading-title-group">
+      <h1 class="page-title">Quản lý Mã giảm giá & Voucher</h1>
+      <p class="page-subtitle">Thiết lập các mã voucher ưu đãi, quản lý trần giảm giá và theo dõi doanh thu thực tế mang lại.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-btn admin-btn-primary" (click)="openCreateModal()">
+        <app-icon name="Plus" size="18"></app-icon>
+        <span>+ Tạo voucher mới</span>
+      </button>
+    </div>
   </header>
-  <div class="admin-page-stats">
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng voucher</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang hoạt động</div><div class="admin-page-stat-value">2</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Lượt sử dụng tháng này</div><div class="admin-page-stat-value">384</div></article>
+
+  <!-- 4 Stats Cards -->
+  <section class="admin-page-stats" aria-label="Thống kê voucher">
+    <article class="admin-page-stat stat-card-total">
+      <div class="stat-card-icon">
+        <app-icon name="Ticket" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Tổng voucher</span>
+        <div class="admin-page-stat-value">{{ totalCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-active">
+      <div class="stat-card-icon stat-icon-green">
+        <app-icon name="Check" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Đang hoạt động</span>
+        <div class="admin-page-stat-value text-success">{{ activeCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-usage">
+      <div class="stat-card-icon stat-icon-amber">
+        <app-icon name="TrendingUp" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Lượt sử dụng tích lũy</span>
+        <div class="admin-page-stat-value">{{ monthlyUsageCount }} <span class="stat-unit">lượt</span></div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-revenue">
+      <div class="stat-card-icon stat-icon-brown">
+        <app-icon name="DollarSign" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Doanh thu mang lại</span>
+        <div class="admin-page-stat-value text-wood">{{ formatCurrency(totalRevenueGenerated) }}</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- Filter & Search Toolbar -->
+  <section class="admin-page-filter" aria-label="Bộ lọc tìm kiếm voucher">
+    <div class="search-input-wrapper">
+      <app-icon name="Search" size="18" class="search-icon"></app-icon>
+      <input
+        type="text"
+        class="admin-input search-input"
+        [(ngModel)]="searchTerm"
+        placeholder="Tìm theo mã voucher, danh mục, điều kiện..."
+        aria-label="Tìm kiếm voucher" />
+      <button
+        *ngIf="searchTerm"
+        type="button"
+        class="clear-search-btn"
+        (click)="searchTerm = ''"
+        aria-label="Xóa tìm kiếm">
+        <app-icon name="X" size="14"></app-icon>
+      </button>
+    </div>
+
+    <div class="filter-controls-group">
+      <select class="admin-select" [(ngModel)]="selectedStatus" aria-label="Lọc theo trạng thái">
+        <option value="ALL">Tất cả trạng thái</option>
+        <option value="Đang hoạt động">Đang hoạt động</option>
+        <option value="Sắp diễn ra">Sắp diễn ra</option>
+        <option value="Tạm dừng">Tạm dừng</option>
+        <option value="Đã kết thúc">Đã kết thúc</option>
+      </select>
+
+      <select class="admin-select" [(ngModel)]="selectedDiscountType" aria-label="Lọc theo loại giảm">
+        <option value="ALL">Tất cả loại giảm</option>
+        <option value="PERCENT">Giảm theo % (Phần trăm)</option>
+        <option value="FIXED_AMOUNT">Giảm số tiền cố định (₫)</option>
+      </select>
+
+      <select class="admin-select" [(ngModel)]="selectedScope" aria-label="Lọc theo phạm vi">
+        <option value="ALL">Tất cả phạm vi</option>
+        <option value="ALL">Toàn bộ sản phẩm</option>
+        <option value="CATEGORY">Theo danh mục</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Vouchers Table (100% width, no horizontal scroll) -->
+  <div class="admin-page-table-card">
+    <div class="admin-page-table-scroll">
+      <table class="admin-table vouchers-table">
+        <thead>
+          <tr>
+            <th class="col-code">Mã voucher</th>
+            <th class="col-discount">Mức giảm</th>
+            <th class="col-condition">Điều kiện & Phạm vi</th>
+            <th class="col-progress">Tiến độ sử dụng</th>
+            <th class="col-dates">Thời hạn áp dụng</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let record of filteredRecords" [class.row-paused]="record.status === 'Tạm dừng'">
+            <!-- Mã voucher -->
+            <td class="col-code">
+              <div class="voucher-code-cell">
+                <span class="voucher-code-badge" [title]="record.code">{{ record.code }}</span>
+                <button
+                  type="button"
+                  class="action-icon-btn btn-copy"
+                  (click)="copyCode(record.code)"
+                  [title]="'Sao chép mã ' + record.code">
+                  <app-icon name="Copy" size="14"></app-icon>
+                </button>
+              </div>
+            </td>
+
+            <!-- Mức giảm -->
+            <td class="col-discount">
+              <div class="discount-value-cell">
+                <ng-container *ngIf="record.discountType === 'PERCENT'">
+                  <div class="discount-main-text">
+                    <span class="discount-pill pill-percent">Giảm {{ record.discountValue }}%</span>
+                  </div>
+                  <div class="discount-sub-text" *ngIf="record.maxDiscountCap">
+                    Tối đa {{ formatCurrency(record.maxDiscountCap) }}
+                  </div>
+                </ng-container>
+                <ng-container *ngIf="record.discountType === 'FIXED_AMOUNT'">
+                  <div class="discount-main-text">
+                    <span class="discount-pill pill-fixed">Giảm {{ formatCurrency(record.discountValue) }}</span>
+                  </div>
+                </ng-container>
+              </div>
+            </td>
+
+            <!-- Điều kiện & Phạm vi -->
+            <td class="col-condition">
+              <div class="condition-cell">
+                <div class="condition-order-min">
+                  <span *ngIf="record.minOrderValue > 0">Đơn từ <strong>{{ formatCurrency(record.minOrderValue) }}</strong></span>
+                  <span *ngIf="record.minOrderValue === 0" class="text-free">Không giới hạn đơn</span>
+                </div>
+                <div class="condition-badges">
+                  <span class="scope-tag" *ngIf="record.scope === 'ALL'">Toàn bộ sản phẩm</span>
+                  <span class="scope-tag category-tag" *ngIf="record.scope === 'CATEGORY'" [title]="record.categoryScopeName">
+                    📁 {{ record.categoryScopeName }}
+                  </span>
+                  <span class="stackable-tag" *ngIf="record.isStackableWithFlashSale" title="Cho phép cộng dồn với Flash Sale">
+                    ⚡ Cộng dồn FS
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Tiến độ sử dụng -->
+            <td class="col-progress">
+              <div class="progress-cell">
+                <div class="progress-meta">
+                  <span class="progress-counts">
+                    <strong>{{ record.usedCount }}</strong> / {{ record.usageLimit }} lượt
+                  </span>
+                  <span class="progress-pct">{{ getUsagePercent(record.usedCount, record.usageLimit) }}%</span>
+                </div>
+                <div class="progress-track" [title]="'Đã dùng ' + record.usedCount + ' / ' + record.usageLimit + ' lượt'">
+                  <div
+                    class="progress-fill"
+                    [class.fill-danger]="record.usedCount >= record.usageLimit"
+                    [style.width.%]="getUsagePercent(record.usedCount, record.usageLimit)">
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Thời hạn áp dụng -->
+            <td class="col-dates">
+              <div class="dates-cell">
+                <div class="date-range">
+                  <app-icon name="Calendar" size="13" class="date-icon"></app-icon>
+                  <span>{{ formatDate(record.startDate) }} - {{ formatDate(record.endDate) }}</span>
+                </div>
+                <div class="limit-info">Tối đa {{ record.perCustomerLimit }} lượt/khách</div>
+              </div>
+            </td>
+
+            <!-- Trạng thái -->
+            <td class="col-status">
+              <span
+                class="status-badge"
+                [ngClass]="{
+                  'status-active': record.status === 'Đang hoạt động',
+                  'status-upcoming': record.status === 'Sắp diễn ra',
+                  'status-paused': record.status === 'Tạm dừng',
+                  'status-ended': record.status === 'Đã kết thúc'
+                }">
+                <span class="status-dot"></span>
+                <span>{{ record.status }}</span>
+              </span>
+            </td>
+
+            <!-- Thao tác -->
+            <td class="col-actions">
+              <div class="actions-group">
+                <!-- Toggle Switch Bật/Tắt nhanh -->
+                <button
+                  type="button"
+                  class="toggle-switch-btn"
+                  [class.active]="record.status === 'Đang hoạt động'"
+                  (click)="toggleStatus(record)"
+                  [title]="record.status === 'Đang hoạt động' ? 'Nhấn để tạm dừng' : 'Nhấn để kích hoạt'">
+                  <span class="toggle-switch-slider"></span>
+                </button>
+
+                <!-- Edit Button -->
+                <button
+                  type="button"
+                  class="action-icon-btn btn-edit"
+                  (click)="openEditModal(record)"
+                  title="Chỉnh sửa voucher">
+                  <app-icon name="Edit" size="15"></app-icon>
+                </button>
+
+                <!-- Delete Button -->
+                <button
+                  type="button"
+                  class="action-icon-btn btn-delete"
+                  (click)="promptDelete(record)"
+                  title="Xóa voucher">
+                  <app-icon name="Trash2" size="15"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredRecords.length === 0">
+            <td colspan="7" class="admin-page-table-empty">
+              <div class="empty-state-wrapper">
+                <app-icon name="Ticket" size="44" class="empty-icon"></app-icon>
+                <div class="empty-title">Không tìm thấy voucher phù hợp</div>
+                <div class="empty-desc">Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh lại bộ lọc trạng thái/loại giảm.</div>
+                <button type="button" class="admin-btn admin-btn-secondary" (click)="searchTerm = ''; selectedStatus = 'ALL'; selectedDiscountType = 'ALL'; selectedScope = 'ALL'">
+                  Đặt lại bộ lọc
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="admin-page-filter">
-    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm mã voucher hoặc điều kiện..." aria-label="Tìm voucher">
-    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Đang hoạt động</option><option>Đã kết thúc</option></select>
+
+  <!-- MODAL: Tạo / Chỉnh sửa Voucher -->
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-card modal-voucher" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="isEditing ? 'Chỉnh sửa voucher' : 'Tạo voucher mới'">
+      <!-- Modal Header -->
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Ticket" size="20"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">{{ isEditing ? 'Chỉnh sửa Voucher' : 'Tạo Voucher Mới' }}</h2>
+            <p class="modal-subtitle">Điền đầy đủ thông tin ưu đãi, quy định hạn mức và phạm vi áp dụng.</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Đóng cửa sổ">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <!-- Modal Body (Internal Vertical Scroll) -->
+      <div class="modal-body-scrollable">
+        <form (ngSubmit)="saveVoucher()" #voucherForm="ngForm">
+          <!-- Mã voucher -->
+          <div class="form-group">
+            <label class="form-label required">Mã voucher (In hoa, không dấu cách)</label>
+            <div class="code-input-row">
+              <div class="input-with-icon">
+                <app-icon name="Tag" size="16" class="field-icon"></app-icon>
+                <input
+                  type="text"
+                  class="admin-input uppercase-input"
+                  [value]="formData.code"
+                  (input)="onCodeInput($event)"
+                  placeholder="Ví dụ: WELCOME10, DCORVIP"
+                  maxlength="20"
+                  required />
+              </div>
+              <button type="button" class="admin-btn admin-btn-secondary btn-generate-code" (click)="applyRandomCode()">
+                <app-icon name="RefreshCw" size="15"></app-icon>
+                <span>Tạo mã ngẫu nhiên</span>
+              </button>
+            </div>
+            <span class="field-hint">Mã sẽ được tự động chuyển thành chữ in hoa và xóa khoảng trắng thừa.</span>
+          </div>
+
+          <!-- Loại giảm giá: Radio Selector -->
+          <div class="form-group">
+            <label class="form-label required">Hình thức giảm giá</label>
+            <div class="discount-type-selector">
+              <label class="discount-radio-card" [class.selected]="formData.discountType === 'PERCENT'">
+                <input
+                  type="radio"
+                  name="discountType"
+                  value="PERCENT"
+                  [(ngModel)]="formData.discountType" />
+                <div class="radio-content">
+                  <div class="radio-title">
+                    <app-icon name="Percent" size="16"></app-icon>
+                    <span>Giảm theo phần trăm (%)</span>
+                  </div>
+                  <span class="radio-desc">Giảm theo tỷ lệ % giá trị đơn, có thể đặt trần tối đa.</span>
+                </div>
+              </label>
+
+              <label class="discount-radio-card" [class.selected]="formData.discountType === 'FIXED_AMOUNT'">
+                <input
+                  type="radio"
+                  name="discountType"
+                  value="FIXED_AMOUNT"
+                  [(ngModel)]="formData.discountType" />
+                <div class="radio-content">
+                  <div class="radio-title">
+                    <app-icon name="DollarSign" size="16"></app-icon>
+                    <span>Giảm số tiền cố định (₫)</span>
+                  </div>
+                  <span class="radio-desc">Trừ trực tiếp số tiền cố định vào tổng đơn hàng.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Mức giảm & Trần giảm tối đa (conditional) -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">
+                {{ formData.discountType === 'PERCENT' ? 'Phần trăm giảm (%)' : 'Số tiền giảm (₫)' }}
+              </label>
+              <div class="input-with-icon">
+                <app-icon [name]="formData.discountType === 'PERCENT' ? 'Percent' : 'DollarSign'" size="16" class="field-icon"></app-icon>
+                <input
+                  type="number"
+                  class="admin-input"
+                  name="discountValue"
+                  [(ngModel)]="formData.discountValue"
+                  [min]="1"
+                  [max]="formData.discountType === 'PERCENT' ? 100 : 100000000"
+                  required />
+              </div>
+            </div>
+
+            <!-- Trần giảm tối đa khi giảm theo % -->
+            <div class="form-group" *ngIf="formData.discountType === 'PERCENT'">
+              <label class="form-label">Trần giảm tối đa (₫)</label>
+              <div class="input-with-icon">
+                <app-icon name="DollarSign" size="16" class="field-icon"></app-icon>
+                <input
+                  type="number"
+                  class="admin-input"
+                  name="maxDiscountCap"
+                  [(ngModel)]="formData.maxDiscountCap"
+                  placeholder="Ví dụ: 2000000"
+                  min="0" />
+              </div>
+              <span class="field-hint">Để trống nếu không giới hạn trần giảm tối đa.</span>
+            </div>
+
+            <!-- Đơn hàng tối thiểu khi giảm số tiền cố định -->
+            <div class="form-group" *ngIf="formData.discountType === 'FIXED_AMOUNT'">
+              <label class="form-label">Đơn hàng tối thiểu (₫)</label>
+              <div class="input-with-icon">
+                <app-icon name="DollarSign" size="16" class="field-icon"></app-icon>
+                <input
+                  type="number"
+                  class="admin-input"
+                  name="minOrderValue"
+                  [(ngModel)]="formData.minOrderValue"
+                  placeholder="0 = Không yêu cầu đơn tối thiểu"
+                  min="0" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Đơn tối thiểu khi chọn % -->
+          <div class="form-group" *ngIf="formData.discountType === 'PERCENT'">
+            <label class="form-label">Đơn hàng tối thiểu áp dụng (₫)</label>
+            <div class="input-with-icon">
+              <app-icon name="DollarSign" size="16" class="field-icon"></app-icon>
+              <input
+                type="number"
+                class="admin-input"
+                name="minOrderValuePercent"
+                [(ngModel)]="formData.minOrderValue"
+                placeholder="0 = Không yêu cầu đơn tối thiểu"
+                min="0" />
+            </div>
+            <span class="field-hint">Nhập 0 nếu cho phép áp dụng cho mọi giá trị đơn hàng.</span>
+          </div>
+
+          <!-- Phạm vi áp dụng -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">Phạm vi áp dụng</label>
+              <select class="admin-select full-width" name="scope" [(ngModel)]="formData.scope">
+                <option value="ALL">Toàn bộ sản phẩm trên hệ thống</option>
+                <option value="CATEGORY">Theo danh mục sản phẩm cụ thể</option>
+              </select>
+            </div>
+
+            <!-- Danh mục cụ thể nếu scope === 'CATEGORY' -->
+            <div class="form-group" *ngIf="formData.scope === 'CATEGORY'">
+              <label class="form-label required">Chọn danh mục áp dụng</label>
+              <select class="admin-select full-width" name="categoryScopeName" [(ngModel)]="formData.categoryScopeName">
+                <option *ngFor="let cat of CATEGORIES" [value]="cat">{{ cat }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Giới hạn lượt sử dụng -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">Tổng lượt sử dụng toàn sàn</label>
+              <input
+                type="number"
+                class="admin-input"
+                name="usageLimit"
+                [(ngModel)]="formData.usageLimit"
+                min="1"
+                required />
+              <span class="field-hint">Hệ thống tự động ngắt voucher khi đạt đủ lượt.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Lượt dùng tối đa / mỗi khách hàng</label>
+              <input
+                type="number"
+                class="admin-input"
+                name="perCustomerLimit"
+                [(ngModel)]="formData.perCustomerLimit"
+                min="1"
+                required />
+              <span class="field-hint">Mặc định: 1 lượt/khách hàng.</span>
+            </div>
+          </div>
+
+          <!-- Thời hạn áp dụng -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">Ngày bắt đầu áp dụng</label>
+              <input
+                type="date"
+                class="admin-input"
+                name="startDate"
+                [(ngModel)]="formData.startDate"
+                required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Ngày kết thúc</label>
+              <input
+                type="date"
+                class="admin-input"
+                name="endDate"
+                [(ngModel)]="formData.endDate"
+                required />
+            </div>
+          </div>
+
+          <!-- Checkbox: Stackable with Flash Sale -->
+          <div class="form-group checkbox-form-group">
+            <label class="custom-checkbox-label">
+              <input
+                type="checkbox"
+                name="isStackableWithFlashSale"
+                [(ngModel)]="formData.isStackableWithFlashSale" />
+              <span class="custom-checkbox-box"></span>
+              <span class="checkbox-text">
+                <strong>Cho phép áp dụng chung với sản phẩm đang Flash Sale</strong>
+                <span class="checkbox-desc">Nếu tắt, voucher sẽ không thể áp dụng cho các sản phẩm đã có chiết khấu Flash Sale trong giỏ hàng.</span>
+              </span>
+            </label>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeModal()">
+          Hủy bỏ
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveVoucher()">
+          <app-icon name="Check" size="16"></app-icon>
+          <span>{{ isEditing ? 'Cập nhật voucher' : 'Lưu voucher' }}</span>
+        </button>
+      </footer>
+    </div>
   </div>
-  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
-    <table class="admin-table">
-      <thead><tr><th>Mã voucher</th><th>Mức giảm</th><th>Điều kiện áp dụng</th><th>Ngày hết hạn</th><th>Trạng thái</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.code }}</strong></td><td>{{ record.discount }}</td><td>{{ record.condition }}</td><td>{{ record.expiry }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
-        <tr *ngIf="filteredRecords.length === 0"><td colspan="5" class="admin-page-table-empty">Không tìm thấy voucher phù hợp.</td></tr>
-      </tbody>
-    </table>
-  </div></div>
-</section>
+
+  <!-- MODAL XÁC NHẬN XÓA VOUCHER -->
+  <div class="modal-backdrop" *ngIf="voucherToDelete" (click)="cancelDelete()">
+    <div class="modal-card modal-confirm-delete" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xác nhận xóa voucher">
+      <header class="modal-header delete-header">
+        <div class="delete-icon-wrapper">
+          <app-icon name="Trash2" size="24"></app-icon>
+        </div>
+        <h3 class="modal-title">Xác nhận xóa voucher?</h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>Bạn có chắc chắn muốn xóa vĩnh viễn mã voucher <strong>{{ voucherToDelete.code }}</strong>?</p>
+        <p class="text-sub">Hành động này không thể hoàn tác. Khách hàng sẽ không thể nhập mã này khi thanh toán.</p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelDelete()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDelete()">
+          <app-icon name="Trash2" size="16"></app-icon>
+          <span>Xác nhận xóa</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>

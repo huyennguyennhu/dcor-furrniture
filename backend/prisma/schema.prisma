@@ -782,3 +782,70 @@ model Ward {
   @@map("Ward")
 }
 
+// ============================================================================
+// 11. KHUYẾN MÃI & CỘNG ĐỒNG THIẾT KẾ (Promotions & Design Community)
+// ============================================================================
+
+// 1. Quản lý Voucher khuyến mãi
+model Voucher {
+  id                       String    @id @default(uuid())
+  code                     String    @unique
+  discountType             String    // 'PERCENT' | 'FIXED_AMOUNT'
+  discountValue            Int
+  maxDiscountCap           Int?      // Trần giảm tối đa khi giảm %
+  minOrderValue            Int       @default(0)
+  startDate                DateTime
+  endDate                  DateTime
+  usageLimit               Int       @default(100)
+  usedCount                Int       @default(0)
+  perCustomerLimit         Int       @default(1)
+  isStackableWithFlashSale Boolean   @default(false)
+  isActive                 Boolean   @default(true)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+// 2. Bản mẫu không gian khởi tạo cho Room Planner 3D
+model RoomTemplate {
+  id                 String    @id @default(uuid())
+  name               String
+  roomType           String    // 'Phòng khách' | 'Phòng ngủ' | 'Phòng ăn'
+  description        String?
+  imageUrl           String
+  length             Float     // mét
+  width              Float     // mét
+  height             Float     @default(2.8)
+  suggestedProducts  Json?     // Mảng ID sản phẩm gợi ý
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// 3. Bài viết thiết kế cộng đồng
+model DesignPost {
+  id             String    @id @default(uuid())
+  title          String
+  authorName     String
+  authorEmail    String?
+  description    String?   @db.Text
+  imageUrl       String
+  taggedProducts Json?     // Danh sách sản phẩm gắn thẻ { x, y, productId, name, price }
+  likesCount     Int       @default(0)
+  status         String    @default("PENDING") // 'PENDING' | 'PUBLISHED' | 'REJECTED'
+  rejectionReason String?  // Lý do từ chối nếu có
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  comments       DesignComment[]
+}
+
+// 4. Bình luận thiết kế
+model DesignComment {
+  id          String      @id @default(uuid())
+  postId      String
+  post        DesignPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorName  String
+  content     String      @db.Text
+  status      String      @default("VISIBLE") // 'VISIBLE' | 'HIDDEN'
+  createdAt   DateTime    @default(now())
+}
+

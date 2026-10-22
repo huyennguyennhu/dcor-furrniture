@@ -1,25 +1,706 @@
-<section class="admin-page">
+<div class="promotions-campaigns-page">
+  <!-- Toast Notification Floating -->
+  <div *ngIf="toastMessage" class="toast-alert" [ngClass]="'toast-' + toastType" role="alert">
+    <app-icon [name]="toastType === 'success' ? 'Check' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
+    <span>{{ toastMessage }}</span>
+    <button type="button" class="btn-close-toast" (click)="closeToast()" aria-label="Đóng thông báo">
+      <app-icon name="X" size="14"></app-icon>
+    </button>
+  </div>
+
+  <!-- Navigation Tab Bar: Vouchers vs Flash Sale / Campaigns -->
+  <div class="promo-submodule-tabs">
+    <a routerLink="/admin/vouchers" class="promo-tab-item">
+      <app-icon name="Ticket" size="18"></app-icon>
+      <span>Mã giảm giá (Vouchers)</span>
+    </a>
+    <a routerLink="/admin/campaigns" class="promo-tab-item active" aria-current="page">
+      <app-icon name="Zap" size="18"></app-icon>
+      <span>Chiến dịch Flash Sale & Combo</span>
+      <span class="tab-badge">{{ records.length }}</span>
+    </a>
+  </div>
+
+  <!-- Page Header -->
   <header class="admin-page-heading">
-    <div><h1>Chiến dịch khuyến mãi</h1><p>Lập lịch, theo dõi và đánh giá hiệu quả các chương trình khuyến mãi.</p></div>
-    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button><button type="button" class="admin-btn admin-btn-primary">+ Tạo chiến dịch</button></div>
+    <div class="heading-title-group">
+      <h1 class="page-title">Chiến dịch Flash Sale & Combo</h1>
+      <p class="page-subtitle">Quản lý các đợt Flash Sale khung giờ vàng, ưu đãi showroom và combo nội thất giới hạn số lượng.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-btn admin-btn-primary" (click)="openCreateModal()">
+        <app-icon name="Plus" size="18"></app-icon>
+        <span>+ Tạo chiến dịch mới</span>
+      </button>
+    </div>
   </header>
-  <div class="admin-page-stats">
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng chiến dịch</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Đang diễn ra</div><div class="admin-page-stat-value">1</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Sắp diễn ra</div><div class="admin-page-stat-value">1</div></article>
+
+  <!-- 4 Stats Cards -->
+  <section class="admin-page-stats" aria-label="Thống kê chiến dịch">
+    <article class="admin-page-stat stat-card-total">
+      <div class="stat-card-icon">
+        <app-icon name="Zap" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Tổng chiến dịch</span>
+        <div class="admin-page-stat-value">{{ totalCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-active">
+      <div class="stat-card-icon stat-icon-green">
+        <app-icon name="Check" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Đang diễn ra</span>
+        <div class="admin-page-stat-value text-success">{{ activeCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-upcoming">
+      <div class="stat-card-icon stat-icon-amber">
+        <app-icon name="Clock" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Sắp diễn ra</span>
+        <div class="admin-page-stat-value text-amber">{{ upcomingCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-revenue">
+      <div class="stat-card-icon stat-icon-brown">
+        <app-icon name="TrendingUp" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Doanh thu Flash Sale</span>
+        <div class="admin-page-stat-value text-wood">{{ formatCurrency(totalRevenueGenerated) }}</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- Filter & Search Toolbar -->
+  <section class="admin-page-filter" aria-label="Bộ lọc chiến dịch">
+    <div class="search-input-wrapper">
+      <app-icon name="Search" size="18" class="search-icon"></app-icon>
+      <input
+        type="text"
+        class="admin-input search-input"
+        [(ngModel)]="searchTerm"
+        placeholder="Tìm theo tên chiến dịch, khung giờ, showroom..."
+        aria-label="Tìm kiếm chiến dịch" />
+      <button
+        *ngIf="searchTerm"
+        type="button"
+        class="clear-search-btn"
+        (click)="searchTerm = ''"
+        aria-label="Xóa tìm kiếm">
+        <app-icon name="X" size="14"></app-icon>
+      </button>
+    </div>
+
+    <div class="filter-controls-group">
+      <select class="admin-select" [(ngModel)]="selectedStatus" aria-label="Lọc theo trạng thái">
+        <option value="ALL">Tất cả trạng thái</option>
+        <option value="Đang diễn ra">Đang diễn ra</option>
+        <option value="Sắp diễn ra">Sắp diễn ra</option>
+        <option value="Đã kết thúc">Đã kết thúc</option>
+      </select>
+
+      <select class="admin-select" [(ngModel)]="selectedChannel" aria-label="Lọc theo kênh">
+        <option value="ALL">Tất cả kênh áp dụng</option>
+        <option value="TOÀN HỆ THỐNG">Toàn hệ thống</option>
+        <option value="ONLINE">Online website</option>
+        <option value="TẠI SHOWROOM">Tại showroom</option>
+      </select>
+
+      <select class="admin-select" [(ngModel)]="selectedType" aria-label="Lọc theo loại">
+        <option value="ALL">Tất cả hình thức</option>
+        <option value="FLASH_SALE">⚡ Flash Sale</option>
+        <option value="COMBO">🎁 Combo ưu đãi</option>
+        <option value="SHOWROOM_SPECIAL">🏢 Showroom đặc quyền</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Campaigns Table (100% width, no horizontal scroll) -->
+  <div class="admin-page-table-card">
+    <div class="admin-page-table-scroll">
+      <table class="admin-table campaigns-table">
+        <thead>
+          <tr>
+            <th class="col-name">Tên chiến dịch</th>
+            <th class="col-channel">Kênh áp dụng</th>
+            <th class="col-time">Khung giờ & Thời hạn</th>
+            <th class="col-products">Sản phẩm</th>
+            <th class="col-progress">Tiến độ bán (Quota)</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let camp of filteredRecords" [class.row-ended]="camp.status === 'Đã kết thúc'">
+            <!-- Tên chiến dịch -->
+            <td class="col-name">
+              <div class="campaign-name-cell">
+                <span class="campaign-name-title" [title]="camp.name">{{ camp.name }}</span>
+                <div class="campaign-type-tags">
+                  <span class="type-badge badge-flash" *ngIf="camp.type === 'FLASH_SALE'">
+                    <app-icon name="Zap" size="12"></app-icon> Flash Sale
+                  </span>
+                  <span class="type-badge badge-combo" *ngIf="camp.type === 'COMBO'">
+                    🎁 Combo nội thất
+                  </span>
+                  <span class="type-badge badge-showroom" *ngIf="camp.type === 'SHOWROOM_SPECIAL'">
+                    🏢 Showroom
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Kênh áp dụng -->
+            <td class="col-channel">
+              <div class="channel-cell">
+                <div class="channel-main-badge" [ngClass]="{
+                  'ch-all': camp.channel === 'TOÀN HỆ THỐNG',
+                  'ch-online': camp.channel === 'ONLINE',
+                  'ch-showroom': camp.channel === 'TẠI SHOWROOM'
+                }">
+                  {{ camp.channel }}
+                </div>
+                <div class="showroom-detail-name" *ngIf="camp.showroomTarget" [title]="camp.showroomTarget">
+                  {{ camp.showroomTarget }}
+                </div>
+              </div>
+            </td>
+
+            <!-- Khung giờ & Thời hạn -->
+            <td class="col-time">
+              <div class="time-cell">
+                <div class="timeslot-pill">
+                  <app-icon name="Clock" size="13" class="clock-icon"></app-icon>
+                  <span>{{ camp.timeSlot }}</span>
+                </div>
+                <div class="date-range-text">
+                  {{ formatDate(camp.startDateTime) }} - {{ formatDate(camp.endDateTime) }}
+                </div>
+              </div>
+            </td>
+
+            <!-- Sản phẩm tham gia -->
+            <td class="col-products">
+              <div class="products-cell">
+                <button
+                  type="button"
+                  class="products-view-pill"
+                  (click)="openDetailModal(camp)"
+                  title="Nhấn để xem danh sách sản phẩm">
+                  <app-icon name="Package" size="14"></app-icon>
+                  <span>{{ camp.items.length }} sản phẩm</span>
+                </button>
+              </div>
+            </td>
+
+            <!-- Tiến độ bán (Quota) -->
+            <td class="col-progress">
+              <div class="progress-cell">
+                <div class="progress-meta">
+                  <span class="progress-counts">
+                    <strong>{{ camp.itemsSold }}</strong> / {{ getTotalQuota(camp) }} sp
+                  </span>
+                  <span class="progress-pct">{{ getSoldPercent(camp.itemsSold, getTotalQuota(camp)) }}%</span>
+                </div>
+                <div class="progress-track" [title]="'Đã bán ' + camp.itemsSold + ' / ' + getTotalQuota(camp) + ' suất'">
+                  <div
+                    class="progress-fill"
+                    [class.fill-complete]="camp.itemsSold >= getTotalQuota(camp)"
+                    [style.width.%]="getSoldPercent(camp.itemsSold, getTotalQuota(camp))">
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Trạng thái -->
+            <td class="col-status">
+              <span
+                class="status-badge"
+                [ngClass]="{
+                  'status-active': camp.status === 'Đang diễn ra',
+                  'status-upcoming': camp.status === 'Sắp diễn ra',
+                  'status-ended': camp.status === 'Đã kết thúc'
+                }">
+                <span class="status-dot"></span>
+                <span>{{ camp.status }}</span>
+              </span>
+            </td>
+
+            <!-- Thao tác -->
+            <td class="col-actions">
+              <div class="actions-group">
+                <!-- Nút Xem chi tiết -->
+                <button
+                  type="button"
+                  class="action-icon-btn btn-view"
+                  (click)="openDetailModal(camp)"
+                  title="Xem chi tiết chiến dịch">
+                  <app-icon name="Eye" size="15"></app-icon>
+                </button>
+
+                <!-- Nút Sửa -->
+                <button
+                  type="button"
+                  class="action-icon-btn btn-edit"
+                  (click)="openEditModal(camp)"
+                  title="Chỉnh sửa chiến dịch">
+                  <app-icon name="Edit" size="15"></app-icon>
+                </button>
+
+                <!-- Nút Kết thúc sớm (chỉ khi đang diễn ra hoặc sắp diễn ra) -->
+                <button
+                  *ngIf="camp.status !== 'Đã kết thúc'"
+                  type="button"
+                  class="action-icon-btn btn-early-end"
+                  (click)="promptEarlyEnd(camp)"
+                  title="Kết thúc sớm chiến dịch">
+                  <app-icon name="AlertCircle" size="15"></app-icon>
+                </button>
+
+                <!-- Nút Xóa -->
+                <button
+                  type="button"
+                  class="action-icon-btn btn-delete"
+                  (click)="promptDelete(camp)"
+                  title="Xóa chiến dịch">
+                  <app-icon name="Trash2" size="15"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredRecords.length === 0">
+            <td colspan="7" class="admin-page-table-empty">
+              <div class="empty-state-wrapper">
+                <app-icon name="Zap" size="44" class="empty-icon"></app-icon>
+                <div class="empty-title">Không tìm thấy chiến dịch phù hợp</div>
+                <div class="empty-desc">Thử điều chỉnh lại từ khóa hoặc xóa các bộ lọc đang chọn.</div>
+                <button type="button" class="admin-btn admin-btn-secondary" (click)="searchTerm = ''; selectedStatus = 'ALL'; selectedChannel = 'ALL'; selectedType = 'ALL'">
+                  Đặt lại bộ lọc
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="admin-page-filter">
-    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm tên chiến dịch..." aria-label="Tìm chiến dịch">
-    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Sắp diễn ra</option><option>Đang diễn ra</option><option>Đã kết thúc</option></select>
-    <select class="admin-select" aria-label="Lọc kênh"><option>Tất cả kênh</option><option>Online</option><option>Showroom</option></select>
+
+  <!-- MODAL: Tạo / Chỉnh sửa Chiến dịch -->
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-card modal-campaign" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="isEditing ? 'Chỉnh sửa chiến dịch' : 'Tạo chiến dịch mới'">
+      <!-- Modal Header -->
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Zap" size="20"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">{{ isEditing ? 'Chỉnh sửa Chiến Dịch Flash Sale / Combo' : 'Tạo Chiến Dịch Flash Sale / Combo Mới' }}</h2>
+            <p class="modal-subtitle">Thiết lập khung giờ vàng, giá khuyến mãi và số lượng mở bán ưu đãi.</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Đóng cửa sổ">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <!-- Modal Body (Internal Scroll) -->
+      <div class="modal-body-scrollable">
+        <form (ngSubmit)="saveCampaign()">
+          <!-- Tên chương trình -->
+          <div class="form-group">
+            <label class="form-label required">Tên chương trình khuyến mãi</label>
+            <input
+              type="text"
+              class="admin-input"
+              name="campName"
+              [(ngModel)]="formData.name"
+              placeholder="Ví dụ: Flash Sale Khung Giờ Vàng Trưa (12h - 14h)"
+              required />
+          </div>
+
+          <!-- Loại khuyến mãi & Kênh áp dụng -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">Hình thức khuyến mãi</label>
+              <select class="admin-select full-width" name="campType" [(ngModel)]="formData.type">
+                <option value="FLASH_SALE">⚡ Flash Sale khung giờ</option>
+                <option value="COMBO">🎁 Combo ưu đãi nội thất</option>
+                <option value="SHOWROOM_SPECIAL">🏢 Ưu đãi độc quyền Showroom</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Kênh áp dụng</label>
+              <select class="admin-select full-width" name="campChannel" [(ngModel)]="formData.channel">
+                <option value="TOÀN HỆ THỐNG">Toàn hệ thống (Online + Showroom)</option>
+                <option value="ONLINE">Chỉ Online website</option>
+                <option value="TẠI SHOWROOM">Chỉ tại Showroom chi nhánh</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Showroom mục tiêu nếu kênh === 'TẠI SHOWROOM' -->
+          <div class="form-group" *ngIf="formData.channel === 'TẠI SHOWROOM'">
+            <label class="form-label required">Showroom áp dụng</label>
+            <select class="admin-select full-width" name="showroomTarget" [(ngModel)]="formData.showroomTarget">
+              <option *ngFor="let sr of SHOWROOMS_LIST" [value]="sr">{{ sr }}</option>
+            </select>
+          </div>
+
+          <!-- Thời gian & Khung giờ -->
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label required">Ngày bắt đầu</label>
+              <input
+                type="date"
+                class="admin-input"
+                name="campStartDate"
+                [(ngModel)]="formData.startDateTime"
+                required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Ngày kết thúc</label>
+              <input
+                type="date"
+                class="admin-input"
+                name="campEndDate"
+                [(ngModel)]="formData.endDateTime"
+                required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Khung giờ áp dụng</label>
+              <input
+                type="text"
+                class="admin-input"
+                name="campTimeSlot"
+                [(ngModel)]="formData.timeSlot"
+                placeholder="Ví dụ: 12:00 - 14:00"
+                required />
+            </div>
+          </div>
+
+          <!-- Preset Khung Giờ Vàng gợi ý -->
+          <div class="form-group preset-times-row">
+            <span class="preset-label">Gợi ý khung giờ:</span>
+            <div class="preset-tags">
+              <button
+                *ngFor="let slot of PRESET_TIME_SLOTS"
+                type="button"
+                class="preset-tag-btn"
+                [class.selected]="formData.timeSlot === slot"
+                (click)="formData.timeSlot = slot">
+                {{ slot }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Bảng Sản phẩm tham gia Flash Sale -->
+          <div class="form-group products-section">
+            <div class="products-section-header">
+              <div>
+                <label class="form-label required">Danh sách sản phẩm tham gia Flash Sale ({{ formData.items.length }})</label>
+                <span class="field-hint">Nhập giá gốc và giá Flash Sale (hệ thống tự động đồng bộ % giảm giá).</span>
+              </div>
+              <button type="button" class="admin-btn admin-btn-secondary btn-add-product" (click)="addProductRow()">
+                <app-icon name="Plus" size="15"></app-icon>
+                <span>+ Thêm sản phẩm</span>
+              </button>
+            </div>
+
+            <div class="product-items-table-wrapper">
+              <table class="modal-items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 34%;">Sản phẩm / Biến thể</th>
+                    <th style="width: 20%;">Giá gốc (₫)</th>
+                    <th style="width: 20%;">Giá Flash Sale (₫)</th>
+                    <th style="width: 12%;">Giảm (%)</th>
+                    <th style="width: 14%;">Quota</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of formData.items; let i = index">
+                    <!-- Chọn hoặc nhập sản phẩm -->
+                    <td>
+                      <div class="item-product-inputs">
+                        <select class="admin-select select-preset-prod" (change)="onSelectPresetProduct(i, $event)">
+                          <option value="">-- Chọn sản phẩm mẫu --</option>
+                          <option *ngFor="let p of SAMPLE_PRODUCTS" [value]="p.name">{{ p.name }}</option>
+                        </select>
+                        <input
+                          type="text"
+                          class="admin-input input-prod-name"
+                          [(ngModel)]="item.productName"
+                          [name]="'prodName_' + i"
+                          placeholder="Tên sản phẩm..."
+                          required />
+                        <input
+                          type="text"
+                          class="admin-input input-prod-var"
+                          [(ngModel)]="item.variantName"
+                          [name]="'prodVar_' + i"
+                          placeholder="Quy cách / Biến thể..." />
+                      </div>
+                    </td>
+
+                    <!-- Giá gốc -->
+                    <td>
+                      <input
+                        type="number"
+                        class="admin-input text-right"
+                        [(ngModel)]="item.originalPrice"
+                        [name]="'origPrice_' + i"
+                        (input)="onOriginalOrSaleChange(item, 'sale')"
+                        min="1000"
+                        required />
+                    </td>
+
+                    <!-- Giá Flash Sale -->
+                    <td>
+                      <input
+                        type="number"
+                        class="admin-input text-right highlight-price"
+                        [(ngModel)]="item.salePrice"
+                        [name]="'salePrice_' + i"
+                        (input)="onOriginalOrSaleChange(item, 'sale')"
+                        min="1000"
+                        required />
+                    </td>
+
+                    <!-- % Giảm -->
+                    <td>
+                      <input
+                        type="number"
+                        class="admin-input text-center"
+                        [(ngModel)]="item.discountPercent"
+                        [name]="'discPct_' + i"
+                        (input)="onOriginalOrSaleChange(item, 'percent')"
+                        min="1"
+                        max="99" />
+                    </td>
+
+                    <!-- Quota -->
+                    <td>
+                      <input
+                        type="number"
+                        class="admin-input text-center font-bold"
+                        [(ngModel)]="item.saleQuota"
+                        [name]="'quota_' + i"
+                        min="1"
+                        required />
+                    </td>
+
+                    <!-- Xóa -->
+                    <td class="text-center">
+                      <button
+                        type="button"
+                        class="action-icon-btn btn-delete-row"
+                        (click)="removeProductRow(i)"
+                        [disabled]="formData.items.length <= 1"
+                        title="Xóa dòng sản phẩm">
+                        <app-icon name="Trash2" size="14"></app-icon>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Thông báo Cơ chế tự động kích hoạt -->
+          <div class="auto-activation-banner">
+            <div class="banner-icon">
+              <app-icon name="Clock" size="20"></app-icon>
+            </div>
+            <div class="banner-text">
+              <strong>Cơ chế tự động kích hoạt thông minh:</strong>
+              <p>Chương trình sẽ tự động kích hoạt trạng thái "Đang diễn ra" khi chạm đúng khung giờ vàng và tự động kết thúc khi hết giờ hoặc bán hết số lượng ưu đãi (Quota).</p>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeModal()">
+          Hủy bỏ
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveCampaign()">
+          <app-icon name="Check" size="16"></app-icon>
+          <span>{{ isEditing ? 'Cập nhật chiến dịch' : 'Lưu chiến dịch' }}</span>
+        </button>
+      </footer>
+    </div>
   </div>
-  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
-    <table class="admin-table">
-      <thead><tr><th>Tên chiến dịch</th><th>Kênh áp dụng</th><th>Thời gian</th><th>Lượt sử dụng</th><th>Trạng thái</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.name }}</strong></td><td>{{ record.channel }}</td><td>{{ record.period }}</td><td>{{ record.usage }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
-        <tr *ngIf="filteredRecords.length === 0"><td colspan="5" class="admin-page-table-empty">Không tìm thấy chiến dịch phù hợp.</td></tr>
-      </tbody>
-    </table>
-  </div></div>
-</section>
+
+  <!-- MODAL: XEM CHI TIẾT CHIẾN DỊCH -->
+  <div class="modal-backdrop" *ngIf="selectedCampaignDetail" (click)="closeDetailModal()">
+    <div class="modal-card modal-view-detail" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Chi tiết chiến dịch Flash Sale">
+      <!-- Modal Header -->
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Zap" size="20"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">{{ selectedCampaignDetail.name }}</h2>
+            <div class="detail-header-badges">
+              <span class="status-badge" [ngClass]="{
+                'status-active': selectedCampaignDetail.status === 'Đang diễn ra',
+                'status-upcoming': selectedCampaignDetail.status === 'Sắp diễn ra',
+                'status-ended': selectedCampaignDetail.status === 'Đã kết thúc'
+              }">
+                <span class="status-dot"></span>
+                <span>{{ selectedCampaignDetail.status }}</span>
+              </span>
+              <span class="ch-badge">{{ selectedCampaignDetail.channel }}</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeDetailModal()" aria-label="Đóng cửa sổ">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <!-- Modal Body -->
+      <div class="modal-body-scrollable">
+        <!-- Summary Cards -->
+        <div class="detail-summary-grid">
+          <div class="detail-summary-card">
+            <span class="ds-label">Khung giờ vàng</span>
+            <span class="ds-val">⏰ {{ selectedCampaignDetail.timeSlot }}</span>
+          </div>
+          <div class="detail-summary-card">
+            <span class="ds-label">Thời gian áp dụng</span>
+            <span class="ds-val">📅 {{ formatDate(selectedCampaignDetail.startDateTime) }} - {{ formatDate(selectedCampaignDetail.endDateTime) }}</span>
+          </div>
+          <div class="detail-summary-card">
+            <span class="ds-label">Tiến độ bán</span>
+            <span class="ds-val font-bold text-success">{{ selectedCampaignDetail.itemsSold }} / {{ getTotalQuota(selectedCampaignDetail) }} sp</span>
+          </div>
+          <div class="detail-summary-card">
+            <span class="ds-label">Tổng doanh thu Flash Sale</span>
+            <span class="ds-val font-bold text-wood">{{ formatCurrency(selectedCampaignDetail.totalRevenue) }}</span>
+          </div>
+        </div>
+
+        <div class="showroom-callout" *ngIf="selectedCampaignDetail.showroomTarget">
+          <strong>Showroom áp dụng độc quyền:</strong> {{ selectedCampaignDetail.showroomTarget }}
+        </div>
+
+        <!-- Product Breakdown Table -->
+        <div class="detail-products-heading">
+          <h3>Danh sách sản phẩm Flash Sale ({{ selectedCampaignDetail.items.length }})</h3>
+        </div>
+
+        <div class="detail-products-table-wrapper">
+          <table class="admin-table detail-table">
+            <thead>
+              <tr>
+                <th>Sản phẩm / Biến thể</th>
+                <th class="text-right">Giá gốc</th>
+                <th class="text-right">Giá Flash Sale</th>
+                <th class="text-center">% Giảm</th>
+                <th>Tiến độ bán</th>
+                <th class="text-right">Doanh thu thu về</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of selectedCampaignDetail.items">
+                <td>
+                  <strong>{{ item.productName }}</strong>
+                  <div class="item-variant-sub">{{ item.variantName }}</div>
+                </td>
+                <td class="text-right price-original">{{ formatCurrency(item.originalPrice) }}</td>
+                <td class="text-right price-sale font-bold">{{ formatCurrency(item.salePrice) }}</td>
+                <td class="text-center">
+                  <span class="discount-badge-detail">-{{ item.discountPercent }}%</span>
+                </td>
+                <td>
+                  <div class="detail-progress-wrapper">
+                    <span>{{ item.soldCount }} / {{ item.saleQuota }}</span>
+                    <div class="mini-progress-track">
+                      <div class="mini-progress-fill" [style.width.%]="getSoldPercent(item.soldCount, item.saleQuota)"></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-right font-bold text-wood">
+                  {{ formatCurrency(item.soldCount * item.salePrice) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeDetailModal()">
+          Đóng
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="closeDetailModal(); openEditModal(selectedCampaignDetail)">
+          <app-icon name="Edit" size="16"></app-icon>
+          <span>Chỉnh sửa chiến dịch này</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN KẾT THÚC SỚM -->
+  <div class="modal-backdrop" *ngIf="campaignToEarlyEnd" (click)="cancelEarlyEnd()">
+    <div class="modal-card modal-confirm-action" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xác nhận kết thúc sớm chiến dịch">
+      <header class="modal-header confirm-header-warning">
+        <div class="confirm-icon-wrapper warn-icon">
+          <app-icon name="AlertCircle" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">Kết thúc sớm chiến dịch?</h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>Bạn có chắc chắn muốn kết thúc sớm chương trình <strong>"{{ campaignToEarlyEnd.name }}"</strong> ngay bây giờ?</p>
+        <p class="text-sub">Các mức giá Flash Sale sẽ lập tức bị hủy bỏ và sản phẩm sẽ trở lại giá niêm yết ban đầu.</p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelEarlyEnd()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmEarlyEnd()">
+          <span>Đồng ý kết thúc</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN XÓA CHIẾN DỊCH -->
+  <div class="modal-backdrop" *ngIf="campaignToDelete" (click)="cancelDelete()">
+    <div class="modal-card modal-confirm-action" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xác nhận xóa chiến dịch">
+      <header class="modal-header confirm-header-danger">
+        <div class="confirm-icon-wrapper danger-icon">
+          <app-icon name="Trash2" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">Xác nhận xóa chiến dịch?</h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>Bạn có chắc chắn muốn xóa vĩnh viễn chiến dịch <strong>"{{ campaignToDelete.name }}"</strong>?</p>
+        <p class="text-sub">Hành động này không thể hoàn tác.</p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelDelete()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDelete()">
+          <app-icon name="Trash2" size="16"></app-icon>
+          <span>Xác nhận xóa</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>

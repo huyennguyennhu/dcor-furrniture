@@ -624,5 +624,68 @@ export const authController = {
       console.error('Lỗi customerGoogleLogin:', error);
       res.status(500).json({ message: 'Lỗi server nội bộ' });
     }
+  },
+
+  // Kiểm tra phiên làm việc Admin & Thu hồi ngay lập tức nếu tài khoản bị khóa
+  verifyAdminSession: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ active: false, message: 'Chưa đăng nhập.' });
+        return;
+      }
+
+      const token = authHeader.split(' ')[1];
+      let decoded: any;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (err) {
+        res.status(401).json({ active: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
+        return;
+      }
+
+      const email = (decoded.email || '').trim().toLowerCase();
+      if (!email) {
+        res.status(401).json({ active: false, message: 'Token không hợp lệ.' });
+        return;
+      }
+
+      // Truy vấn trạng thái tài khoản trực tiếp trong cơ sở dữ liệu
+      const staff = await prisma.staffUser.findUnique({
+        where: { email }
+      });
+
+      if (!staff || staff.deletedAt !== null) {
+        res.status(403).json({
+          active: false,
+          code: 'ACCOUNT_DELETED',
+          message: 'Tài khoản nhân sự không tồn tại hoặc đã bị xóa.'
+        });
+        return;
+      }
+
+      if (staff.status !== 'ACTIVE') {
+        res.status(403).json({
+          active: false,
+          code: 'ACCOUNT_LOCKED',
+          message: 'Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ quản trị viên.'
+        });
+        return;
+      }
+
+      res.status(200).json({
+        active: true,
+        user: {
+          id: staff.id,
+          email: staff.email,
+          fullName: staff.fullName,
+          role: staff.role,
+          status: staff.status
+        }
+      });
+    } catch (error: any) {
+      console.error('Lỗi verifyAdminSession:', error);
+      res.status(500).json({ active: false, message: 'Lỗi kiểm tra phiên làm việc: ' + error.message });
+    }
   }
 };

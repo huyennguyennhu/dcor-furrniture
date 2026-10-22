@@ -24,7 +24,7 @@
           role="tab"
           aria-label="Chọn bản mẫu có sẵn">
           <app-icon name="Layers" size="18"></app-icon>
-          <span>Bản mẫu có sẵn (3 phòng)</span>
+          <span>Bản mẫu có sẵn ({{ templates.length }} phòng)</span>
         </button>
         <button 
           type="button" 
@@ -39,32 +39,45 @@
       </div>
     </div>
 
-    <!-- TAB 1: BẢN MẪU CÓ SẴN -->
-    <div *ngIf="activeTab() === 'template'" class="template-grid">
-      @for (tmpl of templates; track tmpl.id) {
-        <div 
-          class="template-card" 
-          [class.selected]="selectedTemplate()?.id === tmpl.id"
-          (click)="selectTemplateCard(tmpl)">
-          <div class="template-image-wrapper">
-            <img [src]="tmpl.imageUrl" [alt]="tmpl.name" class="template-image" />
-            <div class="template-type-badge">{{ tmpl.roomType }}</div>
-            <div class="template-selected-badge" *ngIf="selectedTemplate()?.id === tmpl.id">
-              <app-icon name="Check" size="16"></app-icon>
+    <!-- TAB 1: BẢN MẪU CÓ SẴN (ĐỒNG BỘ 100% VỚI DATABASE ADMIN) -->
+    <div *ngIf="activeTab() === 'template'">
+      <div *ngIf="templates.length > 0" class="template-grid">
+        @for (tmpl of templates; track tmpl.id) {
+          <div 
+            class="template-card" 
+            [class.selected]="selectedTemplate()?.id === tmpl.id"
+            (click)="selectTemplateCard(tmpl)">
+            <div class="template-image-wrapper">
+              <img [src]="tmpl.imageUrl" [alt]="tmpl.name" class="template-image" />
+              <div class="template-type-badge">{{ tmpl.roomType }}</div>
+              <div class="template-selected-badge" *ngIf="selectedTemplate()?.id === tmpl.id">
+                <app-icon name="Check" size="16"></app-icon>
+              </div>
             </div>
-          </div>
-          <div class="template-info">
-            <h3 class="template-name">{{ tmpl.name }}</h3>
-            <p class="template-desc">{{ tmpl.description }}</p>
-            <div class="template-footer">
-              <div class="dim-tag">
-                <app-icon name="Ruler" size="14"></app-icon>
-                <span>Gợi ý: {{ tmpl.defaultDimensions.length }}m × {{ tmpl.defaultDimensions.width }}m</span>
+            <div class="template-info">
+              <h3 class="template-name">{{ tmpl.name }}</h3>
+              <p class="template-desc">{{ tmpl.description }}</p>
+              <div class="template-footer">
+                <div class="dim-tag">
+                  <app-icon name="Ruler" size="14"></app-icon>
+                  <span>Gợi ý: {{ tmpl.defaultDimensions.length }}m × {{ tmpl.defaultDimensions.width }}m</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      }
+        }
+      </div>
+
+      <!-- Khi Admin tạm ẩn hết bản mẫu -->
+      <div *ngIf="templates.length === 0" class="empty-templates-box" style="text-align: center; padding: 48px 20px; background: #FAF7F2; border: 1px dashed #D8D0C5; border-radius: 12px; margin-top: 16px;">
+        <app-icon name="Layers" size="38" color="#765337"></app-icon>
+        <h3 style="margin: 12px 0 6px; font-size: 16px; font-weight: 700; color: #0A0A0A;">Hiện chưa có bản mẫu không gian nào được kích hoạt</h3>
+        <p style="font-size: 13px; color: #666666; margin-bottom: 18px;">Quản trị viên đang tạm ẩn các bản mẫu. Bạn có thể tự tải ảnh mặt bằng phòng của mình để bắt đầu thiết kế!</p>
+        <button type="button" class="source-tab-btn active" (click)="setTab('upload')" style="display: inline-flex; margin: 0 auto;">
+          <app-icon name="Image" size="16"></app-icon>
+          <span>Chuyển sang Tải ảnh mặt bằng thật</span>
+        </button>
+      </div>
     </div>
 
     <!-- TAB 2: TẢI ẢNH PHÒNG THẬT -->

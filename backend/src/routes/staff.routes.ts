@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { staffController } from '../controllers/staff.controller';
+import { authenticateJWT } from '../middleware/auth.middleware';
 
 const router = Router();
+
+// Toàn bộ các thao tác nghiệp vụ Quản lý nhân sự yêu cầu xác thực JWT và kiểm tra tài khoản ACTIVE trong DB
+router.use(authenticateJWT);
 
 // Lấy danh sách nhân sự
 router.get('/', staffController.getAllStaff);
@@ -20,6 +24,9 @@ router.put('/:id/role', staffController.updateRole);
 
 // Đổi trạng thái (khóa / kích hoạt)
 router.put('/:id/status', staffController.updateStatus);
+
+// Cập nhật phân quyền riêng theo nhân sự
+router.put('/:id/permissions', staffController.updatePermissions);
 
 // Xóa tài khoản nhân sự
 router.delete('/:id', staffController.deleteStaff);

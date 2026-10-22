@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -175,11 +175,20 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
   };
 
   // =========================================================================
-  // MODAL 3: XÁC NHẬN XÓA TÀI KHOẢN NHÂN SỰ
+  // MODAL 3: XÁC NHẬN XÓA TÀI KHOẢN NHÂN SỰ (XÁC THỰC 2 LỚP - GÕ CHỮ "YES")
   // =========================================================================
   isDeleteModalOpen = false;
   staffToDelete: StaffAccount | null = null;
   deleteLoading = false;
+  deleteStep: 1 | 2 = 1;
+  deleteConfirmText = '';
+
+  // =========================================================================
+  // MODAL KHÓA / MỞ KHÓA TÀI KHOẢN (CÓ XÁC NHẬN)
+  // =========================================================================
+  isLockModalOpen = false;
+  staffToLock: StaffAccount | null = null;
+  lockLoading = false;
 
   // Toast
   toastMessage = '';
@@ -187,6 +196,7 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
 
   constructor(
     private http: HttpClient,
+    private cdr: ChangeDetectorRef,
     public adminAuthService: AdminAuthService
   ) {}
 
@@ -203,6 +213,25 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
+  }
+
+  get isSuperAdmin(): boolean {
+    const user = this.adminAuthService.currentUser;
+    return !!user && (user.role === 'Super Admin' || !!user.roles?.includes('Super Admin'));
+  }
+
+  get canEditStaff(): boolean {
+    return this.isSuperAdmin || this.adminAuthService.hasPermission('staff', 'edit');
+  }
+
+  get canDeleteStaff(): boolean {
+    return this.isSuperAdmin;
+  }
+
+  isSelf(account: StaffAccount): boolean {
+    const user = this.adminAuthService.currentUser;
+    if (!user) return false;
+    return String(user.id) === String(account.id) || (!!user.email && !!account.email && user.email.toLowerCase() === account.email.toLowerCase());
   }
 
   get warehouses(): Branch[] {
@@ -248,10 +277,12 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
           this.loadCachedOrSampleStaff();
         }
         this.saveStaffToCache();
+        this.cdr.detectChanges();
       },
       error: () => {
         this.isLoading = false;
         this.loadCachedOrSampleStaff();
+        this.cdr.detectChanges();
       }
     });
   }
@@ -425,19 +456,32 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
     const primaryBranchId = this.staffFormData.selectedBranches[0];
 
     if (this.isEditing && this.editingStaffId) {
-      // Cập nhật nhân sự
+      // Bảo mật hệ thống: Super Admin CHỈ ĐƯỢC PHÉP thay đổi Vai trò và Chi nhánh công tác.
+      // Tuyệt đối không can thiệp hay sửa đổi Tên tài khoản, Email hay Mật khẩu cá nhân của nhân viên!
       const target = this.records.find(r => r.id === this.editingStaffId);
       if (target) {
-        target.name = this.staffFormData.fullName.trim();
-        target.email = this.staffFormData.email.trim();
-        target.phone = this.staffFormData.phone.trim();
         target.roles = [...this.staffFormData.selectedRoles];
         target.role = target.roles.join(', ');
         target.assignedBranches = [...this.staffFormData.selectedBranches];
         target.branchId = primaryBranchId;
         target.branchName = branchNames;
         this.saveStaffToCache();
-        this.showToast(`Đã cập nhật thông tin nhân sự "${target.name}"!`, 'success');
+
+        // Gửi cập nhật phân quyền & chi nhánh lên máy chủ backend
+        this.http.put<any>(`${environment.apiUrl}/admin/staff/${target.id}/role`, {
+          roles: target.roles,
+          assignedBranches: target.assignedBranches,
+          branchId: primaryBranchId,
+          branchName: branchNames
+        }).subscribe({
+          next: () => {
+            this.cdr.detectChanges();
+          },
+          error: () => {}
+        });
+
+        this.showToast(`Đã cập nhật phân quyền & chi nhánh phụ trách cho "${target.name}"!`, 'success');
+        this.cdr.detectChanges();
       }
       this.closeStaffFormModal();
     } else {
@@ -578,6 +622,7 @@ ${this.dispatchInviteUrl}
     if (!this.dispatchStaff) return;
     this.emailSending = true;
     this.emailSentSuccess = false;
+    this.cdr.detectChanges();
 
     const payload = {
       email: this.emailConfig.recipientEmail,
@@ -601,9 +646,11 @@ ${this.dispatchInviteUrl}
         } else {
           this.showToast(res.message || 'Email đã được tạo trên hệ thống.', 'info');
         }
+        this.cdr.detectChanges();
         setTimeout(() => {
           this.closeEmailDispatchModal();
-        }, 900);
+          this.cdr.detectChanges();
+        }, 1200);
       },
       error: (err) => {
         this.emailSending = false;
@@ -611,6 +658,7 @@ ${this.dispatchInviteUrl}
         console.error('Lỗi gửi email backend:', err);
         const errMsg = err.error?.message || 'Không thể kết nối đến máy chủ gửi email. Vui lòng kiểm tra lại dịch vụ SMTP.';
         this.showToast(errMsg, 'warning');
+        this.cdr.detectChanges();
       }
     });
   }
@@ -619,23 +667,56 @@ ${this.dispatchInviteUrl}
   // MODAL 3: XÓA TÀI KHOẢN NHÂN SỰ
   // =========================================================================
 
+  // =========================================================================
+  // MODAL 3: XÓA TÀI KHOẢN NHÂN SỰ (XÁC THỰC 2 LỚP VỚI TỪ KHÓA "YES")
+  // =========================================================================
+
   openDeleteStaffModal(staff: StaffAccount): void {
+    if (!this.isSuperAdmin) {
+      this.showToast('Chỉ Super Admin mới có quyền xóa tài khoản nhân sự!', 'warning');
+      return;
+    }
+    if (this.isSelf(staff)) {
+      this.showToast('Bạn không thể tự xóa tài khoản của chính mình!', 'warning');
+      return;
+    }
     if (staff.roles?.includes('Super Admin') || staff.role === 'Super Admin' || staff.email.toLowerCase().includes('admin@dcor.vn')) {
       this.showToast('Không thể xóa tài khoản Super Admin hệ thống!', 'warning');
       return;
     }
     this.staffToDelete = staff;
+    this.deleteStep = 1;
+    this.deleteConfirmText = '';
     this.isDeleteModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  proceedToDeleteStep2(): void {
+    this.deleteStep = 2;
+    this.deleteConfirmText = '';
+    this.cdr.detectChanges();
+  }
+
+  backToDeleteStep1(): void {
+    this.deleteStep = 1;
+    this.deleteConfirmText = '';
+    this.cdr.detectChanges();
   }
 
   closeDeleteStaffModal(): void {
     this.isDeleteModalOpen = false;
     this.staffToDelete = null;
     this.deleteLoading = false;
+    this.deleteStep = 1;
+    this.deleteConfirmText = '';
+    this.cdr.detectChanges();
   }
 
   confirmDeleteStaff(): void {
-    if (!this.staffToDelete) return;
+    if (!this.staffToDelete || this.deleteConfirmText.trim() !== 'YES') {
+      this.showToast('Vui lòng nhập chính xác chữ YES để xác nhận xóa vĩnh viễn!', 'warning');
+      return;
+    }
     this.deleteLoading = true;
     const target = this.staffToDelete;
 
@@ -646,28 +727,69 @@ ${this.dispatchInviteUrl}
         this.saveStaffToCache();
         this.closeDeleteStaffModal();
         this.showToast(`Đã xóa vĩnh viễn tài khoản nhân sự "${target.name}"!`, 'success');
+        this.cdr.detectChanges();
       },
-      error: () => {
-        // Fallback xóa local
+      error: (err) => {
         this.deleteLoading = false;
-        this.records = this.records.filter(r => r.id !== target.id);
-        this.saveStaffToCache();
+        const msg = err.error?.message || 'Không thể xóa tài khoản nhân sự. Thao tác bị từ chối.';
+        this.showToast(msg, 'warning');
         this.closeDeleteStaffModal();
-        this.showToast(`Đã xóa tài khoản nhân sự "${target.name}" khỏi danh sách!`, 'success');
+        this.cdr.detectChanges();
       }
     });
   }
 
-  // --- Thao tác Khóa / Mở khóa ---
-  toggleLockStatus(account: StaffAccount): void {
-    if (account.status === 'Tạm khóa') {
-      account.status = 'Đã kích hoạt';
-      this.showToast(`Đã mở khóa tài khoản cho ${account.name}`, 'success');
-    } else {
-      account.status = 'Tạm khóa';
-      this.showToast(`Đã tạm khóa tài khoản của ${account.name}`, 'warning');
+  // =========================================================================
+  // THAO TÁC KHÓA / MỞ KHÓA TÀI KHOẢN (CÓ BẢNG XÁC NHẬN RÕ RÀNG)
+  // =========================================================================
+  openLockModal(account: StaffAccount): void {
+    if (!this.isSuperAdmin) {
+      this.showToast('Chỉ Super Admin mới có quyền khóa hoặc mở khóa tài khoản nhân sự!', 'warning');
+      return;
     }
-    this.saveStaffToCache();
+    if (this.isSelf(account)) {
+      this.showToast('Bạn không thể tự khóa hoặc mở khóa tài khoản của chính mình!', 'warning');
+      return;
+    }
+    if (account.roles?.includes('Super Admin') || account.role === 'Super Admin' || account.email.toLowerCase().includes('admin@dcor.vn')) {
+      this.showToast('Không thể khóa tài khoản Super Admin hệ thống!', 'warning');
+      return;
+    }
+    this.staffToLock = account;
+    this.isLockModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  closeLockModal(): void {
+    this.isLockModalOpen = false;
+    this.staffToLock = null;
+    this.lockLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  confirmToggleLock(): void {
+    if (!this.staffToLock) return;
+    this.lockLoading = true;
+    const account = this.staffToLock;
+    const targetStatus = account.status === 'Tạm khóa' ? 'ACTIVE' : 'INACTIVE';
+
+    this.http.put<any>(`${environment.apiUrl}/admin/staff/${account.id}/status`, { status: targetStatus }).subscribe({
+      next: () => {
+        this.lockLoading = false;
+        account.status = targetStatus === 'ACTIVE' ? 'Đã kích hoạt' : 'Tạm khóa';
+        this.showToast(targetStatus === 'ACTIVE' ? `Đã mở khóa tài khoản cho ${account.name} thành công!` : `Đã tạm khóa tài khoản của ${account.name}!`, targetStatus === 'ACTIVE' ? 'success' : 'warning');
+        this.saveStaffToCache();
+        this.closeLockModal();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.lockLoading = false;
+        const msg = err.error?.message || 'Không thể cập nhật trạng thái tài khoản. Thao tác bị từ chối.';
+        this.showToast(msg, 'warning');
+        this.closeLockModal();
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   // =========================================================================

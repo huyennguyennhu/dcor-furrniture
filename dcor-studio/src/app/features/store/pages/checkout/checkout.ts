@@ -280,6 +280,63 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     );
   }
 
+  applyVoucherCode() {
+    const code = (this.voucherInput || '').trim().toUpperCase();
+    if (!code) {
+      this.voucherErrorMessage = 'Vui lòng nhập mã ưu đãi / voucher.';
+      this.voucherSuccessMessage = null;
+      return;
+    }
+
+    if (this.subTotal <= 0) {
+      this.voucherErrorMessage = 'Giỏ hàng chưa có sản phẩm để áp dụng mã giảm giá.';
+      this.voucherSuccessMessage = null;
+      return;
+    }
+
+    this.isCheckingVoucher = true;
+    this.voucherErrorMessage = null;
+    this.voucherSuccessMessage = null;
+
+    this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
+      this.isCheckingVoucher = false;
+      if (res.success && res.applied) {
+        this.appliedVoucher = res.applied;
+        this.voucherSuccessMessage = res.message;
+        this.voucherErrorMessage = null;
+      } else {
+        this.appliedVoucher = null;
+        this.voucherErrorMessage = res.message || `Mã "${code}" không hợp lệ hoặc không đủ điều kiện.`;
+        this.voucherSuccessMessage = null;
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+  removeVoucher() {
+    this.appliedVoucher = null;
+    this.voucherInput = '';
+    this.voucherSuccessMessage = null;
+    this.voucherErrorMessage = null;
+    this.promotionService.removeAppliedPromotion();
+    this.cdr.detectChanges();
+  }
+
+  recalculateVoucher() {
+    if (!this.appliedVoucher) return;
+    if (this.subTotal <= 0) {
+      this.removeVoucher();
+      return;
+    }
+    const updated = this.promotionService.recalculate(this.subTotal);
+    if (updated) {
+      this.appliedVoucher = updated;
+    } else {
+      this.removeVoucher();
+    }
+    this.cdr.detectChanges();
+  }
+
   selectPaymentMethod(method: 'COD' | 'BANK_TRANSFER') {
     if (this.isHighValueOrder && method === 'COD') {
       return; // Chỉ khóa COD với đơn > 50tr
@@ -1011,39 +1068,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       });
   }
 
-  // --- 8. Mã giảm giá (Đồng bộ qua PromotionService, không tự sinh voucher giả) ---
-  applyVoucherCode() {
-    const code = (this.voucherInput || '').trim().toUpperCase();
-    if (!code) {
-      this.voucherErrorMessage = 'Vui lòng nhập mã ưu đãi.';
-      return;
-    }
-
-    this.isCheckingVoucher = true;
-    this.voucherErrorMessage = null;
-    this.voucherSuccessMessage = null;
-
-    this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
-      this.isCheckingVoucher = false;
-      if (!res.success) {
-        this.voucherErrorMessage = res.message;
-      } else {
-        this.voucherErrorMessage = null;
-      }
-      this.cdr.detectChanges();
-    });
-  }
-
-  removeVoucher() {
-    this.promotionService.removeAppliedPromotion();
-    this.voucherInput = '';
-    this.voucherSuccessMessage = null;
-    this.voucherErrorMessage = null;
-  }
-
-  recalculateVoucher() {
-    this.promotionService.recalculate(this.subTotal);
-  }
 
   // --- 9. Tiến hành Đặt hàng với kiểm tra định dạng toàn diện ---
   handleSubmitOrder(e: Event) {

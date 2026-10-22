@@ -10,9 +10,9 @@
 /* Toast Floating */
 .toast-alert {
   position: fixed;
-  top: 24px;
+  top: 80px;
   right: 24px;
-  z-index: 2200;
+  z-index: 99999;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -296,14 +296,16 @@
 }
 
 .roles-tabs-scroll {
-  overflow-x: auto;
-  padding-bottom: 4px;
+  overflow: visible;
+  padding-bottom: 0;
+  width: 100%;
 }
 
 .roles-tabs {
   display: flex;
-  gap: 8px;
-  min-width: max-content;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
 }
 
 .role-tab-btn {
@@ -886,5 +888,54 @@
 .spinner-icon {
   animation: spin 0.75s linear infinite;
   display: inline-flex;
+}
+
+/* ==========================================================================
+   Phân hệ bị khóa theo giới hạn Vai trò (Role Boundary)
+   ========================================================================== */
+.matrix-row.row-role-restricted {
+  background-color: #FAFAFA;
+}
+
+.matrix-row.row-role-restricted .module-name {
+  color: #616161;
+}
+
+.matrix-row.row-role-restricted .module-icon-wrap.icon-restricted {
+  opacity: 0.6;
+  filter: grayscale(1);
+}
+
+.role-scope-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: #C0392B;
+  font-weight: 500;
+  background: #FDEDEC;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(192, 57, 43, 0.2);
+}
+
+.check-box-visual.is-locked {
+  background: #F0F0F0 !important;
+  border-color: #D6D6D6 !important;
+  cursor: not-allowed;
+}
+
+.check-box-visual.is-locked .lock-icon {
+  color: #8C8C8C;
+}
+
+.module-status-badge.role-locked {
+  background: #F5F5F5;
+  color: #757575;
+  border: 1px dashed #BDBDBD;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 

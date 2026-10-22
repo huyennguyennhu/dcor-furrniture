@@ -13,7 +13,7 @@ app-admin-header {
   flex: 0 0 60px;
   height: 60px;
   position: relative;
-  z-index: 30;
+  z-index: 100;
 }
 
 .admin-layout-content {
@@ -22,6 +22,7 @@ app-admin-header {
   min-height: 0;
   overflow: hidden;
   position: relative;
+  z-index: 10;
 }
 
 app-admin-sidebar {
@@ -39,5 +40,4 @@ app-admin-sidebar {
   overflow-y: auto;
   background: #fcf8f3;
   position: relative;
-  z-index: 1;
 }

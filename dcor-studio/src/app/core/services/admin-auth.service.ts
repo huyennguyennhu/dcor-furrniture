@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
@@ -52,6 +52,10 @@ export type AdminModule =
   | 'customers' 
   | 'staff' 
   | 'reports' 
+  | 'designs'
+  | 'appointments'
+  | 'content'
+  | 'chat'
   | 'settings';
 
 export type RolePermissions = Record<AdminModule, PermissionActions>;
@@ -251,6 +255,10 @@ export function createEmptyRolePermissions(): RolePermissions {
     customers: { ...DEFAULT_EMPTY_PERMISSIONS },
     staff: { ...DEFAULT_EMPTY_PERMISSIONS },
     reports: { ...DEFAULT_EMPTY_PERMISSIONS },
+    designs: { ...DEFAULT_EMPTY_PERMISSIONS },
+    appointments: { ...DEFAULT_EMPTY_PERMISSIONS },
+    content: { ...DEFAULT_EMPTY_PERMISSIONS },
+    chat: { ...DEFAULT_EMPTY_PERMISSIONS },
     settings: { ...DEFAULT_EMPTY_PERMISSIONS }
   };
 }
@@ -273,6 +281,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     customers: { ...FULL_PERMISSIONS },
     staff: { ...FULL_PERMISSIONS },
     reports: { ...FULL_PERMISSIONS },
+    designs: { ...FULL_PERMISSIONS },
+    appointments: { ...FULL_PERMISSIONS },
+    content: { ...FULL_PERMISSIONS },
+    chat: { ...FULL_PERMISSIONS },
     settings: { ...FULL_PERMISSIONS }
   },
   'Quản lý sản phẩm': {
@@ -284,6 +296,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     customers: { ...DEFAULT_EMPTY_PERMISSIONS },
     staff: { ...DEFAULT_EMPTY_PERMISSIONS },
     reports: { view: true, create: false, edit: false, delete: false, approve: false },
+    designs: { view: true, create: true, edit: true, delete: false, approve: true },
+    appointments: { ...DEFAULT_EMPTY_PERMISSIONS },
+    content: { view: true, create: false, edit: false, delete: false, approve: false },
+    chat: { ...DEFAULT_EMPTY_PERMISSIONS },
     settings: { ...DEFAULT_EMPTY_PERMISSIONS }
   },
   'Quản lý kho': {
@@ -295,6 +311,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     customers: { ...DEFAULT_EMPTY_PERMISSIONS },
     staff: { ...DEFAULT_EMPTY_PERMISSIONS },
     reports: { view: true, create: false, edit: false, delete: false, approve: false },
+    designs: { ...DEFAULT_EMPTY_PERMISSIONS },
+    appointments: { ...DEFAULT_EMPTY_PERMISSIONS },
+    content: { ...DEFAULT_EMPTY_PERMISSIONS },
+    chat: { ...DEFAULT_EMPTY_PERMISSIONS },
     settings: { ...DEFAULT_EMPTY_PERMISSIONS }
   },
   'Quản lý đơn hàng': {
@@ -306,6 +326,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     customers: { view: true, create: true, edit: true, delete: false, approve: false },
     staff: { ...DEFAULT_EMPTY_PERMISSIONS },
     reports: { view: true, create: false, edit: false, delete: false, approve: false },
+    designs: { view: true, create: false, edit: false, delete: false, approve: false },
+    appointments: { view: true, create: false, edit: false, delete: false, approve: false },
+    content: { ...DEFAULT_EMPTY_PERMISSIONS },
+    chat: { view: true, create: false, edit: true, delete: false, approve: false },
     settings: { ...DEFAULT_EMPTY_PERMISSIONS }
   },
   'Marketing': {
@@ -317,6 +341,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     customers: { view: true, create: false, edit: false, delete: false, approve: false },
     staff: { ...DEFAULT_EMPTY_PERMISSIONS },
     reports: { view: true, create: false, edit: false, delete: false, approve: false },
+    designs: { view: true, create: true, edit: true, delete: true, approve: true },
+    appointments: { view: true, create: false, edit: false, delete: false, approve: false },
+    content: { view: true, create: true, edit: true, delete: true, approve: true },
+    chat: { view: true, create: false, edit: true, delete: false, approve: false },
     settings: { ...DEFAULT_EMPTY_PERMISSIONS }
   },
   'CSKH': {
@@ -328,6 +356,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     customers: { view: true, create: true, edit: true, delete: false, approve: false },
     staff: { ...DEFAULT_EMPTY_PERMISSIONS },
     reports: { view: true, create: false, edit: false, delete: false, approve: false },
+    designs: { view: true, create: false, edit: false, delete: false, approve: false },
+    appointments: { view: true, create: true, edit: true, delete: false, approve: true },
+    content: { view: true, create: false, edit: false, delete: false, approve: false },
+    chat: { view: true, create: true, edit: true, delete: false, approve: true },
     settings: { ...DEFAULT_EMPTY_PERMISSIONS }
   },
   'Sales': {
@@ -339,6 +371,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     customers: { view: true, create: true, edit: true, delete: false, approve: false },
     staff: { ...DEFAULT_EMPTY_PERMISSIONS },
     reports: { view: true, create: false, edit: false, delete: false, approve: false },
+    designs: { view: true, create: false, edit: false, delete: false, approve: false },
+    appointments: { view: true, create: true, edit: true, delete: false, approve: false },
+    content: { view: true, create: false, edit: false, delete: false, approve: false },
+    chat: { view: true, create: true, edit: true, delete: false, approve: false },
     settings: { ...DEFAULT_EMPTY_PERMISSIONS }
   }
 };
@@ -376,12 +412,51 @@ export class AdminAuthService {
   readonly rolesList$ = new BehaviorSubject<RoleDefinition[]>([]);
   readonly branchesList$ = new BehaviorSubject<Branch[]>(SYSTEM_BRANCHES);
 
+  private heartbeatTimer: any = null;
+
   constructor(
     private http: HttpClient,
     private router: Router
   ) {
     this.initRolesList();
     this.loadStateFromStorage();
+    this.initVisibilityListeners();
+  }
+
+  private initVisibilityListeners(): void {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.isLoggedIn()) {
+          this.verifySession().subscribe();
+        }
+      });
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => {
+        if (this.isLoggedIn()) {
+          this.verifySession().subscribe();
+        }
+      });
+    }
+  }
+
+  startSessionHeartbeat(): void {
+    this.stopSessionHeartbeat();
+    // Tự động kiểm tra định kỳ mỗi 3.5s với cơ sở dữ liệu để thu hồi phiên ngay lập tức nếu bị khóa
+    this.heartbeatTimer = setInterval(() => {
+      if (this.isLoggedIn()) {
+        this.verifySession().subscribe();
+      } else {
+        this.stopSessionHeartbeat();
+      }
+    }, 3500);
+  }
+
+  stopSessionHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
   }
 
   get currentUser(): AdminUser | null {
@@ -433,7 +508,7 @@ export class AdminAuthService {
   /**
    * Tính toán quyền tổng hợp (UNION) từ một hoặc nhiều vai trò được gán cho nhân sự
    */
-  calculateEffectivePermissions(roles: string[]): RolePermissions {
+  calculateEffectivePermissions(roles: string[], customPermissions?: any): RolePermissions {
     if (!roles || roles.length === 0) {
       return JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS['Sales'] || DEFAULT_EMPTY_PERMISSIONS));
     }
@@ -444,23 +519,60 @@ export class AdminAuthService {
 
     const allPerms = this.getAllRolePermissionsFromStorage();
     const modules: AdminModule[] = [
-      'products', 'categories', 'orders', 'inventory', 'promotions', 'customers', 'staff', 'reports', 'settings'
+      'reports', 'customers', 'products', 'categories', 'inventory', 'orders',
+      'promotions', 'designs', 'appointments', 'content', 'chat', 'staff', 'settings'
     ];
     const actions: (keyof PermissionActions)[] = ['view', 'create', 'edit', 'delete', 'approve'];
 
     const result: any = {};
     modules.forEach(m => {
       result[m] = { view: false, create: false, edit: false, delete: false, approve: false };
-      actions.forEach(act => {
-        // Hợp quyền: Có quyền nếu BẤT KỲ vai trò nào được gán có quyền đó
-        result[m][act] = roles.some(roleName => {
-          const roleMatrix = allPerms[roleName] || DEFAULT_ROLE_PERMISSIONS[roleName];
-          return roleMatrix && roleMatrix[m] && roleMatrix[m][act];
+
+      // Quy tắc cốt lõi: Phân hệ chỉ được phép cấp quyền nếu thuộc phạm vi các vai trò được gán!
+      // Nếu vai trò không mở phân hệ này (ví dụ CSKH không có quyền Nhân sự), nhân sự KHÔNG THỂ có quyền trên phân hệ đó!
+      const inScope = this.isModuleInRoleScope(m, roles);
+
+      if (inScope) {
+        actions.forEach(act => {
+          // Hợp quyền từ các vai trò
+          const roleGranted = roles.some(roleName => {
+            const roleMatrix = allPerms[roleName] || DEFAULT_ROLE_PERMISSIONS[roleName];
+            return roleMatrix && roleMatrix[m] && roleMatrix[m][act];
+          });
+
+          // Cho phép mở rộng quyền riêng (Custom Permissions) cao hơn vai trò cho các nhân sự quản lý / phụ trách
+          const customVal = customPermissions && customPermissions[m] ? customPermissions[m][act] : undefined;
+          result[m][act] = customVal !== undefined ? !!customVal : !!roleGranted;
         });
-      });
+      } else {
+        // Hoàn toàn không có quyền nếu phân hệ nằm ngoài phạm vi vai trò
+        actions.forEach(act => {
+          result[m][act] = false;
+        });
+      }
     });
 
     return result as RolePermissions;
+  }
+
+  /**
+   * Kiểm tra xem một phân hệ có thuộc phạm vi của các vai trò được gán không
+   */
+  isModuleInRoleScope(moduleKey: AdminModule, roles: string[]): boolean {
+    if (!roles || roles.length === 0) return false;
+    if (roles.includes('Super Admin')) return true;
+
+    const allPerms = this.getAllRolePermissionsFromStorage();
+    return roles.some(roleName => {
+      const roleMatrix = allPerms[roleName] || DEFAULT_ROLE_PERMISSIONS[roleName];
+      return roleMatrix && roleMatrix[moduleKey] && (
+        roleMatrix[moduleKey].view || 
+        roleMatrix[moduleKey].create || 
+        roleMatrix[moduleKey].edit || 
+        roleMatrix[moduleKey].delete || 
+        roleMatrix[moduleKey].approve
+      );
+    });
   }
 
   /**
@@ -716,6 +828,7 @@ export class AdminAuthService {
   }
 
   logout(): void {
+    this.stopSessionHeartbeat();
     sessionStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem(this.USER_KEY);
     sessionStorage.removeItem(this.SESSION_EXPIRY_KEY);
@@ -809,6 +922,7 @@ export class AdminAuthService {
 
     this.currentUser$.next(user);
     this.permissions$.next(rolePermissions);
+    this.startSessionHeartbeat();
 
     return { token, user };
   }
@@ -843,11 +957,57 @@ export class AdminAuthService {
 
         this.currentUser$.next(user);
         this.permissions$.next(perms);
+
+        // KHI F5 & ĐĂNG NHẬP: Bắt đầu heartbeat kiểm tra định kỳ và kiểm tra ngay tức thì
+        this.startSessionHeartbeat();
+        this.verifySession().subscribe();
       }
     } catch (e) {
       console.warn('Lỗi khi đọc thông tin admin auth từ storage:', e);
       this.logout();
     }
+  }
+
+  /**
+   * Xác thực thực tế trạng thái tài khoản với Backend PostgreSQL
+   * Nếu tài khoản đã bị khóa trong DB, lập tức thu hồi phiên làm việc và điều hướng về login
+   */
+  verifySession(): Observable<boolean> {
+    const token = sessionStorage.getItem(this.TOKEN_KEY) || localStorage.getItem(this.TOKEN_KEY);
+    if (!token) {
+      return of(false);
+    }
+
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`
+    });
+
+    return this.http.get<any>(`${environment.apiUrl}/auth/admin/verify-session`, { headers }).pipe(
+      map(res => {
+        if (!res || !res.active) {
+          console.warn('[AUTH] Phiên làm việc đã bị thu hồi hoặc tài khoản bị khóa.');
+          this.handleAccountLocked('Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ Super Admin.');
+          return false;
+        }
+        return true;
+      }),
+      catchError(err => {
+        if (err.status === 403 || err.status === 401) {
+          const errMsg = err.error?.message || 'Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ quản trị viên.';
+          console.warn('[AUTH] Phiên đăng nhập không hợp lệ hoặc đã bị khóa:', errMsg);
+          this.handleAccountLocked(errMsg);
+          return of(false);
+        }
+        return of(true);
+      })
+    );
+  }
+
+  handleAccountLocked(message: string): void {
+    this.logout();
+    this.router.navigate(['/admin-login'], {
+      queryParams: { error: message || 'Tài khoản của bạn đã bị tạm khóa.' }
+    });
   }
 
   getAllRolePermissionsFromStorage(): Record<string, RolePermissions> {
@@ -856,7 +1016,14 @@ export class AdminAuthService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed === 'object' && parsed !== null) {
-          return { ...DEFAULT_ROLE_PERMISSIONS, ...parsed };
+          const merged: Record<string, RolePermissions> = {};
+          const allRoleNames = Array.from(new Set([...Object.keys(DEFAULT_ROLE_PERMISSIONS), ...Object.keys(parsed)]));
+          allRoleNames.forEach(roleName => {
+            const base = DEFAULT_ROLE_PERMISSIONS[roleName] || createEmptyRolePermissions();
+            const stored = parsed[roleName] || {};
+            merged[roleName] = { ...createEmptyRolePermissions(), ...base, ...stored };
+          });
+          return merged;
         }
       }
     } catch (e) {

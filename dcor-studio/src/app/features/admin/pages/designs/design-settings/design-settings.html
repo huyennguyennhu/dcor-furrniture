@@ -1,18 +1,637 @@
-<section class="admin-page">
-  <header class="admin-page-heading">
-    <div><h1>Cấu hình cộng đồng thiết kế</h1><p>Quản lý thiết lập hiển thị và quy tắc đăng bài cộng đồng.</p></div>
-    <button type="button" class="admin-btn admin-btn-primary">Lưu cấu hình</button>
-  </header>
-  <div class="admin-page-stats">
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng bài viết</div><div class="admin-page-stat-value">248</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Chờ kiểm duyệt</div><div class="admin-page-stat-value">12</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Thành viên</div><div class="admin-page-stat-value">1.286</div></article>
+<div class="design-settings-page">
+  <!-- Toast Notification Floating -->
+  <div *ngIf="toastMessage" class="toast-alert" [ngClass]="'toast-' + toastType" role="alert">
+    <app-icon [name]="toastType === 'success' ? 'Check' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
+    <span>{{ toastMessage }}</span>
+    <button type="button" class="btn-close-toast" (click)="closeToast()" aria-label="Đóng thông báo">
+      <app-icon name="X" size="14"></app-icon>
+    </button>
   </div>
+
+  <!-- Submodule Tabs Bar (Templates vs Post Moderation) -->
+  <div class="promo-submodule-tabs">
+    <a routerLink="/admin/designs/settings" class="promo-tab-item active" aria-current="page">
+      <app-icon name="Layers" size="18"></app-icon>
+      <span>Bản mẫu không gian 3D (Room Templates)</span>
+      <span class="tab-badge">{{ records.length }}</span>
+    </a>
+    <a routerLink="/admin/designs/posts" class="promo-tab-item">
+      <app-icon name="Sparkles" size="18"></app-icon>
+      <span>Kiểm duyệt bài đăng & Bình luận</span>
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <header class="admin-page-heading">
+    <div class="heading-title-group">
+      <h1 class="page-title">Quản lý Bản mẫu không gian Room Planner</h1>
+      <p class="page-subtitle">Thiết lập mặt bằng mẫu, kích thước và nội thất gợi ý kết nối trực tiếp với công cụ Room Planner của khách hàng.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-btn admin-btn-primary" (click)="openCreateModal()">
+        <app-icon name="Plus" size="18"></app-icon>
+        <span>+ Thêm bản mẫu mới</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 4 Stats Cards -->
+  <section class="admin-page-stats" aria-label="Thống kê bản mẫu không gian">
+    <article class="admin-page-stat stat-card-total">
+      <div class="stat-card-icon">
+        <app-icon name="Layers" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Tổng bản mẫu</span>
+        <div class="admin-page-stat-value">{{ totalCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-active">
+      <div class="stat-card-icon stat-icon-green">
+        <app-icon name="Check" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Đang kích hoạt</span>
+        <div class="admin-page-stat-value text-success">{{ activeCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-inactive">
+      <div class="stat-card-icon stat-icon-gray">
+        <app-icon name="EyeOff" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Đang tạm ẩn</span>
+        <div class="admin-page-stat-value text-muted">{{ inactiveCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-rooms">
+      <div class="stat-card-icon stat-icon-brown">
+        <app-icon name="House" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Loại phòng</span>
+        <div class="admin-page-stat-value text-wood">{{ distinctRoomTypesCount }} <span class="stat-unit">loại</span></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- Filter & Search Toolbar -->
+  <section class="admin-page-filter" aria-label="Bộ lọc bản mẫu">
+    <div class="search-input-wrapper">
+      <app-icon name="Search" size="18" class="search-icon"></app-icon>
+      <input
+        type="text"
+        class="admin-input search-input"
+        [(ngModel)]="searchTerm"
+        placeholder="Tìm theo tên bản mẫu, loại phòng, mô tả..."
+        aria-label="Tìm kiếm bản mẫu" />
+      <button
+        *ngIf="searchTerm"
+        type="button"
+        class="clear-search-btn"
+        (click)="searchTerm = ''"
+        aria-label="Xóa tìm kiếm">
+        <app-icon name="X" size="14"></app-icon>
+      </button>
+    </div>
+
+    <div class="filter-controls-group">
+      <select class="admin-select" [(ngModel)]="selectedRoomType" aria-label="Lọc theo loại phòng">
+        <option value="ALL">Tất cả loại phòng</option>
+        <option *ngFor="let rt of ROOM_TYPES" [value]="rt">{{ rt }}</option>
+      </select>
+
+      <select class="admin-select" [(ngModel)]="selectedStatus" aria-label="Lọc theo trạng thái">
+        <option value="ALL">Tất cả trạng thái</option>
+        <option value="ACTIVE">Đang kích hoạt</option>
+        <option value="INACTIVE">Đang tạm ẩn</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Table Card (100% width, no horizontal scroll) -->
   <div class="admin-page-table-card">
-    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);"><strong>Cài đặt hoạt động</strong><p style="margin: 4px 0 0; color: var(--text-secondary); font-size: 13px;">Bật hoặc tắt các tính năng của cộng đồng.</p></div>
-    <div *ngFor="let setting of settings" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--border-color);">
-      <div><div style="font-weight: 600;">{{ setting.name }}</div><div style="margin-top: 4px; color: var(--text-secondary); font-size: 13px;">{{ setting.description }}</div></div>
-      <input type="checkbox" [(ngModel)]="setting.enabled" [attr.aria-label]="setting.name">
+    <div class="admin-page-table-scroll">
+      <table class="admin-table templates-table">
+        <thead>
+          <tr>
+            <th class="col-thumb">Mặt bằng</th>
+            <th class="col-name">Tên bản mẫu</th>
+            <th class="col-type">Loại không gian</th>
+            <th class="col-dims">Kích thước tiêu chuẩn</th>
+            <th class="col-products">Nội thất gợi ý</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let record of filteredRecords" [class.row-inactive]="!record.isActive">
+            <!-- Hình thu nhỏ -->
+            <td class="col-thumb">
+              <div class="thumb-wrapper">
+                <img [src]="record.imageUrl" [alt]="record.name" class="template-thumb" />
+              </div>
+            </td>
+
+            <!-- Tên & Mô tả -->
+            <td class="col-name">
+              <div class="template-name-cell">
+                <strong class="template-title" [title]="record.name">{{ record.name }}</strong>
+                <span class="template-desc-sub" *ngIf="record.description" [title]="record.description">
+                  {{ record.description }}
+                </span>
+              </div>
+            </td>
+
+            <!-- Loại không gian -->
+            <td class="col-type">
+              <span class="room-type-badge">
+                <span *ngIf="record.roomType === 'Phòng khách'">🛋️</span>
+                <span *ngIf="record.roomType === 'Phòng ngủ'">🛏️</span>
+                <span *ngIf="record.roomType === 'Phòng ăn'">🍽️</span>
+                <span *ngIf="record.roomType === 'Phòng làm việc'">💼</span>
+                <span>{{ record.roomType }}</span>
+              </span>
+            </td>
+
+            <!-- Kích thước -->
+            <td class="col-dims">
+              <div class="dims-cell">
+                <span class="dims-text"><strong>{{ record.length }}m</strong> × <strong>{{ record.width }}m</strong> × {{ record.height }}m</span>
+                <span class="area-text">Diện tích: {{ (record.length * record.width).toFixed(1) }} m²</span>
+              </div>
+            </td>
+
+            <!-- Nội thất gợi ý -->
+            <td class="col-products">
+              <div class="suggested-tags-wrapper">
+                <ng-container *ngIf="record.suggestedProducts && record.suggestedProducts.length > 0; else noSuggested">
+                  <span class="suggested-pill" *ngFor="let p of record.suggestedProducts.slice(0, 2)" [title]="p">
+                    {{ p }}
+                  </span>
+                  <span class="suggested-more" *ngIf="record.suggestedProducts.length > 2">
+                    +{{ record.suggestedProducts.length - 2 }}
+                  </span>
+                </ng-container>
+                <ng-template #noSuggested>
+                  <span class="text-sub-empty">Chưa gắn</span>
+                </ng-template>
+              </div>
+            </td>
+
+            <!-- Trạng thái -->
+            <td class="col-status">
+              <span class="status-badge" [ngClass]="record.isActive ? 'status-active' : 'status-paused'">
+                <span class="status-dot"></span>
+                <span>{{ record.isActive ? 'Kích hoạt' : 'Tạm ẩn' }}</span>
+              </span>
+            </td>
+
+            <!-- Thao tác -->
+            <td class="col-actions">
+              <div class="actions-group">
+                <button
+                  type="button"
+                  class="action-icon-btn btn-view"
+                  (click)="openPreviewModal(record)"
+                  title="Xem trước bản mẫu">
+                  <app-icon name="Eye" size="15"></app-icon>
+                </button>
+
+                <button
+                  type="button"
+                  class="toggle-switch-btn"
+                  [class.active]="record.isActive"
+                  (click)="promptToggleActive(record)"
+                  [title]="record.isActive ? 'Nhấn để tạm ẩn bản mẫu' : 'Nhấn để kích hoạt bản mẫu'">
+                  <span class="toggle-switch-slider"></span>
+                </button>
+
+                <button
+                  type="button"
+                  class="action-icon-btn btn-edit"
+                  (click)="openEditModal(record)"
+                  title="Chỉnh sửa bản mẫu">
+                  <app-icon name="Edit" size="15"></app-icon>
+                </button>
+
+                <button
+                  type="button"
+                  class="action-icon-btn btn-delete"
+                  (click)="promptDelete(record)"
+                  title="Xóa bản mẫu">
+                  <app-icon name="Trash2" size="15"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredRecords.length === 0">
+            <td colspan="7" class="admin-page-table-empty">
+              <div class="empty-state-wrapper">
+                <app-icon name="Layers" size="44" class="empty-icon"></app-icon>
+                <div class="empty-title">Không tìm thấy bản mẫu phù hợp</div>
+                <div class="empty-desc">Thử điều chỉnh lại từ khóa hoặc xóa các bộ lọc đang chọn.</div>
+                <button type="button" class="admin-btn admin-btn-secondary" (click)="searchTerm = ''; selectedRoomType = 'ALL'; selectedStatus = 'ALL'">
+                  Đặt lại bộ lọc
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
-</section>
+
+  <!-- MODAL: Tạo / Sửa Bản mẫu không gian -->
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-card modal-template" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="isEditing ? 'Chỉnh sửa bản mẫu' : 'Thêm bản mẫu mới'">
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Layers" size="20"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">{{ isEditing ? 'Chỉnh sửa Bản Mẫu Không Gian' : 'Thêm Bản Mẫu Không Gian Mới' }}</h2>
+            <p class="modal-subtitle">Bản mẫu này sẽ xuất hiện ngay trong công cụ Room Planner 3D của khách hàng.</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Đóng cửa sổ">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <div class="modal-body-scrollable">
+        <form (ngSubmit)="saveTemplate()">
+          <!-- Tên & Loại phòng -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">Tên bản mẫu không gian</label>
+              <input
+                type="text"
+                class="admin-input"
+                name="tmplName"
+                [(ngModel)]="formData.name"
+                placeholder="Ví dụ: Phòng khách Bắc Âu Nordic Minimalist"
+                required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Loại không gian phòng</label>
+              <select class="admin-select full-width" name="tmplRoomType" [(ngModel)]="formData.roomType">
+                <option *ngFor="let rt of ROOM_TYPES" [value]="rt">{{ rt }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Kích thước tiêu chuẩn -->
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label required">Chiều dài (mét)</label>
+              <input
+                type="number"
+                step="0.1"
+                class="admin-input"
+                name="tmplLength"
+                [(ngModel)]="formData.length"
+                min="1"
+                max="30"
+                required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Chiều rộng (mét)</label>
+              <input
+                type="number"
+                step="0.1"
+                class="admin-input"
+                name="tmplWidth"
+                [(ngModel)]="formData.width"
+                min="1"
+                max="30"
+                required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Chiều cao trần (mét)</label>
+              <input
+                type="number"
+                step="0.1"
+                class="admin-input"
+                name="tmplHeight"
+                [(ngModel)]="formData.height"
+                min="1"
+                max="10"
+                required />
+            </div>
+          </div>
+
+          <div class="dim-calc-hint">
+            📐 Diện tích sàn dự kiến: <strong>{{ (formData.length * formData.width).toFixed(2) }} m²</strong>
+          </div>
+
+          <!-- Hình ảnh mặt bằng: Tải ảnh từ máy tính hoặc chọn ảnh mẫu -->
+          <div class="form-group">
+            <label class="form-label required">Hình ảnh mặt bằng phòng</label>
+            
+            <input 
+              #imageFileInput
+              type="file" 
+              accept="image/png, image/jpeg, image/webp" 
+              (change)="onImageFileSelected($event)" 
+              style="display: none;" />
+
+            <!-- Khung kéo thả tải ảnh (Nếu chưa có ảnh) -->
+            <div 
+              *ngIf="!formData.imageUrl"
+              class="upload-floorplan-dropzone"
+              [class.dragging]="isDraggingImage"
+              (dragover)="onImageDragOver($event)"
+              (dragleave)="onImageDragLeave($event)"
+              (drop)="onImageDrop($event)"
+              (click)="imageFileInput.click()">
+              
+              <div class="dropzone-icon-circle">
+                <app-icon name="Image" size="26"></app-icon>
+              </div>
+              <strong class="dropzone-title">Kéo thả ảnh mặt bằng vào đây</strong>
+              <span class="dropzone-sub">hoặc <button type="button" class="btn-browse-file" (click)="$event.stopPropagation(); imageFileInput.click()">Chọn ảnh từ máy tính</button></span>
+              <span class="dropzone-hint">Hỗ trợ JPG, PNG, WEBP (tối đa 10MB)</span>
+            </div>
+
+            <!-- Khung xem trước khi đã có ảnh -->
+            <div *ngIf="formData.imageUrl" class="uploaded-floorplan-preview">
+              <div class="preview-img-wrapper">
+                <img [src]="formData.imageUrl" alt="Mặt bằng phòng" />
+                <div class="preview-overlay-actions">
+                  <button type="button" class="btn-overlay-action btn-change" (click)="imageFileInput.click()">
+                    <app-icon name="RefreshCw" size="14"></app-icon>
+                    <span>Đổi ảnh</span>
+                  </button>
+                  <button type="button" class="btn-overlay-action btn-remove" (click)="removeUploadedImage()">
+                    <app-icon name="Trash2" size="14"></app-icon>
+                    <span>Gỡ ảnh</span>
+                  </button>
+                </div>
+              </div>
+              <span class="preview-success-note">
+                <app-icon name="Check" size="14" color="#16A34A"></app-icon>
+                <span>Ảnh mặt bằng hợp lệ sẵn sàng lưu</span>
+              </span>
+            </div>
+
+            <!-- Thanh trạng thái đang tải lên -->
+            <div *ngIf="isUploadingImage" class="uploading-progress-bar">
+              <app-icon name="LoaderCircle" size="14" class="spin-icon"></app-icon>
+              <span>Đang tải và tối ưu ảnh WebP...</span>
+            </div>
+
+            <!-- Báo lỗi upload -->
+            <div *ngIf="uploadError" class="upload-error-alert">
+              <app-icon name="AlertTriangle" size="14"></app-icon>
+              <span>{{ uploadError }}</span>
+            </div>
+
+            <!-- Tùy chọn phụ: Hoặc dán link URL ngoài / chọn ảnh mẫu -->
+            <div class="secondary-url-option">
+              <button type="button" class="btn-toggle-url" (click)="toggleUrlInput()">
+                <app-icon name="ChevronDown" size="14" [style.transform]="showUrlInput ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s;"></app-icon>
+                <span>{{ showUrlInput ? 'Ẩn tùy chọn nhập link URL ngoài' : 'Hoặc dán link URL ngoài / chọn ảnh mẫu có sẵn' }}</span>
+              </button>
+
+              <div *ngIf="showUrlInput" class="url-input-expand-box">
+                <input
+                  type="text"
+                  class="admin-input"
+                  name="tmplImageUrl"
+                  [(ngModel)]="formData.imageUrl"
+                  placeholder="https://images.unsplash.com/..." />
+                
+                <div class="preset-images-pick">
+                  <span class="preset-img-label">Ảnh mẫu có sẵn:</span>
+                  <button
+                    *ngFor="let p of PRESET_IMAGES"
+                    type="button"
+                    class="preset-img-btn"
+                    (click)="selectPresetImage(p.url)">
+                    {{ p.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mô tả -->
+          <div class="form-group">
+            <label class="form-label">Mô tả phong cách & công năng</label>
+            <textarea
+              class="admin-textarea"
+              name="tmplDesc"
+              [(ngModel)]="formData.description"
+              rows="3"
+              placeholder="Gợi ý ánh sáng, phong cách nội thất kết hợp..."></textarea>
+          </div>
+
+          <!-- Đồ nội thất gợi ý -->
+          <div class="form-group">
+            <label class="form-label">Nội thất gợi ý (Cách nhau bằng dấu phẩy)</label>
+            <input
+              type="text"
+              class="admin-input"
+              name="tmplSuggested"
+              [(ngModel)]="formData.suggestedProductsText"
+              placeholder="Ví dụ: Sofa DCor Nordic, Bàn trà Ceramic, Ghế thư giãn" />
+            <span class="field-hint">Các sản phẩm này sẽ được hệ thống ưu tiên hiển thị gợi ý cho khách khi chọn bản mẫu này.</span>
+          </div>
+
+          <!-- Checkbox kích hoạt -->
+          <div class="form-group checkbox-form-group">
+            <label class="custom-checkbox-label">
+              <input
+                type="checkbox"
+                name="tmplIsActive"
+                [(ngModel)]="formData.isActive" />
+              <span class="custom-checkbox-box"></span>
+              <span class="checkbox-text">
+                <strong>Kích hoạt bản mẫu này cho khách hàng</strong>
+                <span class="checkbox-desc">Khách hàng sẽ nhìn thấy bản mẫu này trong danh sách khởi tạo Room Planner 3D trên website.</span>
+              </span>
+            </label>
+          </div>
+        </form>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeModal()">
+          Hủy bỏ
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveTemplate()">
+          <app-icon name="Check" size="16"></app-icon>
+          <span>{{ isEditing ? 'Cập nhật bản mẫu' : 'Lưu bản mẫu' }}</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN XÓA -->
+  <div class="modal-backdrop" *ngIf="templateToDelete" (click)="cancelDelete()">
+    <div class="modal-card modal-confirm-action" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xác nhận xóa bản mẫu">
+      <header class="modal-header confirm-header-danger">
+        <div class="confirm-icon-wrapper danger-icon">
+          <app-icon name="Trash2" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">Xác nhận xóa bản mẫu?</h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>Bạn có chắc chắn muốn xóa bản mẫu không gian <strong>"{{ templateToDelete.name }}"</strong> khỏi cơ sở dữ liệu?</p>
+        <p class="text-sub">Bản mẫu sẽ bị xóa hoàn toàn và không còn hiển thị cho khách hàng.</p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelDelete()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDelete()">
+          <app-icon name="Trash2" size="16"></app-icon>
+          <span>Xác nhận xóa</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN ĐỔI TRẠNG THÁI (ẨN / KÍCH HOẠT) -->
+  <div class="modal-backdrop" *ngIf="templateToToggle" (click)="cancelToggleActive()">
+    <div class="modal-card modal-confirm-action" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header class="modal-header" [ngClass]="templateToToggle.isActive ? 'confirm-header-warning' : 'confirm-header-success'">
+        <div class="confirm-icon-wrapper" [ngClass]="templateToToggle.isActive ? 'warning-icon' : 'success-icon'">
+          <app-icon [name]="templateToToggle.isActive ? 'EyeOff' : 'Eye'" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">
+          {{ templateToToggle.isActive ? 'Xác nhận tạm ẩn bản mẫu?' : 'Xác nhận kích hoạt bản mẫu?' }}
+        </h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>
+          Bạn có chắc chắn muốn 
+          <strong>{{ templateToToggle.isActive ? 'TẠM ẨN' : 'KÍCH HOẠT' }}</strong> 
+          bản mẫu không gian 
+          <strong>"{{ templateToToggle.name }}"</strong>?
+        </p>
+        <p class="text-sub">
+          {{ templateToToggle.isActive 
+            ? 'Khi tạm ẩn, khách hàng bên ngoài sẽ không còn thấy bản mẫu này trong danh sách thiết kế phòng.' 
+            : 'Bản mẫu sẽ xuất hiện trở lại trong danh sách gợi ý cho khách hàng.' }}
+        </p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelToggleActive()">Hủy bỏ</button>
+        <button 
+          type="button" 
+          class="admin-btn" 
+          [ngClass]="templateToToggle.isActive ? 'admin-btn-warning' : 'admin-btn-primary'"
+          (click)="confirmToggleActive()">
+          <app-icon [name]="templateToToggle.isActive ? 'EyeOff' : 'Check'" size="16"></app-icon>
+          <span>{{ templateToToggle.isActive ? 'Xác nhận Tạm ẩn' : 'Xác nhận Kích hoạt' }}</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XEM TRƯỚC BẢN MẪU KHÔNG GIAN (PREVIEW MODAL) -->
+  <div class="modal-backdrop" *ngIf="templateToPreview" (click)="closePreviewModal()">
+    <div class="modal-card modal-preview-wide" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xem trước bản mẫu">
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Eye" size="20"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">{{ templateToPreview.name }}</h2>
+            <p class="modal-subtitle">Loại không gian: <strong>{{ templateToPreview.roomType }}</strong></p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closePreviewModal()" aria-label="Đóng">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <div class="modal-body-scrollable preview-modal-body">
+        <div class="preview-layout-grid">
+          <!-- Cột trái: Ảnh mặt bằng lớn -->
+          <div class="preview-img-col">
+            <div class="preview-image-frame">
+              <img [src]="templateToPreview.imageUrl" [alt]="templateToPreview.name" class="full-preview-img" />
+              <div class="preview-status-tag" [ngClass]="templateToPreview.isActive ? 'tag-active' : 'tag-inactive'">
+                <span class="status-dot"></span>
+                <span>{{ templateToPreview.isActive ? 'Đang kích hoạt' : 'Đang tạm ẩn' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột phải: Thông số chi tiết -->
+          <div class="preview-info-col">
+            <div class="preview-spec-card">
+              <h4 class="spec-card-title">
+                <app-icon name="Ruler" size="16"></app-icon>
+                <span>Thông số kích thước mặt bằng</span>
+              </h4>
+              <div class="spec-metrics-grid">
+                <div class="metric-box">
+                  <span class="metric-label">Chiều dài</span>
+                  <strong class="metric-val">{{ templateToPreview.length }} m</strong>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Chiều rộng</span>
+                  <strong class="metric-val">{{ templateToPreview.width }} m</strong>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Chiều cao trần</span>
+                  <strong class="metric-val">{{ templateToPreview.height }} m</strong>
+                </div>
+                <div class="metric-box metric-highlight">
+                  <span class="metric-label">Diện tích sàn</span>
+                  <strong class="metric-val">{{ (templateToPreview.length * templateToPreview.width).toFixed(2) }} m²</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mô tả phong cách -->
+            <div class="preview-section-box" *ngIf="templateToPreview.description">
+              <h4 class="section-box-title">Mô tả phong cách & công năng:</h4>
+              <p class="section-box-desc">{{ templateToPreview.description }}</p>
+            </div>
+
+            <!-- Nội thất gợi ý -->
+            <div class="preview-section-box">
+              <h4 class="section-box-title">Nội thất DCor gợi ý bố trí:</h4>
+              <div class="preview-tags-flow">
+                <ng-container *ngIf="templateToPreview.suggestedProducts && templateToPreview.suggestedProducts.length > 0; else noPreviewTags">
+                  <span class="preview-tag-chip" *ngFor="let p of templateToPreview.suggestedProducts">
+                    🛋️ {{ p }}
+                  </span>
+                </ng-container>
+                <ng-template #noPreviewTags>
+                  <span class="text-sub-empty">Chưa có sản phẩm gợi ý</span>
+                </ng-template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closePreviewModal()">
+          Đóng
+        </button>
+        <button 
+          type="button" 
+          class="admin-btn admin-btn-primary" 
+          (click)="closePreviewModal(); openEditModal(templateToPreview)">
+          <app-icon name="Edit" size="16"></app-icon>
+          <span>Chỉnh sửa thông số</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>

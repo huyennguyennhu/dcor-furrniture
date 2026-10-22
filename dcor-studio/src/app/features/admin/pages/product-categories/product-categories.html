@@ -37,20 +37,51 @@
   </div>
 
   <!-- =========================================================================
-       2. THANH TAB CHUYỂN ĐỔI 5 NHÓM PHÂN LOẠI
+       2. THANH TAB CHUYỂN ĐỔI 2 CẤP: DANH MỤC CHÍNH & DANH MỤC PHỤ
        ========================================================================= -->
-  <nav class="group-tabs-nav" aria-label="Chuyển đổi nhóm phân loại">
-    <button 
-      type="button" 
-      class="group-tab-btn" 
-      *ngFor="let tab of groupTabs"
-      [class.active]="activeTab === tab.id"
-      (click)="setTab(tab.id)">
-      <lucide-angular [img]="tab.icon" size="16" class="tab-icon"></lucide-angular>
-      <span>{{ tab.label }}</span>
-      <span class="tab-count-badge">{{ getCountByGroup(tab.id) }}</span>
-    </button>
-  </nav>
+  <div class="category-hierarchy-container">
+    <nav class="top-level-tabs-nav" aria-label="Chuyển đổi danh mục chính và phụ">
+      <button 
+        type="button" 
+        class="top-level-tab-btn" 
+        [class.active]="topLevelTab === 'main'"
+        (click)="switchTopLevelTab('main')">
+        <lucide-angular [img]="icons.Folder" size="18" class="tab-icon"></lucide-angular>
+        <span class="tab-text">Danh mục chính</span>
+        <span class="tab-count-badge">{{ getCountByGroup('main') }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="top-level-tab-btn" 
+        [class.active]="topLevelTab === 'sub'"
+        (click)="switchTopLevelTab('sub')">
+        <lucide-angular [img]="icons.Layers" size="18" class="tab-icon"></lucide-angular>
+        <span class="tab-text">Danh mục phụ & Thuộc tính</span>
+        <span class="tab-count-badge">{{ getSubCategoriesTotalCount() }}</span>
+      </button>
+    </nav>
+
+    <!-- THANH PHÂN LOẠI CON: CHỈ XUẤT HIỆN KHI VÀO "DANH MỤC PHỤ" (KHÔNG BỊ TRÀN NGANG) -->
+    <div class="sub-categories-bar" *ngIf="topLevelTab === 'sub'">
+      <div class="sub-bar-label">
+        <lucide-angular [img]="icons.CornerDownRight" size="15" class="sub-arrow-icon"></lucide-angular>
+        <span>Phân loại mở rộng:</span>
+      </div>
+      <div class="sub-pills-list">
+        <button 
+          type="button" 
+          class="sub-pill-btn" 
+          *ngFor="let tab of subCategoriesTabs"
+          [class.active]="activeTab === tab.id"
+          (click)="switchSubGroup(tab.id)">
+          <lucide-angular [img]="tab.icon" size="15" class="pill-icon"></lucide-angular>
+          <span>{{ tab.label }}</span>
+          <span class="sub-pill-badge">{{ getCountByGroup(tab.id) }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- =========================================================================
        3. THANH TÌM KIẾM & BỘ LỌC

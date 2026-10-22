@@ -151,70 +151,145 @@
   border-color: #B91C1C;
 }
 
-/* 3. 5-Group Tabs Navigation */
-.group-tabs-nav {
+/* 3. 2-Level Category Hierarchy Navigation (Không tràn ngang) */
+.category-hierarchy-container {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
   background-color: #FFFFFF;
   border: 1px solid #E0E0E0;
   border-radius: 12px;
-  padding: 6px;
+  padding: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  overflow-x: auto;
 }
 
-.group-tab-btn {
+.top-level-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.top-level-tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
+  gap: 10px;
+  padding: 10px 20px;
   border-radius: 8px;
-  border: none;
-  background-color: transparent;
-  color: #616161;
-  font-size: 13.5px;
-  font-weight: 500;
+  border: 1px solid #E0E0E0;
+  background-color: #F8F9FA;
+  color: #4A5568;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
-.group-tab-btn:hover {
+.top-level-tab-btn:hover {
   color: #765337;
-  background-color: #F8F5F0;
+  border-color: #765337;
+  background-color: #FFFDF9;
 }
 
-.group-tab-btn.active {
+.top-level-tab-btn.active {
   background-color: #765337;
+  border-color: #765337;
   color: #FFFFFF;
-  font-weight: 600;
   box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25);
 }
 
-.group-tab-btn .tab-icon {
-  opacity: 0.85;
-}
-
-.group-tab-btn.active .tab-icon {
-  opacity: 1;
-}
-
-.tab-count-badge {
+.top-level-tab-btn .tab-count-badge {
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 12px;
   background-color: #EFE9E2;
   color: #765337;
-  min-width: 18px;
-  text-align: center;
-  transition: all 0.18s ease;
 }
 
-.group-tab-btn.active .tab-count-badge {
+.top-level-tab-btn.active .tab-count-badge {
   background-color: rgba(255, 255, 255, 0.25);
   color: #FFFFFF;
+}
+
+/* Sub-categories bar */
+.sub-categories-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background-color: #F8F5F0;
+  border: 1px solid rgba(118, 83, 55, 0.15);
+  border-radius: 8px;
+  flex-wrap: wrap;
+  animation: slideDown 0.2s ease-out;
+}
+
+.sub-bar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #765337;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.sub-pills-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sub-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #CBD5E0;
+  background-color: #FFFFFF;
+  color: #4A5568;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sub-pill-btn:hover {
+  border-color: #765337;
+  color: #765337;
+}
+
+.sub-pill-btn.active {
+  background-color: #BC5F13;
+  border-color: #BC5F13;
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(188, 95, 19, 0.25);
+}
+
+.sub-pill-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background-color: #EDF2F7;
+  color: #4A5568;
+}
+
+.sub-pill-btn.active .sub-pill-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* 4. Filter Bar Card */

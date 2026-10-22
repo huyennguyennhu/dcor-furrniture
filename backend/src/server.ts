@@ -18,6 +18,10 @@ import uploadRoutes from './routes/upload.routes';
 import adminOrderRoutes from './routes/admin-order.routes';
 import consultationRoutes from './routes/consultation.routes';
 import { consultationController } from './controllers/consultation.controller';
+import voucherRoutes from './routes/voucher.routes';
+import { voucherController } from './controllers/voucher.controller';
+import designRoutes from './routes/design.routes';
+import { initPromotionsAndDesignsDatabase } from './lib/init-promotions-and-designs-db';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -478,6 +482,15 @@ app.use('/api/administrative', administrativeRoutes);
 app.use('/api/admin/audit-logs', auditLogRoutes);
 app.use('/api/admin/activity', auditLogRoutes);
 
+// Gắn router Quản lý Voucher khuyến mãi
+app.use('/api/vouchers', voucherRoutes);
+app.use('/api/admin/vouchers', voucherRoutes);
+app.use('/api/store/promotions/verify', voucherController.verifyVoucher);
+
+// Gắn router Cộng đồng thiết kế & Room Templates 3D
+app.use('/api/designs', designRoutes);
+app.use('/api/admin/designs', designRoutes);
+
 import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
 import { initAdministrativeDatabase } from './lib/init-administrative-db';
 import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
@@ -487,5 +500,7 @@ app.listen(port, () => {
   initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
   initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
   initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
+  initPromotionsAndDesignsDatabase().catch(err => console.error('Failed to init promotions and designs DB:', err));
 });
+
 

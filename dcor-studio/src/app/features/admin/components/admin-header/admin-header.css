@@ -60,24 +60,25 @@
   position: absolute;
   top: 100%;
   right: 0;
-  z-index: 30;
-  width: 100%;
-  min-width: 0;
-  padding: 0px 0;
-  background: var(--bg-primary);
-  box-shadow: 0 6px 16px rgba(59, 40, 25, 0.14);
+  z-index: 1000;
+  min-width: 180px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e5dcd0);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(59, 40, 25, 0.14);
+  padding: 4px 0;
 }
 
 .logout-menu-item {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   min-height: 40px;
-  padding: 12px 24px;
+  padding: 10px 18px;
   border: 0;
   background: transparent;
-  color: var(--text-muted);
+  color: #dc2626;
   text-align: left;
   font: inherit;
   font-size: 14px;
@@ -87,8 +88,8 @@
 
 .logout-menu-item:hover,
 .logout-menu-item:focus-visible {
-  background: var(--color-danger-bg);
-  color: #dc2626;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 @media (max-width: 700px) {

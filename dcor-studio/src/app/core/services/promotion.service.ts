@@ -136,48 +136,68 @@ export class PromotionService {
 
     // 2. Kết nối tới API xác thực mã ưu đãi của server (khi người dùng tự nhập mã voucher)
     return new Observable(observer => {
-      fetch(`${environment.apiUrl}/store/promotions/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: cleanCode, orderTotal })
-      })
-        .then(res => {
-          if (!res.ok) {
-            return res.json().then(errData => {
-              throw new Error(errData.message || `Mã ưu đãi "${cleanCode}" không hợp lệ hoặc chưa được kích hoạt.`);
+      const verifyUrl = `${environment.apiUrl}/vouchers/verify`;
+      const fallbackUrl = `${environment.apiUrl}/store/promotions/verify`;
+
+      const tryVerify = (url: string, tryFallback: boolean) => {
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: cleanCode, orderTotal })
+        })
+          .then(async res => {
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+              if (tryFallback) {
+                return tryVerify(fallbackUrl, false);
+              }
+              throw new Error(`Mã ưu đãi "${cleanCode}" không hợp lệ hoặc máy chủ chưa sẵn sàng.`);
+            }
+
+            const data = await res.json();
+            if (!res.ok || (data && data.valid === false)) {
+              throw new Error(data?.message || `Mã ưu đãi "${cleanCode}" không hợp lệ hoặc chưa đủ điều kiện.`);
+            }
+
+            const v = data.voucher || data;
+            let discount = data.discountAmount;
+            if (discount === undefined || discount === null) {
+              if (v.discountType === 'PERCENT') {
+                discount = Math.round((orderTotal * v.discountValue) / 100);
+                const cap = v.maxDiscountCap || v.maxDiscountAmount;
+                if (cap) discount = Math.min(discount, cap);
+              } else {
+                discount = v.discountValue || 0;
+              }
+            }
+
+            const applied: AppliedPromotion = {
+              code: v.code || cleanCode,
+              name: v.name || v.code || cleanCode,
+              discountType: v.discountType === 'PERCENT' ? 'PERCENT' : 'AMOUNT',
+              discountValue: v.discountValue || 0,
+              minOrderValue: v.minOrderValue || 0,
+              calculatedDiscount: Math.min(discount, orderTotal)
+            };
+
+            this.saveAppliedPromotion(applied);
+            observer.next({ success: true, message: data.message || `Áp dụng thành công mã "${applied.code}"`, applied });
+            observer.complete();
+          })
+          .catch(err => {
+            if (tryFallback && !err.message?.includes('không hợp lệ')) {
+              tryVerify(fallbackUrl, false);
+              return;
+            }
+            observer.next({
+              success: false,
+              message: err.message || `Mã ưu đãi "${cleanCode}" không tồn tại hoặc hệ thống chưa kích hoạt mã này.`
             });
-          }
-          return res.json();
-        })
-        .then(data => {
-          let discount = 0;
-          if (data.discountType === 'PERCENT') {
-            discount = Math.round((orderTotal * data.discountValue) / 100);
-            if (data.maxDiscountAmount) discount = Math.min(discount, data.maxDiscountAmount);
-          } else {
-            discount = data.discountValue || 0;
-          }
-
-          const applied: AppliedPromotion = {
-            code: data.code || cleanCode,
-            name: data.name,
-            discountType: data.discountType || 'AMOUNT',
-            discountValue: data.discountValue || 0,
-            minOrderValue: data.minOrderValue,
-            calculatedDiscount: Math.min(discount, orderTotal)
-          };
-
-          this.saveAppliedPromotion(applied);
-          observer.next({ success: true, message: `Áp dụng thành công mã "${applied.code}"`, applied });
-          observer.complete();
-        })
-        .catch(err => {
-          observer.next({
-            success: false,
-            message: err.message || `Mã ưu đãi "${cleanCode}" không tồn tại hoặc hệ thống chưa kích hoạt mã này.`
+            observer.complete();
           });
-          observer.complete();
-        });
+      };
+
+      tryVerify(verifyUrl, true);
     });
   }
 

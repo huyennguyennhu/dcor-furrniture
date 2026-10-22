@@ -1,25 +1,664 @@
-<section class="admin-page">
+<div class="design-posts-page">
+  <!-- Toast Floating Notification -->
+  <div *ngIf="toastMessage" class="toast-alert" [ngClass]="'toast-' + toastType" role="alert">
+    <app-icon [name]="toastType === 'success' ? 'Check' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
+    <span>{{ toastMessage }}</span>
+    <button type="button" class="btn-close-toast" (click)="closeToast()" aria-label="Đóng thông báo">
+      <app-icon name="X" size="14"></app-icon>
+    </button>
+  </div>
+
+  <!-- Submodule Tabs Bar (Templates vs Post Moderation) -->
+  <div class="promo-submodule-tabs">
+    <a routerLink="/admin/designs/settings" class="promo-tab-item">
+      <app-icon name="Layers" size="18"></app-icon>
+      <span>Bản mẫu không gian 3D (Room Templates)</span>
+    </a>
+    <a routerLink="/admin/designs/posts" class="promo-tab-item active" aria-current="page">
+      <app-icon name="Sparkles" size="18"></app-icon>
+      <span>Kiểm duyệt bài đăng & Bình luận</span>
+      <span class="tab-badge" *ngIf="pendingCount > 0">{{ pendingCount }} chờ</span>
+    </a>
+  </div>
+
+  <!-- Page Header -->
   <header class="admin-page-heading">
-    <div><h1>Bài viết cộng đồng</h1><p>Kiểm duyệt và quản lý nội dung chia sẻ thiết kế.</p></div>
-    <div class="admin-page-actions"><button type="button" class="admin-btn admin-btn-secondary">Xuất danh sách</button><button type="button" class="admin-btn admin-btn-primary">+ Tạo bài viết</button></div>
+    <div class="heading-title-group">
+      <h1 class="page-title">Kiểm duyệt Thiết kế & Bình luận Cộng đồng</h1>
+      <p class="page-subtitle">Xem xét nội dung không gian 3D, sản phẩm gắn thẻ và tương tác của khách hàng trước khi xuất bản lên website.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-btn admin-btn-secondary" (click)="loadPosts()">
+        <app-icon name="RefreshCw" size="16"></app-icon>
+        <span>Làm mới dữ liệu</span>
+      </button>
+    </div>
   </header>
-  <div class="admin-page-stats">
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Tổng bài viết</div><div class="admin-page-stat-value">{{ records.length }}</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Chờ duyệt</div><div class="admin-page-stat-value">2</div></article>
-    <article class="admin-page-stat"><div class="admin-page-stat-label">Đã đăng</div><div class="admin-page-stat-value">1</div></article>
+
+  <!-- 4 Stats Cards -->
+  <section class="admin-page-stats" aria-label="Thống kê bài viết cộng đồng">
+    <article class="admin-page-stat stat-card-total">
+      <div class="stat-card-icon">
+        <app-icon name="Sparkles" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Tổng bài thiết kế</span>
+        <div class="admin-page-stat-value">{{ totalCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-pending" (click)="switchTab('PENDING')">
+      <div class="stat-card-icon stat-icon-amber">
+        <app-icon name="Clock" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Chờ kiểm duyệt</span>
+        <div class="admin-page-stat-value text-amber">{{ pendingCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-published" (click)="switchTab('PUBLISHED')">
+      <div class="stat-card-icon stat-icon-green">
+        <app-icon name="CircleCheck" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Đã xuất bản</span>
+        <div class="admin-page-stat-value text-success">{{ publishedCount }}</div>
+      </div>
+    </article>
+
+    <article class="admin-page-stat stat-card-rejected" (click)="switchTab('REJECTED')">
+      <div class="stat-card-icon stat-icon-red">
+        <app-icon name="AlertTriangle" size="22"></app-icon>
+      </div>
+      <div class="stat-card-body">
+        <span class="admin-page-stat-label">Đã từ chối / Ẩn</span>
+        <div class="admin-page-stat-value text-danger">{{ rejectedCount }}</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- Workflow Filter Tabs -->
+  <div class="workflow-tabs-bar">
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="activeTab === 'PENDING'"
+      (click)="switchTab('PENDING')">
+      <app-icon name="Clock" size="16"></app-icon>
+      <span>Chờ duyệt</span>
+      <span class="count-pill pill-warning">{{ pendingCount }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="activeTab === 'PUBLISHED'"
+      (click)="switchTab('PUBLISHED')">
+      <app-icon name="Check" size="16"></app-icon>
+      <span>Đã công khai</span>
+      <span class="count-pill pill-success">{{ publishedCount }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="activeTab === 'REJECTED'"
+      (click)="switchTab('REJECTED')">
+      <app-icon name="X" size="16"></app-icon>
+      <span>Đã từ chối / Ẩn vi phạm</span>
+      <span class="count-pill pill-danger">{{ rejectedCount }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="activeTab === 'COMMENTS'"
+      (click)="switchTab('COMMENTS')">
+      <app-icon name="MessagesSquare" size="16"></app-icon>
+      <span>Quản lý Bình luận</span>
+      <span class="count-pill pill-neutral">{{ totalCommentsCount }}</span>
+    </button>
   </div>
-  <div class="admin-page-filter">
-    <input class="admin-input" [(ngModel)]="searchTerm" placeholder="Tìm tiêu đề hoặc tác giả..." aria-label="Tìm bài viết">
-    <select class="admin-select" aria-label="Lọc trạng thái"><option>Tất cả trạng thái</option><option>Chờ duyệt</option><option>Đã đăng</option><option>Đã ẩn</option></select>
-    <input class="admin-input" type="date" aria-label="Lọc ngày gửi">
+
+  <!-- Search Toolbar -->
+  <section class="admin-page-filter" aria-label="Bộ lọc bài viết">
+    <div class="search-input-wrapper">
+      <app-icon name="Search" size="18" class="search-icon"></app-icon>
+      <input
+        type="text"
+        class="admin-input search-input"
+        [(ngModel)]="searchTerm"
+        [placeholder]="activeTab === 'COMMENTS' ? 'Tìm nội dung bình luận, người gửi...' : 'Tìm bài viết, tác giả, sản phẩm gắn thẻ...'"
+        aria-label="Tìm kiếm nội dung" />
+      <button
+        *ngIf="searchTerm"
+        type="button"
+        class="clear-search-btn"
+        (click)="searchTerm = ''"
+        aria-label="Xóa tìm kiếm">
+        <app-icon name="X" size="14"></app-icon>
+      </button>
+    </div>
+
+    <div class="filter-hint">
+      <span *ngIf="activeTab === 'PENDING'">Hiển thị các bài viết đang cần phê duyệt từ quản trị viên.</span>
+      <span *ngIf="activeTab === 'PUBLISHED'">Các thiết kế này đang hiển thị công khai trên website cho tất cả người dùng.</span>
+      <span *ngIf="activeTab === 'REJECTED'">Các thiết kế bị từ chối hoặc vi phạm chính sách cộng đồng.</span>
+      <span *ngIf="activeTab === 'COMMENTS'">Kiểm duyệt và gỡ bỏ các bình luận không phù hợp hoặc vi phạm.</span>
+    </div>
+  </section>
+
+  <!-- TAB VIEW 1, 2, 3: POSTS TABLE (PENDING | PUBLISHED | REJECTED) -->
+  <div class="admin-page-table-card" *ngIf="activeTab !== 'COMMENTS'">
+    <div class="admin-page-table-scroll">
+      <table class="admin-table posts-table">
+        <thead>
+          <tr>
+            <th class="col-thumb">Ảnh thiết kế</th>
+            <th class="col-post-info">Tiêu đề bài viết & Tác giả</th>
+            <th class="col-tags">Sản phẩm gắn thẻ</th>
+            <th class="col-interactions">Tương tác</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let post of filteredRecords">
+            <!-- Ảnh thu nhỏ -->
+            <td class="col-thumb">
+              <div class="thumb-post-wrapper" (click)="openDetailModal(post)" title="Nhấn để xem chi tiết ảnh và sản phẩm">
+                <img [src]="post.imageUrl" [alt]="post.title" class="post-thumb-img" />
+                <span class="thumb-tag-badge" *ngIf="post.taggedProducts && post.taggedProducts.length > 0">
+                  <app-icon name="Tag" size="10"></app-icon>
+                  {{ post.taggedProducts.length }}
+                </span>
+              </div>
+            </td>
+
+            <!-- Tiêu đề, tác giả & ngày gửi -->
+            <td class="col-post-info">
+              <div class="post-info-cell">
+                <a class="post-title-link" (click)="openDetailModal(post)">{{ post.title }}</a>
+                <div class="post-meta-sub">
+                  <span class="author-name">
+                    <app-icon name="Users" size="12"></app-icon>
+                    <strong>{{ post.authorName }}</strong>
+                  </span>
+                  <span class="author-email" *ngIf="post.authorEmail">{{ post.authorEmail }}</span>
+                  <span class="post-date">{{ formatDate(post.createdAt) }}</span>
+                </div>
+                <div class="post-desc-preview" *ngIf="post.description">
+                  {{ post.description }}
+                </div>
+                <!-- Lý do từ chối nếu có -->
+                <div class="rejection-alert-pill" *ngIf="post.status === 'REJECTED' && post.rejectionReason">
+                  <app-icon name="AlertTriangle" size="12"></app-icon>
+                  <span>Lý do từ chối: {{ post.rejectionReason }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Sản phẩm gắn thẻ -->
+            <td class="col-tags">
+              <div class="tagged-products-wrap">
+                <ng-container *ngIf="post.taggedProducts && post.taggedProducts.length > 0; else noTags">
+                  <div class="tagged-product-chip" *ngFor="let prod of post.taggedProducts" [title]="prod.name + ' - ' + formatCurrency(prod.price)">
+                    <span class="chip-name">{{ prod.name }}</span>
+                    <span class="chip-price" *ngIf="prod.price">{{ formatCurrency(prod.price) }}</span>
+                  </div>
+                </ng-container>
+                <ng-template #noTags>
+                  <span class="text-sub-empty">Không gắn sản phẩm</span>
+                </ng-template>
+              </div>
+            </td>
+
+            <!-- Lượt tương tác -->
+            <td class="col-interactions">
+              <div class="interactions-cell">
+                <span class="interaction-item" title="Lượt yêu thích">
+                  <app-icon name="Heart" size="14" class="icon-heart"></app-icon>
+                  <strong>{{ post.likesCount }}</strong>
+                </span>
+                <span class="interaction-item" title="Bình luận">
+                  <app-icon name="MessagesSquare" size="14" class="icon-comment"></app-icon>
+                  <strong>{{ post.comments?.length || 0 }}</strong>
+                </span>
+              </div>
+            </td>
+
+            <!-- Trạng thái -->
+            <td class="col-status">
+              <span class="status-badge" [ngClass]="{
+                'status-pending': post.status === 'PENDING',
+                'status-active': post.status === 'PUBLISHED',
+                'status-rejected': post.status === 'REJECTED'
+              }">
+                <span class="status-dot"></span>
+                <span>
+                  {{ post.status === 'PENDING' ? 'Chờ duyệt' : (post.status === 'PUBLISHED' ? 'Đã công khai' : 'Từ chối') }}
+                </span>
+              </span>
+            </td>
+
+            <!-- Thao tác hành động -->
+            <td class="col-actions">
+              <div class="action-buttons-flow">
+                <!-- Nút Phê duyệt nếu đang Chờ duyệt hoặc Bị từ chối -->
+                <button
+                  *ngIf="post.status === 'PENDING' || post.status === 'REJECTED'"
+                  type="button"
+                  class="admin-btn admin-btn-sm btn-approve"
+                  (click)="promptApprove(post)"
+                  title="Phê duyệt bài đăng">
+                  <app-icon name="Check" size="14"></app-icon>
+                  <span>Duyệt</span>
+                </button>
+
+                <!-- Nút Từ chối nếu đang Chờ duyệt hoặc Đã công khai -->
+                <button
+                  *ngIf="post.status === 'PENDING' || post.status === 'PUBLISHED'"
+                  type="button"
+                  class="admin-btn admin-btn-sm btn-reject"
+                  (click)="openRejectModal(post)"
+                  [title]="post.status === 'PUBLISHED' ? 'Gỡ bài đăng' : 'Từ chối bài đăng'">
+                  <app-icon name="X" size="14"></app-icon>
+                  <span>{{ post.status === 'PUBLISHED' ? 'Gỡ bài' : 'Từ chối' }}</span>
+                </button>
+
+                <!-- Xem chi tiết & bình luận -->
+                <button
+                  type="button"
+                  class="action-icon-btn btn-view"
+                  (click)="openDetailModal(post)"
+                  title="Xem chi tiết & bình luận">
+                  <app-icon name="Eye" size="16"></app-icon>
+                </button>
+
+                <!-- Xóa bài viết -->
+                <button
+                  type="button"
+                  class="action-icon-btn btn-delete"
+                  (click)="promptDeletePost(post, $event)"
+                  title="Xóa bài viết">
+                  <app-icon name="Trash2" size="15"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredRecords.length === 0">
+            <td colspan="6" class="admin-page-table-empty">
+              <div class="empty-state-wrapper">
+                <app-icon name="Sparkles" size="44" class="empty-icon"></app-icon>
+                <div class="empty-title">Không có bài viết nào trong mục này</div>
+                <div class="empty-desc">
+                  {{ activeTab === 'PENDING' ? 'Tuyệt vời! Hiện tại không có bài viết nào đang chờ kiểm duyệt.' : 'Không tìm thấy bài viết phù hợp với tiêu chí lọc.' }}
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="admin-page-table-card"><div class="admin-page-table-scroll">
-    <table class="admin-table">
-      <thead><tr><th>Tiêu đề bài viết</th><th>Tác giả</th><th>Ngày gửi</th><th>Lượt tương tác</th><th>Trạng thái</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let record of filteredRecords"><td><strong>{{ record.title }}</strong></td><td>{{ record.author }}</td><td>{{ record.submittedAt }}</td><td>{{ record.reactions }}</td><td><span class="admin-page-status">{{ record.status }}</span></td></tr>
-        <tr *ngIf="filteredRecords.length === 0"><td colspan="5" class="admin-page-table-empty">Không tìm thấy bài viết phù hợp.</td></tr>
-      </tbody>
-    </table>
-  </div></div>
-</section>
+
+  <!-- TAB VIEW 4: COMMENTS MANAGEMENT TABLE -->
+  <div class="admin-page-table-card" *ngIf="activeTab === 'COMMENTS'">
+    <div class="admin-page-table-scroll">
+      <table class="admin-table comments-table">
+        <thead>
+          <tr>
+            <th class="col-comment-post">Bài viết liên quan</th>
+            <th class="col-comment-author">Người bình luận</th>
+            <th class="col-comment-body">Nội dung bình luận</th>
+            <th class="col-comment-date">Thời gian</th>
+            <th class="col-comment-status">Trạng thái</th>
+            <th class="col-comment-action">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let comment of allCommentsList" [class.row-hidden-comment]="comment.status === 'HIDDEN'">
+            <!-- Tên bài viết -->
+            <td class="col-comment-post">
+              <strong class="comment-post-title" [title]="comment.postTitle || ''">
+                {{ comment.postTitle || 'Bài viết thiết kế' }}
+              </strong>
+            </td>
+
+            <!-- Người bình luận -->
+            <td class="col-comment-author">
+              <div class="comment-author-wrap">
+                <div class="avatar-circle">{{ comment.authorName.charAt(0) }}</div>
+                <span>{{ comment.authorName }}</span>
+              </div>
+            </td>
+
+            <!-- Nội dung bình luận -->
+            <td class="col-comment-body">
+              <div class="comment-text-cell" [class.text-muted]="comment.status === 'HIDDEN'">
+                {{ comment.content }}
+              </div>
+            </td>
+
+            <!-- Ngày -->
+            <td class="col-comment-date">
+              <span class="text-sub">{{ formatDate(comment.createdAt) }}</span>
+            </td>
+
+            <!-- Trạng thái -->
+            <td class="col-comment-status">
+              <span class="status-badge" [ngClass]="comment.status === 'VISIBLE' ? 'status-active' : 'status-paused'">
+                <span class="status-dot"></span>
+                <span>{{ comment.status === 'VISIBLE' ? 'Hiển thị' : 'Đã ẩn vi phạm' }}</span>
+              </span>
+            </td>
+
+            <!-- Thao tác xóa bình luận vi phạm -->
+            <td class="col-comment-action">
+              <button
+                *ngIf="comment.status === 'VISIBLE'"
+                type="button"
+                class="admin-btn admin-btn-sm btn-delete-comment"
+                (click)="promptDeleteComment(comment, $event)"
+                title="Xóa bình luận vi phạm">
+                <app-icon name="Trash2" size="14"></app-icon>
+                <span>Xóa vi phạm</span>
+              </button>
+              <span *ngIf="comment.status === 'HIDDEN'" class="badge-removed">Đã gỡ bỏ</span>
+            </td>
+          </tr>
+
+          <!-- Empty Comments -->
+          <tr *ngIf="allCommentsList.length === 0">
+            <td colspan="6" class="admin-page-table-empty">
+              <div class="empty-state-wrapper">
+                <app-icon name="MessagesSquare" size="44" class="empty-icon"></app-icon>
+                <div class="empty-title">Chưa có bình luận nào</div>
+                <div class="empty-desc">Không tìm thấy dữ liệu bình luận từ người dùng.</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL: CHI TIẾT BÀI ĐĂNG & SẢN PHẨM GẮN THẺ & BÌNH LUẬN -->
+  <div class="modal-backdrop" *ngIf="isDetailModalOpen && selectedPost" (click)="closeDetailModal()">
+    <div class="modal-card modal-detail-wide" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Chi tiết thiết kế">
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Sparkles" size="20"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">{{ selectedPost.title }}</h2>
+            <p class="modal-subtitle">Đăng bởi {{ selectedPost.authorName }} lúc {{ formatDate(selectedPost.createdAt) }}</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeDetailModal()" aria-label="Đóng cửa sổ">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <div class="modal-body-scrollable detail-modal-layout">
+        <!-- Cột Trái: Ảnh lớn + Điểm ghim Tagged Products -->
+        <div class="detail-left-column">
+          <div class="detail-image-canvas">
+            <img [src]="selectedPost.imageUrl" [alt]="selectedPost.title" class="detail-full-image" />
+            <!-- Pin ghim sản phẩm nếu có tọa độ x, y -->
+            <ng-container *ngFor="let p of selectedPost.taggedProducts; let idx = index">
+              <div
+                *ngIf="p.x !== undefined && p.y !== undefined"
+                class="tag-pin-marker"
+                [style.left.%]="p.x"
+                [style.top.%]="p.y"
+                [title]="p.name + ' (' + formatCurrency(p.price) + ')'">
+                <span class="pin-number">{{ idx + 1 }}</span>
+                <span class="pin-tooltip">{{ p.name }} - {{ formatCurrency(p.price) }}</span>
+              </div>
+            </ng-container>
+          </div>
+
+          <div class="detail-desc-block">
+            <h4 class="block-heading">Mô tả thiết kế của gia chủ:</h4>
+            <p class="desc-content">{{ selectedPost.description || 'Không có mô tả chi tiết kèm theo.' }}</p>
+          </div>
+        </div>
+
+        <!-- Cột Phải: Danh sách sản phẩm gắn thẻ & Cây bình luận -->
+        <div class="detail-right-column">
+          <!-- Khối sản phẩm gắn thẻ -->
+          <div class="modal-sidebar-section">
+            <h4 class="section-title">
+              <app-icon name="Tag" size="16"></app-icon>
+              <span>Sản phẩm nội thất gắn thẻ ({{ selectedPost.taggedProducts?.length || 0 }})</span>
+            </h4>
+            <div class="tagged-items-list">
+              <div class="tagged-item-card" *ngFor="let p of selectedPost.taggedProducts; let idx = index">
+                <span class="tag-index">{{ idx + 1 }}</span>
+                <div class="tag-info">
+                  <strong class="tag-title">{{ p.name }}</strong>
+                  <span class="tag-price" *ngIf="p.price">{{ formatCurrency(p.price) }}</span>
+                </div>
+              </div>
+              <div class="empty-tags-hint" *ngIf="!selectedPost.taggedProducts || selectedPost.taggedProducts.length === 0">
+                Chưa có sản phẩm nào được gắn thẻ trong thiết kế này.
+              </div>
+            </div>
+          </div>
+
+          <!-- Khối bình luận của bài viết -->
+          <div class="modal-sidebar-section comments-section">
+            <h4 class="section-title">
+              <app-icon name="MessagesSquare" size="16"></app-icon>
+              <span>Bình luận từ cộng đồng ({{ selectedPost.comments?.length || 0 }})</span>
+            </h4>
+            <div class="comments-scroll-box">
+              <div class="comment-bubble-item" *ngFor="let c of selectedPost.comments">
+                <div class="comment-header-row">
+                  <strong class="c-author">{{ c.authorName }}</strong>
+                  <span class="c-date">{{ formatDate(c.createdAt) }}</span>
+                </div>
+                <div class="c-body" [class.text-muted]="c.status === 'HIDDEN'">
+                  {{ c.content }}
+                </div>
+                <div class="c-footer-action">
+                  <button
+                    *ngIf="c.status === 'VISIBLE'"
+                    type="button"
+                    class="btn-text-danger"
+                    (click)="promptDeleteComment(c, $event)">
+                    <app-icon name="Trash2" size="12"></app-icon>
+                    <span>Xóa bình luận vi phạm</span>
+                  </button>
+                  <span *ngIf="c.status === 'HIDDEN'" class="text-hidden-tag">Đã ẩn vi phạm</span>
+                </div>
+              </div>
+
+              <div class="empty-comments-hint" *ngIf="!selectedPost.comments || selectedPost.comments.length === 0">
+                Chưa có bình luận nào cho bài viết này.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <div class="footer-status-indicator">
+          <span>Trạng thái hiện tại: </span>
+          <strong [ngClass]="{
+            'text-amber': selectedPost.status === 'PENDING',
+            'text-success': selectedPost.status === 'PUBLISHED',
+            'text-danger': selectedPost.status === 'REJECTED'
+          }">
+            {{ selectedPost.status === 'PENDING' ? 'Chờ kiểm duyệt' : (selectedPost.status === 'PUBLISHED' ? 'Đang công khai' : 'Bị từ chối') }}
+          </strong>
+        </div>
+
+        <div class="footer-actions-group">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeDetailModal()">
+            Đóng
+          </button>
+          <button
+            *ngIf="selectedPost.status === 'PENDING' || selectedPost.status === 'PUBLISHED'"
+            type="button"
+            class="admin-btn admin-btn-danger"
+            (click)="openRejectModal(selectedPost)">
+            <app-icon name="X" size="16"></app-icon>
+            <span>{{ selectedPost.status === 'PUBLISHED' ? 'Gỡ bỏ bài viết' : 'Từ chối bài viết' }}</span>
+          </button>
+          <button
+            *ngIf="selectedPost.status === 'PENDING' || selectedPost.status === 'REJECTED'"
+            type="button"
+            class="admin-btn admin-btn-primary"
+            (click)="promptApprove(selectedPost)">
+            <app-icon name="Check" size="16"></app-icon>
+            <span>Phê duyệt xuất bản</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL: TỪ CHỐI BÀI VIẾT VÀ GỬI LÝ DO -->
+  <div class="modal-backdrop" *ngIf="postToReject" (click)="closeRejectModal()">
+    <div class="modal-card modal-reject-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Từ chối bài viết">
+      <header class="modal-header confirm-header-danger">
+        <div class="confirm-icon-wrapper danger-icon">
+          <app-icon name="AlertTriangle" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">Từ chối xuất bản bài viết?</h3>
+        <p class="modal-subtitle">Bài viết "{{ postToReject.title }}" sẽ bị ẩn khỏi cộng đồng.</p>
+      </header>
+
+      <div class="modal-body-scrollable">
+        <div class="form-group">
+          <label class="form-label required">Chọn lý do từ chối tiêu chuẩn:</label>
+          <div class="preset-reasons-list">
+            <label class="preset-reason-item" *ngFor="let r of PRESET_REASONS">
+              <input
+                type="radio"
+                name="rejectReasonChoice"
+                [value]="r"
+                [(ngModel)]="selectedPresetReason" />
+              <span class="reason-text">{{ r }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ghi chú lý do cụ thể thêm (nếu có):</label>
+          <textarea
+            class="admin-textarea"
+            [(ngModel)]="rejectionReason"
+            rows="3"
+            placeholder="Nhập thông tin phản hồi bổ sung cho gia chủ..."></textarea>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeRejectModal()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmReject()">
+          <app-icon name="X" size="16"></app-icon>
+          <span>Xác nhận từ chối</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN PHÊ DUYỆT BÀI ĐĂNG -->
+  <div class="modal-backdrop" *ngIf="postToApprove" (click)="cancelApprove()">
+    <div class="modal-card modal-confirm-action" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xác nhận phê duyệt bài viết">
+      <header class="modal-header confirm-header-success">
+        <div class="confirm-icon-wrapper success-icon">
+          <app-icon name="Check" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">Xác nhận phê duyệt bài viết?</h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>
+          Bạn có chắc chắn muốn phê duyệt bài đăng 
+          <strong>"{{ postToApprove.title }}"</strong> 
+          của tác giả 
+          <strong>{{ postToApprove.authorName }}</strong> 
+          lên Cộng đồng thiết kế DCor không?
+        </p>
+        <p class="text-sub">
+          Bài viết sẽ được xuất bản công khai ngay lập tức và hiển thị cho tất cả khách hàng cùng các kiến trúc sư xem.
+        </p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelApprove()">Hủy bỏ</button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="confirmApprove()">
+          <app-icon name="Check" size="16"></app-icon>
+          <span>Xác nhận Phê duyệt</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN XÓA BÀI VIẾT -->
+  <div class="modal-backdrop" *ngIf="postToDelete" (click)="cancelDeletePost()">
+    <div class="modal-card modal-confirm-action" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xác nhận xóa bài viết">
+      <header class="modal-header confirm-header-danger">
+        <div class="confirm-icon-wrapper danger-icon">
+          <app-icon name="Trash2" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">Xác nhận xóa bài viết?</h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>
+          Bạn có chắc chắn muốn xóa bài viết 
+          <strong>"{{ postToDelete.title }}"</strong> 
+          của 
+          <strong>{{ postToDelete.authorName }}</strong>?
+        </p>
+        <p class="text-sub">
+          Toàn bộ hình ảnh, thẻ sản phẩm và các bình luận thuộc bài viết này sẽ bị xóa vĩnh viễn khỏi hệ thống.
+        </p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelDeletePost()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDeletePost()">
+          <app-icon name="Trash2" size="16"></app-icon>
+          <span>Xác nhận Xóa bài</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN XÓA BÌNH LUẬN -->
+  <div class="modal-backdrop" *ngIf="commentToDelete" (click)="cancelDeleteComment()">
+    <div class="modal-card modal-confirm-action" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Xác nhận xóa bình luận">
+      <header class="modal-header confirm-header-danger">
+        <div class="confirm-icon-wrapper danger-icon">
+          <app-icon name="Trash2" size="26"></app-icon>
+        </div>
+        <h3 class="modal-title">Xác nhận xóa bình luận vi phạm?</h3>
+      </header>
+      <div class="modal-body-confirm">
+        <p>
+          Bạn có chắc chắn muốn xóa hoặc ẩn bình luận của 
+          <strong>"{{ commentToDelete.authorName }}"</strong>?
+        </p>
+        <blockquote class="comment-quote-preview">
+          "{{ commentToDelete.content }}"
+        </blockquote>
+        <p class="text-sub">
+          Bình luận sẽ bị gỡ bỏ khỏi bài viết cộng đồng ngay sau khi bạn xác nhận.
+        </p>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelDeleteComment()">Hủy</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmDeleteComment()">
+          <app-icon name="Trash2" size="16"></app-icon>
+          <span>Xác nhận Xóa</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>

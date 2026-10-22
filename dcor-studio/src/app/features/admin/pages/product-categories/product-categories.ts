@@ -448,12 +448,22 @@ export class ProductCategoriesComponent implements OnInit {
   // Set lưu trữ các danh mục chính đang được mở rộng danh mục con
   expandedIds: Set<string> = new Set<string>();
 
-  // Tabs nhóm phân loại
+  // Phân cấp Tabs 2 cấp: Danh mục chính vs Danh mục phụ & Phân loại
+  topLevelTab: 'main' | 'sub' = 'main';
   activeTab: CategoryGroupType = 'main';
+  activeSubGroup: CategoryGroupType = 'room';
+
   groupTabs: Array<{ id: CategoryGroupType; label: string; icon: any }> = [
     { id: 'main', label: 'Danh mục chính', icon: Folder },
     { id: 'room', label: 'Phòng & Không gian', icon: Home },
-    { id: 'collection', label: 'Bộ sưu tập (Collection)', icon: Sparkles },
+    { id: 'collection', label: 'Bộ sưu tập', icon: Sparkles },
+    { id: 'style', label: 'Phong cách', icon: Palette },
+    { id: 'material', label: 'Chất liệu', icon: Layers }
+  ];
+
+  subCategoriesTabs: Array<{ id: CategoryGroupType; label: string; icon: any }> = [
+    { id: 'room', label: 'Phòng & Không gian', icon: Home },
+    { id: 'collection', label: 'Bộ sưu tập', icon: Sparkles },
     { id: 'style', label: 'Phong cách', icon: Palette },
     { id: 'material', label: 'Chất liệu', icon: Layers }
   ];
@@ -612,16 +622,54 @@ export class ProductCategoriesComponent implements OnInit {
   }
 
   // Đếm số lượng theo từng Tab
+  // Đếm số lượng theo từng Tab
   getCountByGroup(type: CategoryGroupType): number {
     return this.allCategories.filter(c => c.type === type).length;
   }
 
-  // Chuyển Tab
-  setTab(tab: CategoryGroupType) {
-    this.activeTab = tab;
+  // Tổng số lượng các phân loại phụ
+  getSubCategoriesTotalCount(): number {
+    return this.allCategories.filter(c => c.type !== 'main').length;
+  }
+
+  // Chuyển Tab Cấp 1: Danh mục chính vs Danh mục phụ
+  switchTopLevelTab(level: 'main' | 'sub') {
+    this.topLevelTab = level;
+    if (level === 'main') {
+      this.activeTab = 'main';
+    } else {
+      this.activeTab = this.activeSubGroup;
+    }
     this.searchQuery = '';
     this.statusFilter = 'ALL';
     this.applyFilters();
+    this.cdr.detectChanges();
+  }
+
+  // Chuyển Tab Con trong Danh mục phụ (Phòng, BST, Phong cách, Chất liệu)
+  switchSubGroup(group: CategoryGroupType) {
+    this.activeSubGroup = group;
+    this.activeTab = group;
+    this.searchQuery = '';
+    this.statusFilter = 'ALL';
+    this.applyFilters();
+    this.cdr.detectChanges();
+  }
+
+  // Chuyển Tab (tương thích)
+  setTab(tab: CategoryGroupType) {
+    if (tab === 'main') {
+      this.topLevelTab = 'main';
+      this.activeTab = 'main';
+    } else {
+      this.topLevelTab = 'sub';
+      this.activeSubGroup = tab;
+      this.activeTab = tab;
+    }
+    this.searchQuery = '';
+    this.statusFilter = 'ALL';
+    this.applyFilters();
+    this.cdr.detectChanges();
   }
 
   // Áp dụng bộ lọc

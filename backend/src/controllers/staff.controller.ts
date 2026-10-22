@@ -1,10 +1,24 @@
 import { Request, Response } from 'express';
-import { PrismaClient, StaffRole, StaffStatus } from '@prisma/client';
+import { StaffRole, StaffStatus } from '@prisma/client';
 import crypto from 'crypto';
 import { emailService } from '../services/email.service';
-import { getStaffMetadata, setStaffMetadata, deleteStaffMetadata } from '../lib/staff-metadata';
+import { getAllStaffMetadata, getStaffMetadata, setStaffMetadata, deleteStaffMetadata } from '../lib/staff-metadata';
+import prisma, { withDbRetry } from '../lib/prisma';
+import { memoryCache, CACHE_KEYS } from '../lib/cache';
+import { AuthRequest } from '../middleware/auth.middleware';
 
-const prisma = new PrismaClient();
+function isRequesterSuperAdmin(user?: any): boolean {
+  if (!user) return false;
+  const role = (user.role || '').toString().toLowerCase();
+  if (role.includes('super') || role === 'admin' || role === 'owner') return true;
+  if (Array.isArray(user.roles)) {
+    return user.roles.some((r: string) => {
+      const lower = (r || '').toString().toLowerCase();
+      return lower.includes('super') || lower === 'admin' || lower === 'owner';
+    });
+  }
+  return false;
+}
 
 function mapToPrismaRole(roleStr: string): StaffRole {
   const lower = (roleStr || '').toLowerCase();
@@ -42,18 +56,31 @@ function formatStatus(status: StaffStatus): 'Đã kích hoạt' | 'Chờ kích h
 }
 
 export const staffController = {
-  // Lấy toàn bộ danh sách nhân viên từ Database kết hợp Metadata
+  // Lấy toàn bộ danh sách nhân viên từ Database kết hợp Metadata (với Cache siêu tốc)
   getAllStaff: async (req: Request, res: Response): Promise<void> => {
     try {
-      const staffList = await prisma.staffUser.findMany({
-        where: { deletedAt: null },
-        orderBy: { createdAt: 'desc' }
-      });
+      // 1. Kiểm tra cache trong bộ nhớ trước (phản hồi ~1ms)
+      const cached = memoryCache.get<any[]>(CACHE_KEYS.STAFF_LIST, 30000);
+      if (cached) {
+        res.status(200).json(cached);
+        return;
+      }
+
+      // 2. Truy vấn DB với cơ chế retry thông minh
+      const staffList = await withDbRetry(() =>
+        prisma.staffUser.findMany({
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' }
+        })
+      );
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+      // Đọc metadata một lần duy nhất từ RAM thay vì đọc file sync theo từng nhân sự
+      const allMetadata = getAllStaffMetadata();
 
       const formatted = staffList.map(s => {
-        const metadata = getStaffMetadata(s.email);
+        const lowerEmail = s.email.trim().toLowerCase();
+        const metadata = allMetadata[lowerEmail] || allMetadata[s.email] || null;
 
         const inviteLink = s.invitationToken
           ? `${frontendUrl}/admin-invite?email=${encodeURIComponent(s.email)}&token=${s.invitationToken}`
@@ -92,6 +119,7 @@ export const staffController = {
           branchId,
           branchName,
           assignedBranches,
+          customPermissions: metadata?.customPermissions || null,
           status: formatStatus(s.status),
           rawStatus: s.status,
           rawRole: s.role,
@@ -100,6 +128,9 @@ export const staffController = {
           inviteLink
         };
       });
+
+      // Lưu cache 30s
+      memoryCache.set(CACHE_KEYS.STAFF_LIST, formatted);
 
       res.status(200).json(formatted);
     } catch (error) {
@@ -199,6 +230,8 @@ export const staffController = {
         });
         emailSent = emailResult.success;
       }
+
+      memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
 
       res.status(201).json({
         message: `Đã khởi tạo tài khoản cho ${fullName}. Mở modal để cấu hình và gửi email!`,
@@ -310,12 +343,22 @@ export const staffController = {
   },
 
   // Xóa tài khoản nhân sự
-  deleteStaff: async (req: Request, res: Response): Promise<void> => {
+  deleteStaff: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền xóa tài khoản nhân sự.' });
+        return;
+      }
+
       const id = req.params.id as string;
       const target = await prisma.staffUser.findUnique({ where: { id } });
       if (!target) {
         res.status(404).json({ message: 'Không tìm thấy tài khoản nhân sự cần xóa.' });
+        return;
+      }
+
+      if (req.user?.email && target.email.toLowerCase() === req.user.email.toLowerCase()) {
+        res.status(400).json({ message: 'Bạn không thể tự xóa tài khoản của chính mình.' });
         return;
       }
 
@@ -330,6 +373,8 @@ export const staffController = {
 
       // Xóa bản ghi nhân sự
       await prisma.staffUser.delete({ where: { id } });
+
+      memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
 
       console.log(`[STAFF DELETE] Đã xóa nhân sự: ${target.fullName} (${target.email})`);
       res.status(200).json({ message: `Đã xóa nhân sự "${target.fullName}" khỏi hệ thống thành công!` });
@@ -363,6 +408,8 @@ export const staffController = {
         }
       });
 
+      memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
+
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
       const inviteUrl = `${frontendUrl}/admin-invite?email=${encodeURIComponent(updated.email)}&token=${token}`;
 
@@ -389,8 +436,13 @@ export const staffController = {
   },
 
   // Đổi vai trò
-  updateRole: async (req: Request, res: Response): Promise<void> => {
+  updateRole: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền thay đổi vai trò nhân sự.' });
+        return;
+      }
+
       const id = req.params.id as string;
       const { role, roles } = req.body;
 
@@ -407,6 +459,8 @@ export const staffController = {
         role: rolesArray[0]
       });
 
+      memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
+
       res.status(200).json({
         message: 'Cập nhật vai trò thành công',
         role: rolesArray[0],
@@ -419,15 +473,34 @@ export const staffController = {
   },
 
   // Cập nhật trạng thái (Khóa / Mở khóa)
-  updateStatus: async (req: Request, res: Response): Promise<void> => {
+  updateStatus: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền khóa hoặc mở khóa tài khoản nhân sự.' });
+        return;
+      }
+
       const id = req.params.id as string;
+      const target = await prisma.staffUser.findUnique({ where: { id } });
+      if (!target) {
+        res.status(404).json({ message: 'Không tìm thấy tài khoản nhân sự.' });
+        return;
+      }
+
+      // Không cho phép tự khóa hoặc tự mở khóa tài khoản của chính mình
+      if (req.user?.email && target.email.toLowerCase() === req.user.email.toLowerCase()) {
+        res.status(400).json({ message: 'Bạn không thể tự khóa hoặc mở khóa tài khoản của chính mình.' });
+        return;
+      }
+
       const { status } = req.body;
 
       const updated = await prisma.staffUser.update({
         where: { id },
         data: { status: status as StaffStatus }
       });
+
+      memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
 
       res.status(200).json({
         message: 'Cập nhật trạng thái thành công',
@@ -436,6 +509,48 @@ export const staffController = {
     } catch (error) {
       console.error('Lỗi updateStatus:', error);
       res.status(500).json({ message: 'Lỗi cập nhật trạng thái' });
+    }
+  },
+
+  // Cập nhật ma trận phân quyền riêng cho từng nhân viên (Staff Custom Permissions)
+  updatePermissions: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền tùy chỉnh phân quyền nhân sự.' });
+        return;
+      }
+
+      const id = req.params.id as string;
+      const { email, customPermissions } = req.body;
+
+      const staff = await prisma.staffUser.findFirst({
+        where: {
+          OR: [
+            { id },
+            { email: email ? String(email).trim().toLowerCase() : '' }
+          ]
+        }
+      });
+
+      if (!staff) {
+        res.status(404).json({ message: 'Không tìm thấy tài khoản nhân sự cần cập nhật quyền.' });
+        return;
+      }
+
+      // Lưu quyền tùy chỉnh vào metadata
+      setStaffMetadata(staff.email, { customPermissions });
+      setStaffMetadata(staff.id, { customPermissions });
+
+      memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
+
+      res.status(200).json({
+        success: true,
+        message: `Đã lưu cấu hình phân quyền riêng cho nhân sự "${staff.fullName}" thành công!`,
+        customPermissions
+      });
+    } catch (error: any) {
+      console.error('Lỗi updatePermissions:', error);
+      res.status(500).json({ message: 'Lỗi khi cập nhật phân quyền nhân sự: ' + error.message });
     }
   }
 };

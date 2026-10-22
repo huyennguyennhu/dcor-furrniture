@@ -1,10 +1,11 @@
-import { Component, ChangeDetectorRef, signal, computed } from '@angular/core';
+import { Component, ChangeDetectorRef, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../../../shared/components/icon/icon';
 import { RoomPlannerService } from '../../services/room-planner.service';
 import { ROOM_TEMPLATES } from '../../data/room-templates.data';
 import { PlannerBackground, RoomDimensions, RoomTemplate } from '../../models/planner.model';
+import { environment } from '../../../../../../../environments/environment';
 
 @Component({
   selector: 'app-setup-step',
@@ -13,14 +14,14 @@ import { PlannerBackground, RoomDimensions, RoomTemplate } from '../../models/pl
   templateUrl: './setup-step.html',
   styleUrls: ['./setup-step.css']
 })
-export class SetupStepComponent {
-  readonly templates = ROOM_TEMPLATES;
+export class SetupStepComponent implements OnInit {
+  templates: RoomTemplate[] = [];
 
   // Tab chọn nguồn ảnh: 'template' | 'upload'
   activeTab = signal<'template' | 'upload'>('template');
 
   // Lựa chọn hiện tại
-  selectedTemplate = signal<RoomTemplate | null>(ROOM_TEMPLATES[0]);
+  selectedTemplate = signal<RoomTemplate | null>(null);
   uploadedImage = signal<PlannerBackground | null>(null);
   isCompressing = signal<boolean>(false);
   uploadError = signal<string>('');
@@ -52,6 +53,73 @@ export class SetupStepComponent {
       this.widthMeters = initialDims.width;
       this.heightMeters = initialDims.height || 2.8;
     }
+  }
+
+  ngOnInit(): void {
+    this.loadDatabaseTemplates();
+  }
+
+  loadDatabaseTemplates(): void {
+    // 1. Tải tức thì từ Local Cache nếu có để trang mở ngay trong 0ms
+    try {
+      const cached = localStorage.getItem('dcor_room_templates_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.templates = parsed.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            roomType: t.roomType,
+            description: t.description || '',
+            imageUrl: t.imageUrl,
+            defaultDimensions: {
+              length: Number(t.length) || 5.0,
+              width: Number(t.width) || 4.0,
+              height: Number(t.height) || 2.8
+            }
+          }));
+          if (this.templates.length > 0 && !this.selectedTemplate()) {
+            this.selectTemplateCard(this.templates[0]);
+          }
+          this.cdr.detectChanges();
+        }
+      }
+    } catch (e) {}
+
+    // 2. Tải bản cập nhật mới nhất từ máy chủ
+    fetch(`${environment.apiUrl}/designs/templates?isActive=true`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          this.templates = data.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            roomType: t.roomType,
+            description: t.description || '',
+            imageUrl: t.imageUrl,
+            defaultDimensions: {
+              length: Number(t.length) || 5.0,
+              width: Number(t.width) || 4.0,
+              height: Number(t.height) || 2.8
+            }
+          }));
+          localStorage.setItem('dcor_room_templates_cache', JSON.stringify(data));
+          if (this.templates.length > 0 && !this.selectedTemplate()) {
+            this.selectTemplateCard(this.templates[0]);
+          }
+          this.cdr.detectChanges();
+        }
+      })
+      .catch(err => {
+        console.warn('Không thể tải bản mẫu từ máy chủ, sử dụng dữ liệu mặc định:', err);
+        if (this.templates.length === 0) {
+          this.templates = [...ROOM_TEMPLATES];
+          if (this.templates.length > 0) {
+            this.selectTemplateCard(this.templates[0]);
+          }
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   // --- Chuyển tab bản mẫu / tải ảnh ---

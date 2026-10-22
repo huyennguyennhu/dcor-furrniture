@@ -107,10 +107,20 @@ export class AdminSidebar implements OnInit, OnDestroy {
       ]
     },
     {
+      title: 'Cộng đồng thiết kế',
+      icon: 'Image',
+      href: '/admin/designs/settings',
+      module: 'designs',
+      subItems: [
+        { title: 'Cấu hình', href: '/admin/designs/settings' },
+        { title: 'Bài viết cộng đồng', href: '/admin/designs/posts' },
+      ]
+    },
+    {
       title: 'Tư vấn',
       icon: 'CalendarDays',
       href: '/admin/appointments/schedule',
-      module: 'settings',
+      module: 'appointments',
       subItems: [
         { title: 'Lịch tư vấn', href: '/admin/appointments/schedule' },
         { title: 'Yêu cầu tư vấn', href: '/admin/appointments/requests' },
@@ -120,23 +130,13 @@ export class AdminSidebar implements OnInit, OnDestroy {
       title: 'Blog',
       icon: 'Newspaper',
       href: '/admin/content',
-      module: 'promotions'
+      module: 'content'
     },
     {
       title: 'Hội thoại',
       icon: 'MessagesSquare',
       href: '/admin/chat',
-      module: 'settings'
-    },
-    {
-      title: 'Cộng đồng thiết kế',
-      icon: 'Image',
-      href: '/admin/designs/settings',
-      module: 'settings',
-      subItems: [
-        { title: 'Cấu hình', href: '/admin/designs/settings' },
-        { title: 'Bài viết cộng đồng', href: '/admin/designs/posts' },
-      ]
+      module: 'chat'
     },
     {
       title: 'Nhân sự',
@@ -147,6 +147,12 @@ export class AdminSidebar implements OnInit, OnDestroy {
         { title: 'Quản lý tài khoản', href: '/admin/staff/accounts' },
         { title: 'Ma trận phân quyền', href: '/admin/staff/permissions' },
       ]
+    },
+    {
+      title: 'Lịch ca làm Showroom',
+      icon: 'Calendar',
+      href: '/admin/staff/showroom-shifts',
+      module: 'staff'
     },
     {
       title: 'Nhật ký hoạt động',
@@ -193,20 +199,24 @@ export class AdminSidebar implements OnInit, OnDestroy {
     this.permSub?.unsubscribe();
   }
 
+  handleLogout(): void {
+    this.adminAuthService.logout();
+  }
+
   /**
    * Tự động ẩn các mục menu mà vai trò hiện tại không có quyền 'Xem' (view === false)
    */
   private filterMenuItemsByPermission(): void {
     const user = this.adminAuthService.currentUser;
     // Super Admin có quyền xem tất cả
-    if (!user || user.role === 'Super Admin') {
+    if (!user || user.role === 'Super Admin' || user.roles?.includes('Super Admin')) {
       this.visibleMenuItems = [...this.ALL_MENU_ITEMS];
       this.showSettings = true;
       return;
     }
 
     this.visibleMenuItems = this.ALL_MENU_ITEMS.filter(item => {
-      if (!item.module) return true; // Menu không yêu cầu quyền (vd: Tổng quan)
+      if (!item.module) return true; // Menu không yêu cầu quyền (vd: Tổng quan, Lịch ca làm Showroom)
       return this.adminAuthService.hasPermission(item.module, 'view');
     });
 

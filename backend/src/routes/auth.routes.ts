@@ -12,6 +12,9 @@ router.post('/admin/invite-accept', authController.acceptInvite);
 // Endpoint quên mật khẩu Admin
 router.post('/admin/forgot-password', authController.forgotPassword);
 
+// Endpoint kiểm tra tính hợp lệ của phiên Admin & thu hồi ngay nếu bị khóa
+router.get('/admin/verify-session', authController.verifyAdminSession);
+
 // ----------------------------------------
 // CUSTOMER AUTH (KHÁCH HÀNG)
 // ----------------------------------------

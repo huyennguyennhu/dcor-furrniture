@@ -7,10 +7,13 @@ export interface StaffMetadata {
   branchId: string;
   branchName: string;
   assignedBranches?: string[];
+  customPermissions?: any;
 }
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const METADATA_FILE = path.join(DATA_DIR, 'staff-metadata.json');
+
+let inMemoryMetadata: Record<string, StaffMetadata> | null = null;
 
 function ensureDataFile(): void {
   try {
@@ -26,12 +29,17 @@ function ensureDataFile(): void {
 }
 
 export function getAllStaffMetadata(): Record<string, StaffMetadata> {
+  if (inMemoryMetadata !== null) {
+    return inMemoryMetadata;
+  }
   ensureDataFile();
   try {
     const raw = fs.readFileSync(METADATA_FILE, 'utf-8');
-    return JSON.parse(raw);
+    inMemoryMetadata = JSON.parse(raw);
+    return inMemoryMetadata || {};
   } catch (e) {
-    return {};
+    inMemoryMetadata = {};
+    return inMemoryMetadata;
   }
 }
 
@@ -43,7 +51,6 @@ export function getStaffMetadata(key: string): StaffMetadata | null {
 }
 
 export function setStaffMetadata(emailOrId: string, data: Partial<StaffMetadata>): void {
-  ensureDataFile();
   try {
     const all = getAllStaffMetadata();
     const key = emailOrId.trim().toLowerCase();
@@ -62,6 +69,8 @@ export function setStaffMetadata(emailOrId: string, data: Partial<StaffMetadata>
       role: data.role || (data.roles ? data.roles[0] : existing.role)
     };
 
+    inMemoryMetadata = all;
+    ensureDataFile();
     fs.writeFileSync(METADATA_FILE, JSON.stringify(all, null, 2), 'utf-8');
   } catch (e) {
     console.warn('Lỗi lưu staff metadata:', e);
@@ -69,12 +78,13 @@ export function setStaffMetadata(emailOrId: string, data: Partial<StaffMetadata>
 }
 
 export function deleteStaffMetadata(emailOrId: string): void {
-  ensureDataFile();
   try {
     const all = getAllStaffMetadata();
     const key = emailOrId.trim().toLowerCase();
     delete all[key];
     delete all[emailOrId];
+    inMemoryMetadata = all;
+    ensureDataFile();
     fs.writeFileSync(METADATA_FILE, JSON.stringify(all, null, 2), 'utf-8');
   } catch (e) {
     console.warn('Lỗi xóa staff metadata:', e);
