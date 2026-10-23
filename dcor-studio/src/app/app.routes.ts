@@ -96,6 +96,7 @@ export const routes: Routes = [
       { path: 'checkout', loadComponent: () => import('./features/store/pages/checkout/checkout').then(m => m.CheckoutComponent) },
       { path: 'blog', loadComponent: () => import('./features/store/pages/blog/blog').then(m => m.BlogComponent) },
       { path: 'custom-design', loadComponent: () => import('./features/store/pages/custom-design/custom-design').then(m => m.CustomDesignComponent) },
+      { path: 'community', loadComponent: () => import('./features/store/pages/community/community').then(m => m.CommunityComponent) },
       
       // --- Account Area (inside Store Layout) ---
       {
