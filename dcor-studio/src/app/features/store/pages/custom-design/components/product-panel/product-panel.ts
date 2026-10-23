@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, signal, computed } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../../../shared/components/icon/icon';
@@ -30,10 +30,14 @@ const FALLBACK_IMAGE =
   templateUrl: './product-panel.html',
   styleUrls: ['./product-panel.css']
 })
-export class ProductPanelComponent implements OnInit {
+export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('scrollSentinel') scrollSentinelRef?: ElementRef<HTMLDivElement>;
+  @ViewChild('panelBody') panelBodyRef?: ElementRef<HTMLDivElement>;
+
   products = signal<PlannerProductCard[]>([]);
   rawCategories: any[] = [];
   isLoading = signal<boolean>(true);
+  isLoadingMore = signal<boolean>(false);
   loadError = signal<string>('');
   addedProductId = signal<string | null>(null);
 
@@ -43,6 +47,7 @@ export class ProductPanelComponent implements OnInit {
   // Phân trang / Xem thêm
   readonly pageSize: number = 12;
   currentPage = signal<number>(1);
+  private observer: IntersectionObserver | null = null;
 
   // Danh mục hiển thị dạng chip
   categories = signal<{ id: string; name: string; slug: string }[]>([
@@ -380,18 +385,72 @@ export class ProductPanelComponent implements OnInit {
     }
   }
 
+  ngAfterViewInit(): void {
+    this.setupIntersectionObserver();
+  }
+
+  ngOnDestroy(): void {
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
+  }
+
+  private setupIntersectionObserver(): void {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first && first.isIntersecting && this.hasMore() && !this.isLoadingMore() && !this.isLoading()) {
+          this.loadMore();
+        }
+      },
+      {
+        root: this.panelBodyRef?.nativeElement || null,
+        rootMargin: '120px',
+        threshold: 0.1
+      }
+    );
+
+    if (this.scrollSentinelRef?.nativeElement) {
+      this.observer.observe(this.scrollSentinelRef.nativeElement);
+    }
+  }
+
   setCategory(idOrSlug: string): void {
     this.selectedCategory.set(idOrSlug);
     this.currentPage.set(1);
+    setTimeout(() => this.setupIntersectionObserver(), 50);
   }
 
   clearSearch(): void {
     this.searchQuery.set('');
     this.currentPage.set(1);
+    setTimeout(() => this.setupIntersectionObserver(), 50);
   }
 
   loadMore(): void {
-    this.currentPage.update(p => p + 1);
+    if (!this.hasMore() || this.isLoadingMore()) return;
+
+    this.isLoadingMore.set(true);
+    // Độ trễ nhẹ tạo cảm giác mượt mà và hiển thị chỉ báo
+    setTimeout(() => {
+      this.currentPage.update(p => p + 1);
+      this.isLoadingMore.set(false);
+      this.cdr.markForCheck();
+
+      // Quan sát lại sentinel sau khi danh sách được mở rộng
+      setTimeout(() => {
+        if (this.scrollSentinelRef?.nativeElement && this.observer) {
+          this.observer.observe(this.scrollSentinelRef.nativeElement);
+        }
+      }, 50);
+    }, 180);
   }
 
   onImgError(e: Event): void {

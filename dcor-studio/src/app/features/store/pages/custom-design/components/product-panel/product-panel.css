@@ -1,7 +1,16 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
 .product-panel-container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   background: var(--color-surface, #ffffff);
   border-right: 1px solid var(--color-border, #e0e0e0);
   overflow: hidden;
@@ -14,6 +23,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .search-input-wrap {
@@ -110,13 +120,6 @@
   margin-top: 6px;
 }
 
-.error-actions-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-}
-
 .sample-btn {
   display: inline-flex;
   align-items: center;
@@ -139,8 +142,30 @@
 /* Panel Body */
 .panel-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 12px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border, #d1d5db) transparent;
+}
+
+.panel-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-body::-webkit-scrollbar-thumb {
+  background: var(--color-border, #d1d5db);
+  border-radius: 999px;
+}
+
+.panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted, #9ca3af);
 }
 
 /* Product Cards */
@@ -435,4 +460,21 @@
   background: var(--color-surface-muted, #ededed);
   border-color: var(--color-primary, #765337);
   color: var(--color-primary, #765337);
+}
+
+.scroll-sentinel {
+  padding: 12px 14px 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.sentinel-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+  font-weight: 500;
 }

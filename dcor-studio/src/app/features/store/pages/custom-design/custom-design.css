@@ -22,6 +22,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
   background-color: var(--color-surface, #ffffff);
   border-radius: var(--radius-card, 12px);
   border: 1px solid var(--color-border, #e0e0e0);
@@ -162,11 +163,13 @@
   cursor: not-allowed;
 }
 
-/* Actions Group (Xuất ảnh & Đăng lên Cộng đồng) */
+/* Actions Group (Lưu thiết kế, Xuất ảnh & Đăng bài trên 1 hàng) */
 .topbar-actions-group {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+  position: relative;
 }
 
 .topbar-action-btn {
@@ -181,6 +184,18 @@
   white-space: nowrap;
   flex-shrink: 0;
   transition: all 0.15s ease;
+}
+
+.topbar-action-btn.save-btn {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  color: var(--color-text, #0a0a0a);
+}
+
+.topbar-action-btn.save-btn:hover:not(:disabled) {
+  background: var(--color-sub-bg, #fff3e3);
+  color: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
 }
 
 .topbar-action-btn.export-btn {
@@ -212,6 +227,94 @@
   opacity: 0.45;
   cursor: not-allowed !important;
   box-shadow: none;
+}
+
+/* More menu wrap for responsive <= 768px */
+.topbar-more-menu-wrap {
+  display: none;
+  position: relative;
+}
+
+.topbar-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-control, 8px);
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  color: var(--color-text, #0a0a0a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.topbar-more-btn:hover {
+  background: var(--color-sub-bg, #fff3e3);
+  color: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
+}
+
+.topbar-more-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-card, 10px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text, #0a0a0a);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.dropdown-menu-item:hover:not(:disabled) {
+  background: var(--color-sub-bg, #fff3e3);
+  color: var(--color-primary, #765337);
+}
+
+.dropdown-menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1100px) and (min-width: 769px) {
+  .topbar-action-btn {
+    padding: 7px 9px;
+  }
+  .topbar-action-btn .action-btn-text {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar-action-btn {
+    display: none !important;
+  }
+  .topbar-more-menu-wrap {
+    display: block;
+  }
 }
 
 /* Right Topbar */
@@ -276,12 +379,14 @@
   display: flex;
   overflow: hidden;
   position: relative;
+  min-height: 0;
 }
 
 .planner-left-column {
   width: 320px;
   flex-shrink: 0;
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -291,6 +396,7 @@
 .planner-center-column {
   flex: 1;
   height: 100%;
+  min-height: 0;
   position: relative;
   overflow: hidden;
 }
@@ -299,10 +405,21 @@
   width: 290px;
   flex-shrink: 0;
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: var(--color-surface, #ffffff);
+}
+
+app-product-panel,
+app-summary-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .mobile-column-header {
@@ -1122,5 +1239,49 @@
   .success-actions-row button {
     width: 100%;
   }
+}
+
+/* ============================================== */
+/* SAVE DESIGN MODAL STYLES (REQ 3)               */
+/* ============================================== */
+.save-modal-body {
+  padding: 18px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.save-modal-badge-row {
+  display: flex;
+  align-items: center;
+}
+
+.local-only-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+  background: var(--color-sub-bg, #fff3e3);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #765337) 20%, transparent);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.save-modal-description {
+  font-size: 13.5px;
+  color: var(--color-text-secondary, #616161);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.save-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--color-border-subtle, #f0f0f0);
 }
 

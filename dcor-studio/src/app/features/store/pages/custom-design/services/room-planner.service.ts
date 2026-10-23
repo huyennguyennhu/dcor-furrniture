@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
   PlannerBackground,
+  PlannerDesign,
   PlannerObject,
   RoomDimensions,
   RoomTemplate
@@ -25,6 +26,11 @@ export class RoomPlannerService {
   // --- Flow state ---
   readonly currentStep = signal<'setup' | 'planner'>('setup');
   readonly setupSubStep = signal<'source' | 'dimensions'>('source');
+
+  // --- Saved Draft state (Lưu trên máy này) ---
+  readonly currentDraftId = signal<string | null>(null);
+  readonly currentDraftTitle = signal<string>('');
+  readonly lastSavedTime = signal<string | null>(null);
 
   // --- Room setup state ---
   readonly background = signal<PlannerBackground | null>(null);
@@ -176,11 +182,35 @@ export class RoomPlannerService {
     this.resetHistory();
   }
 
+  loadDesign(design: PlannerDesign): void {
+    this.currentDraftId.set(design.id || null);
+    this.currentDraftTitle.set(design.title || 'Thiết kế của tôi');
+    if (design.updatedAt) {
+      const d = new Date(design.updatedAt);
+      const hours = d.getHours().toString().padStart(2, '0');
+      const mins = d.getMinutes().toString().padStart(2, '0');
+      this.lastSavedTime.set(`Đã lưu lúc ${hours}:${mins}`);
+    } else {
+      this.lastSavedTime.set(null);
+    }
+    this.background.set(design.background);
+    this.dimensions.set({ ...design.dimensions });
+    this.objects.set(JSON.parse(JSON.stringify(design.objects || [])));
+    this.selectedObjectId.set(null);
+    this.zoom.set(design.zoom || 1);
+    this.pan.set({ x: 0, y: 0 });
+    this.currentStep.set('planner');
+    this.resetHistory();
+  }
+
   resetPlannerState(): void {
     this.objects.set([]);
     this.selectedObjectId.set(null);
     this.zoom.set(1);
     this.pan.set({ x: 0, y: 0 });
+    this.currentDraftId.set(null);
+    this.currentDraftTitle.set('');
+    this.lastSavedTime.set(null);
     this.history = [];
     this.historyIndex = -1;
     this.updateUndoRedoSignals();

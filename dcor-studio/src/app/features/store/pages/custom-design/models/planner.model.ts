@@ -54,6 +54,8 @@ export interface PlannerDesign {
   background: PlannerBackground;
   dimensions: RoomDimensions;
   objects: PlannerObject[];
+  thumbnailUrl?: string;
+  zoom?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -62,5 +64,6 @@ export interface DesignRepository {
   saveDraft(design: PlannerDesign): Promise<string>;
   loadDraft(id: string): Promise<PlannerDesign | null>;
   listDrafts(): Promise<PlannerDesign[]>;
+  renameDraft?(id: string, newTitle: string): Promise<boolean>;
   deleteDraft(id: string): Promise<boolean>;
 }

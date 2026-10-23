@@ -1,9 +1,11 @@
-import { Component, ChangeDetectorRef, signal, computed, OnInit } from '@angular/core';
+import { Component, ChangeDetectorRef, signal, computed, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../../../shared/components/icon/icon';
+import { Modal } from '../../../../../../shared/components/modal/modal';
 import { RoomPlannerService } from '../../services/room-planner.service';
-import { PlannerBackground, RoomTemplate } from '../../models/planner.model';
+import { PlannerBackground, RoomTemplate, PlannerDesign, DesignRepository } from '../../models/planner.model';
+import { DESIGN_REPOSITORY } from '../../services/design-repository.interface';
 import { environment } from '../../../../../../../environments/environment';
 
 const FALLBACK_IMAGE =
@@ -12,7 +14,7 @@ const FALLBACK_IMAGE =
 @Component({
   selector: 'app-setup-step',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, Modal],
   templateUrl: './setup-step.html',
   styleUrls: ['./setup-step.css']
 })
@@ -36,6 +38,22 @@ export class SetupStepComponent implements OnInit {
   widthMeters: number = 4.0;
   heightMeters: number = 2.8;
 
+  // --- THIẾT KẾ ĐÃ LƯU TRÊN MÁY NÀY (REQ 3) ---
+  // Ghi chú kiến trúc: Hiện tại lưu và mở thiết kế từ IndexedDB cục bộ trên máy này
+  // do backend chưa có bảng lưu thiết kế theo tài khoản khách hàng.
+  // Sau này khi backend bổ sung API, chỉ cần chuyển sang gọi API từ HttpDesignRepository.
+  savedDrafts = signal<PlannerDesign[]>([]);
+  isLoadingDrafts = signal<boolean>(false);
+
+  // Modal xác nhận xóa thiết kế
+  isDeleteConfirmOpen = signal<boolean>(false);
+  draftToDelete = signal<PlannerDesign | null>(null);
+
+  // Modal đổi tên thiết kế
+  isRenameModalOpen = signal<boolean>(false);
+  draftToRename = signal<PlannerDesign | null>(null);
+  renameInput = signal<string>('');
+
   readonly isDimensionsValid = computed(() => {
     return (
       this.lengthMeters >= 1 &&
@@ -48,11 +66,13 @@ export class SetupStepComponent implements OnInit {
 
   constructor(
     public plannerService: RoomPlannerService,
+    @Inject(DESIGN_REPOSITORY) private designRepo: DesignRepository,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.fetchTemplates();
+    this.loadSavedDrafts();
 
     // Khôi phục dữ liệu đã chọn trước đó nếu có
     const currentBg = this.plannerService.background();
@@ -73,6 +93,9 @@ export class SetupStepComponent implements OnInit {
     }
   }
 
+  // ==========================================
+  // TẢI BẢN MẪU KHÔNG GIAN TỪ API (REQ 1 & 5)
+  // ==========================================
   async fetchTemplates(): Promise<void> {
     this.isLoadingTemplates.set(true);
     this.templatesError.set('');
@@ -181,7 +204,9 @@ export class SetupStepComponent implements OnInit {
     }
   }
 
-  // --- Xử lý tải ảnh thật ---
+  // ==========================================
+  // XỬ LÝ TẢI ẢNH MẶT BẰNG THẬT (REQ 1)
+  // ==========================================
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -287,6 +312,75 @@ export class SetupStepComponent implements OnInit {
     };
 
     img.src = objectUrl;
+  }
+
+  // ==========================================
+  // THIẾT KẾ ĐÃ LƯU TRÊN MÁY NÀY (REQ 3)
+  // ==========================================
+  async loadSavedDrafts(): Promise<void> {
+    this.isLoadingDrafts.set(true);
+    try {
+      const list = await this.designRepo.listDrafts();
+      this.savedDrafts.set(list);
+    } catch {
+      this.savedDrafts.set([]);
+    } finally {
+      this.isLoadingDrafts.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  openDraft(draft: PlannerDesign): void {
+    // Khôi phục đầy đủ nền, kích thước, vật thể và zoom
+    this.plannerService.loadDesign(draft);
+  }
+
+  promptRenameDraft(draft: PlannerDesign, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.draftToRename.set(draft);
+    this.renameInput.set(draft.title || '');
+    this.isRenameModalOpen.set(true);
+  }
+
+  closeRenameModal(): void {
+    this.isRenameModalOpen.set(false);
+    this.draftToRename.set(null);
+  }
+
+  async confirmRenameDraft(): Promise<void> {
+    const draft = this.draftToRename();
+    const newTitle = this.renameInput().trim();
+    if (!draft || !draft.id || !newTitle) return;
+
+    if (this.designRepo.renameDraft) {
+      await this.designRepo.renameDraft(draft.id, newTitle);
+    } else {
+      draft.title = newTitle;
+      await this.designRepo.saveDraft(draft);
+    }
+
+    this.closeRenameModal();
+    await this.loadSavedDrafts();
+  }
+
+  promptDeleteDraft(draft: PlannerDesign, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.draftToDelete.set(draft);
+    this.isDeleteConfirmOpen.set(true);
+  }
+
+  closeDeleteModal(): void {
+    this.isDeleteConfirmOpen.set(false);
+    this.draftToDelete.set(null);
+  }
+
+  async confirmDeleteDraft(): Promise<void> {
+    const draft = this.draftToDelete();
+    if (!draft || !draft.id) return;
+
+    await this.designRepo.deleteDraft(draft.id);
+    this.closeDeleteModal();
+    await this.loadSavedDrafts();
   }
 
   // --- Bước 2: Hoàn tất kích thước & vào phòng ---

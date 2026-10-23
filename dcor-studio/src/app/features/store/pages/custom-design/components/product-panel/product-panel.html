@@ -39,7 +39,7 @@
   </div>
 
   <!-- Danh sách sản phẩm (cuộn dọc) -->
-  <div class="panel-body">
+  <div #panelBody class="panel-body">
     
     <!-- Loading Skeletons -->
     <div *ngIf="isLoading()" class="skeleton-list">
@@ -130,9 +130,13 @@
         </div>
       }
 
-      <!-- Nút Xem thêm (Phân trang mượt mà) -->
-      <div *ngIf="hasMore()" class="load-more-section">
-        <button type="button" class="load-more-btn" (click)="loadMore()" aria-label="Xem thêm sản phẩm">
+      <!-- Cuộn vô tận / Xem thêm (Phân trang mượt mà) -->
+      <div *ngIf="hasMore()" #scrollSentinel class="scroll-sentinel">
+        <span *ngIf="isLoadingMore()" class="sentinel-loading">
+          <app-icon name="LoaderCircle" size="16" class="icon-spin"></app-icon>
+          <span>Đang tải thêm...</span>
+        </span>
+        <button *ngIf="!isLoadingMore()" type="button" class="load-more-btn" (click)="loadMore()" aria-label="Xem thêm sản phẩm">
           <span>Xem thêm (còn {{ remainingCount() }} sản phẩm)</span>
           <app-icon name="ChevronDown" size="14"></app-icon>
         </button>

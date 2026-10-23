@@ -43,7 +43,7 @@
         </button>
       </div>
 
-      <!-- Danh sách bản mẫu từ API + Ô tải ảnh là ô cuối cùng trong cùng 1 lưới -->
+      <!-- Danh sách bản mẫu từ API + Ô tải ảnh là ô cuối cùng trong cùng 1 lưới (REQ 1) -->
       <div *ngIf="!isLoadingTemplates() && !templatesError()" class="template-grid">
         
         <!-- Các bản mẫu có sẵn -->
@@ -69,8 +69,8 @@
               </div>
             </div>
             <div class="template-info">
-              <h3 class="template-name">{{ tmpl.name }}</h3>
-              <p class="template-desc">{{ tmpl.description }}</p>
+              <h3 class="template-name" [title]="tmpl.name">{{ tmpl.name }}</h3>
+              <p class="template-desc" [title]="tmpl.description">{{ tmpl.description }}</p>
               <div class="template-footer">
                 <div class="dim-tag">
                   <app-icon name="Ruler" size="14"></app-icon>
@@ -81,7 +81,7 @@
           </div>
         }
 
-        <!-- Ô TẢI ẢNH MẶT BẰNG THẬT (Ô CUỐI CÙNG TRONG CÙNG 1 LƯỚI) -->
+        <!-- Ô TẢI ẢNH MẶT BẰNG THẬT: Ô CUỐI CÙNG CỦA LƯỚI, CÙNG CẤU TRÚC VÀ CHIỀU CAO (REQ 1) -->
         <div 
           class="template-card upload-tile-card"
           [class.selected]="activeSource() === 'upload' && uploadedImage()"
@@ -105,21 +105,22 @@
 
           <!-- 1. Khi chưa có ảnh tải lên và không nén -->
           <ng-container *ngIf="!uploadedImage() && !isCompressing()">
-            <div class="upload-tile-empty-wrapper">
-              <div class="upload-tile-icon-circle">
-                <app-icon name="Upload" size="28"></app-icon>
+            <div class="template-image-wrapper upload-dropzone-top">
+              <div class="upload-dropzone-dashed">
+                <div class="upload-tile-icon-circle">
+                  <app-icon name="Upload" size="24"></app-icon>
+                </div>
+                <span class="upload-tile-prompt-text">Kéo thả hoặc bấm để chọn tệp</span>
+                <span class="upload-format-badge">JPG, PNG, WebP tối đa 10MB</span>
               </div>
-              <span class="upload-tile-prompt-text">Tải ảnh mặt bằng thật</span>
-              <span class="upload-tile-sub-text">Kéo thả hoặc bấm để chọn tệp</span>
-              <span class="upload-format-badge">JPG, PNG, WebP tối đa 10MB</span>
             </div>
             <div class="template-info">
               <h3 class="template-name">Mặt bằng của bạn</h3>
-              <p class="template-desc">Tự do thiết kế trên ảnh mặt bằng kiến trúc hoặc sơ đồ phòng thực tế của bạn</p>
+              <p class="template-desc">Tự do thiết kế trên ảnh mặt bằng kiến trúc hoặc sơ đồ phòng thực tế của bạn.</p>
               <div class="template-footer">
-                <div class="dim-tag upload-tag">
-                  <app-icon name="Plus" size="13"></app-icon>
-                  <span>Chọn tệp ảnh</span>
+                <div class="dim-tag">
+                  <app-icon name="Ruler" size="14"></app-icon>
+                  <span>Tự nhập kích thước</span>
                 </div>
               </div>
             </div>
@@ -127,17 +128,23 @@
 
           <!-- 2. Trạng thái đang nén ảnh -->
           <ng-container *ngIf="isCompressing()">
-            <div class="upload-tile-compressing">
+            <div class="template-image-wrapper upload-compressing-top">
               <div class="spinner-large"></div>
               <span class="compressing-text">Đang tối ưu ảnh...</span>
             </div>
             <div class="template-info">
               <h3 class="template-name">Đang xử lý hình ảnh</h3>
-              <p class="template-desc">Tự động nén cạnh tối đa 1600px để đạt độ mượt mà cao nhất</p>
+              <p class="template-desc">Tự động nén cạnh tối đa 1600px để đạt độ mượt mà cao nhất.</p>
+              <div class="template-footer">
+                <div class="dim-tag">
+                  <app-icon name="Ruler" size="14"></app-icon>
+                  <span>Tự nhập kích thước</span>
+                </div>
+              </div>
             </div>
           </ng-container>
 
-          <!-- 3. Khi đã tải ảnh thành công -->
+          <!-- 3. Khi đã tải ảnh thành công: Hiện ảnh thu nhỏ + nút Đổi ảnh (REQ 1) -->
           <ng-container *ngIf="uploadedImage() && !isCompressing()">
             <div class="template-image-wrapper">
               <img 
@@ -147,22 +154,27 @@
                 (error)="onImgError($event)" 
               />
               <div class="template-type-badge upload-success-badge">Mặt bằng của bạn</div>
+              <button 
+                type="button" 
+                class="change-photo-badge-btn" 
+                (click)="triggerFileInput($event, fileInput)"
+                title="Chọn ảnh mặt bằng khác"
+                aria-label="Đổi ảnh khác">
+                <app-icon name="RefreshCw" size="12"></app-icon>
+                <span>Đổi ảnh</span>
+              </button>
               <div class="template-selected-badge" *ngIf="activeSource() === 'upload'">
                 <app-icon name="Check" size="16"></app-icon>
               </div>
             </div>
             <div class="template-info">
-              <h3 class="template-name" [title]="uploadedImage()?.name">{{ uploadedImage()?.name }}</h3>
-              <p class="template-desc">Ảnh đã nén ({{ uploadedImage()?.naturalWidth }} × {{ uploadedImage()?.naturalHeight }} px)</p>
+              <h3 class="template-name" [title]="uploadedImage()?.name">{{ uploadedImage()?.name || 'Mặt bằng của bạn' }}</h3>
+              <p class="template-desc">Ảnh mặt bằng thật ({{ uploadedImage()?.naturalWidth }} × {{ uploadedImage()?.naturalHeight }} px)</p>
               <div class="template-footer">
-                <button 
-                  type="button" 
-                  class="change-photo-btn" 
-                  (click)="triggerFileInput($event, fileInput)"
-                  aria-label="Đổi ảnh khác">
-                  <app-icon name="RefreshCw" size="13"></app-icon>
-                  <span>Đổi ảnh</span>
-                </button>
+                <div class="dim-tag">
+                  <app-icon name="Ruler" size="14"></app-icon>
+                  <span>Tự nhập kích thước</span>
+                </div>
               </div>
             </div>
           </ng-container>
@@ -191,6 +203,84 @@
         <app-icon name="ArrowRight" size="18"></app-icon>
       </button>
     </div>
+
+    <!-- ============================================== -->
+    <!-- MỤC: THIẾT KẾ ĐÃ LƯU TRÊN MÁY NÀY (REQ 3)       -->
+    <!-- ============================================== -->
+    <div class="saved-drafts-section" *ngIf="savedDrafts().length > 0">
+      <div class="section-title-row">
+        <div class="section-heading-group">
+          <h2 class="section-title">Thiết kế đã lưu trên máy này</h2>
+          <span class="local-storage-note-badge">
+            <app-icon name="Info" size="13"></app-icon>
+            <span>Chỉ lưu trên máy này (IndexedDB)</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="saved-drafts-grid">
+        @for (draft of savedDrafts(); track draft.id) {
+          <div class="saved-draft-card">
+            <div class="draft-thumb-wrap" (click)="openDraft(draft)" title="Bấm để mở thiết kế">
+              <img 
+                *ngIf="draft.thumbnailUrl" 
+                [src]="draft.thumbnailUrl" 
+                [alt]="draft.title" 
+                class="draft-thumb-img" 
+                (error)="onImgError($event)"
+              />
+              <div *ngIf="!draft.thumbnailUrl" class="draft-thumb-placeholder">
+                <app-icon name="Layers" size="32"></app-icon>
+              </div>
+              <div class="draft-objects-badge">
+                {{ draft.objects.length }} món
+              </div>
+            </div>
+
+            <div class="draft-info">
+              <h3 class="draft-title" [title]="draft.title" (click)="openDraft(draft)">{{ draft.title }}</h3>
+              <span class="draft-date">
+                <app-icon name="Clock" size="12"></app-icon>
+                <span>Sửa đổi: {{ draft.updatedAt | date:'HH:mm - dd/MM/yyyy' }}</span>
+              </span>
+
+              <div class="draft-actions-row">
+                <button 
+                  type="button" 
+                  class="draft-action-btn open-btn" 
+                  (click)="openDraft(draft)"
+                  title="Mở lại thiết kế này để tiếp tục vẽ"
+                  aria-label="Mở thiết kế">
+                  <app-icon name="ArrowRight" size="14"></app-icon>
+                  <span>Mở</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="draft-action-btn edit-btn" 
+                  (click)="promptRenameDraft(draft, $event)"
+                  title="Đổi tên thiết kế"
+                  aria-label="Đổi tên thiết kế">
+                  <app-icon name="Pencil" size="13"></app-icon>
+                  <span>Đổi tên</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="draft-action-btn delete-btn" 
+                  (click)="promptDeleteDraft(draft, $event)"
+                  title="Xóa thiết kế khỏi máy này"
+                  aria-label="Xóa thiết kế">
+                  <app-icon name="Trash2" size="13"></app-icon>
+                  <span>Xóa</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
   </ng-container>
 
   <!-- ============================================== -->
@@ -364,5 +454,58 @@
       </div>
     </div>
   </ng-container>
+
+  <!-- ============================================== -->
+  <!-- MODAL ĐỔI TÊN THIẾT KẾ (REQ 3)                  -->
+  <!-- ============================================== -->
+  <app-modal 
+    [isOpen]="isRenameModalOpen()" 
+    [title]="'Đổi tên thiết kế'" 
+    [hasFooter]="true" 
+    width="440px"
+    (close)="closeRenameModal()">
+    <div style="padding: 16px 20px;">
+      <label for="rename-input" style="display:block; margin-bottom: 8px; font-weight:600; font-size:13px; color:#0a0a0a;">Tên thiết kế mới</label>
+      <input 
+        id="rename-input" 
+        type="text" 
+        [ngModel]="renameInput()" 
+        (ngModelChange)="renameInput.set($event)"
+        maxlength="80" 
+        style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1.5px solid var(--color-border, #e0e0e0); border-radius: 8px; font-size: 13.5px;"
+        (keydown.enter)="confirmRenameDraft()"
+      />
+    </div>
+    <div footer style="display:flex; justify-content:flex-end; gap:8px; padding: 12px 20px; border-top: 1px solid var(--color-border-subtle, #f0f0f0);">
+      <button type="button" class="btn-secondary" (click)="closeRenameModal()">Hủy</button>
+      <button type="button" class="btn-primary" (click)="confirmRenameDraft()" [disabled]="!renameInput().trim()">Lưu tên</button>
+    </div>
+  </app-modal>
+
+  <!-- ============================================== -->
+  <!-- MODAL XÁC NHẬN XÓA THIẾT KẾ (REQ 3)             -->
+  <!-- ============================================== -->
+  <app-modal 
+    [isOpen]="isDeleteConfirmOpen()" 
+    [title]="'Xác nhận xóa thiết kế'" 
+    [hasFooter]="true" 
+    width="440px"
+    (close)="closeDeleteModal()">
+    <div class="confirm-modal-body" style="padding: 16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <app-icon name="Trash2" size="20"></app-icon>
+      </div>
+      <div>
+        <p style="margin:0 0 6px; font-weight:600; font-size:14.5px; color:#0a0a0a;">Bạn có chắc chắn muốn xóa thiết kế này?</p>
+        <p style="margin:0; font-size:13px; color:#616161; line-height:1.45;">
+          Thiết kế "<strong>{{ draftToDelete()?.title }}</strong>" sẽ bị xóa vĩnh viễn khỏi trình duyệt của máy này.
+        </p>
+      </div>
+    </div>
+    <div footer style="display:flex; justify-content:flex-end; gap:8px; padding: 12px 20px; border-top: 1px solid var(--color-border-subtle, #f0f0f0);">
+      <button type="button" class="btn-secondary" (click)="closeDeleteModal()">Giữ lại</button>
+      <button type="button" class="btn-primary danger" (click)="confirmDeleteDraft()">Xóa thiết kế</button>
+    </div>
+  </app-modal>
 
 </div>

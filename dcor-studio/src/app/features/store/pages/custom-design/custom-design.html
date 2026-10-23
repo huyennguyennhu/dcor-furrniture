@@ -28,12 +28,12 @@
           </button>
 
           <div class="topbar-room-badge">
-            <span class="room-name">{{ plannerService.background()?.name }}</span>
+            <span class="room-name">{{ plannerService.currentDraftTitle() || plannerService.background()?.name }}</span>
             <span class="room-dims">{{ plannerService.dimensions()?.length }}m × {{ plannerService.dimensions()?.width }}m</span>
           </div>
         </div>
 
-        <!-- Nhóm ở giữa: Undo / Redo & Thao tác xuất / đăng bài -->
+        <!-- Nhóm ở giữa: Undo / Redo & 3 nút hành động chính (Lưu, Xuất ảnh, Đăng bài) -->
         <div class="topbar-center">
           <div class="history-controls-group">
             <button 
@@ -59,8 +59,24 @@
             </button>
           </div>
 
-          <!-- Nhóm nút Xuất ảnh & Đăng lên Cộng đồng -->
+          <!-- Nhóm 3 nút hành động chính trên 1 hàng (REQ 3 & REQ 4) -->
           <div class="topbar-actions-group">
+            
+            <!-- 1. Lưu thiết kế trên máy này -->
+            <button 
+              type="button" 
+              class="topbar-action-btn save-btn" 
+              [disabled]="plannerService.objects().length === 0 || isSavingDraft()"
+              (click)="handleSaveDesignClick()"
+              [title]="plannerService.lastSavedTime() ? (plannerService.lastSavedTime() + ' (Chỉ lưu trên máy này)') : 'Lưu thiết kế vào trình duyệt này (IndexedDB)'"
+              [attr.aria-label]="plannerService.lastSavedTime() || 'Lưu thiết kế'">
+              <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : 'Save'" size="16" [class.icon-spin]="isSavingDraft()"></app-icon>
+              <span class="action-btn-text">
+                {{ plannerService.lastSavedTime() ? plannerService.lastSavedTime() : 'Lưu thiết kế' }}
+              </span>
+            </button>
+
+            <!-- 2. Xuất ảnh thiết kế PNG -->
             <button 
               type="button" 
               class="topbar-action-btn export-btn" 
@@ -72,18 +88,61 @@
               <span class="action-btn-text">Xuất ảnh</span>
             </button>
 
+            <!-- 3. Đăng lên Cộng đồng -->
             <button 
               type="button" 
               class="topbar-action-btn publish-btn" 
               [disabled]="plannerService.objects().length === 0 || (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null)"
               (click)="handlePublishClick()"
-              [title]="(!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Thiết kế này đã được gửi bài duyệt' : 'Đăng thiết kế lên Cộng đồng DCor'"
-              aria-label="Đăng lên Cộng đồng">
+              [title]="(!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Thiết kế này đã được đăng' : 'Đăng thiết kế lên Cộng đồng DCor'"
+              aria-label="Đăng bài">
               <app-icon name="Share2" size="16"></app-icon>
               <span class="action-btn-text">
-                {{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Đã gửi duyệt' : 'Đăng lên Cộng đồng' }}
+                {{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Đã đăng' : 'Đăng bài' }}
               </span>
             </button>
+
+            <!-- Menu "..." gom 3 nút trên màn hình <= 768px -->
+            <div class="topbar-more-menu-wrap">
+              <button 
+                type="button" 
+                class="topbar-more-btn" 
+                (click)="toggleMoreMenu()" 
+                title="Tùy chọn khác" 
+                aria-label="Tùy chọn khác">
+                <app-icon name="MoreHorizontal" size="18"></app-icon>
+              </button>
+
+              <div *ngIf="isMoreMenuOpen()" class="topbar-more-dropdown">
+                <button 
+                  type="button" 
+                  class="dropdown-menu-item" 
+                  [disabled]="plannerService.objects().length === 0 || isSavingDraft()"
+                  (click)="handleSaveDesignClick()">
+                  <app-icon name="Save" size="16"></app-icon>
+                  <span>{{ plannerService.lastSavedTime() ? plannerService.lastSavedTime() : 'Lưu thiết kế' }}</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="dropdown-menu-item" 
+                  [disabled]="plannerService.objects().length === 0 || publishService.isExporting()"
+                  (click)="handleExportPngClick()">
+                  <app-icon name="Download" size="16"></app-icon>
+                  <span>Xuất ảnh PNG</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="dropdown-menu-item" 
+                  [disabled]="plannerService.objects().length === 0 || (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null)"
+                  (click)="handlePublishClick()">
+                  <app-icon name="Share2" size="16"></app-icon>
+                  <span>{{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Đã đăng' : 'Đăng bài' }}</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -204,7 +263,49 @@
   </app-modal>
 
   <!-- ============================================== -->
-  <!-- 5. MODAL YÊU CẦU ĐĂNG NHẬP (REQ 3)             -->
+  <!-- 5. MODAL LƯU THIẾT KẾ TRÊN MÁY NÀY (REQ 3)      -->
+  <!-- ============================================== -->
+  <app-modal 
+    [isOpen]="isSaveModalOpen()" 
+    [title]="'Lưu thiết kế trên máy này'" 
+    [hasFooter]="true" 
+    width="480px"
+    (close)="closeSaveModal()">
+    <div class="save-modal-body">
+      <div class="save-modal-badge-row">
+        <span class="local-only-badge">
+          <app-icon name="Info" size="14"></app-icon>
+          <span>Chỉ lưu trên máy này</span>
+        </span>
+      </div>
+      <p class="save-modal-description">
+        Thiết kế sẽ được lưu an toàn vào bộ nhớ trình duyệt (IndexedDB) của thiết bị này để bạn có thể mở lại bất cứ lúc nào ở Bước 1.
+      </p>
+      <div class="form-group">
+        <label for="save-design-title" class="field-label">Tên thiết kế <span class="required-star">*</span></label>
+        <input 
+          id="save-design-title" 
+          type="text" 
+          [ngModel]="saveModalTitleInput()" 
+          (ngModelChange)="saveModalTitleInput.set($event)"
+          maxlength="80" 
+          placeholder="VD: Phòng khách hiện đại của tôi" 
+          class="publish-input"
+          (keydown.enter)="confirmSaveDesign()"
+        />
+      </div>
+    </div>
+    <div footer class="save-modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeSaveModal()" [disabled]="isSavingDraft()">Hủy</button>
+      <button type="button" class="btn-primary" (click)="confirmSaveDesign()" [disabled]="!saveModalTitleInput().trim() || isSavingDraft()">
+        <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : 'Save'" size="16" [class.icon-spin]="isSavingDraft()"></app-icon>
+        <span>{{ isSavingDraft() ? 'Đang lưu...' : 'Lưu thiết kế' }}</span>
+      </button>
+    </div>
+  </app-modal>
+
+  <!-- ============================================== -->
+  <!-- 6. MODAL YÊU CẦU ĐĂNG NHẬP                     -->
   <!-- ============================================== -->
   <app-modal 
     [isOpen]="isLoginPromptOpen()" 
@@ -234,24 +335,28 @@
   </app-modal>
 
   <!-- ============================================== -->
-  <!-- 6. MODAL ĐĂNG THIẾT KẾ LÊN CỘNG ĐỒNG (REQ 4-7) -->
+  <!-- 7. MODAL ĐĂNG THIẾT KẾ LÊN CỘNG ĐỒNG (REQ 4)   -->
   <!-- ============================================== -->
   <app-modal 
     [isOpen]="isPublishModalOpen()" 
-    [title]="isPublishSuccess() ? 'Thông báo duyệt bài' : 'Đăng thiết kế lên Cộng đồng'" 
+    [title]="isPublishSuccess() ? (publishedPostStatus() === 'PUBLISHED' ? 'Đã đăng bài' : 'Thông báo gửi bài') : 'Đăng thiết kế lên Cộng đồng'" 
     [hasFooter]="!isPublishSuccess()" 
     width="680px"
     (close)="closePublishModal()">
 
-    <!-- THÀNH CÔNG (REQ 7) -->
+    <!-- THÀNH CÔNG: DỰA THEO TRƯỜNG STATUS CỦA BÀI ĐĂNG (REQ 4) -->
     <ng-container *ngIf="isPublishSuccess()">
       <div class="publish-success-view">
         <div class="success-icon-badge">
           <app-icon name="CircleCheck" size="44" color="#16a34a"></app-icon>
         </div>
-        <h3 class="success-heading">Đã gửi bài thành công!</h3>
+        <h3 class="success-heading">
+          {{ publishedPostStatus() === 'PUBLISHED' ? 'Đăng bài thành công!' : 'Đã gửi bài thành công!' }}
+        </h3>
         <p class="success-message">
-          Đã gửi bài. Bài sẽ hiển thị trên trang Cộng đồng sau khi quản trị viên duyệt.
+          {{ publishedPostStatus() === 'PUBLISHED' 
+              ? 'Bài của bạn đã được đăng lên Cộng đồng' 
+              : 'Bài đã được gửi và sẽ hiển thị sau khi quản trị viên duyệt' }}
         </p>
         <div class="success-actions-row">
           <button type="button" class="btn-secondary" (click)="closePublishModal()">
@@ -265,7 +370,7 @@
       </div>
     </ng-container>
 
-    <!-- FORM BIÊN SOẠN BÀI ĐĂNG (REQ 4, 5, 6) -->
+    <!-- FORM BIÊN SOẠN BÀI ĐĂNG -->
     <ng-container *ngIf="!isPublishSuccess()">
       <div class="publish-modal-container">
 
@@ -275,7 +380,7 @@
           <span>{{ publishWarningMessage() }}</span>
         </div>
 
-        <!-- Báo lỗi gửi bài (Req 6 - giữ nguyên nội dung form) -->
+        <!-- Báo lỗi gửi bài (Giữ nguyên nội dung form) -->
         <div *ngIf="publishErrorMessage()" class="publish-alert-box error">
           <app-icon name="AlertCircle" size="18"></app-icon>
           <span>{{ publishErrorMessage() }}</span>
@@ -380,7 +485,7 @@
       </div>
     </ng-container>
 
-    <!-- Footer gửi bài -->
+    <!-- Footer gửi bài: Nút ghi "Đăng bài" (REQ 4) -->
     <div footer *ngIf="!isPublishSuccess()" class="publish-modal-footer">
       <button 
         type="button" 
@@ -395,7 +500,7 @@
         [disabled]="publishService.isSubmitting() || isGeneratingPreview() || !postTitle().trim() || postTitle().length > 100 || postDescription().length > 500 || !isAgreed()"
         (click)="submitPublishPost()">
         <app-icon [name]="publishService.isSubmitting() ? 'LoaderCircle' : 'Send'" size="16" [class.icon-spin]="publishService.isSubmitting()"></app-icon>
-        <span>{{ publishService.isSubmitting() ? 'Đang gửi bài...' : 'Gửi duyệt bài' }}</span>
+        <span>{{ publishService.isSubmitting() ? 'Đang gửi bài...' : 'Đăng bài' }}</span>
       </button>
     </div>
 
