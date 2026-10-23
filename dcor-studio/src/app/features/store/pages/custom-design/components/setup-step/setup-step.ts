@@ -3,9 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../../../shared/components/icon/icon';
 import { RoomPlannerService } from '../../services/room-planner.service';
-import { ROOM_TEMPLATES } from '../../data/room-templates.data';
-import { PlannerBackground, RoomDimensions, RoomTemplate } from '../../models/planner.model';
+import { PlannerBackground, RoomTemplate } from '../../models/planner.model';
 import { environment } from '../../../../../../../environments/environment';
+
+const FALLBACK_IMAGE =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23f3f4f6"/><path d="M100 220 L160 140 L210 180 L280 120 L320 220 Z" fill="%23cbd5e1"/><circle cx="150" cy="110" r="22" fill="%23cbd5e1"/></svg>';
 
 @Component({
   selector: 'app-setup-step',
@@ -15,10 +17,12 @@ import { environment } from '../../../../../../../environments/environment';
   styleUrls: ['./setup-step.css']
 })
 export class SetupStepComponent implements OnInit {
-  templates: RoomTemplate[] = [];
+  templates = signal<RoomTemplate[]>([]);
+  isLoadingTemplates = signal<boolean>(true);
+  templatesError = signal<string>('');
 
-  // Tab chọn nguồn ảnh: 'template' | 'upload'
-  activeTab = signal<'template' | 'upload'>('template');
+  // Nguồn ảnh đang chọn: 'template' | 'upload'
+  activeSource = signal<'template' | 'upload'>('template');
 
   // Lựa chọn hiện tại
   selectedTemplate = signal<RoomTemplate | null>(null);
@@ -45,103 +49,129 @@ export class SetupStepComponent implements OnInit {
   constructor(
     public plannerService: RoomPlannerService,
     private cdr: ChangeDetectorRef
-  ) {
-    // Đồng bộ kích thước mặc định từ template ban đầu
-    const initialDims = this.plannerService.dimensions();
-    if (initialDims) {
-      this.lengthMeters = initialDims.length;
-      this.widthMeters = initialDims.width;
-      this.heightMeters = initialDims.height || 2.8;
+  ) {}
+
+  ngOnInit(): void {
+    this.fetchTemplates();
+
+    // Khôi phục dữ liệu đã chọn trước đó nếu có
+    const currentBg = this.plannerService.background();
+    if (currentBg) {
+      if (currentBg.type === 'upload') {
+        this.activeSource.set('upload');
+        this.uploadedImage.set(currentBg);
+      } else {
+        this.activeSource.set('template');
+      }
+    }
+
+    const currentDims = this.plannerService.dimensions();
+    if (currentDims) {
+      this.lengthMeters = currentDims.length;
+      this.widthMeters = currentDims.width;
+      this.heightMeters = currentDims.height || 2.8;
     }
   }
 
-  ngOnInit(): void {
-    this.loadDatabaseTemplates();
-  }
+  async fetchTemplates(): Promise<void> {
+    this.isLoadingTemplates.set(true);
+    this.templatesError.set('');
 
-  loadDatabaseTemplates(): void {
-    // 1. Tải tức thì từ Local Cache nếu có để trang mở ngay trong 0ms
     try {
-      const cached = localStorage.getItem('dcor_room_templates_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          this.templates = parsed.map((t: any) => ({
-            id: t.id,
-            name: t.name,
-            roomType: t.roomType,
-            description: t.description || '',
-            imageUrl: t.imageUrl,
-            defaultDimensions: {
-              length: Number(t.length) || 5.0,
-              width: Number(t.width) || 4.0,
-              height: Number(t.height) || 2.8
-            }
-          }));
-          if (this.templates.length > 0 && !this.selectedTemplate()) {
-            this.selectTemplateCard(this.templates[0]);
-          }
-          this.cdr.detectChanges();
-        }
+      const res = await fetch(`${environment.apiUrl}/designs/templates?isActive=true`);
+      if (!res.ok) {
+        throw new Error(`Lỗi kết nối máy chủ (${res.status})`);
       }
-    } catch (e) {}
+      const data = await res.json();
+      const rawList = Array.isArray(data) ? data : (data.data || data.items || []);
 
-    // 2. Tải bản cập nhật mới nhất từ máy chủ
-    fetch(`${environment.apiUrl}/designs/templates?isActive=true`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          this.templates = data.map((t: any) => ({
-            id: t.id,
-            name: t.name,
-            roomType: t.roomType,
-            description: t.description || '',
-            imageUrl: t.imageUrl,
-            defaultDimensions: {
-              length: Number(t.length) || 5.0,
-              width: Number(t.width) || 4.0,
-              height: Number(t.height) || 2.8
-            }
-          }));
-          localStorage.setItem('dcor_room_templates_cache', JSON.stringify(data));
-          if (this.templates.length > 0 && !this.selectedTemplate()) {
-            this.selectTemplateCard(this.templates[0]);
-          }
-          this.cdr.detectChanges();
-        }
-      })
-      .catch(err => {
-        console.warn('Không thể tải bản mẫu từ máy chủ, sử dụng dữ liệu mặc định:', err);
-        if (this.templates.length === 0) {
-          this.templates = [...ROOM_TEMPLATES];
-          if (this.templates.length > 0) {
-            this.selectTemplateCard(this.templates[0]);
-          }
-          this.cdr.detectChanges();
-        }
-      });
-  }
+      if (rawList.length === 0) {
+        this.templates.set([]);
+        this.templatesError.set('Chưa có bản mẫu không gian nào được kích hoạt.');
+        this.isLoadingTemplates.set(false);
+        this.cdr.markForCheck();
+        return;
+      }
 
-  // --- Chuyển tab bản mẫu / tải ảnh ---
-  setTab(tab: 'template' | 'upload'): void {
-    this.activeTab.set(tab);
-    this.uploadError.set('');
+      const mapped: RoomTemplate[] = rawList.map((t: any) => ({
+        id: t.id,
+        name: t.name || 'Bản mẫu phòng',
+        roomType: t.roomType || 'Phòng mẫu',
+        description: t.description || '',
+        imageUrl: t.imageUrl || '',
+        defaultDimensions: {
+          length: Number(t.length) || 5.0,
+          width: Number(t.width) || 4.0,
+          height: Number(t.height) || 2.8
+        }
+      }));
+
+      this.templates.set(mapped);
+
+      // Tự động khôi phục lựa chọn hoặc chọn template đầu tiên nếu chưa chọn upload
+      const currentBg = this.plannerService.background();
+      if (currentBg?.type === 'template' && currentBg.templateId) {
+        const found = mapped.find(m => m.id === currentBg.templateId);
+        if (found) {
+          this.selectedTemplate.set(found);
+          this.activeSource.set('template');
+        } else {
+          this.selectTemplateCard(mapped[0]);
+        }
+      } else if (!this.selectedTemplate() && this.activeSource() !== 'upload') {
+        this.selectTemplateCard(mapped[0]);
+      }
+
+      this.isLoadingTemplates.set(false);
+      this.cdr.markForCheck();
+    } catch (err: any) {
+      this.templates.set([]);
+      this.templatesError.set(err.message || 'Không thể tải danh sách bản mẫu từ máy chủ.');
+      this.isLoadingTemplates.set(false);
+      this.cdr.markForCheck();
+    }
   }
 
   // --- Chọn bản mẫu phòng có sẵn ---
   selectTemplateCard(tmpl: RoomTemplate): void {
     this.selectedTemplate.set(tmpl);
+    this.activeSource.set('template');
     this.lengthMeters = tmpl.defaultDimensions.length;
     this.widthMeters = tmpl.defaultDimensions.width;
     this.heightMeters = tmpl.defaultDimensions.height || 2.8;
   }
 
+  // --- Xử lý click vào ô tải ảnh ---
+  handleUploadCardClick(fileInput: HTMLInputElement): void {
+    if (this.uploadedImage()) {
+      this.activeSource.set('upload');
+    } else {
+      fileInput.click();
+    }
+  }
+
+  // --- Nút Đổi ảnh trong ô tải ảnh ---
+  triggerFileInput(event: Event, fileInput: HTMLInputElement): void {
+    event.stopPropagation();
+    fileInput.click();
+  }
+
   // --- Xác nhận chọn nguồn ảnh để sang bước 2 ---
   confirmSource(): void {
-    if (this.activeTab() === 'template') {
+    if (this.activeSource() === 'template') {
       const tmpl = this.selectedTemplate();
       if (tmpl) {
-        this.plannerService.selectTemplate(tmpl);
+        const currentBg = this.plannerService.background();
+        if (currentBg?.templateId === tmpl.id && currentBg.type === 'template') {
+          this.plannerService.updateDimensions({
+            length: Number(this.lengthMeters),
+            width: Number(this.widthMeters),
+            height: this.heightMeters ? Number(this.heightMeters) : undefined
+          });
+          this.plannerService.setupSubStep.set('dimensions');
+        } else {
+          this.plannerService.selectTemplate(tmpl);
+        }
       }
     } else {
       const up = this.uploadedImage();
@@ -183,14 +213,12 @@ export class SetupStepComponent implements OnInit {
   private processFile(file: File): void {
     this.uploadError.set('');
 
-    // Kiểm tra định dạng (chỉ nhận JPG, PNG, WEBP)
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       this.uploadError.set('Định dạng tệp không được hỗ trợ. Vui lòng chỉ chọn ảnh JPG, PNG hoặc WEBP.');
       return;
     }
 
-    // Kiểm tra dung lượng tối đa 10MB
     const maxSizeBytes = 10 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       this.uploadError.set('Dung lượng ảnh vượt quá 10MB. Vui lòng chọn tệp có kích thước nhỏ hơn.');
@@ -206,7 +234,6 @@ export class SetupStepComponent implements OnInit {
       const originalW = img.naturalWidth || img.width;
       const originalH = img.naturalHeight || img.height;
 
-      // Nén xuống cạnh dài tối đa 1600px bằng canvas (JPEG 0.85)
       const maxEdge = 1600;
       let targetW = originalW;
       let targetH = originalH;
@@ -233,7 +260,6 @@ export class SetupStepComponent implements OnInit {
         return;
       }
 
-      // Vẽ ảnh lên canvas với chất lượng tốt
       ctx.drawImage(img, 0, 0, targetW, targetH);
       const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
@@ -247,6 +273,8 @@ export class SetupStepComponent implements OnInit {
       };
 
       this.uploadedImage.set(backgroundData);
+      this.activeSource.set('upload');
+      this.selectedTemplate.set(null);
       this.isCompressing.set(false);
       this.cdr.markForCheck();
     };
@@ -282,5 +310,9 @@ export class SetupStepComponent implements OnInit {
     const bg = this.previewBg;
     if (!bg || !this.lengthMeters || this.lengthMeters <= 0) return 0;
     return Math.round(bg.naturalWidth / this.lengthMeters);
+  }
+
+  onImgError(e: Event): void {
+    (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
   }
 }

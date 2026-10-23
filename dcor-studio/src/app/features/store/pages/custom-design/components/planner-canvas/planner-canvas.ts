@@ -2,9 +2,10 @@ import {
   Component,
   ElementRef,
   ViewChild,
-  HostListener,
+  OnInit,
+  AfterViewInit,
+  OnDestroy,
   ChangeDetectorRef,
-  signal,
   computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -14,6 +15,9 @@ import { PlannerObject } from '../../models/planner.model';
 
 type TransformMode = 'none' | 'pan' | 'drag-obj' | 'rotate-obj' | 'resize-obj';
 
+const FALLBACK_IMAGE =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" rx="8" fill="%23f3f4f6"/><path d="M35 75 L55 52 L68 64 L85 45 L95 75 Z" fill="%23cbd5e1"/><circle cx="48" cy="42" r="7" fill="%23cbd5e1"/></svg>';
+
 @Component({
   selector: 'app-planner-canvas',
   standalone: true,
@@ -21,7 +25,7 @@ type TransformMode = 'none' | 'pan' | 'drag-obj' | 'rotate-obj' | 'resize-obj';
   templateUrl: './planner-canvas.html',
   styleUrls: ['./planner-canvas.css']
 })
-export class PlannerCanvasComponent {
+export class PlannerCanvasComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('viewport', { static: true }) viewportRef!: ElementRef<HTMLDivElement>;
   @ViewChild('stage', { static: true }) stageRef!: ElementRef<HTMLDivElement>;
 
@@ -41,9 +45,16 @@ export class PlannerCanvasComponent {
     height: number;
     rotation: number;
     aspectRatio: number;
+    oppCornerRoom: { x: number; y: number };
   } | null = null;
   private resizeHandleType: 'se' | 'sw' | 'ne' | 'nw' = 'se';
   private objCenterScreen = { x: 0, y: 0 };
+
+  // Bound event handlers for clean removal
+  private boundKeyDown = (e: KeyboardEvent) => this.onKeyDown(e);
+  private boundWheel = (e: WheelEvent) => this.handleWheel(e);
+  private boundPointerMove = (e: PointerEvent) => this.onGlobalPointerMove(e);
+  private boundPointerUp = (e: PointerEvent) => this.onGlobalPointerUp(e);
 
   // Grid step: 1 mét thực tế
   readonly gridMeterSize = computed(() => {
@@ -55,14 +66,94 @@ export class PlannerCanvasComponent {
     private cdr: ChangeDetectorRef
   ) {}
 
+  ngOnInit(): void {
+    window.addEventListener('keydown', this.boundKeyDown);
+    window.addEventListener('pointermove', this.boundPointerMove);
+    window.addEventListener('pointerup', this.boundPointerUp);
+  }
+
+  ngAfterViewInit(): void {
+    // Non-passive wheel listener để e.preventDefault() ngăn zoom trang của trình duyệt
+    if (this.viewportRef?.nativeElement) {
+      this.viewportRef.nativeElement.addEventListener('wheel', this.boundWheel, {
+        passive: false
+      });
+    }
+
+    // Tự động căn giữa và fit phòng vào khung nhìn khi mở canvas
+    setTimeout(() => {
+      this.fitStageToViewport();
+    }, 50);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('keydown', this.boundKeyDown);
+    window.removeEventListener('pointermove', this.boundPointerMove);
+    window.removeEventListener('pointerup', this.boundPointerUp);
+
+    if (this.viewportRef?.nativeElement) {
+      this.viewportRef.nativeElement.removeEventListener('wheel', this.boundWheel);
+    }
+  }
+
+  // ==========================================
+  // FIT & CENTER STAGE
+  // ==========================================
+  fitStageToViewport(): void {
+    if (!this.viewportRef?.nativeElement) return;
+
+    const viewportW = this.viewportRef.nativeElement.clientWidth;
+    const viewportH = this.viewportRef.nativeElement.clientHeight;
+    const stageW = this.plannerService.roomPixelWidth();
+    const stageH = this.plannerService.roomPixelHeight();
+
+    if (viewportW <= 0 || viewportH <= 0 || stageW <= 0 || stageH <= 0) return;
+
+    const padding = 36;
+    const scaleX = (viewportW - padding * 2) / stageW;
+    const scaleY = (viewportH - padding * 2) / stageH;
+    const fitZoom = Math.max(0.25, Math.min(1.25, Math.min(scaleX, scaleY)));
+
+    const panX = Math.round((viewportW - stageW * fitZoom) / 2);
+    const panY = Math.round((viewportH - stageH * fitZoom) / 2);
+
+    this.plannerService.setZoom(Math.round(fitZoom * 100) / 100);
+    this.plannerService.setPan({ x: panX, y: panY });
+    this.cdr.markForCheck();
+  }
+
   // ==========================================
   // KEYBOARD SHORTCUTS
   // ==========================================
-  @HostListener('window:keydown', ['$event'])
-  onKeyDown(e: KeyboardEvent): void {
-    // Không bắt sự kiện khi đang gõ vào input / textarea
-    const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-    if (targetTag === 'input' || targetTag === 'textarea') return;
+  private isEditingInput(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    if (
+      el &&
+      (el.tagName === 'INPUT' ||
+        el.tagName === 'TEXTAREA' ||
+        el.tagName === 'SELECT' ||
+        el.isContentEditable ||
+        el.closest('input, textarea, select, [contenteditable="true"]'))
+    ) {
+      return true;
+    }
+
+    const activeEl = document.activeElement as HTMLElement | null;
+    if (
+      activeEl &&
+      (activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.isContentEditable)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private onKeyDown(e: KeyboardEvent): void {
+    if (this.isEditingInput(e.target)) return;
 
     // Undo: Ctrl + Z
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
@@ -108,12 +199,12 @@ export class PlannerCanvasComponent {
   }
 
   // ==========================================
-  // WHEEL ZOOM (Ctrl + Cuộn chuột hoặc cuộn)
+  // WHEEL ZOOM (Ctrl + Cuộn chuột)
   // ==========================================
-  onWheel(e: WheelEvent): void {
-    // Nếu nhấn Ctrl hoặc muốn cuộn mượt để phóng to thu nhỏ
+  private handleWheel(e: WheelEvent): void {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
+      e.stopPropagation();
       const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
       this.zoomAtPoint(zoomFactor, e.clientX, e.clientY);
     }
@@ -129,14 +220,18 @@ export class PlannerCanvasComponent {
     const mouseY = clientY - viewportRect.top;
 
     const currentPan = this.plannerService.pan();
-
-    // Điều chỉnh pan để điểm dưới con trỏ chuột đứng yên
     const scaleDiff = newZoom / currentZoom;
     const newPanX = mouseX - (mouseX - currentPan.x) * scaleDiff;
     const newPanY = mouseY - (mouseY - currentPan.y) * scaleDiff;
 
     this.plannerService.setZoom(newZoom);
-    this.plannerService.setPan({ x: Math.round(newPanX), y: Math.round(newPanY) });
+
+    const clampedPan = this.plannerService.clampPan(
+      { x: Math.round(newPanX), y: Math.round(newPanY) },
+      viewportRect.width,
+      viewportRect.height
+    );
+    this.plannerService.setPan(clampedPan);
   }
 
   // ==========================================
@@ -158,7 +253,6 @@ export class PlannerCanvasComponent {
 
     try {
       const product = JSON.parse(rawData);
-      // Chuyển đổi tọa độ màn hình sang tọa độ nền phòng
       const roomPos = this.clientToRoomCoords(e.clientX, e.clientY);
       this.plannerService.addProductToCanvas(product, roomPos);
     } catch {
@@ -166,7 +260,6 @@ export class PlannerCanvasComponent {
     }
   }
 
-  // Chuyển đổi tọa độ client sang tọa độ pixel thực của phòng
   private clientToRoomCoords(clientX: number, clientY: number): { x: number; y: number } {
     const stageEl = this.stageRef.nativeElement;
     const rect = stageEl.getBoundingClientRect();
@@ -179,44 +272,15 @@ export class PlannerCanvasComponent {
   }
 
   // ==========================================
-  // POINTER EVENTS CHO NỀN (PAN) & BỎ CHỌN
+  // POINTER EVENTS: PAN NỀN & BỎ CHỌN
   // ==========================================
   onBackgroundPointerDown(e: PointerEvent): void {
-    // Chỉ xử lý nút chuột chính (left click)
     if (e.button !== 0) return;
-
-    // Bỏ chọn vật thể khi bấm vào vùng trống
     this.plannerService.selectObject(null);
 
     this.currentMode = 'pan';
     this.startPointer = { x: e.clientX, y: e.clientY };
     this.startPan = { ...this.plannerService.pan() };
-
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-  }
-
-  onBackgroundPointerMove(e: PointerEvent): void {
-    if (this.currentMode !== 'pan') return;
-
-    const dx = e.clientX - this.startPointer.x;
-    const dy = e.clientY - this.startPointer.y;
-
-    this.plannerService.setPan({
-      x: Math.round(this.startPan.x + dx),
-      y: Math.round(this.startPan.y + dy)
-    });
-  }
-
-  onBackgroundPointerUp(e: PointerEvent): void {
-    if (this.currentMode === 'pan') {
-      this.currentMode = 'none';
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {
-        // an toàn
-      }
-    }
   }
 
   // ==========================================
@@ -226,10 +290,7 @@ export class PlannerCanvasComponent {
     e.stopPropagation();
     if (e.button !== 0) return;
 
-    // Chọn vật thể
     this.plannerService.selectObject(obj.id);
-
-    // Nếu vật thể bị khóa thì không cho kéo
     if (obj.isLocked) return;
 
     this.currentMode = 'drag-obj';
@@ -241,41 +302,9 @@ export class PlannerCanvasComponent {
       width: obj.width,
       height: obj.height,
       rotation: obj.rotation,
-      aspectRatio: obj.width / obj.height
+      aspectRatio: obj.width / obj.height,
+      oppCornerRoom: { x: 0, y: 0 }
     };
-
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-  }
-
-  onObjectPointerMove(e: PointerEvent, obj: PlannerObject): void {
-    if (this.currentMode !== 'drag-obj' || this.activeTransformObjId !== obj.id || !this.startObjState) return;
-
-    const zoom = this.plannerService.zoom();
-    const dx = (e.clientX - this.startPointer.x) / zoom;
-    const dy = (e.clientY - this.startPointer.y) / zoom;
-
-    const newX = this.startObjState.x + dx;
-    const newY = this.startObjState.y + dy;
-
-    this.plannerService.updateObjectPosition(obj.id, newX, newY, false);
-  }
-
-  onObjectPointerUp(e: PointerEvent, obj: PlannerObject): void {
-    if (this.currentMode === 'drag-obj' && this.activeTransformObjId === obj.id) {
-      // Ghi lại lịch sử sau khi buông chuột
-      if (this.startObjState && (obj.x !== this.startObjState.x || obj.y !== this.startObjState.y)) {
-        this.plannerService.recordHistory();
-      }
-      this.currentMode = 'none';
-      this.activeTransformObjId = null;
-      this.startObjState = null;
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {
-        // an toàn
-      }
-    }
   }
 
   // ==========================================
@@ -288,7 +317,6 @@ export class PlannerCanvasComponent {
     this.currentMode = 'rotate-obj';
     this.activeTransformObjId = obj.id;
 
-    // Tìm tâm của vật thể trên màn hình
     const stageRect = this.stageRef.nativeElement.getBoundingClientRect();
     const zoom = this.plannerService.zoom();
 
@@ -302,49 +330,13 @@ export class PlannerCanvasComponent {
       width: obj.width,
       height: obj.height,
       rotation: obj.rotation,
-      aspectRatio: obj.width / obj.height
+      aspectRatio: obj.width / obj.height,
+      oppCornerRoom: { x: 0, y: 0 }
     };
-
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-  }
-
-  onRotateHandlePointerMove(e: PointerEvent, obj: PlannerObject): void {
-    if (this.currentMode !== 'rotate-obj' || this.activeTransformObjId !== obj.id) return;
-
-    const dx = e.clientX - this.objCenterScreen.x;
-    const dy = e.clientY - this.objCenterScreen.y;
-
-    // Tính góc xoay (độ)
-    let angleRad = Math.atan2(dy, dx);
-    let angleDeg = angleRad * (180 / Math.PI) + 90; // +90 vì tay cầm ở hướng 12h
-
-    // Giữ phím Shift để bước nhảy 15 độ
-    if (e.shiftKey) {
-      angleDeg = Math.round(angleDeg / 15) * 15;
-    }
-
-    this.plannerService.updateObjectRotation(obj.id, angleDeg, false);
-  }
-
-  onRotateHandlePointerUp(e: PointerEvent, obj: PlannerObject): void {
-    if (this.currentMode === 'rotate-obj' && this.activeTransformObjId === obj.id) {
-      if (this.startObjState && obj.rotation !== this.startObjState.rotation) {
-        this.plannerService.recordHistory();
-      }
-      this.currentMode = 'none';
-      this.activeTransformObjId = null;
-      this.startObjState = null;
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {
-        // an toàn
-      }
-    }
   }
 
   // ==========================================
-  // POINTER EVENTS: THAY ĐỔI KÍCH THƯỚC GIỮ TỈ LỆ (RESIZE)
+  // POINTER EVENTS: THAY ĐỔI KÍCH THƯỚC (RESIZE GIỮ TỈ LỆ)
   // ==========================================
   onResizeHandlePointerDown(
     e: PointerEvent,
@@ -358,72 +350,170 @@ export class PlannerCanvasComponent {
     this.activeTransformObjId = obj.id;
     this.resizeHandleType = handle;
     this.startPointer = { x: e.clientX, y: e.clientY };
+
+    const rad = (obj.rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const c0x = obj.x + obj.width / 2;
+    const c0y = obj.y + obj.height / 2;
+
+    // Tọa độ góc đối diện cố định trong hệ tọa độ cục bộ (u, v)
+    let oppU = 0;
+    let oppV = 0;
+    if (handle === 'se') {
+      oppU = -obj.width / 2;
+      oppV = -obj.height / 2;
+    } else if (handle === 'nw') {
+      oppU = obj.width / 2;
+      oppV = obj.height / 2;
+    } else if (handle === 'ne') {
+      oppU = -obj.width / 2;
+      oppV = obj.height / 2;
+    } else if (handle === 'sw') {
+      oppU = obj.width / 2;
+      oppV = -obj.height / 2;
+    }
+
+    // Tọa độ góc đối diện cố định trong mặt bằng phòng
+    const oppRoomX = c0x + oppU * cos - oppV * sin;
+    const oppRoomY = c0y + oppU * sin + oppV * cos;
+
     this.startObjState = {
       x: obj.x,
       y: obj.y,
       width: obj.width,
       height: obj.height,
       rotation: obj.rotation,
-      aspectRatio: obj.width / obj.height
+      aspectRatio: obj.width / obj.height,
+      oppCornerRoom: { x: oppRoomX, y: oppRoomY }
     };
-
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
   }
 
-  onResizeHandlePointerMove(e: PointerEvent, obj: PlannerObject): void {
-    if (
-      this.currentMode !== 'resize-obj' ||
-      this.activeTransformObjId !== obj.id ||
-      !this.startObjState
-    ) {
+  // ==========================================
+  // GLOBAL POINTER MOVE & UP (ĐẢM BẢO KHÔNG TRƯỢT/RỚT CON TRỎ)
+  // ==========================================
+  private onGlobalPointerMove(e: PointerEvent): void {
+    if (this.currentMode === 'none') return;
+
+    if (this.currentMode === 'pan') {
+      const dx = e.clientX - this.startPointer.x;
+      const dy = e.clientY - this.startPointer.y;
+      const vp = this.viewportRef.nativeElement;
+      const clamped = this.plannerService.clampPan(
+        { x: this.startPan.x + dx, y: this.startPan.y + dy },
+        vp.clientWidth,
+        vp.clientHeight
+      );
+      this.plannerService.setPan(clamped);
       return;
     }
 
+    if (!this.activeTransformObjId || !this.startObjState) return;
+    const objId = this.activeTransformObjId;
+    const obj = this.plannerService.objects().find(o => o.id === objId);
+    if (!obj) return;
+
     const zoom = this.plannerService.zoom();
-    const dx = (e.clientX - this.startPointer.x) / zoom;
-    const dy = (e.clientY - this.startPointer.y) / zoom;
-    const aspect = this.startObjState.aspectRatio;
 
-    let newWidth = this.startObjState.width;
-    let newHeight = this.startObjState.height;
-
-    // Giữ tỉ lệ chiều rộng / chiều cao (aspect ratio)
-    if (this.resizeHandleType === 'se') {
-      const delta = Math.max(dx, dy * aspect);
-      newWidth = Math.max(30, this.startObjState.width + delta);
-      newHeight = Math.max(20, newWidth / aspect);
-    } else if (this.resizeHandleType === 'sw') {
-      const delta = Math.max(-dx, dy * aspect);
-      newWidth = Math.max(30, this.startObjState.width + delta);
-      newHeight = Math.max(20, newWidth / aspect);
-    } else if (this.resizeHandleType === 'ne') {
-      const delta = Math.max(dx, -dy * aspect);
-      newWidth = Math.max(30, this.startObjState.width + delta);
-      newHeight = Math.max(20, newWidth / aspect);
-    } else if (this.resizeHandleType === 'nw') {
-      const delta = Math.max(-dx, -dy * aspect);
-      newWidth = Math.max(30, this.startObjState.width + delta);
-      newHeight = Math.max(20, newWidth / aspect);
+    if (this.currentMode === 'drag-obj') {
+      const dx = (e.clientX - this.startPointer.x) / zoom;
+      const dy = (e.clientY - this.startPointer.y) / zoom;
+      const newX = this.startObjState.x + dx;
+      const newY = this.startObjState.y + dy;
+      this.plannerService.updateObjectPosition(objId, newX, newY, false);
+      return;
     }
 
-    this.plannerService.updateObjectSize(obj.id, newWidth, newHeight, false);
+    if (this.currentMode === 'rotate-obj') {
+      const dx = e.clientX - this.objCenterScreen.x;
+      const dy = e.clientY - this.objCenterScreen.y;
+      let angleRad = Math.atan2(dy, dx);
+      let angleDeg = angleRad * (180 / Math.PI) + 90;
+      if (e.shiftKey) {
+        angleDeg = Math.round(angleDeg / 15) * 15;
+      }
+      this.plannerService.updateObjectRotation(objId, angleDeg, false);
+      return;
+    }
+
+    if (this.currentMode === 'resize-obj') {
+      // Chuyển đổi độ dịch chuột trên màn hình sang không gian xoay cục bộ của vật thể
+      const dxRoom = (e.clientX - this.startPointer.x) / zoom;
+      const dyRoom = (e.clientY - this.startPointer.y) / zoom;
+
+      const rad = (this.startObjState.rotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+
+      // Chiếu vector kéo chuột vào trục u (ngang) và v (dọc) của vật thể xoay
+      const du = dxRoom * cos + dyRoom * sin;
+      const dv = -dxRoom * sin + dyRoom * cos;
+      const aspect = this.startObjState.aspectRatio;
+
+      let deltaW = 0;
+      if (this.resizeHandleType === 'se') {
+        deltaW = (du + dv * aspect) / 2;
+      } else if (this.resizeHandleType === 'nw') {
+        deltaW = (-du - dv * aspect) / 2;
+      } else if (this.resizeHandleType === 'ne') {
+        deltaW = (du - dv * aspect) / 2;
+      } else if (this.resizeHandleType === 'sw') {
+        deltaW = (-du + dv * aspect) / 2;
+      }
+
+      const newWidth = Math.max(30, this.startObjState.width + deltaW);
+      const newHeight = Math.max(20, newWidth / aspect);
+
+      // Tính lại tâm mới để góc đối diện giữ nguyên vị trí trong phòng
+      let newOppU = 0;
+      let newOppV = 0;
+      if (this.resizeHandleType === 'se') {
+        newOppU = -newWidth / 2;
+        newOppV = -newHeight / 2;
+      } else if (this.resizeHandleType === 'nw') {
+        newOppU = newWidth / 2;
+        newOppV = newHeight / 2;
+      } else if (this.resizeHandleType === 'ne') {
+        newOppU = -newWidth / 2;
+        newOppV = newHeight / 2;
+      } else if (this.resizeHandleType === 'sw') {
+        newOppU = newWidth / 2;
+        newOppV = -newHeight / 2;
+      }
+
+      const opp = this.startObjState.oppCornerRoom;
+      const newCenterX = opp.x - (newOppU * cos - newOppV * sin);
+      const newCenterY = opp.y - (newOppU * sin + newOppV * cos);
+
+      const newX = newCenterX - newWidth / 2;
+      const newY = newCenterY - newHeight / 2;
+
+      this.plannerService.updateObjectTransform(objId, newX, newY, newWidth, newHeight, false);
+    }
   }
 
-  onResizeHandlePointerUp(e: PointerEvent, obj: PlannerObject): void {
-    if (this.currentMode === 'resize-obj' && this.activeTransformObjId === obj.id) {
-      if (this.startObjState && (obj.width !== this.startObjState.width || obj.height !== this.startObjState.height)) {
-        this.plannerService.recordHistory();
-      }
-      this.currentMode = 'none';
-      this.activeTransformObjId = null;
-      this.startObjState = null;
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {
-        // an toàn
+  private onGlobalPointerUp(e: PointerEvent): void {
+    if (this.currentMode === 'none') return;
+
+    if (this.currentMode === 'drag-obj' || this.currentMode === 'rotate-obj' || this.currentMode === 'resize-obj') {
+      if (this.activeTransformObjId && this.startObjState) {
+        const obj = this.plannerService.objects().find(o => o.id === this.activeTransformObjId);
+        if (
+          obj &&
+          (obj.x !== this.startObjState.x ||
+            obj.y !== this.startObjState.y ||
+            obj.width !== this.startObjState.width ||
+            obj.rotation !== this.startObjState.rotation)
+        ) {
+          this.plannerService.recordHistory();
+        }
       }
     }
+
+    this.currentMode = 'none';
+    this.activeTransformObjId = null;
+    this.startObjState = null;
   }
 
   // ==========================================
@@ -431,17 +521,17 @@ export class PlannerCanvasComponent {
   // ==========================================
   rotateSelected90(): void {
     const sel = this.plannerService.selectedObject();
-    if (sel) this.plannerService.rotate90(sel.id);
+    if (sel && !sel.isLocked) this.plannerService.rotate90(sel.id);
   }
 
   bringSelectedForward(): void {
     const sel = this.plannerService.selectedObject();
-    if (sel) this.plannerService.bringForward(sel.id);
+    if (sel && !sel.isLocked) this.plannerService.bringForward(sel.id);
   }
 
   sendSelectedBackward(): void {
     const sel = this.plannerService.selectedObject();
-    if (sel) this.plannerService.sendBackward(sel.id);
+    if (sel && !sel.isLocked) this.plannerService.sendBackward(sel.id);
   }
 
   toggleSelectedLock(): void {
@@ -451,11 +541,15 @@ export class PlannerCanvasComponent {
 
   duplicateSelected(): void {
     const sel = this.plannerService.selectedObject();
-    if (sel) this.plannerService.duplicateObject(sel.id);
+    if (sel && !sel.isLocked) this.plannerService.duplicateObject(sel.id);
   }
 
   deleteSelected(): void {
     const sel = this.plannerService.selectedObject();
-    if (sel) this.plannerService.deleteObject(sel.id);
+    if (sel && !sel.isLocked) this.plannerService.deleteObject(sel.id);
+  }
+
+  onImgError(e: Event): void {
+    (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
   }
 }

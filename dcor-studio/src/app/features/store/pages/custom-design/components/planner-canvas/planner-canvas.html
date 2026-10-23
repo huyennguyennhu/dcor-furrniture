@@ -1,7 +1,6 @@
 <div 
   #viewport 
   class="canvas-viewport" 
-  (wheel)="onWheel($event)"
   (dragover)="onDragOver($event)"
   (drop)="onDrop($event)">
 
@@ -20,6 +19,7 @@
       alt="Mặt bằng phòng" 
       class="room-canvas-background" 
       draggable="false" 
+      (error)="onImgError($event)"
     />
 
     <!-- 2. Lưới tham chiếu 1 mét (SVG Grid Overlay) -->
@@ -64,9 +64,7 @@
     <div 
       class="canvas-pan-surface"
       [class.panning]="currentMode === 'pan'"
-      (pointerdown)="onBackgroundPointerDown($event)"
-      (pointermove)="onBackgroundPointerMove($event)"
-      (pointerup)="onBackgroundPointerUp($event)">
+      (pointerdown)="onBackgroundPointerDown($event)">
     </div>
 
     <!-- 4. Lớp chứa các vật thể nội thất (Objects Layer) -->
@@ -83,17 +81,21 @@
           [style.height.px]="obj.height"
           [style.z-index]="obj.zIndex"
           [style.transform]="'rotate(' + obj.rotation + 'deg)'"
-          (pointerdown)="onObjectPointerDown($event, obj)"
-          (pointermove)="onObjectPointerMove($event, obj)"
-          (pointerup)="onObjectPointerUp($event, obj)">
+          (pointerdown)="onObjectPointerDown($event, obj)">
           
           <!-- Hình ảnh đại diện vật thể -->
           <div class="object-inner-box">
-            <img [src]="obj.imageUrl" [alt]="obj.name" class="object-image" draggable="false" />
+            <img 
+              [src]="obj.imageUrl" 
+              [alt]="obj.name" 
+              class="object-image" 
+              draggable="false"
+              (error)="onImgError($event)" 
+            />
             
             <!-- Nhãn kích thước và tên hiển thị khi chọn -->
             <div class="object-label-tag">
-              <span>{{ obj.name }}</span>
+              <span class="label-name-text">{{ obj.name }}</span>
               <span class="dim-small">({{ obj.dimensionCm.width }}×{{ obj.dimensionCm.depth }}cm)</span>
             </div>
 
@@ -112,9 +114,8 @@
             <div 
               class="transform-handle-rotate" 
               (pointerdown)="onRotateHandlePointerDown($event, obj)"
-              (pointermove)="onRotateHandlePointerMove($event, obj)"
-              (pointerup)="onRotateHandlePointerUp($event, obj)"
-              title="Kéo để xoay (Giữ Shift để bước 15°)">
+              title="Kéo để xoay (Giữ Shift để bước 15°)"
+              aria-label="Tay cầm xoay">
               <div class="rotate-stem"></div>
               <div class="rotate-knob">
                 <app-icon name="RefreshCw" size="10"></app-icon>
@@ -125,26 +126,26 @@
             <div 
               class="transform-handle-corner nw" 
               (pointerdown)="onResizeHandlePointerDown($event, obj, 'nw')"
-              (pointermove)="onResizeHandlePointerMove($event, obj)"
-              (pointerup)="onResizeHandlePointerUp($event, obj)">
+              title="Kéo đổi kích thước góc Tây Bắc"
+              aria-label="Đổi kích thước góc trên trái">
             </div>
             <div 
               class="transform-handle-corner ne" 
               (pointerdown)="onResizeHandlePointerDown($event, obj, 'ne')"
-              (pointermove)="onResizeHandlePointerMove($event, obj)"
-              (pointerup)="onResizeHandlePointerUp($event, obj)">
+              title="Kéo đổi kích thước góc Đông Bắc"
+              aria-label="Đổi kích thước góc trên phải">
             </div>
             <div 
               class="transform-handle-corner se" 
               (pointerdown)="onResizeHandlePointerDown($event, obj, 'se')"
-              (pointermove)="onResizeHandlePointerMove($event, obj)"
-              (pointerup)="onResizeHandlePointerUp($event, obj)">
+              title="Kéo đổi kích thước góc Đông Nam"
+              aria-label="Đổi kích thước góc dưới phải">
             </div>
             <div 
               class="transform-handle-corner sw" 
               (pointerdown)="onResizeHandlePointerDown($event, obj, 'sw')"
-              (pointermove)="onResizeHandlePointerMove($event, obj)"
-              (pointerup)="onResizeHandlePointerUp($event, obj)">
+              title="Kéo đổi kích thước góc Tây Nam"
+              aria-label="Đổi kích thước góc dưới trái">
             </div>
           </ng-container>
 
@@ -177,6 +178,7 @@
     <button 
       type="button" 
       class="action-btn" 
+      [disabled]="sel.isLocked"
       (click)="bringSelectedForward()" 
       title="Đưa lên lớp trên"
       aria-label="Đưa lên lớp trên">
@@ -186,6 +188,7 @@
     <button 
       type="button" 
       class="action-btn" 
+      [disabled]="sel.isLocked"
       (click)="sendSelectedBackward()" 
       title="Đưa xuống lớp dưới"
       aria-label="Đưa xuống lớp dưới">
@@ -205,6 +208,7 @@
     <button 
       type="button" 
       class="action-btn" 
+      [disabled]="sel.isLocked"
       (click)="duplicateSelected()" 
       title="Nhân bản (Ctrl+D)"
       aria-label="Nhân bản">
@@ -262,8 +266,8 @@
     <button 
       type="button" 
       class="hud-btn" 
-      (click)="plannerService.resetZoom()"
-      title="Khôi phục góc nhìn 100%"
+      (click)="fitStageToViewport()"
+      title="Căn chỉnh vừa khung nhìn"
       aria-label="Khôi phục góc nhìn">
       <app-icon name="Maximize2" size="16"></app-icon>
     </button>

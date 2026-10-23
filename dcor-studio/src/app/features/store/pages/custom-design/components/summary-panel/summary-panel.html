@@ -10,8 +10,10 @@
       *ngIf="plannerService.totalItemsCount() > 0" 
       type="button" 
       class="clear-all-btn" 
+      [disabled]="plannerService.totalItemsCount() === 0"
       (click)="handleClearAll()"
-      title="Xóa tất cả vật thể chưa khóa">
+      title="Xóa tất cả vật thể chưa khóa"
+      aria-label="Xóa tất cả nội thất trong phòng">
       <app-icon name="Trash2" size="14"></app-icon>
       <span>Xóa hết</span>
     </button>
@@ -40,7 +42,12 @@
           (click)="selectItem(item)">
           
           <div class="item-row-top">
-            <img [src]="item.imageUrl" [alt]="item.name" class="item-thumb" />
+            <img 
+              [src]="item.imageUrl" 
+              [alt]="item.name" 
+              class="item-thumb" 
+              (error)="onImgError($event)"
+            />
             
             <div class="item-meta">
               <div class="item-title-row">
@@ -60,13 +67,13 @@
               type="button" 
               class="item-delete-btn" 
               (click)="removeProduct($event, item)" 
-              title="Xóa khỏi phòng"
-              aria-label="Xóa sản phẩm">
+              [title]="'Xóa ' + item.name + ' khỏi phòng'"
+              [attr.aria-label]="'Xóa ' + item.name + ' khỏi phòng'">
               <app-icon name="Trash2" size="14"></app-icon>
             </button>
           </div>
 
-          <!-- Placeholder chọn màu sắc biến thể (Lượt sau) -->
+          <!-- Placeholder chọn màu sắc biến thể -->
           <div class="color-placeholder-box">
             <div class="color-header">
               <span class="color-label">Biến thể màu sắc:</span>

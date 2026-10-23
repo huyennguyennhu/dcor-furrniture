@@ -176,9 +176,24 @@ export class RoomPlannerService {
     this.resetHistory();
   }
 
+  resetPlannerState(): void {
+    this.objects.set([]);
+    this.selectedObjectId.set(null);
+    this.zoom.set(1);
+    this.pan.set({ x: 0, y: 0 });
+    this.history = [];
+    this.historyIndex = -1;
+    this.updateUndoRedoSignals();
+  }
+
   backToSetup(): void {
+    this.confirmResetAndBackToSetup();
+  }
+
+  confirmResetAndBackToSetup(): void {
+    this.resetPlannerState();
     this.currentStep.set('setup');
-    this.setupSubStep.set('dimensions');
+    this.setupSubStep.set('source');
   }
 
   backToSourceSelection(): void {
@@ -196,28 +211,95 @@ export class RoomPlannerService {
     let width = 0;
     let depth = 0;
 
-    // 1. Thử lấy từ configOptions.dimensions
+    // 1. Trích xuất từ attributes trong variant 0 (Madrid, Expose, Demand, etc.)
+    const attrs = product.variants?.[0]?.optionValues?.attributes;
+    if (attrs) {
+      if (attrs.diameter) {
+        const d = this.parseDimensionValue(attrs.diameter);
+        if (d > 0) {
+          width = d;
+          depth = d;
+        }
+      }
+      if ((!width || !depth) && attrs.width && attrs.depth) {
+        width = this.parseDimensionValue(attrs.width);
+        depth = this.parseDimensionValue(attrs.depth);
+      } else if (!width && attrs.width) {
+        width = this.parseDimensionValue(attrs.width);
+      }
+    }
+
+    // 2. Trích xuất từ variant size (2m, 2m4)
+    if (!width || !depth) {
+      const sizeVal = product.variants?.[0]?.optionValues?.size;
+      if (typeof sizeVal === 'string') {
+        if (/2m4/i.test(sizeVal)) {
+          width = 240;
+          depth = 95;
+        } else if (/2m/i.test(sizeVal)) {
+          width = 200;
+          depth = 90;
+        } else if (/1m8/i.test(sizeVal)) {
+          width = 180;
+          depth = 85;
+        } else if (/1m6/i.test(sizeVal)) {
+          width = 160;
+          depth = 80;
+        }
+      }
+    }
+
+    // 3. Trích xuất từ variant name (H51xØ46cm, H45xØ38cm, etc.)
+    if (!width || !depth) {
+      const vName = product.variants?.[0]?.name || '';
+      const diamMatch = vName.match(/Ø(\d+)/);
+      if (diamMatch) {
+        const d = parseFloat(diamMatch[1]);
+        if (d > 0) {
+          width = d;
+          depth = d;
+        }
+      }
+    }
+
+    // 4. Thử lấy từ configOptions.dimensions
     const configDims = product.configOptions?.dimensions;
-    if (configDims) {
+    if ((!width || !depth) && configDims) {
       width = this.parseDimensionValue(configDims.width);
       depth = this.parseDimensionValue(configDims.depth);
     }
 
-    // 2. Thử lấy từ variants[0].optionValues.dimensions
+    // 5. Thử lấy từ variants[0].optionValues.dimensions
     if ((!width || !depth) && product.variants?.[0]?.optionValues?.dimensions) {
       const vDims = product.variants[0].optionValues.dimensions;
       width = this.parseDimensionValue(vDims.width);
       depth = this.parseDimensionValue(vDims.depth);
     }
 
-    // 3. Thử lấy từ dimensions trực tiếp
+    // 6. Thử lấy từ dimensions trực tiếp
     if ((!width || !depth) && product.dimensions) {
       width = this.parseDimensionValue(product.dimensions.width);
       depth = this.parseDimensionValue(product.dimensions.depth);
     }
 
-    // 4. Fallback mặc định 100x60 cm
+    // 7. Fallback mặc định theo danh mục
     if (!width || !depth || width <= 0 || depth <= 0) {
+      const catLower = (product.category?.parent?.name || product.category?.name || '').toLowerCase();
+      if (catLower.includes('sofa')) {
+        return { width: 220, depth: 95, isEstimated: true };
+      }
+      if (catLower.includes('table') || catLower.includes('bàn')) {
+        return { width: 140, depth: 80, isEstimated: true };
+      }
+      if (catLower.includes('chair') || catLower.includes('ghế')) {
+        return { width: 60, depth: 60, isEstimated: true };
+      }
+      if (catLower.includes('bed') || catLower.includes('giường')) {
+        return { width: 180, depth: 200, isEstimated: true };
+      }
+      if (catLower.includes('rug') || catLower.includes('thảm')) {
+        return { width: 200, depth: 140, isEstimated: true };
+      }
       return { width: 100, depth: 60, isEstimated: true };
     }
 
@@ -373,6 +455,37 @@ export class RoomPlannerService {
     }
   }
 
+  updateObjectTransform(
+    id: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    recordHistory = false
+  ): void {
+    const list = this.objects();
+    const idx = list.findIndex(o => o.id === id);
+    if (idx === -1 || list[idx].isLocked) return;
+
+    const clampedW = Math.max(25, Math.round(width));
+    const clampedH = Math.max(25, Math.round(height));
+
+    const updated = {
+      ...list[idx],
+      x: Math.round(x),
+      y: Math.round(y),
+      width: clampedW,
+      height: clampedH
+    };
+    const nextList = [...list];
+    nextList[idx] = updated;
+
+    this.objects.set(nextList);
+    if (recordHistory) {
+      this.recordHistory(nextList);
+    }
+  }
+
   duplicateObject(id: string): PlannerObject | null {
     const target = this.objects().find(o => o.id === id);
     if (!target) return null;
@@ -511,6 +624,31 @@ export class RoomPlannerService {
 
   setPan(pan: { x: number; y: number }): void {
     this.pan.set(pan);
+  }
+
+  clampPan(
+    pan: { x: number; y: number },
+    viewportW: number,
+    viewportH: number
+  ): { x: number; y: number } {
+    if (!viewportW || !viewportH) return pan;
+    const stageW = this.roomPixelWidth() * this.zoom();
+    const stageH = this.roomPixelHeight() * this.zoom();
+    const minVisible = 100;
+
+    const minX = minVisible - stageW;
+    const maxX = viewportW - minVisible;
+    const minY = minVisible - stageH;
+    const maxY = viewportH - minVisible;
+
+    // Nếu sân khấu nhỏ hơn viewport, cho phép pan tự do trong giới hạn
+    const clampedX = minX <= maxX ? Math.max(minX, Math.min(maxX, pan.x)) : pan.x;
+    const clampedY = minY <= maxY ? Math.max(minY, Math.min(maxY, pan.y)) : pan.y;
+
+    return {
+      x: Math.round(clampedX),
+      y: Math.round(clampedY)
+    };
   }
 
   toggleGrid(): void {

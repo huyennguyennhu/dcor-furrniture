@@ -20,7 +20,7 @@
           <button 
             type="button" 
             class="topbar-back-btn" 
-            (click)="plannerService.backToSetup()"
+            (click)="handleChangeRoomClick()"
             title="Quay lại đổi mặt bằng hoặc chỉnh lại kích thước phòng"
             aria-label="Đổi phòng">
             <app-icon name="ArrowLeft" size="16"></app-icon>
@@ -33,7 +33,7 @@
           </div>
         </div>
 
-        <!-- Nhóm ở giữa: Undo / Redo & Tiện ích -->
+        <!-- Nhóm ở giữa: Undo / Redo & Thao tác xuất / đăng bài -->
         <div class="topbar-center">
           <div class="history-controls-group">
             <button 
@@ -58,17 +58,45 @@
               <span class="btn-text">Làm lại</span>
             </button>
           </div>
+
+          <!-- Nhóm nút Xuất ảnh & Đăng lên Cộng đồng -->
+          <div class="topbar-actions-group">
+            <button 
+              type="button" 
+              class="topbar-action-btn export-btn" 
+              [disabled]="plannerService.objects().length === 0 || publishService.isExporting()"
+              (click)="handleExportPngClick()"
+              title="Tải ảnh thiết kế PNG (dcor-thiet-ke-YYYYMMDD.png)"
+              aria-label="Xuất ảnh PNG">
+              <app-icon [name]="publishService.isExporting() ? 'LoaderCircle' : 'Download'" size="16" [class.icon-spin]="publishService.isExporting()"></app-icon>
+              <span class="action-btn-text">Xuất ảnh</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="topbar-action-btn publish-btn" 
+              [disabled]="plannerService.objects().length === 0 || (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null)"
+              (click)="handlePublishClick()"
+              [title]="(!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Thiết kế này đã được gửi bài duyệt' : 'Đăng thiết kế lên Cộng đồng DCor'"
+              aria-label="Đăng lên Cộng đồng">
+              <app-icon name="Share2" size="16"></app-icon>
+              <span class="action-btn-text">
+                {{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Đã gửi duyệt' : 'Đăng lên Cộng đồng' }}
+              </span>
+            </button>
+          </div>
         </div>
 
         <!-- Nhóm bên phải: Tổng tiền & Nút Drawer trên mobile -->
         <div class="topbar-right">
-          <!-- Mobile Drawer Toggles (chỉ hiện khi màn hình < 1024px) -->
+          <!-- Mobile Drawer Toggles (chỉ hiện khi màn hình <= 1024px) -->
           <div class="mobile-toggles-row">
             <button 
               type="button" 
               class="mobile-drawer-toggle-btn"
               [class.active]="mobileDrawer() === 'products'"
-              (click)="toggleMobileDrawer('products')">
+              (click)="toggleMobileDrawer('products')"
+              aria-label="Mở danh mục nội thất">
               <app-icon name="Package" size="16"></app-icon>
               <span>Nội thất</span>
             </button>
@@ -77,7 +105,8 @@
               type="button" 
               class="mobile-drawer-toggle-btn"
               [class.active]="mobileDrawer() === 'summary'"
-              (click)="toggleMobileDrawer('summary')">
+              (click)="toggleMobileDrawer('summary')"
+              aria-label="Mở danh sách nội thất đã chọn">
               <app-icon name="ShoppingBag" size="16"></app-icon>
               <span>Đã chọn ({{ plannerService.totalItemsCount() }})</span>
             </button>
@@ -136,5 +165,240 @@
 
     </div>
   </ng-container>
+
+  <!-- ============================================== -->
+  <!-- 3. TOAST THÔNG BÁO NỔI GÓC DƯỚI BẢN VẼ          -->
+  <!-- ============================================== -->
+  <div *ngIf="toastMessage()" class="planner-toast" [class]="'toast-' + toastType()">
+    <app-icon [name]="toastType() === 'success' ? 'CircleCheck' : (toastType() === 'error' ? 'AlertCircle' : 'Info')" size="18"></app-icon>
+    <span class="toast-text">{{ toastMessage() }}</span>
+    <button type="button" class="toast-close-btn" (click)="closeToast()" aria-label="Đóng thông báo">
+      <app-icon name="X" size="14"></app-icon>
+    </button>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- 4. MODAL XÁC NHẬN ĐỔI PHÒNG                    -->
+  <!-- ============================================== -->
+  <app-modal 
+    [isOpen]="isConfirmChangeRoomOpen()" 
+    [title]="'Xác nhận đổi phòng'" 
+    [hasFooter]="true" 
+    width="440px"
+    (close)="cancelChangeRoom()">
+    <div class="confirm-modal-body">
+      <div class="confirm-modal-icon-badge">
+        <app-icon name="AlertTriangle" size="24"></app-icon>
+      </div>
+      <div class="confirm-modal-message">
+        <p class="modal-lead-text">Bạn có chắc chắn muốn đổi sang không gian phòng khác?</p>
+        <p class="modal-sub-text">
+          Tất cả <strong>{{ plannerService.objects().length }}</strong> nội thất đã sắp đặt trên bản vẽ phòng hiện tại sẽ bị xóa sạch khỏi không gian.
+        </p>
+      </div>
+    </div>
+    <div footer class="confirm-modal-footer">
+      <button type="button" class="btn-secondary" (click)="cancelChangeRoom()">Giữ lại thiết kế</button>
+      <button type="button" class="btn-primary danger" (click)="confirmChangeRoom()">Đổi phòng</button>
+    </div>
+  </app-modal>
+
+  <!-- ============================================== -->
+  <!-- 5. MODAL YÊU CẦU ĐĂNG NHẬP (REQ 3)             -->
+  <!-- ============================================== -->
+  <app-modal 
+    [isOpen]="isLoginPromptOpen()" 
+    [title]="'Yêu cầu đăng nhập'" 
+    [hasFooter]="true" 
+    width="460px"
+    (close)="cancelLoginPrompt()">
+    <div class="login-modal-body">
+      <div class="login-modal-icon-badge">
+        <app-icon name="CircleUserRound" size="30"></app-icon>
+      </div>
+      <div class="login-modal-message">
+        <h3 class="login-modal-heading">Đăng nhập để đăng lên Cộng đồng</h3>
+        <p class="login-modal-text">
+          Vui lòng đăng nhập tài khoản khách hàng để chia sẻ tác phẩm của bạn với cộng đồng yêu nội thất DCor.
+        </p>
+        <div class="login-modal-notice-box">
+          <app-icon name="Sparkles" size="18"></app-icon>
+          <span>Thiết kế hiện tại (ảnh nền, kích thước và nội thất) sẽ được lưu tạm tự động và khôi phục khi bạn quay lại.</span>
+        </div>
+      </div>
+    </div>
+    <div footer class="login-modal-footer">
+      <button type="button" class="btn-secondary" (click)="cancelLoginPrompt()">Để sau</button>
+      <button type="button" class="btn-primary" (click)="confirmNavigateToLogin()">Đăng nhập ngay</button>
+    </div>
+  </app-modal>
+
+  <!-- ============================================== -->
+  <!-- 6. MODAL ĐĂNG THIẾT KẾ LÊN CỘNG ĐỒNG (REQ 4-7) -->
+  <!-- ============================================== -->
+  <app-modal 
+    [isOpen]="isPublishModalOpen()" 
+    [title]="isPublishSuccess() ? 'Thông báo duyệt bài' : 'Đăng thiết kế lên Cộng đồng'" 
+    [hasFooter]="!isPublishSuccess()" 
+    width="680px"
+    (close)="closePublishModal()">
+
+    <!-- THÀNH CÔNG (REQ 7) -->
+    <ng-container *ngIf="isPublishSuccess()">
+      <div class="publish-success-view">
+        <div class="success-icon-badge">
+          <app-icon name="CircleCheck" size="44" color="#16a34a"></app-icon>
+        </div>
+        <h3 class="success-heading">Đã gửi bài thành công!</h3>
+        <p class="success-message">
+          Đã gửi bài. Bài sẽ hiển thị trên trang Cộng đồng sau khi quản trị viên duyệt.
+        </p>
+        <div class="success-actions-row">
+          <button type="button" class="btn-secondary" (click)="closePublishModal()">
+            Tiếp tục thiết kế
+          </button>
+          <button type="button" class="btn-primary" (click)="goToCommunity()">
+            <app-icon name="ExternalLink" size="16"></app-icon>
+            <span>Xem Cộng đồng</span>
+          </button>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- FORM BIÊN SOẠN BÀI ĐĂNG (REQ 4, 5, 6) -->
+    <ng-container *ngIf="!isPublishSuccess()">
+      <div class="publish-modal-container">
+
+        <!-- Cảnh báo nếu có (ví dụ ảnh fallback do CORS) -->
+        <div *ngIf="publishWarningMessage()" class="publish-alert-box warning">
+          <app-icon name="Info" size="18"></app-icon>
+          <span>{{ publishWarningMessage() }}</span>
+        </div>
+
+        <!-- Báo lỗi gửi bài (Req 6 - giữ nguyên nội dung form) -->
+        <div *ngIf="publishErrorMessage()" class="publish-alert-box error">
+          <app-icon name="AlertCircle" size="18"></app-icon>
+          <span>{{ publishErrorMessage() }}</span>
+        </div>
+
+        <!-- 1. Xem trước ảnh xuất (JPEG 0.85, max 1600px) -->
+        <div class="publish-preview-section">
+          <div class="preview-header">
+            <span class="field-label">Xem trước ảnh xuất (JPEG 0.85):</span>
+            <span class="preview-badge" *ngIf="previewImageUrl()">Tối đa 1600px</span>
+          </div>
+          <div class="preview-viewport-card">
+            <div *ngIf="isGeneratingPreview()" class="preview-loading-overlay">
+              <app-icon name="LoaderCircle" size="30" class="icon-spin"></app-icon>
+              <span>Đang kết xuất và tối ưu ảnh thiết kế...</span>
+            </div>
+            <img 
+              *ngIf="previewImageUrl() && !isGeneratingPreview()" 
+              [src]="previewImageUrl()" 
+              alt="Bản xem trước thiết kế" 
+              class="preview-rendered-img"
+            />
+          </div>
+        </div>
+
+        <!-- 2. Form biên soạn thông tin bài đăng -->
+        <div class="publish-form-fields">
+          <!-- Tiêu đề (Bắt buộc, <= 100 ký tự) -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="publish-title" class="field-label">Tiêu đề thiết kế <span class="required-star">*</span></label>
+              <span class="char-counter" [class.over]="postTitle().length > 100">{{ postTitle().length }}/100</span>
+            </div>
+            <input 
+              id="publish-title" 
+              type="text" 
+              [ngModel]="postTitle()" 
+              (ngModelChange)="postTitle.set($event)"
+              maxlength="100" 
+              placeholder="VD: Phòng khách phong cách Scandinavian ấm cúng" 
+              class="publish-input"
+              [class.input-error]="postTitleTouched() && !postTitle().trim()"
+              (blur)="postTitleTouched.set(true)"
+            />
+            <span class="field-error-text" *ngIf="postTitleTouched() && !postTitle().trim()">
+              Vui lòng nhập tiêu đề thiết kế (tối đa 100 ký tự).
+            </span>
+          </div>
+
+          <!-- Chú thích kiểu bài đăng mạng xã hội (<= 500 ký tự) -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="publish-desc" class="field-label">Chú thích bài đăng</label>
+              <span class="char-counter" [class.over]="postDescription().length > 500">{{ postDescription().length }}/500</span>
+            </div>
+            <textarea 
+              id="publish-desc" 
+              rows="3" 
+              [ngModel]="postDescription()" 
+              (ngModelChange)="postDescription.set($event)"
+              maxlength="500" 
+              placeholder="Chia sẻ cảm hứng bài trí, ý tưởng phối màu hay phong cách không gian với cộng đồng DCor..." 
+              class="publish-textarea">
+            </textarea>
+          </div>
+
+          <!-- Danh sách sản phẩm sẽ gắn thẻ (Tối đa 15 thẻ) -->
+          <div class="tagged-products-section">
+            <div class="tagged-header-row">
+              <span class="field-label">Sản phẩm gắn thẻ trên bài đăng</span>
+              <span class="tagged-count-badge">{{ taggedProducts().length }} thẻ</span>
+            </div>
+            <div class="tagged-products-list">
+              @for (item of taggedProducts(); track item.productId + '-' + item.x + '-' + item.y) {
+                <div class="tagged-product-chip">
+                  <span class="tag-pin">🏷️</span>
+                  <span class="tag-name">{{ item.name }}</span>
+                  <span class="tag-coords">({{ item.x }}%, {{ item.y }}%)</span>
+                  <span class="tag-price">{{ item.price | number }} ₫</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Checkbox đồng ý -->
+          <div class="agreement-row">
+            <label class="agreement-checkbox-label">
+              <input 
+                type="checkbox" 
+                [ngModel]="isAgreed()" 
+                (ngModelChange)="isAgreed.set($event)"
+                class="agreement-checkbox" 
+              />
+              <span class="agreement-text">
+                Tôi đồng ý chia sẻ thiết kế này lên Cộng đồng DCor và xác nhận nội dung không vi phạm tiêu chuẩn cộng đồng.
+              </span>
+            </label>
+          </div>
+
+        </div>
+
+      </div>
+    </ng-container>
+
+    <!-- Footer gửi bài -->
+    <div footer *ngIf="!isPublishSuccess()" class="publish-modal-footer">
+      <button 
+        type="button" 
+        class="btn-secondary" 
+        [disabled]="publishService.isSubmitting()"
+        (click)="closePublishModal()">
+        Hủy
+      </button>
+      <button 
+        type="button" 
+        class="btn-primary" 
+        [disabled]="publishService.isSubmitting() || isGeneratingPreview() || !postTitle().trim() || postTitle().length > 100 || postDescription().length > 500 || !isAgreed()"
+        (click)="submitPublishPost()">
+        <app-icon [name]="publishService.isSubmitting() ? 'LoaderCircle' : 'Send'" size="16" [class.icon-spin]="publishService.isSubmitting()"></app-icon>
+        <span>{{ publishService.isSubmitting() ? 'Đang gửi bài...' : 'Gửi duyệt bài' }}</span>
+      </button>
+    </div>
+
+  </app-modal>
 
 </div>

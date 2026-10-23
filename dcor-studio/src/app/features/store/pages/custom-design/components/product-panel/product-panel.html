@@ -7,28 +7,31 @@
       <input 
         type="text" 
         [ngModel]="searchQuery()" 
-        (ngModelChange)="searchQuery.set($event)"
+        (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
         placeholder="Tìm sofa, bàn trà, đèn..." 
         class="panel-search-input" 
+        aria-label="Tìm kiếm sản phẩm nội thất"
       />
       <button 
         *ngIf="searchQuery()" 
         type="button" 
         class="clear-search-btn" 
         (click)="clearSearch()" 
-        aria-label="Xóa tìm kiếm">
+        aria-label="Xóa từ khóa tìm kiếm">
         <app-icon name="X" size="14"></app-icon>
       </button>
     </div>
 
     <!-- Thanh lọc danh mục nhanh (chips) -->
-    <div class="category-chips-scroll">
+    <div class="category-chips-scroll" role="group" aria-label="Lọc theo danh mục">
       @for (cat of categories(); track cat.id) {
         <button 
           type="button" 
           class="cat-chip" 
-          [class.active]="selectedCategory() === cat.slug"
-          (click)="setCategory(cat.slug)">
+          [class.active]="selectedCategory() === cat.id"
+          [attr.aria-pressed]="selectedCategory() === cat.id"
+          (click)="setCategory(cat.id)"
+          [attr.aria-label]="'Lọc danh mục ' + cat.name">
           {{ cat.name }}
         </button>
       }
@@ -56,25 +59,32 @@
     <div *ngIf="loadError() && !isLoading()" class="panel-state-card error-state">
       <app-icon name="AlertCircle" size="28" color="var(--color-danger, #c42326)"></app-icon>
       <p class="state-message">{{ loadError() }}</p>
-      <button type="button" class="retry-btn" (click)="fetchProducts()">
-        <app-icon name="RefreshCw" size="14"></app-icon>
-        <span>Thử lại</span>
-      </button>
+      <div class="error-actions-group">
+        <button type="button" class="retry-btn" (click)="fetchProducts()" aria-label="Thử kết nối lại">
+          <app-icon name="RefreshCw" size="14"></app-icon>
+          <span>Thử lại</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Empty State -->
-    <div *ngIf="!isLoading() && !loadError() && filteredProducts().length === 0" class="panel-state-card empty-state">
+    <!-- Empty State (Chỉ hiện khi API trả về thật sự rỗng) -->
+    <div *ngIf="!isLoading() && !loadError() && allFilteredProducts().length === 0" class="panel-state-card empty-state">
       <app-icon name="Package" size="32" color="var(--color-text-muted, #757575)"></app-icon>
       <p class="state-title">Không tìm thấy sản phẩm</p>
       <p class="state-message">Thử đổi từ khóa hoặc chọn danh mục khác để xem thêm nội thất DCor.</p>
-      <button *ngIf="searchQuery() || selectedCategory() !== 'all'" type="button" class="reset-filter-btn" (click)="searchQuery.set(''); selectedCategory.set('all')">
+      <button 
+        *ngIf="searchQuery() || selectedCategory() !== 'all'" 
+        type="button" 
+        class="reset-filter-btn" 
+        (click)="clearSearch(); setCategory('all')"
+        aria-label="Đặt lại bộ lọc tìm kiếm">
         Đặt lại bộ lọc
       </button>
     </div>
 
     <!-- Product Cards -->
-    <div *ngIf="!isLoading() && !loadError() && filteredProducts().length > 0" class="product-cards-list">
-      @for (prod of filteredProducts(); track prod.id) {
+    <div *ngIf="!isLoading() && !loadError() && displayedProducts().length > 0" class="product-cards-list">
+      @for (prod of displayedProducts(); track prod.id) {
         <div 
           class="product-item-card" 
           draggable="true" 
@@ -83,12 +93,18 @@
           title="Bấm hoặc kéo thả vào phòng">
           
           <div class="item-thumb-box">
-            <img [src]="prod.imageUrl" [alt]="prod.name" class="item-thumb-img" loading="lazy" />
+            <img 
+              [src]="prod.imageUrl" 
+              [alt]="prod.name" 
+              class="item-thumb-img" 
+              loading="lazy" 
+              (error)="onImgError($event)"
+            />
           </div>
 
           <div class="item-main-info">
-            <span class="item-category">{{ prod.category }}</span>
-            <h4 class="item-name">{{ prod.name }}</h4>
+            <span class="item-category" [title]="prod.category">{{ prod.category }}</span>
+            <h4 class="item-name" [title]="prod.name">{{ prod.name }}</h4>
 
             <div class="item-specs-row">
               <span class="dimension-badge" [class.estimated]="prod.isEstimatedDimension">
@@ -103,15 +119,24 @@
               <button 
                 type="button" 
                 class="add-item-btn" 
+                [class.added-feedback]="addedProductId() === prod.id"
                 (click)="$event.stopPropagation(); handleAddProduct(prod)"
-                aria-label="Thêm vào phòng">
-                <app-icon name="Plus" size="14"></app-icon>
-                <span>Thêm</span>
+                [attr.aria-label]="'Thêm ' + prod.name + ' vào phòng'">
+                <app-icon [name]="addedProductId() === prod.id ? 'Check' : 'Plus'" size="14"></app-icon>
+                <span>{{ addedProductId() === prod.id ? 'Đã thêm' : 'Thêm' }}</span>
               </button>
             </div>
           </div>
         </div>
       }
+
+      <!-- Nút Xem thêm (Phân trang mượt mà) -->
+      <div *ngIf="hasMore()" class="load-more-section">
+        <button type="button" class="load-more-btn" (click)="loadMore()" aria-label="Xem thêm sản phẩm">
+          <span>Xem thêm (còn {{ remainingCount() }} sản phẩm)</span>
+          <app-icon name="ChevronDown" size="14"></app-icon>
+        </button>
+      </div>
     </div>
 
   </div>

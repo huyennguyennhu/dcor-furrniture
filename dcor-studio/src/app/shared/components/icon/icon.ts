@@ -22,6 +22,7 @@ import {
   ChartNoAxesCombined,
   ClipboardList,
   DollarSign,
+  Download,
   Edit,
   Eye,
   EyeOff,
@@ -95,6 +96,7 @@ import {
   Ticket,
   Percent,
   TrendingUp,
+  Upload,
 } from 'lucide-angular';
 
 const ICONS = {
@@ -120,6 +122,7 @@ const ICONS = {
   ChartNoAxesCombined,
   ClipboardList,
   DollarSign,
+  Download,
   Edit,
   Eye,
   EyeOff,
@@ -192,6 +195,7 @@ const ICONS = {
   Ticket,
   Percent,
   TrendingUp,
+  Upload,
 } as const;
 
 export type IconName = keyof typeof ICONS;

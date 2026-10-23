@@ -51,12 +51,22 @@
   font-weight: 600;
   color: var(--color-danger, #c42326);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: max-content;
   transition: all 0.15s ease;
 }
 
-.clear-all-btn:hover {
+.clear-all-btn:hover:not(:disabled) {
   background: var(--color-danger-bg, #ffe8e8);
   border-color: var(--color-danger, #c42326);
+}
+
+.clear-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--color-text-muted, #757575);
+  border-color: var(--color-border, #e0e0e0);
 }
 
 /* Body */
@@ -173,6 +183,8 @@
   background: var(--color-sub-bg, #fff3e3);
   padding: 1px 6px;
   border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .item-dim-line {
@@ -185,6 +197,8 @@
   gap: 3px;
   font-size: 10.5px;
   color: var(--color-text-muted, #757575);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dim-badge.estimated {
