@@ -93,10 +93,9 @@
               (error)="onImgError($event)" 
             />
             
-            <!-- Nhãn kích thước và tên hiển thị khi chọn -->
+            <!-- Nhãn tên vật thể hiển thị khi chọn (không lặp lại kích thước) -->
             <div class="object-label-tag">
               <span class="label-name-text">{{ obj.name }}</span>
-              <span class="dim-small">({{ obj.dimensionCm.width }}×{{ obj.dimensionCm.depth }}cm)</span>
             </div>
 
             <!-- Khóa biểu tượng nếu bị khóa -->
@@ -271,18 +270,6 @@
       aria-label="Khôi phục góc nhìn">
       <app-icon name="Maximize2" size="16"></app-icon>
     </button>
-  </div>
-
-  <!-- HUD THÔNG TIN MẶT BẰNG GÓC TRÊN TRÁI -->
-  <div class="canvas-room-info-badge">
-    <div class="room-badge-title">
-      <span class="indicator-dot"></span>
-      <strong>{{ plannerService.background()?.name }}</strong>
-    </div>
-    <div class="room-badge-dims">
-      <span>{{ plannerService.dimensions()?.length }}m × {{ plannerService.dimensions()?.width }}m</span>
-      <span class="scale-text">· 1m ≈ {{ gridMeterSize() }}px</span>
-    </div>
   </div>
 
 </div>

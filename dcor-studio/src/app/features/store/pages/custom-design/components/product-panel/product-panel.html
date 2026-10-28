@@ -1,40 +1,42 @@
 <div class="product-panel-container">
   
-  <!-- Header & Tìm kiếm -->
+  <!-- Header: Tìm kiếm, Dropdown Danh mục & Số lượng kết quả -->
   <div class="panel-header">
-    <div class="search-input-wrap">
-      <app-icon name="Search" size="16" class="search-icon"></app-icon>
-      <input 
-        type="text" 
-        [ngModel]="searchQuery()" 
-        (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
-        placeholder="Tìm sofa, bàn trà, đèn..." 
-        class="panel-search-input" 
-        aria-label="Tìm kiếm sản phẩm nội thất"
-      />
-      <button 
-        *ngIf="searchQuery()" 
-        type="button" 
-        class="clear-search-btn" 
-        (click)="clearSearch()" 
-        aria-label="Xóa từ khóa tìm kiếm">
-        <app-icon name="X" size="14"></app-icon>
-      </button>
+    <div class="search-filter-row">
+      <!-- Ô tìm kiếm sản phẩm -->
+      <div class="search-input-wrap">
+        <app-icon name="Search" size="15" class="search-icon"></app-icon>
+        <input 
+          type="text" 
+          [ngModel]="searchQuery()" 
+          (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
+          placeholder="Tìm sofa, bàn, đèn..." 
+          class="panel-search-input" 
+          aria-label="Tìm kiếm sản phẩm nội thất"
+        />
+        <button 
+          *ngIf="searchQuery()" 
+          type="button" 
+          class="clear-search-btn" 
+          (click)="clearSearch()" 
+          aria-label="Xóa từ khóa tìm kiếm">
+          <app-icon name="X" size="14"></app-icon>
+        </button>
+      </div>
+
+      <!-- Dropdown Danh mục (nằm cạnh ô tìm kiếm, xếp dọc trên mobile) -->
+      <div class="category-dropdown-wrap">
+        <app-category-dropdown
+          [options]="categoryOptions()"
+          [selectedId]="selectedCategory()"
+          (categoryChange)="setCategory($event)">
+        </app-category-dropdown>
+      </div>
     </div>
 
-    <!-- Thanh lọc danh mục nhanh (chips) -->
-    <div class="category-chips-scroll" role="group" aria-label="Lọc theo danh mục">
-      @for (cat of categories(); track cat.id) {
-        <button 
-          type="button" 
-          class="cat-chip" 
-          [class.active]="selectedCategory() === cat.id"
-          [attr.aria-pressed]="selectedCategory() === cat.id"
-          (click)="setCategory(cat.id)"
-          [attr.aria-label]="'Lọc danh mục ' + cat.name">
-          {{ cat.name }}
-        </button>
-      }
+    <!-- Số lượng kết quả: "n sản phẩm" -->
+    <div class="results-count-bar">
+      <span class="count-text">{{ allFilteredProducts().length }} sản phẩm</span>
     </div>
   </div>
 
@@ -90,7 +92,7 @@
           draggable="true" 
           (dragstart)="onDragStart($event, prod)"
           (click)="handleAddProduct(prod)"
-          title="Bấm hoặc kéo thả vào phòng">
+          title="Thêm vào phòng">
           
           <div class="item-thumb-box">
             <img 

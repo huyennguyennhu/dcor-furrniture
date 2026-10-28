@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, TimeoutError, from, of, switchMap, throwError, timeout, finalize, tap } from 'rxjs';
+import { Observable, TimeoutError, from, of, switchMap, throwError, timeout, finalize, tap, catchError } from 'rxjs';
 import { environment } from '../../../../../../environments/environment';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { RoomPlannerService } from './room-planner.service';
@@ -31,7 +31,8 @@ export interface TempDesignSessionState {
 }
 
 const SESSION_STORAGE_KEY = 'dcor_custom_design_session_temp';
-const PUBLISH_TIMEOUT_MS = 20000;
+const UPLOAD_TIMEOUT_MS = 60000; // 60 giây cho upload ảnh
+const PUBLISH_TIMEOUT_MS = 20000; // 20 giây cho tạo bài đăng
 
 @Injectable()
 export class CommunityPublishService {
@@ -117,9 +118,9 @@ export class CommunityPublishService {
   }
 
   /**
-   * Ghép ảnh nền + vật thể lên Canvas (tối đa 1600px cạnh dài, xử lý tainted canvas)
+   * Ghép ảnh nền + vật thể lên Canvas (hỗ trợ điều chỉnh maxEdge, xử lý tainted canvas)
    */
-  async renderDesignCanvas(forceFallbackBoxes = false): Promise<{
+  async renderDesignCanvas(maxEdge = 1600, forceFallbackBoxes = false): Promise<{
     canvas: HTMLCanvasElement;
     isTainted: boolean;
     warning?: string;
@@ -131,7 +132,6 @@ export class CommunityPublishService {
 
     const naturalW = bg.naturalWidth || 1200;
     const naturalH = bg.naturalHeight || 800;
-    const maxEdge = 1600;
     const longest = Math.max(naturalW, naturalH);
     const scale = longest > maxEdge ? maxEdge / longest : 1;
     const canvasW = Math.round(naturalW * scale);
@@ -243,7 +243,7 @@ export class CommunityPublishService {
 
     // Nếu bị tainted mà chưa ở chế độ fallback thì render lại toàn bộ bằng fallback khung
     if (isTainted && !forceFallbackBoxes) {
-      return this.renderDesignCanvas(true);
+      return this.renderDesignCanvas(maxEdge, true);
     }
 
     const warning = (hasFallbackBox || isTainted || bgLoadFailed)
@@ -254,14 +254,14 @@ export class CommunityPublishService {
   }
 
   /**
-   * Tạo Blob từ Canvas với định dạng yêu cầu
+   * Tạo Blob từ Canvas với định dạng yêu cầu (chất lượng cao cho xuất file PNG)
    */
   async generateBlob(format: 'image/png' | 'image/jpeg', quality = 0.85): Promise<{
     blob: Blob;
     isTainted: boolean;
     warning?: string;
   }> {
-    const { canvas, isTainted, warning } = await this.renderDesignCanvas();
+    const { canvas, isTainted, warning } = await this.renderDesignCanvas(1600);
 
     return new Promise((resolve, reject) => {
       canvas.toBlob(
@@ -276,6 +276,78 @@ export class CommunityPublishService {
         quality
       );
     });
+  }
+
+  /**
+   * Nén ảnh tự động trước khi tải lên Cộng đồng:
+   * 1. Ghép canvas với cạnh dài tối đa 1280px, xuất JPEG bằng toBlob
+   * 2. Nếu > 800KB thì giảm chất lượng lần lượt: 0.8 -> 0.7 -> 0.6 -> 0.5
+   * 3. Nếu vẫn > 800KB thì giảm cạnh dài xuống 1024 -> 800 (cùng các mức chất lượng trên)
+   * 4. Dừng ngay khi dung lượng <= 800KB
+   */
+  async generateCompressedBlobForPublish(): Promise<{
+    blob: Blob;
+    isTainted: boolean;
+    warning?: string;
+    sizeBytes: number;
+    sizeKb: number;
+    finalQuality: number;
+    finalMaxEdge: number;
+  }> {
+    const TARGET_MAX_BYTES = 800 * 1024; // 800KB
+    const edgeSteps = [1280, 1024, 800];
+    const qualitySteps = [0.8, 0.7, 0.6, 0.5];
+
+    let lastBlob: Blob | null = null;
+    let lastTainted = false;
+    let lastWarning: string | undefined = undefined;
+    let lastQuality = 0.5;
+    let lastEdge = 800;
+
+    for (const maxEdge of edgeSteps) {
+      const { canvas, isTainted, warning } = await this.renderDesignCanvas(maxEdge);
+      lastTainted = isTainted;
+      lastWarning = warning;
+      lastEdge = maxEdge;
+
+      for (const q of qualitySteps) {
+        lastQuality = q;
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), 'image/jpeg', q);
+        });
+
+        if (blob) {
+          lastBlob = blob;
+          if (blob.size <= TARGET_MAX_BYTES) {
+            const sizeKb = Math.round(blob.size / 1024);
+            return {
+              blob,
+              isTainted,
+              warning,
+              sizeBytes: blob.size,
+              sizeKb,
+              finalQuality: q,
+              finalMaxEdge: maxEdge
+            };
+          }
+        }
+      }
+    }
+
+    if (!lastBlob) {
+      throw new Error('Không thể tạo file ảnh từ bản vẽ.');
+    }
+
+    const sizeKb = Math.round(lastBlob.size / 1024);
+    return {
+      blob: lastBlob,
+      isTainted: lastTainted,
+      warning: lastWarning,
+      sizeBytes: lastBlob.size,
+      sizeKb,
+      finalQuality: lastQuality,
+      finalMaxEdge: lastEdge
+    };
   }
 
   /**
@@ -389,17 +461,20 @@ export class CommunityPublishService {
   /**
    * Tải ảnh lên máy chủ Cloudinary qua multipart/form-data
    */
+  /**
+   * Tải ảnh lên máy chủ qua multipart/form-data (timeout 60 giây)
+   */
   uploadImage(imageBlob: Blob): Observable<{ url: string }> {
     const formData = new FormData();
     formData.append('file', imageBlob, 'dcor-design.jpg');
 
     return this.http
       .post<{ url: string }>(`${environment.apiUrl}/upload/image`, formData)
-      .pipe(timeout(PUBLISH_TIMEOUT_MS));
+      .pipe(timeout(UPLOAD_TIMEOUT_MS));
   }
 
   /**
-   * Gửi tạo bài đăng thiết kế mới
+   * Gửi tạo bài đăng thiết kế mới (timeout 20 giây)
    */
   createDesignPost(payload: DesignPostPayload): Observable<any> {
     return this.http
@@ -408,7 +483,7 @@ export class CommunityPublishService {
   }
 
   /**
-   * Toàn bộ quy trình gửi bài: Tải ảnh -> Lấy URL -> Tạo bài đăng (có timeout 20s và chống double click)
+   * Toàn bộ quy trình gửi bài: Tải ảnh (60s) -> Lấy URL -> Tạo bài đăng (20s)
    */
   publishDesign(title: string, description: string, imageBlob: Blob): Observable<any> {
     if (this.isSubmitting()) {
@@ -422,6 +497,10 @@ export class CommunityPublishService {
     this.isSubmitting.set(true);
 
     return this.uploadImage(imageBlob).pipe(
+      catchError((uploadErr) => {
+        (uploadErr as any).stage = 'upload';
+        return throwError(() => uploadErr);
+      }),
       switchMap((uploadRes) => {
         if (!uploadRes || !uploadRes.url) {
           throw new Error('Không nhận được liên kết ảnh sau khi tải lên.');
@@ -435,7 +514,12 @@ export class CommunityPublishService {
           taggedProducts
         };
 
-        return this.createDesignPost(payload);
+        return this.createDesignPost(payload).pipe(
+          catchError((postErr) => {
+            (postErr as any).stage = 'post';
+            return throwError(() => postErr);
+          })
+        );
       }),
       tap((postRes) => {
         this.markLayoutAsPublished();
@@ -447,26 +531,45 @@ export class CommunityPublishService {
   }
 
   /**
-   * Chuyển đổi mã trạng thái HTTP sang thông báo tiếng Việt
+   * Chuyển đổi mã trạng thái HTTP sang thông báo tiếng Việt chi tiết (xử lý riêng 413, 0, 5xx và server message)
    */
   formatHttpError(err: any): string {
     if (!err) {
       return 'Đã có lỗi xảy ra. Vui lòng thử lại sau.';
     }
 
+    const serverMsg = err.error?.message || err.error?.error || '';
+
     // Timeout (RxJS TimeoutError)
     if (err instanceof TimeoutError || err.name === 'TimeoutError') {
-      return 'Quá thời gian gửi yêu cầu (20 giây). Vui lòng kiểm tra lại kết nối mạng.';
+      if ((err as any)?.stage === 'upload') {
+        return 'Quá thời gian tải ảnh lên máy chủ (60 giây). Vui lòng kiểm tra lại kết nối mạng.';
+      }
+      return 'Quá thời gian gửi bài đăng (20 giây). Vui lòng kiểm tra lại kết nối mạng.';
+    }
+
+    // 413: Tệp quá lớn
+    if (err.status === 413) {
+      return serverMsg 
+        ? `Tệp ảnh tải lên quá lớn (Lỗi 413): ${serverMsg}` 
+        : 'Tệp ảnh vượt quá dung lượng cho phép của máy chủ (Lỗi 413: Payload Too Large). Vui lòng thử lại.';
     }
 
     // Status 0: Không kết nối được tới server
     if (err.status === 0) {
-      return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.';
+      return 'Không thể kết nối đến máy chủ (Mã lỗi 0). Vui lòng kiểm tra lại đường truyền mạng hoặc máy chủ.';
+    }
+
+    // 5xx: Lỗi server (500, 502, 503, 504...)
+    if (typeof err.status === 'number' && err.status >= 500 && err.status < 600) {
+      return serverMsg
+        ? `Lỗi máy chủ (${err.status}): ${serverMsg}`
+        : `Hệ thống máy chủ đang gặp sự cố (Mã lỗi ${err.status}). Vui lòng thử lại sau.`;
     }
 
     // 400: Dữ liệu không hợp lệ
     if (err.status === 400) {
-      return err.error?.message || 'Thông tin gửi bài không hợp lệ. Vui lòng kiểm tra lại tiêu đề.';
+      return serverMsg || 'Thông tin gửi bài không hợp lệ. Vui lòng kiểm tra lại tiêu đề.';
     }
 
     // 401 / 403: Hết hạn đăng nhập
@@ -474,23 +577,13 @@ export class CommunityPublishService {
       return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại tài khoản.';
     }
 
-    // 413: Quá giới hạn dung lượng
-    if (err.status === 413) {
-      return 'Ảnh thiết kế vượt quá dung lượng cho phép. Vui lòng thử lại.';
-    }
-
     // 429: Gửi quá nhiều
     if (err.status === 429) {
       return 'Bạn đang gửi yêu cầu quá nhanh. Vui lòng chờ giây lát rồi thử lại.';
     }
 
-    // 5xx: Lỗi server
-    if (typeof err.status === 'number' && err.status >= 500 && err.status < 600) {
-      return err.error?.message || 'Hệ thống máy chủ đang gặp sự cố (mã lỗi 5xx). Vui lòng thử lại sau.';
-    }
-
-    if (err.error?.message && typeof err.error.message === 'string') {
-      return err.error.message;
+    if (serverMsg) {
+      return serverMsg;
     }
 
     return err.message || 'Đã có lỗi xảy ra trong quá trình gửi bài.';

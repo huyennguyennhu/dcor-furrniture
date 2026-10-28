@@ -57,6 +57,7 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
   isPublishModalOpen = signal<boolean>(false);
   isGeneratingPreview = signal<boolean>(false);
   previewImageUrl = signal<string>('');
+  compressedImageSizeText = signal<string>('');
   private previewBlobUrl: string | null = null;
   private currentPreviewBlob: Blob | null = null;
 
@@ -430,8 +431,9 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const { blob, warning } = await this.publishService.generateBlob('image/jpeg', 0.85);
+      const { blob, warning, sizeKb } = await this.publishService.generateCompressedBlobForPublish();
       this.currentPreviewBlob = blob;
+      this.compressedImageSizeText.set(`ảnh ${sizeKb}KB`);
       this.previewBlobUrl = URL.createObjectURL(blob);
       this.previewImageUrl.set(this.previewBlobUrl);
 
@@ -447,6 +449,7 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
 
   closePublishModal(): void {
     this.isPublishModalOpen.set(false);
+    this.compressedImageSizeText.set('');
     if (this.previewBlobUrl) {
       URL.revokeObjectURL(this.previewBlobUrl);
       this.previewBlobUrl = null;

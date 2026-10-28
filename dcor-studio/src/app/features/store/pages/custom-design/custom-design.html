@@ -148,7 +148,7 @@
 
         <!-- Nhóm bên phải: Tổng tiền & Nút Drawer trên mobile -->
         <div class="topbar-right">
-          <!-- Mobile Drawer Toggles (chỉ hiện khi màn hình <= 1024px) -->
+          <!-- Mobile Drawer Toggles (chỉ hiện khi màn hình <= 1024px, tổng tiền hiển thị trong tab mobile) -->
           <div class="mobile-toggles-row">
             <button 
               type="button" 
@@ -167,14 +167,8 @@
               (click)="toggleMobileDrawer('summary')"
               aria-label="Mở danh sách nội thất đã chọn">
               <app-icon name="ShoppingBag" size="16"></app-icon>
-              <span>Đã chọn ({{ plannerService.totalItemsCount() }})</span>
+              <span>Đã chọn ({{ plannerService.totalItemsCount() }}) · {{ plannerService.totalPrice() | number }} ₫</span>
             </button>
-          </div>
-
-          <!-- Thông tin tổng tiền nổi bật -->
-          <div class="topbar-price-card">
-            <span class="price-label">Tổng ước tính:</span>
-            <strong class="price-val">{{ plannerService.totalPrice() | number }} ₫</strong>
           </div>
         </div>
       </header>
@@ -360,9 +354,13 @@
         </p>
         <div class="success-actions-row">
           <button type="button" class="btn-secondary" (click)="closePublishModal()">
-            Tiếp tục thiết kế
+            {{ publishedPostStatus() === 'PUBLISHED' ? 'Tiếp tục thiết kế' : 'Đóng' }}
           </button>
-          <button type="button" class="btn-primary" (click)="goToCommunity()">
+          <button 
+            *ngIf="publishedPostStatus() === 'PUBLISHED'"
+            type="button" 
+            class="btn-primary" 
+            (click)="goToCommunity()">
             <app-icon name="ExternalLink" size="16"></app-icon>
             <span>Xem Cộng đồng</span>
           </button>
@@ -386,11 +384,11 @@
           <span>{{ publishErrorMessage() }}</span>
         </div>
 
-        <!-- 1. Xem trước ảnh xuất (JPEG 0.85, max 1600px) -->
+        <!-- 1. Xem trước ảnh xuất (JPEG tự động nén <= 800KB) -->
         <div class="publish-preview-section">
           <div class="preview-header">
-            <span class="field-label">Xem trước ảnh xuất (JPEG 0.85):</span>
-            <span class="preview-badge" *ngIf="previewImageUrl()">Tối đa 1600px</span>
+            <span class="field-label">Xem trước ảnh xuất (JPEG):</span>
+            <span class="preview-badge size-badge" *ngIf="compressedImageSizeText()">{{ compressedImageSizeText() }}</span>
           </div>
           <div class="preview-viewport-card">
             <div *ngIf="isGeneratingPreview()" class="preview-loading-overlay">

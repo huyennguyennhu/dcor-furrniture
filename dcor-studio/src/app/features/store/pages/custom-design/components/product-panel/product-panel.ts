@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, Cha
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../../../shared/components/icon/icon';
+import { CategoryDropdownComponent, CategoryDropdownOption } from '../category-dropdown/category-dropdown';
 import { RoomPlannerService } from '../../services/room-planner.service';
 import { environment } from '../../../../../../../environments/environment';
 
@@ -26,7 +27,7 @@ const FALLBACK_IMAGE =
 @Component({
   selector: 'app-product-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, CategoryDropdownComponent],
   templateUrl: './product-panel.html',
   styleUrls: ['./product-panel.css']
 })
@@ -49,10 +50,13 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
   currentPage = signal<number>(1);
   private observer: IntersectionObserver | null = null;
 
-  // Danh mục hiển thị dạng chip
-  categories = signal<{ id: string; name: string; slug: string }[]>([
-    { id: 'all', name: 'Tất cả', slug: 'all' }
+  // Cây danh mục hiển thị dạng dropdown (Tất cả, Cha, Con)
+  categoryOptions = signal<CategoryDropdownOption[]>([
+    { id: 'all', name: 'Tất cả danh mục', slug: 'all', level: 0, isParent: false }
   ]);
+
+  // Báo cáo sản phẩm khác ID nhưng trùng tên (không tự gộp)
+  duplicateNamesWithDifferentIds = signal<{ name: string; ids: string[] }[]>([]);
 
   // Danh sách toàn bộ sản phẩm thỏa mãn điều kiện lọc
   readonly allFilteredProducts = computed(() => {
@@ -172,21 +176,7 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
         const catData = await catRes.json();
         if (Array.isArray(catData)) {
           this.rawCategories = catData;
-
-          // Lấy các danh mục gốc (parentId == null) và lọc các mục có sản phẩm
-          const rootCats = catData
-            .filter((c: any) => !c.parentId && c.isActive !== false)
-            .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))
-            .map((c: any) => ({
-              id: c.id,
-              name: c.name,
-              slug: c.slug || c.name.toLowerCase()
-            }));
-
-          this.categories.set([
-            { id: 'all', name: 'Tất cả', slug: 'all' },
-            ...rootCats
-          ]);
+          this.buildCategoryOptions(catData);
         }
       }
 
@@ -209,12 +199,70 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  private buildCategoryOptions(catData: any[]): void {
+    const options: CategoryDropdownOption[] = [
+      { id: 'all', name: 'Tất cả danh mục', slug: 'all', level: 0, isParent: false }
+    ];
+
+    // Lấy các danh mục gốc (parentId == null hoặc không có)
+    const roots = catData
+      .filter((c: any) => !c.parentId && c.isActive !== false)
+      .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    for (const root of roots) {
+      // Tìm con trực tiếp từ catData hoặc từ mảng root.children
+      const childrenMap = new Map<string, any>();
+      if (Array.isArray(root.children)) {
+        root.children.filter((ch: any) => ch.isActive !== false).forEach((ch: any) => childrenMap.set(ch.id, ch));
+      }
+      catData
+        .filter((c: any) => c.parentId === root.id && c.isActive !== false)
+        .forEach((ch: any) => childrenMap.set(ch.id, ch));
+
+      const children = Array.from(childrenMap.values()).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+      options.push({
+        id: root.id,
+        name: root.name,
+        slug: root.slug || root.name.toLowerCase(),
+        level: 0,
+        isParent: children.length > 0
+      });
+
+      for (const child of children) {
+        options.push({
+          id: child.id,
+          name: child.name,
+          slug: child.slug || child.name.toLowerCase(),
+          level: 1,
+          isParent: false,
+          parentId: root.id
+        });
+      }
+    }
+
+    this.categoryOptions.set(options);
+  }
+
   private mapProductCards(rawList: any[]): PlannerProductCard[] {
     const isCleanUrl = (u: any): boolean => {
       return typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com');
     };
 
-    return rawList.map((p: any) => {
+    const seenIds = new Set<string>();
+    const nameToIds = new Map<string, string[]>();
+    const mapped: PlannerProductCard[] = [];
+
+    for (const p of rawList) {
+      const rawId = String(p.id || p.productId || '').trim();
+      if (!rawId) continue;
+
+      // Đảm bảo danh sách sản phẩm KHÔNG có hai dòng cùng product id (lọc trùng theo id)
+      if (seenIds.has(rawId)) {
+        continue;
+      }
+      seenIds.add(rawId);
+
       const basePrice = p.basePrice || 0;
       let lowestPrice = basePrice;
       if (p.discountValue) {
@@ -239,12 +287,21 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
         'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
 
       const { width, depth, isEstimated } = this.extractDimensions(p);
+      const name = p.name || 'Sản phẩm nội thất';
 
-      return {
-        id: p.id || p.productId || `prod_${Date.now()}`,
-        productId: p.id || p.productId || `prod_${Date.now()}`,
+      // Theo dõi nếu API trả hai id khác nhau nhưng cùng tên (để báo cáo, không tự gộp)
+      const cleanName = name.trim().toLowerCase();
+      if (!nameToIds.has(cleanName)) {
+        nameToIds.set(cleanName, [rawId]);
+      } else {
+        nameToIds.get(cleanName)!.push(rawId);
+      }
+
+      mapped.push({
+        id: rawId,
+        productId: rawId,
         slug: p.slug,
-        name: p.name || 'Sản phẩm nội thất',
+        name,
         category: categoryName,
         categorySlug,
         imageUrl: finalImage,
@@ -253,8 +310,19 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
         dimensionCm: { width, depth },
         isEstimatedDimension: isEstimated,
         rawProduct: p
-      };
+      });
+    }
+
+    // Ghi nhận các trường hợp ID khác nhau nhưng cùng tên để báo cáo
+    const duplicates: { name: string; ids: string[] }[] = [];
+    nameToIds.forEach((ids, name) => {
+      if (ids.length > 1) {
+        duplicates.push({ name, ids });
+      }
     });
+    this.duplicateNamesWithDifferentIds.set(duplicates);
+
+    return mapped;
   }
 
   private extractDimensions(product: any): { width: number; depth: number; isEstimated: boolean } {

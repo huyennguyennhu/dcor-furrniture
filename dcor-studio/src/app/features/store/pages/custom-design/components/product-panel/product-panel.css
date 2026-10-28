@@ -18,18 +18,52 @@
 
 /* Header */
 .panel-header {
-  padding: 14px 14px 8px;
+  padding: 12px 14px 10px;
   border-bottom: 1px solid var(--color-border-subtle, #f0f0f0);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 30;
+  overflow: visible;
+}
+
+/* Hàng tìm kiếm & dropdown danh mục */
+.search-filter-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  position: relative;
 }
 
 .search-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1 1 54%;
+  min-width: 0;
+}
+
+.category-dropdown-wrap {
+  flex: 1 1 46%;
+  min-width: 0;
+  position: relative;
+}
+
+/* Xếp dọc ở màn hình nhỏ/mobile */
+@media (max-width: 640px) {
+  .search-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .search-input-wrap,
+  .category-dropdown-wrap {
+    width: 100%;
+    flex: none;
+  }
 }
 
 .search-icon {
@@ -41,7 +75,8 @@
 
 .panel-search-input {
   width: 100%;
-  padding: 8px 32px 8px 36px;
+  height: 38px;
+  padding: 0 32px 0 34px;
   border: 1.5px solid var(--color-border, #e0e0e0);
   border-radius: var(--radius-control, 8px);
   font-size: 13px;
@@ -75,42 +110,20 @@
   color: var(--color-text, #0a0a0a);
 }
 
-/* Category Chips */
-.category-chips-scroll {
+/* Thanh hiển thị số lượng kết quả */
+.results-count-bar {
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-}
-
-.category-chips-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.cat-chip {
-  padding: 4px 10px;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: var(--radius-pill, 999px);
-  background: var(--color-surface, #ffffff);
-  color: var(--color-text-secondary, #616161);
-  font-size: 11.5px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 0;
+  font-size: 12px;
   font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
+  color: var(--color-text-secondary, #616161);
 }
 
-.cat-chip:hover {
-  border-color: var(--color-text-muted, #757575);
-  color: var(--color-text, #0a0a0a);
-}
-
-.cat-chip.active {
-  background: var(--color-primary, #765337);
-  border-color: var(--color-primary, #765337);
-  color: #ffffff;
-  font-weight: 600;
+.count-text {
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
 }
 
 .error-actions-group {
