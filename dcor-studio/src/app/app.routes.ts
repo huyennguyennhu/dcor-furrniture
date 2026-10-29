@@ -90,6 +90,10 @@ export const routes: Routes = [
       { path: 'blog', loadComponent: () => import('./features/store/pages/blog/blog').then(m => m.BlogComponent) },
       { path: 'custom-design', loadComponent: () => import('./features/store/pages/custom-design/custom-design').then(m => m.CustomDesignComponent) },
       { path: 'community', loadComponent: () => import('./features/store/pages/community/community').then(m => m.CommunityComponent) },
+      { path: 'about', loadComponent: () => import('./features/store/pages/support/pages/about/about').then(m => m.AboutComponent) },
+      { path: 'faq', loadComponent: () => import('./features/store/pages/support/pages/faq/faq').then(m => m.FaqComponent) },
+      { path: 'huong-dan-mua-hang', loadComponent: () => import('./features/store/pages/support/pages/guide/guide').then(m => m.ShoppingGuideComponent) },
+      { path: 'chinh-sach/:slug', loadComponent: () => import('./features/store/pages/support/pages/policy/policy').then(m => m.PolicyComponent) },
       
       // --- Account Area (inside Store Layout) ---
       {
