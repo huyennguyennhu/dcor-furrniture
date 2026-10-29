@@ -29,6 +29,11 @@ import adminChatRoutes from './routes/admin-chat.routes';
 import myDesignRoutes from './routes/my-design.routes';
 import communityLikeRoutes from './routes/community-like.routes';
 import { initMyDesignsDatabase } from './lib/init-my-designs-db';
+import http from 'http';
+import chatRoutes from './routes/chat.routes';
+import chatAdminRoutes from './routes/chat-admin.routes';
+import { initChatSocket } from './services/chat.socket';
+import { initChatDatabase } from './lib/init-chat-db';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -37,7 +42,10 @@ import { initMyDesignsDatabase } from './lib/init-my-designs-db';
 };
 
 const app = express();
+const server = http.createServer(app);
 const port = process.env.PORT || 3000;
+
+initChatSocket(server);
 
 app.use(cors());
 app.use(express.json());
@@ -512,17 +520,22 @@ app.use('/api/admin/designs', designRoutes);
 app.use('/api/store/my-designs', myDesignRoutes);
 app.use('/api/store/community', communityLikeRoutes);
 
+// Gắn router Chat & Handoff CSKH
+app.use('/api/chat', chatRoutes);
+app.use('/api/admin/chat', chatAdminRoutes);
+
 import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
 import { initAdministrativeDatabase } from './lib/init-administrative-db';
 import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
   initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
   initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
   initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
   initPromotionsAndDesignsDatabase().catch(err => console.error('Failed to init promotions and designs DB:', err));
   initMyDesignsDatabase().catch(err => console.error('Failed to init my designs DB:', err));
+  initChatDatabase().catch(err => console.error('Failed to init chat DB:', err));
 });
 
 
