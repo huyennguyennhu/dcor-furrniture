@@ -849,3 +849,37 @@ model DesignComment {
   createdAt   DateTime    @default(now())
 }
 
+
+
+// 5. Thiết kế của tôi (3D Room Planner)
+model UserDesign {
+  id             String    @id @default(uuid())
+  customerId     String
+  title          String
+  status         String    @default("DRAFT") // DRAFT | SAVED
+  backgroundType String    // TEMPLATE | UPLOAD
+  backgroundUrl  String
+  templateId     String?
+  roomLength     Float
+  roomWidth      Float
+  roomHeight     Float?
+  layout         Json
+  coverImageUrl  String?
+  postId         String?   // DesignPost đã đăng từ thiết kế này
+  lastEditedAt   DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([customerId, status])
+}
+
+// 6. Lượt thích bài viết cộng đồng thiết kế
+model DesignPostLike {
+  id         String   @id @default(uuid())
+  postId     String
+  customerId String
+  createdAt  DateTime @default(now())
+
+  @@unique([postId, customerId])
+  @@index([customerId])
+}

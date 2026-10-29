@@ -26,6 +26,9 @@ import adminCustomerRoutes from './routes/admin-customer.routes';
 import adminAppointmentRoutes from './routes/admin-appointment.routes';
 import adminContentRoutes from './routes/admin-content.routes';
 import adminChatRoutes from './routes/admin-chat.routes';
+import myDesignRoutes from './routes/my-design.routes';
+import communityLikeRoutes from './routes/community-like.routes';
+import { initMyDesignsDatabase } from './lib/init-my-designs-db';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -164,7 +167,7 @@ app.get('/api/products', async (req, res) => {
       // Tạo rating và reviewCount thực tế dựa trên hash ID của sản phẩm
       let rating = 4.9;
       let reviewCount = 128;
-      
+
       const hash = p.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       if (p.isBestSeller) {
         rating = 5.0;
@@ -202,7 +205,7 @@ app.get('/api/products', async (req, res) => {
 
 app.get('/api/products/:id', async (req, res) => {
   try {
-    let product = await prisma.product.findUnique({ 
+    let product = await prisma.product.findUnique({
       where: { id: req.params.id },
       include: {
         category: {
@@ -251,7 +254,7 @@ app.get('/api/products/:id', async (req, res) => {
       });
 
       const firstVariantAttrs = variantsWithDimensions[0]?.attributes || {};
-      const descVi = firstVariantAttrs.designFeatures_vi 
+      const descVi = firstVariantAttrs.designFeatures_vi
         ? firstVariantAttrs.designFeatures_vi.split('|').join('\n\n')
         : (firstVariantAttrs.designFeatures ? firstVariantAttrs.designFeatures.split('|').join('\n\n') : undefined);
 
@@ -462,7 +465,7 @@ app.post('/api/products/:id/reviews', async (req, res) => {
     const { rating, comment, reviewerName, variantId, variantName } = req.body;
     const nameStr = (reviewerName || 'Khách hàng').trim();
     const parts = nameStr.split(' ');
-    const maskedName = parts.length > 1 
+    const maskedName = parts.length > 1
       ? `${parts[0]} ${parts[1]?.slice(0, 1)}*** ${parts[parts.length - 1]}`
       : `${nameStr.slice(0, 1)}***`;
 
@@ -506,6 +509,8 @@ app.use('/api/store/promotions/verify', voucherController.verifyVoucher);
 // Gắn router Cộng đồng thiết kế & Room Templates 3D
 app.use('/api/designs', designRoutes);
 app.use('/api/admin/designs', designRoutes);
+app.use('/api/store/my-designs', myDesignRoutes);
+app.use('/api/store/community', communityLikeRoutes);
 
 import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
 import { initAdministrativeDatabase } from './lib/init-administrative-db';
@@ -517,6 +522,7 @@ app.listen(port, () => {
   initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
   initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
   initPromotionsAndDesignsDatabase().catch(err => console.error('Failed to init promotions and designs DB:', err));
+  initMyDesignsDatabase().catch(err => console.error('Failed to init my designs DB:', err));
 });
 
 
