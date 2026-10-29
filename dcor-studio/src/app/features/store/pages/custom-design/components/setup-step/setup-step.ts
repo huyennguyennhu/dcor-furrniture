@@ -1,11 +1,14 @@
-import { Component, ChangeDetectorRef, signal, computed, OnInit, Inject } from '@angular/core';
+import { Component, ChangeDetectorRef, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import { IconComponent } from '../../../../../../shared/components/icon/icon';
 import { Modal } from '../../../../../../shared/components/modal/modal';
 import { RoomPlannerService } from '../../services/room-planner.service';
-import { PlannerBackground, RoomTemplate, PlannerDesign, DesignRepository } from '../../models/planner.model';
-import { DESIGN_REPOSITORY } from '../../services/design-repository.interface';
+import { PlannerBackground, RoomTemplate, PlannerDesign } from '../../models/planner.model';
+import { MyDesignApiService, UserDesignApi } from '../../services/my-design-api.service';
+import { AuthService } from '../../../../../../core/services/auth.service';
 import { environment } from '../../../../../../../environments/environment';
 
 const FALLBACK_IMAGE =
@@ -14,7 +17,7 @@ const FALLBACK_IMAGE =
 @Component({
   selector: 'app-setup-step',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, Modal],
+  imports: [CommonModule, FormsModule, RouterModule, IconComponent, Modal],
   templateUrl: './setup-step.html',
   styleUrls: ['./setup-step.css']
 })
@@ -38,10 +41,7 @@ export class SetupStepComponent implements OnInit {
   widthMeters: number = 4.0;
   heightMeters: number = 2.8;
 
-  // --- THIẾT KẾ ĐÃ LƯU TRÊN MÁY NÀY (REQ 3) ---
-  // Ghi chú kiến trúc: Hiện tại lưu và mở thiết kế từ IndexedDB cục bộ trên máy này
-  // do backend chưa có bảng lưu thiết kế theo tài khoản khách hàng.
-  // Sau này khi backend bổ sung API, chỉ cần chuyển sang gọi API từ HttpDesignRepository.
+  // --- THIẾT KẾ CỦA TÔI TỪ BACKEND DATABASE ---
   savedDrafts = signal<PlannerDesign[]>([]);
   isLoadingDrafts = signal<boolean>(false);
 
@@ -66,7 +66,9 @@ export class SetupStepComponent implements OnInit {
 
   constructor(
     public plannerService: RoomPlannerService,
-    @Inject(DESIGN_REPOSITORY) private designRepo: DesignRepository,
+    private myDesignApi: MyDesignApiService,
+    public authService: AuthService,
+    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -94,7 +96,7 @@ export class SetupStepComponent implements OnInit {
   }
 
   // ==========================================
-  // TẢI BẢN MẪU KHÔNG GIAN TỪ API (REQ 1 & 5)
+  // TẢI BẢN MẪU KHÔNG GIAN TỪ API
   // ==========================================
   async fetchTemplates(): Promise<void> {
     this.isLoadingTemplates.set(true);
@@ -134,7 +136,7 @@ export class SetupStepComponent implements OnInit {
       // Tự động khôi phục lựa chọn hoặc chọn template đầu tiên nếu chưa chọn upload
       const currentBg = this.plannerService.background();
       if (currentBg?.type === 'template' && currentBg.templateId) {
-        const found = mapped.find(m => m.id === currentBg.templateId);
+        const found = mapped.find((m) => m.id === currentBg.templateId);
         if (found) {
           this.selectedTemplate.set(found);
           this.activeSource.set('template');
@@ -205,7 +207,7 @@ export class SetupStepComponent implements OnInit {
   }
 
   // ==========================================
-  // XỬ LÝ TẢI ẢNH MẶT BẰNG THẬT (REQ 1)
+  // XỬ LÝ TẢI ẢNH MẶT BẰNG THẬT LÊN SERVER
   // ==========================================
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -286,22 +288,41 @@ export class SetupStepComponent implements OnInit {
       }
 
       ctx.drawImage(img, 0, 0, targetW, targetH);
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-      const backgroundData: PlannerBackground = {
-        type: 'upload',
-        name: file.name.replace(/\.[^/.]+$/, ''),
-        imageUrl: compressedDataUrl,
-        naturalWidth: targetW,
-        naturalHeight: targetH,
-        file
-      };
+      // Chuyển sang Blob và tải lên API /upload/image để lấy URL thật
+      canvas.toBlob(
+        async (blob) => {
+          if (!blob) {
+            this.uploadError.set('Không thể tạo file ảnh để tải lên máy chủ.');
+            this.isCompressing.set(false);
+            this.cdr.markForCheck();
+            return;
+          }
 
-      this.uploadedImage.set(backgroundData);
-      this.activeSource.set('upload');
-      this.selectedTemplate.set(null);
-      this.isCompressing.set(false);
-      this.cdr.markForCheck();
+          try {
+            const uploadRes = await firstValueFrom(this.myDesignApi.uploadImage(blob, file.name));
+            const backgroundData: PlannerBackground = {
+              type: 'upload',
+              name: file.name.replace(/\.[^/.]+$/, ''),
+              imageUrl: uploadRes.url,
+              naturalWidth: targetW,
+              naturalHeight: targetH,
+              file
+            };
+
+            this.uploadedImage.set(backgroundData);
+            this.activeSource.set('upload');
+            this.selectedTemplate.set(null);
+          } catch (err: any) {
+            this.uploadError.set(this.myDesignApi.formatError(err, 'Không thể tải ảnh nền lên máy chủ.'));
+          } finally {
+            this.isCompressing.set(false);
+            this.cdr.markForCheck();
+          }
+        },
+        'image/jpeg',
+        0.85
+      );
     };
 
     img.onerror = () => {
@@ -315,13 +336,46 @@ export class SetupStepComponent implements OnInit {
   }
 
   // ==========================================
-  // THIẾT KẾ ĐÃ LƯU TRÊN MÁY NÀY (REQ 3)
+  // THIẾT KẾ CỦA TÔI TỪ BACKEND
   // ==========================================
   async loadSavedDrafts(): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      this.savedDrafts.set([]);
+      return;
+    }
+
     this.isLoadingDrafts.set(true);
     try {
-      const list = await this.designRepo.listDrafts();
-      this.savedDrafts.set(list);
+      const [savedList, draftList] = await Promise.all([
+        firstValueFrom(this.myDesignApi.listDesigns('SAVED')).catch(() => []),
+        firstValueFrom(this.myDesignApi.listDesigns('DRAFT')).catch(() => [])
+      ]);
+
+      const combined: UserDesignApi[] = [...(savedList || []), ...(draftList || [])].slice(0, 8);
+
+      const mapped: PlannerDesign[] = combined.map((d) => ({
+        id: d.id,
+        title: d.title,
+        background: {
+          type: d.backgroundType === 'UPLOAD' ? 'upload' : 'template',
+          name: d.title,
+          imageUrl: d.backgroundUrl,
+          naturalWidth: 1200,
+          naturalHeight: 800,
+          templateId: d.templateId || undefined
+        },
+        dimensions: {
+          length: d.roomLength,
+          width: d.roomWidth,
+          height: d.roomHeight || 2.8
+        },
+        objects: Array.isArray(d.layout) ? d.layout : [],
+        thumbnailUrl: d.coverImageUrl || undefined,
+        createdAt: d.createdAt,
+        updatedAt: d.lastEditedAt || d.updatedAt
+      }));
+
+      this.savedDrafts.set(mapped);
     } catch {
       this.savedDrafts.set([]);
     } finally {
@@ -330,9 +384,52 @@ export class SetupStepComponent implements OnInit {
     }
   }
 
-  openDraft(draft: PlannerDesign): void {
-    // Khôi phục đầy đủ nền, kích thước, vật thể và zoom
-    this.plannerService.loadDesign(draft);
+  async openDraft(draft: PlannerDesign): Promise<void> {
+    if (!draft.id) {
+      this.plannerService.loadDesign(draft);
+      return;
+    }
+
+    // Tải bản chi tiết có đầy đủ layout từ backend
+    try {
+      const full = await firstValueFrom(this.myDesignApi.getDesign(draft.id));
+      const fullDesign: PlannerDesign = {
+        id: full.id,
+        title: full.title,
+        background: {
+          type: full.backgroundType === 'UPLOAD' ? 'upload' : 'template',
+          name: full.title,
+          imageUrl: full.backgroundUrl,
+          naturalWidth: 1200,
+          naturalHeight: 800,
+          templateId: full.templateId || undefined
+        },
+        dimensions: {
+          length: full.roomLength,
+          width: full.roomWidth,
+          height: full.roomHeight || 2.8
+        },
+        objects: full.layout || [],
+        thumbnailUrl: full.coverImageUrl || undefined,
+        zoom: 1,
+        createdAt: full.createdAt,
+        updatedAt: full.lastEditedAt || full.updatedAt
+      };
+
+      // Đọc kích thước thật của ảnh nền
+      const img = new Image();
+      img.onload = () => {
+        fullDesign.background.naturalWidth = img.naturalWidth || 1200;
+        fullDesign.background.naturalHeight = img.naturalHeight || 800;
+        this.plannerService.loadDesign(fullDesign);
+      };
+      img.onerror = () => {
+        this.plannerService.loadDesign(fullDesign);
+      };
+      img.src = full.backgroundUrl;
+    } catch {
+      this.plannerService.loadDesign(draft);
+    }
   }
 
   promptRenameDraft(draft: PlannerDesign, event?: Event): void {
@@ -352,15 +449,13 @@ export class SetupStepComponent implements OnInit {
     const newTitle = this.renameInput().trim();
     if (!draft || !draft.id || !newTitle) return;
 
-    if (this.designRepo.renameDraft) {
-      await this.designRepo.renameDraft(draft.id, newTitle);
-    } else {
-      draft.title = newTitle;
-      await this.designRepo.saveDraft(draft);
+    try {
+      await firstValueFrom(this.myDesignApi.renameDesign(draft.id, newTitle));
+      this.closeRenameModal();
+      await this.loadSavedDrafts();
+    } catch {
+      // Ignored
     }
-
-    this.closeRenameModal();
-    await this.loadSavedDrafts();
   }
 
   promptDeleteDraft(draft: PlannerDesign, event?: Event): void {
@@ -378,9 +473,13 @@ export class SetupStepComponent implements OnInit {
     const draft = this.draftToDelete();
     if (!draft || !draft.id) return;
 
-    await this.designRepo.deleteDraft(draft.id);
-    this.closeDeleteModal();
-    await this.loadSavedDrafts();
+    try {
+      await firstValueFrom(this.myDesignApi.deleteDesign(draft.id));
+      this.closeDeleteModal();
+      await this.loadSavedDrafts();
+    } catch {
+      // Ignored
+    }
   }
 
   // --- Bước 2: Hoàn tất kích thước & vào phòng ---

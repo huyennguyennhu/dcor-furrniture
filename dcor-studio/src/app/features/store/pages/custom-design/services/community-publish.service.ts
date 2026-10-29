@@ -353,6 +353,25 @@ export class CommunityPublishService {
   /**
    * Tải ảnh thiết kế về máy (dcor-thiet-ke-YYYYMMDD.png)
    */
+  /**
+   * Tạo ảnh bìa thiết kế nén chuẩn (cạnh dài 640px, JPEG <= 150KB) tải qua /upload/image
+   */
+  async generateCoverBlob(maxEdge = 640, maxSizeBytes = 150 * 1024): Promise<Blob> {
+    const { canvas } = await this.renderDesignCanvas(maxEdge);
+    let quality = 0.8;
+    let blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', quality));
+
+    while (blob && blob.size > maxSizeBytes && quality > 0.25) {
+      quality -= 0.1;
+      blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', quality));
+    }
+
+    if (!blob) {
+      throw new Error('Không thể tạo ảnh bìa thiết kế.');
+    }
+    return blob;
+  }
+
   async exportAndDownloadPng(): Promise<{ isTainted: boolean; warning?: string }> {
     this.isExporting.set(true);
     try {

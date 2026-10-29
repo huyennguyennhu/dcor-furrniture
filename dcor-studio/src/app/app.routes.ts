@@ -104,6 +104,7 @@ export const routes: Routes = [
           { path: 'orders', loadComponent: () => import('./features/account/pages/my-orders/my-orders').then(m => m.MyOrdersComponent) },
           { path: 'wishlist', loadComponent: () => import('./features/account/pages/wishlist/wishlist').then(m => m.WishlistComponent) },
           { path: 'custom-requests', loadComponent: () => import('./features/account/pages/custom-requests/custom-requests').then(m => m.CustomRequestsComponent) },
+          { path: 'designs', loadComponent: () => import('./features/account/pages/my-designs/my-designs').then(m => m.MyDesignsComponent) },
         ]
       }
     ]

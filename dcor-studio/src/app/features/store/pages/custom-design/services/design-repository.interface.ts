@@ -1,170 +1,128 @@
-import { InjectionToken } from '@angular/core';
-import { DesignRepository, PlannerDesign } from '../models/planner.model';
+import { InjectionToken, inject, Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { DesignRepository, PlannerDesign, PlannerBackground } from '../models/planner.model';
+import { MyDesignApiService } from './my-design-api.service';
 
 export const DESIGN_REPOSITORY = new InjectionToken<DesignRepository>('DESIGN_REPOSITORY');
 
 /**
- * Ghi chú kiến trúc: Hiện tại lưu thiết kế trên IndexedDB cục bộ của trình duyệt này
- * do backend chưa có bảng lưu thiết kế theo tài khoản khách hàng.
- * Sau này khi backend bổ sung bảng và API lưu theo tài khoản, chỉ cần thay thế implementation
- * của DESIGN_REPOSITORY sang HttpDesignRepository mà không làm vỡ các component.
+ * Kho lưu trữ thiết kế trực tiếp kết nối với Backend API PostgreSQL
+ * Không sử dụng bất kỳ bộ nhớ cục bộ (LocalStorage/IndexedDB) nào.
  */
-export class IndexedDbDesignRepository implements DesignRepository {
-  private readonly DB_NAME = 'dcor_room_planner_db';
-  private readonly DB_VERSION = 1;
-  private readonly STORE_NAME = 'drafts';
-  private readonly FALLBACK_STORAGE_KEY = 'dcor_room_planner_drafts';
-
-  private dbPromise: Promise<IDBDatabase> | null = null;
-
-  private getDB(): Promise<IDBDatabase> {
-    if (this.dbPromise) return this.dbPromise;
-
-    this.dbPromise = new Promise((resolve, reject) => {
-      if (typeof window === 'undefined' || !window.indexedDB) {
-        reject(new Error('IndexedDB không được hỗ trợ trong môi trường này.'));
-        return;
-      }
-
-      const request = window.indexedDB.open(this.DB_NAME, this.DB_VERSION);
-
-      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-          const store = db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
-          store.createIndex('updatedAt', 'updatedAt', { unique: false });
-        }
-      };
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-
-    return this.dbPromise;
-  }
+@Injectable()
+export class HttpDesignRepository implements DesignRepository {
+  private api = inject(MyDesignApiService);
 
   async saveDraft(design: PlannerDesign): Promise<string> {
-    const id = design.id || `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const now = new Date().toISOString();
-    const updatedDesign: PlannerDesign = {
-      ...design,
-      id,
-      createdAt: design.createdAt || now,
-      updatedAt: now
-    };
+    const bg = design.background;
+    const dims = design.dimensions;
+    const isUpload = bg.type === 'upload';
 
-    try {
-      const db = await this.getDB();
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(this.STORE_NAME, 'readwrite');
-        const store = tx.objectStore(this.STORE_NAME);
-        const req = store.put(updatedDesign);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
-      return id;
-    } catch {
-      // Fallback lưu LocalStorage nếu IndexedDB bị hạn chế
-      return this.fallbackSave(updatedDesign);
+    if (design.id) {
+      // Cập nhật bản nháp đã có
+      await firstValueFrom(
+        this.api.updateDesign(design.id, {
+          title: design.title,
+          roomLength: dims.length,
+          roomWidth: dims.width,
+          roomHeight: dims.height || null,
+          layout: design.objects || [],
+          coverImageUrl: design.thumbnailUrl || null
+        })
+      );
+      return design.id;
+    } else {
+      // Tạo bản nháp mới
+      const created = await firstValueFrom(
+        this.api.createDraft({
+          title: design.title || 'Thiết kế phòng khách',
+          backgroundType: isUpload ? 'UPLOAD' : 'TEMPLATE',
+          backgroundUrl: bg.imageUrl,
+          templateId: bg.templateId || null,
+          roomLength: dims.length,
+          roomWidth: dims.width,
+          roomHeight: dims.height || null,
+          layout: design.objects || [],
+          coverImageUrl: design.thumbnailUrl || null
+        })
+      );
+      return created.id;
     }
   }
 
   async loadDraft(id: string): Promise<PlannerDesign | null> {
     try {
-      const db = await this.getDB();
-      return new Promise<PlannerDesign | null>((resolve, reject) => {
-        const tx = db.transaction(this.STORE_NAME, 'readonly');
-        const store = tx.objectStore(this.STORE_NAME);
-        const req = store.get(id);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error);
-      });
+      const data = await firstValueFrom(this.api.getDesign(id));
+      const background: PlannerBackground = {
+        type: data.backgroundType === 'UPLOAD' ? 'upload' : 'template',
+        name: data.title || 'Phòng thiết kế',
+        imageUrl: data.backgroundUrl,
+        naturalWidth: 1200,
+        naturalHeight: 800,
+        templateId: data.templateId || undefined
+      };
+
+      return {
+        id: data.id,
+        title: data.title,
+        background,
+        dimensions: {
+          length: data.roomLength,
+          width: data.roomWidth,
+          height: data.roomHeight || 2.8
+        },
+        objects: data.layout || [],
+        thumbnailUrl: data.coverImageUrl || undefined,
+        zoom: 1,
+        createdAt: data.createdAt,
+        updatedAt: data.lastEditedAt || data.updatedAt
+      };
     } catch {
-      return this.fallbackLoad(id);
+      return null;
     }
   }
 
   async listDrafts(): Promise<PlannerDesign[]> {
     try {
-      const db = await this.getDB();
-      return new Promise<PlannerDesign[]>((resolve, reject) => {
-        const tx = db.transaction(this.STORE_NAME, 'readonly');
-        const store = tx.objectStore(this.STORE_NAME);
-        const req = store.getAll();
-        req.onsuccess = () => {
-          const list = (req.result || []) as PlannerDesign[];
-          list.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-          resolve(list);
-        };
-        req.onerror = () => reject(req.error);
-      });
-    } catch {
-      return this.fallbackList();
-    }
-  }
-
-  async renameDraft(id: string, newTitle: string): Promise<boolean> {
-    const draft = await this.loadDraft(id);
-    if (!draft) return false;
-    draft.title = newTitle.trim();
-    draft.updatedAt = new Date().toISOString();
-    await this.saveDraft(draft);
-    return true;
-  }
-
-  async deleteDraft(id: string): Promise<boolean> {
-    try {
-      const db = await this.getDB();
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(this.STORE_NAME, 'readwrite');
-        const store = tx.objectStore(this.STORE_NAME);
-        const req = store.delete(id);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
-      return true;
-    } catch {
-      return this.fallbackDelete(id);
-    }
-  }
-
-  // --- LOCALSTORAGE FALLBACKS ---
-  private fallbackSave(design: PlannerDesign): string {
-    const list = this.fallbackList();
-    const idx = list.findIndex(d => d.id === design.id);
-    if (idx >= 0) {
-      list[idx] = design;
-    } else {
-      list.unshift(design);
-    }
-    try {
-      localStorage.setItem(this.FALLBACK_STORAGE_KEY, JSON.stringify(list));
-    } catch {
-      // Ignored
-    }
-    return design.id!;
-  }
-
-  private fallbackLoad(id: string): PlannerDesign | null {
-    const list = this.fallbackList();
-    return list.find(d => d.id === id) || null;
-  }
-
-  private fallbackList(): PlannerDesign[] {
-    try {
-      const raw = localStorage.getItem(this.FALLBACK_STORAGE_KEY);
-      if (!raw) return [];
-      const list = JSON.parse(raw) as PlannerDesign[];
-      return list.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      const list = await firstValueFrom(this.api.listDesigns('DRAFT'));
+      return list.map(item => ({
+        id: item.id,
+        title: item.title,
+        background: {
+          type: item.backgroundType === 'UPLOAD' ? 'upload' : 'template',
+          name: item.title,
+          imageUrl: item.backgroundUrl,
+          naturalWidth: 1200,
+          naturalHeight: 800,
+          templateId: item.templateId || undefined
+        },
+        dimensions: {
+          length: item.roomLength,
+          width: item.roomWidth,
+          height: item.roomHeight || 2.8
+        },
+        objects: [],
+        thumbnailUrl: item.coverImageUrl || undefined,
+        createdAt: item.createdAt,
+        updatedAt: item.lastEditedAt || item.updatedAt
+      }));
     } catch {
       return [];
     }
   }
 
-  private fallbackDelete(id: string): boolean {
-    const list = this.fallbackList().filter(d => d.id !== id);
+  async renameDraft(id: string, newTitle: string): Promise<boolean> {
     try {
-      localStorage.setItem(this.FALLBACK_STORAGE_KEY, JSON.stringify(list));
+      await firstValueFrom(this.api.renameDesign(id, newTitle));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async deleteDraft(id: string): Promise<boolean> {
+    try {
+      await firstValueFrom(this.api.deleteDesign(id));
       return true;
     } catch {
       return false;

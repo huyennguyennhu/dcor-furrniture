@@ -59,20 +59,31 @@
             </button>
           </div>
 
-          <!-- Nhóm 3 nút hành động chính trên 1 hàng (REQ 3 & REQ 4) -->
+          <!-- Nhóm các nút hành động chính trên 1 hàng -->
           <div class="topbar-actions-group">
             
-            <!-- 1. Lưu thiết kế trên máy này -->
+            <!-- Lối vào Thiết kế của tôi -->
+            <a 
+              routerLink="/account/designs" 
+              class="topbar-action-btn my-designs-btn" 
+              title="Đi đến trang Thiết kế của tôi"
+              aria-label="Thiết kế của tôi">
+              <app-icon name="Layers" size="16"></app-icon>
+              <span class="action-btn-text">Thiết kế của tôi</span>
+            </a>
+
+            <!-- 1. Lưu thiết kế & Tự lưu nháp trên máy chủ -->
             <button 
               type="button" 
               class="topbar-action-btn save-btn" 
+              [class.save-error]="autoSaveError()"
               [disabled]="plannerService.objects().length === 0 || isSavingDraft()"
-              (click)="handleSaveDesignClick()"
-              [title]="plannerService.lastSavedTime() ? (plannerService.lastSavedTime() + ' (Chỉ lưu trên máy này)') : 'Lưu thiết kế vào trình duyệt này (IndexedDB)'"
-              [attr.aria-label]="plannerService.lastSavedTime() || 'Lưu thiết kế'">
-              <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : 'Save'" size="16" [class.icon-spin]="isSavingDraft()"></app-icon>
+              (click)="autoSaveError() ? retryAutoSave() : handleSaveDesignClick()"
+              [title]="autoSaveError() ? (autoSaveError() + ' - Bấm để thử lại') : (plannerService.lastSavedTime() || 'Lưu thiết kế')"
+              [attr.aria-label]="autoSaveError() || plannerService.lastSavedTime() || 'Lưu thiết kế'">
+              <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : (autoSaveError() ? 'AlertTriangle' : 'Save')" size="16" [class.icon-spin]="isSavingDraft()"></app-icon>
               <span class="action-btn-text">
-                {{ plannerService.lastSavedTime() ? plannerService.lastSavedTime() : 'Lưu thiết kế' }}
+                {{ autoSaveError() ? (autoSaveError() + ' · Thử lại') : (isSavingDraft() ? 'Đang lưu...' : (plannerService.lastSavedTime() || 'Lưu thiết kế')) }}
               </span>
             </button>
 
@@ -257,23 +268,17 @@
   </app-modal>
 
   <!-- ============================================== -->
-  <!-- 5. MODAL LƯU THIẾT KẾ TRÊN MÁY NÀY (REQ 3)      -->
+  <!-- 5. MODAL LƯU THIẾT KẾ VÀO TÀI KHOẢN             -->
   <!-- ============================================== -->
   <app-modal 
     [isOpen]="isSaveModalOpen()" 
-    [title]="'Lưu thiết kế trên máy này'" 
+    [title]="'Lưu thiết kế vào tài khoản'" 
     [hasFooter]="true" 
     width="480px"
     (close)="closeSaveModal()">
     <div class="save-modal-body">
-      <div class="save-modal-badge-row">
-        <span class="local-only-badge">
-          <app-icon name="Info" size="14"></app-icon>
-          <span>Chỉ lưu trên máy này</span>
-        </span>
-      </div>
       <p class="save-modal-description">
-        Thiết kế sẽ được lưu an toàn vào bộ nhớ trình duyệt (IndexedDB) của thiết bị này để bạn có thể mở lại bất cứ lúc nào ở Bước 1.
+        Thiết kế và ảnh bìa không gian sẽ được đồng bộ và lưu vĩnh viễn vào tài khoản của bạn tại <strong>Thiết kế của tôi</strong>.
       </p>
       <div class="form-group">
         <label for="save-design-title" class="field-label">Tên thiết kế <span class="required-star">*</span></label>
@@ -282,10 +287,11 @@
           type="text" 
           [ngModel]="saveModalTitleInput()" 
           (ngModelChange)="saveModalTitleInput.set($event)"
-          maxlength="80" 
+          maxlength="100" 
           placeholder="VD: Phòng khách hiện đại của tôi" 
           class="publish-input"
           (keydown.enter)="confirmSaveDesign()"
+          [disabled]="isSavingDraft()"
         />
       </div>
     </div>
@@ -293,7 +299,7 @@
       <button type="button" class="btn-secondary" (click)="closeSaveModal()" [disabled]="isSavingDraft()">Hủy</button>
       <button type="button" class="btn-primary" (click)="confirmSaveDesign()" [disabled]="!saveModalTitleInput().trim() || isSavingDraft()">
         <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : 'Save'" size="16" [class.icon-spin]="isSavingDraft()"></app-icon>
-        <span>{{ isSavingDraft() ? 'Đang lưu...' : 'Lưu thiết kế' }}</span>
+        <span>{{ isSavingDraft() ? 'Đang nén ảnh & lưu...' : 'Lưu thiết kế' }}</span>
       </button>
     </div>
   </app-modal>
