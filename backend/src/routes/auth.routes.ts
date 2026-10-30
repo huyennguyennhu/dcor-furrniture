@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import { authController } from '../controllers/auth.controller';
 
 const router = Router();
@@ -33,9 +34,15 @@ router.post('/send-otp', (req, res) => {
 });
 
 router.post('/verify-otp', (req, res) => {
-  const { otp } = req.body;
+  const { otp, phone } = req.body;
   if (otp && String(otp).trim() === '111111') {
-    res.json({ success: true, verified: true, message: 'Xác thực OTP thành công.' });
+    const cleanPhone = phone ? String(phone).replace(/\D/g, '') : null;
+    const token = jwt.sign(
+      { userId: null, phone: cleanPhone, isGuest: true, role: 'GUEST' },
+      process.env.JWT_SECRET || 'dcor_super_secret_key_2026',
+      { expiresIn: '30d' }
+    );
+    res.json({ success: true, verified: true, message: 'Xác thực OTP thành công.', token, phone: cleanPhone });
   } else {
     res.status(400).json({ success: false, message: 'Mã OTP không chính xác. Vui lòng nhập mã 111111.' });
   }

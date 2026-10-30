@@ -761,3 +761,43 @@ body.admin-body {
     transform: scale(1);
   }
 }
+
+/* ==========================================================================
+   Account Section — Full-Screen Split Layout & DCor Luxury Styling
+   ========================================================================== */
+.account-page,
+.account-page-container {
+  min-height: calc(100vh - 80px);
+  background-color: var(--color-page, #FCF8F3);
+  padding: 0;
+  width: 100%;
+}
+
+.account-container,
+.account-shell {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 992px) {
+  .account-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    min-height: calc(100vh - 80px);
+  }
+  .sidebar-column {
+    width: 290px;
+    flex-shrink: 0;
+    background: #322116;
+  }
+  .content-column {
+    flex: 1;
+    min-width: 0;
+    background-color: var(--color-page, #FCF8F3);
+  }
+}

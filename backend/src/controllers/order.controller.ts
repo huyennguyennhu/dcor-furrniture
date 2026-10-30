@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma';
+import { promotionController } from './promotion.controller';
+import { inMemoryReturns } from './customer.controller';
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 
 const serializeBigInt = (obj: any): any => {
@@ -12,6 +13,93 @@ const serializeBigInt = (obj: any): any => {
     )
   );
 };
+
+/**
+ * Ràng buộc hệ thống: Tự động hủy các đơn hàng quá hạn 24 giờ
+ * mà chưa được đặt cọc (đơn giá trị lớn > 50tr) hoặc chưa thanh toán chuyển khoản ngân hàng.
+ */
+export const autoCancelExpiredOrders = async (): Promise<void> => {
+  try {
+    const expiredThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const expiredOrders = await prisma.order.findMany({
+      where: {
+        status: 'PENDING',
+        createdAt: { lt: expiredThreshold },
+        paymentStatus: 'UNPAID',
+        OR: [
+          { totalAmount: { gt: BigInt(50000000) } }, // Đơn giá trị lớn trên 50 triệu chờ đặt cọc
+          { paymentMethod: 'BANK_TRANSFER' } // Đơn chuyển khoản ngân hàng
+        ]
+      },
+      select: { id: true, orderNumber: true }
+    });
+
+    if (expiredOrders.length > 0) {
+      const cancelReason = 'Hệ thống tự động hủy do quá hạn đặt cọc / chuyển khoản trong vòng 24 giờ.';
+      for (const order of expiredOrders) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'CANCELLED',
+            cancelledAt: new Date(),
+            cancelReason,
+            statusHistory: {
+              create: {
+                status: 'CANCELLED',
+                actorType: 'SYSTEM',
+                notes: 'Hệ thống tự động hủy do quá hạn 24 giờ kể từ khi đặt hàng nhưng chưa nhận được tiền đặt cọc hoặc thanh toán chuyển khoản.'
+              }
+            }
+          }
+        }).catch(err => console.error(`Lỗi tự động hủy đơn ${order.orderNumber}:`, err));
+      }
+    }
+  } catch (err) {
+    console.warn('Lỗi khi kiểm tra autoCancelExpiredOrders:', err);
+  }
+};
+/**
+ * Ràng buộc hệ thống: Tự động chuyển các đơn hàng DELIVERED sang COMPLETED sau 5 phút
+ * nếu khách hàng không chủ động bấm nút "Đã nhận hàng".
+ */
+export const autoCompleteExpiredDeliveredOrders = async (): Promise<void> => {
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const expiredDelivered = await prisma.order.findMany({
+      where: {
+        status: 'DELIVERED',
+        deliveredAt: { lt: fiveMinutesAgo }
+      },
+      select: { id: true, orderNumber: true }
+    });
+
+    for (const order of expiredDelivered) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: 'COMPLETED' }
+      }).catch(() => {});
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: 'COMPLETED',
+          fromStatus: 'DELIVERED',
+          actorType: 'SYSTEM',
+          notes: 'Hệ thống tự động chuyển sang Hoàn tất sau 5 phút kể từ khi shipper báo giao hàng.'
+        }
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('Lỗi khi kiểm tra autoCompleteExpiredDeliveredOrders:', err);
+  }
+};
+
+// Quét định kỳ kiểm tra tự động hủy đơn quá hạn 24h và tự động hoàn tất đơn sau 5 phút
+setInterval(() => {
+  autoCancelExpiredOrders();
+  autoCompleteExpiredDeliveredOrders();
+}, 30 * 1000);
 
 export const orderController = {
   // Tạo đơn hàng mới từ Store Checkout
@@ -40,7 +128,7 @@ export const orderController = {
         return;
       }
 
-      // === RATE LIMITING: Tối đa 3 đơn hàng / số điện thoại / giờ ===
+      // === RATE LIMITING: Tối đa 5 đơn hàng / số điện thoại / giờ ===
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       const recentOrderCount = await prisma.order.count({
         where: {
@@ -48,9 +136,9 @@ export const orderController = {
           createdAt: { gte: oneHourAgo }
         }
       });
-      if (recentOrderCount >= 3) {
+      if (recentOrderCount >= 5) {
         res.status(429).json({
-          message: 'Số điện thoại này đã tạo tối đa 3 đơn hàng trong 1 giờ qua. Vui lòng thử lại sau hoặc liên hệ CSKH để được hỗ trợ.'
+          message: 'Số điện thoại này đã tạo tối đa 5 đơn hàng trong 1 giờ qua. Vui lòng thử lại sau hoặc liên hệ CSKH để được hỗ trợ.'
         });
         return;
       }
@@ -77,6 +165,7 @@ export const orderController = {
       let subTotal = BigInt(0);
       const itemsList = Array.isArray(items) ? items : [];
       const orderItemsCreate: any[] = [];
+      const purchasedVariantIds: string[] = [];
 
       for (const item of itemsList) {
         const qty = Number(item.quantity) || 1;
@@ -86,6 +175,7 @@ export const orderController = {
 
         let variant: any = null;
         if (item.variantId) {
+          purchasedVariantIds.push(item.variantId);
           variant = await prisma.productVariant.findUnique({
             where: { id: item.variantId },
             include: { product: true }
@@ -112,6 +202,8 @@ export const orderController = {
         }
       }
 
+      // Tính toán khuyến mãi và phí vận chuyển thực tế
+      const subTotalNum = Number(subTotal);
       let discountAmountNum = 0;
       let appliedVoucherCode: string | null = null;
 
@@ -144,11 +236,21 @@ export const orderController = {
               data: { usedCount: { increment: 1 } }
             }).catch((e: any) => console.warn('[WARN] Không thể tăng usedCount của voucher:', e));
           }
+        } else {
+          const promoInfo = promotionController.calculateVoucherDiscount(voucherCode, subTotalNum);
+          discountAmountNum = promoInfo.discount;
+          if (promoInfo.discount > 0) {
+            appliedVoucherCode = cleanCode;
+          }
         }
       }
 
       const discountAmount = BigInt(discountAmountNum);
-      const totalAmount = subTotal > discountAmount ? (subTotal - discountAmount) : BigInt(0);
+      const isFreeShip = subTotalNum >= 50000000 || (voucherCode && String(voucherCode).toUpperCase().includes('FREESHIP'));
+      const shippingFee = (subTotalNum === 0 || isFreeShip) ? BigInt(0) : BigInt(250000);
+      
+      const rawTotal = subTotal + shippingFee - discountAmount;
+      const totalAmount = rawTotal > BigInt(0) ? rawTotal : BigInt(0);
       const isHighValue = totalAmount > BigInt(50000000);
 
       // Mã đơn hàng định dạng DC-xxxxxx
@@ -166,17 +268,20 @@ export const orderController = {
           district: district ? String(district).trim() : null,
           ward: ward ? String(ward).trim() : null,
           detailAddress: detailAddress ? String(detailAddress).trim() : address.trim(),
+          companyName: invoice?.companyName ? String(invoice.companyName).trim() : null,
+          taxCode: invoice?.taxCode ? String(invoice.taxCode).trim() : null,
           isGift: !!isGift,
           hideInvoicePrice: !!hideInvoicePrice,
           giftMessage: shippingNotes || null,
           subTotal,
-          shippingFee: BigInt(0),
+          shippingFee,
           discountAmount,
           totalAmount,
           promoCode: appliedVoucherCode || (voucherCode ? String(voucherCode).trim().toUpperCase() : null),
           status: 'PENDING',
-          paymentMethod: paymentMethod === 'COD' ? 'COD' : 'BANK_TRANSFER',
+          paymentMethod: paymentMethod === 'COD' ? 'COD' : (paymentMethod === 'VNPAY' ? 'VNPAY' : (paymentMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'BANK_TRANSFER')),
           paymentStatus: 'UNPAID',
+          expiresAt: (isHighValue || paymentMethod === 'BANK_TRANSFER') ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null,
           notes: isHighValue ? 'Chờ đặt cọc trong 24h' : (shippingNotes || null),
           internalNotes: isHighValue ? 'Chờ đặt cọc (Đơn giá trị lớn trên 50 triệu)' : null,
           items: orderItemsCreate.length > 0 ? {
@@ -189,12 +294,34 @@ export const orderController = {
                 actorType: 'CUSTOMER',
                 notes: isHighValue
                   ? 'Đơn hàng trên 50 triệu - Trạng thái: Chờ đặt cọc trong 24h'
-                  : 'Khách hàng tạo đơn thành công'
+                  : (voucherCode ? `Khách hàng tạo đơn áp dụng mã ưu đãi ${voucherCode}` : 'Khách hàng tạo đơn thành công')
               }
             ]
           }
         }
       });
+
+      // Tự động xóa các sản phẩm đã mua khỏi giỏ hàng nếu khách đã đăng nhập
+      if (customerId && purchasedVariantIds.length > 0) {
+        await prisma.cartItem.deleteMany({
+          where: {
+            customerId,
+            variantId: { in: purchasedVariantIds }
+          }
+        }).catch((err) => console.warn('Không thể xóa cartItem sau khi đặt hàng:', err));
+      }
+
+      // Cập nhật thống kê chi tiêu & điểm tích lũy của khách hàng
+      if (customerId) {
+        const pointsToAdd = Math.floor(Number(totalAmount) / 100000);
+        await prisma.customer.update({
+          where: { id: customerId },
+          data: {
+            totalSpent: { increment: totalAmount },
+            rewardPoints: { increment: pointsToAdd }
+          }
+        }).catch(() => {});
+      }
 
       res.status(201).json(serializeBigInt({
         success: true,
@@ -203,9 +330,14 @@ export const orderController = {
         status: isHighValue ? 'WAITING_DEPOSIT' : order.status,
         statusLabel: isHighValue ? 'Chờ đặt cọc' : 'Chờ xác nhận',
         totalAmount: Number(order.totalAmount),
+        subTotal: Number(order.subTotal),
+        discountAmount: Number(order.discountAmount),
+        shippingFee: Number(order.shippingFee),
+        promoCode: order.promoCode,
         isHighValue,
         depositAmount: isHighValue ? Math.round(Number(order.totalAmount) * 0.3) : 0,
-        createdAt: order.createdAt
+        createdAt: order.createdAt,
+        expiresAt: order.expiresAt
       }));
     } catch (error: any) {
       console.error('Lỗi khi tạo đơn hàng:', error);
@@ -216,9 +348,14 @@ export const orderController = {
     }
   },
 
-  // Lấy danh sách đơn hàng của khách
+  // Lấy danh sách đơn hàng của khách (hỗ trợ lọc tab & tìm kiếm)
   getMyOrders: async (req: Request, res: Response): Promise<void> => {
     try {
+      // Tự động kiểm tra và hủy các đơn hàng quá hạn 24 giờ
+      await autoCancelExpiredOrders();
+      // Tự động chuyển các đơn DELIVERED quá 5 phút sang COMPLETED
+      await autoCompleteExpiredDeliveredOrders();
+
       let customerId: string | null = null;
       let customerPhone: string | null = null;
 
@@ -232,18 +369,54 @@ export const orderController = {
         } catch (_) {}
       }
 
+      // Khách vãng lai xác thực SĐT: cho phép truyền qua query phone hoặc header x-guest-phone
+      const queryPhone = req.query.phone as string;
+      const headerPhone = req.headers['x-guest-phone'] as string;
+      if (queryPhone && queryPhone.trim()) {
+        customerPhone = queryPhone.trim();
+      } else if (headerPhone && headerPhone.trim()) {
+        customerPhone = headerPhone.trim();
+      }
+
       if (!customerId && !customerPhone) {
         res.json([]);
         return;
       }
 
+      const { status: statusFilter, search } = req.query;
+
+      const orConditions: any[] = [];
+      if (customerId) orConditions.push({ customerId });
+      if (customerPhone) orConditions.push({ phone: customerPhone });
+
+      if (orConditions.length === 0) {
+        res.json([]);
+        return;
+      }
+
+      const whereClause: any = {
+        OR: orConditions
+      };
+
+      if (statusFilter && statusFilter !== 'ALL') {
+        if (statusFilter === 'WAITING_DEPOSIT' || statusFilter === 'WAITING_PAYMENT') {
+          whereClause.paymentStatus = { not: 'PAID' };
+          whereClause.status = { not: 'CANCELLED' };
+          whereClause.AND = [
+            {
+              OR: [
+                { totalAmount: { gt: BigInt(50000000) } },
+                { paymentMethod: 'BANK_TRANSFER' }
+              ]
+            }
+          ];
+        } else {
+          whereClause.status = statusFilter;
+        }
+      }
+
       const orders = await prisma.order.findMany({
-        where: {
-          OR: [
-            customerId ? { customerId } : {},
-            customerPhone ? { phone: customerPhone } : {}
-          ]
-        },
+        where: whereClause,
         include: {
           items: true
         },
@@ -252,28 +425,108 @@ export const orderController = {
         }
       });
 
-      const formatted = orders.map(o => {
+      // Filter by search keyword if provided
+      let filteredOrders = orders;
+      if (search && typeof search === 'string' && search.trim()) {
+        const query = search.trim().toLowerCase();
+        filteredOrders = orders.filter(o => {
+          const matchOrderNum = o.orderNumber.toLowerCase().includes(query);
+          const matchReceiver = o.receiverName.toLowerCase().includes(query);
+          const matchItem = o.items.some(i => i.productName.toLowerCase().includes(query));
+          return matchOrderNum || matchReceiver || matchItem;
+        });
+      }
+
+      const formatted = filteredOrders.map(o => {
         const isHighValue = o.totalAmount > BigInt(50000000);
+
+        // Kiểm tra xem đơn hàng DELIVERED có đang trong khoảng thời gian chờ khách xác nhận (5 phút) hay không
+        const isDeliveredWaiting = (o.status === 'DELIVERED') && o.deliveredAt && (Date.now() - new Date(o.deliveredAt).getTime() < 5 * 60 * 1000);
+        const remainingConfirmSeconds = isDeliveredWaiting && o.deliveredAt
+          ? Math.max(0, Math.floor((5 * 60 * 1000 - (Date.now() - new Date(o.deliveredAt).getTime())) / 1000))
+          : 0;
+
         let displayStatus = 'Chờ xác nhận';
-        if (isHighValue && o.paymentStatus !== 'PAID') {
+        if (isHighValue && o.paymentStatus !== 'PAID' && o.status !== 'CANCELLED') {
           displayStatus = 'Chờ đặt cọc';
+        } else if ((o.paymentMethod === 'BANK_TRANSFER' || (o.paymentMethod as any) === 'BANKING') && o.paymentStatus !== 'PAID' && o.status === 'PENDING') {
+          displayStatus = 'Chờ thanh toán';
+        } else if (o.status === 'CONFIRMED') {
+          displayStatus = 'Đã xác nhận';
         } else if (o.status === 'PROCESSING') {
-          displayStatus = 'Đang xử lý';
+          displayStatus = 'Đang chuẩn bị hàng';
         } else if (o.status === 'SHIPPED') {
-          displayStatus = 'Đang giao';
+          displayStatus = 'Đang giao hàng';
         } else if (o.status === 'DELIVERED') {
-          displayStatus = 'Hoàn thành';
+          displayStatus = isDeliveredWaiting ? 'Đang giao (Shipper báo đã giao)' : 'Đã giao hàng (Hoàn tất)';
+        } else if ((o.status as any) === 'COMPLETED') {
+          displayStatus = 'Đã giao hàng (Hoàn tất)';
         } else if (o.status === 'CANCELLED') {
           displayStatus = 'Đã hủy';
+        } else if (o.status === 'RETURNED') {
+          displayStatus = 'Đổi trả';
         }
+
+        const firstItem = o.items[0] || null;
 
         return {
           id: o.orderNumber,
+          orderNumber: o.orderNumber,
+          dbId: o.id,
           date: o.createdAt.toISOString().split('T')[0],
+          createdAt: o.createdAt,
+          deliveredAt: o.deliveredAt,
+          updatedAt: o.updatedAt,
+          isDeliveredWaitingConfirm: !!isDeliveredWaiting,
+          remainingConfirmSeconds,
+          expiresAt: o.expiresAt || ((isHighValue || o.paymentMethod === 'BANK_TRANSFER') ? new Date(new Date(o.createdAt).getTime() + 24 * 60 * 60 * 1000) : null),
+          cancelledAt: o.cancelledAt,
           total: Number(o.totalAmount),
-          status: displayStatus,
+          totalAmount: Number(o.totalAmount),
+          subTotal: Number(o.subTotal),
+          shippingFee: Number(o.shippingFee),
+          discountAmount: Number(o.discountAmount),
+          status: o.status,
+          displayStatus,
+          paymentMethod: o.paymentMethod,
+          paymentStatus: o.paymentStatus,
+          isHighValue,
+          depositAmount: isHighValue ? Math.round(Number(o.totalAmount) * 0.3) : 0,
           items: o.items.length || 1,
-          isHighValue
+          firstItem: firstItem ? {
+            productName: firstItem.productName,
+            sku: firstItem.sku,
+            imageUrl: firstItem.imageUrl,
+            price: firstItem.price,
+            quantity: firstItem.quantity,
+            variantDescription: firstItem.variantDescription,
+            selectedOptions: firstItem.selectedOptions
+          } : null,
+          allItems: o.items.map(it => ({
+            id: it.id,
+            productId: it.productId,
+            variantId: it.variantId,
+            productName: it.productName,
+            sku: it.sku,
+            imageUrl: it.imageUrl,
+            price: it.price,
+            quantity: it.quantity,
+            lineTotal: Number(it.lineTotal),
+            variantDescription: it.variantDescription,
+            selectedOptions: it.selectedOptions
+          })),
+          shippingInfo: {
+            receiverName: o.receiverName,
+            phone: o.phone,
+            email: o.email,
+            province: o.province,
+            district: o.district,
+            ward: o.ward,
+            detailAddress: o.detailAddress
+          },
+          statusHistory: [],
+          notes: o.notes,
+          cancelReason: o.cancelReason
         };
       });
 
@@ -281,6 +534,319 @@ export const orderController = {
     } catch (error: any) {
       console.error('Lỗi khi lấy danh sách đơn hàng:', error);
       res.status(500).json({ message: 'Không thể lấy danh sách đơn hàng.' });
+    }
+  },
+
+  // Lấy chi tiết một đơn hàng
+  getOrderDetail: async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Tự động kiểm tra và hủy các đơn hàng quá hạn 24 giờ
+      await autoCancelExpiredOrders();
+
+      const orderNumber = String(req.params.orderNumber);
+
+      const order: any = await prisma.order.findUnique({
+        where: { orderNumber },
+        include: {
+          items: true,
+          statusHistory: {
+            orderBy: { createdAt: 'desc' }
+          },
+          payments: true
+        }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy thông tin đơn hàng.' });
+        return;
+      }
+
+      const isHighValue = order.totalAmount > BigInt(50000000);
+      let displayStatus = 'Chờ xác nhận';
+      if (isHighValue && order.paymentStatus !== 'PAID' && order.status !== 'CANCELLED') {
+        displayStatus = 'Chờ đặt cọc';
+      } else if ((order.paymentMethod === 'BANK_TRANSFER' || (order.paymentMethod as any) === 'BANKING') && order.paymentStatus !== 'PAID' && order.status === 'PENDING') {
+        displayStatus = 'Chờ thanh toán';
+      } else if (order.status === 'CONFIRMED') {
+        displayStatus = 'Đã xác nhận';
+      } else if (order.status === 'PROCESSING') {
+        displayStatus = 'Đang chuẩn bị hàng';
+      } else if (order.status === 'SHIPPED') {
+        displayStatus = 'Đang giao hàng';
+      } else if (order.status === 'DELIVERED') {
+        displayStatus = 'Đã giao hàng';
+      } else if (order.status === 'CANCELLED') {
+        displayStatus = 'Đã hủy';
+      } else if (order.status === 'RETURNED') {
+        displayStatus = 'Đổi trả';
+      }
+
+      res.json(serializeBigInt({
+        id: order.orderNumber,
+        orderNumber: order.orderNumber,
+        dbId: order.id,
+        createdAt: order.createdAt,
+        expiresAt: order.expiresAt || ((isHighValue || order.paymentMethod === 'BANK_TRANSFER') ? new Date(new Date(order.createdAt).getTime() + 24 * 60 * 60 * 1000) : null),
+        cancelledAt: order.cancelledAt,
+        totalAmount: Number(order.totalAmount),
+        subTotal: Number(order.subTotal),
+        shippingFee: Number(order.shippingFee),
+        discountAmount: Number(order.discountAmount),
+        status: order.status,
+        displayStatus,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        isHighValue,
+        depositAmount: isHighValue ? Math.round(Number(order.totalAmount) * 0.3) : 0,
+        paidAmount: order.paymentStatus === 'PAID' 
+          ? Number(order.totalAmount) 
+          : (order.paymentStatus === 'PARTIAL' ? Math.round(Number(order.totalAmount) * 0.3) : 0),
+        remainingAmount: order.paymentStatus === 'PAID'
+          ? 0
+          : (order.paymentStatus === 'PARTIAL' ? Number(order.totalAmount) - Math.round(Number(order.totalAmount) * 0.3) : Number(order.totalAmount)),
+        receiverName: order.receiverName,
+        phone: order.phone,
+        email: order.email,
+        province: order.province,
+        district: order.district,
+        ward: order.ward,
+        detailAddress: order.detailAddress,
+        notes: order.notes,
+        cancelReason: order.cancelReason,
+        shippingProvider: order.shippingProvider,
+        trackingCode: order.trackingCode,
+        items: (order.items || []).map((it: any) => ({
+          id: it.id,
+          productId: it.productId,
+          variantId: it.variantId,
+          productName: it.productName,
+          sku: it.sku,
+          imageUrl: it.imageUrl,
+          price: it.price,
+          quantity: it.quantity,
+          lineTotal: Number(it.lineTotal),
+          variantDescription: it.variantDescription,
+          selectedOptions: it.selectedOptions
+        })),
+        statusHistory: (order.statusHistory || []).map((sh: any) => ({
+          id: sh.id,
+          status: sh.status,
+          actorType: sh.actorType,
+          notes: sh.notes,
+          createdAt: sh.createdAt
+        })),
+        payments: (order.payments || []).map((p: any) => ({
+          id: p.id,
+          transactionCode: p.transactionCode,
+          amount: Number(p.amount),
+          paymentMethod: p.paymentMethod,
+          status: p.status,
+          createdAt: p.createdAt
+        }))
+      }));
+    } catch (error) {
+      console.error('Lỗi getOrderDetail:', error);
+      res.status(500).json({ message: 'Không thể lấy thông tin chi tiết đơn hàng.' });
+    }
+  },
+
+  // Hủy đơn hàng (chỉ cho phép khi đơn PENDING và chưa thanh toán)
+  cancelOrder: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const orderNumber = String(req.params.orderNumber);
+      const { reason } = req.body;
+
+      const order = await prisma.order.findUnique({
+        where: { orderNumber }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      if (order.status !== 'PENDING') {
+        res.status(400).json({ message: 'Chỉ có thể hủy đơn hàng khi đơn đang ở trạng thái Chờ xác nhận hoặc Chờ đặt cọc.' });
+        return;
+      }
+
+      const updated = await prisma.order.update({
+        where: { orderNumber },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelReason: reason || 'Khách hàng yêu cầu hủy đơn'
+        }
+      });
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: 'CANCELLED',
+          fromStatus: order.status,
+          actorType: 'CUSTOMER',
+          notes: `Khách hàng hủy đơn: ${reason || 'Không nêu lý do'}`
+        }
+      });
+
+      res.json({ message: 'Hủy đơn hàng thành công.', orderNumber: updated.orderNumber, status: 'CANCELLED' });
+    } catch (error) {
+      console.error('Lỗi cancelOrder:', error);
+      res.status(500).json({ message: 'Lỗi khi hủy đơn hàng.' });
+    }
+  },
+
+  // Khách hàng xác nhận đã nhận được hàng
+  confirmReceived: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const orderNumber = String(req.params.orderNumber);
+
+      const order = await prisma.order.findUnique({
+        where: { orderNumber }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      if (order.status !== 'SHIPPED' && order.status !== 'DELIVERED') {
+        res.status(400).json({ message: 'Đơn hàng chưa được giao đi, không thể xác nhận nhận hàng.' });
+        return;
+      }
+
+      const updated = await prisma.order.update({
+        where: { orderNumber },
+        data: {
+          status: 'COMPLETED',
+          deliveredAt: order.deliveredAt || new Date()
+        }
+      });
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: 'COMPLETED',
+          fromStatus: order.status,
+          actorType: 'CUSTOMER',
+          notes: 'Khách hàng đã nhận hàng và xác nhận hoàn tất hài lòng.'
+        }
+      });
+
+      res.json({ message: 'Xác nhận đã nhận hàng thành công.', orderNumber: updated.orderNumber, status: 'COMPLETED' });
+    } catch (error) {
+      console.error('Lỗi confirmReceived:', error);
+      res.status(500).json({ message: 'Lỗi khi xác nhận nhận hàng.' });
+    }
+  },
+
+  // Yêu cầu đổi trả hàng
+  requestReturn: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const orderNumber = String(req.params.orderNumber);
+      const { reason, description, images } = req.body;
+
+      const order = await prisma.order.findUnique({
+        where: { orderNumber },
+        include: { items: true }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      if (order.status !== 'DELIVERED' && (order.status as any) !== 'COMPLETED') {
+        res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn hàng đã hoàn tất.' });
+        return;
+      }
+
+      const updated = await prisma.order.update({
+        where: { orderNumber },
+        data: {
+          status: 'RETURNED'
+        }
+      });
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: 'RETURNED',
+          fromStatus: order.status,
+          actorType: 'CUSTOMER',
+          notes: `[Yêu cầu đổi trả] Lý do: ${reason}. Chi tiết: ${description || 'Không có mô tả'}. Ảnh đính kèm: ${(images || []).join(', ')}`
+        }
+      });
+
+      // Đồng bộ vào inMemoryReturns với trạng thái mặc định PENDING ("Chờ duyệt")
+      const firstItem = order.items?.[0];
+      const returnId = `RET-${order.orderNumber.replace('ORD-', '')}`;
+      const existingIdx = inMemoryReturns.findIndex(r => r.orderNumber === orderNumber);
+      const newReturnObj = {
+        id: returnId,
+        customerId: order.customerId || 'guest',
+        orderNumber: order.orderNumber,
+        productName: firstItem ? firstItem.productName : 'Sản phẩm nội thất',
+        sku: firstItem?.sku || '',
+        imageUrl: firstItem?.imageUrl || '',
+        variantDescription: firstItem?.variantDescription || '',
+        quantity: firstItem?.quantity || 1,
+        price: firstItem ? Number(firstItem.price) : Number(order.totalAmount),
+        reason: reason || 'Sản phẩm lỗi kỹ thuật do nhà sản xuất',
+        description: description ? description.trim() : '',
+        images: Array.isArray(images) ? images : [],
+        status: 'PENDING' as const,
+        statusLabel: 'Chờ duyệt',
+        refundAmount: Number(order.totalAmount),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      if (existingIdx >= 0) {
+        inMemoryReturns[existingIdx] = newReturnObj;
+      } else {
+        inMemoryReturns.unshift(newReturnObj);
+      }
+
+      res.json({
+        message: 'Gửi yêu cầu đổi trả thành công. Yêu cầu của bạn đang ở trạng thái Chờ duyệt.',
+        status: 'PENDING',
+        returnId
+      });
+    } catch (error) {
+      console.error('Lỗi requestReturn:', error);
+      res.status(500).json({ message: 'Lỗi khi gửi yêu cầu đổi trả.' });
+    }
+  },
+
+  // Đánh giá sản phẩm đã mua
+  submitReview: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const orderNumber = String(req.params.orderNumber);
+      const { rating, comment, itemId } = req.body;
+
+      const order = await prisma.order.findUnique({
+        where: { orderNumber }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: order.status,
+          actorType: 'CUSTOMER',
+          notes: `[Đánh giá sản phẩm ${itemId || ''}] Số sao: ${rating}/5 ⭐. Nhận xét: ${comment || 'Hài lòng'}`
+        }
+      });
+
+      res.json({ message: 'Cảm ơn bạn đã gửi đánh giá cho sản phẩm!' });
+    } catch (error) {
+      console.error('Lỗi submitReview:', error);
+      res.status(500).json({ message: 'Lỗi khi gửi đánh giá.' });
     }
   },
 
@@ -322,5 +888,315 @@ export const orderController = {
       console.error('Lỗi tra cứu địa chỉ:', error);
       res.status(500).json({ message: 'Không thể tra cứu địa chỉ.' });
     }
+  },
+
+  // === DÀNH CHO ADMIN: QUẢN LÝ ĐƠN HÀNG ===
+
+  // GET /api/admin/orders - Danh sách đơn hàng phía Quản trị
+  getAdminOrders: async (req: Request, res: Response): Promise<void> => {
+    try {
+      await autoCancelExpiredOrders();
+
+      const { status, search, paymentStatus } = req.query;
+      const where: any = {};
+
+      if (status && status !== 'ALL') {
+        if (status === 'HIGH_VALUE') {
+          where.totalAmount = { gt: BigInt(50000000) };
+        } else {
+          where.status = status;
+        }
+      }
+
+      if (paymentStatus && paymentStatus !== 'ALL') {
+        where.paymentStatus = paymentStatus;
+      }
+
+      if (search && typeof search === 'string' && search.trim()) {
+        const query = search.trim();
+        where.OR = [
+          { orderNumber: { contains: query, mode: 'insensitive' } },
+          { phone: { contains: query, mode: 'insensitive' } },
+          { receiverName: { contains: query, mode: 'insensitive' } }
+        ];
+      }
+
+      const orders = await prisma.order.findMany({
+        where,
+        include: {
+          items: true,
+          customer: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const formatted = orders.map(o => {
+        const isHighValue = o.totalAmount > BigInt(50000000);
+        const fullAddr = [o.detailAddress, o.ward, o.district, o.province].filter(Boolean).join(', ');
+        return {
+          id: o.orderNumber,
+          dbId: o.id,
+          customerName: o.receiverName,
+          phone: o.phone,
+          email: o.email || o.customer?.email || '',
+          address: fullAddr,
+          province: o.province,
+          district: o.district,
+          ward: o.ward,
+          detailAddress: o.detailAddress,
+          products: o.items.map(i => ({
+            name: i.productName,
+            sku: i.sku || 'SKU-DCOR',
+            quantity: i.quantity,
+            price: i.price,
+            imageUrl: i.imageUrl,
+            lineTotal: Number(i.lineTotal)
+          })),
+          subTotal: Number(o.subTotal),
+          shippingFee: Number(o.shippingFee),
+          discountAmount: Number(o.discountAmount),
+          totalAmount: Number(o.totalAmount),
+          status: o.status,
+          paymentStatus: o.paymentStatus,
+          paymentMethod: o.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản' : (o.paymentMethod === 'COD' ? 'Tiền mặt' : (o.paymentMethod === 'VNPAY' ? 'VNPAY' : 'Thẻ tín dụng')),
+          showroom: o.shippingProvider || 'Kho Tổng',
+          createdAt: o.createdAt.toISOString().replace('T', ' ').substring(0, 16),
+          expiresAt: o.expiresAt,
+          cancelledAt: o.cancelledAt,
+          isGift: o.isGift,
+          giftMessage: o.giftMessage,
+          hidePrice: o.hideInvoicePrice,
+          isHighValue,
+          promoCode: o.promoCode,
+          notes: o.notes,
+          internalNotes: o.internalNotes
+        };
+      });
+
+      res.json(serializeBigInt(formatted));
+    } catch (error) {
+      console.error('Lỗi getAdminOrders:', error);
+      res.status(500).json({ message: 'Lỗi tải danh sách đơn hàng Admin.' });
+    }
+  },
+
+  // GET /api/admin/orders/:id - Chi tiết đơn hàng Admin
+  getAdminOrderDetail: async (req: Request, res: Response): Promise<void> => {
+    try {
+      await autoCancelExpiredOrders();
+
+      const idOrNumber = String(req.params.id);
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [
+            { orderNumber: idOrNumber },
+            { id: idOrNumber }
+          ]
+        },
+        include: {
+          items: true,
+          customer: true,
+          statusHistory: {
+            orderBy: { createdAt: 'desc' }
+          },
+          payments: true
+        }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy thông tin đơn hàng.' });
+        return;
+      }
+
+      const isHighValue = order.totalAmount > BigInt(50000000);
+      const fullAddr = [order.detailAddress, order.ward, order.district, order.province].filter(Boolean).join(', ');
+
+      res.json(serializeBigInt({
+        id: order.orderNumber,
+        orderNumber: order.orderNumber,
+        dbId: order.id,
+        createdAt: order.createdAt.toISOString().replace('T', ' ').substring(0, 16),
+        rawCreatedAt: order.createdAt,
+        expiresAt: order.expiresAt,
+        cancelledAt: order.cancelledAt,
+        totalAmount: Number(order.totalAmount),
+        subTotal: Number(order.subTotal),
+        shippingFee: Number(order.shippingFee),
+        discountAmount: Number(order.discountAmount),
+        promoCode: order.promoCode,
+        status: order.status,
+        paymentMethod: order.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản' : (order.paymentMethod === 'COD' ? 'Tiền mặt' : (order.paymentMethod === 'VNPAY' ? 'VNPAY' : 'Thẻ tín dụng')),
+        paymentStatus: order.paymentStatus,
+        isHighValue,
+        depositAmount: isHighValue ? Math.round(Number(order.totalAmount) * 0.3) : 0,
+        paidAmount: order.paymentStatus === 'PAID'
+          ? Number(order.totalAmount)
+          : (order.paymentStatus === 'PARTIAL' ? Math.round(Number(order.totalAmount) * 0.3) : 0),
+        remainingAmount: order.paymentStatus === 'PAID'
+          ? 0
+          : (order.paymentStatus === 'PARTIAL' ? Number(order.totalAmount) - Math.round(Number(order.totalAmount) * 0.3) : Number(order.totalAmount)),
+        customerName: order.receiverName,
+        phone: order.phone,
+        email: order.email || order.customer?.email || '',
+        customerType: order.customer?.type === 'B2B' ? 'B2B' : (order.companyName ? 'B2B' : 'Cá nhân'),
+        companyName: order.companyName,
+        taxCode: order.taxCode,
+        address: fullAddr,
+        detailAddress: order.detailAddress,
+        province: order.province,
+        district: order.district,
+        ward: order.ward,
+        shippingProvider: order.shippingProvider || 'Giao Hàng Nhanh (GHN)',
+        trackingCode: order.trackingCode || `GHN-${order.orderNumber.replace('DC-', '')}`,
+        showroom: order.shippingProvider || 'Kho Tổng',
+        notes: order.notes,
+        internalNotes: order.internalNotes,
+        isGift: order.isGift,
+        giftMessage: order.giftMessage,
+        hidePrice: order.hideInvoicePrice,
+        products: order.items.map(i => ({
+          id: i.id,
+          name: i.productName,
+          sku: i.sku || 'SKU-DCOR',
+          quantity: i.quantity,
+          price: i.price,
+          lineTotal: Number(i.lineTotal),
+          imageUrl: i.imageUrl,
+          variantDescription: i.variantDescription,
+          selectedOptions: i.selectedOptions
+        })),
+        statusHistory: order.statusHistory.map(sh => ({
+          id: sh.id,
+          status: sh.status,
+          actorType: sh.actorType,
+          notes: sh.notes,
+          createdAt: sh.createdAt.toISOString().replace('T', ' ').substring(0, 16)
+        }))
+      }));
+    } catch (error) {
+      console.error('Lỗi getAdminOrderDetail:', error);
+      res.status(500).json({ message: 'Không thể lấy thông tin chi tiết đơn hàng.' });
+    }
+  },
+
+  // PUT /api/admin/orders/:id/status - Cập nhật trạng thái đơn hàng
+  updateAdminOrderStatus: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const idOrNumber = String(req.params.id);
+      const { status, notes, actorName } = req.body;
+
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [{ orderNumber: idOrNumber }, { id: idOrNumber }]
+        }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      const updateData: any = { status };
+      if (status === 'SHIPPED') updateData.shippedAt = new Date();
+      if (status === 'DELIVERED') {
+        updateData.deliveredAt = new Date();
+        updateData.paymentStatus = 'PAID';
+        updateData.paidAt = new Date();
+      }
+      if (status === 'CANCELLED') updateData.cancelledAt = new Date();
+
+      const updated = await prisma.order.update({
+        where: { id: order.id },
+        data: updateData
+      });
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status,
+          fromStatus: order.status,
+          actorType: 'STAFF',
+          notes: notes || `Admin (${actorName || 'Quản trị viên'}) chuyển trạng thái đơn hàng sang ${status}`
+        }
+      });
+
+      res.json({ message: 'Cập nhật trạng thái đơn hàng thành công.', order: serializeBigInt(updated) });
+    } catch (error) {
+      console.error('Lỗi updateAdminOrderStatus:', error);
+      res.status(500).json({ message: 'Không thể cập nhật trạng thái đơn hàng.' });
+    }
+  },
+
+  // PUT /api/admin/orders/:id/payment - Cập nhật trạng thái thanh toán
+  updateAdminOrderPayment: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const idOrNumber = String(req.params.id);
+      const { paymentStatus, notes, transactionCode } = req.body;
+
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [{ orderNumber: idOrNumber }, { id: idOrNumber }]
+        }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      const updateData: any = { paymentStatus };
+      if (paymentStatus === 'PAID') {
+        updateData.paidAt = new Date();
+      }
+
+      const updated = await prisma.order.update({
+        where: { id: order.id },
+        data: updateData
+      });
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: order.status,
+          actorType: 'STAFF',
+          notes: notes || `Admin cập nhật thanh toán: ${paymentStatus}${transactionCode ? ' (Mã GD: ' + transactionCode + ')' : ''}`
+        }
+      });
+
+      res.json({ message: 'Cập nhật trạng thái thanh toán thành công.', order: serializeBigInt(updated) });
+    } catch (error) {
+      console.error('Lỗi updateAdminOrderPayment:', error);
+      res.status(500).json({ message: 'Không thể cập nhật trạng thái thanh toán.' });
+    }
+  },
+
+  // PUT /api/admin/orders/:id/notes - Cập nhật ghi chú nội bộ
+  updateAdminOrderNotes: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const idOrNumber = String(req.params.id);
+      const { internalNotes } = req.body;
+
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [{ orderNumber: idOrNumber }, { id: idOrNumber }]
+        }
+      });
+
+      if (!order) {
+        res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      const updated = await prisma.order.update({
+        where: { id: order.id },
+        data: { internalNotes }
+      });
+
+      res.json({ message: 'Đã lưu ghi chú nội bộ.', internalNotes: updated.internalNotes });
+    } catch (error) {
+      console.error('Lỗi updateAdminOrderNotes:', error);
+      res.status(500).json({ message: 'Không thể cập nhật ghi chú nội bộ.' });
+    }
   }
 };
+

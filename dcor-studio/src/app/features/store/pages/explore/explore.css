@@ -692,12 +692,12 @@
   box-shadow: none !important;
 }
 
-/* Yêu thích khi active: tô màu cam đặc (#b45309) */
+/* Yêu thích khi active: tô màu đỏ đặc (#C42326) */
 .round-action-btn.wishlist-btn.active ::ng-deep svg,
 .round-action-btn.wishlist-btn.active ::ng-deep svg path,
 .round-action-btn.active app-icon.filled ::ng-deep svg path {
-  fill: #b45309 !important;
-  stroke: #b45309 !important;
+  fill: #C42326 !important;
+  stroke: #C42326 !important;
 }
 
 /* Card Body */

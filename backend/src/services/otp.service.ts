@@ -1,9 +1,9 @@
-import { PrismaClient, OtpCode } from '@prisma/client';
+import { OtpCode } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import prisma from '../lib/prisma';
 import { smsService } from './sms.service';
 
-const prisma = new PrismaClient();
 
 export type OtpPurpose = 'REGISTER' | 'RESET_PASSWORD';
 

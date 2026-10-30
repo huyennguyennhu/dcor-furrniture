@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, TimeoutError, timeout } from 'rxjs';
+import { Observable, TimeoutError, timeout, BehaviorSubject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface CustomerUser {
@@ -9,6 +9,9 @@ export interface CustomerUser {
   phone?: string;
   email?: string | null;
   avatar?: string | null;
+  avatarUrl?: string | null;
+  role?: string;
+  isPhoneVerified?: boolean;
 }
 
 export interface SendOtpResponse {
@@ -80,7 +83,21 @@ export class AuthService {
   private readonly TOKEN_KEY = 'dcor_customer_token';
   private readonly USER_KEY = 'dcor_customer';
 
-  constructor(private http: HttpClient) {}
+  // Khách vãng lai: Không lưu vào localStorage để khi tải lại trang (reload) không lưu phiên đăng nhập
+  private guestPhone: string | null = null;
+  private guestPhoneSubject = new BehaviorSubject<string | null>(null);
+  guestPhone$ = this.guestPhoneSubject.asObservable();
+
+  private userSubject = new BehaviorSubject<CustomerUser | null>(this.getCurrentUser());
+  user$ = this.userSubject.asObservable();
+
+  constructor(private http: HttpClient) {
+    // Xóa triệt để phiên khách vãng lai cũ nếu còn sót trong localStorage
+    try {
+      localStorage.removeItem('dcor_guest_phone');
+      localStorage.removeItem('dcor_guest_token');
+    } catch (_) {}
+  }
 
   /**
    * Helper định dạng lỗi cho các component
@@ -150,8 +167,41 @@ export class AuthService {
     try {
       localStorage.setItem(this.TOKEN_KEY, token);
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      localStorage.setItem('dcor_customer_user', JSON.stringify(user));
+      this.userSubject.next(user);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
     } catch (e) {
       console.error('Không thể lưu phiên vào localStorage', e);
+    }
+  }
+
+  /**
+   * Cập nhật thông tin user hiện tại (đồng bộ avatar, họ tên trên toàn ứng dụng)
+   */
+  updateCurrentUser(partialUser: Partial<CustomerUser>): void {
+    try {
+      const current = this.getCurrentUser() || ({} as CustomerUser);
+      const updated: CustomerUser = {
+        ...current,
+        ...partialUser,
+        avatar: partialUser.avatar ?? partialUser.avatarUrl ?? current.avatar,
+        avatarUrl: partialUser.avatarUrl ?? partialUser.avatar ?? current.avatarUrl
+      };
+
+      const keys = ['dcor_customer', 'dcor_customer_user', 'dcor_user'];
+      for (const k of keys) {
+        localStorage.setItem(k, JSON.stringify(updated));
+      }
+
+      this.userSubject.next(updated);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('dcor-user-updated', { detail: updated }));
+      }
+    } catch (e) {
+      console.error('Lỗi khi cập nhật thông tin người dùng cục bộ', e);
     }
   }
 
@@ -171,7 +221,7 @@ export class AuthService {
    */
   getCurrentUser(): CustomerUser | null {
     try {
-      const data = localStorage.getItem(this.USER_KEY);
+      const data = localStorage.getItem(this.USER_KEY) || localStorage.getItem('dcor_customer_user');
       return data ? JSON.parse(data) : null;
     } catch {
       return null;
@@ -185,16 +235,68 @@ export class AuthService {
     try {
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
+      localStorage.removeItem('dcor_customer_user');
+      localStorage.removeItem('dcor_user');
+      this.userSubject.next(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
     } catch (e) {
       console.error('Lỗi khi xóa phiên', e);
     }
   }
 
   /**
-   * Kiểm tra khách hàng đã đăng nhập hay chưa
+   * Kiểm tra khách hàng đã đăng nhập hay chưa (không tính guest token)
    */
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    const user = this.getCurrentUser();
+    return !!(token && user && user.id);
+  }
+
+  /**
+   * Lấy số điện thoại đã xác thực của khách vãng lai (chỉ lưu trong phiên RAM, mất khi reload)
+   */
+  getGuestPhone(): string | null {
+    return this.guestPhone;
+  }
+
+  /**
+   * Lưu số điện thoại xác thực cho khách vãng lai trong bộ nhớ phiên làm việc hiện tại
+   */
+  setGuestPhone(phone: string, token?: string): void {
+    this.guestPhone = phone;
+    try {
+      localStorage.removeItem('dcor_guest_phone');
+      localStorage.removeItem('dcor_guest_token');
+    } catch (_) {}
+    this.guestPhoneSubject.next(phone);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dcor-guest-phone-updated', { detail: phone }));
+    }
+  }
+
+  /**
+   * Xóa thông tin xác thực của khách vãng lai
+   */
+  clearGuestPhone(): void {
+    this.guestPhone = null;
+    try {
+      localStorage.removeItem('dcor_guest_phone');
+      localStorage.removeItem('dcor_guest_token');
+    } catch (_) {}
+    this.guestPhoneSubject.next(null);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dcor-guest-phone-updated', { detail: null }));
+    }
+  }
+
+  /**
+   * Kiểm tra khách vãng lai đã xác thực SĐT hay chưa (trong phiên hiện tại)
+   */
+  isGuestVerified(): boolean {
+    return !!this.guestPhone;
   }
 }
 

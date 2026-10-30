@@ -1,51 +1,541 @@
 <div class="account-page">
-  <div class="container" style="display: flex; gap: 40px; padding: 40px 0;">
-    
-    <!-- Sidebar Account -->
-    <div style="width: 250px; flex-shrink: 0;">
-      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">Tài khoản</h2>
-      <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px;">
-        <li><a routerLink="/account/profile" style="color: var(--accent); font-weight: 600; text-decoration: none;">Hồ sơ cá nhân</a></li>
-        <li><a routerLink="/account/orders" style="color: var(--text-secondary); text-decoration: none;">Đơn hàng của tôi</a></li>
-        <li><a routerLink="/account/wishlist" style="color: var(--text-secondary); text-decoration: none;">Sản phẩm yêu thích</a></li>
-        <li><a style="color: #E74C3C; text-decoration: none; cursor: pointer; margin-top: 20px; display: inline-block;">Đăng xuất</a></li>
-      </ul>
+  <div class="account-container">
+    <div class="account-layout">
+      <!-- Sidebar Column -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
+
+      <!-- Main Content Column -->
+      <main class="content-column">
+        <!-- Breadcrumbs -->
+        <nav class="breadcrumb-nav">
+          <a routerLink="/" class="crumb-link">Trang chủ</a>
+          <span class="crumb-separator">/</span>
+          <span class="crumb-current">Hồ sơ cá nhân</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="header-text-block">
+            <h1 class="page-title">Hồ sơ cá nhân</h1>
+            <p class="page-subtitle">Quản lý thông tin hồ sơ và bảo mật tài khoản Dcor của bạn.</p>
+          </div>
+        </div>
+
+        <!-- Alert Banners -->
+        <div *ngIf="successMessage" class="alert-banner success">
+          <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
+          <span>{{ successMessage }}</span>
+          <button type="button" class="alert-close" (click)="clearAlerts()">×</button>
+        </div>
+
+        <div *ngIf="errorMessage" class="alert-banner error">
+          <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+          <span>{{ errorMessage }}</span>
+          <button type="button" class="alert-close" (click)="clearAlerts()">×</button>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Đang tải thông tin tài khoản...</p>
+        </div>
+
+        <!-- Trạng thái KHÁCH VÃNG LAI: Yêu cầu Đăng nhập / Đăng ký để sử dụng Hồ sơ cá nhân -->
+        <div *ngIf="!isLoading && !isLoggedIn" class="guest-auth-prompt-card">
+          <div class="luxury-pill-badge">
+            <lucide-angular [img]="icons.Sparkles" size="13"></lucide-angular>
+            <span>ĐẶC QUYỀN THÀNH VIÊN DCOR</span>
+          </div>
+
+          <div class="prompt-icon-wrapper">
+            <div class="icon-glow-ring"></div>
+            <div class="prompt-icon-box">
+              <lucide-angular [img]="icons.UserRound" size="36"></lucide-angular>
+            </div>
+          </div>
+
+          <h2 class="prompt-title">Trải nghiệm không gian cá nhân</h2>
+          <p class="prompt-desc">
+            Quý khách vui lòng đăng nhập để đồng bộ thông tin tài khoản, theo dõi đơn mua sắm, cập nhật sổ địa chỉ và tận hưởng trọn vẹn quyền lợi thành viên chính hãng.
+          </p>
+
+          <div class="perks-grid">
+            <div class="perk-item">
+              <div class="perk-icon">
+                <lucide-angular [img]="icons.Sparkles" size="18"></lucide-angular>
+              </div>
+              <div class="perk-text">
+                <span class="perk-title">Tích lũy điểm thưởng</span>
+                <span class="perk-sub">1 điểm cho mỗi 100k chi tiêu</span>
+              </div>
+            </div>
+
+            <div class="perk-item">
+              <div class="perk-icon">
+                <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+              </div>
+              <div class="perk-text">
+                <span class="perk-title">Quản lý đơn hàng</span>
+                <span class="perk-sub">Theo dõi vận chuyển & tiến độ</span>
+              </div>
+            </div>
+
+            <div class="perk-item">
+              <div class="perk-icon">
+                <lucide-angular [img]="icons.ShieldCheck" size="18"></lucide-angular>
+              </div>
+              <div class="perk-text">
+                <span class="perk-title">Bảo hành điện tử</span>
+                <span class="perk-sub">Kích hoạt bảo dưỡng trọn đời</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-action-block">
+            <a routerLink="/login" class="btn-login-main">
+              <span>Đăng nhập ngay</span>
+              <lucide-angular [img]="icons.ArrowRight" size="18"></lucide-angular>
+            </a>
+
+            <p class="register-subtext">
+              Chưa có tài khoản?
+              <a routerLink="/login" [queryParams]="{ tab: 'register' }" class="register-link-highlight">
+                Hãy đăng ký ngay
+              </a>
+            </p>
+          </div>
+        </div>
+
+
+
+        <div *ngIf="!isLoading && isLoggedIn" class="profile-main-content">
+          <!-- Member Tier Card -->
+          <div class="member-tier-card" [ngClass]="profile?.memberBadge?.toLowerCase() || 'bronze'">
+            <div class="tier-card-left">
+              <span class="tier-card-label">HẠNG THÀNH VIÊN DCOR</span>
+              <h3 class="tier-card-name">{{ profile?.memberTier || 'Đồng' }}</h3>
+              <p class="tier-card-desc">Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor.</p>
+            </div>
+            <div class="tier-card-right">
+              <div class="points-circle">
+                <span class="points-val">{{ (profile?.rewardPoints || 0) | number }}</span>
+                <span class="points-label">Điểm Dcor</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KHỐI 1: THÔNG TIN CÁ NHÂN (CHI TIẾT TÀI KHOẢN) -->
+          <div class="form-card">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <h3 class="card-title">Chi tiết tài khoản</h3>
+                <p class="card-subtitle">Thông tin định danh và liên hệ chính của bạn.</p>
+              </div>
+
+              <!-- Nút chuyển đổi chế độ chỉnh sửa -->
+              <div class="card-actions">
+                <button 
+                  *ngIf="!isEditMode" 
+                  type="button" 
+                  class="btn-edit-mode" 
+                  (click)="enableEditMode()">
+                  <lucide-angular [img]="icons.Pencil" size="16"></lucide-angular>
+                  <span>Chỉnh sửa hồ sơ</span>
+                </button>
+
+                <div *ngIf="isEditMode" class="edit-actions-group">
+                  <button 
+                    type="button" 
+                    class="btn-cancel" 
+                    (click)="cancelEditMode()" 
+                    [disabled]="isSaving">
+                    <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+                    <span>Hủy</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-save" 
+                    (click)="saveProfile()" 
+                    [disabled]="isSaving">
+                    <span *ngIf="isSaving" class="spinner-small"></span>
+                    <lucide-angular *ngIf="!isSaving" [img]="icons.Check" size="16"></lucide-angular>
+                    <span>{{ isSaving ? 'Đang lưu...' : 'Lưu thay đổi' }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Avatar Uploader theo phong cách hiện đại (Chỉ đổi được khi ấn Chỉnh sửa hồ sơ) -->
+            <div class="avatar-upload-section">
+              <div 
+                class="avatar-wrapper" 
+                [class.editable]="isEditMode" 
+                (click)="isEditMode ? avatarFileInput.click() : null" 
+                [title]="isEditMode ? 'Bấm để thay đổi ảnh đại diện' : 'Nhấn \'Chỉnh sửa hồ sơ\' phía trên để thay đổi ảnh đại diện'">
+                <img *ngIf="formAvatarUrl; else defaultAvatar" [src]="formAvatarUrl" alt="Avatar" class="avatar-image" />
+                <ng-template #defaultAvatar>
+                  <div class="avatar-placeholder">
+                    <span class="avatar-initials">{{ initials }}</span>
+                  </div>
+                </ng-template>
+
+                <!-- Nút icon camera chỉ hiển thị khi ở chế độ chỉnh sửa -->
+                <div *ngIf="isEditMode" class="avatar-badge-btn" [title]="formAvatarUrl ? 'Thay đổi ảnh đại diện' : 'Thêm ảnh đại diện'">
+                  <lucide-angular *ngIf="!formAvatarUrl" [img]="icons.Plus" size="16" color="#ffffff"></lucide-angular>
+                  <lucide-angular *ngIf="formAvatarUrl" [img]="icons.Camera" size="16" color="#ffffff"></lucide-angular>
+                </div>
+              </div>
+
+              <!-- Input chọn file ẩn -->
+              <input 
+                #avatarFileInput 
+                type="file" 
+                accept="image/*" 
+                style="display: none;" 
+                (change)="onAvatarFileSelected($event)" />
+
+              <div class="avatar-info-text">
+                <span class="avatar-name">{{ formFullName || 'Khách hàng Dcor' }}</span>
+                <button *ngIf="isEditMode" type="button" class="btn-text-upload" (click)="avatarFileInput.click()">
+                  <lucide-angular [img]="icons.Camera" size="14"></lucide-angular>
+                  <span>Tải ảnh từ máy tính hoặc chụp ảnh</span>
+                </button>
+                <p *ngIf="isEditMode" class="avatar-tip">Định dạng JPG, PNG hoặc WEBP (tối đa 5MB)</p>
+                <p *ngIf="!isEditMode" class="avatar-tip-readonly">Nhấn "Chỉnh sửa hồ sơ" ở góc phải để cập nhật thông tin và đổi ảnh đại diện</p>
+              </div>
+            </div>
+
+            <form (submit)="saveProfile(); $event.preventDefault()" class="profile-form">
+              <div class="form-grid-2">
+                <!-- Họ và tên -->
+                <div class="form-group" [class.has-error]="profileErrors.fullName">
+                  <label class="form-label">Họ và tên <span class="required">*</span></label>
+                  <div class="input-wrap" [class.locked]="!isEditMode" [class.has-error]="profileErrors.fullName">
+                    <lucide-angular [img]="icons.UserRound" size="18" class="input-icon"></lucide-angular>
+                    <input 
+                      type="text" 
+                      [ngModel]="formFullName" 
+                      (ngModelChange)="onFullNameInput($event)"
+                      (blur)="onFullNameBlur()"
+                      name="fullName" 
+                      class="form-input" 
+                      placeholder="Nguyễn Văn A" 
+                      [disabled]="!isEditMode"
+                      required />
+                  </div>
+                  <!-- Thông báo lỗi ngay dưới ô nhập -->
+                  <div *ngIf="profileErrors.fullName" class="field-error-msg">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>{{ profileErrors.fullName }}</span>
+                  </div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group" [class.has-error]="profileErrors.email">
+                  <label class="form-label">Địa chỉ Email</label>
+                  <div class="input-wrap" [class.locked]="!isEditMode" [class.has-error]="profileErrors.email">
+                    <lucide-angular [img]="icons.Mail" size="18" class="input-icon"></lucide-angular>
+                    <input 
+                      type="email" 
+                      [ngModel]="formEmail" 
+                      (ngModelChange)="onEmailInput($event)"
+                      name="email" 
+                      class="form-input" 
+                      placeholder="email@example.com" 
+                      [disabled]="!isEditMode" />
+                  </div>
+                  <!-- Thông báo lỗi ngay dưới ô nhập -->
+                  <div *ngIf="profileErrors.email" class="field-error-msg">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>{{ profileErrors.email }}</span>
+                  </div>
+                </div>
+
+                <!-- Số điện thoại -->
+                <div class="form-group phone-field-container" [class.has-error]="profileErrors.phone || (isEditMode && formPhoneTouched && formPhone && !isFormPhoneValid)">
+                  <div class="field-label-row">
+                    <label class="form-label">Số điện thoại</label>
+                    <span *ngIf="!isEditMode && formPhone && isPhoneVerified" class="verified-phone-tag">
+                      <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
+                      <span>Đã xác thực OTP</span>
+                    </span>
+                    <span *ngIf="!isEditMode && formPhone && !isPhoneVerified" class="unverified-phone-tag">
+                      <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+                      <span>Chưa xác thực</span>
+                    </span>
+                  </div>
+                  <div class="input-wrap" [class.locked]="!isEditMode" [class.has-error]="profileErrors.phone || (isEditMode && formPhoneTouched && formPhone && !isFormPhoneValid)">
+                    <lucide-angular [img]="icons.Phone" size="18" class="input-icon"></lucide-angular>
+                    <input 
+                      type="tel" 
+                      [ngModel]="formPhone" 
+                      (ngModelChange)="onFormPhoneInput($event)"
+                      (blur)="formPhoneTouched = true"
+                      name="phone" 
+                      maxlength="10"
+                      [attr.aria-invalid]="isEditMode && formPhoneTouched && formPhone && !isFormPhoneValid"
+                      class="form-input" 
+                      placeholder="0912 345 678" 
+                      [disabled]="!isEditMode" />
+                  </div>
+                  <!-- Thông báo lỗi ngay dưới ô nhập: chuẩn DCor UI Style Guide -->
+                  <div *ngIf="profileErrors.phone || (isEditMode && formPhoneTouched && formPhone && !isFormPhoneValid)" class="field-error-msg">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>{{ profileErrors.phone || '⚠ Số điện thoại cần đủ 10 chữ số (đầu số 03, 05, 07, 08, 09).' }}</span>
+                  </div>
+                  <small *ngIf="!formPhone && !isEditMode" class="hint-empty-phone">
+                    Tài khoản chưa liên kết số điện thoại di động. Nhấn "Chỉnh sửa hồ sơ" để thêm số điện thoại.
+                  </small>
+                </div>
+
+                <!-- NẾU LÀ SỐ ĐIỆN THOẠI MỚI CHƯA CÓ TRONG SỔ ĐỊA CHỈ & CHƯA XÁC THỰC -> HIỆN Ô NHẬP OTP -->
+                <div *ngIf="isEditMode && isPhoneChanged && formPhone.trim() && !isPhoneExemptFromOtp" class="form-group otp-activation-box" [class.has-error]="profileErrors.otp">
+                  <div class="otp-activation-header">
+                    <label class="form-label otp-label">
+                      Mã OTP xác thực số điện thoại mới <span class="required">*</span>
+                    </label>
+                    <span class="otp-badge-default">Mặc định: <strong>111111</strong></span>
+                  </div>
+                  <div class="input-wrap otp-input-wrap" [class.has-error]="profileErrors.otp">
+                    <lucide-angular [img]="icons.ShieldCheck" size="18" class="input-icon"></lucide-angular>
+                    <input 
+                      type="text" 
+                      [ngModel]="formPhoneOtp" 
+                      (ngModelChange)="onPhoneOtpInput($event)"
+                      name="phoneOtp" 
+                      maxlength="6"
+                      class="form-input otp-field" 
+                      placeholder="111111" 
+                      required />
+                  </div>
+                  <!-- Thông báo lỗi OTP ngay dưới ô nhập -->
+                  <div *ngIf="profileErrors.otp" class="field-error-msg">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>{{ profileErrors.otp }}</span>
+                  </div>
+                  <p class="otp-activation-note">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>Số điện thoại này chưa có trong Sổ địa chỉ. Vui lòng nhập OTP để kích hoạt (Mã mặc định: <strong>111111</strong>).</span>
+                  </p>
+                </div>
+
+                <!-- Loại khách hàng -->
+                <div class="form-group">
+                  <label class="form-label">Phân loại tài khoản</label>
+                  <div class="input-wrap locked">
+                    <lucide-angular [img]="icons.ShieldCheck" size="18" class="input-icon"></lucide-angular>
+                    <input 
+                      type="text" 
+                      [value]="profile?.type === 'B2B' ? 'Khách hàng Doanh nghiệp (B2B)' : 'Khách hàng Cá nhân'" 
+                      class="form-input" 
+                      disabled />
+                  </div>
+                </div>
+
+                <!-- Tên công ty (nếu là B2B) -->
+                <div *ngIf="profile?.type === 'B2B' || isEditMode" class="form-group">
+                  <label class="form-label">Tên công ty / Doanh nghiệp</label>
+                  <div class="input-wrap" [class.locked]="!isEditMode">
+                    <lucide-angular [img]="icons.Building" size="18" class="input-icon"></lucide-angular>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="formCompanyName" 
+                      name="companyName" 
+                      class="form-input" 
+                      placeholder="Công ty TNHH Kiến trúc & Nội thất..." 
+                      [disabled]="!isEditMode" />
+                  </div>
+                </div>
+
+                <!-- Mã số thuế (nếu là B2B) -->
+                <div *ngIf="profile?.type === 'B2B' || isEditMode" class="form-group">
+                  <label class="form-label">Mã số thuế</label>
+                  <div class="input-wrap" [class.locked]="!isEditMode">
+                    <lucide-angular [img]="icons.Building" size="18" class="input-icon"></lucide-angular>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="formTaxCode" 
+                      name="taxCode" 
+                      class="form-input" 
+                      placeholder="0101234567" 
+                      [disabled]="!isEditMode" />
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- KHỐI 2: ĐỔI HOẶC THIẾT LẬP MẬT KHẨU TÀI KHOẢN -->
+          <div class="form-card security-card">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <h3 class="card-title">{{ hasPassword ? 'Đổi mật khẩu tài khoản' : 'Thiết lập mật khẩu đăng nhập' }}</h3>
+                <p class="card-subtitle">
+                  {{ hasPassword 
+                    ? 'Để tăng cường bảo mật, mật khẩu mới cần có tối thiểu 8 ký tự bao gồm cả chữ cái và chữ số.' 
+                    : 'Tài khoản chưa có mật khẩu truyền thống. Thiết lập mật khẩu để có thể đăng nhập bằng số điện thoại hoặc email.' 
+                  }}
+                </p>
+              </div>
+
+              <!-- Nút chuyển đổi chế độ chỉnh sửa mật khẩu (Bắt buộc bấm Chỉnh sửa mới sửa được) -->
+              <div class="card-actions">
+                <button 
+                  *ngIf="!isPasswordEditMode" 
+                  type="button" 
+                  class="btn-edit-mode" 
+                  (click)="enablePasswordEdit()">
+                  <lucide-angular [img]="icons.Pencil" size="16"></lucide-angular>
+                  <span>{{ hasPassword ? 'Chỉnh sửa' : 'Thiết lập mật khẩu' }}</span>
+                </button>
+
+                <div *ngIf="isPasswordEditMode" class="edit-actions-group">
+                  <button 
+                    type="button" 
+                    class="btn-cancel" 
+                    (click)="cancelPasswordEdit()" 
+                    [disabled]="isChangingPassword">
+                    <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+                    <span>Hủy</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-save" 
+                    (click)="changePassword()" 
+                    [disabled]="isChangingPassword">
+                    <span *ngIf="isChangingPassword" class="spinner-small"></span>
+                    <lucide-angular *ngIf="!isChangingPassword" [img]="icons.Check" size="16"></lucide-angular>
+                    <span>{{ isChangingPassword ? 'Đang lưu...' : (hasPassword ? 'Cập nhật mật khẩu' : 'Lưu mật khẩu') }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Trạng thái khi chưa bấm Chỉnh sửa mật khẩu -->
+            <div *ngIf="!isPasswordEditMode" class="security-status-box">
+              <div class="status-icon-wrap">
+                <lucide-angular [img]="icons.LockKeyhole" size="20" color="#765337"></lucide-angular>
+              </div>
+              <div class="status-text-wrap">
+                <div class="status-headline">
+                  <strong>{{ hasPassword ? 'Mật khẩu tài khoản đã được thiết lập & bảo vệ an toàn' : 'Tài khoản chưa có mật khẩu đăng nhập' }}</strong>
+                </div>
+                <p class="status-sub">
+                  {{ hasPassword 
+                    ? 'Vui lòng nhấn nút "Chỉnh sửa" ở góc trên bên phải để thay đổi mật khẩu đăng nhập của bạn.' 
+                    : 'Vui lòng nhấn nút "Thiết lập mật khẩu" ở góc trên bên phải để tạo mật khẩu đăng nhập.' }}
+                </p>
+              </div>
+            </div>
+
+            <form (submit)="changePassword(); $event.preventDefault()" class="password-form">
+              <div [ngClass]="hasPassword ? 'form-grid-3' : 'form-grid-2'">
+                
+                <!-- Mật khẩu hiện tại (Chỉ hiển thị khi tài khoản đã có pass) -->
+                <div *ngIf="hasPassword" class="form-group" [class.has-error]="passwordErrors.currentPassword">
+                  <label class="form-label">Mật khẩu hiện tại <span class="required">*</span></label>
+                  <div class="password-input-wrap" [class.locked]="!isPasswordEditMode" [class.has-error]="passwordErrors.currentPassword">
+                    <input 
+                      [type]="showCurrentPass ? 'text' : 'password'" 
+                      [ngModel]="currentPassword" 
+                      (ngModelChange)="onCurrentPasswordInput($event)"
+                      name="currentPassword" 
+                      class="form-input" 
+                      [placeholder]="isPasswordEditMode ? 'Nhập mật khẩu hiện tại' : '••••••••••••'" 
+                      [disabled]="!isPasswordEditMode"
+                      required />
+                    <button *ngIf="isPasswordEditMode" type="button" class="toggle-eye" (click)="showCurrentPass = !showCurrentPass">
+                      <lucide-angular [img]="showCurrentPass ? icons.EyeOff : icons.Eye" size="18"></lucide-angular>
+                    </button>
+                  </div>
+                  <!-- Thông báo lỗi ngay dưới ô nhập -->
+                  <div *ngIf="passwordErrors.currentPassword" class="field-error-msg">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>{{ passwordErrors.currentPassword }}</span>
+                  </div>
+                </div>
+
+                <!-- Mật khẩu mới -->
+                <div class="form-group" [class.has-error]="passwordErrors.newPassword">
+                  <label class="form-label">{{ hasPassword ? 'Mật khẩu mới' : 'Mật khẩu đăng nhập' }} <span class="required">*</span></label>
+                  <div class="password-input-wrap" [class.locked]="!isPasswordEditMode" [class.has-error]="passwordErrors.newPassword">
+                    <input 
+                      [type]="showNewPass ? 'text' : 'password'" 
+                      [ngModel]="newPassword" 
+                      (ngModelChange)="onNewPasswordInput($event)"
+                      name="newPassword" 
+                      class="form-input" 
+                      [placeholder]="isPasswordEditMode ? 'Tối thiểu 8 ký tự' : '••••••••••••'" 
+                      [disabled]="!isPasswordEditMode"
+                      required />
+                    <button *ngIf="isPasswordEditMode" type="button" class="toggle-eye" (click)="showNewPass = !showNewPass">
+                      <lucide-angular [img]="showNewPass ? icons.EyeOff : icons.Eye" size="18"></lucide-angular>
+                    </button>
+                  </div>
+                  <!-- Thông báo lỗi ngay dưới ô nhập -->
+                  <div *ngIf="passwordErrors.newPassword" class="field-error-msg">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>{{ passwordErrors.newPassword }}</span>
+                  </div>
+                  <!-- Gợi ý quy chuẩn ký tự ngay dưới ô nhập -->
+                  <div *ngIf="!passwordErrors.newPassword && isPasswordEditMode" class="field-hint-msg">
+                    <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
+                    <span>Tối thiểu 8 ký tự, bao gồm cả chữ cái và chữ số</span>
+                  </div>
+                </div>
+
+                <!-- Xác nhận mật khẩu mới -->
+                <div class="form-group" [class.has-error]="passwordErrors.confirmPassword">
+                  <label class="form-label">Xác nhận mật khẩu mới <span class="required">*</span></label>
+                  <div class="password-input-wrap" [class.locked]="!isPasswordEditMode" [class.has-error]="passwordErrors.confirmPassword">
+                    <input 
+                      [type]="showConfirmPass ? 'text' : 'password'" 
+                      [ngModel]="confirmPassword" 
+                      (ngModelChange)="onConfirmPasswordInput($event)"
+                      name="confirmPassword" 
+                      class="form-input" 
+                      [placeholder]="isPasswordEditMode ? 'Nhập lại mật khẩu mới' : '••••••••••••'" 
+                      [disabled]="!isPasswordEditMode"
+                      required />
+                    <button *ngIf="isPasswordEditMode" type="button" class="toggle-eye" (click)="showConfirmPass = !showConfirmPass">
+                      <lucide-angular [img]="showConfirmPass ? icons.EyeOff : icons.Eye" size="18"></lucide-angular>
+                    </button>
+                  </div>
+                  <!-- Thông báo lỗi ngay dưới ô nhập -->
+                  <div *ngIf="passwordErrors.confirmPassword" class="field-error-msg">
+                    <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+                    <span>{{ passwordErrors.confirmPassword }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hàng nút xác nhận khi đang ở chế độ Chỉnh sửa mật khẩu -->
+              <div *ngIf="isPasswordEditMode" class="security-btn-row">
+                <button 
+                  type="button" 
+                  class="btn-cancel" 
+                  (click)="cancelPasswordEdit()" 
+                  [disabled]="isChangingPassword"
+                  style="margin-right: 12px;">
+                  <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+                  <span>Hủy</span>
+                </button>
+                <button 
+                  type="submit" 
+                  class="btn-primary" 
+                  [disabled]="isChangingPassword || (hasPassword && !currentPassword) || !newPassword || !confirmPassword">
+                  <span *ngIf="isChangingPassword" class="spinner-small"></span>
+                  <lucide-angular *ngIf="!isChangingPassword" [img]="icons.LockKeyhole" size="16"></lucide-angular>
+                  <span>{{ isChangingPassword ? 'Đang cập nhật...' : (hasPassword ? 'Cập nhật mật khẩu' : 'Thiết lập mật khẩu') }}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </main>
     </div>
-
-    <!-- Main Content -->
-    <div style="flex-grow: 1;">
-      <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 30px;">Hồ sơ cá nhân</h1>
-
-      <div style="max-width: 600px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 30px;">
-        <form (submit)="saveProfile(); $event.preventDefault()" style="display: flex; flex-direction: column; gap: 20px;">
-          
-          <div>
-            <label style="display: block; font-size: 14px; margin-bottom: 8px;">Họ và tên</label>
-            <input type="text" [(ngModel)]="fullName" name="fullName" class="auth-input" />
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 14px; margin-bottom: 8px;">Số điện thoại</label>
-            <input type="tel" [(ngModel)]="phone" name="phone" class="auth-input" />
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 14px; margin-bottom: 8px;">Email</label>
-            <input type="email" [(ngModel)]="email" name="email" class="auth-input" />
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 14px; margin-bottom: 8px;">Địa chỉ giao hàng mặc định</label>
-            <textarea [(ngModel)]="address" name="address" class="auth-input" style="height: 80px; resize: none;"></textarea>
-          </div>
-
-          <button type="submit" class="cta-btn" style="width: fit-content;">Lưu thay đổi</button>
-
-          <div *ngIf="successMessage" style="color: #2ECC71; font-size: 14px; margin-top: 10px;">{{ successMessage }}</div>
-        </form>
-      </div>
-    </div>
-
   </div>
 </div>
-

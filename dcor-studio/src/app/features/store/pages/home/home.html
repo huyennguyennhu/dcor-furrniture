@@ -97,6 +97,12 @@
               <img class="img-primary" [src]="prod.images[0] || ''"  loading="lazy" />
               <img class="img-secondary" [src]="prod.images[1] || prod.images[0] || ''"  loading="lazy" />
               <div *ngIf="isOnSale(prod)" class="sale-badge">SALE</div>
+              <button type="button" class="featured-wishlist-btn" [class.active]="isInWishlist(prod.productId)"
+                [title]="isInWishlist(prod.productId) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+                (click)="toggleWishlist($event, prod)">
+                <app-icon name="Heart" size="18" [filled]="isInWishlist(prod.productId)"
+                  [color]="isInWishlist(prod.productId) ? '#C42326' : 'currentColor'"></app-icon>
+              </button>
               <div class="featured-card-hover-cta">Xem chi tiết</div>
             </div>
             <div class="featured-card-body">

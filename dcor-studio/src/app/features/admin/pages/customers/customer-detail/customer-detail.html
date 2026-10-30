@@ -1,0 +1,193 @@
+<div style="padding-bottom: 40px;" *ngIf="customer">
+  <!-- HEADER -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <button 
+        (click)="goBack()"
+        style="border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-secondary);"
+        title="Quay lại danh sách khách hàng"
+      >
+        <lucide-angular [img]="icons.ArrowLeft" size="18" color="var(--text-primary)"></lucide-angular>
+      </button>
+      <div>
+        <h2 style="font-size: 24px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 12px;">
+          {{ customer.name }}
+          <span [ngStyle]="{
+            'padding': '4px 10px',
+            'border-radius': '6px',
+            'font-size': '13px',
+            'font-weight': '600',
+            'background': customer.status === 'Hoạt động' ? '#d1fae5' : '#fee2e2',
+            'color': customer.status === 'Hoạt động' ? '#065f46' : '#991b1b'
+          }">{{ customer.status }}</span>
+          <span style="padding: 4px 10px; background: #ede9fe; color: #6d28d9; border-radius: 6px; font-size: 13px; font-weight: 600;">
+            Hạng {{ customer.membership }}
+          </span>
+        </h2>
+        <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+          Mã KH: {{ customer.id }} &bull; Đăng ký ngày: {{ customer.createdAt }} &bull; Phân loại: {{ customer.type }}
+        </div>
+      </div>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+      <button 
+        type="button" 
+        (click)="toggleStatus()"
+        [ngStyle]="{
+          'padding': '8px 16px',
+          'border-radius': '8px',
+          'border': '1px solid ' + (customer.status === 'Khóa' ? '#059669' : '#dc2626'),
+          'background': customer.status === 'Khóa' ? '#ecfdf5' : '#fef2f2',
+          'color': customer.status === 'Khóa' ? '#059669' : '#dc2626',
+          'cursor': 'pointer',
+          'font-size': '13px',
+          'font-weight': '600'
+        }"
+      >
+        {{ customer.status === 'Khóa' ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div style="background: var(--bg-primary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <lucide-angular [img]="icons.CreditCard" size="20" color="#2563eb"></lucide-angular>
+      </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Tổng chi tiêu (LTV)</div>
+        <div style="font-size: 20px; font-weight: 700; color: var(--accent);">{{ formatVND(customer.totalSpent) }}</div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-primary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <lucide-angular [img]="icons.ShoppingBag" size="20" color="#059669"></lucide-angular>
+      </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Tổng đơn hàng</div>
+        <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">{{ customer.ordersCount }} đơn</div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-primary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <lucide-angular [img]="icons.Award" size="20" color="#d97706"></lucide-angular>
+      </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Điểm tích lũy</div>
+        <div style="font-size: 20px; font-weight: 700; color: #d97706;">{{ customer.rewardPoints }} pts</div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-primary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px;">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <lucide-angular [img]="icons.MapPin" size="20" color="#7c3aed"></lucide-angular>
+      </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Địa chỉ đã lưu</div>
+        <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">{{ customer.addresses.length }} địa chỉ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div style="display: grid; grid-template-columns: 1fr 360px; gap: 24px;">
+    
+    <!-- LEFT: ORDERS LIST -->
+    <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Lịch sử đơn hàng của khách ({{ customer.orders.length }})</h3>
+      
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 13px;">
+            <th style="text-align: left; padding-bottom: 12px; font-weight: 500;">Mã đơn</th>
+            <th style="text-align: left; padding-bottom: 12px; font-weight: 500;">Ngày đặt</th>
+            <th style="text-align: right; padding-bottom: 12px; font-weight: 500;">Tổng tiền</th>
+            <th style="text-align: center; padding-bottom: 12px; font-weight: 500;">Thanh toán</th>
+            <th style="text-align: right; padding-bottom: 12px; font-weight: 500;">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ord of customer.orders" style="border-bottom: 1px solid var(--border-color); cursor: pointer;" [routerLink]="['/admin/orders', ord.id]">
+            <td style="padding: 14px 0;"><strong style="color: var(--accent);">{{ ord.orderNumber }}</strong></td>
+            <td style="padding: 14px 0; font-size: 13px;">{{ ord.createdAt }}</td>
+            <td style="padding: 14px 0; text-align: right; font-weight: 600;">{{ formatVND(ord.totalAmount) }}</td>
+            <td style="padding: 14px 0; text-align: center;">
+              <span *ngIf="ord.paymentStatus === 'PAID'" style="color: #059669; font-size: 12px; font-weight: 600;">Đã thanh toán</span>
+              <span *ngIf="ord.paymentStatus === 'PARTIAL'" style="color: #d97706; font-size: 12px; font-weight: 600;">Đã cọc</span>
+              <span *ngIf="ord.paymentStatus === 'UNPAID'" style="color: #dc2626; font-size: 12px; font-weight: 600;">Chưa thanh toán</span>
+            </td>
+            <td style="padding: 14px 0; text-align: right;">
+              <span [ngStyle]="{
+                'padding': '3px 8px',
+                'border-radius': '4px',
+                'font-size': '12px',
+                'font-weight': '600',
+                'background': ord.status === 'DELIVERED' ? '#d1fae5' : (ord.status === 'PENDING' ? '#fef3c7' : '#dbeafe'),
+                'color': ord.status === 'DELIVERED' ? '#059669' : (ord.status === 'PENDING' ? '#d97706' : '#2563eb')
+              }">{{ ord.status }}</span>
+            </td>
+          </tr>
+          <tr *ngIf="customer.orders.length === 0">
+            <td colspan="5" style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 13px;">
+              Khách hàng chưa phát sinh đơn hàng nào.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- RIGHT: CONTACT & ADDRESSES -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+      
+      <!-- CONTACT INFO -->
+      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+        <h3 style="font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+          <lucide-angular [img]="icons.User" size="18"></lucide-angular> Thông tin liên hệ
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--text-secondary);">
+          <div>Họ và tên: <strong style="color: var(--text-primary);">{{ customer.fullName }}</strong></div>
+          <div>Số điện thoại: <strong style="color: var(--text-primary);">{{ customer.phone || 'Chưa cập nhật' }}</strong></div>
+          <div>Email: <strong style="color: var(--text-primary);">{{ customer.email || 'Chưa cập nhật' }}</strong></div>
+          <div *ngIf="customer.companyName">Công ty: <strong>{{ customer.companyName }}</strong></div>
+          <div *ngIf="customer.taxCode">Mã số thuế: <strong>{{ customer.taxCode }}</strong></div>
+        </div>
+      </div>
+
+      <!-- ADDRESS BOOK -->
+      <div style="background: var(--bg-primary); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+        <h3 style="font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+          <lucide-angular [img]="icons.MapPin" size="18"></lucide-angular> Sổ địa chỉ ({{ customer.addresses.length }})
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div *ngFor="let addr of customer.addresses" style="padding: 12px; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <strong style="color: var(--text-primary);">{{ addr.receiverName }}</strong>
+              <span *ngIf="addr.isDefault" style="padding: 2px 6px; background: #d1fae5; color: #059669; border-radius: 4px; font-size: 11px; font-weight: 600;">Mặc định</span>
+            </div>
+            <div style="color: var(--text-muted); margin-bottom: 4px;">SĐT: {{ addr.phone }}</div>
+            <div style="color: var(--text-secondary); line-height: 1.4;">
+              {{ formatAddress(addr) }}
+            </div>
+          </div>
+          <div *ngIf="customer.addresses.length === 0" style="color: var(--text-muted); font-size: 13px;">
+            Khách hàng chưa lưu địa chỉ nào trong sổ địa chỉ.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div *ngIf="!customer && isLoading" style="padding: 60px; text-align: center; color: var(--text-muted);">
+  Đang tải dữ liệu hồ sơ khách hàng...
+</div>
+
+<div *ngIf="!customer && !isLoading" style="padding: 60px; text-align: center;">
+  <h3>Không tìm thấy thông tin khách hàng</h3>
+  <button (click)="goBack()" class="admin-btn admin-btn-primary" style="margin-top: 16px;">Quay lại danh sách</button>
+</div>

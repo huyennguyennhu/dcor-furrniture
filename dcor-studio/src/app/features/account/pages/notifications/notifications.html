@@ -1,0 +1,118 @@
+<div class="account-page-container">
+  <div class="account-shell">
+    <div class="account-layout">
+      <!-- Sidebar Left Column -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
+
+      <!-- Main Content Column -->
+      <main class="content-column">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
+          <span class="breadcrumb-separator">/</span>
+          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Thông báo</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="page-header-row">
+          <div>
+            <div class="title-with-badge">
+              <h1 class="page-title">Thông báo cá nhân</h1>
+              <span *ngIf="unreadCount > 0" class="unread-pill">{{ unreadCount }} mới</span>
+            </div>
+            <p class="page-subtitle">Cập nhật tiến độ đơn hàng, lịch hẹn tư vấn và chính sách bảo hành, ưu đãi Dcor.</p>
+          </div>
+
+          <button 
+            *ngIf="unreadCount > 0" 
+            type="button" 
+            class="btn-mark-all" 
+            (click)="markAllAsRead()">
+            <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
+            <span>Đánh dấu tất cả đã đọc</span>
+          </button>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="tabs-header">
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [ngClass]="{ 'active': activeFilter === 'ALL' }" 
+            (click)="setFilter('ALL')">
+            Tất cả ({{ notifications.length }})
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [ngClass]="{ 'active': activeFilter === 'UNREAD' }" 
+            (click)="setFilter('UNREAD')">
+            Chưa đọc ({{ unreadCount }})
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [ngClass]="{ 'active': activeFilter === 'ORDER' }" 
+            (click)="setFilter('ORDER')">
+            Đơn hàng
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [ngClass]="{ 'active': activeFilter === 'SERVICE' }" 
+            (click)="setFilter('SERVICE')">
+            Dịch vụ & Lịch hẹn
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Đang tải thông báo...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!isLoading && filteredNotifications.length === 0" class="empty-state">
+          <div class="empty-icon-box">
+            <lucide-angular [img]="icons.Bell" size="48"></lucide-angular>
+          </div>
+          <h3 class="empty-title">Không có thông báo nào</h3>
+          <p class="empty-desc">
+            Bạn hiện tại không có thông báo nào trong mục này. Khi đơn hàng có cập nhật vận chuyển hoặc lịch hẹn được xác nhận, bạn sẽ nhận được thông báo tại đây.
+          </p>
+        </div>
+
+        <!-- Notifications List -->
+        <div *ngIf="!isLoading && filteredNotifications.length > 0" class="notifications-list">
+          <div 
+            *ngFor="let notif of filteredNotifications" 
+            class="notification-item"
+            [ngClass]="{ 'is-unread': !notif.isRead, 'has-link': !!notif.link }"
+            (click)="onNotificationClick(notif)">
+
+            <div class="notif-icon-box" [ngClass]="getIconBgClass(notif.type)">
+              <lucide-angular [img]="getIcon(notif.type)" size="20"></lucide-angular>
+            </div>
+
+            <div class="notif-content">
+              <div class="notif-top">
+                <h4 class="notif-title">{{ notif.title }}</h4>
+                <span class="notif-time">{{ notif.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <p class="notif-message">{{ notif.message }}</p>
+            </div>
+
+            <div class="notif-meta">
+              <span *ngIf="!notif.isRead" class="unread-dot"></span>
+              <lucide-angular *ngIf="notif.link" [img]="icons.ChevronRight" size="18" class="arrow-icon"></lucide-angular>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>

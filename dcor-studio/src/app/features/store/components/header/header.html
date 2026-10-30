@@ -128,17 +128,68 @@
           <app-icon name="Heart" size="20"></app-icon>
           <span *ngIf="wishlistCount > 0" class="badge" id="wishlist-count">{{ wishlistCount }}</span>
         </button>
-        <button class="icon-btn notification-icon-btn" title="Thông báo">
-          <app-icon name="Bell" size="20"></app-icon>
-        </button>
+        <div class="header-notification-wrapper"
+             (mouseenter)="onNotificationMouseEnter()"
+             (mouseleave)="onNotificationMouseLeave()">
+          <button class="icon-btn" title="Thông báo" routerLink="/account/notifications" style="position: relative;">
+            <app-icon name="Bell" size="20"></app-icon>
+            <span *ngIf="unreadNotificationCount > 0" class="badge" id="notification-count">{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
+          </button>
+
+          <!-- Dropdown hover xem 3 thông báo chưa đọc gần nhất -->
+          <div class="notification-dropdown-menu" *ngIf="isNotificationDropdownOpen">
+            <div class="notif-drop-header">
+              <div class="notif-drop-title">
+                <span>Thông báo</span>
+                <span *ngIf="unreadNotificationCount > 0" class="notif-drop-badge">{{ unreadNotificationCount }} mới</span>
+              </div>
+              <a routerLink="/account/notifications" (click)="isNotificationDropdownOpen = false" class="notif-drop-link">Xem tất cả</a>
+            </div>
+
+            <!-- List 3 thông báo chưa đọc -->
+            <div class="notif-drop-list" *ngIf="unreadNotificationsPreview.length > 0; else noUnreadTpl">
+              <div *ngFor="let notif of unreadNotificationsPreview" 
+                   class="notif-drop-item unread"
+                   (click)="onNotificationItemClick(notif)">
+                <div class="notif-drop-dot"></div>
+                <div class="notif-drop-body">
+                  <div class="notif-drop-item-title">{{ notif.title }}</div>
+                  <div class="notif-drop-item-msg">{{ notif.message }}</div>
+                  <div class="notif-drop-item-time">{{ formatNotifTime(notif.createdAt) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #noUnreadTpl>
+              <div class="notif-drop-empty">
+                <app-icon name="Bell" size="24" style="color: var(--color-text-muted, #757575);"></app-icon>
+                <p>Bạn không có thông báo chưa đọc nào</p>
+              </div>
+            </ng-template>
+
+            <!-- Dropdown Footer -->
+            <div class="notif-drop-footer">
+              <a routerLink="/account/notifications" (click)="isNotificationDropdownOpen = false" class="notif-view-all-btn">
+                Xem tất cả thông báo
+              </a>
+            </div>
+          </div>
+        </div>
         <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
           (click)="toggleCartDrawer()">
           <app-icon name="ShoppingCart" size="20"></app-icon>
           <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
         </button>
         <div class="user-dropdown-wrapper">
-          <button class="icon-btn" (click)="toggleUserMenu()" title="Tài khoản">
-            <app-icon name="UserRound" size="22"></app-icon>
+          <button class="icon-btn header-user-btn" (click)="toggleUserMenu()" title="Tài khoản">
+            <img 
+              *ngIf="user?.avatarUrl || user?.avatar; else defaultUserIcon" 
+              [src]="user?.avatarUrl || user?.avatar" 
+              [alt]="user?.fullName || 'Tài khoản'" 
+              class="header-avatar-img" />
+            <ng-template #defaultUserIcon>
+              <app-icon name="UserRound" size="22"></app-icon>
+            </ng-template>
           </button>
 
           <div class="user-dropdown-menu" [class.active]="userMenuOpen"
@@ -153,6 +204,10 @@
                   nhân</a></li>
               <li><a routerLink="/account/orders" class="user-menu-item" (click)="userMenuOpen = false">Đơn hàng của
                   tôi</a></li>
+              <li><a routerLink="/account/notifications" class="user-menu-item" (click)="userMenuOpen = false" style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>Thông báo</span>
+                  <span *ngIf="unreadNotificationCount > 0" class="order-badge" style="background: var(--color-accent, #BC5F13); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px;">{{ unreadNotificationCount }}</span>
+              </a></li>
               <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="userMenuOpen = false">Sản phẩm yêu
                   thích</a></li>
               <li>
@@ -182,13 +237,71 @@
       <ng-template #guestTemplate>
         <button class="icon-btn" title="Sản phẩm yêu thích" routerLink="/account/wishlist" style="position: relative;">
           <app-icon name="Heart" size="20"></app-icon>
-          <span *ngIf="wishlistCount > 0" class="badge" id="wishlist-count">{{ wishlistCount }}</span>
+          <span *ngIf="wishlistCount > 0" class="badge" id="guest-wishlist-count">{{ wishlistCount }}</span>
         </button>
         <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
           (click)="toggleCartDrawer()">
           <app-icon name="ShoppingCart" size="20"></app-icon>
           <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
         </button>
+
+        <!-- Icon tài khoản cá nhân cho khách vãng lai (Hover chỉ hiện Hồ sơ và Đơn hàng, Click hiện đầy đủ) -->
+        <div class="user-dropdown-wrapper guest-dropdown-wrapper"
+          (mouseenter)="onGuestMouseEnter()"
+          (mouseleave)="onGuestMouseLeave()">
+          <button class="icon-btn header-user-btn" (click)="toggleGuestUserMenu()" title="Tài khoản cá nhân">
+            <app-icon name="UserRound" size="22"></app-icon>
+          </button>
+
+          <div class="user-dropdown-menu guest-user-dropdown" 
+            [class.active]="isGuestMenuClicked">
+            <div class="user-dropdown-header">
+              <span class="user-name">Khách vãng lai</span>
+              <span class="user-role" style="font-size: 12px; color: var(--text-muted);">
+                {{ guestPhone ? 'SĐT: ' + guestPhone : 'Chưa đăng nhập' }}
+              </span>
+            </div>
+            <ul>
+              <!-- 2 mục thiết yếu hiển thị cả khi hover và click -->
+              <li><a routerLink="/account/profile" class="user-menu-item" (click)="closeGuestUserMenu()">Hồ sơ cá nhân</a></li>
+              <li><a routerLink="/account/orders" class="user-menu-item" (click)="closeGuestUserMenu()">Đơn hàng của tôi</a></li>
+
+              <!-- Các mục còn lại CHỈ HIỆN KHI ẤN VÀO ICON -->
+              <ng-container *ngIf="isGuestMenuClicked">
+                <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="closeGuestUserMenu()">Sản phẩm yêu thích</a></li>
+                <li><a routerLink="/account/returns" class="user-menu-item" (click)="closeGuestUserMenu()">Yêu cầu đổi trả</a></li>
+                <li><a routerLink="/account/warranty" class="user-menu-item" (click)="closeGuestUserMenu()">Bảo hành sản phẩm</a></li>
+                <li><a routerLink="/account/appointments" class="user-menu-item" (click)="closeGuestUserMenu()">Lịch hẹn tư vấn</a></li>
+                <li><a routerLink="/account/custom-requests" class="user-menu-item" (click)="closeGuestUserMenu()">Đơn may đo & Custom</a></li>
+                <li>
+                  <button class="user-menu-item" (click)="toggleTheme(); closeGuestUserMenu()"
+                    style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 14px; color: var(--text-secondary);">
+                    <span>{{ theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối' }}</span>
+                    <app-icon name="Sun" size="15" *ngIf="theme === 'dark'"></app-icon>
+                    <app-icon name="Moon" size="15" *ngIf="theme === 'light'"></app-icon>
+                  </button>
+                </li>
+                <li>
+                  <button class="user-menu-item" (click)="openLoginModal(); closeGuestUserMenu()"
+                    style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--color-accent, #BC5F13); font-weight: 600; padding: 10px 16px; font-size: 14px; border-top: 1px solid var(--border-color); margin-top: 4px;">
+                    <app-icon name="UserRound" size="16"></app-icon>
+                    Đăng nhập / Đăng ký
+                  </button>
+                </li>
+              </ng-container>
+
+              <!-- Khi chỉ đang hover: Gợi ý bấm icon để xem đầy đủ -->
+              <li *ngIf="isGuestHovering && !isGuestMenuClicked" style="border-top: 1px solid var(--border-color); margin-top: 4px;">
+                <button type="button" class="user-menu-item" (click)="toggleGuestUserMenu()"
+                  style="width: 100%; background: none; border: none; cursor: pointer; font-size: 12px; color: var(--color-accent, #BC5F13); padding: 8px 16px; font-style: italic; display: flex; align-items: center; justify-content: space-between;">
+                  <span>Bấm vào icon để xem tất cả</span>
+                  <app-icon name="ChevronRight" size="12"></app-icon>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
         <button (click)="openLoginModal()" class="store-login-button" onmouseenter="this.style.transform='scale(1.05)'"
           onmouseleave="this.style.transform='scale(1)'">
           <span class="login-text">Đăng nhập</span>

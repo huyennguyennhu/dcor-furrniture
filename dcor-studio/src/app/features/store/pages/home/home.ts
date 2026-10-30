@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CatalogSection } from '../../../../shared/components/catalog-section/catalog-section';
+import { WishlistService } from '../../../../core/services/wishlist.service';
 
 import { environment } from '../../../../../environments/environment';
 
@@ -45,7 +46,24 @@ const STATIC_REVIEWS = [
   styleUrls: ['./home.css']
 })
 export class HomeComponent implements OnInit {
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private wishlistService: WishlistService
+  ) {}
+
+  isInWishlist(productId?: string): boolean {
+    return !!productId && this.wishlistService.isWishlisted(productId);
+  }
+
+  toggleWishlist(event: Event, prod: CatalogProduct): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const pid = prod.productId || (prod as any).id;
+    if (!pid) return;
+
+    this.wishlistService.toggle(pid);
+    this.cdr.detectChanges();
+  }
 
   products: CatalogProduct[] = [];
   categories: any[] = [];

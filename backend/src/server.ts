@@ -3,7 +3,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
-import prisma from './lib/prisma';
+import prisma, { withDbRetry } from './lib/prisma';
 import authRoutes from './routes/auth.routes';
 import cartRoutes from './routes/cart.routes';
 import inventoryRoutes from './routes/inventory.routes';
@@ -34,6 +34,8 @@ import chatRoutes from './routes/chat.routes';
 import chatAdminRoutes from './routes/chat-admin.routes';
 import { initChatSocket } from './services/chat.socket';
 import { initChatDatabase } from './lib/init-chat-db';
+import customerRoutes from './routes/customer.routes';
+import promotionRoutes from './routes/promotion.routes';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -48,7 +50,8 @@ const port = process.env.PORT || 3000;
 initChatSocket(server);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Middleware xử lý lỗi parse JSON (ví dụ malformed payload, bad escape characters) an toàn không làm crash server
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -65,7 +68,7 @@ app.get('/', (req, res) => {
 
 app.get('/api/health', async (req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await withDbRetry(() => prisma.$queryRaw`SELECT 1`);
     res.json({ status: 'ok', message: 'Backend and database are connected.' });
   } catch (error) {
     console.error('Health check database error:', error);
@@ -85,6 +88,19 @@ app.use('/api/store/cart', cartRoutes);
 // Gắn router đơn hàng phía Store & Admin
 app.use('/api/store/orders', orderRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
+
+// Gắn router chương trình khuyến mãi & vouchers (Store & Admin)
+app.use('/api', promotionRoutes);
+
+// Gắn router quản lý đơn hàng phía Admin
+app.use('/api/admin/orders', adminOrderRoutes);
+
+// Gắn router quản lý khách hàng phía Admin
+app.use('/api/admin/customers', adminCustomerRoutes);
+
+// Gắn router tài khoản khách hàng & sổ địa chỉ
+app.use('/api/customer', customerRoutes);
+app.use('/api/account', customerRoutes); // Alias tương thích ngược cho checkout và frontend
 
 // Gắn router phân hệ quản lý kho
 app.use('/api/admin/inventory', inventoryRoutes);
@@ -117,7 +133,7 @@ app.use('/api/upload', uploadRoutes);
 // API danh mục sản phẩm từ database thực
 app.get('/api/categories', async (req, res) => {
   try {
-    const categories = await prisma.category.findMany({
+    const categories = await withDbRetry(() => prisma.category.findMany({
       where: { isActive: true },
       include: {
         children: {
@@ -133,7 +149,7 @@ app.get('/api/categories', async (req, res) => {
         }
       },
       orderBy: { sortOrder: 'asc' }
-    });
+    }));
     res.json(categories);
   } catch (error) {
     console.error('Lỗi lấy danh mục:', error);
@@ -142,9 +158,47 @@ app.get('/api/categories', async (req, res) => {
 });
 
 // API danh sách sản phẩm
+// In-memory cache for Category map (5 minutes TTL)
+let cachedCategoryMap: Map<string, any> | null = null;
+let lastCategoryCacheTime = 0;
+
+async function getCategoryMap(): Promise<Map<string, any>> {
+  const now = Date.now();
+  if (cachedCategoryMap && (now - lastCategoryCacheTime < 300000)) {
+    return cachedCategoryMap;
+  }
+  const categories = await withDbRetry(() => prisma.category.findMany({
+    where: { isActive: true },
+    include: { parent: true }
+  }));
+  cachedCategoryMap = new Map(categories.map(c => [c.id, c]));
+  lastCategoryCacheTime = now;
+  return cachedCategoryMap;
+}
+
+// In-memory cache for full products catalog (60 seconds TTL)
+let cachedProductsList: any[] | null = null;
+let lastProductsCacheTime = 0;
+
+export function invalidateProductCache() {
+  cachedProductsList = null;
+  lastProductsCacheTime = 0;
+  cachedCategoryMap = null;
+  lastCategoryCacheTime = 0;
+}
+
+// API danh sách sản phẩm (Hiệu năng cao: In-memory join & cache)
 app.get('/api/products', async (req, res) => {
   try {
     const { categoryId, categorySlug } = req.query;
+    const isFullCatalog = !categoryId && !categorySlug;
+
+    // Phục vụ ngay từ bộ nhớ đệm nếu là request toàn bộ danh mục sản phẩm (< 60s)
+    if (isFullCatalog && cachedProductsList && (Date.now() - lastProductsCacheTime < 60000)) {
+      return res.json(cachedProductsList);
+    }
+
+    const catMap = await getCategoryMap();
     const whereClause: any = {
       isActive: true,
       deletedAt: null
@@ -153,26 +207,56 @@ app.get('/api/products', async (req, res) => {
     if (categoryId) {
       whereClause.categoryId = String(categoryId);
     } else if (categorySlug) {
-      whereClause.category = { slug: String(categorySlug) };
+      const slugStr = String(categorySlug).toLowerCase();
+      const matchedCat = Array.from(catMap.values()).find(c => (c.slug || '').toLowerCase() === slugStr);
+      if (matchedCat) {
+        // Hỗ trợ cả danh mục cha: lấy tất cả sản phẩm của danh mục cha và các danh mục con
+        const childIds = Array.from(catMap.values())
+          .filter(c => c.parentId === matchedCat.id)
+          .map(c => c.id);
+        if (childIds.length > 0) {
+          whereClause.categoryId = { in: [matchedCat.id, ...childIds] };
+        } else {
+          whereClause.categoryId = matchedCat.id;
+        }
+      } else {
+        whereClause.category = { slug: slugStr };
+      }
     }
 
-    const products = await prisma.product.findMany({
-      where: whereClause,
-      include: {
-        category: {
-          include: {
-            parent: true
-          }
-        },
-        variants: {
-          where: { isActive: true }
+    console.log('[API] /api/products fetching from DB...');
+    console.time('[API] products query');
+    
+    // Tải song song: Products và Variants được tối ưu trường dữ liệu
+    const [products, variants] = await Promise.all([
+      withDbRetry(() => prisma.product.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' }
+      })),
+      withDbRetry(() => prisma.productVariant.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          productId: true,
+          name: true,
+          price: true,
+          stock: true
         }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+      }))
+    ]);
+
+    console.timeEnd('[API] products query');
+
+    // Gom biến thể theo productId bằng Map O(1)
+    const varMap = new Map<string, any[]>();
+    for (const v of variants) {
+      if (!varMap.has(v.productId)) {
+        varMap.set(v.productId, []);
+      }
+      varMap.get(v.productId)!.push(v);
+    }
 
     const enrichedProducts = products.map(p => {
-      // Tạo rating và reviewCount thực tế dựa trên hash ID của sản phẩm
       let rating = 4.9;
       let reviewCount = 128;
 
@@ -199,11 +283,19 @@ app.get('/api/products', async (req, res) => {
 
       return {
         ...p,
+        category: catMap.get(p.categoryId) || null,
+        variants: varMap.get(p.id) || [],
         rating,
         reviewCount
       };
     });
 
+    if (isFullCatalog) {
+      cachedProductsList = enrichedProducts;
+      lastProductsCacheTime = Date.now();
+    }
+
+    console.log(`[API] Trả về ${enrichedProducts.length} sản phẩm thành công.`);
     res.json(enrichedProducts);
   } catch (error) {
     console.error('Lỗi lấy danh sách sản phẩm:', error);
@@ -213,7 +305,7 @@ app.get('/api/products', async (req, res) => {
 
 app.get('/api/products/:id', async (req, res) => {
   try {
-    let product = await prisma.product.findUnique({
+    let product = await withDbRetry(() => prisma.product.findUnique({
       where: { id: req.params.id },
       include: {
         category: {
@@ -223,10 +315,10 @@ app.get('/api/products/:id', async (req, res) => {
         },
         variants: true
       }
-    });
+    }));
 
     if (!product) {
-      product = await prisma.product.findUnique({
+      product = await withDbRetry(() => prisma.product.findUnique({
         where: { slug: req.params.id },
         include: {
           category: {
@@ -236,9 +328,8 @@ app.get('/api/products/:id', async (req, res) => {
           },
           variants: true
         }
-      });
+      }));
     }
-
     if (product) {
       const variantsWithDimensions = product.variants.map((v: any) => {
         const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
