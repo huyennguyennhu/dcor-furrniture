@@ -40,7 +40,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
     {
       title: 'Tổng quan',
       icon: 'House',
-      href: '/admin/reports/overview'
+      href: '/admin/dashboard'
       // Luôn cho phép hiển thị
     },
     {
@@ -103,7 +103,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
       module: 'promotions',
       subItems: [
         { title: 'Mã giảm giá', href: '/admin/vouchers' },
-        { title: 'Chiến dịch', href: '/admin/campaigns' },
+        { title: 'Giảm giá sản phẩm', href: '/admin/campaigns' },
       ]
     },
     {
@@ -147,12 +147,6 @@ export class AdminSidebar implements OnInit, OnDestroy {
         { title: 'Quản lý tài khoản', href: '/admin/staff/accounts' },
         { title: 'Ma trận phân quyền', href: '/admin/staff/permissions' },
       ]
-    },
-    {
-      title: 'Lịch ca làm Showroom',
-      icon: 'Calendar',
-      href: '/admin/staff/showroom-shifts',
-      module: 'staff'
     },
     {
       title: 'Nhật ký hoạt động',
@@ -216,7 +210,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
     }
 
     this.visibleMenuItems = this.ALL_MENU_ITEMS.filter(item => {
-      if (!item.module) return true; // Menu không yêu cầu quyền (vd: Tổng quan, Lịch ca làm Showroom)
+      if (!item.module) return true; // Menu không yêu cầu quyền (vd: Tổng quan)
       return this.adminAuthService.hasPermission(item.module, 'view');
     });
 

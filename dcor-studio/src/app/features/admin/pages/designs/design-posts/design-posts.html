@@ -8,19 +8,6 @@
     </button>
   </div>
 
-  <!-- Submodule Tabs Bar (Templates vs Post Moderation) -->
-  <div class="promo-submodule-tabs">
-    <a routerLink="/admin/designs/settings" class="promo-tab-item">
-      <app-icon name="Layers" size="18"></app-icon>
-      <span>Bản mẫu không gian 3D (Room Templates)</span>
-    </a>
-    <a routerLink="/admin/designs/posts" class="promo-tab-item active" aria-current="page">
-      <app-icon name="Sparkles" size="18"></app-icon>
-      <span>Kiểm duyệt bài đăng & Bình luận</span>
-      <span class="tab-badge" *ngIf="pendingCount > 0">{{ pendingCount }} chờ</span>
-    </a>
-  </div>
-
   <!-- Page Header -->
   <header class="admin-page-heading">
     <div class="heading-title-group">
@@ -35,51 +22,18 @@
     </div>
   </header>
 
-  <!-- 4 Stats Cards -->
-  <section class="admin-page-stats" aria-label="Thống kê bài viết cộng đồng">
-    <article class="admin-page-stat stat-card-total">
-      <div class="stat-card-icon">
-        <app-icon name="Sparkles" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Tổng bài thiết kế</span>
-        <div class="admin-page-stat-value">{{ totalCount }}</div>
-      </div>
-    </article>
-
-    <article class="admin-page-stat stat-card-pending" (click)="switchTab('PENDING')">
-      <div class="stat-card-icon stat-icon-amber">
-        <app-icon name="Clock" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Chờ kiểm duyệt</span>
-        <div class="admin-page-stat-value text-amber">{{ pendingCount }}</div>
-      </div>
-    </article>
-
-    <article class="admin-page-stat stat-card-published" (click)="switchTab('PUBLISHED')">
-      <div class="stat-card-icon stat-icon-green">
-        <app-icon name="CircleCheck" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Đã xuất bản</span>
-        <div class="admin-page-stat-value text-success">{{ publishedCount }}</div>
-      </div>
-    </article>
-
-    <article class="admin-page-stat stat-card-rejected" (click)="switchTab('REJECTED')">
-      <div class="stat-card-icon stat-icon-red">
-        <app-icon name="AlertTriangle" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Đã từ chối / Ẩn</span>
-        <div class="admin-page-stat-value text-danger">{{ rejectedCount }}</div>
-      </div>
-    </article>
-  </section>
-
   <!-- Workflow Filter Tabs -->
   <div class="workflow-tabs-bar">
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="activeTab === 'ALL'"
+      (click)="switchTab('ALL')">
+      <app-icon name="Sparkles" size="16"></app-icon>
+      <span>Tổng bản thiết kế</span>
+      <span class="count-pill pill-neutral">{{ totalCount }}</span>
+    </button>
+
     <button
       type="button"
       class="workflow-tab-btn"
@@ -142,6 +96,7 @@
     </div>
 
     <div class="filter-hint">
+      <span *ngIf="activeTab === 'ALL'">Hiển thị toàn bộ tất cả bản thiết kế cộng đồng trong hệ thống.</span>
       <span *ngIf="activeTab === 'PENDING'">Hiển thị các bài viết đang cần phê duyệt từ quản trị viên.</span>
       <span *ngIf="activeTab === 'PUBLISHED'">Các thiết kế này đang hiển thị công khai trên website cho tất cả người dùng.</span>
       <span *ngIf="activeTab === 'REJECTED'">Các thiết kế bị từ chối hoặc vi phạm chính sách cộng đồng.</span>
@@ -164,6 +119,17 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Loading State -->
+          <tr *ngIf="isLoading" class="loading-row">
+            <td colspan="6" style="padding: 60px 16px; text-align: center;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu thiết kế...</span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
           <tr *ngFor="let post of filteredRecords">
             <!-- Ảnh thu nhỏ -->
             <td class="col-thumb">
@@ -266,24 +232,6 @@
                   <app-icon name="X" size="14"></app-icon>
                   <span>{{ post.status === 'PUBLISHED' ? 'Gỡ bài' : 'Từ chối' }}</span>
                 </button>
-
-                <!-- Xem chi tiết & bình luận -->
-                <button
-                  type="button"
-                  class="action-icon-btn btn-view"
-                  (click)="openDetailModal(post)"
-                  title="Xem chi tiết & bình luận">
-                  <app-icon name="Eye" size="16"></app-icon>
-                </button>
-
-                <!-- Xóa bài viết -->
-                <button
-                  type="button"
-                  class="action-icon-btn btn-delete"
-                  (click)="promptDeletePost(post, $event)"
-                  title="Xóa bài viết">
-                  <app-icon name="Trash2" size="15"></app-icon>
-                </button>
               </div>
             </td>
           </tr>
@@ -300,6 +248,7 @@
               </div>
             </td>
           </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>

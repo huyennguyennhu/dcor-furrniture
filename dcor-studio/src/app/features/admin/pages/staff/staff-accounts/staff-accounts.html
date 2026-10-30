@@ -31,29 +31,45 @@
       </button>
       <button type="button" class="admin-btn admin-btn-primary" (click)="openCreateStaffModal()">
         <app-icon name="Plus" size="16"></app-icon>
-        <span>+ Thêm nhân sự mới</span>
+        <span>Thêm nhân sự mới</span>
       </button>
     </div>
   </header>
 
-  <!-- Stats Grid -->
+  <!-- Stats Buttons (Bấm được để lọc trạng thái) -->
   <div class="admin-page-stats">
-    <article class="admin-page-stat">
+    <button 
+      type="button" 
+      class="admin-page-stat stat-filter-btn" 
+      [class.active]="selectedStatusFilter === 'ALL'"
+      (click)="setStatusFilter('ALL')">
       <div class="admin-page-stat-label">Tổng nhân sự</div>
       <div class="admin-page-stat-value">{{ records.length }}</div>
-    </article>
-    <article class="admin-page-stat">
+    </button>
+    <button 
+      type="button" 
+      class="admin-page-stat stat-filter-btn" 
+      [class.active]="selectedStatusFilter === 'Đã kích hoạt'"
+      (click)="setStatusFilter('Đã kích hoạt')">
       <div class="admin-page-stat-label">Đã kích hoạt</div>
       <div class="admin-page-stat-value" style="color: var(--color-success, #00A30B);">{{ activeCount }}</div>
-    </article>
-    <article class="admin-page-stat">
+    </button>
+    <button 
+      type="button" 
+      class="admin-page-stat stat-filter-btn" 
+      [class.active]="selectedStatusFilter === 'Chờ kích hoạt'"
+      (click)="setStatusFilter('Chờ kích hoạt')">
       <div class="admin-page-stat-label">Chờ kích hoạt</div>
       <div class="admin-page-stat-value" style="color: var(--color-warning-ink, #7A5600);">{{ pendingCount }}</div>
-    </article>
-    <article class="admin-page-stat">
+    </button>
+    <button 
+      type="button" 
+      class="admin-page-stat stat-filter-btn" 
+      [class.active]="selectedStatusFilter === 'Tạm khóa'"
+      (click)="setStatusFilter('Tạm khóa')">
       <div class="admin-page-stat-label">Tạm khóa</div>
       <div class="admin-page-stat-value" style="color: var(--color-danger, #C42326);">{{ lockedCount }}</div>
-    </article>
+    </button>
   </div>
 
   <!-- Filter Bar: Search, Role, Branch, Status -->
@@ -63,6 +79,7 @@
       <input 
         class="admin-search-input" 
         [(ngModel)]="searchTerm" 
+        maxlength="100"
         placeholder="Tìm tên, email, SĐT, chi nhánh..." 
         aria-label="Tìm nhân sự">
     </div>
@@ -118,6 +135,17 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Loading State -->
+          <tr *ngIf="isLoading" class="loading-row">
+            <td colspan="7" style="padding: 60px 16px; text-align: center;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu nhân sự...</span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
           <tr *ngFor="let record of filteredRecords" class="staff-row">
             <!-- 1. Gộp Nhân sự (Avatar + Tên + Email) -->
             <td>
@@ -240,6 +268,7 @@
               <p>Không tìm thấy nhân sự phù hợp.</p>
             </td>
           </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
@@ -280,6 +309,7 @@
                 class="admin-input" 
                 [disabled]="isEditing"
                 [class.input-locked]="isEditing"
+                maxlength="100"
                 required 
                 placeholder="Ví dụ: Nguyễn Hoàng Minh">
               <span class="field-hint" *ngIf="isEditing">Tên tài khoản thuộc quyền sở hữu cá nhân, Super Admin không thể thay đổi.</span>
@@ -294,11 +324,13 @@
                 id="staff-phone" 
                 name="phone" 
                 [(ngModel)]="staffFormData.phone" 
+                (input)="onPhoneInput($event)"
                 type="tel" 
                 class="admin-input" 
                 [disabled]="isEditing"
                 [class.input-locked]="isEditing"
-                placeholder="Ví dụ: 0901 234 567">
+                maxlength="10"
+                placeholder="Ví dụ: 0901234567">
             </div>
           </div>
 
@@ -315,6 +347,7 @@
               class="admin-input" 
               [disabled]="isEditing"
               [class.input-locked]="isEditing"
+              maxlength="100"
               required 
               placeholder="Ví dụ: minh.nguyen@dcor.vn">
             <span class="field-hint" *ngIf="!isEditing">Thư mời kích hoạt kèm liên kết tự thiết lập mật khẩu sẽ gửi đến địa chỉ email này.</span>
@@ -333,7 +366,17 @@
 
           <!-- 1. GÁN NHIỀU VAI TRÒ (MULTI-ROLE) -->
           <div class="form-field">
-            <label>Vai trò công việc (Có thể gán nhiều vai trò) <span class="required">*</span></label>
+            <div class="field-label-with-action">
+              <label>Vai trò công việc (Có thể gán nhiều vai trò) <span class="required">*</span></label>
+              <button 
+                type="button" 
+                class="btn-quick-create-role" 
+                (click)="openQuickAddRoleModal()"
+                title="Tạo thêm vai trò mới và đồng bộ tức thì vào ma trận phân quyền">
+                <app-icon name="Plus" size="12"></app-icon>
+                <span>Tạo vai trò mới</span>
+              </button>
+            </div>
             <div class="multi-role-chips-picker">
               <button 
                 type="button" 
@@ -650,7 +693,7 @@
           <app-icon name="LoaderCircle" size="16" class="spinner-icon" *ngIf="emailSending"></app-icon>
           <app-icon name="CircleCheck" size="16" *ngIf="emailSentSuccess"></app-icon>
           <app-icon name="Send" size="16" *ngIf="!emailSending && !emailSentSuccess"></app-icon>
-          <span>{{ emailSending ? 'Đang gửi qua Gmail...' : (emailSentSuccess ? '✓ Đã gửi email thành công!' : '🚀 Xác nhận gửi Email thực tế') }}</span>
+          <span>{{ emailSending ? 'Đang gửi qua Gmail...' : (emailSentSuccess ? '✓ Đã gửi email thành công!' : 'Xác nhận gửi Email thực tế') }}</span>
         </button>
       </div>
 
@@ -909,6 +952,85 @@
           <span>{{ bulkEmailSending ? ('Đang gửi ' + bulkEmailSentCount + '/' + bulkTargetCount + '...') : ('📨 Gửi ' + bulkTargetCount + ' email ngay') }}</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL: TẠO VAI TRÒ MỚI NHANH (ĐỒNG BỘ TỨC THÌ SANG MA TRẬN PHÂN QUYỀN)
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isQuickAddRoleModalOpen" (click)="closeQuickAddRoleModal()">
+    <div class="modal-card modal-quick-role" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Tạo vai trò chức vụ mới</h2>
+          <p class="modal-subtitle">Vai trò mới sẽ được lưu vào hệ thống IAM và đồng bộ tức thì sang Ma trận phân quyền.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeQuickAddRoleModal()">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </div>
+
+      <form (ngSubmit)="submitQuickAddRole()">
+        <div class="modal-body">
+          <div class="form-field">
+            <label>Tên vai trò chức vụ <span class="required">*</span></label>
+            <input 
+              type="text" 
+              class="admin-input" 
+              [(ngModel)]="quickRoleData.name" 
+              name="quickRoleName"
+              placeholder="Ví dụ: Chuyên viên Render 3D, Quản lý Khuyến mãi..."
+              (input)="onQuickRoleNameChange()"
+              maxlength="100"
+              required>
+          </div>
+
+          <div class="form-field">
+            <label>Mã vai trò hệ thống <span class="required">*</span></label>
+            <input 
+              type="text" 
+              class="admin-input font-mono" 
+              [(ngModel)]="quickRoleData.code" 
+              name="quickRoleCode"
+              placeholder="Ví dụ: RENDER_3D, PROMO_LEAD..."
+              maxlength="50"
+              required>
+            <span class="field-hint">Mã viết hoa, không dấu, phân cách bằng dấu gạch dưới (_).</span>
+          </div>
+
+          <div class="form-field">
+            <label>Mô tả nhiệm vụ vai trò</label>
+            <textarea 
+              class="admin-input admin-textarea" 
+              [(ngModel)]="quickRoleData.description" 
+              name="quickRoleDescription"
+              rows="3"
+              maxlength="250"
+              placeholder="Mô tả phạm vi trách nhiệm của vai trò này..."></textarea>
+          </div>
+
+          <div class="form-field">
+            <label>Sao chép phân quyền ban đầu từ</label>
+            <select class="admin-select" [(ngModel)]="quickRoleData.cloneFromRoleName" name="quickRoleClone">
+              <option value="NV Kinh doanh">NV Kinh doanh (Bán hàng tiêu chuẩn)</option>
+              <option value="QL Sản phẩm">QL Sản phẩm</option>
+              <option value="QL Kho">QL Kho</option>
+              <option value="QL Đơn hàng">QL Đơn hàng</option>
+              <option value="NONE">Trống (Tự phân quyền trên ma trận)</option>
+            </select>
+            <span class="field-hint">Vai trò mới sẽ được tự động sao chép quyền và hiển thị trên ma trận phân quyền để bạn tiếp tục điều chỉnh chi tiết.</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeQuickAddRoleModal()" [disabled]="quickAddRoleSubmitting">Hủy</button>
+          <button type="submit" class="admin-btn admin-btn-primary" [disabled]="!quickRoleData.name || quickAddRoleSubmitting">
+            <app-icon name="LoaderCircle" size="16" class="spinner-icon" *ngIf="quickAddRoleSubmitting"></app-icon>
+            <app-icon name="Plus" size="16" *ngIf="!quickAddRoleSubmitting"></app-icon>
+            <span>{{ quickAddRoleSubmitting ? 'Đang tạo...' : 'Tạo vai trò & Đồng bộ' }}</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -131,8 +131,8 @@ export class DesignPostsComponent implements OnInit {
   records: DesignPostItem[] = [];
   isLoading = false;
 
-  // Active Tab: PENDING | PUBLISHED | REJECTED | COMMENTS
-  activeTab: 'PENDING' | 'PUBLISHED' | 'REJECTED' | 'COMMENTS' = 'PENDING';
+  // Active Tab: ALL | PENDING | PUBLISHED | REJECTED | COMMENTS
+  activeTab: 'ALL' | 'PENDING' | 'PUBLISHED' | 'REJECTED' | 'COMMENTS' = 'ALL';
 
   // Filters
   searchTerm = '';
@@ -159,8 +159,14 @@ export class DesignPostsComponent implements OnInit {
 
   private readonly API_BASE = environment.apiUrl ? `${environment.apiUrl}/designs` : 'http://localhost:3000/api/designs';
 
+  private getAuthHeaders(): Record<string, string> {
+    const token = sessionStorage.getItem('dcor_admin_token') || localStorage.getItem('dcor_admin_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
+  constructor(private cdr: ChangeDetectorRef) {}
+
   ngOnInit(): void {
-    this.loadCachedPosts();
     this.loadPosts();
   }
 
@@ -171,18 +177,22 @@ export class DesignPostsComponent implements OnInit {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.records = parsed;
-          this.isLoading = false;
         }
       }
     } catch (e) {}
   }
 
   async loadPosts(): Promise<void> {
-    if (this.records.length === 0) {
-      this.isLoading = true;
-    }
+    this.isLoading = true;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1800);
+
     try {
-      const res = await fetch(`${this.API_BASE}/posts`);
+      const res = await fetch(`${this.API_BASE}/posts`, {
+        headers: this.getAuthHeaders(),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -192,19 +202,31 @@ export class DesignPostsComponent implements OnInit {
           }));
           localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
           this.isLoading = false;
+          this.cdr.detectChanges();
           return;
         }
+      } else if (res.status === 403) {
+        const err = await res.json().catch(() => ({}));
+        this.showToast(err.message || 'Bạn không có quyền xem danh sách thiết kế.', 'warning');
+        this.records = [];
+        this.isLoading = false;
+        this.cdr.detectChanges();
+        return;
       }
+      this.loadCachedPosts();
       if (this.records.length === 0) {
         this.records = [...PRESET_SAMPLE_POSTS];
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.warn('API error fetching design posts, falling back to cached seed:', err);
+      this.loadCachedPosts();
       if (this.records.length === 0) {
         this.records = [...PRESET_SAMPLE_POSTS];
       }
     } finally {
       this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -234,7 +256,7 @@ export class DesignPostsComponent implements OnInit {
     const term = this.searchTerm.trim().toLowerCase();
     return this.records.filter(post => {
       // Status match
-      if (this.activeTab !== 'COMMENTS' && post.status !== this.activeTab) {
+      if (this.activeTab !== 'ALL' && this.activeTab !== 'COMMENTS' && post.status !== this.activeTab) {
         return false;
       }
       // Search match
@@ -271,7 +293,7 @@ export class DesignPostsComponent implements OnInit {
   }
 
   // Tab Switch
-  switchTab(tab: 'PENDING' | 'PUBLISHED' | 'REJECTED' | 'COMMENTS'): void {
+  switchTab(tab: 'ALL' | 'PENDING' | 'PUBLISHED' | 'REJECTED' | 'COMMENTS'): void {
     this.activeTab = tab;
   }
 
@@ -294,26 +316,44 @@ export class DesignPostsComponent implements OnInit {
     const postTitle = post.title;
     this.postToApprove = null;
 
+    const oldStatus = post.status;
+    const oldReason = post.rejectionReason;
+    
+    // Optimistic UI update (phản hồi 0ms trên giao diện)
+    post.status = 'PUBLISHED';
+    post.rejectionReason = null;
+    this.records = [...this.records];
+    localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+    if (this.selectedPost && this.selectedPost.id === postId) {
+      this.selectedPost.status = 'PUBLISHED';
+    }
+    this.cdr.detectChanges();
+    this.showToast(`Đã phê duyệt bài đăng "${postTitle}" lên cộng đồng!`, 'success');
+
     try {
       const res = await fetch(`${this.API_BASE}/posts/${postId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify({ status: 'PUBLISHED' })
       });
-      if (res.ok) {
-        post.status = 'PUBLISHED';
-        post.rejectionReason = null;
-        this.showToast(`Đã phê duyệt bài đăng "${postTitle}" lên cộng đồng!`, 'success');
-        if (this.selectedPost && this.selectedPost.id === postId) {
-          this.selectedPost.status = 'PUBLISHED';
-        }
-      } else {
-        post.status = 'PUBLISHED';
-        this.showToast(`Đã duyệt bài đăng "${postTitle}"`, 'success');
+      if (!res.ok) {
+        // Revert nếu có lỗi
+        post.status = oldStatus;
+        post.rejectionReason = oldReason;
+        this.records = [...this.records];
+        localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+        this.cdr.detectChanges();
+        const err = await res.json().catch(() => ({}));
+        const msg = err.message || 'Bạn không có quyền duyệt bài đăng thiết kế.';
+        this.showToast(msg, 'warning');
       }
     } catch {
-      post.status = 'PUBLISHED';
-      this.showToast(`Đã duyệt bài đăng "${postTitle}"`, 'success');
+      post.status = oldStatus;
+      post.rejectionReason = oldReason;
+      this.records = [...this.records];
+      localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+      this.cdr.detectChanges();
+      this.showToast('Lỗi máy chủ khi duyệt bài đăng.', 'warning');
     }
   }
 
@@ -340,50 +380,82 @@ export class DesignPostsComponent implements OnInit {
     const postId = this.postToReject.id;
     const postTitle = this.postToReject.title;
 
+    const post = this.postToReject;
+    const oldStatus = post.status;
+    const oldReason = post.rejectionReason;
+
+    // Optimistic UI update
+    post.status = 'REJECTED';
+    post.rejectionReason = finalReason;
+    this.records = [...this.records];
+    localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+    if (this.selectedPost && this.selectedPost.id === postId) {
+      this.selectedPost.status = 'REJECTED';
+      this.selectedPost.rejectionReason = finalReason;
+    }
+    this.cdr.detectChanges();
+    this.showToast(`Đã từ chối bài viết "${postTitle}"`, 'warning');
+    this.closeRejectModal();
+
     try {
       const res = await fetch(`${this.API_BASE}/posts/${postId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify({
           status: 'REJECTED',
           rejectionReason: finalReason
         })
       });
-      if (res.ok) {
-        this.postToReject.status = 'REJECTED';
-        this.postToReject.rejectionReason = finalReason;
-        this.showToast(`Đã từ chối bài viết "${postTitle}"`, 'warning');
-      } else {
-        this.postToReject.status = 'REJECTED';
-        this.postToReject.rejectionReason = finalReason;
-        this.showToast(`Đã từ chối bài viết "${postTitle}"`, 'warning');
+      if (!res.ok) {
+        post.status = oldStatus;
+        post.rejectionReason = oldReason;
+        this.records = [...this.records];
+        localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+        this.cdr.detectChanges();
+        const err = await res.json().catch(() => ({}));
+        const msg = err.message || 'Bạn không có quyền từ chối bài đăng thiết kế.';
+        this.showToast(msg, 'warning');
       }
     } catch {
-      this.postToReject.status = 'REJECTED';
-      this.postToReject.rejectionReason = finalReason;
-      this.showToast(`Đã từ chối bài viết "${postTitle}"`, 'warning');
-    } finally {
-      if (this.selectedPost && this.selectedPost.id === postId) {
-        this.selectedPost.status = 'REJECTED';
-        this.selectedPost.rejectionReason = finalReason;
-      }
-      this.closeRejectModal();
+      post.status = oldStatus;
+      post.rejectionReason = oldReason;
+      this.records = [...this.records];
+      localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+      this.cdr.detectChanges();
+      this.showToast('Lỗi máy chủ khi từ chối bài đăng.', 'warning');
     }
   }
 
   // Restore post to PENDING
   async restoreToPending(post: DesignPostItem): Promise<void> {
+    const oldStatus = post.status;
+    post.status = 'PENDING';
+    this.records = [...this.records];
+    localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+    this.cdr.detectChanges();
+    this.showToast(`Đã chuyển bài viết "${post.title}" về trạng thái chờ duyệt`, 'info');
+
     try {
-      await fetch(`${this.API_BASE}/posts/${post.id}/status`, {
+      const res = await fetch(`${this.API_BASE}/posts/${post.id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify({ status: 'PENDING' })
       });
-      post.status = 'PENDING';
-      this.showToast(`Đã chuyển bài viết "${post.title}" về trạng thái chờ duyệt`, 'info');
+      if (!res.ok) {
+        post.status = oldStatus;
+        this.records = [...this.records];
+        localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+        this.cdr.detectChanges();
+        const err = await res.json().catch(() => ({}));
+        const msg = err.message || 'Bạn không có quyền chuyển trạng thái bài đăng.';
+        this.showToast(msg, 'warning');
+      }
     } catch {
-      post.status = 'PENDING';
-      this.showToast(`Đã chuyển bài viết "${post.title}" về chờ duyệt`, 'info');
+      post.status = oldStatus;
+      this.records = [...this.records];
+      localStorage.setItem('dcor_design_posts_cache', JSON.stringify(this.records));
+      this.cdr.detectChanges();
+      this.showToast('Lỗi máy chủ khi cập nhật trạng thái bài đăng.', 'warning');
     }
   }
 
@@ -421,18 +493,19 @@ export class DesignPostsComponent implements OnInit {
 
     try {
       const res = await fetch(`${this.API_BASE}/comments/${commentId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       if (res.ok) {
         comment.status = 'HIDDEN';
         this.showToast('Đã xóa bình luận vi phạm khỏi hệ thống.', 'success');
       } else {
-        comment.status = 'HIDDEN';
-        this.showToast('Đã ẩn bình luận vi phạm.', 'info');
+        const err = await res.json().catch(() => ({}));
+        const msg = err.message || 'Bạn không có quyền xóa bình luận.';
+        this.showToast(msg, 'warning');
       }
     } catch {
-      comment.status = 'HIDDEN';
-      this.showToast('Đã ẩn bình luận vi phạm.', 'info');
+      this.showToast('Lỗi máy chủ khi xóa bình luận.', 'warning');
     }
   }
 
@@ -460,7 +533,8 @@ export class DesignPostsComponent implements OnInit {
 
     try {
       const res = await fetch(`${this.API_BASE}/posts/${postId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
       });
       if (res.ok) {
         this.records = this.records.filter(r => r.id !== postId);
@@ -469,12 +543,12 @@ export class DesignPostsComponent implements OnInit {
         }
         this.showToast(`Đã xóa bài viết "${postTitle}" vĩnh viễn.`, 'success');
       } else {
-        this.records = this.records.filter(r => r.id !== postId);
-        this.showToast(`Đã xóa bài viết "${postTitle}".`, 'info');
+        const err = await res.json().catch(() => ({}));
+        const msg = err.message || 'Bạn không có quyền xóa bài đăng thiết kế.';
+        this.showToast(msg, 'warning');
       }
     } catch {
-      this.records = this.records.filter(r => r.id !== postId);
-      this.showToast(`Đã xóa bài viết "${postTitle}".`, 'info');
+      this.showToast('Lỗi máy chủ khi xóa bài đăng.', 'warning');
     }
   }
 

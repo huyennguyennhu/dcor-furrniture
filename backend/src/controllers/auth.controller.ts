@@ -3,7 +3,8 @@ import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { otpService, normalizePhone, isValidPassword, OtpPurpose } from '../services/otp.service';
-import { getStaffMetadata } from '../lib/staff-metadata';
+import { getStaffMetadata, setStaffMetadata } from '../lib/staff-metadata';
+import { iamService } from '../lib/iam.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 const LOCK_DURATION_SECONDS = Number(process.env.LOGIN_LOCK_SECONDS) || 900;
@@ -70,12 +71,24 @@ export const authController = {
         data: { lastLoginAt: new Date(), failedLoginCount: 0 }
       });
 
-      // Đọc metadata chính xác (bảo toàn vai trò động như IT, quyền đa vai trò, chi nhánh)
+      // Đọc metadata chính xác (bảo toàn vai trò động, quyền đa vai trò, chi nhánh)
       const metadata = getStaffMetadata(staff.email);
-      const exactRoles = metadata?.roles && metadata.roles.length > 0 
+      let exactRoles = metadata?.roles && metadata.roles.length > 0 
         ? metadata.roles 
         : [mapFromPrismaRole(staff.role)];
-      const exactRole = metadata?.role || exactRoles[0];
+
+      // KIỂM TRA TỒN TẠI VAI TRÒ (Chống lỗi vai trò đã bị xóa):
+      const existingRoleNames = iamService.getAllRoles().map(r => r.name);
+      exactRoles = exactRoles.filter(r => r === 'Super Admin' || existingRoleNames.includes(r));
+      if (exactRoles.length === 0) {
+        // Nếu toàn bộ role của tài khoản đã bị xóa -> tự động gán vai trò an toàn NV Kinh doanh
+        exactRoles = ['NV Kinh doanh'];
+        setStaffMetadata(staff.email, { roles: ['NV Kinh doanh'], role: 'NV Kinh doanh' });
+      }
+
+      const exactRole = metadata?.role && existingRoleNames.includes(metadata.role) 
+        ? metadata.role 
+        : exactRoles[0];
       const branchId = metadata?.branchId || 'ALL';
       const branchName = metadata?.branchName || 'Toàn hệ thống';
       const assignedBranches = metadata?.assignedBranches || [branchId];
@@ -94,9 +107,12 @@ export const authController = {
         { expiresIn: '4h' } // Token hết hạn sau 4 tiếng (Quy định phiên làm việc)
       );
 
+      const permissions = iamService.getEffectivePermissions(exactRoles);
+
       res.status(200).json({
         message: 'Đăng nhập thành công',
         token,
+        permissions,
         user: {
           id: staff.id,
           fullName: staff.fullName,
@@ -105,7 +121,8 @@ export const authController = {
           roles: exactRoles,
           branchId,
           branchName,
-          assignedBranches
+          assignedBranches,
+          status: staff.status
         }
       });
     } catch (error) {
@@ -673,13 +690,22 @@ export const authController = {
         return;
       }
 
+      const metadata = getStaffMetadata(staff.email);
+      const exactRoles = metadata?.roles && metadata.roles.length > 0 
+        ? metadata.roles 
+        : [mapFromPrismaRole(staff.role)];
+      const exactRole = metadata?.role || exactRoles[0];
+      const permissions = iamService.getEffectivePermissions(exactRoles);
+
       res.status(200).json({
         active: true,
+        permissions,
         user: {
           id: staff.id,
           email: staff.email,
           fullName: staff.fullName,
-          role: staff.role,
+          role: exactRole,
+          roles: exactRoles,
           status: staff.status
         }
       });

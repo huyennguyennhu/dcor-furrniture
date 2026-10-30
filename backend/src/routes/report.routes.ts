@@ -1,7 +1,13 @@
 import { Router } from 'express';
 import { reportController } from '../controllers/report.controller';
+import { authenticateJWT } from '../middleware/auth.middleware';
+import { requirePermission } from '../middleware/iam.middleware';
 
 const router = Router();
+
+// Phân hệ Báo cáo & Thống kê yêu cầu quyền xem báo cáo
+router.use(authenticateJWT);
+router.use(requirePermission('reports', 'view'));
 
 // 1. Báo cáo doanh thu
 router.get('/revenue', reportController.getRevenueReport);

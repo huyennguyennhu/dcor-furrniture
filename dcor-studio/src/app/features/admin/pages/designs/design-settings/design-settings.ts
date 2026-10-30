@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -113,8 +113,9 @@ export class DesignSettingsComponent implements OnInit {
   toastType: 'success' | 'warning' | 'info' = 'success';
   private toastTimer: any = null;
 
+  constructor(private cdr: ChangeDetectorRef) {}
+
   ngOnInit(): void {
-    this.loadCachedTemplates();
     this.loadTemplates();
   }
 
@@ -125,18 +126,30 @@ export class DesignSettingsComponent implements OnInit {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.records = parsed;
-          this.isLoading = false;
         }
       }
     } catch (e) {}
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    const token = sessionStorage.getItem('dcor_admin_token') || localStorage.getItem('dcor_admin_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
   loadTemplates(): void {
-    if (this.records.length === 0) {
-      this.isLoading = true;
-    }
-    fetch(`${environment.apiUrl}/designs/templates`)
-      .then(res => res.json())
+    this.isLoading = true;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1800);
+
+    fetch(`${environment.apiUrl}/designs/templates`, {
+      headers: this.getAuthHeaders(),
+      signal: controller.signal
+    })
+      .then(res => {
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('API error: ' + res.status);
+        return res.json();
+      })
       .then((data: any[]) => {
         if (Array.isArray(data) && data.length > 0) {
           this.records = data.map(t => ({
@@ -154,18 +167,24 @@ export class DesignSettingsComponent implements OnInit {
             updatedAt: t.updatedAt
           }));
           localStorage.setItem('dcor_room_templates_cache', JSON.stringify(this.records));
-        } else if (this.records.length === 0) {
-          this.records = [...PRESET_SAMPLE_TEMPLATES];
+        } else {
+          this.loadCachedTemplates();
+          if (this.records.length === 0) {
+            this.records = [...PRESET_SAMPLE_TEMPLATES];
+          }
         }
       })
       .catch(err => {
+        clearTimeout(timeoutId);
         console.warn('Lỗi kết nối API designs/templates:', err);
+        this.loadCachedTemplates();
         if (this.records.length === 0) {
           this.records = [...PRESET_SAMPLE_TEMPLATES];
         }
       })
       .finally(() => {
         this.isLoading = false;
+        this.cdr.detectChanges();
       });
   }
 
@@ -175,10 +194,10 @@ export class DesignSettingsComponent implements OnInit {
       roomType: 'Phòng khách',
       description: '',
       imageUrl: '',
-      length: 5.0,
-      width: 4.0,
-      height: 2.8,
-      suggestedProductsText: 'Sofa DCor Nordic, Bàn trà Ceramic Elegance',
+      length: null as any,
+      width: null as any,
+      height: null as any,
+      suggestedProductsText: '',
       isActive: true
     };
   }
@@ -396,32 +415,40 @@ export class DesignSettingsComponent implements OnInit {
     if (this.isEditing && this.editingId) {
       fetch(`${environment.apiUrl}/designs/templates/${this.editingId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify(payload)
       })
-        .then(res => res.json())
-        .then(() => {
-          this.loadTemplates();
-          this.showToast(`Đã cập nhật bản mẫu "${name}" thành công!`, 'success');
+        .then(async res => {
+          if (res.ok) {
+            this.loadTemplates();
+            this.showToast(`Đã cập nhật bản mẫu "${name}" thành công!`, 'success');
+          } else {
+            const err = await res.json().catch(() => ({}));
+            this.showToast(err.message || 'Bạn không có quyền chỉnh sửa bản mẫu thiết kế.', 'warning');
+          }
         })
         .catch(err => {
           console.error('Lỗi cập nhật template:', err);
-          this.showToast('Lỗi cập nhật bản mẫu.', 'warning');
+          this.showToast('Lỗi máy chủ khi cập nhật bản mẫu.', 'warning');
         });
     } else {
       fetch(`${environment.apiUrl}/designs/templates`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify(payload)
       })
-        .then(res => res.json())
-        .then(() => {
-          this.loadTemplates();
-          this.showToast(`Đã thêm bản mẫu "${name}" vào CSDL PostgreSQL!`, 'success');
+        .then(async res => {
+          if (res.ok) {
+            this.loadTemplates();
+            this.showToast(`Đã thêm bản mẫu "${name}" vào CSDL PostgreSQL!`, 'success');
+          } else {
+            const err = await res.json().catch(() => ({}));
+            this.showToast(err.message || 'Bạn không có quyền tạo bản mẫu thiết kế.', 'warning');
+          }
         })
         .catch(err => {
           console.error('Lỗi tạo template:', err);
-          this.showToast('Lỗi tạo mới bản mẫu.', 'warning');
+          this.showToast('Lỗi máy chủ khi tạo mới bản mẫu.', 'warning');
         });
     }
 
@@ -443,19 +470,42 @@ export class DesignSettingsComponent implements OnInit {
   confirmToggleActive(): void {
     if (!this.templateToToggle) return;
     const item = this.templateToToggle;
+    const previousStatus = item.isActive;
     const nextStatus = !item.isActive;
+    
+    // Cập nhật giao diện ngay lập tức (Optimistic UI Update - phản hồi 0ms)
     item.isActive = nextStatus;
+    this.records = [...this.records];
+    localStorage.setItem('dcor_room_templates_cache', JSON.stringify(this.records));
     this.templateToToggle = null;
+    this.cdr.detectChanges();
 
     fetch(`${environment.apiUrl}/designs/templates/${item.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
       body: JSON.stringify({ isActive: nextStatus })
     })
-      .then(() => {
-        this.showToast(nextStatus ? `Đã kích hoạt bản mẫu "${item.name}"` : `Đã tạm ẩn bản mẫu "${item.name}"`, nextStatus ? 'success' : 'warning');
+      .then(async res => {
+        if (res.ok) {
+          this.showToast(nextStatus ? `Đã kích hoạt bản mẫu "${item.name}"` : `Đã tạm ẩn bản mẫu "${item.name}"`, nextStatus ? 'success' : 'warning');
+        } else {
+          // Revert nếu server từ chối quyền
+          item.isActive = previousStatus;
+          this.records = [...this.records];
+          localStorage.setItem('dcor_room_templates_cache', JSON.stringify(this.records));
+          this.cdr.detectChanges();
+          const err = await res.json().catch(() => ({}));
+          this.showToast(err.message || 'Bạn không có quyền thay đổi trạng thái bản mẫu.', 'warning');
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Revert nếu lỗi mạng
+        item.isActive = previousStatus;
+        this.records = [...this.records];
+        localStorage.setItem('dcor_room_templates_cache', JSON.stringify(this.records));
+        this.cdr.detectChanges();
+        this.showToast('Lỗi máy chủ khi thay đổi trạng thái bản mẫu.', 'warning');
+      });
   }
 
   // =========================================================================
@@ -474,17 +524,23 @@ export class DesignSettingsComponent implements OnInit {
     if (!this.templateToDelete) return;
     const name = this.templateToDelete.name;
     const delId = this.templateToDelete.id;
-    this.records = this.records.filter(r => r.id !== delId);
     this.templateToDelete = null;
 
     fetch(`${environment.apiUrl}/designs/templates/${delId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: this.getAuthHeaders()
     })
-      .then(() => {
-        this.showToast(`Đã xóa bản mẫu "${name}" khỏi cơ sở dữ liệu!`, 'success');
+      .then(async res => {
+        if (res.ok) {
+          this.records = this.records.filter(r => r.id !== delId);
+          this.showToast(`Đã xóa bản mẫu "${name}" khỏi cơ sở dữ liệu!`, 'success');
+        } else {
+          const err = await res.json().catch(() => ({}));
+          this.showToast(err.message || 'Bạn không có quyền xóa bản mẫu thiết kế.', 'warning');
+        }
       })
       .catch(() => {
-        this.showToast(`Đã xóa bản mẫu "${name}".`, 'info');
+        this.showToast('Lỗi máy chủ khi xóa bản mẫu.', 'warning');
       });
   }
 

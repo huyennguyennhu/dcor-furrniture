@@ -20,14 +20,17 @@ export const productController = {
   getAllAdmin: async (req: Request, res: Response): Promise<void> => {
     try {
       const { search, categoryId, status } = req.query;
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = req.query.limit !== undefined 
+        ? Math.min(100, Math.max(1, parseInt(req.query.limit as string))) 
+        : 40;
+      const skip = (page - 1) * limit;
 
-      const isDefaultQuery = !search && (!categoryId || categoryId === 'all') && (!status || status === 'ALL');
-      if (isDefaultQuery) {
-        const cached = memoryCache.get<any[]>('admin_products_all', 60000);
-        if (cached) {
-          res.json(cached);
-          return;
-        }
+      const cacheKey = `admin_products_p${page}_l${limit}_c${categoryId || 'all'}_s${status || 'all'}_q${search || ''}`;
+      const cached = memoryCache.get<any[]>(cacheKey, 300000);
+      if (cached) {
+        res.json(cached);
+        return;
       }
 
       const whereClause: any = {
@@ -54,6 +57,8 @@ export const productController = {
 
       const products = await prisma.product.findMany({
         where: whereClause,
+        take: limit,
+        skip: skip,
         include: {
           category: {
             select: {
@@ -92,9 +97,7 @@ export const productController = {
         };
       });
 
-      if (isDefaultQuery) {
-        memoryCache.set('admin_products_all', formatted);
-      }
+      memoryCache.set(cacheKey, formatted);
 
       res.json(formatted);
     } catch (error: any) {
@@ -232,13 +235,15 @@ export const productController = {
           }
           usedSkusInBatch.add(sku);
 
+          const initStock = Math.max(0, Math.round(Number(v.stock)) || Math.round(Number(v.optionValues?.stock)) || 0);
+
           const createdVariant = await tx.productVariant.create({
             data: {
               productId: prod.id,
               sku,
               name: variantName,
               price: Math.round(Number(v.price)) || Math.round(Number(basePrice)) || 0,
-              stock: 0, // Bỏ nhập tồn kho: Mặc định 0, bộ phận kho sẽ xử lý nhập sau
+              stock: initStock,
               reservedStock: 0,
               optionValues: v.optionValues || {},
               isActive: v.isActive !== false
@@ -250,7 +255,7 @@ export const productController = {
             stockRecordsToInsert.push({
               warehouseId: wh.id,
               variantId: createdVariant.id,
-              physicalStock: 0,
+              physicalStock: initStock,
               reservedStock: 0,
               safetyThreshold: 5
             });
@@ -358,15 +363,34 @@ export const productController = {
             select: { id: true }
           });
 
+          const incomingIds = new Set(variants.map(v => v.id).filter(Boolean));
           const newStockRecords: any[] = [];
           const usedSkusInBatch = new Set<string>();
 
+          // 2.1 Xử lý các variant bị xóa khỏi form (so với existing.variants trong DB)
+          const variantsToRemove = existing.variants.filter(ev => !incomingIds.has(ev.id));
+          for (const rv of variantsToRemove) {
+            const orderCount = await tx.orderItem.count({ where: { variantId: rv.id } });
+            if (orderCount > 0) {
+              await tx.productVariant.update({
+                where: { id: rv.id },
+                data: { isActive: false }
+              });
+            } else {
+              await tx.warehouseStock.deleteMany({ where: { variantId: rv.id } });
+              await tx.productVariant.delete({ where: { id: rv.id } });
+            }
+          }
+
+          // 2.2 Cập nhật hoặc tạo mới các variant
           for (let idx = 0; idx < variants.length; idx++) {
             const v = variants[idx];
             let variantName = v.name?.trim() || 'Tiêu chuẩn';
             if (Array.isArray(v.attributes) && v.attributes.length > 0) {
               variantName = v.attributes.filter(Boolean).join(' / ');
             }
+
+            const stockVal = v.stock !== undefined ? Math.max(0, Math.round(Number(v.stock))) : undefined;
 
             if (v.id) {
               // Cập nhật variant sẵn có
@@ -376,10 +400,18 @@ export const productController = {
                   sku: v.sku?.trim(),
                   name: variantName,
                   price: Math.round(Number(v.price)) || 0,
+                  stock: stockVal,
                   isActive: v.isActive !== false,
                   optionValues: v.optionValues || undefined
                 }
               });
+
+              if (stockVal !== undefined) {
+                await tx.warehouseStock.updateMany({
+                  where: { variantId: v.id },
+                  data: { physicalStock: stockVal }
+                });
+              }
             } else {
               // Thêm variant mới
               const cleanSlug = existing.slug;
@@ -399,7 +431,7 @@ export const productController = {
                   sku,
                   name: variantName,
                   price: Math.round(Number(v.price)) || existing.basePrice,
-                  stock: 0,
+                  stock: stockVal !== undefined ? stockVal : 0,
                   reservedStock: 0,
                   optionValues: v.optionValues || {},
                   isActive: v.isActive !== false
@@ -410,7 +442,7 @@ export const productController = {
                 newStockRecords.push({
                   warehouseId: wh.id,
                   variantId: newV.id,
-                  physicalStock: 0,
+                  physicalStock: stockVal !== undefined ? stockVal : 0,
                   reservedStock: 0,
                   safetyThreshold: 5
                 });
@@ -449,16 +481,40 @@ export const productController = {
   deleteProduct: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id as string;
-      await prisma.product.update({
-        where: { id },
-        data: { deletedAt: new Date(), isActive: false }
-      });
+      const existing = await prisma.product.findUnique({ where: { id } });
+      if (existing) {
+        await prisma.product.update({
+          where: { id },
+          data: { deletedAt: new Date(), isActive: false }
+        });
+      }
       memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
       memoryCache.invalidate('admin_products_all');
       res.json({ message: 'Đã xóa sản phẩm thành công.' });
     } catch (error: any) {
       console.error('Lỗi xóa sản phẩm:', error);
       res.status(500).json({ message: 'Lỗi xóa sản phẩm.', error: error?.message });
+    }
+  },
+
+  // Bật / tắt hiển thị sản phẩm
+  toggleStatus: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const { isActive } = req.body;
+      const existing = await prisma.product.findUnique({ where: { id } });
+      if (existing) {
+        await prisma.product.update({
+          where: { id },
+          data: { isActive: isActive !== undefined ? !!isActive : !existing.isActive }
+        });
+      }
+      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
+      memoryCache.invalidate('admin_products_all');
+      res.json({ message: 'Cập nhật trạng thái sản phẩm thành công.' });
+    } catch (error: any) {
+      console.error('Lỗi cập nhật trạng thái sản phẩm:', error);
+      res.status(500).json({ message: 'Lỗi cập nhật trạng thái.', error: error?.message });
     }
   }
 };

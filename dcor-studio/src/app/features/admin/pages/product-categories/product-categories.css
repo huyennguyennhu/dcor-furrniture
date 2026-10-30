@@ -4,6 +4,11 @@
    Background: #FCF8F3 | Primary: #765337 | Hover: #BC5F13 | Border: #E0E0E0
    ========================================================================== */
 
+:host {
+  display: block;
+  width: 100%;
+}
+
 /* 1. Page Container */
 .categories-page-container {
   display: flex;
@@ -15,6 +20,8 @@
   color: #2E2E2E;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
+  width: 100%;
+  margin: 0 auto;
 }
 
 /* 2. Page Header */
@@ -28,7 +35,7 @@
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
@@ -161,6 +168,8 @@
   border-radius: 12px;
   padding: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .top-level-tabs-nav {
@@ -299,6 +308,8 @@
   border-radius: 12px;
   padding: 14px 18px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .filter-row {
@@ -388,7 +399,10 @@
 }
 
 /* 5. Table Card & Categories Table */
+.categories-table-card,
 .table-card {
+  width: 100%;
+  box-sizing: border-box;
   background-color: #FFFFFF;
   border: 1px solid #E0E0E0;
   border-radius: 12px;
@@ -401,15 +415,18 @@
 .table-responsive {
   overflow-x: auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
-.categories-table {
+.categories-table,
+.data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
 
-.categories-table th {
+.categories-table th,
+.data-table th {
   padding: 13px 16px;
   font-size: 12px;
   font-weight: 700;
@@ -421,7 +438,8 @@
   white-space: nowrap;
 }
 
-.categories-table td {
+.categories-table td,
+.data-table td {
   padding: 14px 16px;
   font-size: 13.5px;
   color: #2E2E2E;
@@ -565,7 +583,7 @@
   font-size: 12px;
   color: #757575;
   line-height: 1.4;
-  max-width: 420px;
+  max-width: 600px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -745,22 +763,22 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(17, 24, 39, 0.45);
+  background-color: rgba(17, 24, 39, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 1000;
+  z-index: 2500;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 48px 16px 24px 16px;
   animation: fadeIn 0.2s ease-out;
 }
 
 .modal-dialog {
   background-color: #FFFFFF;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
   width: 100%;
-  max-height: 90vh;
+  max-height: calc(100vh - 96px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -859,6 +877,7 @@
 .modal-body {
   padding: 24px;
   overflow-y: auto;
+  max-height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -1359,5 +1378,69 @@
 .child-slug {
   font-size: 12px !important;
   color: #7A6F65 !important;
+}
+
+/* Số lượng thuần túy (không màu mè trạng thái) */
+.plain-count-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2E2E2E;
+}
+
+/* Categories Pagination Bar (10 mục / trang) */
+.categories-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background-color: #FFFFFF;
+  border-top: 1px solid #E8E2DA;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.categories-pagination-bar .pagination-info {
+  font-size: 13px;
+  color: #7A726B;
+}
+
+.categories-pagination-bar .pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.categories-pagination-bar .page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid #E4DACF;
+  background-color: #FFFFFF;
+  color: #5C554E;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.categories-pagination-bar .page-btn:hover:not(:disabled) {
+  border-color: #765337;
+  color: #765337;
+  background-color: #FAF7F2;
+}
+
+.categories-pagination-bar .page-btn.active {
+  background-color: #765337;
+  border-color: #765337;
+  color: #FFFFFF;
+}
+
+.categories-pagination-bar .page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 

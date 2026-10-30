@@ -13,7 +13,7 @@ export const adminGuestGuard: CanActivateFn = () => {
   const hasUser = !!authService.currentUser$.value || !!localStorage.getItem('dcor_admin_user');
 
   if (hasToken && hasUser) {
-    return router.createUrlTree(['/admin/dashboard']);
+    return router.createUrlTree(['/admin/reports/overview']);
   }
   return true;
 };

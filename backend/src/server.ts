@@ -22,6 +22,10 @@ import voucherRoutes from './routes/voucher.routes';
 import { voucherController } from './controllers/voucher.controller';
 import designRoutes from './routes/design.routes';
 import { initPromotionsAndDesignsDatabase } from './lib/init-promotions-and-designs-db';
+import adminCustomerRoutes from './routes/admin-customer.routes';
+import adminAppointmentRoutes from './routes/admin-appointment.routes';
+import adminContentRoutes from './routes/admin-content.routes';
+import adminChatRoutes from './routes/admin-chat.routes';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -79,6 +83,18 @@ app.use('/api/admin/warehouses', (req, res, next) => {
 
 // Gắn router báo cáo & thống kê
 app.use('/api/admin/reports', reportRoutes);
+
+// Gắn router quản trị khách hàng (Customer IAM RBAC)
+app.use('/api/admin/customers', adminCustomerRoutes);
+
+// Gắn router quản trị lịch tư vấn Showroom (Appointments IAM RBAC)
+app.use('/api/admin/appointments', adminAppointmentRoutes);
+
+// Gắn router quản trị nội dung Blog / Tin tức (Content IAM RBAC)
+app.use('/api/admin/content', adminContentRoutes);
+
+// Gắn router quản trị hội thoại CSKH (Chat IAM RBAC)
+app.use('/api/admin/chat', adminChatRoutes);
 
 // Gắn router quản trị sản phẩm & danh mục
 app.use('/api/admin/products', productRoutes);

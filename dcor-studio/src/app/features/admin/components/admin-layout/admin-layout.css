@@ -22,7 +22,7 @@ app-admin-header {
   min-height: 0;
   overflow: hidden;
   position: relative;
-  z-index: 10;
+  z-index: auto;
 }
 
 app-admin-sidebar {

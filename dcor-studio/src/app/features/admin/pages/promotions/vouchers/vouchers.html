@@ -8,19 +8,6 @@
     </button>
   </div>
 
-  <!-- Navigation Tab Bar: Vouchers vs Flash Sale / Campaigns -->
-  <div class="promo-submodule-tabs">
-    <a routerLink="/admin/vouchers" class="promo-tab-item active" aria-current="page">
-      <app-icon name="Ticket" size="18"></app-icon>
-      <span>Mã giảm giá (Vouchers)</span>
-      <span class="tab-badge">{{ records.length }}</span>
-    </a>
-    <a routerLink="/admin/campaigns" class="promo-tab-item">
-      <app-icon name="Zap" size="18"></app-icon>
-      <span>Chiến dịch Flash Sale & Combo</span>
-    </a>
-  </div>
-
   <!-- Page Header -->
   <header class="admin-page-heading">
     <div class="heading-title-group">
@@ -30,7 +17,7 @@
     <div class="admin-page-actions">
       <button type="button" class="admin-btn admin-btn-primary" (click)="openCreateModal()">
         <app-icon name="Plus" size="18"></app-icon>
-        <span>+ Tạo voucher mới</span>
+        <span>Tạo voucher mới</span>
       </button>
     </div>
   </header>
@@ -52,7 +39,7 @@
         <app-icon name="Check" size="22"></app-icon>
       </div>
       <div class="stat-card-body">
-        <span class="admin-page-stat-label">Đang hoạt động</span>
+        <span class="admin-page-stat-label">Active</span>
         <div class="admin-page-stat-value text-success">{{ activeCount }}</div>
       </div>
     </article>
@@ -69,7 +56,7 @@
 
     <article class="admin-page-stat stat-card-revenue">
       <div class="stat-card-icon stat-icon-brown">
-        <app-icon name="DollarSign" size="22"></app-icon>
+        <span class="stat-currency-symbol">₫</span>
       </div>
       <div class="stat-card-body">
         <span class="admin-page-stat-label">Doanh thu mang lại</span>
@@ -86,6 +73,7 @@
         type="text"
         class="admin-input search-input"
         [(ngModel)]="searchTerm"
+        maxlength="100"
         placeholder="Tìm theo mã voucher, danh mục, điều kiện..."
         aria-label="Tìm kiếm voucher" />
       <button
@@ -101,10 +89,10 @@
     <div class="filter-controls-group">
       <select class="admin-select" [(ngModel)]="selectedStatus" aria-label="Lọc theo trạng thái">
         <option value="ALL">Tất cả trạng thái</option>
-        <option value="Đang hoạt động">Đang hoạt động</option>
-        <option value="Sắp diễn ra">Sắp diễn ra</option>
-        <option value="Tạm dừng">Tạm dừng</option>
-        <option value="Đã kết thúc">Đã kết thúc</option>
+        <option value="Active">Active</option>
+        <option value="Upcoming">Upcoming</option>
+        <option value="Paused">Paused</option>
+        <option value="Ended">Ended</option>
       </select>
 
       <select class="admin-select" [(ngModel)]="selectedDiscountType" aria-label="Lọc theo loại giảm">
@@ -137,6 +125,17 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Loading State -->
+          <tr *ngIf="isLoading" class="loading-row">
+            <td colspan="7" style="padding: 60px 16px; text-align: center;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu voucher...</span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
           <tr *ngFor="let record of filteredRecords" [class.row-paused]="record.status === 'Tạm dừng'">
             <!-- Mã voucher -->
             <td class="col-code">
@@ -183,9 +182,6 @@
                   <span class="scope-tag category-tag" *ngIf="record.scope === 'CATEGORY'" [title]="record.categoryScopeName">
                     📁 {{ record.categoryScopeName }}
                   </span>
-                  <span class="stackable-tag" *ngIf="record.isStackableWithFlashSale" title="Cho phép cộng dồn với Flash Sale">
-                    ⚡ Cộng dồn FS
-                  </span>
                 </div>
               </div>
             </td>
@@ -225,13 +221,13 @@
               <span
                 class="status-badge"
                 [ngClass]="{
-                  'status-active': record.status === 'Đang hoạt động',
-                  'status-upcoming': record.status === 'Sắp diễn ra',
-                  'status-paused': record.status === 'Tạm dừng',
-                  'status-ended': record.status === 'Đã kết thúc'
+                  'status-active': isStatus(record, 'Active'),
+                  'status-upcoming': isStatus(record, 'Upcoming'),
+                  'status-paused': isStatus(record, 'Paused'),
+                  'status-ended': isStatus(record, 'Ended')
                 }">
                 <span class="status-dot"></span>
-                <span>{{ record.status }}</span>
+                <span>{{ getStatusBadgeLabel(record.status) }}</span>
               </span>
             </td>
 
@@ -242,9 +238,9 @@
                 <button
                   type="button"
                   class="toggle-switch-btn"
-                  [class.active]="record.status === 'Đang hoạt động'"
+                  [class.active]="isStatus(record, 'Active')"
                   (click)="toggleStatus(record)"
-                  [title]="record.status === 'Đang hoạt động' ? 'Nhấn để tạm dừng' : 'Nhấn để kích hoạt'">
+                  [title]="isStatus(record, 'Active') ? 'Nhấn để tạm dừng' : 'Nhấn để kích hoạt'">
                   <span class="toggle-switch-slider"></span>
                 </button>
 
@@ -282,6 +278,7 @@
               </div>
             </td>
           </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
@@ -320,8 +317,8 @@
                   class="admin-input uppercase-input"
                   [value]="formData.code"
                   (input)="onCodeInput($event)"
-                  placeholder="Ví dụ: WELCOME10, DCORVIP"
-                  maxlength="20"
+                  placeholder="Ví dụ: WELCOME10, DCORVIP2026"
+                  maxlength="50"
                   required />
               </div>
               <button type="button" class="admin-btn admin-btn-secondary btn-generate-code" (click)="applyRandomCode()">
@@ -359,7 +356,7 @@
                   [(ngModel)]="formData.discountType" />
                 <div class="radio-content">
                   <div class="radio-title">
-                    <app-icon name="DollarSign" size="16"></app-icon>
+                    <span class="currency-badge-sm">₫</span>
                     <span>Giảm số tiền cố định (₫)</span>
                   </div>
                   <span class="radio-desc">Trừ trực tiếp số tiền cố định vào tổng đơn hàng.</span>
@@ -375,46 +372,52 @@
                 {{ formData.discountType === 'PERCENT' ? 'Phần trăm giảm (%)' : 'Số tiền giảm (₫)' }}
               </label>
               <div class="input-with-icon">
-                <app-icon [name]="formData.discountType === 'PERCENT' ? 'Percent' : 'DollarSign'" size="16" class="field-icon"></app-icon>
+                <app-icon *ngIf="formData.discountType === 'PERCENT'" name="Percent" size="16" class="field-icon"></app-icon>
+                <span *ngIf="formData.discountType === 'FIXED_AMOUNT'" class="field-icon-symbol">₫</span>
                 <input
                   type="number"
                   class="admin-input"
                   name="discountValue"
                   [(ngModel)]="formData.discountValue"
+                  (input)="onDiscountValueInput($event)"
                   [min]="1"
                   [max]="formData.discountType === 'PERCENT' ? 100 : 100000000"
                   required />
               </div>
             </div>
 
-            <!-- Trần giảm tối đa khi giảm theo % -->
+            <!-- Trần giảm tối đa khi giảm theo % (Giới hạn tối đa 100 triệu) -->
             <div class="form-group" *ngIf="formData.discountType === 'PERCENT'">
               <label class="form-label">Trần giảm tối đa (₫)</label>
               <div class="input-with-icon">
-                <app-icon name="DollarSign" size="16" class="field-icon"></app-icon>
+                <span class="field-icon-symbol">₫</span>
                 <input
                   type="number"
                   class="admin-input"
                   name="maxDiscountCap"
                   [(ngModel)]="formData.maxDiscountCap"
-                  placeholder="Ví dụ: 2000000"
-                  min="0" />
+                  (input)="onMaxDiscountCapInput($event)"
+                  placeholder="Ví dụ: 2000000 (tối đa 100.000.000₫)"
+                  min="0"
+                  max="100000000" />
               </div>
-              <span class="field-hint">Để trống nếu không giới hạn trần giảm tối đa.</span>
+              <span class="field-hint">Tối đa 100.000.000₫. Để trống nếu không giới hạn trần giảm tối đa.</span>
             </div>
 
             <!-- Đơn hàng tối thiểu khi giảm số tiền cố định -->
             <div class="form-group" *ngIf="formData.discountType === 'FIXED_AMOUNT'">
               <label class="form-label">Đơn hàng tối thiểu (₫)</label>
               <div class="input-with-icon">
-                <app-icon name="DollarSign" size="16" class="field-icon"></app-icon>
+                <span class="field-icon-symbol">₫</span>
                 <input
                   type="number"
                   class="admin-input"
                   name="minOrderValue"
                   [(ngModel)]="formData.minOrderValue"
+                  (input)="onMinOrderValueInput($event)"
                   placeholder="0 = Không yêu cầu đơn tối thiểu"
-                  min="0" />
+                  min="0"
+                  max="500000000" />
               </div>
             </div>
           </div>
@@ -423,14 +426,16 @@
           <div class="form-group" *ngIf="formData.discountType === 'PERCENT'">
             <label class="form-label">Đơn hàng tối thiểu áp dụng (₫)</label>
             <div class="input-with-icon">
-              <app-icon name="DollarSign" size="16" class="field-icon"></app-icon>
+              <span class="field-icon-symbol">₫</span>
               <input
                 type="number"
                 class="admin-input"
                 name="minOrderValuePercent"
                 [(ngModel)]="formData.minOrderValue"
+                (input)="onMinOrderValueInput($event)"
                 placeholder="0 = Không yêu cầu đơn tối thiểu"
-                min="0" />
+                min="0"
+                max="500000000" />
             </div>
             <span class="field-hint">Nhập 0 nếu cho phép áp dụng cho mọi giá trị đơn hàng.</span>
           </div>
@@ -463,9 +468,11 @@
                 class="admin-input"
                 name="usageLimit"
                 [(ngModel)]="formData.usageLimit"
+                (input)="onUsageLimitInput($event)"
                 min="1"
+                max="1000000"
                 required />
-              <span class="field-hint">Hệ thống tự động ngắt voucher khi đạt đủ lượt.</span>
+              <span class="field-hint">Tối đa 1.000.000 lượt. Tự động ngắt khi đủ lượt.</span>
             </div>
 
             <div class="form-group">
@@ -475,9 +482,11 @@
                 class="admin-input"
                 name="perCustomerLimit"
                 [(ngModel)]="formData.perCustomerLimit"
+                (input)="onPerCustomerLimitInput($event)"
                 min="1"
+                max="100"
                 required />
-              <span class="field-hint">Mặc định: 1 lượt/khách hàng.</span>
+              <span class="field-hint">Mặc định: 1 lượt/khách hàng (tối đa 100).</span>
             </div>
           </div>
 
@@ -490,6 +499,8 @@
                 class="admin-input"
                 name="startDate"
                 [(ngModel)]="formData.startDate"
+                [min]="todayStr"
+                (change)="onStartDateChange()"
                 required />
             </div>
 
@@ -500,24 +511,12 @@
                 class="admin-input"
                 name="endDate"
                 [(ngModel)]="formData.endDate"
+                [min]="formData.startDate || todayStr"
+                (change)="onEndDateChange()"
                 required />
             </div>
           </div>
 
-          <!-- Checkbox: Stackable with Flash Sale -->
-          <div class="form-group checkbox-form-group">
-            <label class="custom-checkbox-label">
-              <input
-                type="checkbox"
-                name="isStackableWithFlashSale"
-                [(ngModel)]="formData.isStackableWithFlashSale" />
-              <span class="custom-checkbox-box"></span>
-              <span class="checkbox-text">
-                <strong>Cho phép áp dụng chung với sản phẩm đang Flash Sale</strong>
-                <span class="checkbox-desc">Nếu tắt, voucher sẽ không thể áp dụng cho các sản phẩm đã có chiết khấu Flash Sale trong giỏ hàng.</span>
-              </span>
-            </label>
-          </div>
         </form>
       </div>
 

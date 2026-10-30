@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getStaffMetadata } from '../lib/staff-metadata';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 
@@ -41,6 +42,13 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
               message: 'Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ quản trị viên.'
             });
             return;
+          }
+
+          // Cập nhật roles mới nhất từ Metadata để các thay đổi phân quyền IAM có hiệu lực tức thì
+          const metadata = getStaffMetadata(user.email);
+          if (metadata && Array.isArray(metadata.roles) && metadata.roles.length > 0) {
+            user.roles = metadata.roles;
+            user.role = metadata.role || metadata.roles[0];
           }
         }
       }

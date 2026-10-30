@@ -8,12 +8,13 @@ import {
   Folder, Layers, Search, Plus, Edit, Trash2, 
   AlertTriangle, Eye, EyeOff, CornerDownRight, Sparkles, Check, X, 
   Info, ExternalLink, Image as ImageIcon, Filter, Home, Palette, 
-  CheckCircle2, Tag, ChevronDown, ChevronRight, RefreshCw
+  CheckCircle2, Tag, ChevronDown, ChevronRight, ChevronLeft, RefreshCw
 } from 'lucide-angular';
 
 import { environment } from '../../../../../environments/environment';
+import { AdminAuthService } from '../../../../core/services/admin-auth.service';
 
-export type CategoryGroupType = 'main' | 'room' | 'collection' | 'style' | 'material';
+export type CategoryGroupType = 'main' | 'sub' | 'room' | 'collection' | 'style' | 'material';
 
 export interface LinkedProduct {
   id: string;
@@ -161,58 +162,115 @@ export const INITIAL_CATEGORIES: CategoryItem[] = [
   },
 
   // ==========================================
-  // 2. PHÒNG & KHÔNG GIAN (ROOM)
+  // 2. DANH MỤC PHỤ: CÁC NHÓM CHA CẤP 1
+  // ==========================================
+  {
+    id: 'sub-room',
+    name: 'Không gian & Phòng ứng dụng',
+    slug: 'khong-gian-phong',
+    description: 'Phân loại theo khu vực và không gian bài trí nội thất.',
+    image: '',
+    type: 'sub',
+    parentId: null,
+    sortOrder: 1,
+    status: 'Hiển thị',
+    productsCount: 36,
+    linkedProducts: []
+  },
+  {
+    id: 'sub-collection',
+    name: 'Bộ sưu tập',
+    slug: 'bo-suu-tap',
+    description: 'Các bộ sưu tập thiết kế đồng bộ của thương hiệu DCor.',
+    image: '',
+    type: 'sub',
+    parentId: null,
+    sortOrder: 2,
+    status: 'Hiển thị',
+    productsCount: 23,
+    linkedProducts: []
+  },
+  {
+    id: 'sub-style',
+    name: 'Phong cách thiết kế',
+    slug: 'phong-cach',
+    description: 'Các trường phái kiến trúc và ngôn ngữ nội thất.',
+    image: '',
+    type: 'sub',
+    parentId: null,
+    sortOrder: 3,
+    status: 'Hiển thị',
+    productsCount: 44,
+    linkedProducts: []
+  },
+  {
+    id: 'sub-material',
+    name: 'Chất liệu chế tác',
+    slug: 'chat-lieu',
+    description: 'Vật liệu cấu thành: Da thật, nỉ, gỗ sồi, gỗ óc chó, đá ceramic.',
+    image: '',
+    type: 'sub',
+    parentId: null,
+    sortOrder: 4,
+    status: 'Hiển thị',
+    productsCount: 43,
+    linkedProducts: []
+  },
+
+  // ==========================================
+  // 2.1 CÁC CON CỦA KHÔNG GIAN (sub-room)
   // ==========================================
   {
     id: 'rm-living',
     name: 'Phòng khách',
     slug: 'phong-khach',
     description: 'Không gian sum họp tiện nghi với sofa, bàn trà và hệ tủ tivi.',
-    image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=300&q=80',
-    type: 'room',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-room',
+    parentName: 'Không gian & Phòng ứng dụng',
     sortOrder: 1,
     status: 'Hiển thị',
     productsCount: 15,
-    linkedProducts: [
-      { id: 'prod-001', name: 'Sofa Bergamo Góc L Chữ L', sku: 'DCOR-SF-BER' },
-      { id: 'prod-002', name: 'Bàn Trà Como Kính & Gỗ Óc Chó', sku: 'DCOR-TB-COM' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'rm-dining',
     name: 'Phòng ăn',
     slug: 'phong-an',
     description: 'Khu vực gắn kết gia đình với bộ bàn ghế ăn cao cấp.',
-    image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=300&q=80',
-    type: 'room',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-room',
+    parentName: 'Không gian & Phòng ứng dụng',
     sortOrder: 2,
     status: 'Hiển thị',
     productsCount: 8,
-    linkedProducts: [
-      { id: 'prod-004', name: 'Bàn Ăn Santiago Mở Rộng Ceramic', sku: 'DCOR-DT-SAN' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'rm-bed',
     name: 'Phòng ngủ',
     slug: 'phong-ngu',
     description: 'Không gian nghỉ ngơi thư thái với giường êm ái và tap đầu giường.',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80',
-    type: 'room',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-room',
+    parentName: 'Không gian & Phòng ứng dụng',
     sortOrder: 3,
     status: 'Hiển thị',
     productsCount: 9,
-    linkedProducts: [
-      { id: 'prod-003', name: 'Giường Ngủ Lugano Đệm Bọc Tinh Tế', sku: 'DCOR-BD-LUG' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'rm-work',
     name: 'Phòng làm việc',
     slug: 'phong-lam-viec',
     description: 'Bàn làm việc thông minh và ghế công thái học bọc da cao cấp.',
-    image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=300&q=80',
-    type: 'room',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-room',
+    parentName: 'Không gian & Phòng ứng dụng',
     sortOrder: 4,
     status: 'Hiển thị',
     productsCount: 4,
@@ -223,8 +281,10 @@ export const INITIAL_CATEGORIES: CategoryItem[] = [
     name: 'Ngoài trời & Ban công',
     slug: 'ngoai-troi-ban-cong',
     description: 'Bàn ghế cafe ngoài trời kháng tia UV và chịu mưa nắng bền bỉ.',
-    image: 'https://images.unsplash.com/photo-1519974719765-e6559eac2575?auto=format&fit=crop&w=300&q=80',
-    type: 'room',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-room',
+    parentName: 'Không gian & Phòng ứng dụng',
     sortOrder: 5,
     status: 'Đã ẩn',
     productsCount: 0,
@@ -232,197 +292,197 @@ export const INITIAL_CATEGORIES: CategoryItem[] = [
   },
 
   // ==========================================
-  // 3. BỘ SƯU TẬP (COLLECTION)
+  // 2.2 CÁC CON CỦA BỘ SƯU TẬP (sub-collection)
   // ==========================================
   {
     id: 'col-bergamo',
     name: 'Bộ sưu tập Bergamo',
     slug: 'bo-suu-tap-bergamo',
     description: 'Dòng sản phẩm mang cảm hứng Bắc Âu đương đại với các đường bo viền hữu cơ.',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80',
-    type: 'collection',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-collection',
+    parentName: 'Bộ sưu tập',
     sortOrder: 1,
     status: 'Hiển thị',
     productsCount: 6,
-    linkedProducts: [
-      { id: 'prod-001', name: 'Sofa Bergamo Góc L Chữ L', sku: 'DCOR-SF-BER' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'col-como',
     name: 'Bộ sưu tập Como',
     slug: 'bo-suu-tap-como',
     description: 'Sự kết hợp tinh tế giữa kính khói, gỗ óc chó và thép đen nhám.',
-    image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80',
-    type: 'collection',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-collection',
+    parentName: 'Bộ sưu tập',
     sortOrder: 2,
     status: 'Hiển thị',
     productsCount: 4,
-    linkedProducts: [
-      { id: 'prod-002', name: 'Bàn Trà Como Kính & Gỗ Óc Chó', sku: 'DCOR-TB-COM' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'col-lugano',
     name: 'Bộ sưu tập Lugano',
     slug: 'bo-suu-tap-lugano',
     description: 'Thiết kế phòng ngủ và giường tối giản với đệm bọc đầu giường trang nhã.',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80',
-    type: 'collection',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-collection',
+    parentName: 'Bộ sưu tập',
     sortOrder: 3,
     status: 'Hiển thị',
     productsCount: 5,
-    linkedProducts: [
-      { id: 'prod-003', name: 'Giường Ngủ Lugano Đệm Bọc Tinh Tế', sku: 'DCOR-BD-LUG' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'col-santiago',
     name: 'Bộ sưu tập Santiago',
     slug: 'bo-suu-tap-santiago',
     description: 'Dòng bàn ăn thông minh ceramic và ghế ăn da bò thủ công.',
-    image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=300&q=80',
-    type: 'collection',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-collection',
+    parentName: 'Bộ sưu tập',
     sortOrder: 4,
     status: 'Hiển thị',
     productsCount: 5,
-    linkedProducts: [
-      { id: 'prod-004', name: 'Bàn Ăn Santiago Mở Rộng Ceramic', sku: 'DCOR-DT-SAN' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'col-cenova',
     name: 'Bộ sưu tập Cenova',
     slug: 'bo-suu-tap-cenova',
     description: 'Ghế bành đơn thư giãn bọc vải Boucle mềm mại.',
-    image: 'https://images.unsplash.com/photo-1580481077195-c9b83b3e6c0c?auto=format&fit=crop&w=300&q=80',
-    type: 'collection',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-collection',
+    parentName: 'Bộ sưu tập',
     sortOrder: 5,
     status: 'Hiển thị',
     productsCount: 3,
-    linkedProducts: [
-      { id: 'prod-005', name: 'Ghế Bành Thư Giãn Cenova Boucle', sku: 'DCOR-AC-CEN' }
-    ]
+    linkedProducts: []
   },
 
   // ==========================================
-  // 4. PHONG CÁCH (STYLE)
+  // 2.3 CÁC CON CỦA PHONG CÁCH (sub-style)
   // ==========================================
   {
     id: 'st-nordic',
     name: 'Bắc Âu (Scandinavian)',
     slug: 'bac-au-scandinavian',
     description: 'Phong cách đề cao ánh sáng tự nhiên, đường nét mộc mạc và tone màu trung tính.',
-    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=300&q=80',
-    type: 'style',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-style',
+    parentName: 'Phong cách thiết kế',
     sortOrder: 1,
     status: 'Hiển thị',
     productsCount: 12,
-    linkedProducts: [
-      { id: 'prod-001', name: 'Sofa Bergamo Góc L Chữ L', sku: 'DCOR-SF-BER' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'st-modern',
     name: 'Hiện đại (Modern Luxury)',
     slug: 'hien-dai-modern-luxury',
     description: 'Đường nét dứt khoát, kết hợp kim loại mạ vàng PVD và đá cẩm thạch sang trọng.',
-    image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=300&q=80',
-    type: 'style',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-style',
+    parentName: 'Phong cách thiết kế',
     sortOrder: 2,
     status: 'Hiển thị',
     productsCount: 18,
-    linkedProducts: [
-      { id: 'prod-002', name: 'Bàn Trà Como Kính & Gỗ Óc Chó', sku: 'DCOR-TB-COM' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'st-minimal',
     name: 'Tối giản (Minimalism)',
     slug: 'toi-gian-minimalism',
     description: 'Loại bỏ chi tiết thừa, tập trung vào công năng và chất lượng vật liệu nguyên bản.',
-    image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=300&q=80',
-    type: 'style',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-style',
+    parentName: 'Phong cách thiết kế',
     sortOrder: 3,
     status: 'Hiển thị',
     productsCount: 14,
-    linkedProducts: [
-      { id: 'prod-003', name: 'Giường Ngủ Lugano Đệm Bọc Tinh Tế', sku: 'DCOR-BD-LUG' }
-    ]
+    linkedProducts: []
   },
 
   // ==========================================
-  // 5. CHẤT LIỆU (MATERIAL)
+  // 2.4 CÁC CON CỦA CHẤT LIỆU (sub-material)
   // ==========================================
   {
     id: 'mat-leather-real',
     name: 'Da bò Aniline Ý thật',
     slug: 'da-bo-aniline-y',
     description: 'Chất liệu da thượng hạng mềm mịn, lưu giữ vân da tự nhiên và càng dùng càng bóng đẹp.',
-    image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=300&q=80',
-    type: 'material',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-material',
+    parentName: 'Chất liệu chế tác',
     sortOrder: 1,
     status: 'Hiển thị',
     productsCount: 6,
-    linkedProducts: [
-      { id: 'prod-001', name: 'Sofa Bergamo Góc L Chữ L', sku: 'DCOR-SF-BER' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'mat-fabric-felt',
     name: 'Vải nỉ Copenhagen',
     slug: 'vai-ni-copenhagen',
     description: 'Vải dệt cao cấp chống bám bụi, độ bền sợi cao và tạo cảm giác ấm cúng.',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80',
-    type: 'material',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-material',
+    parentName: 'Chất liệu chế tác',
     sortOrder: 2,
     status: 'Hiển thị',
     productsCount: 15,
-    linkedProducts: [
-      { id: 'prod-001', name: 'Sofa Bergamo Góc L Chữ L', sku: 'DCOR-SF-BER' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'mat-wood-oak',
     name: 'Gỗ sồi (Oak) tự nhiên',
     slug: 'go-soi-tu-nhien',
     description: 'Gỗ sồi nhập khẩu Bắc Mỹ tẩm sấy chống cong vênh mối mọt, vân gỗ sáng trang nhã.',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80',
-    type: 'material',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-material',
+    parentName: 'Chất liệu chế tác',
     sortOrder: 3,
     status: 'Hiển thị',
     productsCount: 10,
-    linkedProducts: [
-      { id: 'prod-003', name: 'Giường Ngủ Lugano Đệm Bọc Tinh Tế', sku: 'DCOR-BD-LUG' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'mat-wood-walnut',
     name: 'Gỗ óc chó (Walnut) thượng hạng',
     slug: 'go-oc-cho-walnut',
     description: 'Tone màu nâu trầm sang trọng với những đường vân cuộn sóng lôi cuốn.',
-    image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80',
-    type: 'material',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-material',
+    parentName: 'Chất liệu chế tác',
     sortOrder: 4,
     status: 'Hiển thị',
     productsCount: 8,
-    linkedProducts: [
-      { id: 'prod-002', name: 'Bàn Trà Como Kính & Gỗ Óc Chó', sku: 'DCOR-TB-COM' }
-    ]
+    linkedProducts: []
   },
   {
     id: 'mat-ceramic',
     name: 'Gốm Ceramic chống trầy',
     slug: 'gom-ceramic-chong-tray',
     description: 'Mặt bàn ceramic công nghệ nung nhiệt cao, chống trầy xước, chống ố màu và chịu nhiệt tuyệt đối.',
-    image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=300&q=80',
-    type: 'material',
+    image: '',
+    type: 'sub',
+    parentId: 'sub-material',
+    parentName: 'Chất liệu chế tác',
     sortOrder: 5,
     status: 'Hiển thị',
     productsCount: 4,
-    linkedProducts: [
-      { id: 'prod-004', name: 'Bàn Ăn Santiago Mở Rộng Ceramic', sku: 'DCOR-DT-SAN' }
-    ]
+    linkedProducts: []
   }
 ];
 
@@ -438,12 +498,16 @@ export class ProductCategoriesComponent implements OnInit {
     Folder, Layers, Search, Plus, Edit, Trash2, 
     AlertTriangle, Eye, EyeOff, CornerDownRight, Sparkles, Check, X, 
     Info, ExternalLink, ImageIcon, Filter, Home, Palette, 
-    CheckCircle2, Tag, ChevronDown, ChevronRight, RefreshCw
+    CheckCircle2, Tag, ChevronDown, ChevronRight, ChevronLeft, RefreshCw
   };
 
   allCategories: CategoryItem[] = [...INITIAL_CATEGORIES];
   filteredCategories: CategoryItem[] = [];
   isLoading = false;
+
+  // Phân trang danh mục (10 danh mục / trang)
+  currentPage = 1;
+  pageSize = 10;
 
   // Set lưu trữ các danh mục chính đang được mở rộng danh mục con
   expandedIds: Set<string> = new Set<string>();
@@ -518,10 +582,25 @@ export class ProductCategoriesComponent implements OnInit {
   constructor(
     private router: Router,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    public adminAuthService: AdminAuthService
   ) {}
 
+  get canCreate(): boolean {
+    return this.adminAuthService.hasPermission('categories', 'create');
+  }
+
+  get canEdit(): boolean {
+    return this.adminAuthService.hasPermission('categories', 'edit');
+  }
+
+  get canDelete(): boolean {
+    return this.adminAuthService.hasPermission('categories', 'delete');
+  }
+
   ngOnInit() {
+    // Không tự động sổ danh mục con - chỉ hiển thị danh mục cha trước giống như danh mục chính
+    this.expandedIds.clear();
     this.loadCategories();
   }
 
@@ -543,7 +622,7 @@ export class ProductCategoriesComponent implements OnInit {
               name: parent.name,
               slug: parent.slug,
               description: `Danh mục chính ${parent.name} trong hệ thống DCor.`,
-              image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80',
+              image: '',
               type: 'main',
               parentId: null,
               parentName: undefined,
@@ -561,7 +640,7 @@ export class ProductCategoriesComponent implements OnInit {
                   name: child.name,
                   slug: child.slug,
                   description: `Danh mục con thuộc ${parent.name}.`,
-                  image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80',
+                  image: '',
                   type: 'main',
                   parentId: parent.id,
                   parentName: parent.name,
@@ -596,15 +675,47 @@ export class ProductCategoriesComponent implements OnInit {
 
   // Lấy các danh mục gốc (cấp 1 / cha) để hiển thị trên bảng
   get rootCategories(): CategoryItem[] {
-    if (this.activeTab !== 'main') {
-      return this.filteredCategories;
+    const currentType = this.topLevelTab === 'main' ? 'main' : 'sub';
+    return this.filteredCategories.filter(c => c.type === currentType && !c.parentId);
+  }
+
+  // Phân trang 10 mục / trang
+  get paginatedCategories(): CategoryItem[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.rootCategories.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.rootCategories.length / this.pageSize) || 1;
+  }
+
+  get pagesArray(): number[] {
+    const pages: number[] = [];
+    for (let i = 1; i <= this.totalPages; i++) {
+      pages.push(i);
     }
-    return this.filteredCategories.filter(c => !c.parentId);
+    return pages;
+  }
+
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.cdr.detectChanges();
+    }
   }
 
   // Lấy các danh mục con của 1 danh mục cha
   getSubcategories(parentId: string): CategoryItem[] {
-    return this.allCategories.filter(c => c.type === this.activeTab && c.parentId === parentId);
+    const currentType = this.topLevelTab === 'main' ? 'main' : 'sub';
+    let children = this.allCategories.filter(c => c.type === currentType && c.parentId === parentId);
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.trim().toLowerCase();
+      children = children.filter(c => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q));
+    }
+    if (this.statusFilter !== 'ALL') {
+      children = children.filter(c => c.status === this.statusFilter);
+    }
+    return children.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   // Đóng / mở danh mục con
@@ -622,59 +733,44 @@ export class ProductCategoriesComponent implements OnInit {
   }
 
   // Đếm số lượng theo từng Tab
-  // Đếm số lượng theo từng Tab
   getCountByGroup(type: CategoryGroupType): number {
     return this.allCategories.filter(c => c.type === type).length;
   }
 
   // Tổng số lượng các phân loại phụ
   getSubCategoriesTotalCount(): number {
-    return this.allCategories.filter(c => c.type !== 'main').length;
+    return this.allCategories.filter(c => c.type === 'sub').length;
   }
 
   // Chuyển Tab Cấp 1: Danh mục chính vs Danh mục phụ
   switchTopLevelTab(level: 'main' | 'sub') {
     this.topLevelTab = level;
-    if (level === 'main') {
-      this.activeTab = 'main';
-    } else {
-      this.activeTab = this.activeSubGroup;
-    }
+    this.activeTab = level;
     this.searchQuery = '';
     this.statusFilter = 'ALL';
-    this.applyFilters();
-    this.cdr.detectChanges();
-  }
-
-  // Chuyển Tab Con trong Danh mục phụ (Phòng, BST, Phong cách, Chất liệu)
-  switchSubGroup(group: CategoryGroupType) {
-    this.activeSubGroup = group;
-    this.activeTab = group;
-    this.searchQuery = '';
-    this.statusFilter = 'ALL';
+    this.currentPage = 1;
+    this.expandedIds.clear(); // Thu gọn toàn bộ, chỉ hiển thị danh mục cha trước
     this.applyFilters();
     this.cdr.detectChanges();
   }
 
   // Chuyển Tab (tương thích)
   setTab(tab: CategoryGroupType) {
-    if (tab === 'main') {
-      this.topLevelTab = 'main';
-      this.activeTab = 'main';
-    } else {
-      this.topLevelTab = 'sub';
-      this.activeSubGroup = tab;
-      this.activeTab = tab;
-    }
+    this.topLevelTab = tab === 'main' ? 'main' : 'sub';
+    this.activeTab = this.topLevelTab;
     this.searchQuery = '';
     this.statusFilter = 'ALL';
+    this.currentPage = 1;
+    this.expandedIds.clear(); // Thu gọn toàn bộ, chỉ hiển thị danh mục cha trước
     this.applyFilters();
     this.cdr.detectChanges();
   }
 
   // Áp dụng bộ lọc
   applyFilters() {
-    let list = this.allCategories.filter(c => c.type === this.activeTab);
+    this.currentPage = 1;
+    const currentType = this.topLevelTab === 'main' ? 'main' : 'sub';
+    let list = this.allCategories.filter(c => c.type === currentType);
 
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.trim().toLowerCase();
@@ -694,12 +790,12 @@ export class ProductCategoriesComponent implements OnInit {
   }
 
   get availableParentCategories(): CategoryItem[] {
-    return this.allCategories.filter(c => c.type === this.activeTab && !c.parentId && c.id !== this.formData.id);
+    const currentType = this.topLevelTab === 'main' ? 'main' : 'sub';
+    return this.allCategories.filter(c => c.type === currentType && !c.parentId && c.id !== this.formData.id);
   }
 
   get activeGroupLabel(): string {
-    const found = this.groupTabs.find(t => t.id === this.activeTab);
-    return found ? found.label : 'Danh mục';
+    return this.topLevelTab === 'main' ? 'Danh mục chính' : 'Danh mục phụ';
   }
 
   // --- CẢNH BÁO XÁC NHẬN CHUYỂN TRẠNG THÁI (ẨN / HIỆN) ---
@@ -731,13 +827,9 @@ export class ProductCategoriesComponent implements OnInit {
           this.applyFilters();
           this.cdr.detectChanges();
         },
-        error: () => {
-          // Cập nhật local nếu API không phản hồi
-          target.status = newStatusText;
-          this.showToast(`Đã chuyển danh mục "${target.name}" sang trạng thái ${newStatusText}!`, 'success');
+        error: (err) => {
+          this.showToast(err?.error?.message || 'Lỗi: Máy chủ từ chối cập nhật trạng thái danh mục (403 Forbidden).', 'error');
           this.closeToggleModal();
-          this.applyFilters();
-          this.cdr.detectChanges();
         }
       });
     } else {
@@ -754,17 +846,18 @@ export class ProductCategoriesComponent implements OnInit {
     this.isSlugManuallyEdited = false;
     this.formErrors = {};
 
-    const maxOrder = this.filteredCategories.reduce((max, c) => Math.max(max, c.sortOrder), 0);
+    const currentType = this.topLevelTab === 'main' ? 'main' : 'sub';
+    const maxOrder = this.allCategories.filter(c => c.type === currentType).reduce((max, c) => Math.max(max, c.sortOrder), 0);
     this.formData = {
-      id: `${this.activeTab}-${Date.now().toString().slice(-4)}`,
+      id: `${currentType}-${Date.now().toString().slice(-4)}`,
       name: '',
       slug: '',
-      type: this.activeTab,
+      type: currentType,
       parentId: null,
       sortOrder: maxOrder + 1,
       status: 'Hiển thị',
       description: '',
-      image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80'
+      image: ''
     };
 
     this.isModalOpen = true;
@@ -860,7 +953,8 @@ export class ProductCategoriesComponent implements OnInit {
             this.cdr.detectChanges();
           },
           error: (err) => {
-            this.showToast(err?.error?.message || 'Lỗi tạo danh mục.', 'error');
+            this.showToast(err?.error?.message || 'Máy chủ từ chối: Bạn không có quyền thêm mới danh mục! (403 Forbidden)', 'error');
+            this.closeModal();
           }
         });
       } else {
@@ -907,7 +1001,8 @@ export class ProductCategoriesComponent implements OnInit {
             this.cdr.detectChanges();
           },
           error: (err) => {
-            this.showToast(err?.error?.message || 'Lỗi cập nhật danh mục.', 'error');
+            this.showToast(err?.error?.message || 'Máy chủ từ chối: Bạn không có quyền cập nhật danh mục! (403 Forbidden)', 'error');
+            this.closeModal();
           }
         });
       } else {

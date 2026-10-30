@@ -211,6 +211,13 @@
   color: #765337;
 }
 
+.stat-currency-symbol {
+  font-size: 22px;
+  font-weight: 800;
+  color: #765337;
+  line-height: 1;
+}
+
 .stat-card-body {
   flex: 1;
   min-width: 0;
@@ -279,11 +286,12 @@
   pointer-events: none;
 }
 
+.search-input-wrapper .search-input,
 .search-input {
   width: 100%;
   height: 42px;
-  padding-left: 42px;
-  padding-right: 36px;
+  padding-left: 42px !important;
+  padding-right: 36px !important;
   background: #FAF7F2;
   border: 1px solid #E0E0E0;
   border-radius: 8px;
@@ -357,11 +365,12 @@
 
 .admin-page-table-scroll {
   width: 100%;
-  overflow-x: hidden; /* Desktop: strictly no horizontal scroll */
+  overflow-x: auto;
 }
 
 .vouchers-table {
   width: 100%;
+  min-width: 960px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13.5px;
@@ -370,24 +379,33 @@
 /* Precise column percentage widths sum to 100% */
 .col-code {
   width: 17%;
+  min-width: 135px;
 }
 .col-discount {
-  width: 18%;
+  width: 15%;
+  min-width: 130px;
 }
 .col-condition {
-  width: 21%;
-}
-.col-progress {
   width: 17%;
 }
+.col-progress {
+  width: 14%;
+}
 .col-dates {
-  width: 13%;
+  width: 17%;
+  min-width: 155px;
 }
 .col-status {
   width: 10%;
+  min-width: 85px;
 }
 .col-actions {
-  width: 4%;
+  width: 10%;
+  min-width: 95px;
+}
+
+.vouchers-table td.col-actions {
+  overflow: visible;
 }
 
 .vouchers-table thead tr {
@@ -444,10 +462,10 @@
   padding: 4px 8px;
   border-radius: 6px;
   border: 1px solid #E8DFD5;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100%;
+  display: inline-block;
 }
 
 .action-icon-btn.btn-copy {
@@ -473,12 +491,20 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  white-space: nowrap;
+}
+
+.discount-main-text {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
 .discount-pill {
   display: inline-block;
   font-weight: 700;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .pill-percent {
@@ -487,11 +513,13 @@
 
 .pill-fixed {
   color: #765337;
+  white-space: nowrap;
 }
 
 .discount-sub-text {
   font-size: 11.5px;
   color: #777777;
+  white-space: nowrap;
 }
 
 /* Condition & Scope cell */
@@ -943,6 +971,28 @@
   pointer-events: none;
 }
 
+.field-icon-symbol {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  font-weight: 800;
+  color: #765337;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.currency-badge-sm {
+  font-size: 14px;
+  font-weight: 800;
+  color: #765337;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+}
+
 .input-with-icon .admin-input {
   padding-left: 38px;
 }
@@ -1087,7 +1137,7 @@
    ========================================================================== */
 .toast-alert {
   position: fixed;
-  top: 80px;
+  bottom: 24px;
   right: 24px;
   z-index: 99999;
   display: flex;
@@ -1157,7 +1207,7 @@
 @keyframes slideToast {
   from {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;

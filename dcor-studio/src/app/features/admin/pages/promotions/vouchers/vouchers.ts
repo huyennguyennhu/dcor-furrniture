@@ -5,6 +5,8 @@ import { RouterModule } from '@angular/router';
 import { IconComponent } from '../../../../../shared/components/icon/icon';
 import { environment } from '../../../../../../environments/environment';
 
+export type VoucherStatus = 'Active' | 'Upcoming' | 'Ended' | 'Paused' | 'Đang hoạt động' | 'Sắp diễn ra' | 'Đã kết thúc' | 'Tạm dừng';
+
 export interface VoucherItem {
   id: string;
   code: string;
@@ -17,10 +19,10 @@ export interface VoucherItem {
   usageLimit: number;
   usedCount: number;
   perCustomerLimit: number;
-  isStackableWithFlashSale: boolean;
+  isStackableWithFlashSale?: boolean;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
-  status: 'Đang hoạt động' | 'Sắp diễn ra' | 'Đã kết thúc' | 'Tạm dừng';
+  status: VoucherStatus;
   revenueGenerated: number;
 }
 
@@ -41,7 +43,7 @@ const DEFAULT_VOUCHERS: VoucherItem[] = [
     isStackableWithFlashSale: false,
     startDate: '2026-01-01',
     endDate: '2026-12-31',
-    status: 'Đang hoạt động',
+    status: 'Active',
     revenueGenerated: 768000000
   },
   {
@@ -58,7 +60,7 @@ const DEFAULT_VOUCHERS: VoucherItem[] = [
     isStackableWithFlashSale: true,
     startDate: '2026-02-01',
     endDate: '2026-08-31',
-    status: 'Đang hoạt động',
+    status: 'Active',
     revenueGenerated: 1680000000
   },
   {
@@ -75,7 +77,7 @@ const DEFAULT_VOUCHERS: VoucherItem[] = [
     isStackableWithFlashSale: true,
     startDate: '2026-03-01',
     endDate: '2026-05-31',
-    status: 'Đang hoạt động',
+    status: 'Active',
     revenueGenerated: 435000000
   },
   {
@@ -93,7 +95,7 @@ const DEFAULT_VOUCHERS: VoucherItem[] = [
     isStackableWithFlashSale: false,
     startDate: '2026-01-10',
     endDate: '2026-02-28',
-    status: 'Đã kết thúc',
+    status: 'Ended',
     revenueGenerated: 800000000
   },
   {
@@ -110,7 +112,7 @@ const DEFAULT_VOUCHERS: VoucherItem[] = [
     isStackableWithFlashSale: false,
     startDate: '2026-11-01',
     endDate: '2026-12-15',
-    status: 'Sắp diễn ra',
+    status: 'Upcoming',
     revenueGenerated: 0
   },
   {
@@ -126,7 +128,7 @@ const DEFAULT_VOUCHERS: VoucherItem[] = [
     isStackableWithFlashSale: true,
     startDate: '2026-02-01',
     endDate: '2026-06-30',
-    status: 'Tạm dừng',
+    status: 'Paused',
     revenueGenerated: 282000000
   }
 ];
@@ -140,6 +142,8 @@ const DEFAULT_VOUCHERS: VoucherItem[] = [
 })
 export class VouchersComponent implements OnInit {
   records: VoucherItem[] = [];
+  todayStr: string = new Date().toISOString().split('T')[0];
+  isLoading = false;
 
   // Filters
   searchTerm = '';
@@ -166,17 +170,17 @@ export class VouchersComponent implements OnInit {
   formData: {
     code: string;
     discountType: 'PERCENT' | 'FIXED_AMOUNT';
-    discountValue: number;
+    discountValue: number | null;
     maxDiscountCap: number | null;
-    minOrderValue: number;
+    minOrderValue: number | null;
     scope: 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS';
     categoryScopeName: string;
-    usageLimit: number;
-    perCustomerLimit: number;
-    isStackableWithFlashSale: boolean;
+    usageLimit: number | null;
+    perCustomerLimit: number | null;
+    isStackableWithFlashSale?: boolean;
     startDate: string;
     endDate: string;
-    status: 'Đang hoạt động' | 'Sắp diễn ra' | 'Đã kết thúc' | 'Tạm dừng';
+    status: VoucherStatus;
   } = this.getEmptyForm();
 
   // Delete Confirmation Modal
@@ -188,20 +192,38 @@ export class VouchersComponent implements OnInit {
   private toastTimer: any = null;
 
   ngOnInit(): void {
-    this.loadFromStorage();
     this.loadFromApi();
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    const token = sessionStorage.getItem('dcor_admin_token') || localStorage.getItem('dcor_admin_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
   loadFromApi(): void {
-    fetch(`${environment.apiUrl}/vouchers`)
-      .then(res => res.json())
+    this.isLoading = true;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    fetch(`${environment.apiUrl}/admin/vouchers`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      },
+      signal: controller.signal
+    })
+      .then(res => {
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('API status: ' + res.status);
+        return res.json();
+      })
       .then((data: any[]) => {
         if (Array.isArray(data) && data.length > 0) {
           const nowStr = new Date().toISOString().split('T')[0];
           this.records = data.map(v => {
             const start = v.startDate ? String(v.startDate).split('T')[0] : '2026-01-01';
             const end = v.endDate ? String(v.endDate).split('T')[0] : '2026-12-31';
-            let status: 'Đang hoạt động' | 'Sắp diễn ra' | 'Đã kết thúc' | 'Tạm dừng' = 'Đang hoạt động';
+            let status: 'Active' | 'Đang hoạt động' | 'Sắp diễn ra' | 'Đã kết thúc' | 'Tạm dừng' = 'Active';
             if (!v.isActive) {
               status = 'Tạm dừng';
             } else if (v.usageLimit > 0 && v.usedCount >= v.usageLimit) {
@@ -232,10 +254,17 @@ export class VouchersComponent implements OnInit {
             };
           });
           this.saveToStorage();
+        } else {
+          this.loadFromStorage();
         }
       })
       .catch(err => {
-        console.warn('API /vouchers offline, using cached records:', err);
+        clearTimeout(timeoutId);
+        console.warn('API /admin/vouchers unavailable/timeout, using cached records:', err);
+        this.loadFromStorage();
+      })
+      .finally(() => {
+        this.isLoading = false;
       });
   }
 
@@ -262,22 +291,20 @@ export class VouchersComponent implements OnInit {
   }
 
   getEmptyForm() {
-    const today = new Date().toISOString().split('T')[0];
-    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     return {
       code: '',
       discountType: 'PERCENT' as 'PERCENT' | 'FIXED_AMOUNT',
-      discountValue: 10,
-      maxDiscountCap: 1000000,
-      minOrderValue: 2000000,
+      discountValue: null as any,
+      maxDiscountCap: null as number | null,
+      minOrderValue: null as any,
       scope: 'ALL' as 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS',
       categoryScopeName: 'Sofa & Ghế Phòng Khách',
-      usageLimit: 100,
-      perCustomerLimit: 1,
+      usageLimit: null as any,
+      perCustomerLimit: null as any,
       isStackableWithFlashSale: false,
-      startDate: today,
-      endDate: nextMonth,
-      status: 'Đang hoạt động' as 'Đang hoạt động' | 'Sắp diễn ra' | 'Đã kết thúc' | 'Tạm dừng'
+      startDate: '',
+      endDate: '',
+      status: 'Active' as 'Active' | 'Đang hoạt động' | 'Sắp diễn ra' | 'Đã kết thúc' | 'Tạm dừng'
     };
   }
 
@@ -293,7 +320,11 @@ export class VouchersComponent implements OnInit {
         item.status.toLocaleLowerCase().includes(term);
 
       // Status
-      const matchStatus = this.selectedStatus === 'ALL' || item.status === this.selectedStatus;
+      const normalizedStatus = this.getStatusBadgeLabel(item.status);
+      const matchStatus =
+        this.selectedStatus === 'ALL' ||
+        normalizedStatus === this.selectedStatus ||
+        item.status === this.selectedStatus;
 
       // Discount Type
       const matchType = this.selectedDiscountType === 'ALL' || item.discountType === this.selectedDiscountType;
@@ -311,7 +342,7 @@ export class VouchersComponent implements OnInit {
   }
 
   get activeCount(): number {
-    return this.records.filter(r => r.status === 'Đang hoạt động').length;
+    return this.records.filter(r => r.status === 'Active' || r.status === 'Đang hoạt động').length;
   }
 
   get monthlyUsageCount(): number {
@@ -327,7 +358,6 @@ export class VouchersComponent implements OnInit {
     this.isEditing = false;
     this.editingId = null;
     this.formData = this.getEmptyForm();
-    this.formData.code = this.generateRandomCode();
     this.isModalOpen = true;
   }
 
@@ -344,7 +374,7 @@ export class VouchersComponent implements OnInit {
       categoryScopeName: item.categoryScopeName || 'Sofa & Ghế Phòng Khách',
       usageLimit: item.usageLimit,
       perCustomerLimit: item.perCustomerLimit || 1,
-      isStackableWithFlashSale: item.isStackableWithFlashSale,
+      isStackableWithFlashSale: !!item.isStackableWithFlashSale,
       startDate: item.startDate,
       endDate: item.endDate,
       status: item.status
@@ -361,7 +391,61 @@ export class VouchersComponent implements OnInit {
   onCodeInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input) {
-      this.formData.code = input.value.toUpperCase().replace(/\s+/g, '');
+      this.formData.code = input.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 50);
+    }
+  }
+
+  onDiscountValueInput(event: Event): void {
+    const val = Number(this.formData.discountValue);
+    if (this.formData.discountType === 'PERCENT') {
+      if (val > 100) this.formData.discountValue = 100;
+      else if (val < 0) this.formData.discountValue = 0;
+    } else {
+      if (val > 100000000) this.formData.discountValue = 100000000;
+      else if (val < 0) this.formData.discountValue = 0;
+    }
+  }
+
+  onMaxDiscountCapInput(event: Event): void {
+    if (this.formData.maxDiscountCap !== null && this.formData.maxDiscountCap !== undefined) {
+      const val = Number(this.formData.maxDiscountCap);
+      if (val > 100000000) this.formData.maxDiscountCap = 100000000;
+      else if (val < 0) this.formData.maxDiscountCap = 0;
+    }
+  }
+
+  onMinOrderValueInput(event: Event): void {
+    const val = Number(this.formData.minOrderValue);
+    if (val > 500000000) this.formData.minOrderValue = 500000000;
+    else if (val < 0) this.formData.minOrderValue = 0;
+  }
+
+  onUsageLimitInput(event: Event): void {
+    const val = Number(this.formData.usageLimit);
+    if (val > 1000000) this.formData.usageLimit = 1000000;
+    else if (val < 1) this.formData.usageLimit = 1;
+  }
+
+  onPerCustomerLimitInput(event: Event): void {
+    const val = Number(this.formData.perCustomerLimit);
+    if (val > 100) this.formData.perCustomerLimit = 100;
+    else if (val < 1) this.formData.perCustomerLimit = 1;
+  }
+
+  onStartDateChange(): void {
+    if (this.formData.startDate && this.formData.startDate < this.todayStr) {
+      this.formData.startDate = this.todayStr;
+      this.showToast('Không thể chọn ngày bắt đầu trong quá khứ!', 'warning');
+    }
+    if (this.formData.endDate && this.formData.endDate < this.formData.startDate) {
+      this.formData.endDate = this.formData.startDate;
+    }
+  }
+
+  onEndDateChange(): void {
+    if (this.formData.endDate && this.formData.endDate < this.formData.startDate) {
+      this.formData.endDate = this.formData.startDate;
+      this.showToast('Ngày kết thúc không được nhỏ hơn ngày bắt đầu!', 'warning');
     }
   }
 
@@ -383,17 +467,19 @@ export class VouchersComponent implements OnInit {
       return;
     }
 
-    if (this.formData.discountValue <= 0) {
+    const discountVal = Number(this.formData.discountValue);
+    if (!this.formData.discountValue || isNaN(discountVal) || discountVal <= 0) {
       this.showToast('Mức giảm giá phải lớn hơn 0!', 'warning');
       return;
     }
 
-    if (this.formData.discountType === 'PERCENT' && this.formData.discountValue > 100) {
+    if (this.formData.discountType === 'PERCENT' && discountVal > 100) {
       this.showToast('Mức giảm phần trăm không được vượt quá 100%!', 'warning');
       return;
     }
 
-    if (this.formData.usageLimit <= 0) {
+    const usageLim = Number(this.formData.usageLimit);
+    if (!this.formData.usageLimit || isNaN(usageLim) || usageLim <= 0) {
       this.showToast('Tổng lượt sử dụng phải lớn hơn 0!', 'warning');
       return;
     }
@@ -403,13 +489,18 @@ export class VouchersComponent implements OnInit {
       return;
     }
 
-    if (new Date(this.formData.startDate) > new Date(this.formData.endDate)) {
+    if (!this.isEditing && this.formData.startDate < this.todayStr) {
+      this.showToast('Ngày bắt đầu không được ở trong quá khứ!', 'warning');
+      return;
+    }
+
+    if (this.formData.startDate > this.formData.endDate) {
       this.showToast('Ngày bắt đầu không được lớn hơn ngày kết thúc!', 'warning');
       return;
     }
 
     // Auto determine status based on dates if active
-    let calculatedStatus = this.formData.status;
+    let calculatedStatus: VoucherStatus = this.formData.status;
     const nowStr = new Date().toISOString().split('T')[0];
     if (calculatedStatus !== 'Tạm dừng') {
       if (this.formData.startDate > nowStr) {
@@ -417,22 +508,22 @@ export class VouchersComponent implements OnInit {
       } else if (this.formData.endDate < nowStr) {
         calculatedStatus = 'Đã kết thúc';
       } else {
-        calculatedStatus = 'Đang hoạt động';
+        calculatedStatus = 'Active';
       }
     }
 
     const apiPayload = {
       code,
       discountType: this.formData.discountType,
-      discountValue: Number(this.formData.discountValue),
+      discountValue: discountVal,
       maxDiscountCap: this.formData.discountType === 'PERCENT' && this.formData.maxDiscountCap ? Number(this.formData.maxDiscountCap) : null,
       minOrderValue: Number(this.formData.minOrderValue) || 0,
       startDate: this.formData.startDate,
       endDate: this.formData.endDate,
-      usageLimit: Number(this.formData.usageLimit),
+      usageLimit: usageLim,
       perCustomerLimit: Number(this.formData.perCustomerLimit) || 1,
-      isStackableWithFlashSale: this.formData.isStackableWithFlashSale,
-      isActive: calculatedStatus === 'Đang hoạt động'
+      isStackableWithFlashSale: !!this.formData.isStackableWithFlashSale,
+      isActive: calculatedStatus === 'Active'
     };
 
     if (this.isEditing && this.editingId) {
@@ -443,14 +534,14 @@ export class VouchersComponent implements OnInit {
           ...existing,
           code,
           discountType: this.formData.discountType,
-          discountValue: Number(this.formData.discountValue),
+          discountValue: discountVal,
           maxDiscountCap: this.formData.discountType === 'PERCENT' && this.formData.maxDiscountCap ? Number(this.formData.maxDiscountCap) : undefined,
           minOrderValue: Number(this.formData.minOrderValue) || 0,
           scope: this.formData.scope,
           categoryScopeName: this.formData.scope === 'CATEGORY' ? this.formData.categoryScopeName : undefined,
-          usageLimit: Number(this.formData.usageLimit),
+          usageLimit: usageLim,
           perCustomerLimit: Number(this.formData.perCustomerLimit) || 1,
-          isStackableWithFlashSale: this.formData.isStackableWithFlashSale,
+          isStackableWithFlashSale: !!this.formData.isStackableWithFlashSale,
           startDate: this.formData.startDate,
           endDate: this.formData.endDate,
           status: calculatedStatus
@@ -484,15 +575,15 @@ export class VouchersComponent implements OnInit {
         id: tempId,
         code,
         discountType: this.formData.discountType,
-        discountValue: Number(this.formData.discountValue),
+        discountValue: discountVal,
         maxDiscountCap: this.formData.discountType === 'PERCENT' && this.formData.maxDiscountCap ? Number(this.formData.maxDiscountCap) : undefined,
         minOrderValue: Number(this.formData.minOrderValue) || 0,
         scope: this.formData.scope,
         categoryScopeName: this.formData.scope === 'CATEGORY' ? this.formData.categoryScopeName : undefined,
-        usageLimit: Number(this.formData.usageLimit),
+        usageLimit: usageLim,
         usedCount: 0,
         perCustomerLimit: Number(this.formData.perCustomerLimit) || 1,
-        isStackableWithFlashSale: this.formData.isStackableWithFlashSale,
+        isStackableWithFlashSale: !!this.formData.isStackableWithFlashSale,
         startDate: this.formData.startDate,
         endDate: this.formData.endDate,
         status: calculatedStatus,
@@ -525,25 +616,47 @@ export class VouchersComponent implements OnInit {
     this.closeModal();
   }
 
+  getStatusBadgeLabel(status: string): string {
+    switch (status) {
+      case 'Ongoing':
+      case 'Active':
+      case 'Đang hoạt động':
+      case 'Đang diễn ra':
+        return 'Active';
+      case 'Upcoming':
+      case 'Sắp diễn ra':
+        return 'Upcoming';
+      case 'Ended':
+      case 'Đã kết thúc':
+        return 'Ended';
+      case 'Paused':
+      case 'Tạm dừng':
+        return 'Paused';
+      default:
+        return status;
+    }
+  }
+
+  isStatus(item: VoucherItem, target: 'Active' | 'Upcoming' | 'Ended' | 'Paused'): boolean {
+    return this.getStatusBadgeLabel(item.status) === target;
+  }
+
   toggleStatus(item: VoucherItem): void {
     let nextActive = true;
-    if (item.status === 'Đang hoạt động') {
-      item.status = 'Tạm dừng';
+    if (this.isStatus(item, 'Active')) {
+      item.status = 'Paused';
       nextActive = false;
-      this.showToast(`Đã tạm dừng mã ${item.code}`, 'warning');
-    } else if (item.status === 'Tạm dừng') {
+    } else if (this.isStatus(item, 'Paused')) {
       const nowStr = new Date().toISOString().split('T')[0];
       if (item.endDate < nowStr) {
         this.showToast(`Mã ${item.code} đã quá hạn, vui lòng chỉnh sửa hạn áp dụng trước!`, 'warning');
         return;
       }
-      item.status = 'Đang hoạt động';
+      item.status = 'Active';
       nextActive = true;
-      this.showToast(`Đã kích hoạt lại mã ${item.code}`, 'success');
-    } else if (item.status === 'Sắp diễn ra') {
-      item.status = 'Đang hoạt động';
+    } else if (this.isStatus(item, 'Upcoming')) {
+      item.status = 'Active';
       nextActive = true;
-      this.showToast(`Đã kích hoạt sớm mã ${item.code}`, 'success');
     } else {
       this.showToast(`Voucher đã kết thúc hoặc hết lượt, vui lòng chỉnh sửa thời hạn/lượt dùng!`, 'info');
       return;

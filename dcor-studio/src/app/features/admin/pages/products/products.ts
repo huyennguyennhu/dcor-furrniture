@@ -6,7 +6,7 @@ import { Router, RouterModule } from '@angular/router';
 import { 
   LucideAngularModule, 
   Package, Tag, AlertCircle, TrendingUp, Search, Download, Upload, Plus, 
-  ChevronDown, ChevronRight, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
+  ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
   RotateCcw, CheckCircle2, X, Filter, FileSpreadsheet, Info, Check, RefreshCw,
   AlertTriangle
 } from 'lucide-angular';
@@ -63,7 +63,7 @@ export interface ProductListItem {
   variants: ProductVariantItem[];
 }
 
-export type StatusTab = 'ALL' | 'ACTIVE' | 'DRAFT' | 'HIDDEN' | 'TRASH';
+export type StatusTab = 'ALL' | 'ACTIVE' | 'DRAFT' | 'HIDDEN';
 export type StockFilter = 'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
 export type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'stock_desc' | 'stock_asc' | 'name_asc';
 
@@ -572,17 +572,47 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
   styleUrls: ['./products.css']
 })
 export class ProductsComponent implements OnInit {
+  readonly Math = Math;
+
   icons = { 
     Package, Tag, AlertCircle, TrendingUp, Search, Download, Upload, Plus, 
-    ChevronDown, ChevronRight, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
+    ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
     RotateCcw, CheckCircle2, X, Filter, FileSpreadsheet, Info, Check, RefreshCw,
     AlertTriangle
   };
 
-  // State chính
+  // State chính - Khởi tạo rỗng để hiển thị loading spinner đồng bộ khi tải từ database
   allProducts: ProductListItem[] = [];
   filteredProducts: ProductListItem[] = [];
-  isLoading = false;
+  isLoading = true;
+
+  // Phân trang 10 sản phẩm mỗi trang
+  pageSize = 10;
+  currentPage = 1;
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredProducts.length / this.pageSize) || 1;
+  }
+
+  get paginatedProducts(): ProductListItem[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredProducts.slice(start, start + this.pageSize);
+  }
+
+  goToPage(p: number) {
+    if (p >= 1 && p <= this.totalPages) {
+      this.currentPage = p;
+    }
+  }
+
+  get pagesArray(): number[] {
+    const pages: number[] = [];
+    const total = this.totalPages;
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
 
   // Tabs & Filters
   activeTab: StatusTab = 'ALL';
@@ -618,9 +648,18 @@ export class ProductsComponent implements OnInit {
   toastType: 'success' | 'warning' | 'info' | 'error' = 'success';
   private toastTimer: any = null;
 
-  // Modal Xóa vĩnh viễn
-  isDeleteConfirmModalOpen = false;
+  // Modal Xóa 2 bước
+  isDeleteModalOpen = false;
+  deleteStep: 1 | 2 = 1;
+  deleteConfirmText = '';
   productToDelete: ProductListItem | null = null;
+
+  // Modal Xác nhận Ẩn / Hiện
+  isConfirmVisibilityModalOpen = false;
+  productToToggle: ProductListItem | null = null;
+
+  // Modal Xóa cũ (giữ tương thích)
+  isDeleteConfirmModalOpen = false;
   isBulkPermanentDelete = false;
 
   // Modal Import Excel & State 3 Giai đoạn
@@ -687,8 +726,8 @@ export class ProductsComponent implements OnInit {
       error: () => {}
     });
 
-    // 2. Tải sản phẩm trực tiếp từ API backend qua HttpClient (cập nhật Angular Zone tức thì)
-    this.http.get<any[]>(`${environment.apiUrl}/admin/products`).subscribe({
+    // 2. Tải sản phẩm trực tiếp từ API backend qua HttpClient (phân trang 50 sản phẩm nhanh)
+    this.http.get<any[]>(`${environment.apiUrl}/admin/products?page=1&limit=50`).subscribe({
       next: (prodsData) => {
         if (Array.isArray(prodsData) && prodsData.length > 0) {
           const apiProducts: ProductListItem[] = prodsData.map((p: any, idx: number) => {
@@ -801,6 +840,7 @@ export class ProductsComponent implements OnInit {
   // --- TABS & FILTERING ---
   setTab(tab: StatusTab) {
     this.activeTab = tab;
+    this.currentPage = 1;
     this.selectedProductIds.clear();
     this.applyFilters();
   }
@@ -808,6 +848,7 @@ export class ProductsComponent implements OnInit {
   onSearchChange() {
     if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
     this.searchDebounceTimer = setTimeout(() => {
+      this.currentPage = 1;
       this.applyFilters();
       this.cdr.detectChanges();
     }, 300);
@@ -815,6 +856,7 @@ export class ProductsComponent implements OnInit {
 
   clearSearch() {
     this.searchQuery = '';
+    this.currentPage = 1;
     this.applyFilters();
   }
 
@@ -822,18 +864,13 @@ export class ProductsComponent implements OnInit {
     let result = [...this.allProducts];
 
     // 1. Lọc theo Tab trạng thái
-    if (this.activeTab === 'TRASH') {
-      result = result.filter(p => p.isDeleted === true);
-    } else {
-      // Các tab thường chỉ hiển thị sản phẩm chưa bị xóa
-      result = result.filter(p => !p.isDeleted);
-      if (this.activeTab === 'ACTIVE') {
-        result = result.filter(p => p.status === 'Đang bán');
-      } else if (this.activeTab === 'DRAFT') {
-        result = result.filter(p => p.status === 'Nháp');
-      } else if (this.activeTab === 'HIDDEN') {
-        result = result.filter(p => p.status === 'Đã ẩn');
-      }
+    result = result.filter(p => !p.isDeleted);
+    if (this.activeTab === 'ACTIVE') {
+      result = result.filter(p => p.status === 'Đang bán');
+    } else if (this.activeTab === 'DRAFT') {
+      result = result.filter(p => p.status === 'Nháp');
+    } else if (this.activeTab === 'HIDDEN') {
+      result = result.filter(p => p.status === 'Đã ẩn');
     }
 
     // 2. Tìm kiếm theo Tên hoặc SKU
@@ -958,95 +995,103 @@ export class ProductsComponent implements OnInit {
     this.router.navigate(['/admin/products/new']);
   }
 
+  // Xác thực thay đổi trạng thái Ẩn / Mở bán
+  requestToggleVisibility(product: ProductListItem, event: Event) {
+    event.stopPropagation();
+    this.productToToggle = product;
+    this.isConfirmVisibilityModalOpen = true;
+  }
+
+  confirmToggleVisibility() {
+    if (!this.productToToggle) return;
+    const target = this.productToToggle;
+    const newStatus = target.status === 'Đang bán' ? 'Đã ẩn' : 'Đang bán';
+
+    this.http.patch(`${environment.apiUrl}/admin/products/${target.id}/status`, {
+      isActive: newStatus === 'Đang bán'
+    }).subscribe({
+      next: () => {
+        target.status = newStatus;
+        this.showToast(`Đã chuyển trạng thái sản phẩm "${target.name}" sang ${newStatus}`, 'success');
+        this.isConfirmVisibilityModalOpen = false;
+        this.productToToggle = null;
+        this.applyFilters();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Máy chủ từ chối: Bạn không có quyền thay đổi trạng thái sản phẩm! (403 Forbidden)';
+        this.showToast(msg, 'warning');
+        this.closeVisibilityModal();
+      }
+    });
+  }
+
+  closeVisibilityModal() {
+    this.isConfirmVisibilityModalOpen = false;
+    this.productToToggle = null;
+  }
+
   toggleProductVisibility(product: ProductListItem, event: Event) {
-    event.stopPropagation();
-    const newStatus = product.status === 'Đang bán' ? 'Đã ẩn' : 'Đang bán';
-    product.status = newStatus;
-    this.showToast(`Đã chuyển trạng thái "${product.name}" sang ${newStatus}`, 'success');
-    this.applyFilters();
+    this.requestToggleVisibility(product, event);
   }
 
-  cloneProduct(product: ProductListItem, event: Event) {
+
+  // --- XÓA SẢN PHẨM 2 BƯỚC (BỎ THÙNG RÁC, XÁC THỰC YES) ---
+  openDeleteStep1(product: ProductListItem, event: Event) {
     event.stopPropagation();
-    const copyId = `prod-copy-${Date.now().toString().slice(-4)}`;
-    const copyBaseSku = `${product.baseSku}-CP`;
-
-    const clonedVariants: ProductVariantItem[] = product.variants.map((v, i) => ({
-      ...v,
-      id: `${copyId}-v${i + 1}`,
-      sku: `${v.sku}-CP`,
-      branchStocks: v.branchStocks.map(b => ({ ...b }))
-    }));
-
-    const cloned: ProductListItem = {
-      ...product,
-      id: copyId,
-      name: `${product.name} (Bản sao)`,
-      baseSku: copyBaseSku,
-      status: 'Nháp',
-      hasOrders: false,
-      isExpanded: false,
-      isDeleted: false,
-      createdAt: new Date().toISOString().split('T')[0],
-      variants: clonedVariants
-    };
-
-    this.allProducts.unshift(cloned);
-    this.showToast(`Đã nhân bản "${product.name}" thành bản sao nháp`, 'success');
-    this.applyFilters();
+    this.productToDelete = product;
+    this.deleteStep = 1;
+    this.deleteConfirmText = '';
+    this.isDeleteModalOpen = true;
   }
 
+  goToDeleteStep2() {
+    this.deleteStep = 2;
+    this.deleteConfirmText = '';
+  }
+
+  closeDeleteModal() {
+    this.isDeleteModalOpen = false;
+    this.deleteStep = 1;
+    this.deleteConfirmText = '';
+    this.productToDelete = null;
+  }
+
+  executePermanentDelete() {
+    if (this.deleteConfirmText !== 'YES' || !this.productToDelete) {
+      return;
+    }
+    const target = this.productToDelete;
+    this.http.delete(`${environment.apiUrl}/admin/products/${target.id}`).subscribe({
+      next: () => {
+        this.allProducts = this.allProducts.filter(p => p.id !== target.id);
+        this.selectedProductIds.delete(target.id);
+        this.showToast(`Đã xóa vĩnh viễn sản phẩm "${target.name}" khỏi hệ thống`, 'success');
+        this.closeDeleteModal();
+        this.applyFilters();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Máy chủ từ chối: Bạn không có quyền xóa sản phẩm trên hệ thống! (403 Forbidden)';
+        this.showToast(msg, 'warning');
+        this.closeDeleteModal();
+      }
+    });
+  }
+
+  // Tương thích với các gọi cũ
   moveToTrash(product: ProductListItem, event: Event) {
-    event.stopPropagation();
-    product.isDeleted = true;
-    product.isExpanded = false;
-    this.selectedProductIds.delete(product.id);
-    this.showToast(`Đã chuyển "${product.name}" vào Thùng rác`, 'warning');
-    this.applyFilters();
-  }
-
-  restoreFromTrash(product: ProductListItem, event: Event) {
-    event.stopPropagation();
-    product.isDeleted = false;
-    this.selectedProductIds.delete(product.id);
-    this.showToast(`Đã khôi phục sản phẩm "${product.name}"`, 'success');
-    this.applyFilters();
+    this.openDeleteStep1(product, event);
   }
 
   openPermanentDeleteModal(product: ProductListItem, event: Event) {
-    event.stopPropagation();
-    if (product.hasOrders) {
-      this.showToast('Không thể xóa vĩnh viễn vì sản phẩm đã có lịch sử đơn hàng!', 'error');
-      return;
-    }
-    this.productToDelete = product;
-    this.isBulkPermanentDelete = false;
-    this.isDeleteConfirmModalOpen = true;
+    this.openDeleteStep1(product, event);
   }
 
   confirmPermanentDelete() {
-    if (this.isBulkPermanentDelete) {
-      const idsToDelete = new Set(
-        this.filteredProducts
-          .filter(p => this.selectedProductIds.has(p.id) && !p.hasOrders)
-          .map(p => p.id)
-      );
-      this.allProducts = this.allProducts.filter(p => !idsToDelete.has(p.id));
-      this.selectedProductIds.clear();
-      this.showToast(`Đã xóa vĩnh viễn ${idsToDelete.size} sản phẩm khỏi hệ thống`, 'success');
-    } else if (this.productToDelete) {
-      this.allProducts = this.allProducts.filter(p => p.id !== this.productToDelete!.id);
-      this.selectedProductIds.delete(this.productToDelete.id);
-      this.showToast(`Đã xóa vĩnh viễn sản phẩm "${this.productToDelete.name}"`, 'success');
-    }
-    this.closeDeleteConfirmModal();
-    this.applyFilters();
+    this.executePermanentDelete();
   }
 
   closeDeleteConfirmModal() {
-    this.isDeleteConfirmModalOpen = false;
-    this.productToDelete = null;
-    this.isBulkPermanentDelete = false;
+    this.closeDeleteModal();
   }
 
   // --- BULK ACTIONS ---

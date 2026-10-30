@@ -1,222 +1,24 @@
 {
-  "tuanvumai123@gmail.com": {
-    "roles": [
-      "CSKH"
-    ],
-    "role": "CSKH",
-    "branchId": "ALL",
-    "branchName": "Toàn hệ thống, Kho Tổng (TP.HCM)",
-    "assignedBranches": [
-      "ALL"
-    ],
-    "customPermissions": {
-      "reports": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "customers": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false,
-        "approve": false
-      },
-      "products": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "categories": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "inventory": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "orders": {
-        "view": true,
-        "create": false,
-        "edit": true,
-        "delete": false,
-        "approve": false
-      },
-      "promotions": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "designs": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "appointments": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false,
-        "approve": true
-      },
-      "content": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "chat": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false,
-        "approve": true
-      },
-      "staff": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": true,
-        "approve": true
-      },
-      "settings": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      }
-    }
-  },
   "vutq23406@st.uel.edu.vn": {
     "roles": [
-      "Sales",
-      "Quản lý kho"
+      "QL Đơn hàng"
     ],
-    "role": "Sales",
+    "role": "QL Đơn hàng",
     "branchId": "ALL",
-    "branchName": "Showroom Quận 1, Kho Tổng (TP.HCM), Kho Đà Nẵng, Toàn hệ thống",
+    "branchName": "Kho Tổng (TP.HCM), Toàn hệ thống",
     "assignedBranches": [
       "ALL"
     ]
   },
-  "65987dfd-8d32-4ad6-8db0-2c378485cc10": {
+  "tuanvumai123@gmail.com": {
     "roles": [
-      "Sales"
+      "NV Kinh doanh"
     ],
-    "role": "Sales",
-    "branchId": "ALL",
-    "branchName": "Toàn hệ thống",
+    "role": "NV Kinh doanh",
+    "branchId": "KHO_TONG_HCM",
+    "branchName": "Kho Tổng (TP.HCM), Toàn hệ thống",
     "assignedBranches": [
-      "ALL"
-    ],
-    "customPermissions": {
-      "reports": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "customers": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false,
-        "approve": false
-      },
-      "products": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "categories": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "inventory": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "orders": {
-        "view": true,
-        "create": false,
-        "edit": true,
-        "delete": false,
-        "approve": false
-      },
-      "promotions": {
-        "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "designs": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "appointments": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false,
-        "approve": true
-      },
-      "content": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      },
-      "chat": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false,
-        "approve": true
-      },
-      "staff": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": true,
-        "approve": true
-      },
-      "settings": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false,
-        "approve": false
-      }
-    }
+      "KHO_TONG_HCM"
+    ]
   }
 }

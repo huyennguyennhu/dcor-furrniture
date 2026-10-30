@@ -686,6 +686,11 @@ body.admin-body {
   }
 }
 
+.spinner-icon {
+  animation: reportsSpin 0.75s linear infinite !important;
+  display: inline-flex !important;
+}
+
 .loading-text {
   font-size: 14px;
   font-weight: 500;

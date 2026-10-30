@@ -37,10 +37,11 @@ export interface Branch {
 
 export interface PermissionActions {
   view: boolean;
-  create: boolean;
-  edit: boolean;
-  delete: boolean;
-  approve: boolean;
+  create?: boolean;
+  edit?: boolean;
+  delete?: boolean;
+  approve?: boolean;
+  [key: string]: boolean | undefined;
 }
 
 export type AdminModule = 
@@ -189,49 +190,33 @@ export const INITIAL_SYSTEM_ROLES: RoleDefinition[] = [
   },
   {
     id: 'role-product-mgr',
-    name: 'Quản lý sản phẩm',
-    code: 'PRODUCT_MGR',
+    name: 'QL Sản phẩm',
+    code: 'QL_SAN_PHAM',
     description: 'Quản lý danh mục, thông tin sản phẩm, định giá, thuộc tính và hình ảnh.',
     isSystem: true,
     createdAt: '2026-01-01'
   },
   {
     id: 'role-inventory-mgr',
-    name: 'Quản lý kho',
-    code: 'INVENTORY_MGR',
-    description: 'Quản lý nhập - xuất hàng hóa, điều chuyển kho showroom và kiểm kê định kỳ tại 4 kho.',
+    name: 'QL Kho',
+    code: 'QL_KHO',
+    description: 'Quản lý nhập - xuất hàng hóa, điều chuyển kho showroom và kiểm kê định kỳ.',
     isSystem: true,
     createdAt: '2026-01-01'
   },
   {
     id: 'role-order-mgr',
-    name: 'Quản lý đơn hàng',
-    code: 'ORDER_MGR',
-    description: 'Tiếp nhận, xử lý đơn hàng, điều phối vận chuyển và xử lý hoàn trả.',
-    isSystem: true,
-    createdAt: '2026-01-01'
-  },
-  {
-    id: 'role-marketing',
-    name: 'Marketing',
-    code: 'MARKETING',
-    description: 'Quản trị các chiến dịch quảng bá, voucher khuyến mãi và nội dung thương hiệu.',
-    isSystem: true,
-    createdAt: '2026-01-01'
-  },
-  {
-    id: 'role-cskh',
-    name: 'CSKH',
-    code: 'CSKH',
-    description: 'Chăm sóc và giải quyết thắc mắc khách hàng, hỗ trợ sau bán và tư vấn chat.',
+    name: 'QL Đơn hàng',
+    code: 'QL_DON_HANG',
+    description: 'Tiếp nhận, xử lý đơn hàng, điều phối vận chuyển, đổi trả và bảo hành.',
     isSystem: true,
     createdAt: '2026-01-01'
   },
   {
     id: 'role-sales',
-    name: 'Sales',
-    code: 'SALES',
-    description: 'Tư vấn bán hàng trực tiếp tại showroom, lập báo giá và chốt đơn đặt hàng theo showroom.',
+    name: 'NV Kinh doanh',
+    code: 'NV_KINH_DOANH',
+    description: 'Tư vấn bán hàng, đặt lịch hẹn, hỗ trợ khách hàng và tạo đơn hàng.',
     isSystem: true,
     createdAt: '2026-01-01'
   }
@@ -379,19 +364,25 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
   }
 };
 
+// Aliases for abbreviated roles
+DEFAULT_ROLE_PERMISSIONS['QL Sản phẩm'] = DEFAULT_ROLE_PERMISSIONS['Quản lý sản phẩm'];
+DEFAULT_ROLE_PERMISSIONS['QL Kho'] = DEFAULT_ROLE_PERMISSIONS['Quản lý kho'];
+DEFAULT_ROLE_PERMISSIONS['QL Đơn hàng'] = DEFAULT_ROLE_PERMISSIONS['Quản lý đơn hàng'];
+DEFAULT_ROLE_PERMISSIONS['NV Kinh doanh'] = DEFAULT_ROLE_PERMISSIONS['Sales'];
+
 export function normalizeAdminRole(role: string): string {
-  if (!role) return 'Super Admin';
+  if (!role) return 'NV Kinh doanh';
   const trimmed = role.trim();
   const lower = trimmed.toLowerCase();
   if (lower === 'super admin' || lower === 'admin' || lower === 'administrator' || lower === 'quản trị viên') {
     return 'Super Admin';
   }
-  if (lower.includes('sản phẩm')) return 'Quản lý sản phẩm';
-  if (lower.includes('kho')) return 'Quản lý kho';
-  if (lower.includes('đơn hàng')) return 'Quản lý đơn hàng';
-  if (lower.includes('marketing')) return 'Marketing';
-  if (lower.includes('cskh') || lower.includes('chăm sóc')) return 'CSKH';
-  if (lower.includes('sales') || lower.includes('bán hàng')) return 'Sales';
+  if (lower.includes('sản phẩm')) return 'QL Sản phẩm';
+  if (lower.includes('kho')) return 'QL Kho';
+  if (lower.includes('đơn hàng')) return 'QL Đơn hàng';
+  if (lower.includes('kinh doanh') || lower.includes('sales') || lower.includes('bán hàng') || lower.includes('cskh') || lower.includes('marketing')) {
+    return 'NV Kinh doanh';
+  }
   return trimmed;
 }
 
@@ -404,7 +395,9 @@ export class AdminAuthService {
   private readonly PERMISSIONS_KEY = 'dcor_role_permissions';
   private readonly ROLES_LIST_KEY = 'dcor_admin_roles_list';
   private readonly SESSION_EXPIRY_KEY = 'dcor_admin_session_expires_at';
-  private readonly SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 tiếng tối đa cho mỗi phiên
+  // Cấu hình thời gian thu hồi phiên: Admin duy trì 30 ngày (như Facebook), nhân viên khác 8 tiếng
+  private readonly ADMIN_SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 ngày
+  private readonly STAFF_SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 tiếng
 
   // State Management
   readonly currentUser$ = new BehaviorSubject<AdminUser | null>(null);
@@ -468,12 +461,12 @@ export class AdminAuthService {
   }
 
   get token(): string | null {
-    const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY));
+    const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY) || localStorage.getItem(this.SESSION_EXPIRY_KEY));
     if (expiresAt && Date.now() > expiresAt) {
       this.logout();
       return null;
     }
-    return sessionStorage.getItem(this.TOKEN_KEY);
+    return sessionStorage.getItem(this.TOKEN_KEY) || localStorage.getItem(this.TOKEN_KEY);
   }
 
   get roles(): RoleDefinition[] {
@@ -493,12 +486,13 @@ export class AdminAuthService {
   }
 
   isLoggedIn(): boolean {
-    const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY));
+    const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY) || localStorage.getItem(this.SESSION_EXPIRY_KEY));
     if (expiresAt && Date.now() > expiresAt) {
       this.logout();
       return false;
     }
-    return !!sessionStorage.getItem(this.TOKEN_KEY) && !!this.currentUser$.value;
+    const hasToken = !!sessionStorage.getItem(this.TOKEN_KEY) || !!localStorage.getItem(this.TOKEN_KEY);
+    return hasToken && !!this.currentUser$.value;
   }
 
   // =========================================================================
@@ -506,9 +500,9 @@ export class AdminAuthService {
   // =========================================================================
 
   /**
-   * Tính toán quyền tổng hợp (UNION) từ một hoặc nhiều vai trò được gán cho nhân sự
+   * Tính toán quyền tổng hợp (UNION) từ một hoặc nhiều vai trò được gán cho nhân sự (Role-Based IAM)
    */
-  calculateEffectivePermissions(roles: string[], customPermissions?: any): RolePermissions {
+  calculateEffectivePermissions(roles: string[]): RolePermissions {
     if (!roles || roles.length === 0) {
       return JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS['Sales'] || DEFAULT_EMPTY_PERMISSIONS));
     }
@@ -528,31 +522,46 @@ export class AdminAuthService {
     modules.forEach(m => {
       result[m] = { view: false, create: false, edit: false, delete: false, approve: false };
 
-      // Quy tắc cốt lõi: Phân hệ chỉ được phép cấp quyền nếu thuộc phạm vi các vai trò được gán!
-      // Nếu vai trò không mở phân hệ này (ví dụ CSKH không có quyền Nhân sự), nhân sự KHÔNG THỂ có quyền trên phân hệ đó!
-      const inScope = this.isModuleInRoleScope(m, roles);
-
-      if (inScope) {
-        actions.forEach(act => {
-          // Hợp quyền từ các vai trò
-          const roleGranted = roles.some(roleName => {
-            const roleMatrix = allPerms[roleName] || DEFAULT_ROLE_PERMISSIONS[roleName];
-            return roleMatrix && roleMatrix[m] && roleMatrix[m][act];
+      // Hợp nhất toàn bộ action keys từ tất cả các vai trò của nhân sự
+      roles.forEach(rawRoleName => {
+        const roleName = normalizeAdminRole(rawRoleName);
+        const roleMatrix = allPerms[roleName] || allPerms[rawRoleName] || DEFAULT_ROLE_PERMISSIONS[roleName] || DEFAULT_ROLE_PERMISSIONS[rawRoleName];
+        if (roleMatrix && roleMatrix[m]) {
+          Object.keys(roleMatrix[m]).forEach(actKey => {
+            if ((roleMatrix[m] as any)[actKey]) {
+              result[m][actKey] = true;
+            }
           });
-
-          // Cho phép mở rộng quyền riêng (Custom Permissions) cao hơn vai trò cho các nhân sự quản lý / phụ trách
-          const customVal = customPermissions && customPermissions[m] ? customPermissions[m][act] : undefined;
-          result[m][act] = customVal !== undefined ? !!customVal : !!roleGranted;
-        });
-      } else {
-        // Hoàn toàn không có quyền nếu phân hệ nằm ngoài phạm vi vai trò
-        actions.forEach(act => {
-          result[m][act] = false;
-        });
-      }
+        }
+      });
     });
 
+    // BẢO VỆ CHỐNG TREO WEB: Nếu user không còn quyền trên bất kỳ phân hệ nào (do role đã bị xóa trước đó)
+    // Tự động gán quyền cơ bản của NV Kinh doanh để tài khoản luôn có quyền hợp lệ, ngăn chặn vòng lặp chuyển hướng vô tận
+    const hasAnyGranted = modules.some(m => Object.values(result[m]).some(Boolean));
+    if (!hasAnyGranted) {
+      const fallbackMatrix = allPerms['NV Kinh doanh'] || DEFAULT_ROLE_PERMISSIONS['NV Kinh doanh'];
+      if (fallbackMatrix) {
+        modules.forEach(m => {
+          if (fallbackMatrix[m]) {
+            Object.keys(fallbackMatrix[m]).forEach(actKey => {
+              if ((fallbackMatrix[m] as any)[actKey]) {
+                result[m][actKey] = true;
+              }
+            });
+          }
+        });
+      }
+    }
+
     return result as RolePermissions;
+  }
+
+  /**
+   * Tìm đường dẫn trang đầu tiên mà tài khoản có quyền truy cập (mặc định luôn là Dashboard Tổng quan)
+   */
+  getFirstAccessibleRoute(): string {
+    return '/admin/dashboard';
   }
 
   /**
@@ -578,20 +587,46 @@ export class AdminAuthService {
   /**
    * Kiểm tra quyền chức năng theo module và hành động
    */
-  hasPermission(module: string, action: keyof PermissionActions = 'view'): boolean {
+  hasPermission(module: string, action: string = 'view'): boolean {
     const user = this.currentUser$.value;
     if (!user) return false;
     
-    // Super Admin toàn quyền
-    if (user.role === 'Super Admin' || (user.roles && user.roles.includes('Super Admin'))) {
+    // 1. Chỉ duy nhất Super Admin mới có toàn quyền
+    const isSuper = (r: string) => {
+      const lower = (r || '').trim().toLowerCase();
+      return lower === 'super admin' || lower === 'super_admin';
+    };
+
+    if (isSuper(user.role) || (Array.isArray(user.roles) && user.roles.some(isSuper))) {
       return true;
     }
 
     const currentPerms = this.permissions$.value;
     if (!currentPerms) return false;
 
+    // Phân hệ "categories" liên kết mật thiết với quyền "Danh mục" (products.categories)
+    if (module === 'categories') {
+      const hasCategoriesAccess = !!(currentPerms['products'] as any)?.['categories'] || !!(currentPerms['categories'] as any)?.['view'];
+      if (!hasCategoriesAccess) return false;
+      if (action === 'create') {
+        const hasEdit = !!(currentPerms['products'] as any)?.['edit'] || !!(currentPerms['categories'] as any)?.['edit'];
+        const hasCreate = !!(currentPerms['products'] as any)?.['create'] || !!(currentPerms['categories'] as any)?.['create'];
+        return hasEdit && hasCreate;
+      }
+      if (action === 'edit') return !!(currentPerms['products'] as any)?.['edit'] || !!(currentPerms['categories'] as any)?.['edit'];
+      if (action === 'delete') return !!(currentPerms['products'] as any)?.['delete'] || !!(currentPerms['categories'] as any)?.['delete'];
+      return true;
+    }
+
     const modKey = module as AdminModule;
-    return !!currentPerms[modKey]?.[action];
+    return !!(currentPerms[modKey] as any)?.[action];
+  }
+
+  /**
+   * Chuẩn hóa tên vai trò quản trị về 5 vai trò hệ thống viết tắt
+   */
+  normalizeAdminRole(role: string): string {
+    return normalizeAdminRole(role);
   }
 
   /**
@@ -696,6 +731,18 @@ export class AdminAuthService {
 
     const updatedRoles = [...currentRoles, newRole];
     this.saveRolesToStorage(updatedRoles);
+
+    // Đồng bộ tức thì lên Server IAM
+    this.createRoleOnServer({
+      name: newRole.name,
+      code: newRole.code,
+      description: newRole.description,
+      cloneFromRoleName: cloneFromRoleId
+    }).subscribe({
+      next: () => {},
+      error: () => {}
+    });
+
     return newRole;
   }
 
@@ -813,7 +860,7 @@ export class AdminAuthService {
           status: rawUser.status || 'ACTIVE'
         };
 
-        return this.handleAuthSuccess(res.token, user);
+        return this.handleAuthSuccess(res.token, user, res.permissions);
       }),
       catchError(err => {
         if (err?.error?.message) {
@@ -834,6 +881,7 @@ export class AdminAuthService {
     sessionStorage.removeItem(this.SESSION_EXPIRY_KEY);
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem(this.SESSION_EXPIRY_KEY);
     localStorage.removeItem(this.PERMISSIONS_KEY);
     localStorage.removeItem('dcor_user');
 
@@ -905,18 +953,21 @@ export class AdminAuthService {
     }
   }
 
-  private handleAuthSuccess(token: string, user: AdminUser): LoginResponse {
-    const rolePermissions = this.calculateEffectivePermissions(user.roles || [user.role]);
-    const expiresAt = Date.now() + this.SESSION_DURATION_MS;
+  private handleAuthSuccess(token: string, user: AdminUser, serverPermissions?: RolePermissions): LoginResponse {
+    const rolePermissions = serverPermissions || this.calculateEffectivePermissions(user.roles || [user.role]);
+    const isAdmin = user.role === 'Super Admin' || (user.roles && user.roles.includes('Super Admin'));
+    const duration = isAdmin ? this.ADMIN_SESSION_DURATION_MS : this.STAFF_SESSION_DURATION_MS;
+    const expiresAt = Date.now() + duration;
 
-    // Lưu vào sessionStorage (phiên làm việc sẽ tự hủy khi đóng trình duyệt/tab)
+    // Lưu vào sessionStorage
     sessionStorage.setItem(this.TOKEN_KEY, token);
     sessionStorage.setItem(this.USER_KEY, JSON.stringify(user));
     sessionStorage.setItem(this.SESSION_EXPIRY_KEY, expiresAt.toString());
 
-    // Xóa triệt để các token cũ trong localStorage để tránh phiên vô hạn
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
+    // Lưu lâu dài vào localStorage để khi tắt tab mở lại vẫn giữ phiên như Facebook
+    localStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    localStorage.setItem(this.SESSION_EXPIRY_KEY, expiresAt.toString());
     localStorage.setItem(this.PERMISSIONS_KEY, JSON.stringify(rolePermissions));
     localStorage.setItem('dcor_user', JSON.stringify({ ...user, role: 'ADMIN' }));
 
@@ -929,15 +980,11 @@ export class AdminAuthService {
 
   private loadStateFromStorage(): void {
     try {
-      // Dọn dẹp token vĩnh cửu cũ nếu có
-      localStorage.removeItem(this.TOKEN_KEY);
-      localStorage.removeItem(this.USER_KEY);
+      const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY) || localStorage.getItem(this.SESSION_EXPIRY_KEY));
+      const token = sessionStorage.getItem(this.TOKEN_KEY) || localStorage.getItem(this.TOKEN_KEY);
+      const userStr = sessionStorage.getItem(this.USER_KEY) || localStorage.getItem(this.USER_KEY);
 
-      const expiresAt = Number(sessionStorage.getItem(this.SESSION_EXPIRY_KEY));
-      const token = sessionStorage.getItem(this.TOKEN_KEY);
-      const userStr = sessionStorage.getItem(this.USER_KEY);
-
-      // Nếu đã quá hạn phiên làm việc (hoặc không có hạn phiên hợp lệ)
+      // Nếu đã quá hạn phiên làm việc
       if (expiresAt && Date.now() > expiresAt) {
         this.logout();
         return;
@@ -954,6 +1001,11 @@ export class AdminAuthService {
         if (!user.assignedBranches) user.assignedBranches = [user.branchId];
 
         const perms = this.calculateEffectivePermissions(user.roles);
+
+        // Đồng bộ sessionStorage nếu đang mở từ tab mới
+        sessionStorage.setItem(this.TOKEN_KEY, token);
+        sessionStorage.setItem(this.USER_KEY, JSON.stringify(user));
+        if (expiresAt) sessionStorage.setItem(this.SESSION_EXPIRY_KEY, expiresAt.toString());
 
         this.currentUser$.next(user);
         this.permissions$.next(perms);
@@ -988,6 +1040,10 @@ export class AdminAuthService {
           console.warn('[AUTH] Phiên làm việc đã bị thu hồi hoặc tài khoản bị khóa.');
           this.handleAccountLocked('Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ Super Admin.');
           return false;
+        }
+        if (res.permissions) {
+          this.permissions$.next(res.permissions);
+          localStorage.setItem(this.PERMISSIONS_KEY, JSON.stringify(res.permissions));
         }
         return true;
       }),
@@ -1032,8 +1088,171 @@ export class AdminAuthService {
     return JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
   }
 
-  private saveAllRolePermissionsToStorage(allPerms: Record<string, RolePermissions>): void {
+  saveAllRolePermissionsToStorage(allPerms: Record<string, RolePermissions>): void {
     localStorage.setItem('dcor_all_role_permissions', JSON.stringify(allPerms));
     localStorage.setItem(this.PERMISSIONS_KEY, JSON.stringify(allPerms));
+  }
+
+  // =========================================================================
+  // IAM SERVER INTEGRATION (Đồng bộ trực tiếp với Server)
+  // =========================================================================
+
+  private getAuthHeaders(): HttpHeaders {
+    const token = this.token;
+    return new HttpHeaders({
+      Authorization: `Bearer ${token || ''}`
+    });
+  }
+
+  fetchPermissionsMatrix(): Observable<{ roles: RoleDefinition[]; matrix: Record<string, RolePermissions> }> {
+    return this.http.get<any>(`${environment.apiUrl}/admin/staff/permissions/matrix`, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      map(res => {
+        if (res.roles && Array.isArray(res.roles)) {
+          this.rolesList$.next(res.roles);
+          this.saveRolesToStorage(res.roles);
+        }
+        if (res.matrix) {
+          this.saveAllRolePermissionsToStorage(res.matrix);
+        }
+        return {
+          roles: res.roles || this.rolesList$.value,
+          matrix: res.matrix || this.getAllRolePermissionsFromStorage()
+        };
+      }),
+      catchError(err => {
+        console.warn('[IAM] Lỗi tải ma trận từ server, dùng cache nội bộ:', err);
+        return of({
+          roles: this.rolesList$.value,
+          matrix: this.getAllRolePermissionsFromStorage()
+        });
+      })
+    );
+  }
+
+  saveRolePermissionsMatrix(matrix: Record<string, RolePermissions>): Observable<any> {
+    this.saveAllRolePermissionsToStorage(matrix);
+    return this.http.put<any>(`${environment.apiUrl}/admin/staff/permissions/matrix`, { matrix }, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      map(res => {
+        if (res.matrix) {
+          this.saveAllRolePermissionsToStorage(res.matrix);
+        }
+        if (this.currentUser) {
+          const updatedPerms = this.calculateEffectivePermissions(this.currentUser.roles || [this.currentUser.role]);
+          this.permissions$.next(updatedPerms);
+        }
+        return res;
+      })
+    );
+  }
+
+  createRoleOnServer(roleData: { name: string; code: string; description: string; cloneFromRoleName?: string }): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/admin/staff/roles`, roleData, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      map(res => {
+        if (res.role) {
+          const current = this.rolesList$.value;
+          const updated = [...current, res.role];
+          this.saveRolesToStorage(updated);
+        }
+        if (res.matrix) {
+          this.saveAllRolePermissionsToStorage(res.matrix);
+        }
+        return res;
+      })
+    );
+  }
+
+  updateRoleOnServer(id: string, updated: { name?: string; description?: string }): Observable<any> {
+    return this.http.put<any>(`${environment.apiUrl}/admin/staff/roles/${id}`, updated, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      map(res => {
+        if (res.role) {
+          const current = this.rolesList$.value.map(r => r.id === id ? res.role : r);
+          this.saveRolesToStorage(current);
+        }
+        if (res.matrix) {
+          this.saveAllRolePermissionsToStorage(res.matrix);
+        }
+        return res;
+      })
+    );
+  }
+
+  deleteRoleOnServer(id: string, reassignToRoleName: string = 'NV Kinh doanh'): Observable<any> {
+    const target = this.rolesList$.value.find(r => r.id === id);
+    const targetName = target?.name;
+
+    return this.http.delete<any>(`${environment.apiUrl}/admin/staff/roles/${id}`, {
+      headers: this.getAuthHeaders(),
+      body: { reassignToRoleName }
+    }).pipe(
+      map(res => {
+        if (res.roles) {
+          this.saveRolesToStorage(res.roles);
+        } else {
+          const current = this.rolesList$.value.filter(r => r.id !== id);
+          this.saveRolesToStorage(current);
+        }
+        if (res.matrix) {
+          this.saveAllRolePermissionsToStorage(res.matrix);
+        }
+
+        // XỬ LÝ AN TOÀN TRÁNH LỖI TREO WEB:
+        // Cập nhật lại các nhân sự bị xóa vai trò trong cache client
+        if (targetName) {
+          try {
+            const raw = localStorage.getItem('dcor_staff_accounts_list');
+            if (raw) {
+              const staffList = JSON.parse(raw);
+              if (Array.isArray(staffList)) {
+                staffList.forEach((s: any) => {
+                  if (Array.isArray(s.roles) && s.roles.includes(targetName)) {
+                    s.roles = s.roles.filter((r: string) => r !== targetName);
+                    if (s.roles.length === 0) {
+                      s.roles = [reassignToRoleName];
+                    }
+                    s.role = s.roles.join(', ');
+                  } else if (s.role === targetName) {
+                    s.role = reassignToRoleName;
+                    s.roles = [reassignToRoleName];
+                  }
+                });
+                localStorage.setItem('dcor_staff_accounts_list', JSON.stringify(staffList));
+              }
+            }
+          } catch (e) {
+            console.warn('Lỗi đồng bộ cache nhân sự sau khi xóa role:', e);
+          }
+
+          // Cập nhật người dùng hiện tại nếu bị ảnh hưởng
+          if (this.currentUser) {
+            let uRoles = this.currentUser.roles || [this.currentUser.role];
+            if (uRoles.includes(targetName)) {
+              uRoles = uRoles.filter(r => r !== targetName);
+              if (uRoles.length === 0) {
+                uRoles = [reassignToRoleName];
+              }
+              const updatedUser = {
+                ...this.currentUser,
+                role: uRoles[0],
+                roles: uRoles
+              };
+              this.currentUser$.next(updatedUser);
+              sessionStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
+              localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
+              this.permissions$.next(this.calculateEffectivePermissions(uRoles));
+            }
+          }
+        }
+
+        return res;
+      })
+    );
   }
 }

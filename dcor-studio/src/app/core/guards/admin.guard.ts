@@ -33,14 +33,27 @@ export const adminGuard: CanActivateFn = (
 
   // 3. Kiểm tra quyền truy cập route theo Module và Action
   const requiredModule = (route.data?.['module'] as string) || extractModuleFromPath(state.url);
-  const requiredAction = (route.data?.['action'] as keyof PermissionActions) || 'view';
+  const requiredAction = (route.data?.['action'] as string) || 'view';
 
   if (requiredModule && requiredModule !== 'dashboard') {
     const hasPermission = authService.hasPermission(requiredModule, requiredAction);
     if (!hasPermission) {
-      // Người dùng không có quyền truy cập module này: quay về dashboard
-      return router.createUrlTree(['/admin/dashboard'], {
-        queryParams: { forbidden: requiredModule }
+      // 1. Tìm phân hệ đầu tiên mà người dùng CÓ QUYỀN TRUY CẬP
+      const fallbackRoute = authService.getFirstAccessibleRoute();
+      const currentPath = state.url.split('?')[0].split('#')[0];
+
+      // Nếu tìm được route hợp lệ và hiện tại chưa phải route đó -> Điều hướng an toàn
+      if (fallbackRoute && !currentPath.startsWith(fallbackRoute.split('?')[0])) {
+        return router.createUrlTree([fallbackRoute], {
+          queryParams: { forbidden: requiredModule }
+        });
+      }
+
+      // 2. Nếu tài khoản không có quyền ở bất kỳ phân hệ nào (do vai trò bị xóa hoặc chưa được phân quyền):
+      // Đăng xuất dọn dẹp phiên để ngăn chặn hoàn toàn vòng lặp vô hạn gây treo web!
+      authService.logout();
+      return router.createUrlTree(['/admin-login'], {
+        queryParams: { error: 'Tài khoản của bạn chưa được cấp quyền truy cập hoặc vai trò đã bị xóa. Vui lòng liên hệ Super Admin.' }
       });
     }
   }

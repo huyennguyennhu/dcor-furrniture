@@ -90,3 +90,49 @@ export function deleteStaffMetadata(emailOrId: string): void {
     console.warn('Lỗi xóa staff metadata:', e);
   }
 }
+
+/**
+ * Tự động chuyển giao các tài khoản nhân sự có vai trò bị xóa sang vai trò an toàn mới
+ * Tránh triệt để tình trạng nhân sự bị mồ côi vai trò dẫn đến crash/treo hệ thống
+ */
+export function reassignRoleInStaffMetadata(oldRoleName: string, newRoleName: string = 'NV Kinh doanh'): number {
+  try {
+    const all = getAllStaffMetadata();
+    let affectedCount = 0;
+    for (const key of Object.keys(all)) {
+      const entry = all[key];
+      if (!entry) continue;
+      let modified = false;
+
+      if (Array.isArray(entry.roles) && entry.roles.includes(oldRoleName)) {
+        const remaining = entry.roles.filter(r => r !== oldRoleName);
+        if (remaining.length === 0) {
+          remaining.push(newRoleName);
+        }
+        entry.roles = remaining;
+        entry.role = remaining[0];
+        modified = true;
+      } else if (entry.role === oldRoleName) {
+        entry.role = newRoleName;
+        entry.roles = [newRoleName];
+        modified = true;
+      }
+
+      if (modified) {
+        affectedCount++;
+        all[key] = entry;
+      }
+    }
+
+    if (affectedCount > 0) {
+      inMemoryMetadata = all;
+      ensureDataFile();
+      fs.writeFileSync(METADATA_FILE, JSON.stringify(all, null, 2), 'utf-8');
+    }
+    return affectedCount;
+  } catch (e) {
+    console.warn('Lỗi reassignRoleInStaffMetadata:', e);
+    return 0;
+  }
+}
+

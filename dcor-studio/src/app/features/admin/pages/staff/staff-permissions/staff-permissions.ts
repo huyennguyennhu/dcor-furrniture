@@ -7,30 +7,22 @@ import { IconComponent, IconName } from '../../../../../shared/components/icon/i
 import { 
   AdminAuthService, 
   AdminModule, 
-  PermissionActions, 
   RolePermissions, 
   RoleDefinition,
   DEFAULT_ROLE_PERMISSIONS 
 } from '../../../../../core/services/admin-auth.service';
 import { environment } from '../../../../../../environments/environment';
 
-interface ModuleDefinition {
-  key: AdminModule;
-  name: string;
-  description: string;
-  icon: IconName;
+export interface PermissionActionDef {
+  key: string;
+  name: string; // Tên ngắn gọn: tối đa 3 chữ
 }
 
-export interface StaffPermissionItem {
-  id: string;
+export interface PermissionModuleGroup {
+  key: AdminModule;
   name: string;
-  email: string;
-  roles: string[];
-  role: string;
-  branchName: string;
-  assignedBranches?: string[];
-  effectivePermissions?: RolePermissions;
-  customPermissions?: RolePermissions;
+  icon: IconName;
+  actions: PermissionActionDef[];
 }
 
 @Component({
@@ -41,50 +33,156 @@ export interface StaffPermissionItem {
   styleUrls: ['./staff-permissions.css']
 })
 export class StaffPermissionsComponent implements OnInit, OnDestroy {
-  // Chế độ xem: 'role_templates' (Cấu hình mẫu Vai trò) vs 'staff_matrix' (Phân quyền theo Nhân viên)
-  activeViewTab: 'role_templates' | 'staff_matrix' = 'role_templates';
+  // 12 Phân hệ nghiệp vụ hệ thống DCor với các thao tác thực tế (Tối đa 3 chữ cho mỗi thao tác)
+  readonly modulesList: PermissionModuleGroup[] = [
+    {
+      key: 'reports',
+      name: 'Báo cáo & Thống kê',
+      icon: 'ChartNoAxesCombined',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'export_file', name: 'Xuất/nhập file' }
+      ]
+    },
+    {
+      key: 'customers',
+      name: 'Khách hàng',
+      icon: 'UsersRound',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'edit', name: 'Sửa' },
+        { key: 'lock_account', name: 'Khóa tài khoản' }
+      ]
+    },
+    {
+      key: 'products',
+      name: 'Sản phẩm & Danh mục',
+      icon: 'Package',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'create', name: 'Thêm' },
+        { key: 'edit', name: 'Sửa' },
+        { key: 'delete', name: 'Xóa' },
+        { key: 'categories', name: 'Danh mục' }
+      ]
+    },
+    {
+      key: 'inventory',
+      name: 'Tồn kho & Showroom',
+      icon: 'Warehouse',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'audit', name: 'Kiểm kê' },
+        { key: 'transactions', name: 'Lệnh xuất/nhập' },
+        { key: 'approve', name: 'Duyệt lệnh' },
+        { key: 'settings', name: 'Cài đặt kho' }
+      ]
+    },
+    {
+      key: 'orders',
+      name: 'Đơn hàng',
+      icon: 'ShoppingCart',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'create', name: 'Thêm' },
+        { key: 'edit', name: 'Sửa' },
+        { key: 'returns', name: 'Đổi trả' },
+        { key: 'warranty', name: 'Bảo hành' }
+      ]
+    },
+    {
+      key: 'promotions',
+      name: 'Khuyến mãi & Voucher',
+      icon: 'TicketPercent',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'create', name: 'Thêm' },
+        { key: 'edit', name: 'Sửa' },
+        { key: 'delete', name: 'Xóa' }
+      ]
+    },
+    {
+      key: 'designs',
+      name: 'Cộng đồng thiết kế',
+      icon: 'Image',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'approve', name: 'Duyệt bài' },
+        { key: 'config', name: 'Cấu hình' },
+        { key: 'delete', name: 'Xóa' }
+      ]
+    },
+    {
+      key: 'appointments',
+      name: 'Tư vấn Showroom',
+      icon: 'CalendarDays',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'assign', name: 'Phân công' },
+        { key: 'update', name: 'Cập nhật' }
+      ]
+    },
+    {
+      key: 'content',
+      name: 'Blog tin tức',
+      icon: 'Newspaper',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'create', name: 'Thêm' },
+        { key: 'edit', name: 'Sửa' },
+        { key: 'delete', name: 'Xóa' }
+      ]
+    },
+    {
+      key: 'chat',
+      name: 'Hội thoại CSKH',
+      icon: 'MessagesSquare',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'reply', name: 'Phản hồi chat' },
+        { key: 'close', name: 'Đóng hội thoại' }
+      ]
+    },
+    {
+      key: 'staff',
+      name: 'Nhân sự',
+      icon: 'ShieldCheck',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'create', name: 'Thêm' },
+        { key: 'edit', name: 'Sửa' },
+        { key: 'delete', name: 'Xóa' },
+        { key: 'permissions', name: 'Phân quyền' }
+      ]
+    },
+    {
+      key: 'settings',
+      name: 'Cài đặt & Nhật ký',
+      icon: 'Settings',
+      actions: [
+        { key: 'view', name: 'Xem' },
+        { key: 'edit', name: 'Sửa' },
+        { key: 'audit_log', name: 'Nhật ký' }
+      ]
+    }
+  ];
 
+  // Danh sách các vai trò (Trục ngang - Cột)
   rolesList: RoleDefinition[] = [];
-  selectedRoleName: string = 'Super Admin';
-  selectedRoleDef: RoleDefinition | null = null;
-  private sub: Subscription = new Subscription();
 
-  // Danh sách nhân sự
-  staffMembers: StaffPermissionItem[] = [];
-  selectedStaff: StaffPermissionItem | null = null;
-  selectedStaffSearch: string = '';
+  // Ma trận quyền: Record<RoleName, Record<ModuleKey, Record<ActionKey, boolean>>>
+  allRolePermissions: Record<string, any> = {};
 
-  // Danh sách 13 Module nghiệp vụ hệ thống DCor đồng bộ hoàn toàn với thanh điều hướng
-  readonly modulesList: ModuleDefinition[] = [
-    { key: 'reports', name: 'Báo cáo & Thống kê', description: 'Báo cáo doanh thu, hiệu suất bán hàng, tồn kho & khách hàng', icon: 'ChartNoAxesCombined' },
-    { key: 'customers', name: 'Khách hàng', description: 'Hồ sơ người dùng, phân hạng thành viên, lịch sử mua sắm', icon: 'UsersRound' },
-    { key: 'products', name: 'Sản phẩm', description: 'Chi tiết sản phẩm, giá bán, biến thể, thuộc tính và hình ảnh', icon: 'Package' },
-    { key: 'categories', name: 'Danh mục', description: 'Cây danh mục, nhóm sản phẩm, định vị bộ sưu tập', icon: 'Layers' },
-    { key: 'inventory', name: 'Kho & Showroom', description: 'Xuất - nhập kho, luân chuyển showroom, kiểm kê định kỳ tại 4 kho', icon: 'Warehouse' },
-    { key: 'orders', name: 'Đơn hàng', description: 'Tiếp nhận đơn mua, xử lý đổi trả, bảo hành và điều phối giao hàng', icon: 'ShoppingCart' },
-    { key: 'promotions', name: 'Khuyến mãi & Voucher', description: 'Mã giảm giá, chương trình ưu đãi, flashsale chiến dịch', icon: 'TicketPercent' },
-    { key: 'designs', name: 'Quản lý thiết kế & 3D', description: 'Cấu hình thiết kế, bài viết cộng đồng, duyệt mẫu không gian 3D', icon: 'Image' },
-    { key: 'appointments', name: 'Lịch tư vấn Showroom', description: 'Đặt lịch tư vấn nội thất, yêu cầu trải nghiệm tại các Showroom', icon: 'CalendarDays' },
-    { key: 'content', name: 'Blog & Nội dung', description: 'Bài viết tin tức, cẩm nang nội thất, truyền thông thương hiệu', icon: 'Newspaper' },
-    { key: 'chat', name: 'Hội thoại CSKH', description: 'Trò chuyện trực tuyến, tiếp nhận tin nhắn hỗ trợ khách hàng', icon: 'MessagesSquare' },
-    { key: 'staff', name: 'Nhân sự & Ca làm', description: 'Tài khoản nhân viên, phân quyền vai trò, lịch ca làm việc Showroom', icon: 'ShieldCheck' },
-    { key: 'settings', name: 'Cài đặt hệ thống', description: 'Cấu hình chung thương hiệu, phân hệ và nhật ký kiểm toán hoạt động', icon: 'Settings' }
-  ];
+  // Số lượng nhân viên đang nắm giữ vai trò
+  staffCounts: Record<string, number> = {};
 
-  readonly actionsList: { key: keyof PermissionActions; label: string }[] = [
-    { key: 'view', label: 'Xem' },
-    { key: 'create', label: 'Thêm' },
-    { key: 'edit', label: 'Sửa' },
-    { key: 'delete', label: 'Xóa' },
-    { key: 'approve', label: 'Duyệt' }
-  ];
+  // Theo dõi các phân hệ đang mở rộng (Expandable tree)
+  expandedModules: Set<string> = new Set<string>();
 
-  // Lưu ma trận quyền cho tất cả các vai trò
-  allRolePermissions: Record<string, RolePermissions> = {};
+  // Ô tìm kiếm phân hệ hoặc vai trò
+  searchQuery = '';
 
-  // Ma trận quyền của vai trò hiện tại đang chọn
-  currentMatrix: RolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS['Super Admin']));
-
+  // Trạng thái lưu & Toast
   saveLoading = false;
   toastMessage = '';
   toastType: 'success' | 'info' | 'warning' = 'success';
@@ -95,7 +193,7 @@ export class StaffPermissionsComponent implements OnInit, OnDestroy {
     name: '',
     code: '',
     description: '',
-    cloneFromRoleId: 'role-sales'
+    cloneFromRoleName: 'NV Kinh doanh'
   };
 
   // --- Modal Sửa vai trò ---
@@ -106,9 +204,14 @@ export class StaffPermissionsComponent implements OnInit, OnDestroy {
     description: ''
   };
 
-  // --- Modal Xác nhận xóa vai trò ---
+  // --- Modal Xác nhận xóa vai trò kèm chuyển giao nhân sự an toàn ---
   isDeleteConfirmModalOpen = false;
   roleToDelete: RoleDefinition | null = null;
+  reassignTargetRoleName: string = 'NV Kinh doanh';
+
+  isLoading = false;
+
+  private sub: Subscription = new Subscription();
 
   constructor(
     public adminAuthService: AdminAuthService,
@@ -117,372 +220,249 @@ export class StaffPermissionsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // 1. Lắng nghe danh sách vai trò động từ AdminAuthService
+    // Mở rộng tất cả các phân hệ ban đầu để trực quan
+    this.modulesList.forEach(m => this.expandedModules.add(m.key));
+
+    // 1. Tự động lắng nghe danh sách vai trò từ AdminAuthService
     this.sub.add(
       this.adminAuthService.rolesList$.subscribe(roles => {
-        this.rolesList = roles;
-        if (!this.selectedRoleDef && roles.length > 0) {
-          const current = roles.find(r => r.name === this.selectedRoleName) || roles[0];
-          this.selectRole(current);
+        if (roles && roles.length > 0) {
+          this.rolesList = [...roles];
+          this.ensureAllRolesInitialized();
+          this.cdr.detectChanges();
         }
       })
     );
 
-    // 2. Tải ma trận quyền từ AdminAuthService
-    this.allRolePermissions = this.adminAuthService.getAllRolePermissionsFromStorage();
+    // 2. Tải ma trận phân quyền từ Server IAM
+    this.loadMatrixFromServer();
 
-    // 3. Tải danh sách nhân sự
-    this.loadStaffList();
+    // 3. Tải số lượng nhân sự đảm nhiệm từng vai trò
+    this.loadStaffCounts();
   }
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
   }
 
-  loadStaffList(): void {
-    this.http.get<any[]>(`${environment.apiUrl}/admin/staff`).subscribe({
-      next: (data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          this.processStaffData(data);
-          localStorage.setItem('dcor_staff_accounts_list', JSON.stringify(data));
-        } else {
-          this.loadCachedStaffData();
+  loadMatrixFromServer(): void {
+    this.isLoading = true;
+    this.sub.add(
+      this.adminAuthService.fetchPermissionsMatrix().subscribe({
+        next: (data) => {
+          this.rolesList = data.roles || [];
+          this.allRolePermissions = JSON.parse(JSON.stringify(data.matrix || {}));
+          this.ensureAllRolesInitialized();
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.warn('[IAM] Lỗi tải ma trận từ server:', err);
+          this.rolesList = this.adminAuthService.roles;
+          this.allRolePermissions = this.adminAuthService.getAllRolePermissionsFromStorage();
+          this.ensureAllRolesInitialized();
+          this.isLoading = false;
+          this.cdr.detectChanges();
         }
-      },
-      error: () => {
-        this.loadCachedStaffData();
-      }
-    });
-  }
-
-  private loadCachedStaffData(): void {
-    const saved = localStorage.getItem('dcor_staff_accounts_list');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          this.processStaffData(parsed);
-          return;
-        }
-      } catch (e) {}
-    }
-  }
-
-  private processStaffData(rawList: any[]): void {
-    const customPermsMap = this.loadAllCustomStaffPermissions();
-
-    this.staffMembers = rawList.map(item => {
-      const roles = Array.isArray(item.roles) && item.roles.length > 0 
-        ? item.roles 
-        : [item.role || 'Sales'];
-
-      const custom = item.customPermissions || customPermsMap[item.email?.toLowerCase()] || (item.id ? customPermsMap[item.id] : null) || null;
-      const effective = this.adminAuthService.calculateEffectivePermissions(roles, custom);
-
-      return {
-        id: item.id,
-        name: item.name || item.fullName || 'Nhân sự',
-        email: item.email || '',
-        roles,
-        role: roles.join(', '),
-        branchName: item.branchName || this.adminAuthService.getBranchName(item.branchId || 'ALL'),
-        assignedBranches: item.assignedBranches || [item.branchId || 'ALL'],
-        effectivePermissions: effective,
-        customPermissions: custom || undefined
-      };
-    });
-
-    if (this.staffMembers.length > 0 && !this.selectedStaff) {
-      this.selectStaff(this.staffMembers[0]);
-    }
-  }
-
-  getStaffCount(roleName: string): number {
-    return this.staffMembers.filter(s => s.roles && s.roles.includes(roleName)).length;
-  }
-
-  get filteredStaffMembers(): StaffPermissionItem[] {
-    const term = this.selectedStaffSearch.trim().toLowerCase();
-    if (!term) return this.staffMembers;
-    return this.staffMembers.filter(s => 
-      s.name.toLowerCase().includes(term) || 
-      s.email.toLowerCase().includes(term) ||
-      s.role.toLowerCase().includes(term)
+      })
     );
   }
 
-  getModuleName(key: AdminModule): string {
-    const mod = this.modulesList.find(m => m.key === key);
-    return mod ? mod.name : key;
-  }
-
-  isModuleAllowedForStaff(moduleKey: AdminModule): boolean {
-    if (!this.selectedStaff) return false;
-    if (this.isStaffSuperAdmin()) return true;
-    return this.adminAuthService.isModuleInRoleScope(moduleKey, this.selectedStaff.roles);
-  }
-
-  getRoleScopeNamesForModule(moduleKey: AdminModule): string {
-    if (!this.selectedStaff) return '';
-    return this.selectedStaff.roles.join(', ');
-  }
-
-  private enforceRoleBoundariesForStaff(matrix: RolePermissions, roles: string[]): void {
-    if (!roles || roles.includes('Super Admin')) return;
-    this.modulesList.forEach(m => {
-      const inScope = this.adminAuthService.isModuleInRoleScope(m.key, roles);
-      if (!inScope && matrix[m.key]) {
-        matrix[m.key] = {
-          view: false,
-          create: false,
-          edit: false,
-          delete: false,
-          approve: false
-        };
+  private ensureAllRolesInitialized(): void {
+    this.rolesList.forEach(r => {
+      if (!this.allRolePermissions[r.name]) {
+        this.allRolePermissions[r.name] = JSON.parse(
+          JSON.stringify(DEFAULT_ROLE_PERMISSIONS[r.name] || DEFAULT_ROLE_PERMISSIONS['NV Kinh doanh'] || {})
+        );
       }
-    });
-  }
-
-  selectStaff(staffOrId: StaffPermissionItem | string): void {
-    if (typeof staffOrId === 'string') {
-      const found = this.staffMembers.find(s => s.id === staffOrId);
-      if (!found) return;
-      staffOrId = found;
-    }
-    this.selectedStaff = staffOrId;
-    // Cập nhật ma trận quyền hiệu lực của nhân sự
-    if (staffOrId.customPermissions) {
-      this.currentMatrix = JSON.parse(JSON.stringify(staffOrId.customPermissions));
-    } else {
-      staffOrId.effectivePermissions = this.adminAuthService.calculateEffectivePermissions(staffOrId.roles);
-      this.currentMatrix = JSON.parse(JSON.stringify(staffOrId.effectivePermissions));
-    }
-    this.ensureAllModulesExist(this.currentMatrix);
-    this.enforceRoleBoundariesForStaff(this.currentMatrix, staffOrId.roles);
-    this.cdr.markForCheck();
-  }
-
-  selectRole(role: RoleDefinition): void {
-    this.selectedRoleDef = role;
-    this.selectedRoleName = role.name;
-
-    if (!this.allRolePermissions[role.name]) {
-      const fallback = DEFAULT_ROLE_PERMISSIONS[role.name] || DEFAULT_ROLE_PERMISSIONS['Sales'] || DEFAULT_ROLE_PERMISSIONS['Super Admin'];
-      this.allRolePermissions[role.name] = JSON.parse(JSON.stringify(fallback));
-    }
-
-    this.ensureAllModulesExist(this.allRolePermissions[role.name]);
-    this.currentMatrix = this.allRolePermissions[role.name];
-  }
-
-  private ensureAllModulesExist(matrix: RolePermissions): void {
-    this.modulesList.forEach(m => {
-      if (!matrix[m.key]) {
-        matrix[m.key] = {
-          view: false,
-          create: false,
-          edit: false,
-          delete: false,
-          approve: false
-        };
-      }
-    });
-  }
-
-  isStaffSuperAdmin(): boolean {
-    return !!this.selectedStaff?.roles?.includes('Super Admin');
-  }
-
-  isSuperAdminRole(): boolean {
-    return this.selectedRoleName === 'Super Admin' || this.selectedRoleDef?.code === 'SUPER_ADMIN';
-  }
-
-  toggleAction(moduleKey: AdminModule, action: keyof PermissionActions): void {
-    if (this.activeViewTab === 'staff_matrix') {
-      if (this.isStaffSuperAdmin()) {
-        this.showToast('Nhân sự Super Admin có toàn quyền tối cao.', 'info');
-        return;
-      }
-
-      // RÀNG BUỘC THEO VAI TRÒ (ROLE BOUNDARY):
-      if (!this.isModuleAllowedForStaff(moduleKey)) {
-        const roleNames = this.selectedStaff?.roles.join(', ') || '';
-        this.showToast(`Vai trò "${roleNames}" không thuộc phân hệ "${this.getModuleName(moduleKey)}". Nhân sự chỉ có thể được cấp quyền nâng cao trên các phân hệ mà vai trò đảm nhiệm!`, 'warning');
-        return;
-      }
-
-      this.currentMatrix[moduleKey][action] = !this.currentMatrix[moduleKey][action];
-      if (action === 'view' && !this.currentMatrix[moduleKey].view) {
-        this.currentMatrix[moduleKey].create = false;
-        this.currentMatrix[moduleKey].edit = false;
-        this.currentMatrix[moduleKey].delete = false;
-        this.currentMatrix[moduleKey].approve = false;
-      }
-      if (action !== 'view' && this.currentMatrix[moduleKey][action]) {
-        this.currentMatrix[moduleKey].view = true;
-      }
-      return;
-    }
-
-    if (this.isSuperAdminRole()) return;
-    this.currentMatrix[moduleKey][action] = !this.currentMatrix[moduleKey][action];
-
-    if (action === 'view' && !this.currentMatrix[moduleKey].view) {
-      this.currentMatrix[moduleKey].create = false;
-      this.currentMatrix[moduleKey].edit = false;
-      this.currentMatrix[moduleKey].delete = false;
-      this.currentMatrix[moduleKey].approve = false;
-    }
-    if (action !== 'view' && this.currentMatrix[moduleKey][action]) {
-      this.currentMatrix[moduleKey].view = true;
-    }
-  }
-
-  toggleAllInModule(moduleKey: AdminModule, enable: boolean): void {
-    if (this.activeViewTab === 'staff_matrix') {
-      if (this.isStaffSuperAdmin()) return;
-      if (!this.isModuleAllowedForStaff(moduleKey)) {
-        const roleNames = this.selectedStaff?.roles.join(', ') || '';
-        this.showToast(`Phân hệ "${this.getModuleName(moduleKey)}" bị khóa vì không thuộc phạm vi vai trò (${roleNames}).`, 'warning');
-        return;
-      }
-      this.actionsList.forEach(act => {
-        this.currentMatrix[moduleKey][act.key] = enable;
-      });
-      return;
-    }
-    if (this.isSuperAdminRole()) return;
-    this.actionsList.forEach(act => {
-      this.currentMatrix[moduleKey][act.key] = enable;
-    });
-  }
-
-  isModuleAllChecked(moduleKey: AdminModule): boolean {
-    return this.actionsList.every(act => this.currentMatrix[moduleKey] && this.currentMatrix[moduleKey][act.key]);
-  }
-
-  // Khôi phục quyền nhân sự theo vai trò mặc định
-  resetStaffToRoleDefault(): void {
-    if (!this.selectedStaff) return;
-    const base = this.adminAuthService.calculateEffectivePermissions(this.selectedStaff.roles);
-    this.currentMatrix = JSON.parse(JSON.stringify(base));
-    this.ensureAllModulesExist(this.currentMatrix);
-    this.enforceRoleBoundariesForStaff(this.currentMatrix, this.selectedStaff.roles);
-    this.showToast(`Đã khôi phục ma trận quyền theo vai trò (${this.selectedStaff.roles.join(', ')}) cho "${this.selectedStaff.name}". Nhấn Lưu để hoàn tất.`, 'info');
-  }
-
-  // Lưu phân quyền riêng cho nhân viên
-  saveStaffPermissions(): void {
-    if (!this.selectedStaff) return;
-    if (this.isStaffSuperAdmin()) {
-      this.showToast('Nhân sự Super Admin luôn sở hữu toàn quyền hệ thống.', 'info');
-      return;
-    }
-
-    this.saveLoading = true;
-    this.cdr.detectChanges();
-
-    const updatedPerms = JSON.parse(JSON.stringify(this.currentMatrix));
-    this.selectedStaff.customPermissions = updatedPerms;
-    this.selectedStaff.effectivePermissions = updatedPerms;
-
-    // 1. Lưu local cache
-    const customMap = this.loadAllCustomStaffPermissions();
-    if (this.selectedStaff.email) {
-      customMap[this.selectedStaff.email.toLowerCase()] = updatedPerms;
-    }
-    if (this.selectedStaff.id) {
-      customMap[this.selectedStaff.id] = updatedPerms;
-    }
-    localStorage.setItem('dcor_staff_custom_permissions', JSON.stringify(customMap));
-
-    // 2. Cập nhật cache danh sách nhân sự
-    const cachedStaffList = localStorage.getItem('dcor_staff_accounts_list');
-    if (cachedStaffList) {
-      try {
-        const parsed = JSON.parse(cachedStaffList);
-        const idx = parsed.findIndex((s: any) => s.id === this.selectedStaff!.id || s.email === this.selectedStaff!.email);
-        if (idx !== -1) {
-          parsed[idx].customPermissions = updatedPerms;
-          parsed[idx].effectivePermissions = updatedPerms;
-          localStorage.setItem('dcor_staff_accounts_list', JSON.stringify(parsed));
+      this.modulesList.forEach(m => {
+        if (!this.allRolePermissions[r.name][m.key]) {
+          this.allRolePermissions[r.name][m.key] = {};
         }
-      } catch (e) {}
-    }
+        m.actions.forEach(act => {
+          if (r.name === 'Super Admin' || r.code === 'SUPER_ADMIN') {
+            this.allRolePermissions[r.name][m.key][act.key] = true;
+          } else if (this.allRolePermissions[r.name][m.key][act.key] === undefined) {
+            this.allRolePermissions[r.name][m.key][act.key] = false;
+          }
+        });
+      });
+    });
+  }
 
-    // 3. Gửi lên backend API
-    this.http.put(`${environment.apiUrl}/admin/staff/${this.selectedStaff.id}/permissions`, {
-      email: this.selectedStaff.email,
-      customPermissions: updatedPerms
-    }).subscribe({
-      next: () => {
-        this.saveLoading = false;
-        this.showToast(`Đã lưu phân quyền thành công cho nhân sự "${this.selectedStaff!.name}"!`, 'success');
-        this.cdr.detectChanges();
+  loadStaffCounts(): void {
+    this.http.get<any[]>(`${environment.apiUrl}/admin/staff`).subscribe({
+      next: (staffList) => {
+        if (Array.isArray(staffList)) {
+          const counts: Record<string, number> = {};
+          staffList.forEach(s => {
+            const rList = Array.isArray(s.roles) && s.roles.length > 0 ? s.roles : [s.role];
+            rList.forEach((rName: string) => {
+              if (rName) {
+                counts[rName] = (counts[rName] || 0) + 1;
+              }
+            });
+          });
+          this.staffCounts = counts;
+        }
       },
-      error: () => {
-        this.saveLoading = false;
-        this.showToast(`Đã lưu phân quyền cho nhân sự "${this.selectedStaff!.name}"!`, 'success');
-        this.cdr.detectChanges();
-      }
+      error: () => {}
     });
   }
 
-  private loadAllCustomStaffPermissions(): Record<string, RolePermissions> {
-    try {
-      const saved = localStorage.getItem('dcor_staff_custom_permissions');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return {};
-  }
-
-  savePermissions(): void {
-    if (this.activeViewTab === 'staff_matrix') {
-      this.showToast('Đang ở chế độ xem quyền hiệu lực nhân sự. Vui lòng chuyển sang tab "Cấu hình Mẫu Vai trò" để chỉnh sửa và lưu.', 'info');
-      return;
-    }
-
-    this.saveLoading = true;
-    this.cdr.detectChanges();
-    this.allRolePermissions[this.selectedRoleName] = this.currentMatrix;
-
-    this.adminAuthService.updateRolePermissions(this.selectedRoleName, this.currentMatrix);
-
-    // Cập nhật lại quyền hiệu lực cho toàn bộ nhân sự
-    this.staffMembers.forEach(s => {
-      s.effectivePermissions = this.adminAuthService.calculateEffectivePermissions(s.roles);
-    });
-
-    setTimeout(() => {
-      this.saveLoading = false;
-      this.showToast(`Lưu phân quyền thành công cho vai trò "${this.selectedRoleName}"!`, 'success');
-      this.cdr.detectChanges();
-    }, 400);
-  }
-
-  resetToDefault(): void {
-    if (this.activeViewTab === 'staff_matrix') return;
-    const defaultPerm = DEFAULT_ROLE_PERMISSIONS[this.selectedRoleName] || DEFAULT_ROLE_PERMISSIONS['Sales'];
-    this.currentMatrix = JSON.parse(JSON.stringify(defaultPerm));
-    this.ensureAllModulesExist(this.currentMatrix);
-    this.allRolePermissions[this.selectedRoleName] = this.currentMatrix;
-    this.showToast(`Đã khôi phục ma trận quyền mặc định cho "${this.selectedRoleName}".`, 'info');
-  }
-
-  getInitials(name: string): string {
-    if (!name) return 'DC';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-
-  isWarehouse(branchId: string): boolean {
-    const b = this.adminAuthService.getBranchById(branchId);
-    return b?.type === 'CENTRAL_WAREHOUSE';
+  getStaffCount(roleName: string): number {
+    return this.staffCounts[roleName] || 0;
   }
 
   // =========================================================================
-  // MODAL: + THÊM VAI TRÒ MỚI
+  // TREE-TABLE MỞ RỘNG / THU GỌN
+  // =========================================================================
+
+  isModuleExpanded(modKey: string): boolean {
+    return this.expandedModules.has(modKey);
+  }
+
+  toggleModuleExpand(modKey: string, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    if (this.expandedModules.has(modKey)) {
+      this.expandedModules.delete(modKey);
+    } else {
+      this.expandedModules.add(modKey);
+    }
+  }
+
+  areAllModulesExpanded(): boolean {
+    return this.modulesList.every(m => this.expandedModules.has(m.key));
+  }
+
+  toggleAllModules(): void {
+    if (this.areAllModulesExpanded()) {
+      this.expandedModules.clear();
+    } else {
+      this.modulesList.forEach(m => this.expandedModules.add(m.key));
+    }
+  }
+
+  // Lọc phân hệ nghiệp vụ theo tìm kiếm
+  get filteredModulesList(): PermissionModuleGroup[] {
+    const q = this.searchQuery.trim().toLowerCase();
+    if (!q) return this.modulesList;
+    return this.modulesList.filter(m => 
+      m.name.toLowerCase().includes(q) || 
+      m.actions.some(a => a.name.toLowerCase().includes(q))
+    );
+  }
+
+  // Lọc vai trò theo tìm kiếm
+  get filteredRolesList(): RoleDefinition[] {
+    const q = this.searchQuery.trim().toLowerCase();
+    if (!q) return this.rolesList;
+    const matches = this.rolesList.filter(r => 
+      r.name.toLowerCase().includes(q) || 
+      r.code.toLowerCase().includes(q)
+    );
+    return matches.length > 0 ? matches : this.rolesList;
+  }
+
+  // =========================================================================
+  // LOGIC CHECKBOX PHÂN QUYỀN TRỰC TIẾP (TREE-TABLE CHECKBOX)
+  // =========================================================================
+
+  /**
+   * Trạng thái Checkbox cha (Phân hệ):
+   * - 'all': Có toàn bộ quyền con (hiển thị ✓ checked)
+   * - 'some': Có một phần quyền con (hiển thị − indeterminate)
+   * - 'none': Không có quyền nào (hiển thị ô trống unchecked)
+   */
+  getParentCheckboxState(roleName: string, mod: PermissionModuleGroup): 'all' | 'some' | 'none' {
+    if (roleName === 'Super Admin') return 'all';
+    const rolePerms = this.allRolePermissions[roleName]?.[mod.key];
+    if (!rolePerms) return 'none';
+
+    let granted = 0;
+    mod.actions.forEach(act => {
+      if (rolePerms[act.key]) granted++;
+    });
+
+    if (granted === mod.actions.length) return 'all';
+    if (granted > 0) return 'some';
+    return 'none';
+  }
+
+  toggleParentModuleCheckbox(role: RoleDefinition, mod: PermissionModuleGroup, event: MouseEvent): void {
+    event.stopPropagation();
+    if (role.name === 'Super Admin' || role.code === 'SUPER_ADMIN') {
+      this.showToast('Super Admin mặc định sở hữu toàn bộ các quyền và không thể sửa đổi.', 'info');
+      return;
+    }
+
+    const current = this.getParentCheckboxState(role.name, mod);
+    const newValue = current !== 'all';
+
+    if (!this.allRolePermissions[role.name]) {
+      this.allRolePermissions[role.name] = {};
+    }
+    if (!this.allRolePermissions[role.name][mod.key]) {
+      this.allRolePermissions[role.name][mod.key] = {};
+    }
+
+    mod.actions.forEach(act => {
+      this.allRolePermissions[role.name][mod.key][act.key] = newValue;
+    });
+  }
+
+  isActionChecked(roleName: string, modKey: AdminModule, actKey: string): boolean {
+    if (roleName === 'Super Admin') return true;
+    return !!this.allRolePermissions[roleName]?.[modKey]?.[actKey];
+  }
+
+  toggleActionCheckbox(role: RoleDefinition, modKey: AdminModule, actKey: string, event: MouseEvent): void {
+    event.stopPropagation();
+    if (role.name === 'Super Admin' || role.code === 'SUPER_ADMIN') {
+      this.showToast('Super Admin mặc định sở hữu toàn bộ các quyền.', 'info');
+      return;
+    }
+
+    if (!this.allRolePermissions[role.name]) {
+      this.allRolePermissions[role.name] = {};
+    }
+    if (!this.allRolePermissions[role.name][modKey]) {
+      this.allRolePermissions[role.name][modKey] = {};
+    }
+
+    const current = !!this.allRolePermissions[role.name][modKey][actKey];
+    this.allRolePermissions[role.name][modKey][actKey] = !current;
+
+    // Tự động bật quyền Xem nếu bật bất kỳ thao tác nâng cao nào
+    if (!current && actKey !== 'view') {
+      this.allRolePermissions[role.name][modKey]['view'] = true;
+    }
+  }
+
+  // =========================================================================
+  // LƯU MA TRẬN PHÂN QUYỀN LÊN SERVER
+  // =========================================================================
+
+  saveMatrixToServer(): void {
+    this.saveLoading = true;
+    this.cdr.detectChanges();
+    this.adminAuthService.saveRolePermissionsMatrix(this.allRolePermissions).subscribe({
+      next: () => {
+        this.saveLoading = false;
+        this.showToast('✓ Đã lưu và thực thi ma trận phân quyền IAM tại Server thành công!', 'success');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.saveLoading = false;
+        const msg = err?.error?.message || err?.message || 'Lỗi khi lưu ma trận quyền lên server.';
+        this.showToast(msg, 'warning');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // =========================================================================
+  // QUẢN LÝ VAI TRÒ (THÊM / SỬA / XÓA VAI TRÒ KÈM CHUYỂN GIAO AN TOÀN)
   // =========================================================================
 
   openAddRoleModal(): void {
@@ -490,7 +470,7 @@ export class StaffPermissionsComponent implements OnInit, OnDestroy {
       name: '',
       code: '',
       description: '',
-      cloneFromRoleId: 'NONE'
+      cloneFromRoleName: 'NV Kinh doanh'
     };
     this.isAddRoleModalOpen = true;
   }
@@ -500,57 +480,55 @@ export class StaffPermissionsComponent implements OnInit, OnDestroy {
   }
 
   onRoleNameChange(): void {
-    if (!this.newRoleData.code || this.newRoleData.code === this.generateRoleCode(this.newRoleData.name.slice(0, -1))) {
-      this.newRoleData.code = this.generateRoleCode(this.newRoleData.name);
+    if (!this.newRoleData.code && this.newRoleData.name) {
+      this.newRoleData.code = this.newRoleData.name
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/Đ/g, 'D')
+        .replace(/[^A-Z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
     }
-  }
-
-  generateRoleCode(name: string): string {
-    if (!name) return '';
-    return name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, '_');
   }
 
   submitAddRole(): void {
-    if (!this.newRoleData.name || !this.newRoleData.code) {
-      this.showToast('Vui lòng nhập tên và mã vai trò hợp lệ.', 'warning');
+    const cleanName = (this.newRoleData.name || '').trim();
+    const cleanCode = (this.newRoleData.code || '').trim().toUpperCase().replace(/\s+/g, '_');
+
+    if (!cleanName || cleanName.length < 2) {
+      this.showToast('Vui lòng nhập tên vai trò từ 2 ký tự trở lên.', 'warning');
+      return;
+    }
+    if (!cleanCode || cleanCode.length < 2) {
+      this.showToast('Vui lòng nhập mã vai trò hợp lệ.', 'warning');
       return;
     }
 
-    try {
-      const createdRole = this.adminAuthService.addRole(
-        {
-          name: this.newRoleData.name,
-          code: this.newRoleData.code,
-          description: this.newRoleData.description
-        },
-        this.newRoleData.cloneFromRoleId
-      );
-
-      this.closeAddRoleModal();
-      this.showToast(`Đã tạo vai trò mới "${createdRole.name}" thành công!`, 'success');
-      this.selectRole(createdRole);
-    } catch (err: any) {
-      this.showToast(err.message || 'Lỗi khi tạo vai trò mới.', 'warning');
-    }
+    this.adminAuthService.createRoleOnServer({
+      name: cleanName,
+      code: cleanCode,
+      description: this.newRoleData.description.trim(),
+      cloneFromRoleName: this.newRoleData.cloneFromRoleName
+    }).subscribe({
+      next: () => {
+        this.closeAddRoleModal();
+        this.loadMatrixFromServer();
+        this.showToast(`✓ Đã tạo vai trò "${cleanName}" thành công!`, 'success');
+      },
+      error: (err) => {
+        const msg = err?.error?.message || err?.message || 'Không thể tạo vai trò mới.';
+        this.showToast(msg, 'warning');
+      }
+    });
   }
 
-  // =========================================================================
-  // MODAL: SỬA VAI TRÒ
-  // =========================================================================
-
-  openEditRoleModal(): void {
-    if (!this.selectedRoleDef) return;
+  openEditRoleModal(role: RoleDefinition, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
     this.editRoleData = {
-      id: this.selectedRoleDef.id,
-      name: this.selectedRoleDef.name,
-      description: this.selectedRoleDef.description
+      id: role.id,
+      name: role.name,
+      description: role.description || ''
     };
     this.isEditRoleModalOpen = true;
   }
@@ -560,71 +538,82 @@ export class StaffPermissionsComponent implements OnInit, OnDestroy {
   }
 
   submitEditRole(): void {
-    if (!this.editRoleData.name) {
-      this.showToast('Tên vai trò không được để trống.', 'warning');
+    const cleanName = (this.editRoleData.name || '').trim();
+    if (!cleanName || cleanName.length < 2) {
+      this.showToast('Tên vai trò phải từ 2 ký tự trở lên.', 'warning');
       return;
     }
 
-    try {
-      this.adminAuthService.updateRole(this.editRoleData.id, {
-        name: this.editRoleData.name,
-        description: this.editRoleData.description
-      });
-
-      this.closeEditRoleModal();
-      this.showToast('Cập nhật thông tin vai trò thành công!', 'success');
-    } catch (err: any) {
-      this.showToast(err.message || 'Lỗi khi cập nhật vai trò.', 'warning');
-    }
+    this.adminAuthService.updateRoleOnServer(this.editRoleData.id, {
+      name: cleanName,
+      description: this.editRoleData.description.trim()
+    }).subscribe({
+      next: () => {
+        this.closeEditRoleModal();
+        this.loadMatrixFromServer();
+        this.showToast(`✓ Đã cập nhật vai trò "${cleanName}" thành công!`, 'success');
+      },
+      error: (err) => {
+        const msg = err?.error?.message || err?.message || 'Không thể cập nhật vai trò.';
+        this.showToast(msg, 'warning');
+      }
+    });
   }
 
-  // =========================================================================
-  // XÓA VAI TRÒ
-  // =========================================================================
-
-  openDeleteRoleModal(): void {
-    if (!this.selectedRoleDef) return;
-
-    if (this.selectedRoleDef.isSystem || this.selectedRoleDef.name === 'Super Admin') {
-      this.showToast('Không thể xóa vai trò hệ thống hoặc Super Admin!', 'warning');
+  // Mở modal xóa vai trò - BỎ RÀNG BUỘC isSystem, CHO PHÉP XÓA TẤT CẢ TRỪ SUPER ADMIN
+  openDeleteRoleModal(role: RoleDefinition, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    if (role.code === 'SUPER_ADMIN' || role.name === 'Super Admin') {
+      this.showToast('Super Admin là vai trò quản trị tối cao của hệ thống, không thể xóa!', 'warning');
       return;
     }
 
-    const inUseCount = this.getStaffCount(this.selectedRoleDef.name);
-    if (inUseCount > 0) {
-      this.showToast(`Không thể xóa vai trò "${this.selectedRoleDef.name}" vì đang có ${inUseCount} nhân sự đảm nhiệm!`, 'warning');
-      return;
-    }
-
-    this.roleToDelete = this.selectedRoleDef;
+    this.roleToDelete = role;
+    // Chọn vai trò thay thế mặc định khác vai trò đang xóa
+    const otherRoles = this.rolesList.filter(r => r.id !== role.id && r.name !== role.name);
+    this.reassignTargetRoleName = otherRoles.length > 0 ? otherRoles[0].name : 'NV Kinh doanh';
     this.isDeleteConfirmModalOpen = true;
   }
 
-  closeDeleteModal(): void {
+  closeDeleteRoleModal(): void {
     this.isDeleteConfirmModalOpen = false;
     this.roleToDelete = null;
   }
 
+  // Xóa vai trò kèm chuyển giao tài khoản nhân viên an toàn (tránh lỗi treo web)
   confirmDeleteRole(): void {
     if (!this.roleToDelete) return;
+    const r = this.roleToDelete;
+    const reassignTo = this.reassignTargetRoleName;
 
-    const res = this.adminAuthService.deleteRole(this.roleToDelete.id);
-    this.closeDeleteModal();
-
-    if (res.success) {
-      this.showToast(res.message, 'success');
-      const superAdmin = this.rolesList.find(r => r.name === 'Super Admin') || this.rolesList[0];
-      if (superAdmin) this.selectRole(superAdmin);
-    } else {
-      this.showToast(res.message, 'warning');
-    }
+    this.adminAuthService.deleteRoleOnServer(r.id, reassignTo).subscribe({
+      next: () => {
+        this.closeDeleteRoleModal();
+        this.loadMatrixFromServer();
+        this.loadStaffCounts();
+        this.showToast(`✓ Đã xóa vai trò "${r.name}". Nhân sự bị ảnh hưởng đã được chuyển sang vai trò "${reassignTo}" an toàn!`, 'success');
+      },
+      error: (err) => {
+        const msg = err?.error?.message || err?.message || 'Không thể xóa vai trò này.';
+        this.showToast(msg, 'warning');
+      }
+    });
   }
 
-  showToast(msg: string, type: 'success' | 'info' | 'warning' = 'success'): void {
-    this.toastMessage = msg;
+  get otherAvailableRoles(): RoleDefinition[] {
+    if (!this.roleToDelete) return this.rolesList;
+    return this.rolesList.filter(r => r.id !== this.roleToDelete?.id && r.name !== this.roleToDelete?.name);
+  }
+
+  showToast(message: string, type: 'success' | 'info' | 'warning' = 'success'): void {
+    this.toastMessage = message;
     this.toastType = type;
+    this.cdr.detectChanges();
     setTimeout(() => {
-      if (this.toastMessage === msg) this.toastMessage = '';
-    }, 3800);
+      if (this.toastMessage === message) {
+        this.toastMessage = '';
+        this.cdr.detectChanges();
+      }
+    }, 4500);
   }
 }

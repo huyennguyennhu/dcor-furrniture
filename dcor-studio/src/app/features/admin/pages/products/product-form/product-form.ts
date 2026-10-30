@@ -8,7 +8,8 @@ import {
   ArrowLeft, Save, Upload, Plus, Trash2, Check, AlertCircle, Layers, 
   Package, Settings, Warehouse, Eye, Info, X, ChevronRight, Tag, 
   CheckCircle2, Sparkles, RotateCcw, FileText, SlidersHorizontal, 
-  DollarSign, Image as ImageIcon, HelpCircle, Search, ChevronDown
+  DollarSign, Image as ImageIcon, HelpCircle, Search, ChevronDown,
+  Copy, Sliders, CheckSquare, Square, Images
 } from 'lucide-angular';
 
 import { environment } from '../../../../../../environments/environment';
@@ -22,15 +23,29 @@ export interface ProductImageItem {
   order: number;
 }
 
+export interface AttributeGroup {
+  id: string;
+  name: string;
+  options: string[];
+  newOptionInput: string;
+  isDuplicateWarning?: boolean;
+  duplicateOptionName?: string;
+}
+
 export interface ProductVariantFormItem {
   id: string;
   sku: string;
   name: string;
-  color: string;
-  size: string;
+  attributes: Record<string, string>;
+  color?: string;
+  size?: string;
   price: number;
   originalPrice: number;
-  image: string;
+  costPrice: number;
+  stock: number;
+  barcode: string;
+  images: string[];
+  image?: string;
   isActive: boolean;
 }
 
@@ -54,7 +69,8 @@ export class ProductFormComponent implements OnInit {
     ArrowLeft, Save, Upload, Plus, Trash2, Check, AlertCircle, Layers, 
     Package, Settings, Warehouse, Eye, Info, X, ChevronRight, Tag, 
     CheckCircle2, Sparkles, RotateCcw, FileText, SlidersHorizontal, 
-    DollarSign, ImageIcon, HelpCircle, Search, ChevronDown
+    DollarSign, ImageIcon, HelpCircle, Search, ChevronDown,
+    Copy, Sliders, CheckSquare, Square, Images
   };
 
   // State chế độ Form & Tab
@@ -78,7 +94,7 @@ export class ProductFormComponent implements OnInit {
     basic: {
       name: '',
       baseSku: '',
-      brand: 'DCor Luxury Furniture',
+      brand: '',
       shortDesc: '',
       fullDesc: '',
       images: [] as ProductImageItem[]
@@ -93,12 +109,12 @@ export class ProductFormComponent implements OnInit {
     },
     variants: [] as ProductVariantFormItem[],
     specs: {
-      length: 0,
-      width: 0,
-      height: 0,
-      weight: 0,
-      warrantyMonths: 36,
-      careInstructions: 'Vệ sinh bằng khăn mềm ẩm, tránh tiếp xúc trực tiếp với hóa chất tẩy rửa mạnh hoặc ánh nắng mặt trời chiếu trực tiếp thời gian dài.'
+      length: null as any,
+      width: null as any,
+      height: null as any,
+      weight: null as any,
+      warrantyMonths: null as any,
+      careInstructions: ''
     },
     publication: {
       status: 'Nháp' as 'Đang bán' | 'Nháp' | 'Đã ẩn',
@@ -106,10 +122,46 @@ export class ProductFormComponent implements OnInit {
     }
   };
 
-  // State cho Danh mục & Combobox tìm kiếm
+  // State cho Danh mục Cha & Con
   categories: CategoryOptionItem[] = [];
+  selectedParentCategoryId = '';
   categorySearchQuery = '';
   isCategoryDropdownOpen = false;
+
+  get parentCategories(): CategoryOptionItem[] {
+    return this.categories.filter(c => !c.parentId);
+  }
+
+  get childCategories(): CategoryOptionItem[] {
+    if (!this.selectedParentCategoryId) return [];
+    return this.categories.filter(c => c.parentId === this.selectedParentCategoryId);
+  }
+
+  onParentCategoryChange() {
+    const children = this.childCategories;
+    if (children.length > 0) {
+      this.formData.classification.primaryCategoryId = children[0].id;
+    } else {
+      this.formData.classification.primaryCategoryId = this.selectedParentCategoryId;
+    }
+    this.clearError('category');
+  }
+
+  initSelectedCategories() {
+    if (this.formData.classification.primaryCategoryId) {
+      const found = this.categories.find(c => c.id === this.formData.classification.primaryCategoryId);
+      if (found) {
+        if (found.parentId) {
+          this.selectedParentCategoryId = found.parentId;
+        } else {
+          this.selectedParentCategoryId = found.id;
+        }
+      }
+    } else if (this.parentCategories.length > 0) {
+      this.selectedParentCategoryId = this.parentCategories[0].id;
+      this.onParentCategoryChange();
+    }
+  }
 
   // State cho việc tải ảnh lên Cloudinary
   isUploadingImage = false;
@@ -157,9 +209,27 @@ export class ProductFormComponent implements OnInit {
     { id: 'mat-brass', name: 'Đồng xước thủ công' }
   ];
 
-  // Generator ma trận thuộc tính (Tab 3)
-  colorAttributes: string[] = ['Xám ghi', 'Be sáng', 'Nâu Cognac'];
-  sizeAttributes: string[] = ['2m4', '2m8'];
+  // Generator ma trận thuộc tính động (Tab 3) - Tối đa 3 nhóm
+  attributeGroups: AttributeGroup[] = [];
+  commonAttributeSuggestions = ['Màu sắc', 'Kích thước', 'Chất liệu', 'Kiểu dáng', 'Quy cách', 'Dung lượng'];
+
+  // State cho công cụ Bulk Edit (Chỉnh sửa hàng loạt)
+  bulkEdit = {
+    price: null as number | null,
+    costPrice: null as number | null,
+    stock: null as number | null,
+    skuPrefix: ''
+  };
+
+  // State cho Media Picker Modal (Chọn nhiều ảnh cho biến thể)
+  isVariantImageModalOpen = false;
+  selectedVariantForImage: ProductVariantFormItem | null = null;
+  tempSelectedImages: string[] = [];
+  isUploadingVariantImage = false;
+
+  // Tương thích ngược (nếu có tham chiếu)
+  colorAttributes: string[] = [];
+  sizeAttributes: string[] = [];
   newColorInput = '';
   newSizeInput = '';
 
@@ -226,17 +296,7 @@ export class ProductFormComponent implements OnInit {
         });
 
         this.categories = catsList;
-
-        if (this.formData.classification.primaryCategoryId) {
-          const found = this.categories.find(c => c.id === this.formData.classification.primaryCategoryId);
-          if (found) {
-            this.categorySearchQuery = found.parentName ? `${found.parentName} > ${found.name}` : found.name;
-          }
-        } else if (!this.isEditMode && catsList.length > 0) {
-          // Tự động gán danh mục đầu tiên cho sản phẩm mới
-          this.formData.classification.primaryCategoryId = catsList[0].id;
-          this.categorySearchQuery = catsList[0].parentName ? `${catsList[0].parentName} > ${catsList[0].name}` : catsList[0].name;
-        }
+        this.initSelectedCategories();
         this.cdr.detectChanges();
       },
       error: () => {
@@ -248,6 +308,7 @@ export class ProductFormComponent implements OnInit {
           { id: 'cat-dining', name: 'Bàn ăn & Ghế ăn', displayName: 'Bàn ăn & Ghế ăn' },
           { id: 'cat-storage', name: 'Kệ & Tủ lưu trữ', displayName: 'Kệ & Tủ lưu trữ' }
         ];
+        this.initSelectedCategories();
         this.cdr.detectChanges();
       }
     });
@@ -293,17 +354,10 @@ export class ProductFormComponent implements OnInit {
     this.formData.publication.status = 'Nháp';
     this.formData.publication.isPublished = false;
 
-    // Ảnh mặc định
-    this.formData.basic.images = [
-      {
-        id: 'img-def-1',
-        url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
-        isCover: true,
-        order: 1
-      }
-    ];
-
-    this.generateVariantsFromAttributes();
+    // Không cấu hình sẵn ảnh mẫu - để trống hoàn toàn để người dùng tự tải lên từ thiết bị
+    this.formData.basic.images = [];
+    this.formData.variants = [];
+    this.attributeGroups = [];
   }
 
   // Tải dữ liệu sản phẩm khi chỉnh sửa
@@ -370,24 +424,75 @@ export class ProductFormComponent implements OnInit {
     this.formData.classification.styleId = item.configOptions?.styleId || '';
     this.formData.classification.materialIds = item.configOptions?.materialIds || [];
 
-    // Xử lý biến thể: không chứa tồn kho và giá vốn
+    // Xử lý biến thể: hỗ trợ mảng ảnh, tồn kho, giá vốn, barcode và attributes động
     if (Array.isArray(item.variants) && item.variants.length > 0) {
+      const extractedAttrs: Record<string, Set<string>> = {};
+
       this.formData.variants = item.variants.map((v: any, idx: number) => {
         const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+        const variantImages: string[] = Array.isArray(opt.images) && opt.images.length > 0
+          ? opt.images
+          : (opt.image ? [opt.image] : (this.formData.basic.images[0]?.url ? [this.formData.basic.images[0].url] : []));
+
+        // Trích xuất các thuộc tính động
+        const attrs: Record<string, string> = {};
+        if (opt && typeof opt === 'object') {
+          for (const key of Object.keys(opt)) {
+            if (!['images', 'image', 'costPrice', 'barcode'].includes(key) && opt[key] !== undefined && opt[key] !== null) {
+              const strVal = String(opt[key]).trim();
+              if (strVal) {
+                attrs[key] = strVal;
+                if (!extractedAttrs[key]) extractedAttrs[key] = new Set();
+                extractedAttrs[key].add(strVal);
+              }
+            }
+          }
+        }
+        if (opt.color && !attrs['Màu sắc']) {
+          attrs['Màu sắc'] = String(opt.color);
+          if (!extractedAttrs['Màu sắc']) extractedAttrs['Màu sắc'] = new Set();
+          extractedAttrs['Màu sắc'].add(String(opt.color));
+        }
+        if (opt.size && !attrs['Kích thước']) {
+          attrs['Kích thước'] = String(opt.size);
+          if (!extractedAttrs['Kích thước']) extractedAttrs['Kích thước'] = new Set();
+          extractedAttrs['Kích thước'].add(String(opt.size));
+        }
+
         return {
           id: v.id || `var-${idx + 1}`,
           sku: v.sku || `SKU-${idx + 1}`,
           name: v.name || 'Tiêu chuẩn',
-          color: opt.color || 'Tiêu chuẩn',
-          size: opt.size || 'Mặc định',
+          attributes: attrs,
+          color: opt.color || attrs['Màu sắc'] || '',
+          size: opt.size || attrs['Kích thước'] || '',
           price: v.price || item.basePrice || 0,
           originalPrice: Math.round((v.price || item.basePrice || 0) * 1.15),
-          image: (Array.isArray(opt.images) && opt.images[0]) || this.formData.basic.images[0]?.url || '',
+          costPrice: opt.costPrice || 0,
+          stock: v.stock !== undefined ? v.stock : 0,
+          barcode: opt.barcode || '',
+          images: variantImages,
+          image: variantImages[0] || '',
           isActive: v.isActive !== false
         };
       });
+
+      // Tái lập danh sách attributeGroups từ dữ liệu DB
+      const reconstructedGroups: AttributeGroup[] = [];
+      for (const attrName of Object.keys(extractedAttrs)) {
+        if (reconstructedGroups.length < 3) {
+          reconstructedGroups.push({
+            id: `attr-${Date.now()}-${reconstructedGroups.length}`,
+            name: attrName,
+            options: Array.from(extractedAttrs[attrName]),
+            newOptionInput: ''
+          });
+        }
+      }
+      this.attributeGroups = reconstructedGroups;
     } else {
-      this.generateVariantsFromAttributes();
+      this.attributeGroups = [];
+      this.formData.variants = [];
     }
 
     if (item.configOptions?.specs) {
@@ -398,7 +503,84 @@ export class ProductFormComponent implements OnInit {
     this.formData.publication.isPublished = item.isActive;
   }
 
+  isStep1Valid(): boolean {
+    return !!(this.formData.basic.name && this.formData.basic.name.trim() && this.formData.basic.images && this.formData.basic.images.length > 0);
+  }
+
+  isStep2Valid(): boolean {
+    return this.isStep1Valid() && !!this.formData.classification.primaryCategoryId;
+  }
+
+  isStep3Valid(): boolean {
+    return this.isStep2Valid() && 
+      this.formData.variants.length > 0 && 
+      this.formData.variants.some(v => v.price > 0);
+  }
+
+  isStepAvailable(tabId: ProductFormTab): boolean {
+    if (this.isEditMode) return true;
+    if (tabId === 'basic') return true;
+    if (tabId === 'classification') return this.isStep1Valid();
+    if (tabId === 'variants') return this.isStep2Valid();
+    if (tabId === 'specs') return this.isStep3Valid();
+    return false;
+  }
+
+  canSwitchToTab(tabId: ProductFormTab): boolean {
+    if (this.isEditMode) return true;
+    if (tabId === 'basic') return true;
+
+    if (tabId === 'classification') {
+      if (!this.formData.basic.name || !this.formData.basic.name.trim()) {
+        this.validationErrors['name'] = 'Vui lòng nhập tên sản phẩm trước khi chuyển bước';
+        this.showToast('Vui lòng hoàn thành Tên sản phẩm ở Bước 1!', 'warning');
+        return false;
+      }
+      if (!this.formData.basic.images || this.formData.basic.images.length === 0) {
+        this.validationErrors['images'] = 'Bắt buộc tải lên ít nhất 1 hình ảnh sản phẩm';
+        this.showToast('Vui lòng tải lên ít nhất 1 hình ảnh ở Bước 1!', 'warning');
+        return false;
+      }
+      return true;
+    }
+
+    if (tabId === 'variants') {
+      if (!this.isStep1Valid()) {
+        return this.canSwitchToTab('classification');
+      }
+      if (!this.formData.classification.primaryCategoryId) {
+        this.validationErrors['category'] = 'Vui lòng chọn danh mục chính cho sản phẩm';
+        this.showToast('Vui lòng chọn danh mục sản phẩm ở Bước 2 trước khi qua Bước 3!', 'warning');
+        return false;
+      }
+      return true;
+    }
+
+    if (tabId === 'specs') {
+      if (!this.isStep1Valid() || !this.isStep2Valid()) {
+        return this.canSwitchToTab('variants');
+      }
+      if (this.formData.variants.length === 0) {
+        this.validationErrors['variants'] = 'Bắt buộc tạo ít nhất 1 biến thể';
+        this.showToast('Vui lòng tạo ít nhất 1 biến thể ở Bước 3!', 'warning');
+        return false;
+      }
+      const hasValidPrice = this.formData.variants.some(v => v.price > 0);
+      if (!hasValidPrice) {
+        this.validationErrors['variants'] = 'Ít nhất 1 biến thể phải có giá bán hợp lệ (> 0 ₫)';
+        this.showToast('Vui lòng nhập giá bán (> 0 ₫) cho ít nhất 1 biến thể ở Bước 3!', 'warning');
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  }
+
   switchTab(tabId: ProductFormTab) {
+    if (!this.canSwitchToTab(tabId)) {
+      return;
+    }
     this.activeTab = tabId;
   }
 
@@ -412,7 +594,10 @@ export class ProductFormComponent implements OnInit {
   nextTab() {
     const currentIndex = this.tabs.findIndex(t => t.id === this.activeTab);
     if (currentIndex < this.tabs.length - 1) {
-      this.activeTab = this.tabs[currentIndex + 1].id;
+      const targetTab = this.tabs[currentIndex + 1].id;
+      if (this.canSwitchToTab(targetTab)) {
+        this.activeTab = targetTab;
+      }
     }
   }
 
@@ -533,93 +718,362 @@ export class ProductFormComponent implements OnInit {
     return this.formData.classification.materialIds.includes(matId);
   }
 
-  // --- TAB 3: GENERATE BIẾN THỂ CÁCH NHAU BẰNG DẤU GẠCH ( / ) ---
-  addColorAttribute() {
-    if (this.newColorInput.trim() && !this.colorAttributes.includes(this.newColorInput.trim())) {
-      this.colorAttributes.push(this.newColorInput.trim());
-      this.newColorInput = '';
+  // --- TAB 3: DYNAMIC ATTRIBUTES & CARTESIAN PRODUCT MATRIX ---
+  addAttributeGroup() {
+    if (this.attributeGroups.length >= 10) {
+      this.showToast('Hệ thống hỗ trợ tối đa 10 nhóm thuộc tính!', 'warning');
+      return;
+    }
+    const id = `attr-${Date.now()}-${this.attributeGroups.length}`;
+    const usedNames = this.attributeGroups.map(g => g.name.trim().toLowerCase());
+    const suggestion = this.commonAttributeSuggestions.find(s => !usedNames.includes(s.toLowerCase())) || '';
+
+    this.attributeGroups.push({
+      id,
+      name: suggestion.slice(0, 30),
+      options: [],
+      newOptionInput: ''
+    });
+  }
+
+  removeAttributeGroup(index: number) {
+    this.attributeGroups.splice(index, 1);
+    this.generateVariantsFromAttributes();
+  }
+
+  onOptionInputKeyDown(event: KeyboardEvent, group: AttributeGroup) {
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      this.addOptionTag(group);
     }
   }
 
-  removeColorAttribute(idx: number) {
-    this.colorAttributes.splice(idx, 1);
-  }
-
-  addSizeAttribute() {
-    if (this.newSizeInput.trim() && !this.sizeAttributes.includes(this.newSizeInput.trim())) {
-      this.sizeAttributes.push(this.newSizeInput.trim());
-      this.newSizeInput = '';
-    }
-  }
-
-  removeSizeAttribute(idx: number) {
-    this.sizeAttributes.splice(idx, 1);
-  }
-
-  generateVariantsFromAttributes() {
-    if (this.colorAttributes.length === 0 || this.sizeAttributes.length === 0) {
-      this.showToast('Vui lòng thêm ít nhất 1 Màu sắc và 1 Kích thước để sinh ma trận', 'warning');
+  addOptionTag(group: AttributeGroup) {
+    const groupName = (group.name || '').trim();
+    if (!groupName) {
+      this.showToast('Vui lòng nhập tên thuộc tính trước khi thêm giá trị', 'warning');
       return;
     }
 
-    const baseSku = this.formData.basic.baseSku || 'DCOR-SF';
-    const generated: ProductVariantFormItem[] = [];
+    if (group.options.length >= 10) {
+      this.showToast('Mỗi nhóm thuộc tính chỉ được thêm tối đa 10 giá trị!', 'warning');
+      return;
+    }
 
-    this.colorAttributes.forEach(color => {
-      this.sizeAttributes.forEach(size => {
-        const colorSlug = this.slugify(color).toUpperCase().slice(0, 3);
-        const sizeSlug = this.slugify(size).toUpperCase().slice(0, 4);
-        const varSku = `${baseSku}-${colorSlug}-${sizeSlug}`;
-        const varId = `var-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    let val = (group.newOptionInput || '').trim().replace(/^,+|,+$/g, '');
+    if (!val) return;
 
-        const coverImg = this.formData.basic.images.find(i => i.isCover)?.url || 
-          'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80';
+    if (val.length > 30) {
+      val = val.substring(0, 30);
+      this.showToast('Giá trị thuộc tính được giới hạn tối đa 30 ký tự!', 'info');
+    }
 
-        // Tên biến thể phân tách bằng dấu gạch: sofa vải / 20x20cm / phong cách tối giản
-        generated.push({
+    // Kiểm tra trùng lặp (không phân biệt hoa thường)
+    const exists = group.options.some(opt => opt.toLowerCase() === val.toLowerCase());
+    if (exists) {
+      group.isDuplicateWarning = true;
+      group.duplicateOptionName = val;
+      this.showToast(`Giá trị "${val}" đã tồn tại trong nhóm "${group.name}"!`, 'warning');
+      setTimeout(() => {
+        group.isDuplicateWarning = false;
+        group.duplicateOptionName = undefined;
+        this.cdr.detectChanges();
+      }, 1800);
+      return;
+    }
+
+    group.options.push(val);
+    group.newOptionInput = '';
+    group.isDuplicateWarning = false;
+
+    // Tự động sinh lại ma trận biến thể theo thời gian thực (giữ nguyên dữ liệu cũ theo Composite Key)
+    this.generateVariantsFromAttributes();
+  }
+
+  removeOptionTag(group: AttributeGroup, tagIndex: number) {
+    group.options.splice(tagIndex, 1);
+    this.generateVariantsFromAttributes();
+  }
+
+  // Khóa tổng hợp (Composite Key) để lưu trữ và bảo toàn dữ liệu variant khi thêm/bớt tag
+  private buildCompositeKey(attrs: Record<string, string>): string {
+    if (!attrs) return '';
+    const sortedKeys = Object.keys(attrs).sort();
+    return sortedKeys.map(k => `${k}:${attrs[k]}`).join('|');
+  }
+
+  // Tự động sinh ma trận biến thể (Descartes) kết hợp bảo toàn dữ liệu đã nhập
+  generateVariantsFromAttributes(isManual = false) {
+    const validGroups = this.attributeGroups.filter(g => g.name.trim() && g.options.length > 0);
+
+    if (validGroups.length === 0) {
+      if (isManual) {
+        this.showToast('Vui lòng tạo ít nhất 1 nhóm thuộc tính có giá trị để sinh biến thể', 'warning');
+      }
+      return;
+    }
+
+    const baseSku = this.formData.basic.baseSku || 'DCOR-PRD';
+    const prodName = this.formData.basic.name.trim();
+    const coverImg = this.formData.basic.images.find(i => i.isCover)?.url || this.formData.basic.images[0]?.url || '';
+
+    // Tạo bản đồ các biến thể hiện tại theo composite key để bảo toàn dữ liệu
+    const existingVariantsMap = new Map<string, ProductVariantFormItem>();
+    this.formData.variants.forEach(v => {
+      const key = this.buildCompositeKey(v.attributes || {});
+      if (key) {
+        existingVariantsMap.set(key, v);
+      }
+    });
+
+    // Thuật toán Descartes cho các nhóm thuộc tính
+    const groupArrays = validGroups.map(g => 
+      g.options.map(opt => ({ groupName: g.name.trim().slice(0, 30), value: opt.trim().slice(0, 30) }))
+    );
+
+    const combinations: Array<Array<{ groupName: string; value: string }>> = groupArrays.reduce(
+      (acc, curr) => acc.flatMap(combo => curr.map(item => [...combo, item])),
+      [[]] as Array<Array<{ groupName: string; value: string }>>
+    );
+
+    const newVariants: ProductVariantFormItem[] = [];
+
+    combinations.forEach((combo, idx) => {
+      const attrs: Record<string, string> = {};
+      const slugParts: string[] = [];
+      const titleParts: string[] = [];
+
+      combo.forEach(c => {
+        attrs[c.groupName] = c.value;
+        slugParts.push(this.slugify(c.value).toUpperCase().slice(0, 4));
+        titleParts.push(c.value);
+      });
+
+      const key = this.buildCompositeKey(attrs);
+      const existing = existingVariantsMap.get(key);
+
+      const colorVal = attrs['Màu sắc'] || attrs['Color'] || '';
+      const sizeVal = attrs['Kích thước'] || attrs['Size'] || '';
+
+      const varTitle = prodName ? `${prodName} - ${titleParts.join(' / ')}` : titleParts.join(' / ');
+      const varSku = `${baseSku}-${slugParts.join('-')}`;
+
+      if (existing) {
+        // Giữ nguyên dữ liệu người dùng đã nhập trước đó
+        newVariants.push({
+          ...existing,
+          name: varTitle,
+          attributes: attrs,
+          color: colorVal,
+          size: sizeVal
+        });
+      } else {
+        // Biến thể mới được sinh ra
+        const varId = `var-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`;
+        newVariants.push({
           id: varId,
           sku: varSku,
-          name: `${color} / ${size}`,
-          color,
-          size,
-          price: 15000000,
-          originalPrice: 18000000,
+          name: varTitle,
+          attributes: attrs,
+          color: colorVal,
+          size: sizeVal,
+          price: this.bulkEdit.price || 0,
+          originalPrice: this.bulkEdit.price ? Math.round(this.bulkEdit.price * 1.15) : 0,
+          costPrice: this.bulkEdit.costPrice || 0,
+          stock: 0,
+          barcode: '',
+          images: coverImg ? [coverImg] : [],
           image: coverImg,
           isActive: true
         });
-      });
+      }
     });
 
-    this.formData.variants = generated;
+    this.formData.variants = newVariants;
     delete this.validationErrors['variants'];
-    this.showToast(`Đã tự động sinh ${generated.length} biến thể từ tổ hợp thuộc tính!`, 'success');
+    if (isManual) {
+      this.showToast(`Đã tự động tổ hợp ${newVariants.length} biến thể từ các thuộc tính!`, 'success');
+    }
   }
 
   addManualVariant() {
     const baseSku = this.formData.basic.baseSku || 'DCOR-PRD';
     const index = this.formData.variants.length + 1;
     const varId = `var-manual-${Date.now()}`;
-    const coverImg = this.formData.basic.images.find(i => i.isCover)?.url || 
-      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80';
+    const coverImg = this.formData.basic.images.find(i => i.isCover)?.url || this.formData.basic.images[0]?.url || '';
 
     const newVar: ProductVariantFormItem = {
       id: varId,
       sku: `${baseSku}-VAR-${index}`,
-      name: `Biến thể mới ${index}`,
-      color: 'Tự chọn',
-      size: 'Tiêu chuẩn',
-      price: 12000000,
-      originalPrice: 14000000,
+      name: `Biến thể tùy chỉnh ${index}`,
+      attributes: { 'Đặc biệt': `Tùy chọn ${index}` },
+      color: '',
+      size: '',
+      price: this.bulkEdit.price || 0,
+      originalPrice: 0,
+      costPrice: this.bulkEdit.costPrice || 0,
+      stock: 0,
+      barcode: '',
+      images: coverImg ? [coverImg] : [],
       image: coverImg,
-      isActive: true
+      isActive: false // Biến thể lẻ mặc định không mở bán
     };
 
     this.formData.variants.push(newVar);
-    this.showToast('Đã thêm 1 biến thể thủ công', 'info');
+    this.showToast('Đã thêm 1 biến thể lẻ (mặc định chưa mở bán)', 'info');
   }
 
   removeVariant(index: number) {
     this.formData.variants.splice(index, 1);
+  }
+
+  // --- CÔNG CỤ BULK EDIT (CHỈNH SỬA HÀNG LOẠT) ---
+  applyBulkPrice() {
+    if (this.bulkEdit.price === null || this.bulkEdit.price < 0) {
+      this.showToast('Vui lòng nhập giá bán hợp lệ để áp dụng hàng loạt', 'warning');
+      return;
+    }
+    const p = Math.round(Number(this.bulkEdit.price));
+    this.formData.variants.forEach(v => {
+      v.price = p;
+      v.originalPrice = Math.round(p * 1.15);
+    });
+    this.showToast(`Đã áp dụng giá bán ${this.formatVND(p)} cho tất cả ${this.formData.variants.length} biến thể!`, 'success');
+  }
+
+  applyBulkCostPrice() {
+    if (this.bulkEdit.costPrice === null || this.bulkEdit.costPrice < 0) {
+      this.showToast('Vui lòng nhập giá vốn hợp lệ để áp dụng hàng loạt', 'warning');
+      return;
+    }
+    const cp = Math.round(Number(this.bulkEdit.costPrice));
+    this.formData.variants.forEach(v => {
+      v.costPrice = cp;
+    });
+    this.showToast(`Đã áp dụng giá vốn ${this.formatVND(cp)} cho tất cả ${this.formData.variants.length} biến thể!`, 'success');
+  }
+
+  applyBulkStock() {
+    if (this.bulkEdit.stock === null || this.bulkEdit.stock < 0) {
+      this.showToast('Vui lòng nhập tồn kho ban đầu hợp lệ', 'warning');
+      return;
+    }
+    const st = Math.round(Number(this.bulkEdit.stock));
+    this.formData.variants.forEach(v => {
+      v.stock = st;
+    });
+    this.showToast(`Đã thiết lập tồn kho ban đầu ${st} sản phẩm cho toàn bộ biến thể!`, 'success');
+  }
+
+  applyBulkSkuPrefix() {
+    const prefix = (this.bulkEdit.skuPrefix || '').trim();
+    if (!prefix) {
+      this.showToast('Vui lòng nhập tiền tố SKU để áp dụng hàng loạt', 'warning');
+      return;
+    }
+    this.formData.variants.forEach((v, idx) => {
+      const parts = v.sku.split('-');
+      const suffix = parts.length > 2 ? parts.slice(2).join('-') : `VAR-${idx + 1}`;
+      v.sku = `${prefix}-${suffix}`;
+    });
+    this.showToast(`Đã cập nhật tiền tố SKU "${prefix}" cho tất cả biến thể!`, 'success');
+  }
+
+  // --- VARIANT MEDIA PICKER MODAL (CHỌN NHIỀU ẢNH CHO BIẾN THỂ) ---
+  openVariantImagePicker(variant: ProductVariantFormItem) {
+    this.selectedVariantForImage = variant;
+    this.tempSelectedImages = Array.isArray(variant.images) && variant.images.length > 0
+      ? [...variant.images]
+      : (variant.image ? [variant.image] : []);
+    this.isVariantImageModalOpen = true;
+  }
+
+  closeVariantImagePicker() {
+    this.isVariantImageModalOpen = false;
+    this.selectedVariantForImage = null;
+    this.tempSelectedImages = [];
+  }
+
+  toggleImageSelection(imageUrl: string) {
+    const idx = this.tempSelectedImages.indexOf(imageUrl);
+    if (idx > -1) {
+      this.tempSelectedImages.splice(idx, 1);
+    } else {
+      this.tempSelectedImages.push(imageUrl);
+    }
+  }
+
+  isImageSelected(imageUrl: string): boolean {
+    return this.tempSelectedImages.includes(imageUrl);
+  }
+
+  saveVariantImages() {
+    if (!this.selectedVariantForImage) return;
+
+    this.selectedVariantForImage.images = [...this.tempSelectedImages];
+    this.selectedVariantForImage.image = this.tempSelectedImages[0] || '';
+
+    this.showToast(`Đã lưu ${this.tempSelectedImages.length} ảnh cho biến thể "${this.selectedVariantForImage.name}"`, 'success');
+    this.closeVariantImagePicker();
+  }
+
+  // Áp dụng bộ ảnh này cho tất cả biến thể có cùng giá trị thuộc tính (vd: Tất cả kích cỡ cùng Màu Đỏ)
+  applyImagesToSameAttribute(attrName: string, attrVal: string) {
+    if (!attrName || !attrVal) return;
+
+    let count = 0;
+    this.formData.variants.forEach(v => {
+      if (v.attributes && v.attributes[attrName] === attrVal) {
+        v.images = [...this.tempSelectedImages];
+        v.image = this.tempSelectedImages[0] || '';
+        count++;
+      }
+    });
+
+    this.showToast(`Đã áp dụng ${this.tempSelectedImages.length} ảnh cho ${count} biến thể có ${attrName}: "${attrVal}"!`, 'success');
+    this.closeVariantImagePicker();
+  }
+
+  // Tải ảnh trực tiếp từ modal vào Media Pool và tự động tích chọn
+  onVariantModalUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    this.isUploadingVariantImage = true;
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+
+    this.http.post<any>(`${environment.apiUrl}/upload/image`, uploadData).subscribe({
+      next: (res) => {
+        this.isUploadingVariantImage = false;
+        input.value = '';
+        if (res && res.url) {
+          this.formData.basic.images.push({
+            id: 'img-' + Date.now(),
+            url: res.url,
+            isCover: false,
+            order: this.formData.basic.images.length + 1
+          });
+          if (!this.tempSelectedImages.includes(res.url)) {
+            this.tempSelectedImages.push(res.url);
+          }
+          this.showToast('Đã tải ảnh lên và gắn vào biến thể!', 'success');
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        this.isUploadingVariantImage = false;
+        input.value = '';
+        this.showToast(err?.error?.message || 'Lỗi khi tải ảnh lên.', 'error');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  getVariantAttributeKeys(variant: ProductVariantFormItem | null): string[] {
+    if (!variant || !variant.attributes) return [];
+    return Object.keys(variant.attributes);
   }
 
   // --- VALIDATION & LƯU VÀO DATABASE ---
@@ -713,18 +1167,29 @@ export class ProductFormComponent implements OnInit {
         specs: this.formData.specs
       },
       isActive: this.formData.publication.status === 'Đang bán',
-      variants: this.formData.variants.map(v => ({
-        id: v.id && !v.id.startsWith('var-') ? v.id : undefined,
-        sku: v.sku,
-        name: v.name,
-        price: v.price,
-        isActive: v.isActive,
-        optionValues: {
-          color: v.color,
-          size: v.size,
-          images: v.image ? [v.image] : []
-        }
-      }))
+      variants: this.formData.variants.map(v => {
+        const variantImages = Array.isArray(v.images) && v.images.length > 0
+          ? v.images
+          : (v.image ? [v.image] : (this.formData.basic.images[0]?.url ? [this.formData.basic.images[0].url] : []));
+        return {
+          id: v.id && !v.id.startsWith('var-') ? v.id : undefined,
+          sku: v.sku,
+          name: v.name,
+          price: Number(v.price) || 0,
+          stock: Number(v.stock) || 0,
+          isActive: v.isActive,
+          optionValues: {
+            attributes: v.attributes || {},
+            color: v.color || (v.attributes ? v.attributes['Màu sắc'] : ''),
+            size: v.size || (v.attributes ? v.attributes['Kích thước'] : ''),
+            costPrice: Number(v.costPrice) || 0,
+            stock: Number(v.stock) || 0,
+            barcode: v.barcode || '',
+            images: variantImages,
+            image: variantImages[0] || ''
+          }
+        };
+      })
     };
 
     const request$ = (this.isEditMode && this.productId)

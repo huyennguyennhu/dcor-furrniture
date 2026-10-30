@@ -10,7 +10,7 @@
 /* Toast Floating */
 .toast-alert {
   position: fixed;
-  top: 80px;
+  bottom: 24px;
   right: 24px;
   z-index: 99999;
   display: flex;
@@ -58,6 +58,34 @@
 
 .btn-close-toast:hover {
   opacity: 1;
+}
+
+/* Stats Filter Buttons */
+.stat-filter-btn {
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.5px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface, #FFFFFF);
+  display: block;
+  width: 100%;
+}
+
+.stat-filter-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary, #765337);
+  box-shadow: 0 4px 12px rgba(118, 83, 55, 0.08);
+}
+
+.stat-filter-btn.active {
+  border-color: var(--color-primary, #765337);
+  background: #FFFDF9;
+  box-shadow: 0 0 0 2px rgba(118, 83, 55, 0.18), 0 4px 12px rgba(118, 83, 55, 0.12);
+}
+
+.stat-filter-btn.active .admin-page-stat-label {
+  color: var(--color-primary, #765337);
+  font-weight: 700;
 }
 
 /* Filter Bar */
@@ -498,10 +526,36 @@
 }
 
 /* Multi-Role Chips Picker */
-.multi-role-chips-picker {
+.field-label-with-action {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  width: 100%;
+}
+
+.btn-quick-create-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FAF7F2;
+  border: 1px solid var(--color-primary, #765337);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-quick-create-role:hover {
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+}
+
+.modal-quick-role {
+  max-width: 480px;
 }
 
 .role-select-chip {

@@ -48,6 +48,8 @@
       class="sap-tab-item"
       *ngFor="let tab of tabs"
       [class.active]="activeTab === tab.id"
+      [class.step-locked]="!isStepAvailable(tab.id)"
+      [disabled]="!isStepAvailable(tab.id)"
       [class.has-error]="validationErrors[tab.id] || (tab.id === 'basic' && (validationErrors['name'] || validationErrors['images'])) || (tab.id === 'classification' && validationErrors['category']) || (tab.id === 'variants' && validationErrors['variants'])"
       (click)="switchTab(tab.id)">
       <span class="tab-step-circle">{{ tab.step }}</span>
@@ -82,6 +84,7 @@
             id="prod-name"
             class="form-control" 
             [class.is-invalid]="validationErrors['name']"
+            maxlength="120"
             placeholder="Ví dụ: Sofa Bergamo Góc L Chữ L, Bàn Trà Como..."
             [(ngModel)]="formData.basic.name"
             (ngModelChange)="clearError('name')"
@@ -118,6 +121,7 @@
             type="text" 
             id="prod-brand"
             class="form-control" 
+            maxlength="80"
             placeholder="Ví dụ: DCor Studio Denmark, BoConcept..."
             [(ngModel)]="formData.basic.brand"
           />
@@ -132,6 +136,7 @@
             type="text" 
             id="short-desc"
             class="form-control" 
+            maxlength="255"
             placeholder="Tóm tắt điểm nổi bật: chất liệu, công năng, phong cách trong 1-2 câu ngắn..."
             [(ngModel)]="formData.basic.shortDesc"
           />
@@ -145,97 +150,56 @@
           <textarea 
             id="full-desc"
             class="form-control form-textarea" 
-            rows="6"
+            rows="2"
+            maxlength="3000"
             placeholder="Mô tả câu chuyện thiết kế, vật liệu cấu thành, công nghệ sản xuất, trải nghiệm công năng..."
             [(ngModel)]="formData.basic.fullDesc">
           </textarea>
         </div>
       </div>
 
-      <!-- VÙNG QUẢN LÝ HÌNH ẢNH SẢN PHẨM -->
+      <!-- VÙNG QUẢN LÝ HÌNH ẢNH SẢN PHẨM (GỌN GÀNG, KHÔNG ẢNH MẪU CÓ SẴN) -->
       <div class="image-management-area">
         <div class="area-header">
-          <div>
+          <div class="area-header-info">
             <h4 class="area-title">Thư viện hình ảnh sản phẩm <span class="required-star">*</span></h4>
-            <p class="area-desc">Bắt buộc tối thiểu 1 hình ảnh. Ảnh đầu tiên có ngôi sao sẽ được đặt làm Ảnh bìa đại diện trên Catalog.</p>
+            <span class="area-desc">Bắt buộc tối thiểu 1 ảnh do bạn tải lên. Ảnh có ngôi sao vàng sẽ làm Ảnh bìa đại diện.</span>
           </div>
-          <span class="image-count-tag">{{ formData.basic.images.length }} ảnh đã tải</span>
+
+          <!-- Nút Tải ảnh gọn gàng trên header -->
+          <div class="area-header-actions">
+            <span class="image-count-tag">{{ formData.basic.images.length }} ảnh đã tải</span>
+            <input 
+              type="file" 
+              #fileInput 
+              (change)="onFileInputChange($event)" 
+              accept="image/*" 
+              multiple 
+              style="display: none;" 
+            />
+            <button 
+              type="button" 
+              class="admin-btn admin-btn-secondary upload-btn-sm" 
+              (click)="fileInput.click()" 
+              [disabled]="isUploadingImage">
+              <lucide-angular [img]="icons.Upload" size="14"></lucide-angular>
+              <span *ngIf="!isUploadingImage">+ Tải ảnh lên</span>
+              <span *ngIf="isUploadingImage">Đang tải...</span>
+            </button>
+          </div>
         </div>
 
-        <span class="field-error" *ngIf="validationErrors['images']" style="margin-bottom: 12px; display: block;">
+        <span class="field-error" *ngIf="validationErrors['images']">
           {{ validationErrors['images'] }}
         </span>
 
-        <!-- Tải ảnh trực tiếp từ máy tính lên Cloudinary (Tự động nén WebP) -->
-        <div class="upload-computer-bar">
-          <input 
-            type="file" 
-            #fileInput 
-            (change)="onFileInputChange($event)" 
-            accept="image/*" 
-            multiple 
-            style="display: none;" 
-          />
-          <button 
-            type="button" 
-            class="admin-btn admin-btn-primary upload-cloud-btn" 
-            (click)="fileInput.click()" 
-            [disabled]="isUploadingImage">
-            <lucide-angular [img]="icons.Upload" size="16"></lucide-angular>
-            <span *ngIf="!isUploadingImage">Tải ảnh từ máy tính lên (Lưu Cloudinary & nén WebP)</span>
-            <span *ngIf="isUploadingImage">Đang nén WebP và tải lên Cloudinary...</span>
-          </button>
-          <span class="upload-tip-text">Tự động nén chuẩn WebP dung lượng nhẹ, tối ưu SEO & tốc độ tải trang Store</span>
+        <!-- Dropzone gọn gàng khi CHƯA có ảnh -->
+        <div class="empty-upload-dropzone" *ngIf="formData.basic.images.length === 0" (click)="fileInput.click()">
+          <lucide-angular [img]="icons.Upload" size="18" class="dropzone-icon"></lucide-angular>
+          <span>Chưa có hình ảnh nào. <strong>Bấm vào đây để tải ảnh từ máy tính</strong> (Hỗ trợ JPG, PNG, WEBP)</span>
         </div>
 
-        <!-- Thêm ảnh từ URL -->
-        <div class="add-image-bar">
-          <div class="url-input-wrap">
-            <lucide-angular [img]="icons.ImageIcon" size="16" class="url-icon"></lucide-angular>
-            <input 
-              type="text" 
-              class="form-control" 
-              placeholder="Hoặc dán đường dẫn URL ảnh (Cloudinary, CDN, Unsplash...)"
-              [(ngModel)]="newImageUrl"
-              (keyup.enter)="addImageFromUrl()"
-            />
-          </div>
-          <button type="button" class="admin-btn admin-btn-secondary" (click)="addImageFromUrl()">
-            <lucide-angular [img]="icons.Plus" size="15"></lucide-angular>
-            <span>Thêm ảnh URL</span>
-          </button>
-        </div>
-
-        <!-- Ảnh mẫu gợi ý để test nhanh -->
-        <div class="sample-images-bar">
-          <span class="sample-label">Gợi ý ảnh mẫu DCor:</span>
-          <button 
-            type="button" 
-            class="sample-pill-btn"
-            (click)="addSampleImage('https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80')">
-            Sofa cao cấp
-          </button>
-          <button 
-            type="button" 
-            class="sample-pill-btn"
-            (click)="addSampleImage('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=800&q=80')">
-            Bàn trà hiện đại
-          </button>
-          <button 
-            type="button" 
-            class="sample-pill-btn"
-            (click)="addSampleImage('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80')">
-            Giường ngủ
-          </button>
-          <button 
-            type="button" 
-            class="sample-pill-btn"
-            (click)="addSampleImage('https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=800&q=80')">
-            Bàn ăn Ceramic
-          </button>
-        </div>
-
-        <!-- Lưới hiển thị danh sách ảnh -->
+        <!-- Lưới hiển thị danh sách ảnh siêu gọn khi ĐÃ có ảnh -->
         <div class="images-preview-grid" *ngIf="formData.basic.images.length > 0">
           <div 
             class="image-preview-card" 
@@ -244,7 +208,7 @@
             <div class="img-box">
               <img [src]="img.url" alt="" loading="lazy" />
               <span class="cover-badge" *ngIf="img.isCover">
-                ★ Ảnh đại diện
+                ★ Đại diện
               </span>
             </div>
             <div class="img-card-actions">
@@ -253,14 +217,14 @@
                 class="card-action-btn set-cover-btn" 
                 *ngIf="!img.isCover" 
                 (click)="setCoverImage(idx)">
-                Đặt làm đại diện
+                Bìa
               </button>
               <button 
                 type="button" 
                 class="card-action-btn delete-img-btn" 
                 (click)="removeImage(idx)" 
                 title="Xóa ảnh này">
-                <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+                <lucide-angular [img]="icons.Trash2" size="13"></lucide-angular>
               </button>
             </div>
           </div>
@@ -268,23 +232,14 @@
 
       </div>
 
-      <!-- CẤU HÌNH TÙY BIẾN CHO PHÉP KHÁCH HÀNG CUSTOM -->
-      <div class="custom-feature-card">
-        <div class="custom-feature-header">
-          <div class="custom-feature-icon">
-            <lucide-angular [img]="icons.SlidersHorizontal" size="20"></lucide-angular>
-          </div>
-          <div class="custom-feature-text">
-            <div class="custom-feature-badge-row">
-              <h4 class="custom-feature-title">Cho phép khách hàng yêu cầu Custom</h4>
-              <span class="custom-badge" [class.badge-active]="formData.allowCustom">
-                {{ formData.allowCustom ? 'Đang bật tính năng Custom' : 'Mặc định sản xuất sẵn' }}
-              </span>
-            </div>
-            <p class="custom-feature-desc">
-              Khi bật tính năng này, trang chi tiết sản phẩm phía khách hàng sẽ hiển thị nút "Yêu cầu tùy biến thiết kế riêng" (đặt kích thước theo phòng, đổi chất liệu bọc da/vải, đổi tone màu khung gỗ/thép).
-            </p>
-          </div>
+      <!-- CẤU HÌNH TÙY BIẾN CHO PHÉP KHÁCH HÀNG CUSTOM (GỌN GÀNG) -->
+      <div class="custom-feature-compact">
+        <div class="custom-feature-left">
+          <lucide-angular [img]="icons.SlidersHorizontal" size="17" class="custom-icon-sm"></lucide-angular>
+          <span class="custom-feature-label">Cho phép khách hàng yêu cầu Custom</span>
+          <span class="custom-badge" [class.badge-active]="formData.allowCustom">
+            {{ formData.allowCustom ? 'Đang bật Custom' : 'Sản xuất sẵn' }}
+          </span>
         </div>
         <label class="switch-toggle custom-toggle" title="Bật/Tắt tính năng Custom cho sản phẩm này">
           <input type="checkbox" [(ngModel)]="formData.allowCustom" />
@@ -303,67 +258,43 @@
       </div>
 
       <div class="form-grid-2">
-        <!-- 1. Danh mục chính (Combobox cho phép gõ tìm kiếm trực tiếp) -->
-        <div class="form-group span-2 category-combobox-group">
-          <label class="form-label" for="category-search-input">
-            Danh mục chính <span class="required-star">*</span>
+        <!-- 1. Danh mục chính (Cha) -->
+        <div class="form-group">
+          <label class="form-label" for="parent-cat-select">
+            Danh mục chính (Cha) <span class="required-star">*</span>
           </label>
-          
-          <div class="combobox-wrapper" [class.is-invalid]="validationErrors['category']">
-            <div class="combobox-input-wrap">
-              <lucide-angular [img]="icons.Search" size="16" class="combobox-icon"></lucide-angular>
-              <input 
-                id="category-search-input"
-                type="text" 
-                class="form-control combobox-input" 
-                placeholder="Gõ để tìm kiếm hoặc chọn danh mục (vd: Sofa, Bàn trà, Đèn, Giường...)" 
-                [(ngModel)]="categorySearchQuery"
-                (focus)="isCategoryDropdownOpen = true"
-                (input)="onCategorySearchInput()"
-              />
-              <button 
-                type="button" 
-                class="combobox-clear-btn" 
-                *ngIf="formData.classification.primaryCategoryId || categorySearchQuery"
-                (click)="clearCategorySelection($event)"
-                title="Xóa lựa chọn">
-                <lucide-angular [img]="icons.X" size="14"></lucide-angular>
-              </button>
-              <button 
-                type="button" 
-                class="combobox-dropdown-btn" 
-                (click)="isCategoryDropdownOpen = !isCategoryDropdownOpen"
-                title="Mở danh sách danh mục">
-                <lucide-angular [img]="icons.ChevronDown" size="16" [class.rotated]="isCategoryDropdownOpen"></lucide-angular>
-              </button>
-            </div>
+          <select 
+            id="parent-cat-select" 
+            class="form-control" 
+            [(ngModel)]="selectedParentCategoryId" 
+            (ngModelChange)="onParentCategoryChange()">
+            <option value="">-- Chọn danh mục cha --</option>
+            <option *ngFor="let cat of parentCategories" [value]="cat.id">
+              {{ cat.name }}
+            </option>
+          </select>
+        </div>
 
-            <!-- Panel danh sách gợi ý khi gõ tìm kiếm -->
-            <div class="combobox-dropdown-panel" *ngIf="isCategoryDropdownOpen">
-              <div 
-                class="combobox-item"
-                *ngFor="let cat of filteredCategories"
-                [class.is-selected]="cat.id === formData.classification.primaryCategoryId"
-                [class.is-subcat]="cat.parentId"
-                (click)="selectCategory(cat)">
-                <div class="cat-item-text">
-                  <span class="cat-display-name">{{ cat.displayName }}</span>
-                  <span class="cat-sub-hint" *ngIf="cat.parentName">Danh mục con thuộc: {{ cat.parentName }}</span>
-                </div>
-                <lucide-angular [img]="icons.Check" size="15" class="item-check" *ngIf="cat.id === formData.classification.primaryCategoryId"></lucide-angular>
-              </div>
-
-              <div class="combobox-empty-notice" *ngIf="filteredCategories.length === 0">
-                <lucide-angular [img]="icons.Info" size="15"></lucide-angular>
-                <span>Không tìm thấy danh mục nào khớp với "{{ categorySearchQuery }}"</span>
-              </div>
-            </div>
-          </div>
-
+        <!-- 2. Danh mục con -->
+        <div class="form-group">
+          <label class="form-label" for="child-cat-select">
+            Danh mục con
+          </label>
+          <select 
+            id="child-cat-select" 
+            class="form-control" 
+            [(ngModel)]="formData.classification.primaryCategoryId"
+            (ngModelChange)="clearError('category')">
+            <option [value]="selectedParentCategoryId" *ngIf="selectedParentCategoryId">
+              -- Mặc định (nhóm chính) --
+            </option>
+            <option *ngFor="let sub of childCategories" [value]="sub.id">
+              {{ sub.name }}
+            </option>
+          </select>
           <span class="field-error" *ngIf="validationErrors['category']">
             {{ validationErrors['category'] }}
           </span>
-          <span class="field-hint">Bạn có thể gõ trực tiếp tên danh mục để tìm nhanh hoặc bấm nút mũi tên để xem tất cả.</span>
         </div>
 
         <!-- 2. Bộ sưu tập -->
@@ -440,140 +371,251 @@
     <!-- =======================================================================
          TAB 3: BIẾN THỂ & MA TRẬN TỔ HỢP (VARIANTS & MATRIX GENERATOR)
          ======================================================================= -->
+    <!-- =======================================================================
+         TAB 3: BIẾN THỂ & MA TRẬN TỔ HỢP (VARIANTS & MATRIX GENERATOR)
+         ======================================================================= -->
     <section class="tab-panel" *ngIf="activeTab === 'variants'">
       <div class="panel-section-title">
         <lucide-angular [img]="icons.Layers" size="18" class="section-icon"></lucide-angular>
-        <h3>Cấu hình Thuộc tính & Trình sinh Ma trận Biến thể</h3>
+        <div>
+          <h3>Khai báo Thuộc tính & Trình sinh Ma trận Biến thể Động</h3>
+        </div>
       </div>
 
-      <!-- VÙNG TỔ HỢP MA TRẬN THUỘC TÍNH (MATRIX GENERATOR) -->
-      <div class="matrix-generator-card">
-        <div class="matrix-header">
-          <div class="matrix-title-wrap">
-            <lucide-angular [img]="icons.Sparkles" size="18" class="sparkle-icon"></lucide-angular>
-            <div>
-              <h4 class="m-title">Trình sinh ma trận biến thể tự động (Matrix Generator)</h4>
-              <p class="m-desc">Nhập các tùy chọn Màu sắc và Kích thước, sau đó nhấn nút để tự động tổ hợp thành các biến thể.</p>
-            </div>
+      <!-- VÙNG KHAI BÁO THUỘC TÍNH ĐỘNG (TỐI ĐA 10 NHÓM) -->
+      <div class="dynamic-attributes-container">
+        <div class="attributes-header-row">
+          <div class="attr-header-left">
+            <h4 class="attr-section-title">Nhóm thuộc tính sản phẩm</h4>
+            <span class="attr-count-tag">{{ attributeGroups.length }}/10 nhóm</span>
           </div>
 
           <button 
             type="button" 
-            class="admin-btn admin-btn-primary" 
-            (click)="generateVariantsFromAttributes()">
-            <lucide-angular [img]="icons.Sparkles" size="15"></lucide-angular>
-            <span>Tự động sinh Ma trận biến thể</span>
+            class="admin-btn admin-btn-secondary btn-add-attr-group"
+            (click)="addAttributeGroup()"
+            [disabled]="attributeGroups.length >= 10">
+            <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
+            <span>Thêm thuộc tính khác ({{ attributeGroups.length }}/10)</span>
           </button>
         </div>
 
-        <div class="attributes-grid">
-          <!-- Thuộc tính Màu sắc -->
-          <div class="attr-box">
-            <div class="attr-label">
-              <span>Màu sắc / Bề mặt ({{ colorAttributes.length }})</span>
-            </div>
-            <div class="chips-container">
-              <span class="attr-chip" *ngFor="let c of colorAttributes; let idx = index">
-                {{ c }}
-                <button type="button" class="chip-del" (click)="removeColorAttribute(idx)">×</button>
-              </span>
-            </div>
-            <div class="chip-input-row">
-              <input 
-                type="text" 
-                class="form-control" 
-                placeholder="Thêm màu mới (ví dụ: Nâu Đất, Trắng Kem...)" 
-                [(ngModel)]="newColorInput"
-                (keyup.enter)="addColorAttribute()"
-              />
-              <button type="button" class="admin-btn admin-btn-secondary" (click)="addColorAttribute()">
-                + Thêm
-              </button>
-            </div>
+        <!-- Trạng thái trống khi chưa có nhóm thuộc tính nào -->
+        <div class="empty-attribute-state" *ngIf="attributeGroups.length === 0">
+          <lucide-angular [img]="icons.Sliders" size="24" class="empty-icon"></lucide-angular>
+          <div class="empty-text">
+            <strong>Chưa có thuộc tính nào được khai báo.</strong>
+            <span>Nhấn nút "Thêm thuộc tính khác" ở trên để bắt đầu thêm Màu sắc, Kích thước hoặc Chất liệu.</span>
           </div>
+        </div>
 
-          <!-- Thuộc tính Kích thước -->
-          <div class="attr-box">
-            <div class="attr-label">
-              <span>Kích thước / Quy cách ({{ sizeAttributes.length }})</span>
-            </div>
-            <div class="chips-container">
-              <span class="attr-chip" *ngFor="let s of sizeAttributes; let idx = index">
-                {{ s }}
-                <button type="button" class="chip-del" (click)="removeSizeAttribute(idx)">×</button>
-              </span>
-            </div>
-            <div class="chip-input-row">
-              <input 
-                type="text" 
-                class="form-control" 
-                placeholder="Thêm quy cách (ví dụ: 1m8 × 2m0, 3m2...)" 
-                [(ngModel)]="newSizeInput"
-                (keyup.enter)="addSizeAttribute()"
-              />
-              <button type="button" class="admin-btn admin-btn-secondary" (click)="addSizeAttribute()">
-                + Thêm
+        <!-- Danh sách từng dòng thuộc tính (Attribute Row) -->
+        <div class="attribute-rows-list" *ngIf="attributeGroups.length > 0">
+          <div 
+            class="attribute-row-card" 
+            *ngFor="let group of attributeGroups; let gIdx = index"
+            [class.has-error]="group.isDuplicateWarning">
+            
+            <div class="attr-card-header">
+              <div class="attr-name-input-wrap">
+                <span class="attr-order-badge">#{{ gIdx + 1 }}</span>
+                <input 
+                  type="text" 
+                  class="form-control attr-name-input"
+                  [(ngModel)]="group.name"
+                  placeholder="Nhập tên thuộc tính (vd: Màu sắc, Kích thước...)"
+                  (ngModelChange)="generateVariantsFromAttributes()"
+                  [attr.list]="'attr-suggestions-' + gIdx"
+                  maxlength="30"
+                />
+                <datalist [id]="'attr-suggestions-' + gIdx">
+                  <option *ngFor="let s of commonAttributeSuggestions" [value]="s"></option>
+                </datalist>
+                <span class="attr-tip-text" *ngIf="!group.name.trim()">← Nhập tên thuộc tính để mở khóa nhập giá trị</span>
+              </div>
+
+              <button 
+                type="button" 
+                class="btn-delete-group" 
+                (click)="removeAttributeGroup(gIdx)"
+                title="Xóa nhóm thuộc tính này">
+                <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
               </button>
             </div>
+
+            <!-- Khung danh sách Chips và Input thêm giá trị -->
+            <div class="attr-card-body">
+              <div class="chips-tags-wrapper">
+                <span class="attr-chip" *ngFor="let opt of group.options; let oIdx = index">
+                  <span class="chip-text">{{ opt }}</span>
+                  <button type="button" class="chip-del" (click)="removeOptionTag(group, oIdx)" title="Xóa tùy chọn này">×</button>
+                </span>
+
+                <!-- Input nhập giá trị tag -->
+                <div class="tag-input-inline">
+                  <input 
+                    type="text" 
+                    class="form-control tag-inline-input"
+                    [class.input-disabled]="!group.name.trim() || group.options.length >= 10"
+                    [disabled]="!group.name.trim() || group.options.length >= 10"
+                    placeholder="{{ !group.name.trim() ? 'Vui lòng nhập tên thuộc tính trước' : (group.options.length >= 10 ? 'Đã đạt giới hạn tối đa 10 giá trị' : 'Nhập giá trị (' + group.options.length + '/10) rồi ấn Enter hoặc phẩy (,)...') }}"
+                    [(ngModel)]="group.newOptionInput"
+                    (keydown)="onOptionInputKeyDown($event, group)"
+                    maxlength="30"
+                  />
+                  <button 
+                    type="button" 
+                    class="admin-btn admin-btn-secondary btn-add-tag-sm" 
+                    [disabled]="!group.name.trim() || !group.newOptionInput.trim() || group.options.length >= 10"
+                    (click)="addOptionTag(group)">
+                    + Thêm
+                  </button>
+                </div>
+              </div>
+
+              <!-- Cảnh báo trùng lặp -->
+              <div class="duplicate-tag-alert" *ngIf="group.isDuplicateWarning">
+                <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+                <span>Giá trị "{{ group.duplicateOptionName }}" đã có trong nhóm thuộc tính này!</span>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
 
-      <!-- BẢNG DANH SÁCH BIẾN THỂ -->
+      <!-- ==========================================================
+           CÔNG CỤ BULK EDIT & BẢNG MA TRẬN BIẾN THỂ (DATA GRID)
+           ========================================================== -->
       <div class="variants-table-section">
+        
+        <!-- Thanh công cụ chỉnh sửa hàng loạt (Bulk Edit Toolbar) - Thiết kế lớn, nổi bật -->
+        <div class="bulk-edit-toolbar">
+          <div class="bulk-toolbar-title">
+            <lucide-angular [img]="icons.SlidersHorizontal" size="17" class="bulk-icon-main"></lucide-angular>
+            <div>
+              <span class="bulk-title-main">Chỉnh sửa hàng loạt (Bulk Edit)</span>
+              <span class="bulk-title-sub">Nhấn Enter hoặc nút Áp dụng để cập nhật nhanh cho tất cả biến thể</span>
+            </div>
+          </div>
+
+          <div class="bulk-inputs-flex">
+            <!-- Giá bán chung -->
+            <div class="bulk-field-group">
+              <span class="bulk-label">Giá bán chung:</span>
+              <div class="bulk-input-wrap">
+                <input 
+                  type="number" 
+                  class="form-control bulk-input" 
+                  [(ngModel)]="bulkEdit.price" 
+                  (keyup.enter)="applyBulkPrice()"
+                  placeholder="₫ Nhập giá bán" 
+                  step="100000"
+                  min="0"
+                />
+                <button type="button" class="admin-btn admin-btn-secondary bulk-btn" (click)="applyBulkPrice()" title="Áp dụng giá bán cho tất cả (hoặc nhấn Enter)">
+                  Áp dụng
+                </button>
+              </div>
+            </div>
+
+            <!-- Giá vốn chung -->
+            <div class="bulk-field-group">
+              <span class="bulk-label">Giá vốn chung:</span>
+              <div class="bulk-input-wrap">
+                <input 
+                  type="number" 
+                  class="form-control bulk-input" 
+                  [(ngModel)]="bulkEdit.costPrice" 
+                  (keyup.enter)="applyBulkCostPrice()"
+                  placeholder="₫ Nhập giá vốn" 
+                  step="100000"
+                  min="0"
+                />
+                <button type="button" class="admin-btn admin-btn-secondary bulk-btn" (click)="applyBulkCostPrice()" title="Áp dụng giá vốn cho tất cả (hoặc nhấn Enter)">
+                  Áp dụng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Header danh sách biến thể -->
         <div class="table-actions-header">
-          <div>
-            <h4 class="table-title">Danh sách biến thể đã tạo ({{ formData.variants.length }})</h4>
+          <div class="table-header-left">
+            <h4 class="table-title">Ma trận biến thể sản phẩm ({{ formData.variants.length }})</h4>
             <span class="field-error" *ngIf="validationErrors['variants']">
               {{ validationErrors['variants'] }}
             </span>
           </div>
 
-          <button type="button" class="admin-btn admin-btn-secondary" (click)="addManualVariant()">
-            <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
-            <span>+ Thêm thủ công 1 biến thể lẻ</span>
-          </button>
+          <div class="table-header-right">
+            <button 
+              type="button" 
+              class="admin-btn admin-btn-secondary" 
+              (click)="generateVariantsFromAttributes(true)">
+              <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+              <span>Tổ hợp lại ma trận</span>
+            </button>
+
+            <button type="button" class="admin-btn admin-btn-secondary" (click)="addManualVariant()">
+              <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
+              <span>Thêm biến thể lẻ</span>
+            </button>
+          </div>
         </div>
 
+        <!-- Bảng danh sách chi tiết (Data Grid) -->
         <div class="table-responsive">
           <table class="variants-form-table">
             <thead>
               <tr>
-                <th style="width: 50px;">Ảnh</th>
-                <th style="width: 170px;">Mã SKU biến thể</th>
+                <th style="width: 60px; text-align: center;">Ảnh</th>
                 <th>Tên quy cách biến thể</th>
-                <th style="width: 170px;">Giá bán niêm yết (₫) <span class="required-star">*</span></th>
-                <th style="width: 160px;">Giá gốc (₫)</th>
-                <th style="width: 100px; text-align: center;">Mở bán</th>
-                <th style="width: 50px;"></th>
+                <th style="width: 200px;">Mã SKU</th>
+                <th style="width: 190px;">Giá bán (₫) <span class="required-star">*</span></th>
+                <th style="width: 170px;">Giá vốn (₫)</th>
+                <th style="width: 110px; text-align: center;">Tồn kho</th>
+                <th style="width: 80px; text-align: center;">Mở bán</th>
+                <th style="width: 50px; text-align: center;"></th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="formData.variants.length === 0">
-                <td colspan="7" class="text-center py-4 text-muted">
-                  Chưa có biến thể nào. Vui lòng bấm "Tự động sinh Ma trận" ở trên hoặc thêm thủ công.
+                <td colspan="8" class="text-center py-4 text-muted">
+                  Chưa có biến thể nào. Vui lòng thêm các nhóm thuộc tính ở trên để tự động tổ hợp ma trận.
                 </td>
               </tr>
               <tr *ngFor="let v of formData.variants; let vIdx = index" [class.row-disabled]="!v.isActive">
                 
-                <!-- Ảnh biến thể -->
-                <td>
-                  <div class="var-img-thumbnail">
-                    <img [src]="v.image" alt="" />
+                <!-- Cột Ảnh: Hiển thị thumbnail và số lượng ảnh, click mở Media Picker Modal -->
+                <td style="text-align: center;">
+                  <div 
+                    class="var-img-thumbnail-cell" 
+                    (click)="openVariantImagePicker(v)"
+                    title="Bấm để chọn nhiều ảnh cho biến thể này">
+                    <img *ngIf="v.images && v.images.length > 0" [src]="v.images[0]" alt="" />
+                    <img *ngIf="(!v.images || v.images.length === 0) && v.image" [src]="v.image" alt="" />
+                    <div *ngIf="(!v.images || v.images.length === 0) && !v.image" class="no-img-box">
+                      <lucide-angular [img]="icons.ImageIcon" size="14"></lucide-angular>
+                    </div>
+                    <span class="var-img-count-badge" *ngIf="v.images && v.images.length > 1">
+                      +{{ v.images.length }}
+                    </span>
                   </div>
                 </td>
 
-                <!-- SKU biến thể -->
+                <!-- Tên quy cách biến thể -->
                 <td>
-                  <input type="text" class="form-control table-input font-mono" [(ngModel)]="v.sku" />
+                  <input type="text" class="form-control table-input" [(ngModel)]="v.name" maxlength="120" />
                 </td>
 
-                <!-- Tên biến thể -->
+                <!-- Mã SKU -->
                 <td>
-                  <input type="text" class="form-control table-input" [(ngModel)]="v.name" />
+                  <input type="text" class="form-control table-input font-mono" [(ngModel)]="v.sku" maxlength="50" />
                 </td>
 
-                <!-- Giá bán -->
+                <!-- Giá bán niêm yết -->
                 <td>
                   <input 
                     type="number" 
@@ -581,31 +623,44 @@
                     [(ngModel)]="v.price" 
                     step="100000"
                     min="0"
+                    max="1000000000"
                   />
                   <div class="table-sub-price">{{ formatVND(v.price) }}</div>
                 </td>
 
-                <!-- Giá gốc -->
+                <!-- Giá vốn -->
                 <td>
                   <input 
                     type="number" 
                     class="form-control table-input" 
-                    [(ngModel)]="v.originalPrice" 
+                    [(ngModel)]="v.costPrice" 
                     step="100000"
                     min="0"
+                    max="1000000000"
                   />
-                  <div class="table-sub-price text-muted">{{ formatVND(v.originalPrice) }}</div>
+                  <div class="table-sub-price text-muted">{{ formatVND(v.costPrice) }}</div>
                 </td>
 
-                <!-- Toggle Bật/Tắt bán -->
+                <!-- Tồn kho ban đầu -->
+                <td>
+                  <input 
+                    type="number" 
+                    class="form-control table-input text-center font-bold" 
+                    [(ngModel)]="v.stock" 
+                    min="0"
+                    max="999999"
+                  />
+                </td>
+
+                <!-- Toggle Bật/Tắt mở bán -->
                 <td style="text-align: center;">
-                  <label class="switch-toggle" [title]="v.isActive ? 'Đang mở bán biến thể' : 'Tạm dừng bán biến thể'">
+                  <label class="switch-toggle" [title]="v.isActive ? 'Đang mở bán biến thể này' : 'Tạm dừng bán biến thể này'">
                     <input type="checkbox" [(ngModel)]="v.isActive" />
                     <span class="slider"></span>
                   </label>
                 </td>
 
-                <!-- Xóa -->
+                <!-- Xóa biến thể -->
                 <td style="text-align: center;">
                   <button type="button" class="del-row-btn" (click)="removeVariant(vIdx)" title="Xóa biến thể">
                     <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
@@ -636,7 +691,7 @@
             <div class="dim-item">
               <span class="dim-label">Chiều Dài (L)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.length" placeholder="2800" min="0" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.length" placeholder="2800" min="0" max="50000" />
                 <span class="unit">mm</span>
               </div>
             </div>
@@ -644,7 +699,7 @@
             <div class="dim-item">
               <span class="dim-label">Chiều Rộng (W)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.width" placeholder="1650" min="0" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.width" placeholder="1650" min="0" max="50000" />
                 <span class="unit">mm</span>
               </div>
             </div>
@@ -652,7 +707,7 @@
             <div class="dim-item">
               <span class="dim-label">Chiều Cao (H)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.height" placeholder="820" min="0" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.height" placeholder="820" min="0" max="50000" />
                 <span class="unit">mm</span>
               </div>
             </div>
@@ -660,7 +715,7 @@
             <div class="dim-item">
               <span class="dim-label">Trọng lượng (Weight)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.weight" placeholder="95" min="0" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.weight" placeholder="95" min="0" max="10000" />
                 <span class="unit">kg</span>
               </div>
             </div>
@@ -679,6 +734,7 @@
               class="form-control" 
               [(ngModel)]="formData.specs.warrantyMonths"
               min="0"
+              max="120"
               step="12"
             />
             <span class="unit">tháng</span>
@@ -710,6 +766,7 @@
             id="care-inst"
             class="form-control form-textarea" 
             rows="4"
+            maxlength="2000"
             [(ngModel)]="formData.specs.careInstructions"
             placeholder="Hướng dẫn khách hàng cách vệ sinh định kỳ, bảo dưỡng da thật hoặc nỉ copenhagen...">
           </textarea>
@@ -746,11 +803,7 @@
         <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
       </button>
 
-      <!-- Nút Lưu nháp -->
-      <button type="button" class="admin-btn admin-btn-outline-brown" (click)="saveDraft()">
-        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
-        <span>Lưu nháp</span>
-      </button>
+
 
       <!-- Nút Xuất bản sản phẩm -->
       <button type="button" class="admin-btn admin-btn-primary btn-publish" (click)="publishProduct()">
@@ -773,4 +826,113 @@
     </button>
   </div>
 
+  <!-- =========================================================================
+       6. VARIANT MEDIA PICKER MODAL (CHỌN NHIỀU ẢNH CHO BIẾN THỂ)
+       ========================================================================= -->
+  <div class="variant-media-backdrop" *ngIf="isVariantImageModalOpen" (click)="closeVariantImagePicker()"></div>
+  <div class="variant-media-modal" *ngIf="isVariantImageModalOpen">
+    <div class="vmodal-header">
+      <div class="vmodal-title-wrap">
+        <lucide-angular [img]="icons.Images" size="18" class="vmodal-icon"></lucide-angular>
+        <div>
+          <h3 class="vmodal-title">Thư viện ảnh cho biến thể</h3>
+          <p class="vmodal-subtitle">{{ selectedVariantForImage?.name }} (SKU: {{ selectedVariantForImage?.sku }})</p>
+        </div>
+      </div>
+      <button type="button" class="vmodal-close-btn" (click)="closeVariantImagePicker()">
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="vmodal-body">
+      <!-- Thanh hành động nhanh & Upload trực tiếp -->
+      <div class="vmodal-actions-bar">
+        <div class="vmodal-hint">
+          <span>Chọn một hoặc nhiều ảnh cho biến thể này (Góc chụp, chi tiết bề mặt). Ảnh đầu tiên sẽ làm ảnh đại diện.</span>
+        </div>
+
+        <div class="vmodal-upload-action">
+          <input 
+            type="file" 
+            #variantFileInput 
+            (change)="onVariantModalUpload($event)" 
+            accept="image/*" 
+            style="display: none;" 
+          />
+          <button 
+            type="button" 
+            class="admin-btn admin-btn-secondary upload-btn-sm" 
+            (click)="variantFileInput.click()"
+            [disabled]="isUploadingVariantImage">
+            <lucide-angular [img]="icons.Upload" size="13"></lucide-angular>
+            <span *ngIf="!isUploadingVariantImage">+ Tải ảnh mới từ máy</span>
+            <span *ngIf="isUploadingVariantImage">Đang tải...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action: Áp dụng ảnh cho tất cả biến thể có cùng thuộc tính (Ví dụ: Tất cả kích cỡ cùng Màu Đỏ) -->
+      <div class="vmodal-quick-apply" *ngIf="selectedVariantForImage && getVariantAttributeKeys(selectedVariantForImage).length > 0">
+        <span class="quick-apply-label">Đồng bộ nhanh:</span>
+        <div class="quick-apply-buttons">
+          <button 
+            type="button" 
+            class="quick-apply-btn" 
+            *ngFor="let key of getVariantAttributeKeys(selectedVariantForImage)"
+            (click)="applyImagesToSameAttribute(key, selectedVariantForImage.attributes[key])"
+            [disabled]="tempSelectedImages.length === 0">
+            Áp dụng ảnh này cho tất cả [{{ key }}: {{ selectedVariantForImage.attributes[key] }}]
+          </button>
+        </div>
+      </div>
+
+      <!-- Lưới ảnh trong Media Pool -->
+      <div class="vmodal-images-grid" *ngIf="formData.basic.images.length > 0">
+        <div 
+          class="vmodal-image-card" 
+          *ngFor="let img of formData.basic.images; let idx = index"
+          [class.is-selected]="isImageSelected(img.url)"
+          (click)="toggleImageSelection(img.url)">
+          
+          <img [src]="img.url" alt="" loading="lazy" />
+
+          <!-- Chỉ số thứ tự chọn hoặc checkbox -->
+          <div class="selection-indicator" [class.checked]="isImageSelected(img.url)">
+            <lucide-angular [img]="icons.Check" size="12" *ngIf="isImageSelected(img.url)"></lucide-angular>
+          </div>
+
+          <span class="cover-tag-sm" *ngIf="img.isCover">Bìa SP</span>
+        </div>
+      </div>
+
+      <!-- Trạng thái chưa có ảnh trong Media Pool -->
+      <div class="vmodal-empty-state" *ngIf="formData.basic.images.length === 0">
+        <lucide-angular [img]="icons.ImageIcon" size="32" class="empty-icon"></lucide-angular>
+        <p>Sản phẩm chưa có hình ảnh nào trong Thư viện (Tab 1).</p>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="variantFileInput.click()">
+          + Tải ảnh lên ngay bây giờ
+        </button>
+      </div>
+    </div>
+
+    <div class="vmodal-footer">
+      <div class="vmodal-footer-left">
+        <span class="selected-count-badge">
+          <strong>{{ tempSelectedImages.length }}</strong> ảnh đã chọn cho biến thể
+        </span>
+      </div>
+
+      <div class="vmodal-footer-right">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeVariantImagePicker()">
+          Hủy bỏ
+        </button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="saveVariantImages()">
+          <lucide-angular [img]="icons.Check" size="14"></lucide-angular>
+          <span>Xác nhận lưu ảnh</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
+

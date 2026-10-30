@@ -49,72 +49,14 @@
       <button 
         type="button" 
         class="admin-btn admin-btn-primary" 
-        (click)="goToNew()"
-        *ngIf="canCreate">
-        <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
-        <span>+ Thêm sản phẩm</span>
+        (click)="goToNew()">
+        <span>Thêm sản phẩm</span>
       </button>
     </div>
   </div>
 
   <!-- =========================================================================
-       2. KPI SUMMARY METRICS CARDS
-       ========================================================================= -->
-  <section class="kpi-grid">
-    <!-- Card 1: Tổng sản phẩm -->
-    <article class="kpi-card">
-      <div class="kpi-icon-wrapper kpi-blue">
-        <lucide-angular [img]="icons.Package" size="20"></lucide-angular>
-      </div>
-      <div class="kpi-content">
-        <div class="kpi-label">Tổng sản phẩm</div>
-        <div class="kpi-value">{{ totalNonTrashCount }}</div>
-        <div class="kpi-subtext positive">
-          <lucide-angular [img]="icons.TrendingUp" size="12"></lucide-angular>
-          <span>{{ categories.length - 1 }} danh mục hoạt động</span>
-        </div>
-      </div>
-    </article>
-
-    <!-- Card 2: Đang bán -->
-    <article class="kpi-card">
-      <div class="kpi-icon-wrapper kpi-green">
-        <lucide-angular [img]="icons.Tag" size="20"></lucide-angular>
-      </div>
-      <div class="kpi-content">
-        <div class="kpi-label">Đang mở bán</div>
-        <div class="kpi-value">{{ totalActiveCount }}</div>
-        <div class="kpi-subtext">Hiển thị trực tuyến trên Website</div>
-      </div>
-    </article>
-
-    <!-- Card 3: Sắp hết hàng -->
-    <article class="kpi-card" [class.highlight]="totalLowStockCount > 0">
-      <div class="kpi-icon-wrapper kpi-yellow">
-        <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
-      </div>
-      <div class="kpi-content">
-        <div class="kpi-label">Sắp hết hàng</div>
-        <div class="kpi-value text-warning">{{ totalLowStockCount }}</div>
-        <div class="kpi-subtext">Tồn kho khả dụng &lt; 10 cái</div>
-      </div>
-    </article>
-
-    <!-- Card 4: Hết hàng -->
-    <article class="kpi-card" [class.danger]="totalOutOfStockCount > 0">
-      <div class="kpi-icon-wrapper kpi-red">
-        <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
-      </div>
-      <div class="kpi-content">
-        <div class="kpi-label">Hết hàng</div>
-        <div class="kpi-value text-danger">{{ totalOutOfStockCount }}</div>
-        <div class="kpi-subtext">Cần nhập kho hoặc tạm ẩn</div>
-      </div>
-    </article>
-  </section>
-
-  <!-- =========================================================================
-       3. TABS CHUYỂN ĐỔI TRẠNG THÁI & QUICK EXPAND
+       2. TABS CHUYỂN ĐỔI TRẠNG THÁI & QUICK EXPAND
        ========================================================================= -->
   <div class="tabs-and-tools">
     <nav class="status-tabs-nav" aria-label="Lọc trạng thái sản phẩm">
@@ -155,16 +97,6 @@
         <span class="status-dot dot-hidden"></span>
         <span>Đã ẩn</span>
         <span class="tab-badge">{{ totalHiddenCount }}</span>
-      </button>
-
-      <button 
-        type="button" 
-        class="tab-btn tab-trash" 
-        [class.active]="activeTab === 'TRASH'" 
-        (click)="setTab('TRASH')">
-        <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
-        <span>Thùng rác</span>
-        <span class="tab-badge trash-badge" *ngIf="totalTrashCount > 0">{{ totalTrashCount }}</span>
       </button>
     </nav>
 
@@ -351,8 +283,18 @@
         </thead>
 
         <tbody>
+          <!-- Loading State -->
+          <tr *ngIf="isLoading" class="loading-row">
+            <td colspan="11" style="padding: 60px 16px; text-align: center;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu sản phẩm...</span>
+              </div>
+            </td>
+          </tr>
+
           <!-- Empty State -->
-          <tr *ngIf="filteredProducts.length === 0" class="empty-row">
+          <tr *ngIf="!isLoading && filteredProducts.length === 0" class="empty-row">
             <td colspan="11">
               <div class="empty-state-box">
                 <div class="empty-icon-wrap">
@@ -368,7 +310,8 @@
           </tr>
 
           <!-- Product Rows Loop -->
-          <ng-container *ngFor="let product of filteredProducts">
+          <ng-container *ngIf="!isLoading">
+            <ng-container *ngFor="let product of paginatedProducts">
             
             <!-- MASTER ROW -->
             <tr 
@@ -476,8 +419,7 @@
               <!-- Thao tác nhanh -->
               <td class="col-actions" (click)="$event.stopPropagation()">
                 
-                <!-- Chế độ thường (Không phải Thùng rác) -->
-                <div class="actions-group" *ngIf="!product.isDeleted">
+                <div class="actions-group">
                   <!-- Sửa -->
                   <button 
                     type="button" 
@@ -487,61 +429,23 @@
                     <lucide-angular [img]="icons.Edit" size="15"></lucide-angular>
                   </button>
 
-                  <!-- Ẩn / Hiện -->
+                  <!-- Ẩn / Hiện (Có xác nhận) -->
                   <button 
                     type="button" 
                     class="row-action-btn eye-btn" 
-                    (click)="toggleProductVisibility(product, $event)" 
+                    (click)="requestToggleVisibility(product, $event)" 
                     [title]="product.status === 'Đang bán' ? 'Tạm ẩn sản phẩm' : 'Bật bán sản phẩm'">
                     <lucide-angular [img]="product.status === 'Đang bán' ? icons.Eye : icons.EyeOff" size="15"></lucide-angular>
                   </button>
 
-                  <!-- Nhân bản -->
-                  <button 
-                    type="button" 
-                    class="row-action-btn clone-btn" 
-                    (click)="cloneProduct(product, $event)" 
-                    title="Nhân bản sản phẩm">
-                    <lucide-angular [img]="icons.Copy" size="15"></lucide-angular>
-                  </button>
-
-                  <!-- Xóa (Đưa vào Thùng rác) -->
+                  <!-- Xóa 2 bước -->
                   <button 
                     type="button" 
                     class="row-action-btn trash-btn" 
-                    (click)="moveToTrash(product, $event)" 
-                    title="Đưa vào Thùng rác">
+                    (click)="openDeleteStep1(product, $event)" 
+                    title="Xóa vĩnh viễn sản phẩm">
                     <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
                   </button>
-                </div>
-
-                <!-- Chế độ Thùng rác (Trash Tab) -->
-                <div class="actions-group" *ngIf="product.isDeleted">
-                  <!-- Khôi phục -->
-                  <button 
-                    type="button" 
-                    class="row-action-btn restore-btn" 
-                    (click)="restoreFromTrash(product, $event)" 
-                    title="Khôi phục sản phẩm về danh sách">
-                    <lucide-angular [img]="icons.RotateCcw" size="15"></lucide-angular>
-                    <span class="btn-text-sm">Khôi phục</span>
-                  </button>
-
-                  <!-- Xóa vĩnh viễn -->
-                  <div class="permanent-delete-wrapper">
-                    <button 
-                      type="button" 
-                      class="row-action-btn delete-perm-btn" 
-                      [disabled]="product.hasOrders"
-                      (click)="openPermanentDeleteModal(product, $event)"
-                      [title]="product.hasOrders ? 'Không thể xóa vĩnh viễn vì sản phẩm đã có lịch sử đơn hàng' : 'Xóa vĩnh viễn khỏi cơ sở dữ liệu'">
-                      <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
-                    </button>
-                    <!-- Tooltip khi có đơn -->
-                    <div class="order-warning-tooltip" *ngIf="product.hasOrders">
-                      Đã có lịch sử đơn hàng, không thể xóa vĩnh viễn
-                    </div>
-                  </div>
                 </div>
 
               </td>
@@ -644,14 +548,43 @@
             </tr>
 
           </ng-container>
+          </ng-container>
         </tbody>
       </table>
     </div>
 
     <!-- Table Footer Pagination / Summary -->
-    <div class="table-footer-bar">
-      <div class="footer-count">
-        Hiển thị <strong>{{ filteredProducts.length }}</strong> / <strong>{{ allProducts.length }}</strong> sản phẩm
+    <div class="products-pagination-bar" *ngIf="filteredProducts.length > 0">
+      <div class="pagination-info">
+        Hiển thị <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> - 
+        <strong>{{ Math.min(currentPage * pageSize, filteredProducts.length) }}</strong> 
+        trên tổng số <strong>{{ filteredProducts.length }}</strong> sản phẩm
+      </div>
+      <div class="pagination-controls">
+        <button 
+          type="button" 
+          class="page-btn page-arrow" 
+          [disabled]="currentPage === 1" 
+          (click)="goToPage(currentPage - 1)" 
+          title="Trang trước">
+          <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
+        </button>
+        <button 
+          type="button" 
+          class="page-btn" 
+          *ngFor="let p of pagesArray" 
+          [class.active]="currentPage === p" 
+          (click)="goToPage(p)">
+          {{ p }}
+        </button>
+        <button 
+          type="button" 
+          class="page-btn page-arrow" 
+          [disabled]="currentPage === totalPages" 
+          (click)="goToPage(currentPage + 1)" 
+          title="Trang sau">
+          <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+        </button>
       </div>
     </div>
   </section>
@@ -666,36 +599,15 @@
     </div>
 
     <div class="bulk-actions-group">
-      <!-- Khi ở các tab thường -->
-      <ng-container *ngIf="activeTab !== 'TRASH'">
-        <button type="button" class="bulk-btn" (click)="bulkShow()">
-          <lucide-angular [img]="icons.Eye" size="15"></lucide-angular>
-          <span>Mở bán hàng loạt</span>
-        </button>
+      <button type="button" class="bulk-btn" (click)="bulkShow()">
+        <lucide-angular [img]="icons.Eye" size="15"></lucide-angular>
+        <span>Mở bán hàng loạt</span>
+      </button>
 
-        <button type="button" class="bulk-btn" (click)="bulkHide()">
-          <lucide-angular [img]="icons.EyeOff" size="15"></lucide-angular>
-          <span>Ẩn hàng loạt</span>
-        </button>
-
-        <button type="button" class="bulk-btn danger" (click)="bulkMoveToTrash()">
-          <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
-          <span>Đưa vào thùng rác</span>
-        </button>
-      </ng-container>
-
-      <!-- Khi ở tab Thùng rác -->
-      <ng-container *ngIf="activeTab === 'TRASH'">
-        <button type="button" class="bulk-btn" (click)="bulkRestore()">
-          <lucide-angular [img]="icons.RotateCcw" size="15"></lucide-angular>
-          <span>Khôi phục hàng loạt</span>
-        </button>
-
-        <button type="button" class="bulk-btn danger" (click)="bulkPermanentDelete()">
-          <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
-          <span>Xóa vĩnh viễn (các mục đủ điều kiện)</span>
-        </button>
-      </ng-container>
+      <button type="button" class="bulk-btn" (click)="bulkHide()">
+        <lucide-angular [img]="icons.EyeOff" size="15"></lucide-angular>
+        <span>Ẩn hàng loạt</span>
+      </button>
 
       <button type="button" class="bulk-close-btn" (click)="clearSelection()" title="Bỏ chọn">
         <lucide-angular [img]="icons.X" size="16"></lucide-angular>
@@ -704,49 +616,100 @@
   </div>
 
   <!-- =========================================================================
-       7. MODAL XÁC NHẬN XÓA VĨNH VIỄN
+       7. MODAL XÁC THỰC 2 BƯỚC KHI XÓA SẢN PHẨM (YÊU CẦU NHẬP YES)
        ========================================================================= -->
-  <div class="modal-backdrop" *ngIf="isDeleteConfirmModalOpen" (click)="closeDeleteConfirmModal()">
-    <div class="modal-dialog" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-danger-icon">
-          <lucide-angular [img]="icons.AlertCircle" size="24"></lucide-angular>
-        </div>
-        <div class="modal-title-group">
-          <h3 class="modal-title">Xác nhận xóa vĩnh viễn</h3>
-          <p class="modal-subtitle">Thao tác này sẽ xóa hoàn toàn khỏi cơ sở dữ liệu và không thể hoàn tác.</p>
-        </div>
-      </div>
-
-      <div class="modal-body">
-        <div *ngIf="!isBulkPermanentDelete && productToDelete">
-          Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm:
-          <div class="delete-target-preview">
-            <img [src]="productToDelete.image" alt="" />
-            <div>
-              <strong>{{ productToDelete.name }}</strong>
-              <div class="target-sku">Mã SKU: {{ productToDelete.baseSku }}</div>
-            </div>
+  <div class="modal-backdrop" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()">
+    <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
+      
+      <!-- BƯỚC 1: XÁC THỰC CÓ THỰC SỰ MUỐN XÓA -->
+      <ng-container *ngIf="deleteStep === 1">
+        <div class="modal-header">
+          <div class="danger-icon-box">
+            <lucide-angular [img]="icons.AlertTriangle" size="22"></lucide-angular>
+          </div>
+          <div class="modal-title-group">
+            <h3 class="modal-title">Xác nhận xóa sản phẩm</h3>
+            <p class="modal-subtitle">Bước 1/2: Xác thực hành động xóa</p>
           </div>
         </div>
-
-        <div *ngIf="isBulkPermanentDelete">
-          Bạn có chắc chắn muốn xóa vĩnh viễn tất cả các sản phẩm đã chọn (không có lịch sử đơn hàng)?
+        <div class="modal-body">
+          <p>Bạn có chắc chắn muốn xóa sản phẩm <strong>"{{ productToDelete?.name }}"</strong> (Mã SKU: {{ productToDelete?.baseSku }}) khỏi hệ thống không?</p>
+          <div class="delete-warning-box">
+            <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+            <span>Dữ liệu biến thể, tồn kho và hình ảnh của sản phẩm này sẽ bị xóa hoàn toàn khỏi cơ sở dữ liệu.</span>
+          </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeDeleteModal()">Hủy bỏ</button>
+          <button type="button" class="admin-btn admin-btn-danger" (click)="goToDeleteStep2()">
+            <span>Tiếp tục bước xác thực</span>
+            <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+          </button>
+        </div>
+      </ng-container>
 
-        <div class="modal-warning-notice">
-          <lucide-angular [img]="icons.Info" size="16"></lucide-angular>
-          <span>Dữ liệu biến thể, tồn kho và hình ảnh liên kết sẽ bị xóa hoàn toàn.</span>
+      <!-- BƯỚC 2: YÊU CẦU NHẬP CHỮ YES ĐỂ XÁC NHẬN -->
+      <ng-container *ngIf="deleteStep === 2">
+        <div class="modal-header">
+          <div class="danger-icon-box">
+            <lucide-angular [img]="icons.Trash2" size="22"></lucide-angular>
+          </div>
+          <div class="modal-title-group">
+            <h3 class="modal-title">Xác thực bảo mật bước 2</h3>
+            <p class="modal-subtitle">Vui lòng nhập chữ YES để hoàn tất</p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <p>Hành động này <strong>không thể hoàn tác</strong>. Để xác nhận xóa vĩnh viễn sản phẩm <strong>"{{ productToDelete?.name }}"</strong>, vui lòng nhập chính xác chữ <strong>YES</strong> vào ô bên dưới:</p>
+          <div class="form-group" style="margin-top: 14px;">
+            <input 
+              type="text" 
+              class="form-control text-center font-bold" 
+              placeholder="Nhập chữ YES để xác nhận" 
+              [(ngModel)]="deleteConfirmText"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="deleteStep = 1">Quay lại</button>
+          <button 
+            type="button" 
+            class="admin-btn admin-btn-danger" 
+            [disabled]="deleteConfirmText !== 'YES'" 
+            (click)="executePermanentDelete()">
+            <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+            <span>Xác nhận xóa vĩnh viễn</span>
+          </button>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN ẨN / HIỆN SẢN PHẨM -->
+  <div class="modal-backdrop" *ngIf="isConfirmVisibilityModalOpen" (click)="closeVisibilityModal()">
+    <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="warning-icon-box">
+          <lucide-angular [img]="icons.Eye" size="22"></lucide-angular>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title">Xác nhận thay đổi trạng thái</h3>
+          <p class="modal-subtitle">Cập nhật hiển thị sản phẩm trên website</p>
         </div>
       </div>
-
+      <div class="modal-body">
+        <p>
+          Bạn có chắc chắn muốn 
+          <strong>{{ productToToggle?.status === 'Đang bán' ? 'tạm ẩn' : 'mở bán lại' }}</strong> 
+          sản phẩm <strong>"{{ productToToggle?.name }}"</strong> không?
+        </p>
+      </div>
       <div class="modal-footer">
-        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeDeleteConfirmModal()">
-          Hủy bỏ
-        </button>
-        <button type="button" class="admin-btn admin-btn-danger" (click)="confirmPermanentDelete()">
-          <lucide-angular [img]="icons.Trash2" size="16"></lucide-angular>
-          <span>Xác nhận xóa vĩnh viễn</span>
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeVisibilityModal()">Hủy bỏ</button>
+        <button type="button" class="admin-btn admin-btn-primary" (click)="confirmToggleVisibility()">
+          <span>Xác nhận</span>
         </button>
       </div>
     </div>

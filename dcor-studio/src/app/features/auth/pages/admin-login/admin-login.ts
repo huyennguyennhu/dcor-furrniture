@@ -64,10 +64,11 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   };
 
   private checkIfAlreadyLoggedIn(): void {
-    const hasToken = !!localStorage.getItem('dcor_admin_token');
-    const hasUser = !!this.adminAuthService.currentUser$.value || !!localStorage.getItem('dcor_admin_user');
+    const hasToken = !!localStorage.getItem('dcor_admin_token') || !!sessionStorage.getItem('dcor_admin_token');
+    const hasUser = !!this.adminAuthService.currentUser$.value || !!localStorage.getItem('dcor_admin_user') || !!sessionStorage.getItem('dcor_admin_user');
     if (hasToken && hasUser) {
-      this.router.navigateByUrl('/admin/dashboard', { replaceUrl: true });
+      const targetUrl = this.adminAuthService.getFirstAccessibleRoute() || '/admin/dashboard';
+      this.router.navigateByUrl(targetUrl, { replaceUrl: true });
     }
   }
 
@@ -81,7 +82,8 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     this.adminAuthService.login(this.email, this.password).subscribe({
       next: () => {
         this.loading = false;
-        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/admin/dashboard';
+        const fallbackRoute = this.adminAuthService.getFirstAccessibleRoute() || '/admin/dashboard';
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || fallbackRoute;
         this.router.navigateByUrl(returnUrl, { replaceUrl: true });
       },
       error: (err: any) => {

@@ -31,7 +31,7 @@
         class="admin-btn admin-btn-primary" 
         (click)="openAddModal()">
         <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
-        <span>+ Thêm mới {{ activeGroupLabel }}</span>
+        <span>Thêm mới {{ activeGroupLabel }}</span>
       </button>
     </div>
   </div>
@@ -61,26 +61,6 @@
         <span class="tab-count-badge">{{ getSubCategoriesTotalCount() }}</span>
       </button>
     </nav>
-
-    <!-- THANH PHÂN LOẠI CON: CHỈ XUẤT HIỆN KHI VÀO "DANH MỤC PHỤ" (KHÔNG BỊ TRÀN NGANG) -->
-    <div class="sub-categories-bar" *ngIf="topLevelTab === 'sub'">
-      <div class="sub-bar-label">
-        <lucide-angular [img]="icons.CornerDownRight" size="15" class="sub-arrow-icon"></lucide-angular>
-        <span>Phân loại mở rộng:</span>
-      </div>
-      <div class="sub-pills-list">
-        <button 
-          type="button" 
-          class="sub-pill-btn" 
-          *ngFor="let tab of subCategoriesTabs"
-          [class.active]="activeTab === tab.id"
-          (click)="switchSubGroup(tab.id)">
-          <lucide-angular [img]="tab.icon" size="15" class="pill-icon"></lucide-angular>
-          <span>{{ tab.label }}</span>
-          <span class="sub-pill-badge">{{ getCountByGroup(tab.id) }}</span>
-        </button>
-      </div>
-    </div>
   </div>
 
   <!-- =========================================================================
@@ -121,50 +101,53 @@
   <!-- =========================================================================
        4. BẢNG DỮ LIỆU DANH MỤC & PHÂN CẤP
        ========================================================================= -->
-  <section class="categories-table-card">
+  <section class="categories-table-card table-card">
     <div class="table-responsive">
-      <table class="data-table">
+      <table class="categories-table data-table">
         <thead>
           <tr>
             <th style="width: 70px; text-align: center;">STT</th>
-            <th style="width: 65px;">Ảnh</th>
             <th>Tên & Cấu trúc phân cấp</th>
             <th style="width: 220px;">Đường dẫn tĩnh (Slug)</th>
-            <th style="width: 140px; text-align: center;">Số sản phẩm</th>
+            <th style="width: 140px; text-align: center;">Số lượng</th>
             <th style="width: 140px; text-align: center;">Trạng thái</th>
             <th style="width: 120px; text-align: right;">Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          <!-- Empty State -->
-          <tr *ngIf="rootCategories.length === 0" class="empty-row">
-            <td colspan="7">
-              <div class="empty-state-box">
-                <lucide-angular [img]="icons.Folder" size="36" class="empty-icon"></lucide-angular>
-                <h3>Chưa có mục nào trong nhóm này</h3>
-                <p>Nhấn nút "+ Thêm mới {{ activeGroupLabel }}" ở trên để khởi tạo.</p>
+          <!-- Loading State -->
+          <tr *ngIf="isLoading" class="loading-row">
+            <td colspan="6" style="padding: 60px 16px; text-align: center;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu danh mục...</span>
               </div>
             </td>
           </tr>
 
-          <!-- Lặp danh mục gốc (Cấp 1) -->
-          <ng-container *ngFor="let item of rootCategories; let idx = index">
+          <!-- Empty State -->
+          <tr *ngIf="!isLoading && rootCategories.length === 0" class="empty-row">
+            <td colspan="6">
+              <div class="empty-state-box">
+                <lucide-angular [img]="icons.Folder" size="36" class="empty-icon"></lucide-angular>
+                <h3>Chưa có mục nào trong nhóm này</h3>
+                <p>Nhấn nút "Thêm mới {{ activeGroupLabel }}" ở trên để khởi tạo.</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Lặp danh mục gốc (Cấp 1) theo phân trang -->
+          <ng-container *ngIf="!isLoading">
+          <ng-container *ngFor="let item of paginatedCategories; let idx = index">
             <tr 
               class="category-row root-row"
               [class.has-children]="getSubcategories(item.id).length > 0"
               [class.row-expanded]="isExpanded(item.id)"
               [class.row-hidden]="item.status === 'Đã ẩn'">
               
-              <!-- Cột STT bình thường -->
+              <!-- Cột STT -->
               <td style="text-align: center;">
-                <span class="stt-badge font-bold">#{{ idx + 1 }}</span>
-              </td>
-
-              <!-- Cột Ảnh đại diện -->
-              <td>
-                <div class="cat-thumb-wrap">
-                  <img [src]="item.image" [alt]="item.name" loading="lazy" />
-                </div>
+                <span class="stt-badge font-bold">#{{ (currentPage - 1) * pageSize + idx + 1 }}</span>
               </td>
 
               <!-- Cột Tên & Nút ấn mở danh mục con -->
@@ -207,15 +190,9 @@
                 <span class="slug-badge font-mono">{{ item.slug }}</span>
               </td>
 
-              <!-- Cột Số lượng sản phẩm liên kết -->
+              <!-- Cột Số lượng (chỉ hiển thị số thuần túy không badge màu) -->
               <td style="text-align: center;">
-                <span 
-                  class="products-count-badge"
-                  [class.has-products]="item.productsCount > 0"
-                  [class.zero-products]="item.productsCount === 0"
-                  [title]="item.productsCount > 0 ? (item.productsCount + ' sản phẩm đang liên kết') : 'Chưa có sản phẩm nào'">
-                  {{ item.productsCount }} sản phẩm
-                </span>
+                <span class="plain-count-text">{{ item.productsCount }}</span>
               </td>
 
               <!-- Cột Trạng thái (Bấm có cảnh báo xác nhận) -->
@@ -248,6 +225,7 @@
                   <button 
                     type="button" 
                     class="action-btn delete-btn" 
+                    *ngIf="!item.id.startsWith('sub-')"
                     (click)="handleDeleteClick(item, $event)"
                     [title]="item.productsCount > 0 ? 'Có sản phẩm liên kết - Không thể xóa' : 'Xóa mục này'">
                     <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
@@ -266,14 +244,7 @@
                 
                 <!-- STT con (ví dụ: 1.1, 1.2) -->
                 <td style="text-align: center;">
-                  <span class="sub-stt-badge">{{ idx + 1 }}.{{ childIdx + 1 }}</span>
-                </td>
-
-                <!-- Ảnh con -->
-                <td>
-                  <div class="cat-thumb-wrap child-thumb">
-                    <img [src]="child.image" [alt]="child.name" loading="lazy" />
-                  </div>
+                  <span class="sub-stt-badge">{{ (currentPage - 1) * pageSize + idx + 1 }}.{{ childIdx + 1 }}</span>
                 </td>
 
                 <!-- Tên con kèm nhánh gạch phân cấp -->
@@ -299,14 +270,9 @@
                   <span class="slug-badge font-mono child-slug">{{ child.slug }}</span>
                 </td>
 
-                <!-- SP con -->
+                <!-- Số lượng con -->
                 <td style="text-align: center;">
-                  <span 
-                    class="products-count-badge"
-                    [class.has-products]="child.productsCount > 0"
-                    [class.zero-products]="child.productsCount === 0">
-                    {{ child.productsCount }} sản phẩm
-                  </span>
+                  <span class="plain-count-text">{{ child.productsCount }}</span>
                 </td>
 
                 <!-- Trạng thái con (Có cảnh báo xác nhận) -->
@@ -349,13 +315,49 @@
               </tr>
             </ng-container>
           </ng-container>
+          </ng-container>
         </tbody>
       </table>
     </div>
 
-    <!-- Footer Summary -->
+    <!-- Footer Summary & Pagination -->
     <div class="table-footer-bar">
-      <span>Tổng số trong nhóm <strong>{{ activeGroupLabel }}</strong>: <strong>{{ filteredCategories.length }}</strong> mục</span>
+      <span>Tổng số trong nhóm <strong>{{ activeGroupLabel }}</strong>: <strong>{{ rootCategories.length }}</strong> nhóm danh mục</span>
+    </div>
+
+    <!-- Phân trang 10 danh mục / trang -->
+    <div class="categories-pagination-bar" *ngIf="totalPages > 1">
+      <div class="pagination-info">
+        Hiển thị <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> - 
+        <strong>{{ currentPage * pageSize > rootCategories.length ? rootCategories.length : currentPage * pageSize }}</strong> 
+        trong tổng số <strong>{{ rootCategories.length }}</strong> mục
+      </div>
+      <div class="pagination-controls">
+        <button 
+          type="button" 
+          class="page-btn page-arrow" 
+          [disabled]="currentPage === 1" 
+          (click)="goToPage(currentPage - 1)" 
+          title="Trang trước">
+          <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
+        </button>
+        <button 
+          type="button" 
+          class="page-btn" 
+          *ngFor="let p of pagesArray" 
+          [class.active]="currentPage === p" 
+          (click)="goToPage(p)">
+          {{ p }}
+        </button>
+        <button 
+          type="button" 
+          class="page-btn page-arrow" 
+          [disabled]="currentPage === totalPages" 
+          (click)="goToPage(currentPage + 1)" 
+          title="Trang sau">
+          <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -367,7 +369,7 @@
       <div class="modal-header">
         <div class="modal-title-group">
           <h3 class="modal-title">
-            {{ modalMode === 'add' ? ('+ Thêm mới ' + activeGroupLabel) : ('Chỉnh sửa: ' + formData.name) }}
+            {{ modalMode === 'add' ? ('Thêm mới ' + activeGroupLabel) : ('Chỉnh sửa: ' + formData.name) }}
           </h3>
           <p class="modal-subtitle">Điền thông tin và cấu trúc phân cấp hiển thị ngoài cửa hàng DCor.</p>
         </div>
@@ -388,6 +390,7 @@
             id="cat-name-input"
             class="form-control" 
             [class.is-invalid]="formErrors['name']"
+            maxlength="60"
             placeholder="Ví dụ: Sofa & Ghế bành, Phòng khách, Bộ sưu tập Como..."
             [(ngModel)]="formData.name"
             (ngModelChange)="onNameInput()"
@@ -407,6 +410,7 @@
               id="cat-slug-input"
               class="form-control font-mono" 
               [class.is-invalid]="formErrors['slug']"
+              maxlength="80"
               placeholder="duong-dan-tinh"
               [(ngModel)]="formData.slug"
               (input)="onSlugInput()"
@@ -416,8 +420,8 @@
           <span class="field-error" *ngIf="formErrors['slug']">{{ formErrors['slug'] }}</span>
         </div>
 
-        <!-- Chọn Danh mục cha (Chỉ áp dụng khi activeTab === 'main') -->
-        <div class="form-group" *ngIf="activeTab === 'main'">
+        <!-- Chọn Danh mục cha (Đồng bộ cho cả Danh mục chính & Danh mục phụ) -->
+        <div class="form-group">
           <label class="form-label" for="cat-parent-select">
             Danh mục cha (Tạo phân cấp)
           </label>
@@ -430,7 +434,7 @@
               {{ p.name }}
             </option>
           </select>
-          <span class="field-hint">Chọn danh mục cha để tạo cấu trúc nhánh con (Sub-category).</span>
+          <span class="field-hint">Chọn "-- Không có (Danh mục gốc cấp 1) --" để tạo danh mục cha mới, hoặc chọn 1 danh mục cha để tạo danh mục con.</span>
         </div>
 
         <!-- Thứ tự & Trạng thái -->
@@ -443,6 +447,7 @@
               class="form-control" 
               [(ngModel)]="formData.sortOrder" 
               min="1"
+              max="9999"
             />
           </div>
 
@@ -455,31 +460,6 @@
           </div>
         </div>
 
-        <!-- Ảnh đại diện danh mục -->
-        <div class="form-group">
-          <label class="form-label" for="cat-img-input">Ảnh đại diện danh mục</label>
-          <div class="img-input-row">
-            <input 
-              type="text" 
-              id="cat-img-input"
-              class="form-control" 
-              placeholder="Nhập đường dẫn URL ảnh (Unsplash, Cloudinary...)"
-              [(ngModel)]="formData.image"
-            />
-            <div class="img-preview-mini" *ngIf="formData.image">
-              <img [src]="formData.image" alt="" />
-            </div>
-          </div>
-          <!-- Gợi ý ảnh nhanh -->
-          <div class="sample-images-bar">
-            <span class="sample-label">Gợi ý ảnh:</span>
-            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80')">Sofa</button>
-            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80')">Bàn trà</button>
-            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80')">Phòng ngủ</button>
-            <button type="button" class="sample-pill-btn" (click)="setSampleImage('https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=300&q=80')">Bàn ăn</button>
-          </div>
-        </div>
-
         <!-- Mô tả ngắn -->
         <div class="form-group">
           <label class="form-label" for="cat-desc-input">Mô tả ngắn</label>
@@ -487,6 +467,7 @@
             id="cat-desc-input"
             class="form-control form-textarea" 
             rows="3"
+            maxlength="300"
             placeholder="Mô tả tóm tắt ý nghĩa và định vị của nhóm phân loại này..."
             [(ngModel)]="formData.description">
           </textarea>

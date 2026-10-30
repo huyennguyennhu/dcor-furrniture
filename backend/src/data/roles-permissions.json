@@ -1,0 +1,451 @@
+{
+  "roles": [
+    {
+      "id": "role-super-admin",
+      "name": "Super Admin",
+      "code": "SUPER_ADMIN",
+      "description": "Toàn quyền quản trị cao nhất hệ thống, không bị hạn chế bất kỳ phân hệ nào.",
+      "isSystem": true,
+      "createdAt": "2026-01-01"
+    },
+    {
+      "id": "role-product-mgr",
+      "name": "QL Sản phẩm",
+      "code": "QL_SAN_PHAM",
+      "description": "Quản lý danh mục, thông tin sản phẩm, định giá, thuộc tính và hình ảnh.",
+      "isSystem": true,
+      "createdAt": "2026-01-01"
+    },
+    {
+      "id": "role-inventory-mgr",
+      "name": "QL Kho",
+      "code": "QL_KHO",
+      "description": "Quản lý nhập - xuất hàng hóa, điều chuyển kho showroom và kiểm kê định kỳ.",
+      "isSystem": true,
+      "createdAt": "2026-01-01"
+    },
+    {
+      "id": "role-order-mgr",
+      "name": "QL Đơn hàng",
+      "code": "QL_DON_HANG",
+      "description": "Tiếp nhận, xử lý đơn hàng, điều phối vận chuyển, đổi trả và bảo hành.",
+      "isSystem": true,
+      "createdAt": "2026-01-01"
+    },
+    {
+      "id": "role-sales",
+      "name": "NV Kinh doanh",
+      "code": "NV_KINH_DOANH",
+      "description": "Tư vấn bán hàng, đặt lịch hẹn, hỗ trợ khách hàng và tạo đơn hàng.",
+      "isSystem": true,
+      "createdAt": "2026-01-01"
+    }
+  ],
+  "matrix": {
+    "Super Admin": {
+      "reports": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "customers": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "products": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "categories": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "inventory": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "orders": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "promotions": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "designs": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "appointments": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "content": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "chat": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "staff": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      },
+      "settings": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "approve": true
+      }
+    },
+    "QL Sản phẩm": {
+      "reports": {
+        "view": true,
+        "export_file": false
+      },
+      "customers": {
+        "view": false,
+        "edit": false,
+        "lock_account": false
+      },
+      "products": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true,
+        "categories": true
+      },
+      "categories": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true
+      },
+      "inventory": {
+        "view": true,
+        "audit": false,
+        "transactions": false,
+        "approve": false,
+        "settings": false
+      },
+      "orders": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "returns": false,
+        "warranty": false
+      },
+      "promotions": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "designs": {
+        "view": true,
+        "approve": true,
+        "config": true,
+        "delete": true
+      },
+      "appointments": {
+        "view": false,
+        "assign": false,
+        "update": false
+      },
+      "content": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "chat": {
+        "view": false,
+        "reply": false,
+        "close": false
+      },
+      "staff": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "permissions": false
+      },
+      "settings": {
+        "view": false,
+        "edit": false,
+        "audit_log": false
+      }
+    },
+    "QL Kho": {
+      "reports": {
+        "view": true,
+        "export_file": true
+      },
+      "customers": {
+        "view": false,
+        "edit": false,
+        "lock_account": false
+      },
+      "products": {
+        "view": true,
+        "create": false,
+        "edit": true,
+        "delete": false,
+        "categories": false
+      },
+      "categories": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "inventory": {
+        "view": true,
+        "audit": true,
+        "transactions": true,
+        "approve": true,
+        "settings": true
+      },
+      "orders": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "returns": true,
+        "warranty": false
+      },
+      "promotions": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "designs": {
+        "view": false,
+        "approve": false,
+        "config": false,
+        "delete": false
+      },
+      "appointments": {
+        "view": false,
+        "assign": false,
+        "update": false
+      },
+      "content": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "chat": {
+        "view": false,
+        "reply": false,
+        "close": false
+      },
+      "staff": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "permissions": false
+      },
+      "settings": {
+        "view": false,
+        "edit": false,
+        "audit_log": false
+      }
+    },
+    "QL Đơn hàng": {
+      "reports": {
+        "view": true,
+        "export_file": true
+      },
+      "customers": {
+        "view": true,
+        "edit": true,
+        "lock_account": false
+      },
+      "products": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "categories": false
+      },
+      "categories": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "inventory": {
+        "view": true,
+        "audit": false,
+        "transactions": false,
+        "approve": false,
+        "settings": false
+      },
+      "orders": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "returns": true,
+        "warranty": true
+      },
+      "promotions": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "designs": {
+        "view": true,
+        "approve": false,
+        "config": false,
+        "delete": false
+      },
+      "appointments": {
+        "view": false,
+        "assign": false,
+        "update": false
+      },
+      "content": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "chat": {
+        "view": true,
+        "reply": true,
+        "close": false
+      },
+      "staff": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "permissions": false
+      },
+      "settings": {
+        "view": false,
+        "edit": false,
+        "audit_log": false
+      }
+    },
+    "NV Kinh doanh": {
+      "reports": {
+        "view": true,
+        "export_file": false
+      },
+      "customers": {
+        "view": true,
+        "edit": false,
+        "lock_account": false
+      },
+      "products": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "categories": false
+      },
+      "categories": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "inventory": {
+        "view": true,
+        "audit": false,
+        "transactions": false,
+        "approve": false,
+        "settings": false
+      },
+      "orders": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "returns": false,
+        "warranty": false
+      },
+      "promotions": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "designs": {
+        "view": true,
+        "approve": false,
+        "config": false,
+        "delete": false
+      },
+      "appointments": {
+        "view": true,
+        "assign": false,
+        "update": false
+      },
+      "content": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "chat": {
+        "view": true,
+        "reply": false,
+        "close": false
+      },
+      "staff": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "permissions": false
+      },
+      "settings": {
+        "view": true,
+        "edit": false,
+        "audit_log": false
+      }
+    }
+  }
+}

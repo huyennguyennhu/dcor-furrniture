@@ -50,8 +50,8 @@ const DEFAULT_SAMPLE_STAFF: StaffAccount[] = [
     name: 'Trần Văn Kho',
     email: 'kho.tran@dcor.vn',
     phone: '0902 345 678',
-    role: 'Quản lý kho',
-    roles: ['Quản lý kho'],
+    role: 'QL Kho',
+    roles: ['QL Kho'],
     branchId: 'KHO_TONG_HCM',
     branchName: 'Kho Tổng (TP.HCM)',
     assignedBranches: ['KHO_TONG_HCM'],
@@ -64,8 +64,8 @@ const DEFAULT_SAMPLE_STAFF: StaffAccount[] = [
     name: 'Lê Minh Trí',
     email: 'tri.le@dcor.vn',
     phone: '0903 456 789',
-    role: 'Quản lý kho, Sales',
-    roles: ['Quản lý kho', 'Sales'], // Vừa quản lý kho vừa bán hàng
+    role: 'QL Kho, NV Kinh doanh',
+    roles: ['QL Kho', 'NV Kinh doanh'], // Vừa quản lý kho vừa bán hàng
     branchId: 'SR_Q1',
     branchName: 'Showroom Quận 1 & Kho Tổng',
     assignedBranches: ['KHO_TONG_HCM', 'SR_Q1'],
@@ -78,8 +78,8 @@ const DEFAULT_SAMPLE_STAFF: StaffAccount[] = [
     name: 'Nguyễn Thị Hồng',
     email: 'hong.nguyen@dcor.vn',
     phone: '0904 567 890',
-    role: 'Sales',
-    roles: ['Sales'],
+    role: 'NV Kinh doanh',
+    roles: ['NV Kinh doanh'],
     branchId: 'SR_THU_DUC',
     branchName: 'Showroom Thủ Đức',
     assignedBranches: ['SR_THU_DUC'],
@@ -92,8 +92,8 @@ const DEFAULT_SAMPLE_STAFF: StaffAccount[] = [
     name: 'Đặng Quốc Tuấn',
     email: 'tuan.dang@dcor.vn',
     phone: '0905 678 901',
-    role: 'Quản lý kho',
-    roles: ['Quản lý kho'],
+    role: 'QL Kho',
+    roles: ['QL Kho'],
     branchId: 'KHO_HN',
     branchName: 'Kho Hà Nội',
     assignedBranches: ['KHO_HN'],
@@ -106,8 +106,8 @@ const DEFAULT_SAMPLE_STAFF: StaffAccount[] = [
     name: 'Võ Thanh Tùng',
     email: 'tung.vo@dcor.vn',
     phone: '0906 789 012',
-    role: 'Sales',
-    roles: ['Sales'],
+    role: 'NV Kinh doanh',
+    roles: ['NV Kinh doanh'],
     branchId: 'SR_DN_HAI_CHAU',
     branchName: 'Showroom Đà Nẵng',
     assignedBranches: ['SR_DN_HAI_CHAU'],
@@ -149,8 +149,20 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
     fullName: '',
     email: '',
     phone: '',
-    selectedRoles: ['Sales'] as string[],
-    selectedBranches: ['SR_Q1'] as string[]
+    selectedRoles: [] as string[],
+    selectedBranches: [] as string[]
+  };
+
+  // =========================================================================
+  // MODAL QUICK ADD ROLE: TẠO VAI TRÒ MỚI VÀ ĐỒNG BỘ TỨC THÌ LÊN SERVER IAM
+  // =========================================================================
+  isQuickAddRoleModalOpen = false;
+  quickAddRoleSubmitting = false;
+  quickRoleData = {
+    name: '',
+    code: '',
+    description: '',
+    cloneFromRoleName: 'Sales'
   };
 
   // =========================================================================
@@ -249,9 +261,10 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         if (Array.isArray(data) && data.length > 0) {
           this.records = data.map((item, index) => {
-            const rawRoles = Array.isArray(item.roles) && item.roles.length > 0 
+            const rawRoles = (Array.isArray(item.roles) && item.roles.length > 0 
               ? item.roles 
-              : [item.role || 'Sales'];
+              : [item.role || 'NV Kinh doanh']
+            ).map((r: string) => this.adminAuthService.normalizeAdminRole(r));
 
             const fallbackBranch = this.branchesList[(index + 1) % this.branchesList.length];
             const branchId = item.branchId || fallbackBranch.id;
@@ -293,7 +306,17 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.records = parsed;
+          this.records = parsed.map((p: any) => {
+            const rawRoles = (Array.isArray(p.roles) && p.roles.length > 0
+              ? p.roles
+              : [p.role || 'NV Kinh doanh']
+            ).map((r: string) => this.adminAuthService.normalizeAdminRole(r));
+            return {
+              ...p,
+              roles: rawRoles,
+              role: rawRoles.join(', ')
+            };
+          });
           return;
         }
       } catch (e) {}
@@ -371,8 +394,8 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
       fullName: '',
       email: '',
       phone: '',
-      selectedRoles: ['Sales'],
-      selectedBranches: ['SR_Q1']
+      selectedRoles: [],
+      selectedBranches: []
     };
     this.isStaffFormModalOpen = true;
   }
@@ -432,11 +455,105 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
     return this.staffFormData.selectedBranches.includes(branchId);
   }
 
+  setStatusFilter(status: string): void {
+    this.selectedStatusFilter = status;
+  }
+
+  // --- Quick Add Role in Staff Accounts (Đồng bộ tức thì lên Ma trận phân quyền) ---
+  openQuickAddRoleModal(): void {
+    this.quickRoleData = {
+      name: '',
+      code: '',
+      description: '',
+      cloneFromRoleName: 'Sales'
+    };
+    this.isQuickAddRoleModalOpen = true;
+  }
+
+  closeQuickAddRoleModal(): void {
+    this.isQuickAddRoleModalOpen = false;
+    this.quickAddRoleSubmitting = false;
+  }
+
+  onQuickRoleNameChange(): void {
+    if (!this.quickRoleData.code && this.quickRoleData.name) {
+      this.quickRoleData.code = this.quickRoleData.name
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/Đ/g, 'D')
+        .replace(/[^A-Z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+    }
+  }
+
+  submitQuickAddRole(): void {
+    const cleanName = (this.quickRoleData.name || '').trim();
+    const cleanCode = (this.quickRoleData.code || cleanName).trim().toUpperCase().replace(/\s+/g, '_');
+
+    if (!cleanName || cleanName.length < 2) {
+      this.showToast('Vui lòng nhập tên vai trò từ 2 ký tự trở lên.', 'warning');
+      return;
+    }
+    if (!cleanCode || cleanCode.length < 2) {
+      this.showToast('Vui lòng nhập mã vai trò hợp lệ.', 'warning');
+      return;
+    }
+
+    this.quickAddRoleSubmitting = true;
+    this.adminAuthService.createRoleOnServer({
+      name: cleanName,
+      code: cleanCode,
+      description: this.quickRoleData.description.trim(),
+      cloneFromRoleName: this.quickRoleData.cloneFromRoleName
+    }).subscribe({
+      next: () => {
+        this.quickAddRoleSubmitting = false;
+        this.closeQuickAddRoleModal();
+        if (!this.staffFormData.selectedRoles.includes(cleanName)) {
+          this.staffFormData.selectedRoles.push(cleanName);
+        }
+        this.showToast(`✓ Đã tạo vai trò "${cleanName}" và đồng bộ tức thì sang Ma trận phân quyền!`, 'success');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.quickAddRoleSubmitting = false;
+        const msg = err?.error?.message || err?.message || 'Không thể tạo vai trò mới.';
+        this.showToast(msg, 'warning');
+      }
+    });
+  }
+
+  onPhoneInput(event: any): void {
+    const raw = event.target.value || '';
+    const clean = raw.replace(/[^0-9]/g, '').slice(0, 10);
+    this.staffFormData.phone = clean;
+    event.target.value = clean;
+  }
+
   submitStaffForm(e: Event): void {
     e.preventDefault();
-    if (!this.staffFormData.fullName || !this.staffFormData.email) {
-      this.showToast('Vui lòng điền họ tên và email công việc.', 'warning');
+    const cleanName = (this.staffFormData.fullName || '').trim();
+    if (!cleanName || cleanName.length < 2) {
+      this.showToast('Vui lòng nhập họ và tên nhân sự hợp lệ (từ 2 ký tự trở lên).', 'warning');
       return;
+    }
+
+    const cleanEmail = (this.staffFormData.email || '').trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      this.showToast('Email công việc không đúng định dạng hợp lệ (Ví dụ: nhansu@dcor.vn).', 'warning');
+      return;
+    }
+
+    const cleanPhone = (this.staffFormData.phone || '').trim().replace(/[\s.-]/g, '');
+    if (cleanPhone) {
+      const vnPhoneRegex = /^0[0-9]{9}$/;
+      if (!vnPhoneRegex.test(cleanPhone)) {
+        this.showToast('Số điện thoại phải đúng định dạng Việt Nam: bắt đầu bằng số 0 và có đúng 10 số (Ví dụ: 0901234567).', 'warning');
+        return;
+      }
     }
 
     if (this.staffFormData.selectedRoles.length === 0) {
@@ -448,6 +565,10 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
       this.showToast('Vui lòng chọn ít nhất một chi nhánh/kho làm việc.', 'warning');
       return;
     }
+
+    this.staffFormData.fullName = cleanName;
+    this.staffFormData.email = cleanEmail;
+    this.staffFormData.phone = cleanPhone;
 
     const branchNames = this.staffFormData.selectedBranches
       .map(bId => this.adminAuthService.getBranchName(bId))
@@ -487,6 +608,7 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
     } else {
       // Tạo mới nhân sự qua backend API để lưu vào DB và sinh token kích hoạt bảo mật
       this.formSubmitting = true;
+      this.cdr.detectChanges();
       const payload = {
         fullName: this.staffFormData.fullName.trim(),
         email: this.staffFormData.email.trim().toLowerCase(),
@@ -522,6 +644,7 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
 
           this.showToast(`Đã tạo tài khoản cho "${createdStaff.name}". Mở hộp thư gửi thông báo!`, 'success');
           this.openEmailDispatchModal(createdStaff, res.inviteLink);
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.formSubmitting = false;
@@ -545,6 +668,7 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
           this.saveStaffToCache();
           this.closeStaffFormModal();
           this.openEmailDispatchModal(localStaff);
+          this.cdr.detectChanges();
         }
       });
     }
@@ -882,9 +1006,11 @@ ${this.dispatchInviteUrl}
   showToast(message: string, type: 'success' | 'info' | 'warning' = 'success'): void {
     this.toastMessage = message;
     this.toastType = type;
+    this.cdr.detectChanges();
     setTimeout(() => {
       if (this.toastMessage === message) {
         this.toastMessage = '';
+        this.cdr.detectChanges();
       }
     }, 4000);
   }

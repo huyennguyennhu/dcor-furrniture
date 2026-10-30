@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { StaffRole, StaffStatus } from '@prisma/client';
 import crypto from 'crypto';
 import { emailService } from '../services/email.service';
-import { getAllStaffMetadata, getStaffMetadata, setStaffMetadata, deleteStaffMetadata } from '../lib/staff-metadata';
+import { getAllStaffMetadata, getStaffMetadata, setStaffMetadata, deleteStaffMetadata, reassignRoleInStaffMetadata } from '../lib/staff-metadata';
+import { iamService } from '../lib/iam.service';
 import prisma, { withDbRetry } from '../lib/prisma';
 import { memoryCache, CACHE_KEYS } from '../lib/cache';
 import { AuthRequest } from '../middleware/auth.middleware';
@@ -154,9 +155,23 @@ export const staffController = {
         sendEmailImmediately = false
       } = req.body;
 
-      if (!fullName || !email) {
-        res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ họ tên và email.' });
+      if (!fullName || fullName.trim().length < 2) {
+        res.status(400).json({ message: 'Họ và tên nhân sự phải từ 2 ký tự trở lên.' });
         return;
+      }
+
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!email || !emailRegex.test(email.trim())) {
+        res.status(400).json({ message: 'Email công việc không đúng định dạng hợp lệ (Ví dụ: nhansu@dcor.vn).' });
+        return;
+      }
+
+      if (phone) {
+        const cleanPhone = phone.trim().replace(/[\s.-]/g, '');
+        if (!/^0[0-9]{9}$/.test(cleanPhone)) {
+          res.status(400).json({ message: 'Số điện thoại phải đúng định dạng Việt Nam: bắt đầu bằng số 0 và có đúng 10 chữ số (Ví dụ: 0901234567).' });
+          return;
+        }
       }
 
       const normalizedEmail = email.trim().toLowerCase();
@@ -282,7 +297,9 @@ export const staffController = {
       const normalizedEmail = email.trim().toLowerCase();
       
       let token = crypto.randomBytes(32).toString('hex');
-      const staff = await prisma.staffUser.findUnique({ where: { email: normalizedEmail } });
+      let staff = await prisma.staffUser.findUnique({ where: { email: normalizedEmail } });
+      const roleList: string[] = Array.isArray(roles) && roles.length > 0 ? roles : ['Sales'];
+      const prismaRole = mapToPrismaRole(roleList[0]);
       
       if (staff) {
         if (!staff.invitationToken) {
@@ -295,12 +312,26 @@ export const staffController = {
         } else {
           token = staff.invitationToken;
         }
+      } else {
+        // Tự động đảm bảo bản ghi nhân sự tồn tại trong cơ sở dữ liệu nếu trước đó chưa lưu
+        const tokenExpiry = new Date();
+        tokenExpiry.setDate(tokenExpiry.getDate() + 7);
+        staff = await prisma.staffUser.create({
+          data: {
+            fullName: fullName.trim(),
+            email: normalizedEmail,
+            role: prismaRole,
+            status: 'PENDING_ACTIVATION',
+            invitationToken: token,
+            invitationTokenExpiry: tokenExpiry
+          }
+        });
       }
+
+      memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
       const inviteUrl = `${frontendUrl}/admin-invite?email=${encodeURIComponent(normalizedEmail)}&token=${token}`;
-
-      const roleList: string[] = Array.isArray(roles) && roles.length > 0 ? roles : ['Sales'];
 
       // Cập nhật metadata vai trò
       setStaffMetadata(normalizedEmail, {
@@ -551,6 +582,131 @@ export const staffController = {
     } catch (error: any) {
       console.error('Lỗi updatePermissions:', error);
       res.status(500).json({ message: 'Lỗi khi cập nhật phân quyền nhân sự: ' + error.message });
+    }
+  },
+
+  // =========================================================================
+  // IAM ROLE-BASED PERMISSIONS MATRIX (Server-Side Storage & Enforcement)
+  // =========================================================================
+
+  // 1. Lấy ma trận phân quyền và danh sách vai trò từ server
+  getPermissionsMatrix: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const roles = iamService.getAllRoles();
+      const matrix = iamService.getRolePermissionsMatrix();
+      res.status(200).json({
+        success: true,
+        roles,
+        matrix
+      });
+    } catch (error: any) {
+      console.error('Lỗi getPermissionsMatrix:', error);
+      res.status(500).json({ message: 'Lỗi tải ma trận phân quyền: ' + error.message });
+    }
+  },
+
+  // 2. Lưu ma trận phân quyền vào server
+  updatePermissionsMatrix: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền cập nhật ma trận phân quyền hệ thống.' });
+        return;
+      }
+      const { matrix } = req.body;
+      if (!matrix || typeof matrix !== 'object') {
+        res.status(400).json({ message: 'Dữ liệu ma trận phân quyền không hợp lệ.' });
+        return;
+      }
+      const updated = iamService.updateRolePermissionsMatrix(matrix);
+      res.status(200).json({
+        success: true,
+        message: 'Đã lưu ma trận phân quyền IAM tại Server thành công!',
+        matrix: updated
+      });
+    } catch (error: any) {
+      console.error('Lỗi updatePermissionsMatrix:', error);
+      res.status(500).json({ message: 'Lỗi lưu ma trận phân quyền: ' + error.message });
+    }
+  },
+
+  // 3. Tạo vai trò mới
+  createRole: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền tạo vai trò mới.' });
+        return;
+      }
+      const { name, code, description, cloneFromRoleName } = req.body;
+      if (!name || !code) {
+        res.status(400).json({ message: 'Tên vai trò và mã vai trò là bắt buộc.' });
+        return;
+      }
+      const newRole = iamService.addRole(
+        { name, code, description: description || '' },
+        cloneFromRoleName
+      );
+      res.status(201).json({
+        success: true,
+        message: `Đã tạo vai trò "${newRole.name}" thành công!`,
+        role: newRole,
+        matrix: iamService.getRolePermissionsMatrix()
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || 'Lỗi tạo vai trò.' });
+    }
+  },
+
+  // 4. Sửa vai trò
+  updateRoleDef: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền chỉnh sửa vai trò.' });
+        return;
+      }
+      const id = req.params.id as string;
+      const { name, description } = req.body;
+      const updated = iamService.updateRole(id, { name, description });
+      res.status(200).json({
+        success: true,
+        message: `Đã cập nhật vai trò "${updated.name}" thành công!`,
+        role: updated,
+        matrix: iamService.getRolePermissionsMatrix()
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || 'Lỗi cập nhật vai trò.' });
+    }
+  },
+
+  // 5. Xóa vai trò
+  deleteRoleDef: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      if (!isRequesterSuperAdmin(req.user)) {
+        res.status(403).json({ message: 'Chỉ Super Admin mới có quyền xóa vai trò.' });
+        return;
+      }
+      const id = req.params.id as string;
+      const reassignTo = (req.body?.reassignToRoleName || req.query?.reassignToRoleName || 'NV Kinh doanh') as string;
+
+      const result = iamService.deleteRole(id);
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+
+      // XỬ LÝ AN TOÀN TRÁNH TREO WEB:
+      // Tự động chuyển giao toàn bộ nhân sự có vai trò bị xóa sang vai trò an toàn mới
+      if (result.deletedRoleName) {
+        reassignRoleInStaffMetadata(result.deletedRoleName, reassignTo);
+        memoryCache.invalidate(CACHE_KEYS.STAFF_LIST);
+      }
+
+      res.status(200).json({
+        ...result,
+        matrix: iamService.getRolePermissionsMatrix(),
+        roles: iamService.getAllRoles()
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || 'Lỗi xóa vai trò.' });
     }
   }
 };

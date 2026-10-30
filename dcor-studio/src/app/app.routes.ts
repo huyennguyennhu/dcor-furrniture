@@ -3,27 +3,20 @@ import { adminGuard } from './core/guards/admin.guard';
 import { adminGuestGuard } from './core/guards/guest.guard';
 
 export const routes: Routes = [
-  // --- Admin Landing Page ---
-  {
-    path: 'admin',
-    pathMatch: 'full',
-    canActivate: [adminGuestGuard],
-    loadComponent: () => import('./features/admin/pages/admin-landing/admin-landing').then(m => m.AdminLandingComponent)
-  },
-  
   // --- Admin Area (Dashboard) ---
   {
     path: 'admin',
     canActivate: [adminGuard],
     loadComponent: () => import('./features/admin/components/admin-layout/admin-layout').then(m => m.AdminLayout),
     children: [
-      { path: 'reports', loadComponent: () => import('./features/admin/pages/reports/reports').then(m => m.ReportsComponent) },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: 'dashboard', loadComponent: () => import('./features/admin/pages/reports/reports').then(m => m.ReportsComponent) },
+      { path: 'reports', redirectTo: 'reports/overview', pathMatch: 'full' },
       { path: 'reports/overview', loadComponent: () => import('./features/admin/pages/reports/reports').then(m => m.ReportsComponent) },
       { path: 'reports/revenue', loadComponent: () => import('./features/admin/pages/reports/revenue/revenue').then(m => m.RevenueComponent) },
       { path: 'reports/orders', loadComponent: () => import('./features/admin/pages/reports/orders/orders').then(m => m.OrdersComponent) },
       { path: 'reports/products', loadComponent: () => import('./features/admin/pages/reports/products-report/products-report').then(m => m.ProductsReportComponent) },
       { path: 'reports/customers', loadComponent: () => import('./features/admin/pages/reports/customers-report/customers-report').then(m => m.CustomersReportComponent) },
-      { path: 'dashboard', loadComponent: () => import('./features/admin/pages/dashboard/dashboard').then(m => m.DashboardComponent) },
       { path: 'customers', loadComponent: () => import('./features/admin/pages/customers/customers').then(m => m.CustomersComponent) },
       { path: 'customers/:id', loadComponent: () => import('./features/admin/pages/customers/customer-detail/customer-detail').then(m => m.CustomerDetailComponent) },
       { path: 'products', loadComponent: () => import('./features/admin/pages/products/products').then(m => m.ProductsComponent) },
@@ -61,14 +54,14 @@ export const routes: Routes = [
       { path: 'designs/posts', loadComponent: () => import('./features/admin/pages/designs/design-posts/design-posts').then(m => m.DesignPostsComponent) },
       { path: 'staff', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
       { path: 'staff/accounts', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
-      { path: 'staff/shifts', redirectTo: 'staff/showroom-shifts', pathMatch: 'full' },
-      { path: 'staff/my-shifts', redirectTo: 'staff/showroom-shifts', pathMatch: 'full' },
-      { path: 'staff/showroom-shifts', loadComponent: () => import('./features/admin/pages/staff/showroom-shifts/showroom-shifts').then(m => m.ShowroomShiftsComponent) },
+      { path: 'staff/shifts', redirectTo: 'staff/accounts', pathMatch: 'full' },
+      { path: 'staff/my-shifts', redirectTo: 'staff/accounts', pathMatch: 'full' },
+      { path: 'staff/showroom-shifts', redirectTo: 'staff/accounts', pathMatch: 'full' },
       { path: 'staff/permissions', loadComponent: () => import('./features/admin/pages/staff/staff-permissions/staff-permissions').then(m => m.StaffPermissionsComponent) },
       { path: 'settings', loadComponent: () => import('./features/admin/pages/settings/settings').then(m => m.SettingsComponent) },
       { path: 'audit-log', loadComponent: () => import('./features/admin/pages/audit-log/audit-log').then(m => m.AuditLogComponent) },
       { path: 'activity', redirectTo: 'audit-log', pathMatch: 'full' },
-      { path: '**', redirectTo: 'dashboard' },
+      { path: '**', redirectTo: 'reports/overview' },
     ]
   },
   

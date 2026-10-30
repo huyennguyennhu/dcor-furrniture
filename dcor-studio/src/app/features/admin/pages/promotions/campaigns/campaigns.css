@@ -211,6 +211,13 @@
   color: #765337;
 }
 
+.stat-currency-symbol {
+  font-size: 22px;
+  font-weight: 800;
+  color: #765337;
+  line-height: 1;
+}
+
 .stat-card-body {
   flex: 1;
   min-width: 0;
@@ -277,11 +284,12 @@
   pointer-events: none;
 }
 
+.search-input-wrapper .search-input,
 .search-input {
   width: 100%;
   height: 42px;
-  padding-left: 42px;
-  padding-right: 36px;
+  padding-left: 42px !important;
+  padding-right: 36px !important;
   background: #FAF7F2;
   border: 1px solid #E0E0E0;
   border-radius: 8px;
@@ -355,37 +363,51 @@
 
 .admin-page-table-scroll {
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 .campaigns-table {
   width: 100%;
+  min-width: 1000px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13.5px;
 }
 
-/* Column percentage widths sum to 100% */
+/* Precise column percentage widths sum to 100% */
 .col-name {
-  width: 24%;
+  width: 30%;
+  min-width: 220px;
+}
+.col-discount {
+  width: 13%;
+  min-width: 105px;
 }
 .col-channel {
-  width: 14%;
+  width: 15%;
+  min-width: 120px;
 }
 .col-time {
-  width: 17%;
+  width: 18%;
+  min-width: 155px;
 }
 .col-products {
-  width: 11%;
-}
-.col-progress {
-  width: 15%;
+  width: 9%;
+  min-width: 75px;
 }
 .col-status {
-  width: 11%;
+  width: 10%;
+  min-width: 85px;
 }
 .col-actions {
-  width: 8%;
+  width: 5%;
+  min-width: 45px;
+}
+
+.campaigns-table td.col-actions {
+  overflow: visible;
+  text-align: right;
+  padding-right: 14px;
 }
 
 .campaigns-table thead tr {
@@ -405,41 +427,74 @@
 }
 
 .campaigns-table td {
-  padding: 14px 14px;
+  padding: 12px 12px;
   vertical-align: middle;
   border-bottom: 1px solid #EAEAEA;
   color: #0A0A0A;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.campaigns-table td.col-name {
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  overflow: visible;
 }
 
 .campaigns-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.campaigns-table tbody tr:hover {
-  background: #FCFBF9;
+/* Clickable Table Row - Xem nhanh chi tiết khi ấn vào hàng */
+.campaigns-table tbody tr.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
-.row-ended {
+.campaigns-table tbody tr.clickable-row:hover {
+  background: #F9F5F0;
+}
+
+.campaigns-table tbody tr.clickable-row:hover .campaign-name-title {
+  color: #BC5F13;
+}
+
+.campaigns-table tbody tr.row-ended {
   background: #FAF9F8;
   opacity: 0.85;
 }
 
-/* Name cell */
+.campaigns-table tbody tr.row-ended.clickable-row:hover {
+  background: #F3EFE9;
+}
+
+/* Name cell - Không bị lẹm hay cắt chữ, tự xuống dòng êm ái */
 .campaign-name-cell {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .campaign-name-title {
   font-weight: 700;
   font-size: 13.5px;
   color: #0A0A0A;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  display: block;
+  transition: color 0.15s ease;
+}
+
+.campaign-name-desc {
+  font-size: 11.5px;
+  color: #666666;
+  line-height: 1.35;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  display: block;
 }
 
 .campaign-type-tags {
@@ -544,10 +599,25 @@
   white-space: nowrap;
 }
 
-/* Products cell */
+/* Products cell - Hiển thị số lượng SP dạng badge thông tin tĩnh (không click) */
 .products-cell {
   display: flex;
   align-items: center;
+}
+
+.products-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #FAF7F2;
+  border: 1px solid #E4DFD7;
+  color: #765337;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
 }
 
 .products-view-pill {
@@ -633,6 +703,7 @@
   background: currentColor;
 }
 
+.status-ongoing,
 .status-active {
   background: #E8F7EC;
   color: #00A30B;
@@ -648,12 +719,11 @@
   color: #C42326;
 }
 
-/* Actions group */
+/* Actions group - Chỉ còn 1 nút Xóa căn giữa cân đối */
 .actions-group {
   display: flex;
   align-items: center;
-  gap: 4px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .action-icon-btn {
@@ -1253,7 +1323,7 @@
 /* Toast alert */
 .toast-alert {
   position: fixed;
-  top: 80px;
+  bottom: 24px;
   right: 24px;
   z-index: 99999;
   display: flex;
@@ -1349,12 +1419,326 @@
 @keyframes slideToast {
   from {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ==========================================================================
+   Compact Bulk Discount Bar, Multi-Showrooms & Category Picker
+   ========================================================================== */
+.compact-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #FAF7F2;
+  border: 1px solid #E8DFD5;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.bulk-label-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #765337;
+  white-space: nowrap;
+}
+
+.bulk-type-toggle {
+  display: inline-flex;
+  background: #EAE3D9;
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.bulk-type-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666666;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bulk-type-btn.active {
+  background: #FFFFFF;
+  color: #765337;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.bulk-input-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.bulk-val-input {
+  width: 110px;
+  height: 32px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 24px 4px 8px;
+  text-align: right;
+  border-color: #D5C7B7;
+}
+
+.bulk-unit-text {
+  position: absolute;
+  right: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #765337;
+  pointer-events: none;
+}
+
+.btn-apply-compact {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  height: 32px;
+}
+
+/* Showroom Multi-Select Grid */
+.showroom-select-group {
+  margin-bottom: 16px;
+}
+
+.showroom-checkbox-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.showroom-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+}
+
+.showroom-checkbox-item:hover {
+  border-color: #BC5F13;
+  background: #FCFBF9;
+}
+
+.showroom-checkbox-item.checked {
+  background: #FAF5EE;
+  border-color: #765337;
+  color: #765337;
+  font-weight: 600;
+}
+
+.showroom-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sr-badge {
+  font-size: 10.5px;
+  padding: 2px 6px;
+  background: #F4EFEA;
+  border-radius: 4px;
+  color: #666666;
+  white-space: nowrap;
+}
+
+/* Products Section Compact */
+.products-section-compact {
+  margin-bottom: 16px;
+}
+
+.products-section-header-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.product-add-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-picker-wrapper {
+  position: relative;
+}
+
+.category-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 100;
+  background: #FFFFFF;
+  border: 1px solid #D5C7B7;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popover-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #765337;
+  padding: 4px 8px;
+  border-bottom: 1px solid #F0ECE6;
+  margin-bottom: 4px;
+}
+
+.popover-cat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: #333333;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.popover-cat-item:hover {
+  background: #F8F3ED;
+  color: #765337;
+  font-weight: 600;
+}
+
+.cat-count {
+  font-size: 11px;
+  color: #888888;
+}
+
+/* Compact Table Container */
+.compact-table-container {
+  border: 1px solid #E2D9CF;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #FFFFFF;
+}
+
+.compact-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.compact-items-table th {
+  background: #FAF7F2;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #666666;
+  border-bottom: 1px solid #E2D9CF;
+  white-space: nowrap;
+}
+
+.compact-items-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #F0ECE6;
+  vertical-align: middle;
+}
+
+.compact-item-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.input-compact {
+  height: 28px;
+  font-size: 12px;
+  padding: 3px 8px;
+  border: 1px solid #D5C7B7;
+  border-radius: 4px;
+}
+
+.input-compact.input-title {
+  font-weight: 600;
+  color: #222222;
+}
+
+.input-compact.input-sub {
+  color: #666666;
+  font-size: 11px;
+}
+
+.highlight-pct {
+  font-weight: 700;
+  color: #2E7D32;
+  background: #F4FAF4;
+}
+
+.highlight-price {
+  font-weight: 700;
+  color: #765337;
+  background: #FAF7F2;
+}
+
+.compact-empty-state {
+  padding: 20px 14px;
+  background: #FAF7F2;
+  border: 1px dashed #D5C7B7;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.empty-hint {
+  font-size: 12.5px;
+  color: #666666;
+}
+
+.discount-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pill-percent {
+  background: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #C8E6C9;
+}
+
+.pill-fixed {
+  background: #FAF5EE;
+  color: #765337;
+  border: 1px solid #E2D6C5;
 }
 
 /* Responsive tweaks */

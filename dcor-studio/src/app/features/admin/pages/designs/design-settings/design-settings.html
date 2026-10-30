@@ -8,19 +8,6 @@
     </button>
   </div>
 
-  <!-- Submodule Tabs Bar (Templates vs Post Moderation) -->
-  <div class="promo-submodule-tabs">
-    <a routerLink="/admin/designs/settings" class="promo-tab-item active" aria-current="page">
-      <app-icon name="Layers" size="18"></app-icon>
-      <span>Bản mẫu không gian 3D (Room Templates)</span>
-      <span class="tab-badge">{{ records.length }}</span>
-    </a>
-    <a routerLink="/admin/designs/posts" class="promo-tab-item">
-      <app-icon name="Sparkles" size="18"></app-icon>
-      <span>Kiểm duyệt bài đăng & Bình luận</span>
-    </a>
-  </div>
-
   <!-- Page Header -->
   <header class="admin-page-heading">
     <div class="heading-title-group">
@@ -30,53 +17,43 @@
     <div class="admin-page-actions">
       <button type="button" class="admin-btn admin-btn-primary" (click)="openCreateModal()">
         <app-icon name="Plus" size="18"></app-icon>
-        <span>+ Thêm bản mẫu mới</span>
+        <span>Thêm bản mẫu mới</span>
       </button>
     </div>
   </header>
 
-  <!-- 4 Stats Cards -->
-  <section class="admin-page-stats" aria-label="Thống kê bản mẫu không gian">
-    <article class="admin-page-stat stat-card-total">
-      <div class="stat-card-icon">
-        <app-icon name="Layers" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Tổng bản mẫu</span>
-        <div class="admin-page-stat-value">{{ totalCount }}</div>
-      </div>
-    </article>
+  <!-- Workflow Filter Tabs (Status Buttons) -->
+  <div class="workflow-tabs-bar">
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="selectedStatus === 'ALL'"
+      (click)="selectedStatus = 'ALL'">
+      <app-icon name="Layers" size="16"></app-icon>
+      <span>Tổng bản mẫu</span>
+      <span class="count-pill pill-neutral">{{ totalCount }}</span>
+    </button>
 
-    <article class="admin-page-stat stat-card-active">
-      <div class="stat-card-icon stat-icon-green">
-        <app-icon name="Check" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Đang kích hoạt</span>
-        <div class="admin-page-stat-value text-success">{{ activeCount }}</div>
-      </div>
-    </article>
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="selectedStatus === 'ACTIVE'"
+      (click)="selectedStatus = 'ACTIVE'">
+      <app-icon name="Check" size="16"></app-icon>
+      <span>Đang kích hoạt</span>
+      <span class="count-pill pill-success">{{ activeCount }}</span>
+    </button>
 
-    <article class="admin-page-stat stat-card-inactive">
-      <div class="stat-card-icon stat-icon-gray">
-        <app-icon name="EyeOff" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Đang tạm ẩn</span>
-        <div class="admin-page-stat-value text-muted">{{ inactiveCount }}</div>
-      </div>
-    </article>
-
-    <article class="admin-page-stat stat-card-rooms">
-      <div class="stat-card-icon stat-icon-brown">
-        <app-icon name="House" size="22"></app-icon>
-      </div>
-      <div class="stat-card-body">
-        <span class="admin-page-stat-label">Loại phòng</span>
-        <div class="admin-page-stat-value text-wood">{{ distinctRoomTypesCount }} <span class="stat-unit">loại</span></div>
-      </div>
-    </article>
-  </section>
+    <button
+      type="button"
+      class="workflow-tab-btn"
+      [class.active]="selectedStatus === 'INACTIVE'"
+      (click)="selectedStatus = 'INACTIVE'">
+      <app-icon name="EyeOff" size="16"></app-icon>
+      <span>Đang tạm ẩn</span>
+      <span class="count-pill pill-danger">{{ inactiveCount }}</span>
+    </button>
+  </div>
 
   <!-- Filter & Search Toolbar -->
   <section class="admin-page-filter" aria-label="Bộ lọc bản mẫu">
@@ -100,14 +77,8 @@
 
     <div class="filter-controls-group">
       <select class="admin-select" [(ngModel)]="selectedRoomType" aria-label="Lọc theo loại phòng">
-        <option value="ALL">Tất cả loại phòng</option>
+        <option value="ALL">Tất cả loại phòng ({{ distinctRoomTypesCount }} loại)</option>
         <option *ngFor="let rt of ROOM_TYPES" [value]="rt">{{ rt }}</option>
-      </select>
-
-      <select class="admin-select" [(ngModel)]="selectedStatus" aria-label="Lọc theo trạng thái">
-        <option value="ALL">Tất cả trạng thái</option>
-        <option value="ACTIVE">Đang kích hoạt</option>
-        <option value="INACTIVE">Đang tạm ẩn</option>
       </select>
     </div>
   </section>
@@ -128,10 +99,21 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Loading State -->
+          <tr *ngIf="isLoading" class="loading-row">
+            <td colspan="7" style="padding: 60px 16px; text-align: center;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                <div class="spinning-loader"></div>
+                <span style="font-weight: 500; font-size: 14px; color: var(--text-secondary);">Đang tải dữ liệu thiết kế...</span>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngIf="!isLoading">
           <tr *ngFor="let record of filteredRecords" [class.row-inactive]="!record.isActive">
             <!-- Hình thu nhỏ -->
             <td class="col-thumb">
-              <div class="thumb-wrapper">
+              <div class="thumb-wrapper" (click)="openPreviewModal(record)" style="cursor: pointer;" title="Nhấn để xem chi tiết bản mẫu">
                 <img [src]="record.imageUrl" [alt]="record.name" class="template-thumb" />
               </div>
             </td>
@@ -139,7 +121,7 @@
             <!-- Tên & Mô tả -->
             <td class="col-name">
               <div class="template-name-cell">
-                <strong class="template-title" [title]="record.name">{{ record.name }}</strong>
+                <strong class="template-title" (click)="openPreviewModal(record)" style="cursor: pointer;" title="Nhấn để xem chi tiết bản mẫu">{{ record.name }}</strong>
                 <span class="template-desc-sub" *ngIf="record.description" [title]="record.description">
                   {{ record.description }}
                 </span>
@@ -195,27 +177,11 @@
               <div class="actions-group">
                 <button
                   type="button"
-                  class="action-icon-btn btn-view"
-                  (click)="openPreviewModal(record)"
-                  title="Xem trước bản mẫu">
-                  <app-icon name="Eye" size="15"></app-icon>
-                </button>
-
-                <button
-                  type="button"
                   class="toggle-switch-btn"
                   [class.active]="record.isActive"
                   (click)="promptToggleActive(record)"
                   [title]="record.isActive ? 'Nhấn để tạm ẩn bản mẫu' : 'Nhấn để kích hoạt bản mẫu'">
                   <span class="toggle-switch-slider"></span>
-                </button>
-
-                <button
-                  type="button"
-                  class="action-icon-btn btn-edit"
-                  (click)="openEditModal(record)"
-                  title="Chỉnh sửa bản mẫu">
-                  <app-icon name="Edit" size="15"></app-icon>
                 </button>
 
                 <button
@@ -242,6 +208,7 @@
               </div>
             </td>
           </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
@@ -276,6 +243,7 @@
                 class="admin-input"
                 name="tmplName"
                 [(ngModel)]="formData.name"
+                maxlength="100"
                 placeholder="Ví dụ: Phòng khách Bắc Âu Nordic Minimalist"
                 required />
             </div>
@@ -409,6 +377,7 @@
                   class="admin-input"
                   name="tmplImageUrl"
                   [(ngModel)]="formData.imageUrl"
+                  maxlength="500"
                   placeholder="https://images.unsplash.com/..." />
                 
                 <div class="preset-images-pick">
@@ -433,6 +402,7 @@
               name="tmplDesc"
               [(ngModel)]="formData.description"
               rows="3"
+              maxlength="1000"
               placeholder="Gợi ý ánh sáng, phong cách nội thất kết hợp..."></textarea>
           </div>
 
@@ -444,24 +414,11 @@
               class="admin-input"
               name="tmplSuggested"
               [(ngModel)]="formData.suggestedProductsText"
+              maxlength="255"
               placeholder="Ví dụ: Sofa DCor Nordic, Bàn trà Ceramic, Ghế thư giãn" />
             <span class="field-hint">Các sản phẩm này sẽ được hệ thống ưu tiên hiển thị gợi ý cho khách khi chọn bản mẫu này.</span>
           </div>
 
-          <!-- Checkbox kích hoạt -->
-          <div class="form-group checkbox-form-group">
-            <label class="custom-checkbox-label">
-              <input
-                type="checkbox"
-                name="tmplIsActive"
-                [(ngModel)]="formData.isActive" />
-              <span class="custom-checkbox-box"></span>
-              <span class="checkbox-text">
-                <strong>Kích hoạt bản mẫu này cho khách hàng</strong>
-                <span class="checkbox-desc">Khách hàng sẽ nhìn thấy bản mẫu này trong danh sách khởi tạo Room Planner 3D trên website.</span>
-              </span>
-            </label>
-          </div>
         </form>
       </div>
 
