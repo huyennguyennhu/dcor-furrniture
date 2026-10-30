@@ -42,7 +42,30 @@ export class CartService {
   public isLoading$ = this.isLoadingSubject.asObservable();
 
   constructor(private http: HttpClient) {
+    this.cleanStaleTokens();
     this.loadCart();
+  }
+
+  /** Xóa token rác hoặc token guest nếu lỡ bị lưu vào dcor_customer_token */
+  private cleanStaleTokens(): void {
+    try {
+      const token = localStorage.getItem('dcor_customer_token');
+      if (token) {
+        if (token.startsWith('guest-')) {
+          localStorage.removeItem('dcor_customer_token');
+        } else {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            if (!payload.userId || payload.isGuest) {
+              localStorage.removeItem('dcor_customer_token');
+            }
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua nếu môi trường không có localStorage
+    }
   }
 
   private getHeaders(): HttpHeaders {
@@ -56,9 +79,32 @@ export class CartService {
     return this.cartSubject.value;
   }
 
-  /** Kiểm tra khách đã đăng nhập chưa */
+  /** Kiểm tra khách đã đăng nhập chưa (yêu cầu tài khoản thành viên thật, không dùng token tạm của guest) */
   get isLoggedIn(): boolean {
-    return !!localStorage.getItem('dcor_customer_token');
+    const token = localStorage.getItem('dcor_customer_token');
+    if (!token || token.startsWith('guest-')) return false;
+
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        if (!payload.userId || payload.isGuest) {
+          return false;
+        }
+      }
+    } catch {
+      return false;
+    }
+
+    const userStr = localStorage.getItem('dcor_customer') || localStorage.getItem('dcor_customer_user') || localStorage.getItem('dcor_user');
+    if (!userStr) return false;
+
+    try {
+      const user = JSON.parse(userStr);
+      return !!(user && user.id && !String(user.id).startsWith('guest-'));
+    } catch {
+      return false;
+    }
   }
 
   /** Lấy giỏ hàng guest từ localStorage */
@@ -80,13 +126,41 @@ export class CartService {
     }
   }
 
+  /** Thêm item vào giỏ hàng guest (localStorage) */
+  private addGuestItem(variantId: string, quantity: number, selectedOptions?: any, guestProductInfo?: Partial<CartItem>): CartItem[] {
+    const guestItems = this.loadGuestCart();
+    const existingIdx = guestItems.findIndex(i => i.variantId === variantId);
+    if (existingIdx >= 0) {
+      guestItems[existingIdx].quantity += quantity;
+    } else {
+      const newItem: CartItem = {
+        id: `guest-${variantId}-${Date.now()}`,
+        productId: guestProductInfo?.productId || '',
+        variantId,
+        name: guestProductInfo?.name || 'Sản phẩm',
+        variantName: guestProductInfo?.variantName,
+        image: guestProductInfo?.image || '',
+        price: guestProductInfo?.price || 0,
+        originalPrice: guestProductInfo?.originalPrice,
+        quantity,
+        availableStock: guestProductInfo?.availableStock,
+        isActive: true,
+        variantTags: guestProductInfo?.variantTags,
+        selectedOptions
+      };
+      guestItems.push(newItem);
+    }
+    this.saveGuestCart(guestItems);
+    this.cartSubject.next(guestItems);
+    return guestItems;
+  }
+
   /**
    * Load full cart from server (used on init and after variant changes)
    * Nếu chưa đăng nhập: tải từ localStorage
    */
   loadCart(): Observable<CartItem[]> {
-    const token = localStorage.getItem('dcor_customer_token');
-    if (!token) {
+    if (!this.isLoggedIn) {
       // Guest: load từ localStorage
       const guestItems = this.loadGuestCart();
       this.cartSubject.next(guestItems);
@@ -104,6 +178,12 @@ export class CartService {
         catchError((err) => {
           console.error('Lỗi tải giỏ hàng:', err);
           this.isLoadingSubject.next(false);
+          if (err.status === 401 || err.status === 403) {
+            // Token hết hạn hoặc không hợp lệ -> fallback giỏ hàng guest
+            const guestItems = this.loadGuestCart();
+            this.cartSubject.next(guestItems);
+            return of(guestItems);
+          }
           return throwError(() => err);
         })
       );
@@ -117,37 +197,23 @@ export class CartService {
   addToCart(variantId: string, quantity: number, selectedOptions?: any, guestProductInfo?: Partial<CartItem>): Observable<any> {
     if (!this.isLoggedIn) {
       // Guest: thêm vào localStorage
-      const guestItems = this.loadGuestCart();
-      const existingIdx = guestItems.findIndex(i => i.variantId === variantId);
-      let targetItem: CartItem;
-      if (existingIdx >= 0) {
-        guestItems[existingIdx].quantity += quantity;
-        targetItem = guestItems[existingIdx];
-      } else {
-        const newItem: CartItem = {
-          id: `guest-${variantId}-${Date.now()}`,
-          productId: guestProductInfo?.productId || '',
-          variantId,
-          name: guestProductInfo?.name || 'Sản phẩm',
-          variantName: guestProductInfo?.variantName,
-          image: guestProductInfo?.image || '',
-          price: guestProductInfo?.price || 0,
-          originalPrice: guestProductInfo?.originalPrice,
-          quantity,
-          availableStock: guestProductInfo?.availableStock,
-          isActive: true,
-          variantTags: guestProductInfo?.variantTags,
-          selectedOptions
-        };
-        guestItems.push(newItem);
-        targetItem = newItem;
-      }
-      this.saveGuestCart(guestItems);
-      this.cartSubject.next(guestItems);
+      const guestItems = this.addGuestItem(variantId, quantity, selectedOptions, guestProductInfo);
+      const targetItem = guestItems.find(i => i.variantId === variantId);
       return of({ message: 'Đã thêm vào giỏ hàng', cartItem: targetItem });
     }
+
     return this.http.post<any>(this.apiUrl, { variantId, quantity, selectedOptions }, { headers: this.getHeaders() })
-      .pipe(tap(() => this.loadCart().subscribe()));
+      .pipe(
+        tap(() => this.loadCart().subscribe()),
+        catchError((err) => {
+          if (err.status === 401 || err.status === 403) {
+            // Khi phiên đăng nhập hết hạn hoặc là khách vãng lai: tự động lưu vào giỏ guest, không làm gián đoạn trải nghiệm
+            this.addGuestItem(variantId, quantity, selectedOptions, guestProductInfo);
+            return of({ message: 'Đã thêm vào giỏ hàng' });
+          }
+          return throwError(() => err);
+        })
+      );
   }
 
   /**
@@ -205,6 +271,18 @@ export class CartService {
    * Update variant — must reload cart because image/price/tags can change
    */
   updateVariant(id: string, variantId: string, quantity?: number, selectedOptions?: any): Observable<any> {
+    if (!this.isLoggedIn) {
+      const guestItems = this.loadGuestCart();
+      const idx = guestItems.findIndex(i => i.id === id);
+      if (idx >= 0) {
+        guestItems[idx].variantId = variantId;
+        if (quantity !== undefined) guestItems[idx].quantity = quantity;
+        if (selectedOptions) guestItems[idx].selectedOptions = selectedOptions;
+        this.saveGuestCart(guestItems);
+        this.cartSubject.next(guestItems);
+      }
+      return of({ message: 'Cập nhật biến thể thành công' });
+    }
     return this.http.put<any>(`${this.apiUrl}/${id}`, { variantId, quantity, selectedOptions }, { headers: this.getHeaders() })
       .pipe(tap(() => this.loadCart().subscribe()));
   }

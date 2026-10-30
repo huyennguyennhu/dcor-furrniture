@@ -1,7 +1,18 @@
+.store-header-nav {
+  position: static !important;
+}
+
+.store-header-nav>ul {
+  position: static !important;
+  transform: none !important;
+  margin-left: -11px;
+}
+
 .store-shop-nav-item {
-  position: static;
+  position: static !important;
   display: flex;
   align-items: center;
+  height: 100% !important;
   gap: 4px;
 }
 
@@ -20,6 +31,7 @@
 
 .store-shop-menu-toggle:hover,
 .store-shop-nav-item:hover .store-shop-menu-toggle,
+.store-shop-nav-item.is-hovered .store-shop-menu-toggle,
 .store-shop-nav-item:focus-within .store-shop-menu-toggle {
   color: #bc5f13;
 }
@@ -35,18 +47,17 @@
   transition: transform 0.2s ease;
 }
 
-.store-shop-nav-item.is-open .store-shop-nav-chevron,
-.store-shop-nav-item:not(.is-hover-dismissed):hover .store-shop-nav-chevron,
-.store-shop-nav-item:not(.is-hover-dismissed):focus-within .store-shop-nav-chevron {
+.store-shop-nav-item.is-hovered .store-shop-nav-chevron,
+.store-shop-nav-item:hover .store-shop-nav-chevron {
   transform: rotate(180deg);
 }
 
-.store-shop-nav-item:not(.is-hover-dismissed):hover .store-shop-nav-link::after,
-.store-shop-nav-item:not(.is-hover-dismissed):focus-within .store-shop-nav-link::after {
+.store-shop-nav-item.is-hovered .store-shop-nav-link::after,
+.store-shop-nav-item:hover .store-shop-nav-link::after {
   width: calc(100% + 28px);
 }
 
-.store-shop-nav-link.active + .store-shop-menu-toggle {
+.store-shop-nav-link.active+.store-shop-menu-toggle {
   color: #bc5f13;
 }
 
@@ -54,118 +65,457 @@
   width: calc(100% + 28px);
 }
 
+/* ==========================================================================
+   MEGA MENU BẬC CAO (LUXURY 5-COLUMN MEGA MENU)
+   ========================================================================== */
 .store-shop-mega-menu {
   box-sizing: border-box;
   position: absolute;
   z-index: 120;
-  top: 100%;
-  left: 40%;
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr);
-  width: min(430px, calc(100vw - 32px));
-  max-height: min(70vh, 560px);
+  top: calc(100% - 2px); /* 2px overlap với navbar giúp lia chuột liền mạch không bao giờ đứt quãng */
+  left: 50%;
+  width: min(1200px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(90vh - 40px);
   overflow-y: auto;
-  padding: 28px 32px 20px;
+  overflow-x: hidden;
   color: #292520;
-  background: #fff;
-  border: 1px solid #eee9e3;
-  box-shadow: 0 14px 32px rgba(37, 29, 20, 0.14);
+  background: #ffffff;
+  border: 1px solid rgba(225, 218, 209, 0.95);
+  border-radius: 10px;
+  box-shadow: 0 24px 50px -10px rgba(35, 25, 15, 0.16), 0 8px 20px -4px rgba(35, 25, 15, 0.05);
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, 0);
-  transition: opacity 0.18s ease, visibility 0.18s ease;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.16s ease;
   visibility: hidden;
 }
 
-.store-shop-nav-item.is-open .store-shop-mega-menu,
-.store-shop-nav-item:not(.is-hover-dismissed):hover .store-shop-mega-menu,
-.store-shop-nav-item:not(.is-hover-dismissed):focus-within .store-shop-mega-menu {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translate(-50%, 0);
-  visibility: visible;
+/* Typography override for mega menu - disable nav ul a uppercase */
+.store-shop-mega-menu a,
+.store-shop-mega-menu span,
+.store-shop-mega-menu p,
+.store-shop-mega-menu strong,
+.mega-link,
+.mega-link-name,
+.featured-title,
+.featured-desc,
+.featured-cta-btn,
+.quick-title,
+.quick-col-pill {
+  text-transform: none !important;
+  letter-spacing: normal;
 }
 
-.store-shop-menu-column h2 {
-  margin: 0 0 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e6e1db;
-  color: #211e1a;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.35;
+/* Xóa bỏ hoàn toàn ::before 1260px vì tạo vùng bẫy chuột trong suốt chắn toàn bộ header */
+.store-shop-mega-menu::before {
+  display: none !important;
 }
 
-.store-shop-menu-column ul {
+/* Chỉ hiện khi rê chuột vào trong, chuột ra ngoài là tắt ngay lập tức */
+.store-shop-nav-item.is-hovered .store-shop-mega-menu,
+.store-shop-nav-item:hover .store-shop-mega-menu {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translate(-50%, 0) !important;
+  visibility: visible !important;
+}
+
+.mega-menu-inner {
+  padding: 24px 28px;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mega-menu-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1.35fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Cột menu */
+.mega-col {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 9px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mega-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px 0;
+  padding: 0 0 8px 0;
+  border-bottom: 1.5px solid #f2ede7;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mega-col-title {
   margin: 0;
   padding: 0;
-  white-space: normal;
-  transform: none;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9A461E;
+  line-height: 1.2;
 }
 
-.store-shop-menu-column li {
-  width: 100%;
+/* Danh sách link danh mục - Triệt tiêu triệt để các thuộc tính kế thừa từ .store-header-nav ul */
+.store-header-nav ul.mega-list,
+.mega-list {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  transform: none !important;
+  white-space: normal !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
-.store-shop-menu-column a {
+.mega-list-item {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  box-sizing: border-box !important;
+}
+
+.mega-link {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  color: #66615c;
-  font-size: 15px;
-  font-weight: 400;
+  gap: 8px;
+  padding: 5px 8px;
+  margin: 0 -8px;
+  /* -8px margin bù chính xác cho 8px padding, giúp chữ bắt đầu đúng pixel 0 thẳng hàng tuyệt đối với tiêu đề */
+  border-radius: 6px;
+  color: #44403c;
+  font-size: 13.5px;
+  font-weight: 450;
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+  width: calc(100% + 16px);
 }
 
-.store-shop-menu-column a:hover {
-  color: #bc5f13;
+.mega-link:hover {
+  color: #9A461E;
+  background-color: #fbf5ef;
 }
 
-.store-shop-category-count {
-  color: #9a9289;
+.mega-link-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mega-category-count {
+  font-size: 11.5px;
+  color: #a8a29e;
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
+.mega-badge-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: #fdf2e9;
+  color: #9A461E;
+  border: 1px solid #fed7aa;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mega-loading {
+  font-size: 13px;
+  color: #8c8278;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mega-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ddd;
+  border-top-color: #9A461E;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Cột 5: Featured Card */
+.mega-col-featured {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mega-featured-card {
+  background: linear-gradient(145deg, #fbf9f6 0%, #f4ede3 100%);
+  border: 1px solid #eae3d8;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mega-featured-card:hover {
+  box-shadow: 0 8px 24px rgba(154, 70, 30, 0.12);
+  border-color: #dfceb9;
+}
+
+.featured-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 94px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.featured-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.mega-featured-card:hover .featured-img {
+  transform: scale(1.04);
+}
+
+.featured-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(33, 30, 26, 0.82);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.featured-info {
+  padding: 9px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.featured-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #211e1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.featured-desc {
+  margin: 0;
+  font-size: 11px;
+  color: #66615c;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.featured-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
+  font-weight: 600;
+  color: #9A461E;
+  text-decoration: none;
+  margin-top: 2px;
+  transition: gap 0.2s ease;
 }
 
-.store-shop-menu-loading {
-  color: #77716b;
-  font-size: 14px;
+.featured-cta-btn:hover {
+  gap: 9px;
+  color: #7c2d12;
 }
 
-@media (max-width: 700px) {
+.mega-quick-collections {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.quick-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #78716c;
+}
+
+.quick-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.quick-col-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #57534e;
+  background: #f5f0ea;
+  padding: 3px 8px;
+  border-radius: 99px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.quick-col-pill:hover {
+  background: #9A461E;
+  color: #ffffff;
+}
+
+/* Responsive Mega Menu */
+@media (max-width: 1200px) {
   .store-shop-mega-menu {
-    left: 0;
-    grid-template-columns: minmax(220px, 1fr);
-    width: min(380px, calc(100vw - 24px));
-    padding: 20px;
-    transform: translate(0, 0);
+    width: min(980px, calc(100vw - 32px));
   }
 
-  .store-shop-nav-item.is-open .store-shop-mega-menu,
-  .store-shop-nav-item:not(.is-hover-dismissed):hover .store-shop-mega-menu,
-  .store-shop-nav-item:not(.is-hover-dismissed):focus-within .store-shop-mega-menu {
-    transform: translate(0, 0);
+  .mega-menu-inner {
+    padding: 20px 22px;
   }
 
-  .store-shop-menu-column h2 {
-    font-size: 16px;
+  .mega-menu-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
   }
 
-  .store-shop-menu-column a {
-    font-size: 13px;
+  /* Đưa phần featured xuống hàng dưới trải dài ngang thành banner, vừa vặn 100% không bị tràn */
+  .mega-col-featured {
+    grid-column: 1 / -1;
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
+    padding-top: 14px;
+    margin-top: 4px;
+    border-top: 1.5px solid #f2ede7;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mega-col-featured .mega-featured-card {
+    flex: 1 1 55%;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .mega-col-featured .featured-img-wrap {
+    width: 110px;
+    height: 75px;
+    flex-shrink: 0;
+  }
+
+  .mega-col-featured .featured-info {
+    padding: 8px 12px;
+  }
+
+  .mega-col-featured .mega-quick-collections {
+    flex: 1 1 45%;
+    min-width: 0;
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 992px) {
   .store-shop-mega-menu {
-    grid-template-columns: 1fr;
-    padding: 16px 12px;
+    width: min(720px, calc(100vw - 24px));
+  }
+
+  .mega-menu-inner {
+    padding: 18px;
+  }
+
+  .mega-menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+  }
+
+  .mega-col-featured {
+    grid-column: 1 / -1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .mega-col-featured .mega-featured-card {
+    flex-direction: row;
+  }
+
+  .mega-col-featured .featured-img-wrap {
+    width: 100px;
+    height: 70px;
+  }
+}
+
+@media (max-width: 900px) {
+  .store-shop-mega-menu {
+    display: none !important;
   }
 }
 
@@ -235,6 +585,7 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -601,6 +952,24 @@
   color: #9a9289;
 }
 
+.mobile-subgroup-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9A461E;
+  padding: 10px 10px 4px;
+  margin-top: 6px;
+  border-top: 1px dashed #ede8e1;
+}
+
+.mobile-sublink-all {
+  font-weight: 600;
+  color: #9A461E;
+  background: #fbf7f3;
+  margin-bottom: 4px;
+}
+
 .mobile-nav-divider {
   height: 1px;
   background: #edebe4;
@@ -650,22 +1019,131 @@
 }
 
 /* ==========================================================================
-   Breakpoints for Header
+   Header Desktop Layout & Flex Rules
    ========================================================================== */
-@media (max-width: 992px) {
+:host {
+  display: block;
+}
+
+header.store-site-header .store-header-main,
+.store-header-main {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  height: 60px !important;
+  box-sizing: border-box !important;
+  padding: 5px clamp(16px, 2.5vw, 48px) !important;
+  gap: clamp(12px, 1.8vw, 24px) !important;
+}
+
+.store-wordmark {
+  flex: 0 0 auto !important;
+  width: clamp(84px, 7vw, 104px) !important;
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.store-wordmark img {
+  display: block !important;
+  max-height: 100% !important;
+  width: auto !important;
+  object-fit: contain !important;
+}
+
+.store-header-nav {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+}
+
+.store-header-nav ul {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: clamp(14px, 1.8vw, 32px) !important;
+  transform: none !important; /* Loại bỏ -11px đè lên logo */
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  white-space: nowrap !important;
+}
+
+.store-header-nav .header-nav-link {
+  font-size: clamp(14px, 1.1vw, 16.5px) !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  letter-spacing: normal !important;
+}
+
+.store-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  gap: clamp(10px, 1.2vw, 18px) !important;
+}
+
+.floating-search-bar {
+  position: relative !important;
+  width: clamp(160px, 15vw, 240px) !important;
+  flex-shrink: 1 !important;
+  z-index: 101 !important;
+}
+
+.user-dropdown-wrapper {
+  position: relative !important;
+  flex: 0 0 auto !important;
+}
+
+.store-login-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: unset !important;
+  padding: 0 clamp(12px, 1.2vw, 18px) !important;
+  height: 34px !important;
+  font-size: clamp(13px, 0.95vw, 14px) !important;
+  white-space: nowrap !important;
+}
+
+.store-header-main .icon-btn {
+  flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   Breakpoints for Header (Responsive 1024, 900, 768, 520, 420, 390px)
+   ========================================================================== */
+@media (max-width: 1024px) {
   .btn-mobile-menu-toggle {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
-  /* Ẩn thanh menu ngang desktop trên mobile & tablet */
+  /* Chuyển menu chính sang drawer mobile để tránh chồng lấn ở tablet */
   .store-header-nav {
     display: none !important;
   }
 
   .store-wordmark {
-    width: 90px;
-    height: 48px;
-    flex: 0 0 90px;
+    width: 86px !important;
+    height: 46px !important;
+    flex: 0 0 86px !important;
+  }
+
+  header.store-site-header .store-header-main,
+  .store-header-main {
+    padding: 0 20px !important;
+    gap: 12px !important;
+  }
+
+  .floating-search-bar {
+    width: clamp(140px, 20vw, 200px) !important;
+  }
+
+  .store-header-actions {
+    gap: 10px !important;
   }
 }
 
@@ -679,11 +1157,23 @@
   }
 
   .notification-icon-btn {
-    display: none;
+    display: none !important;
   }
 
   .store-header-actions {
-    gap: 12px;
+    gap: 10px !important;
+  }
+
+  header.store-site-header .store-header-main,
+  .store-header-main {
+    padding: 0 16px !important;
+    gap: 10px !important;
+  }
+
+  .store-wordmark {
+    width: 80px !important;
+    height: 42px !important;
+    flex: 0 0 80px !important;
   }
 }
 
@@ -697,36 +1187,278 @@
   }
 
   .store-wordmark {
-    width: 76px;
-    height: 42px;
-    flex: 0 0 76px;
+    width: 76px !important;
+    height: 40px !important;
+    flex: 0 0 76px !important;
+  }
+
+  header.store-site-header .store-header-main,
+  .store-header-main {
+    padding: 0 12px !important;
+    gap: 8px !important;
   }
 
   .store-header-actions {
-    gap: 8px;
+    gap: 8px !important;
   }
 
   .store-login-button {
-    width: auto;
-    padding: 0 12px;
-    height: 32px;
-    font-size: 13px;
+    width: auto !important;
+    padding: 0 10px !important;
+    height: 32px !important;
+    font-size: 13px !important;
   }
 }
 
 @media (max-width: 420px) {
   .login-text {
-    display: none;
+    display: none !important;
   }
 
   .login-mobile-icon {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
   .store-login-button {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 50%;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
   }
+
+  .btn-mobile-menu-toggle {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .store-wordmark {
+    width: 72px !important;
+    height: 38px !important;
+    flex: 0 0 72px !important;
+  }
+
+  .store-header-main .icon-btn {
+    width: 28px !important;
+    height: 28px !important;
+    flex: 0 0 28px !important;
+  }
+
+  #header-cart-icon {
+    width: 30px !important;
+    height: 30px !important;
+    flex: 0 0 30px !important;
+  }
+}
+
+
+.header-user-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.header-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--color-primary, #765337);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.header-user-btn:hover .header-avatar-img {
+  transform: scale(1.08);
+  border-color: var(--color-primary-hover, #BC5F13);
+}
+
+/* Header Notification Popover Dropdown */
+.header-notification-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notification-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -40px;
+  width: 340px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-card, 12px);
+  box-shadow: var(--shadow-dropdown, 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1));
+  z-index: var(--z-dropdown, 200);
+  overflow: hidden;
+  animation: notifDropFade 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes notifDropFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notif-drop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-page, #fcf8f3);
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+.notif-drop-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text, #0a0a0a);
+}
+
+.notif-drop-badge {
+  background: var(--color-accent, #BC5F13);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.notif-drop-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary, #765337);
+  text-decoration: none;
+}
+
+.notif-drop-link:hover {
+  color: var(--color-primary-pressed, #3F2C1B);
+  text-decoration: underline;
+}
+
+.notif-drop-list {
+  max-height: 290px;
+  overflow-y: auto;
+}
+
+.notif-drop-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border-subtle, #ededed);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.notif-drop-item:last-child {
+  border-bottom: none;
+}
+
+.notif-drop-item:hover {
+  background: var(--color-page, #fcf8f3);
+}
+
+.notif-drop-item.unread {
+  background: var(--color-primary-subtle, #FFF3E3);
+}
+
+.notif-drop-item.unread:hover {
+  background: #faebdc;
+}
+
+.notif-drop-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent, #BC5F13);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.notif-drop-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-drop-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #0a0a0a);
+  margin-bottom: 2px;
+  line-height: 1.35;
+}
+
+.notif-drop-item-msg {
+  font-size: 12px;
+  color: var(--color-text-secondary, #616161);
+  line-height: 1.4;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-drop-item-time {
+  font-size: 11px;
+  color: var(--color-text-muted, #757575);
+}
+
+.notif-drop-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--color-text-muted, #757575);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.notif-drop-footer {
+  padding: 10px 16px;
+  background: var(--color-surface, #ffffff);
+  border-top: 1px solid var(--color-border, #e0e0e0);
+  text-align: center;
+}
+
+.notif-view-all-btn {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent, #BC5F13);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.notif-view-all-btn:hover {
+  color: var(--color-primary, #765337);
+  text-decoration: underline;
+}
+
+/* Guest Dropdown menu hover & clicked behavior */
+.guest-dropdown-wrapper {
+  position: relative;
+}
+
+.guest-dropdown-wrapper:hover .guest-user-dropdown {
+  display: block !important;
+}
+
+.guest-user-dropdown {
+  display: none;
+}
+
+.guest-user-dropdown.active {
+  display: block !important;
 }

@@ -9,10 +9,16 @@
         <app-icon name="Sparkles" size="16"></app-icon>
         <span>DCor 2D Room Planner</span>
       </div>
-      <h1 class="setup-title">Bắt đầu thiết kế không gian phòng</h1>
+      <h1 class="setup-title">Thiết kế không gian phòng</h1>
       <p class="setup-subtitle">
-        Khởi tạo mặt bằng phòng từ bản mẫu có sẵn, hoặc tải lên ảnh mặt bằng thực tế của bạn để bắt đầu sắp đặt nội thất.
+        Chọn một mặt bằng không gian bên dưới để bắt đầu bài trí nội thất.
       </p>
+      <div class="setup-header-actions" style="margin-top: 14px; display: flex; justify-content: center; gap: 12px;">
+        <a routerLink="/account/designs" class="my-designs-entry-link" aria-label="Xem Thiết kế của tôi">
+          <app-icon name="Layers" size="16"></app-icon>
+          <span>Thiết kế của tôi</span>
+        </a>
+      </div>
     </div>
 
     <!-- LƯỚI BẢN MẪU & Ô TẢI ẢNH MẶT BẰNG THẬT (1 LƯỚI DUY NHẤT) -->
@@ -208,14 +214,14 @@
     <!-- MỤC: THIẾT KẾ ĐÃ LƯU TRÊN MÁY NÀY (REQ 3)       -->
     <!-- ============================================== -->
     <div class="saved-drafts-section" *ngIf="savedDrafts().length > 0">
-      <div class="section-title-row">
+      <div class="section-title-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <div class="section-heading-group">
-          <h2 class="section-title">Thiết kế đã lưu trên máy này</h2>
-          <span class="local-storage-note-badge">
-            <app-icon name="Info" size="13"></app-icon>
-            <span>Chỉ lưu trên máy này (IndexedDB)</span>
-          </span>
+          <h2 class="section-title" style="margin: 0;">Thiết kế của tôi gần đây</h2>
         </div>
+        <a routerLink="/account/designs" class="view-all-designs-link" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: var(--color-primary, #765337); text-decoration: none;">
+          <span>Xem tất cả</span>
+          <app-icon name="ArrowRight" size="14"></app-icon>
+        </a>
       </div>
 
       <div class="saved-drafts-grid">

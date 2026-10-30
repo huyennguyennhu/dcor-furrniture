@@ -6,7 +6,9 @@ import {
   OnInit,
   OnChanges,
   SimpleChanges,
-  ChangeDetectorRef
+  ChangeDetectorRef,
+  ViewChild,
+  ElementRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +28,7 @@ import {
   AlertCircle,
   X,
   ExternalLink,
+  ChevronLeft,
   ChevronRight,
   ShieldCheck,
   Sparkles,
@@ -97,6 +100,7 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
     AlertCircle,
     X,
     ExternalLink,
+    ChevronLeft,
     ChevronRight,
     ShieldCheck,
     Sparkles,
@@ -124,6 +128,15 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
   isLoadingSlots = false;
   isClosedDay = false;
   closureReason = '';
+
+  get availableSlots(): SlotItem[] {
+    return this.slots.filter(s => s.isAvailable);
+  }
+
+  // Date strip carousel navigation (8 ngày mỗi trang)
+  @ViewChild('dateStripRef', { static: false }) dateStripRef?: ElementRef<HTMLDivElement>;
+  isAtDateStart = true;
+  isAtDateEnd = false;
 
   // Step 3: Contact Info
   fullName = '';
@@ -173,6 +186,14 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
       this.createdAppointment = null;
       this.appointmentCode = '';
       this.formErrors = {};
+      this.isAtDateStart = true;
+      this.isAtDateEnd = false;
+      setTimeout(() => {
+        if (this.dateStripRef?.nativeElement) {
+          this.dateStripRef.nativeElement.scrollLeft = 0;
+          this.updateDateScrollStatus();
+        }
+      }, 100);
     }
   }
 
@@ -288,7 +309,7 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
     const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const now = new Date();
 
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 16; i++) {
       const d = new Date(now);
       d.setDate(d.getDate() + i);
 
@@ -314,6 +335,30 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
     if (!this.selectedDate && days.length > 0) {
       this.selectDate(days[0].dateStr);
     }
+    setTimeout(() => this.updateDateScrollStatus(), 100);
+  }
+
+  scrollDateStrip(direction: 'prev' | 'next') {
+    const el = this.dateStripRef?.nativeElement;
+    if (!el) return;
+    const scrollAmount = el.clientWidth;
+    el.scrollBy({
+      left: direction === 'prev' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+    setTimeout(() => this.updateDateScrollStatus(), 350);
+  }
+
+  onDateStripScroll() {
+    this.updateDateScrollStatus();
+  }
+
+  private updateDateScrollStatus() {
+    const el = this.dateStripRef?.nativeElement;
+    if (!el) return;
+    this.isAtDateStart = el.scrollLeft <= 8;
+    this.isAtDateEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+    this.cdr.detectChanges();
   }
 
   selectDate(dStr: string) {
@@ -338,12 +383,18 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
         this.isClosedDay = !!data.isClosed;
         this.closureReason = data.closureReason || '';
         this.slots = data.slots || [];
+        if (this.selectedTime && !this.availableSlots.some(s => s.time === this.selectedTime)) {
+          this.selectedTime = '';
+          this.selectedTimeSlot = null;
+        }
       } else {
         throw new Error();
       }
     } catch (e) {
       console.error('[ShowroomModal] Lỗi tải khung giờ:', e);
       this.slots = [];
+      this.selectedTime = '';
+      this.selectedTimeSlot = null;
     } finally {
       this.isLoadingSlots = false;
       this.cdr.detectChanges();
@@ -383,7 +434,7 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
   onEmailInput() {
     const em = (this.email || '').trim();
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (em && emailRegex.test(em)) {
+    if (!em || emailRegex.test(em)) {
       delete this.formErrors['email'];
     }
   }
@@ -407,9 +458,7 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
     } else if (field === 'email') {
       const em = (this.email || '').trim();
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!em) {
-        this.formErrors['email'] = 'Vui lòng nhập Email để nhận phiếu xác nhận lịch hẹn và sơ đồ chỉ đường.';
-      } else if (!emailRegex.test(em)) {
+      if (em && !emailRegex.test(em)) {
         this.formErrors['email'] = 'Email không đúng định dạng (VD: hoten@gmail.com).';
       } else {
         delete this.formErrors['email'];
@@ -546,8 +595,10 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
     if (this.isSubmitting) return true;
     if (!this.selectedShowroomId) return true;
     if (!this.selectedDate || !this.selectedTime) return true;
-    if (!this.fullName.trim() || !this.phone.trim() || !this.email.trim()) return true;
+    if (!this.fullName.trim() || !this.phone.trim()) return true;
     if (!this.isPhoneVerified) return true;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (this.email.trim() && !emailRegex.test(this.email.trim())) return true;
     return false;
   }
 
@@ -579,9 +630,7 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
     }
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!this.email.trim()) {
-      this.formErrors['email'] = 'Vui lòng nhập Email để DCOR gửi phiếu xác nhận lịch hẹn và sơ đồ chỉ đường.';
-    } else if (!emailRegex.test(this.email.trim())) {
+    if (this.email.trim() && !emailRegex.test(this.email.trim())) {
       this.formErrors['email'] = 'Email không đúng định dạng (VD: hoten@gmail.com).';
     }
 

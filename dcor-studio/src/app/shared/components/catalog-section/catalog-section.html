@@ -77,7 +77,13 @@
         Không tìm thấy sản phẩm nào phù hợp với bộ lọc đã chọn.
       </div>
       
-      <div class="product-card" *ngFor="let prod of paginatedProducts">
+      <div class="product-card" *ngFor="let prod of paginatedProducts" style="position: relative;">
+        <button type="button" class="catalog-wishlist-btn" [class.active]="isInWishlist(prod.productId)"
+          [title]="isInWishlist(prod.productId) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+          (click)="toggleWishlist($event, prod)">
+          <app-icon name="Heart" size="18" [filled]="isInWishlist(prod.productId)"
+            [color]="isInWishlist(prod.productId) ? '#C42326' : 'currentColor'"></app-icon>
+        </button>
         <app-hover-image-slider 
           [images]="getAllImages(prod)" 
           [altText]="prod.shortDescription_vi || prod.shortDescription"

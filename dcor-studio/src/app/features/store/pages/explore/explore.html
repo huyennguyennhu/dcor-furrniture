@@ -202,9 +202,10 @@
                     [color]="isInCompare(prod.productId) ? '#b45309' : (isCompareDisabledForProduct(prod) ? '#9ca3af' : '#4b5563')"></app-icon>
                 </button>
                 <button type="button" class="round-action-btn wishlist-btn"
-                  [class.active]="wishlist.includes(prod.productId)" title="Yêu thích"
+                  [class.active]="wishlist.includes(prod.productId)" 
+                  [title]="wishlist.includes(prod.productId) ? 'Bỏ yêu thích' : 'Yêu thích'"
                   (click)="toggleWishlist($event, prod.productId)">
-                  <app-icon name="Heart" size="16" [color]="wishlist.includes(prod.productId) ? '#b45309' : '#4b5563'"
+                  <app-icon name="Heart" size="16" [color]="wishlist.includes(prod.productId) ? '#C42326' : '#4b5563'"
                     [filled]="wishlist.includes(prod.productId)"></app-icon>
                 </button>
               </div>

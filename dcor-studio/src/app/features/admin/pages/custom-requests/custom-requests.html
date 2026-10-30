@@ -1,1 +1,569 @@
-<p>custom-requests works!</p>
+<div class="admin-custom-page">
+  <!-- Page Header -->
+  <div class="admin-page-header">
+    <div>
+      <h1 class="page-title">Quản Lý Đơn May Đo & Thiết Kế Custom</h1>
+      <p class="page-subtitle">
+        Theo dõi tiến trình từ tiếp nhận yêu cầu, khảo sát, gửi báo giá & bản vẽ 3D đến ký hợp đồng và chuyển xưởng sản xuất.
+      </p>
+    </div>
+  </div>
+
+  <!-- KPI Stat Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap default">
+        <lucide-angular [img]="icons.FileText" size="22"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Tổng hồ sơ custom</span>
+        <strong class="kpi-value">{{ requests.length }}</strong>
+      </div>
+    </div>
+
+    <div class="kpi-card highlight-pending">
+      <div class="kpi-icon-wrap pending">
+        <lucide-angular [img]="icons.AlertCircle" size="22"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Chờ tiếp nhận mới</span>
+        <strong class="kpi-value">{{ pendingCount }}</strong>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap consulting">
+        <lucide-angular [img]="icons.PhoneCall" size="22"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Đang khảo sát & Báo giá</span>
+        <strong class="kpi-value">{{ consultingCount }}</strong>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap contract">
+        <lucide-angular [img]="icons.DollarSign" size="22"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Chờ ký HĐ & Thanh toán</span>
+        <strong class="kpi-value">{{ contractPaymentCount }}</strong>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap processing">
+        <lucide-angular [img]="icons.Package" size="22"></lucide-angular>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Đang sản xuất tại xưởng</span>
+        <strong class="kpi-value">{{ processingCount }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Status Tabs Bar (Các tab Enum theo yêu cầu Admin Dashboard) -->
+  <div class="admin-tabs-nav">
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'ALL'" 
+      (click)="selectedTab = 'ALL'">
+      <span>Tất cả</span>
+      <span class="tab-badge">{{ getTabCount('ALL') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'PENDING_REVIEW'" 
+      (click)="selectedTab = 'PENDING_REVIEW'">
+      <span>Tiếp nhận yêu cầu mới</span>
+      <span class="tab-badge pending" *ngIf="getTabCount('PENDING_REVIEW') > 0">{{ getTabCount('PENDING_REVIEW') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'CONSULTING'" 
+      (click)="selectedTab = 'CONSULTING'">
+      <span>Đang liên hệ & khảo sát</span>
+      <span class="tab-badge" *ngIf="getTabCount('CONSULTING') > 0">{{ getTabCount('CONSULTING') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'QUOTED'" 
+      (click)="selectedTab = 'QUOTED'">
+      <span>Đã gửi báo giá & bản vẽ</span>
+      <span class="tab-badge" *ngIf="getTabCount('QUOTED') > 0">{{ getTabCount('QUOTED') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'AWAITING_CONTRACT'" 
+      (click)="selectedTab = 'AWAITING_CONTRACT'">
+      <span>Chờ ký hợp đồng</span>
+      <span class="tab-badge" *ngIf="getTabCount('AWAITING_CONTRACT') > 0">{{ getTabCount('AWAITING_CONTRACT') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'CONTRACT_SIGNED'" 
+      (click)="selectedTab = 'CONTRACT_SIGNED'">
+      <span>Đã ký hợp đồng</span>
+      <span class="tab-badge" *ngIf="getTabCount('CONTRACT_SIGNED') > 0">{{ getTabCount('CONTRACT_SIGNED') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'AWAITING_PAYMENT'" 
+      (click)="selectedTab = 'AWAITING_PAYMENT'">
+      <span>Chờ thanh toán (Cọc/Toàn phần)</span>
+      <span class="tab-badge" *ngIf="getTabCount('AWAITING_PAYMENT') > 0">{{ getTabCount('AWAITING_PAYMENT') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'PROCESSING'" 
+      (click)="selectedTab = 'PROCESSING'">
+      <span>Đang sản xuất / Đóng gói</span>
+      <span class="tab-badge" *ngIf="getTabCount('PROCESSING') > 0">{{ getTabCount('PROCESSING') }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-tab-btn" 
+      [class.active]="selectedTab === 'CANCELLED'" 
+      (click)="selectedTab = 'CANCELLED'">
+      <span>Đã hủy yêu cầu</span>
+      <span class="tab-badge" *ngIf="getTabCount('CANCELLED') > 0">{{ getTabCount('CANCELLED') }}</span>
+    </button>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="search-filter-row">
+    <div class="search-input-wrap">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        class="search-control" 
+        placeholder="Tìm theo mã CR, tên khách, số điện thoại, tên mẫu nội thất..." 
+        [(ngModel)]="searchQuery" 
+      />
+    </div>
+    <div class="total-hint">
+      Hiển thị <strong>{{ filteredRequests.length }}</strong> / {{ requests.length }} hồ sơ
+    </div>
+  </div>
+
+  <!-- Table List of Custom Requests -->
+  <div class="table-container">
+    <table class="admin-data-table" *ngIf="filteredRequests.length > 0; else emptyStateTpl">
+      <thead>
+        <tr>
+          <th>Mã & Ngày tạo</th>
+          <th>Khách hàng</th>
+          <th>Mẫu & Kích thước may đo</th>
+          <th>Màu sắc & Chất liệu</th>
+          <th>Báo giá & Bản vẽ 3D</th>
+          <th>Trạng thái (Admin / Khách)</th>
+          <th style="text-align: right;">Thao tác xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let req of filteredRequests">
+          <!-- Mã & Ngày -->
+          <td>
+            <div class="code-badge">{{ req.code }}</div>
+            <div class="time-sub">{{ req.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+          </td>
+
+          <!-- Khách hàng -->
+          <td>
+            <div class="customer-name-cell">{{ req.customerName }}</div>
+            <a [href]="'tel:' + req.customerPhone" class="customer-phone-link">
+              <lucide-angular [img]="icons.PhoneCall" size="12"></lucide-angular>
+              {{ req.customerPhone }}
+            </a>
+            <div class="customer-addr" *ngIf="req.customerAddress">{{ req.customerAddress }}</div>
+          </td>
+
+          <!-- Mẫu & Kích thước -->
+          <td>
+            <div class="product-mini-cell">
+              <img [src]="req.productImage || 'assets/placeholder.png'" class="mini-thumb" />
+              <div>
+                <strong class="product-name-txt">{{ req.productName }}</strong>
+                <div class="size-specs-txt">
+                  <lucide-angular [img]="icons.Ruler" size="12"></lucide-angular>
+                  Dài {{ req.length || 0 }} x Rộng {{ req.width || 0 }} x <strong>Cao {{ req.height || 0 }} cm</strong>
+                </div>
+              </div>
+            </div>
+            <div class="req-notes-tag" *ngIf="req.notes">
+              <em>Ghi chú: {{ req.notes }}</em>
+            </div>
+          </td>
+
+          <!-- Màu sắc & Chất liệu -->
+          <td>
+            <div class="color-spec-cell">
+              <span class="swatch-mini" [style.background]="req.colorHex || '#8B4513'"></span>
+              <span>{{ req.colorName || 'Tùy chọn' }}</span>
+            </div>
+            <div class="material-txt">
+              <lucide-angular [img]="icons.Layers" size="12"></lucide-angular>
+              {{ req.material || 'Theo thỏa thuận' }}
+            </div>
+            <div class="leg-txt" *ngIf="req.legMaterial">Chân: {{ req.legMaterial }}</div>
+          </td>
+
+          <!-- Báo giá & 3D -->
+          <td>
+            <div *ngIf="req.quotedPrice; else noQuoteTpl">
+              <div class="quote-val">{{ req.quotedPrice | number }} đ</div>
+              <div class="deposit-val" *ngIf="req.quotedDeposit">Cọc: {{ req.quotedDeposit | number }} đ</div>
+              <a *ngIf="req.drawing3dUrl" [href]="req.drawing3dUrl" target="_blank" class="link-3d">
+                <lucide-angular [img]="icons.Eye" size="12"></lucide-angular> Bản vẽ 3D
+              </a>
+            </div>
+            <ng-template #noQuoteTpl>
+              <span class="text-muted-italics">Chưa gửi báo giá</span>
+            </ng-template>
+          </td>
+
+          <!-- Trạng thái -->
+          <td>
+            <div 
+              class="status-chip"
+              [style.color]="getStatusMeta(req.status).color"
+              [style.background]="getStatusMeta(req.status).bgColor"
+              [style.borderColor]="getStatusMeta(req.status).borderColor">
+              <span class="chip-dot" [style.background]="getStatusMeta(req.status).color"></span>
+              <span>{{ getStatusMeta(req.status).adminLabel }}</span>
+            </div>
+            <div class="customer-view-hint">
+              Khách thấy: <em>"{{ getStatusMeta(req.status).customerLabel }}"</em>
+            </div>
+          </td>
+
+          <!-- Thao tác hành vi theo user specification -->
+          <td style="text-align: right;">
+            <div class="action-buttons-wrap">
+              <!-- PENDING_REVIEW -> Nhận khảo sát -->
+              <button 
+                type="button" 
+                class="btn-act primary" 
+                *ngIf="req.status === 'PENDING_REVIEW'"
+                (click)="onStartConsulting(req)"
+                title="Bấm nhận việc, gọi điện chốt kích thước/vật liệu">
+                <lucide-angular [img]="icons.PhoneCall" size="13"></lucide-angular>
+                <span>Nhận khảo sát</span>
+              </button>
+
+              <!-- CONSULTING -> Gửi báo giá & 3D -->
+              <button 
+                type="button" 
+                class="btn-act primary" 
+                *ngIf="req.status === 'CONSULTING'"
+                (click)="openQuoteModal(req)"
+                title="Upload bản vẽ 3D + nhập giá/cọc để gửi cho khách">
+                <lucide-angular [img]="icons.DollarSign" size="13"></lucide-angular>
+                <span>Gửi báo giá & 3D</span>
+              </button>
+
+              <!-- QUOTED -> Chuẩn bị hợp đồng -->
+              <button 
+                type="button" 
+                class="btn-act primary" 
+                *ngIf="req.status === 'QUOTED'"
+                (click)="onPrepareContract(req)"
+                title="Khách đồng ý báo giá -> Chuẩn bị hợp đồng mang đi ký">
+                <lucide-angular [img]="icons.FileText" size="13"></lucide-angular>
+                <span>Chuẩn bị ký HĐ</span>
+              </button>
+
+              <!-- AWAITING_CONTRACT -> Xác nhận đã ký hợp đồng -->
+              <button 
+                type="button" 
+                class="btn-act primary" 
+                *ngIf="req.status === 'AWAITING_CONTRACT'"
+                (click)="openContractModal(req)"
+                title="Admin gặp khách ký xong -> Bấm Đã ký hợp đồng & lưu kho">
+                <lucide-angular [img]="icons.CheckCircle2" size="13"></lucide-angular>
+                <span>Xác nhận đã ký HĐ</span>
+              </button>
+
+              <!-- CONTRACT_SIGNED -> Chờ thanh toán cọc -->
+              <button 
+                type="button" 
+                class="btn-act primary" 
+                *ngIf="req.status === 'CONTRACT_SIGNED'"
+                (click)="onRequestPayment(req)"
+                title="Tự động sinh đơn hàng chính thức từ yêu cầu custom đã ký">
+                <lucide-angular [img]="icons.DollarSign" size="13"></lucide-angular>
+                <span>Kích hoạt chờ cọc</span>
+              </button>
+
+              <!-- AWAITING_PAYMENT -> Xác nhận cọc & Đưa xưởng sản xuất -->
+              <button 
+                type="button" 
+                class="btn-act success" 
+                *ngIf="req.status === 'AWAITING_PAYMENT'"
+                (click)="onConfirmPaymentAndProduce(req)"
+                title="Admin xác nhận đã nhận cọc/tiền -> Bắt đầu đưa xưởng đóng khung, gia công">
+                <lucide-angular [img]="icons.Package" size="13"></lucide-angular>
+                <span>Đã nhận cọc & Đưa xưởng</span>
+              </button>
+
+              <!-- PROCESSING: Đang sản xuất -->
+              <span class="production-badge" *ngIf="req.status === 'PROCESSING'">
+                <lucide-angular [img]="icons.Package" size="12"></lucide-angular>
+                Đang gia công tại xưởng
+              </span>
+
+              <!-- Xem chi tiết -->
+              <button 
+                type="button" 
+                class="btn-act outline" 
+                (click)="openDetailModal(req)"
+                title="Xem hồ sơ & lịch sử">
+                <lucide-angular [img]="icons.Eye" size="13"></lucide-angular>
+              </button>
+
+              <!-- Hủy yêu cầu -->
+              <button 
+                type="button" 
+                class="btn-act danger" 
+                *ngIf="!['PROCESSING', 'CANCELLED'].includes(req.status)"
+                (click)="openCancelModal(req)"
+                title="Khách báo hủy qua điện thoại/email">
+                <lucide-angular [img]="icons.XCircle" size="13"></lucide-angular>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #emptyStateTpl>
+      <div class="empty-admin-box">
+        <lucide-angular [img]="icons.Package" size="48" color="#A09890"></lucide-angular>
+        <h3>Không tìm thấy yêu cầu may đo nào trong mục này</h3>
+        <p>Vui lòng chọn tab khác hoặc kiểm tra lại từ khóa tìm kiếm.</p>
+      </div>
+    </ng-template>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: GỬI BÁO GIÁ & BẢN VẼ 3D (QUOTED)                                  -->
+<!-- ========================================================================= -->
+<div class="admin-modal-backdrop" *ngIf="activeModal === 'QUOTE' && activeRequest" (click)="closeModal()">
+  <div class="admin-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-top">
+      <div>
+        <h3 class="modal-heading">Gửi Báo Giá & Bản Vẽ Thiết Kế 3D</h3>
+        <p class="modal-subheading">Hồ sơ: <strong>{{ activeRequest.code }}</strong> - {{ activeRequest.productName }}</p>
+      </div>
+      <button type="button" class="btn-close-x" (click)="closeModal()">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-main">
+      <div class="form-row-2">
+        <div class="form-item">
+          <label class="item-label">Tổng giá trị sản xuất (VND) *</label>
+          <input type="number" class="admin-input" [(ngModel)]="quoteForm.price" min="1000000" step="500000" />
+        </div>
+        <div class="form-item">
+          <label class="item-label">Tiền đặt cọc tối thiểu (VND) *</label>
+          <input type="number" class="admin-input" [(ngModel)]="quoteForm.deposit" min="500000" step="500000" />
+        </div>
+      </div>
+
+      <div class="form-item">
+        <label class="item-label">URL Bản vẽ 3D / Phối cảnh hoàn thiện *</label>
+        <input type="text" class="admin-input" [(ngModel)]="quoteForm.drawing3dUrl" placeholder="https://..." />
+      </div>
+
+      <div class="form-item">
+        <label class="item-label">Chuyên viên phụ trách / KTS</label>
+        <input type="text" class="admin-input" [(ngModel)]="quoteForm.staffName" />
+      </div>
+
+      <div class="form-item">
+        <label class="item-label">Ghi chú kỹ thuật hoặc điều kiện giao hàng</label>
+        <textarea class="admin-input" rows="2" [(ngModel)]="quoteForm.notes" placeholder="Ví dụ: Đã kiểm tra thang máy lọt kích thước 2.8m..."></textarea>
+      </div>
+
+      <div class="system-trigger-banner">
+        <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+        <span>
+          <strong>Hành vi hệ thống:</strong> Khi bấm "Gửi Báo Giá", hệ thống tự động bắn Email/SMS thông báo cho khách hàng và cập nhật trạng thái đơn thành <strong>"Đã gửi báo giá qua Email/SMS"</strong>.
+        </span>
+      </div>
+    </div>
+
+    <div class="modal-bottom">
+      <button type="button" class="btn-btn cancel" (click)="closeModal()">Hủy</button>
+      <button type="button" class="btn-btn submit" (click)="submitQuote()">
+        <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+        Xác nhận Gửi Báo Giá
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: XÁC NHẬN KÝ HỢP ĐỒNG (CONTRACT_SIGNED)                           -->
+<!-- ========================================================================= -->
+<div class="admin-modal-backdrop" *ngIf="activeModal === 'CONTRACT' && activeRequest" (click)="closeModal()">
+  <div class="admin-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-top">
+      <div>
+        <h3 class="modal-heading">Xác Nhận Đã Ký Hợp Đồng May Đo</h3>
+        <p class="modal-subheading">Hồ sơ: <strong>{{ activeRequest.code }}</strong> - {{ activeRequest.customerName }}</p>
+      </div>
+      <button type="button" class="btn-close-x" (click)="closeModal()">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-main">
+      <div class="form-item">
+        <label class="item-label">Link ảnh chụp / Scan Hợp đồng đã ký (lưu kho):</label>
+        <input type="text" class="admin-input" [(ngModel)]="contractForm.scanUrl" placeholder="https://..." />
+      </div>
+
+      <div class="form-item">
+        <label class="item-label">Cán bộ phụ trách ký HĐ:</label>
+        <input type="text" class="admin-input" [(ngModel)]="contractForm.staffName" />
+      </div>
+
+      <div class="system-trigger-banner">
+        <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+        <span>
+          <strong>Hành vi hệ thống:</strong> Đơn chuyển sang trạng thái <strong>CONTRACT_SIGNED</strong> ("Đã ký hợp đồng - Chờ thanh toán"). Khách hàng sẽ thấy thông báo chuẩn bị thanh toán tiền cọc.
+        </span>
+      </div>
+    </div>
+
+    <div class="modal-bottom">
+      <button type="button" class="btn-btn cancel" (click)="closeModal()">Hủy</button>
+      <button type="button" class="btn-btn submit" (click)="submitContractSigned()">
+        <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+        Lưu Hợp Đồng & Ký Kết
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: HỦY YÊU CẦU CUSTOM (CANCELLED)                                     -->
+<!-- ========================================================================= -->
+<div class="admin-modal-backdrop" *ngIf="activeModal === 'CANCEL' && activeRequest" (click)="closeModal()">
+  <div class="admin-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-top">
+      <div>
+        <h3 class="modal-heading" style="color: #dc2626;">Hủy Yêu Cầu May Đo</h3>
+        <p class="modal-subheading">Hồ sơ: <strong>{{ activeRequest.code }}</strong></p>
+      </div>
+      <button type="button" class="btn-close-x" (click)="closeModal()">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-main">
+      <div class="form-item">
+        <label class="item-label">Chọn lý do hủy yêu cầu:</label>
+        <select class="admin-input" [(ngModel)]="cancelForm.reason">
+          <option *ngFor="let r of cancelPresetReasons" [value]="r">{{ r }}</option>
+        </select>
+      </div>
+
+      <div class="form-item">
+        <label class="item-label">Hoặc nhập chi tiết lý do:</label>
+        <textarea class="admin-input" rows="2" [(ngModel)]="cancelForm.reason"></textarea>
+      </div>
+
+      <div class="system-trigger-banner" style="background: #fef2f2; border-color: #fecaca; color: #991b1b;">
+        <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+        <span>Yêu cầu sẽ bị đóng lại với trạng thái Đã hủy và gửi thông báo tới khách hàng.</span>
+      </div>
+    </div>
+
+    <div class="modal-bottom">
+      <button type="button" class="btn-btn cancel" (click)="closeModal()">Đóng</button>
+      <button type="button" class="btn-btn danger" (click)="submitCancel()">
+        <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
+        Xác nhận Hủy Đơn
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: XEM CHI TIẾT HỒ SƠ & TIMELINE                                     -->
+<!-- ========================================================================= -->
+<div class="admin-modal-backdrop" *ngIf="activeModal === 'DETAIL' && activeRequest" (click)="closeModal()">
+  <div class="admin-modal-card" (click)="$event.stopPropagation()" style="max-width: 720px;">
+    <div class="modal-top">
+      <div>
+        <h3 class="modal-heading">Hồ Sơ May Đo {{ activeRequest.code }}</h3>
+        <span 
+          class="status-chip"
+          [style.color]="getStatusMeta(activeRequest.status).color"
+          [style.background]="getStatusMeta(activeRequest.status).bgColor">
+          {{ getStatusMeta(activeRequest.status).adminLabel }}
+        </span>
+      </div>
+      <button type="button" class="btn-close-x" (click)="closeModal()">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-main">
+      <div class="detail-grid-2">
+        <div>
+          <h4>Thông tin khách hàng:</h4>
+          <p><strong>{{ activeRequest.customerName }}</strong></p>
+          <p>SĐT: {{ activeRequest.customerPhone }}</p>
+          <p *ngIf="activeRequest.customerEmail">Email: {{ activeRequest.customerEmail }}</p>
+          <p *ngIf="activeRequest.customerAddress">Địa chỉ: {{ activeRequest.customerAddress }}</p>
+        </div>
+        <div>
+          <h4>Quy cách kỹ thuật may đo:</h4>
+          <p>Sản phẩm: <strong>{{ activeRequest.productName }}</strong></p>
+          <p>Kích thước: <strong>{{ activeRequest.length }} x {{ activeRequest.width }} x {{ activeRequest.height }} cm</strong></p>
+          <p>Màu: <strong>{{ activeRequest.colorName }}</strong> ({{ activeRequest.colorHex }})</p>
+          <p>Chất liệu: {{ activeRequest.material }}</p>
+          <p *ngIf="activeRequest.legMaterial">Chân đế: {{ activeRequest.legMaterial }}</p>
+        </div>
+      </div>
+
+      <div class="timeline-box" style="margin-top: 20px;">
+        <h4>Nhật ký xử lý hệ thống:</h4>
+        <div class="timeline-item-row" *ngFor="let item of activeRequest.timeline">
+          <div class="t-dot"></div>
+          <div class="t-body">
+            <div class="t-t">{{ item.title }}</div>
+            <div class="t-d">{{ item.description }}</div>
+            <div class="t-m">{{ item.timestamp | date:'dd/MM/yyyy HH:mm' }} &bull; {{ item.performedBy }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-bottom">
+      <button type="button" class="btn-btn cancel" (click)="closeModal()">Đóng</button>
+    </div>
+  </div>
+</div>

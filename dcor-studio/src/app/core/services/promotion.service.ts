@@ -14,6 +14,7 @@ export interface Promotion {
   startDate?: string;
   endDate?: string;
   isActive?: boolean;
+  isFreeShip?: boolean;
 }
 
 export interface AppliedPromotion {
@@ -23,6 +24,7 @@ export interface AppliedPromotion {
   discountValue: number;
   minOrderValue?: number;
   calculatedDiscount: number;
+  isFreeShip?: boolean;
 }
 
 @Injectable({
@@ -30,15 +32,19 @@ export interface AppliedPromotion {
 })
 export class PromotionService {
   private readonly STORAGE_KEY = 'dcor_applied_promotion';
+  private readonly STORAGE_FREESHIP_KEY = 'dcor_applied_freeship';
 
-  // Danh sách chương trình khuyến mãi thực tế từ hệ thống
-  // Không tự sinh code AI; khởi tạo rỗng, nạp từ API thực tế hoặc người dùng nhập liệu
+  // Danh sách chương trình khuyến mãi thực tế từ hệ thống (kết nối database Admin)
   private promotionsSubject = new BehaviorSubject<Promotion[]>([]);
   public promotions$ = this.promotionsSubject.asObservable();
 
-  // Khuyến mãi đang được áp dụng hiện tại (đồng bộ giữa giỏ hàng, đặt hàng & thanh toán và trang khuyến mãi)
+  // 1. Mã giảm giá sản phẩm / đơn hàng đang áp dụng
   private appliedPromotionSubject = new BehaviorSubject<AppliedPromotion | null>(null);
   public appliedPromotion$ = this.appliedPromotionSubject.asObservable();
+
+  // 2. Mã miễn phí vận chuyển (Freeship) đang áp dụng (áp dụng đồng thời cùng mã sản phẩm!)
+  private appliedFreeshipSubject = new BehaviorSubject<AppliedPromotion | null>(null);
+  public appliedFreeship$ = this.appliedFreeshipSubject.asObservable();
 
   constructor() {
     this.restoreAppliedPromotion();
@@ -49,10 +55,16 @@ export class PromotionService {
   private restoreAppliedPromotion() {
     try {
       if (typeof window !== 'undefined') {
-        const saved = sessionStorage.getItem(this.STORAGE_KEY) || sessionStorage.getItem('dcor_applied_voucher');
-        if (saved) {
-          const promo = JSON.parse(saved);
-          this.appliedPromotionSubject.next(promo);
+        // Khôi phục mã sản phẩm
+        const savedPromo = sessionStorage.getItem(this.STORAGE_KEY) || sessionStorage.getItem('dcor_applied_voucher');
+        if (savedPromo) {
+          this.appliedPromotionSubject.next(JSON.parse(savedPromo));
+        }
+
+        // Khôi phục mã freeship
+        const savedFreeship = sessionStorage.getItem(this.STORAGE_FREESHIP_KEY);
+        if (savedFreeship) {
+          this.appliedFreeshipSubject.next(JSON.parse(savedFreeship));
         }
       }
     } catch (e) {
@@ -60,7 +72,7 @@ export class PromotionService {
     }
   }
 
-  // Kết nối đến API chương trình khuyến mãi thực tế của hệ thống
+  // Kết nối đến API chương trình khuyến mãi thực tế của hệ thống (database Admin)
   loadPromotions(): Observable<Promotion[]> {
     return new Observable<Promotion[]>(observer => {
       fetch(`${environment.apiUrl}/store/promotions`)
@@ -75,7 +87,6 @@ export class PromotionService {
           observer.complete();
         })
         .catch(() => {
-          // Khi hệ thống chưa có dữ liệu chương trình khuyến mãi, để rỗng, không tự sinh dữ liệu giả
           this.promotionsSubject.next([]);
           observer.next([]);
           observer.complete();
@@ -94,7 +105,7 @@ export class PromotionService {
     });
   }
 
-  // Áp dụng mã ưu đãi (kiểm tra với dữ liệu hệ thống hoặc API)
+  // Áp dụng mã ưu đãi (hỗ trợ phân loại mã sản phẩm vs mã freeship để dùng đồng thời)
   applyPromotion(code: string, orderTotal: number): Observable<{ success: boolean; message: string; applied?: AppliedPromotion }> {
     const cleanCode = (code || '').trim().toUpperCase();
     if (!cleanCode) {
@@ -121,16 +132,23 @@ export class PromotionService {
         discount = existing.discountValue;
       }
 
+      const isFreeship = !!existing.isFreeShip || cleanCode.startsWith('FREESHIP');
+
       const applied: AppliedPromotion = {
         code: existing.code,
         name: existing.name,
         discountType: existing.discountType,
         discountValue: existing.discountValue,
         minOrderValue: existing.minOrderValue,
-        calculatedDiscount: Math.min(discount, orderTotal)
+        calculatedDiscount: isFreeship ? discount : Math.min(discount, orderTotal),
+        isFreeShip: isFreeship
       };
 
-      this.saveAppliedPromotion(applied);
+      if (isFreeship) {
+        this.saveAppliedFreeship(applied);
+      } else {
+        this.saveAppliedPromotion(applied);
+      }
       return of({ success: true, message: `Áp dụng thành công mã "${applied.code}"`, applied });
     }
 
@@ -171,16 +189,22 @@ export class PromotionService {
               }
             }
 
+            const isFreeship = !!v.isFreeShip || cleanCode.startsWith('FREESHIP');
             const applied: AppliedPromotion = {
               code: v.code || cleanCode,
               name: v.name || v.code || cleanCode,
               discountType: v.discountType === 'PERCENT' ? 'PERCENT' : 'AMOUNT',
               discountValue: v.discountValue || 0,
               minOrderValue: v.minOrderValue || 0,
-              calculatedDiscount: Math.min(discount, orderTotal)
+              calculatedDiscount: isFreeship ? discount : Math.min(discount, orderTotal),
+              isFreeShip: isFreeship
             };
 
-            this.saveAppliedPromotion(applied);
+            if (isFreeship) {
+              this.saveAppliedFreeship(applied);
+            } else {
+              this.saveAppliedPromotion(applied);
+            }
             observer.next({ success: true, message: data.message || `Áp dụng thành công mã "${applied.code}"`, applied });
             observer.complete();
           })
@@ -201,32 +225,7 @@ export class PromotionService {
     });
   }
 
-  // Tính lại số tiền giảm khi giỏ hàng hoặc tổng đơn thay đổi
-  recalculate(orderTotal: number): AppliedPromotion | null {
-    const current = this.appliedPromotionSubject.getValue();
-    if (!current) return null;
-
-    if (current.minOrderValue && orderTotal < current.minOrderValue) {
-      this.removeAppliedPromotion();
-      return null;
-    }
-
-    let discount = 0;
-    if (current.discountType === 'PERCENT') {
-      discount = Math.round((orderTotal * current.discountValue) / 100);
-    } else {
-      discount = current.discountValue;
-    }
-
-    const updated: AppliedPromotion = {
-      ...current,
-      calculatedDiscount: Math.min(discount, orderTotal)
-    };
-
-    this.saveAppliedPromotion(updated);
-    return updated;
-  }
-
+  // Lưu mã sản phẩm
   saveAppliedPromotion(applied: AppliedPromotion) {
     this.appliedPromotionSubject.next(applied);
     try {
@@ -237,6 +236,7 @@ export class PromotionService {
     } catch (e) {}
   }
 
+  // Xóa mã sản phẩm
   removeAppliedPromotion() {
     this.appliedPromotionSubject.next(null);
     try {
@@ -247,7 +247,196 @@ export class PromotionService {
     } catch (e) {}
   }
 
+  // Lưu mã freeship
+  saveAppliedFreeship(applied: AppliedPromotion) {
+    this.appliedFreeshipSubject.next(applied);
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(this.STORAGE_FREESHIP_KEY, JSON.stringify(applied));
+      }
+    } catch (e) {}
+  }
+
+  // Xóa mã freeship
+  removeAppliedFreeship() {
+    this.appliedFreeshipSubject.next(null);
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(this.STORAGE_FREESHIP_KEY);
+      }
+    } catch (e) {}
+  }
+
+  // Tính số tiền giảm giá của 1 voucher dựa trên giá trị đơn hàng
+  calculateDiscount(promo: Promotion, orderTotal: number): number {
+    if (promo.isActive === false) return 0;
+    if (promo.minOrderValue && orderTotal < promo.minOrderValue) return 0;
+    let discount = 0;
+    if (promo.discountType === 'PERCENT') {
+      discount = Math.round((orderTotal * promo.discountValue) / 100);
+      if (promo.maxDiscountAmount) {
+        discount = Math.min(discount, promo.maxDiscountAmount);
+      }
+    } else {
+      discount = promo.discountValue || 0;
+    }
+    return discount;
+  }
+
+  // Tự động tìm và áp dụng mã khuyến mãi có mức giảm cao nhất cho cả 2 loại (sản phẩm & Freeship)
+  autoApplyBestPromotions(
+    orderTotal: number, 
+    force: boolean = false, 
+    skipProduct: boolean = false, 
+    skipFreeship: boolean = false
+  ) {
+    if (orderTotal <= 0) {
+      this.removeAppliedPromotion();
+      this.removeAppliedFreeship();
+      return;
+    }
+    const all = this.promotionsSubject.getValue();
+    if (!all || all.length === 0) return;
+
+    // 1. Tự động áp mã giảm giá sản phẩm tốt nhất
+    if (!skipProduct) {
+      const currentPromo = this.appliedPromotionSubject.getValue();
+      const productPromos = all.filter(p => !p.isFreeShip && !p.code.toUpperCase().startsWith('FREESHIP'));
+      
+      let bestPromo: Promotion | null = null;
+      let maxDiscount = 0;
+      for (const p of productPromos) {
+        const discount = this.calculateDiscount(p, orderTotal);
+        if (discount > maxDiscount) {
+          maxDiscount = discount;
+          bestPromo = p;
+        }
+      }
+
+      // Áp dụng nếu chưa có mã, hoặc mã hiện tại bị hết điều kiện, hoặc tìm được mã có mức giảm cao hơn mã đang chọn (nếu force)
+      if (bestPromo && maxDiscount > 0) {
+        const currentDiscount = currentPromo ? (currentPromo.calculatedDiscount || 0) : 0;
+        const currentValid = currentPromo && (!currentPromo.minOrderValue || orderTotal >= currentPromo.minOrderValue);
+
+        if (!currentValid || force || (!currentPromo && maxDiscount > 0) || (maxDiscount > currentDiscount)) {
+          const applied: AppliedPromotion = {
+            code: bestPromo.code,
+            name: bestPromo.name,
+            discountType: bestPromo.discountType,
+            discountValue: bestPromo.discountValue,
+            minOrderValue: bestPromo.minOrderValue,
+            calculatedDiscount: Math.min(maxDiscount, orderTotal),
+            isFreeShip: false
+          };
+          this.saveAppliedPromotion(applied);
+        }
+      } else {
+        // Không còn mã sản phẩm nào đủ điều kiện với orderTotal mới -> gỡ mã
+        if (currentPromo && (currentPromo.minOrderValue && orderTotal < currentPromo.minOrderValue)) {
+          this.removeAppliedPromotion();
+        }
+      }
+    }
+
+    // 2. Tự động áp mã Freeship tốt nhất (chỉ khi đơn hàng dưới 50tr vì từ 50tr đã mặc định miễn phí ship)
+    if (orderTotal >= 50000000) {
+      this.removeAppliedFreeship();
+    } else if (!skipFreeship) {
+      const currentFreeship = this.appliedFreeshipSubject.getValue();
+      const freeshipPromos = all.filter(p => !!p.isFreeShip || p.code.toUpperCase().startsWith('FREESHIP'));
+
+      let bestFreeship: Promotion | null = null;
+      let maxFreeshipDiscount = 0;
+      for (const p of freeshipPromos) {
+        const discount = this.calculateDiscount(p, orderTotal);
+        if (discount > maxFreeshipDiscount) {
+          maxFreeshipDiscount = discount;
+          bestFreeship = p;
+        }
+      }
+
+      if (bestFreeship && maxFreeshipDiscount > 0) {
+        const currentFreeshipDiscount = currentFreeship ? (currentFreeship.calculatedDiscount || 0) : 0;
+        const currentValid = currentFreeship && (!currentFreeship.minOrderValue || orderTotal >= currentFreeship.minOrderValue);
+
+        if (!currentValid || force || (!currentFreeship && maxFreeshipDiscount > 0) || (maxFreeshipDiscount > currentFreeshipDiscount)) {
+          const appliedFreeship: AppliedPromotion = {
+            code: bestFreeship.code,
+            name: bestFreeship.name,
+            discountType: bestFreeship.discountType,
+            discountValue: bestFreeship.discountValue,
+            minOrderValue: bestFreeship.minOrderValue,
+            calculatedDiscount: maxFreeshipDiscount,
+            isFreeShip: true
+          };
+          this.saveAppliedFreeship(appliedFreeship);
+        }
+      } else {
+        // Không còn mã freeship nào đủ điều kiện -> gỡ mã
+        if (currentFreeship && (currentFreeship.minOrderValue && orderTotal < currentFreeship.minOrderValue)) {
+          this.removeAppliedFreeship();
+        }
+      }
+    }
+  }
+
+  // Tính toán lại giá trị giảm giá khi tổng tiền đơn hàng thay đổi
+  recalculate(orderTotal: number) {
+    if (orderTotal <= 0) {
+      this.removeAppliedPromotion();
+      this.removeAppliedFreeship();
+      return;
+    }
+
+    // 1. Tính lại voucher sản phẩm
+    const currentPromo = this.appliedPromotionSubject.getValue();
+    if (currentPromo) {
+      if (currentPromo.minOrderValue && orderTotal < currentPromo.minOrderValue) {
+        this.removeAppliedPromotion();
+      } else {
+        let discount = 0;
+        if (currentPromo.discountType === 'PERCENT') {
+          discount = Math.round((orderTotal * currentPromo.discountValue) / 100);
+          if ((currentPromo as any).maxDiscountAmount) {
+            discount = Math.min(discount, (currentPromo as any).maxDiscountAmount);
+          }
+        } else {
+          discount = currentPromo.discountValue;
+        }
+        const updated: AppliedPromotion = {
+          ...currentPromo,
+          calculatedDiscount: Math.min(discount, orderTotal)
+        };
+        this.saveAppliedPromotion(updated);
+      }
+    }
+
+    // 2. Tính lại voucher freeship
+    const currentFreeship = this.appliedFreeshipSubject.getValue();
+    if (currentFreeship) {
+      if (orderTotal >= 50000000 || (currentFreeship.minOrderValue && orderTotal < currentFreeship.minOrderValue)) {
+        this.removeAppliedFreeship();
+      } else {
+        let discount = 0;
+        if (currentFreeship.discountType === 'PERCENT') {
+          discount = Math.round((orderTotal * currentFreeship.discountValue) / 100);
+        } else {
+          discount = currentFreeship.discountValue;
+        }
+        const updatedFreeship: AppliedPromotion = {
+          ...currentFreeship,
+          calculatedDiscount: discount
+        };
+        this.saveAppliedFreeship(updatedFreeship);
+      }
+    }
+  }
+
   getAppliedPromotion(): AppliedPromotion | null {
     return this.appliedPromotionSubject.getValue();
+  }
+
+  getAppliedFreeship(): AppliedPromotion | null {
+    return this.appliedFreeshipSubject.getValue();
   }
 }

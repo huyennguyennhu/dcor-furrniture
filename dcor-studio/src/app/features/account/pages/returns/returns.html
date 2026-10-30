@@ -1,0 +1,423 @@
+<div class="account-page-container">
+  <div class="account-shell">
+    <div class="account-layout">
+      <!-- Sidebar Left Column -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
+
+      <!-- Main Content Column -->
+      <main class="content-column">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
+          <span class="breadcrumb-separator">/</span>
+          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Yêu cầu đổi trả</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Yêu cầu đổi trả / Hoàn tiền</h1>
+            <p class="page-subtitle">Theo dõi quy trình thẩm định, thu hồi và đổi mới hoặc hoàn tiền cho sản phẩm của bạn.</p>
+          </div>
+          <a routerLink="/account/orders" class="btn btn-outline-sm">
+            <lucide-angular [img]="icons.Package" size="16"></lucide-angular>
+            <span>Đơn hàng của tôi</span>
+          </a>
+        </div>
+
+        <!-- Banner xác thực số điện thoại cho khách vãng lai -->
+        <app-guest-phone-banner 
+          customTitle="Tra cứu yêu cầu đổi trả qua số điện thoại"
+          customDesc="Nhập và xác thực số điện thoại để tra cứu tiến trình thẩm định và lịch hẹn đổi trả sản phẩm."
+          (verified)="onGuestPhoneVerified($event)" 
+          (reset)="onGuestPhoneReset()">
+        </app-guest-phone-banner>
+
+        <!-- Chỉ hiển thị thông tin và danh sách khi đã đăng nhập hoặc đã xác thực SĐT -->
+        <ng-container *ngIf="canViewContent">
+        <!-- Success Toast -->
+        <div *ngIf="successMessage" class="alert alert-success">
+          <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
+          <span>{{ successMessage }}</span>
+        </div>
+
+        <!-- Error Toast -->
+        <div *ngIf="errorMessage" class="alert alert-danger">
+          <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+
+        <!-- Filter Tabs (Hệ thống các tab trạng thái quy trình) -->
+        <div class="tabs-header">
+          <button 
+            *ngFor="let tab of tabs"
+            type="button" 
+            class="tab-btn" 
+            [ngClass]="{ 'active': activeTab === tab.key }" 
+            (click)="setTab(tab.key)">
+            <span>{{ tab.label }}</span>
+            <span class="tab-badge" [ngClass]="{ 'active-badge': activeTab === tab.key }">
+              {{ getCount(tab.key) }}
+            </span>
+          </button>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- THANH TEST KIỂM THỬ TRẠNG THÁI ĐỔI TRẢ (TEST TOOLBAR) -->
+        <!-- ======================================================== -->
+        <div class="test-toolbar-box" *ngIf="returnsList.length > 0">
+          <div class="test-toolbar-header">
+            <span class="test-badge">🔧 THANH TEST ĐỔI TRẢ</span>
+            <span class="test-hint">Thử nghiệm chuyển đổi trạng thái để kiểm tra luồng đổi trả bên User & đồng bộ với Admin:</span>
+          </div>
+          <div class="test-toolbar-actions">
+            <!-- Dropdown chọn yêu cầu cần test -->
+            <div class="test-select-wrapper">
+              <label class="test-label">Chọn yêu cầu:</label>
+              <select class="test-select" [(ngModel)]="selectedTestReturnId">
+                <option *ngFor="let ret of returnsList" [value]="ret.id">
+                  {{ ret.id }} (#{{ ret.orderNumber }}) - [{{ getStatusText(ret.status) }}]
+                </option>
+              </select>
+            </div>
+
+            <!-- Các nút chuyển trạng thái -->
+            <div class="test-btn-group">
+              <button 
+                type="button" 
+                class="btn-test-action btn-pending" 
+                [disabled]="isUpdatingStatus"
+                (click)="testChangeStatus('PENDING')">
+                ➔ Chờ duyệt
+              </button>
+              <button 
+                type="button" 
+                class="btn-test-action btn-processing" 
+                [disabled]="isUpdatingStatus"
+                (click)="testChangeStatus('PROCESSING')">
+                ➔ Đang xử lý
+              </button>
+              <button 
+                type="button" 
+                class="btn-test-action btn-preparing" 
+                [disabled]="isUpdatingStatus"
+                (click)="testChangeStatus('PREPARING')">
+                ➔ Đang chuẩn bị
+              </button>
+              <button 
+                type="button" 
+                class="btn-test-action btn-shipped" 
+                [disabled]="isUpdatingStatus"
+                (click)="testChangeStatus('SHIPPED')">
+                ➔ Đang giao hàng
+              </button>
+              <button 
+                type="button" 
+                class="btn-test-action btn-completed" 
+                [disabled]="isUpdatingStatus"
+                (click)="testChangeStatus('COMPLETED')">
+                ➔ Hoàn tất đổi trả
+              </button>
+              <button 
+                type="button" 
+                class="btn-test-action btn-rejected" 
+                [disabled]="isUpdatingStatus"
+                (click)="testChangeStatus('REJECTED')">
+                ➔ Đã từ chối
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Đang tải danh sách đổi trả...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!isLoading && filteredReturns.length === 0" class="empty-state">
+          <div class="empty-icon-box">
+            <lucide-angular [img]="icons.RefreshCw" size="44"></lucide-angular>
+          </div>
+          <h3 class="empty-title">Không có yêu cầu đổi trả nào trong mục này</h3>
+          <p class="empty-desc">
+            {{ activeTab === 'PENDING' 
+                ? 'Hiện tại không có yêu cầu đổi trả nào đang chờ duyệt.' 
+                : 'Bạn có thể xem đơn hàng đã hoàn tất trong mục Đơn hàng của tôi và gửi yêu cầu đổi trả trong vòng 7 ngày.' }}
+          </p>
+          <a routerLink="/account/orders" class="btn btn-primary">
+            <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+            <span>Đến Đơn hàng của tôi</span>
+          </a>
+        </div>
+
+        <!-- Returns List (Khung sản phẩm chuẩn giống hệt đơn hàng của tôi) -->
+        <div *ngIf="!isLoading && filteredReturns.length > 0" class="orders-list">
+          <div *ngFor="let ret of filteredReturns" class="order-card">
+            
+            <!-- Order Header (Giống hệt Đơn hàng của tôi) -->
+            <div class="order-card-header">
+              <div class="order-meta-left">
+                <span class="order-id">#{{ ret.id }}</span>
+                <a [routerLink]="['/account/orders']" [queryParams]="{ orderNumber: ret.orderNumber }" class="btn-ref-order" title="Xem chi tiết đơn hàng gốc #{{ ret.orderNumber }}">
+                  <lucide-angular [img]="icons.Package" size="13"></lucide-angular>
+                  <span>Đơn gốc: <strong>#{{ ret.orderNumber }}</strong></span>
+                </a>
+                <span class="order-date">Ngày yêu cầu: {{ ret.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <div class="order-status-pill" [ngClass]="getStatusBadgeClass(ret.status)">
+                {{ getStatusText(ret.status) }}
+              </div>
+            </div>
+
+            <!-- Order Body (Khung sản phẩm First Item Preview giống hệt Đơn hàng của tôi) -->
+            <div class="order-card-body">
+              <div class="item-preview">
+                <div class="item-img-wrap">
+                  <img [src]="ret.imageUrl || 'assets/placeholder.png'" [alt]="ret.productName" class="item-img" />
+                </div>
+                <div class="item-details">
+                  <h4 class="item-name">{{ ret.productName }}</h4>
+                  <p *ngIf="ret.variantDescription" class="item-variant">{{ ret.variantDescription }}</p>
+                  <p *ngIf="ret.sku" class="item-sku">Mã SKU: {{ ret.sku }}</p>
+                  <p class="item-qty-price">
+                    <span class="qty">x{{ ret.quantity || 1 }}</span>
+                    <span class="price">{{ (ret.price || ret.refundAmount || 0) | number }} đ</span>
+                  </p>
+
+                  <!-- Hộp thông tin lý do đổi trả theo chuẩn Style Guide -->
+                  <div class="return-reason-box">
+                    <span class="reason-label">Lý do đổi trả:</span>
+                    <span class="reason-val">{{ ret.reason }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Order Footer (Giống hệt Đơn hàng của tôi) -->
+            <div class="order-card-footer">
+              <div class="total-wrap">
+                <span class="total-label">Số tiền hoàn / Giá trị đổi trả:</span>
+                <span class="total-amount">{{ (ret.refundAmount || ret.price || 0) | number }} đ</span>
+              </div>
+
+              <div class="actions-wrap">
+                <button type="button" class="btn-outline" (click)="openReturnDetail(ret, $event)">
+                  <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
+                  <span>Xem chi tiết</span>
+                </button>
+                <a [routerLink]="['/account/orders']" [queryParams]="{ orderNumber: ret.orderNumber }" class="btn-primary btn-view-origin">
+                  <lucide-angular [img]="icons.Package" size="14"></lucide-angular>
+                  <span>Xem đơn gốc</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Rejection Notice (Nếu bị từ chối) -->
+            <div *ngIf="ret.status === 'REJECTED'" class="rejection-box">
+              <div class="rejection-header">
+                <lucide-angular [img]="icons.AlertCircle" size="20" class="rejection-icon"></lucide-angular>
+                <strong>Yêu cầu đổi trả đã bị từ chối</strong>
+              </div>
+              <p class="rejection-desc">
+                Sản phẩm không đáp ứng đủ điều kiện chính sách đổi trả (đã quá thời hạn 7 ngày, lỗi do người dùng hoặc thiếu phụ kiện nguyên bản). Vui lòng liên hệ hotline CSKH 1900 8888 để được hỗ trợ bảo hành sửa chữa.
+              </p>
+            </div>
+          </div>
+        </div>
+        </ng-container>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- DRAWER: CHI TIẾT YÊU CẦU ĐỔI TRẢ (SIDEBAR)     -->
+<!-- ============================================== -->
+<div *ngIf="isDetailDrawerOpen && selectedReturn" class="drawer-overlay" (click)="closeDetailDrawer()">
+  <div class="drawer-content" (click)="$event.stopPropagation()">
+    <!-- Drawer Header -->
+    <div class="drawer-header">
+      <div class="drawer-header-info">
+        <div class="drawer-title-row">
+          <h2 class="drawer-title">Chi tiết yêu cầu #{{ selectedReturn.id }}</h2>
+          <span class="status-pill" [ngClass]="getStatusBadgeClass(selectedReturn.status)">
+            {{ getStatusText(selectedReturn.status) }}
+          </span>
+        </div>
+        <p class="drawer-subtitle">
+          Ngày yêu cầu: <strong>{{ selectedReturn.createdAt | date:'HH:mm - dd/MM/yyyy' }}</strong>
+          <span> • Đơn gốc: <strong>#{{ selectedReturn.orderNumber }}</strong></span>
+        </p>
+      </div>
+      <button type="button" class="drawer-close" (click)="closeDetailDrawer()" title="Đóng">×</button>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="drawer-body">
+      <!-- 1. THÔNG TIN SẢN PHẨM ĐỔI TRẢ -->
+      <section class="drawer-section">
+        <h3 class="section-heading">Sản phẩm yêu cầu đổi trả</h3>
+        <div class="drawer-product-card">
+          <div class="product-thumb-wrap">
+            <img [src]="selectedReturn.imageUrl || 'assets/placeholder.png'" [alt]="selectedReturn.productName" class="product-thumb" />
+          </div>
+          <div class="product-meta">
+            <h4 class="product-name">{{ selectedReturn.productName }}</h4>
+            <p *ngIf="selectedReturn.variantDescription" class="product-variant">{{ selectedReturn.variantDescription }}</p>
+            <p *ngIf="selectedReturn.sku" class="product-sku">Mã SKU: {{ selectedReturn.sku }}</p>
+            <div class="product-pricing">
+              <span class="qty">Số lượng: <strong>{{ selectedReturn.quantity || 1 }}</strong></span>
+              <span class="price">Đơn giá: <strong>{{ (selectedReturn.price || selectedReturn.refundAmount || 0) | number }} đ</strong></span>
+            </div>
+            <div class="product-refund-highlight">
+              <span class="refund-lbl">Giá trị đổi trả / Hoàn tiền dự kiến:</span>
+              <span class="refund-val">{{ (selectedReturn.refundAmount || selectedReturn.price || 0) | number }} đ</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. LÝ DO VÀ MÔ TẢ CHI TIẾT SỰ CỐ -->
+      <section class="drawer-section">
+        <h3 class="section-heading">Thông tin sự cố & Lý do đổi trả</h3>
+        
+        <div class="reason-highlight-card">
+          <div class="reason-row">
+            <span class="reason-tag">Lý do lựa chọn:</span>
+            <strong class="reason-text">{{ selectedReturn.reason }}</strong>
+          </div>
+          
+          <div class="desc-divider"></div>
+
+          <div class="desc-block">
+            <span class="desc-tag">Mô tả chi tiết từ khách hàng:</span>
+            <div class="desc-content-box">
+              {{ selectedReturn.description || 'Không có mô tả chi tiết kèm theo.' }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. HÌNH ẢNH / BẰNG CHỨNG LỖI ĐÍNH KÈM -->
+      <section class="drawer-section">
+        <div class="section-heading-row">
+          <h3 class="section-heading">Hình ảnh bằng chứng đính kèm</h3>
+          <span class="evidence-count" *ngIf="selectedReturn.images && selectedReturn.images.length > 0">
+            ({{ selectedReturn.images.length }} hình ảnh)
+          </span>
+        </div>
+
+        <div *ngIf="selectedReturn.images && selectedReturn.images.length > 0; else noEvidenceImages" class="evidence-grid">
+          <div *ngFor="let img of selectedReturn.images; let i = index" class="evidence-item" (click)="zoomImage(img, $event)">
+            <img [src]="img" [alt]="'Ảnh bằng chứng ' + (i + 1)" class="evidence-thumb" />
+            <div class="evidence-overlay">
+              <lucide-angular [img]="icons.Eye" size="18"></lucide-angular>
+              <span>Xem phóng to</span>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noEvidenceImages>
+          <div class="no-images-note">
+            <lucide-angular [img]="icons.Image" size="24" class="no-img-icon"></lucide-angular>
+            <p>Yêu cầu này không đính kèm ảnh bằng chứng trực tiếp lúc gửi.</p>
+          </div>
+        </ng-template>
+      </section>
+
+      <!-- 4. QUY TRÌNH TIẾN HÀNH ĐỔI TRẢ (TIMELINE) -->
+      <section class="drawer-section">
+        <h3 class="section-heading">Quy trình xử lý tại Dcor Studio</h3>
+        <div class="return-steps-timeline">
+          <div class="step-card" [class.is-done]="true" [class.is-active]="selectedReturn.status === 'PENDING'">
+            <div class="step-num">1</div>
+            <div class="step-info">
+              <h5 class="step-title">Tiếp nhận & Chờ duyệt</h5>
+              <p class="step-desc">Hệ thống ghi nhận và chuyển bộ phận CSKH thẩm định sơ bộ hồ sơ đổi trả.</p>
+            </div>
+          </div>
+
+          <div class="step-card" 
+               [class.is-done]="selectedReturn.status !== 'PENDING' && selectedReturn.status !== 'REJECTED'" 
+               [class.is-active]="selectedReturn.status === 'PROCESSING'">
+            <div class="step-num">2</div>
+            <div class="step-info">
+              <h5 class="step-title">Đang xử lý & Thu hồi hàng</h5>
+              <p class="step-desc">Nhân viên liên hệ xác nhận, bạn gửi sản phẩm lỗi hoặc shipper đến thu hồi tận nhà.</p>
+            </div>
+          </div>
+
+          <div class="step-card" 
+               [class.is-done]="selectedReturn.status === 'SHIPPED' || selectedReturn.status === 'COMPLETED'" 
+               [class.is-active]="selectedReturn.status === 'PREPARING'">
+            <div class="step-num">3</div>
+            <div class="step-info">
+              <h5 class="step-title">Kiểm định & Chuẩn bị sản phẩm mới</h5>
+              <p class="step-desc">Kỹ thuật viên nghiệm thu sản phẩm tại kho và đóng gói sản phẩm mới nguyên seal.</p>
+            </div>
+          </div>
+
+          <div class="step-card" 
+               [class.is-done]="selectedReturn.status === 'COMPLETED'" 
+               [class.is-active]="selectedReturn.status === 'SHIPPED'">
+            <div class="step-num">4</div>
+            <div class="step-info">
+              <h5 class="step-title">Đang giao hàng đổi mới</h5>
+              <p class="step-desc">Đơn vị vận chuyển đang trên đường giao sản phẩm đổi mới hoặc hoàn tất thủ tục hoàn tiền.</p>
+            </div>
+          </div>
+
+          <div class="step-card" [class.is-active]="selectedReturn.status === 'COMPLETED'" [class.is-done]="selectedReturn.status === 'COMPLETED'">
+            <div class="step-num">5</div>
+            <div class="step-info">
+              <h5 class="step-title">Hoàn tất đổi trả</h5>
+              <p class="step-desc">Quá trình đổi mới thành công. Phiếu bảo hành mới được kích hoạt tự động.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. HỖ TRỢ & CHÍNH SÁCH -->
+      <section class="drawer-section support-section">
+        <div class="support-box">
+          <div class="support-title">Cần hỗ trợ khẩn cấp về yêu cầu đổi trả?</div>
+          <p class="support-desc">Hotline chăm sóc khách hàng Dcor làm việc từ 08:00 - 21:00 hàng ngày (kể cả Thứ 7, CN):</p>
+          <div class="support-contact">
+            <span class="phone-num">📞 1900 8888</span>
+            <span class="or-txt">hoặc</span>
+            <span class="email-val">cskh@dcor.com.vn</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="drawer-footer">
+      <button type="button" class="btn btn-outline" (click)="closeDetailDrawer()">
+        Đóng
+      </button>
+      <a [routerLink]="['/account/orders']" [queryParams]="{ orderNumber: selectedReturn.orderNumber }" (click)="closeDetailDrawer()" class="btn btn-primary">
+        <lucide-angular [img]="icons.Package" size="16"></lucide-angular>
+        <span>Xem chi tiết đơn gốc #{{ selectedReturn.orderNumber }}</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- LIGHTBOX: PHÓNG TO HÌNH ẢNH BẰNG CHỨNG        -->
+<!-- ============================================== -->
+<div *ngIf="zoomedImageUrl" class="lightbox-overlay" (click)="closeZoomImage($event)">
+  <div class="lightbox-container" (click)="$event.stopPropagation()">
+    <button type="button" class="lightbox-close" (click)="closeZoomImage($event)" title="Đóng">×</button>
+    <img [src]="zoomedImageUrl" alt="Hình ảnh bằng chứng phóng to" class="lightbox-image" />
+  </div>
+</div>
+

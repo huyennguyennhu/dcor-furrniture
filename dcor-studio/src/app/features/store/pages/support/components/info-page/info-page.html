@@ -1,0 +1,796 @@
+<ng-container *ngIf="isAboutPage; else standardSupportLayout">
+  <div class="about-page-editorial">
+
+    <!-- SECTION 1: HERO BANNER – "DESIGN YOUR CORE" -->
+    <section class="about-hero-section">
+      <div class="about-hero-bg">
+        <img src="/assets/img/about_hero_living.jpg" alt="Không gian nội thất DCor ngập nắng" class="about-hero-img"
+          loading="eager" />
+        <div class="about-hero-overlay"></div>
+      </div>
+
+      <div class="about-hero-container">
+        <div class="about-hero-content">
+
+          <h1 class="about-hero-title">VỀ DCOR</h1>
+
+          <p class="about-hero-subtitle">Kiến tạo không gian, nâng tầm bản sắc</p>
+
+          <p class="about-hero-lead">
+            "Chúng tôi tin rằng nội thất không đơn thuần là vật dụng trang trí đặt vào bốn bức tường, mà là sự phản
+            chiếu công năng cốt lõi và gu sống độc bản của chính bạn."
+          </p>
+
+        </div>
+      </div>
+
+      <!-- Scroll Down Indicator (ở cuối hero banner) -->
+      <div class="about-scroll-indicator" (click)="scrollToStory('brand-story')"
+        aria-label="Cuộn xuống để xem câu chuyện thương hiệu">
+        <div class="scroll-arrow-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <polyline points="19 12 12 19 5 12"></polyline>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: BRAND STORY & NAME ORIGIN (CÂU CHUYỆN THƯƠNG HIỆU - TÂM ĐIỂM Ở GIỮA) -->
+    <section class="about-story-section" id="brand-story">
+      <div class="about-container">
+
+        <!-- TẦNG 1: Tiêu đề & Thông điệp mở đầu (Căn giữa - Header) -->
+        <div class="story-center-header">
+          <h2 class="about-heading-title">
+            Sự Giao Thoa Giữa <span class="text-accent-brand">Design</span> và <span
+              class="text-accent-core">Core</span>
+          </h2>
+          <p class="story-lead-desc">
+            "Tại DCor, chúng tôi định nghĩa lại vẻ đẹp nội thất: cái đẹp đích thực phải bắt nguồn từ sự tiện nghi bên
+            trong, đáp ứng chính xác nhu cầu sử dụng thực tế và lối sống của gia chủ thay vì phô trương hình thức rỗng
+            tuếch."
+          </p>
+        </div>
+
+        <!-- TẦNG 2: Công thức Thương hiệu (Chiếm trọn vị trí trung tâm nổi bật) -->
+        <div class="story-formula-wrapper">
+          <div class="story-formula-badge">
+            <div class="formula-logo-box">
+              <img src="/assets/favicon/logo.png" alt="DCor" class="formula-logo-img" />
+            </div>
+            <span class="formula-operator">=</span>
+            <div class="formula-chip formula-chip-design">
+              <strong class="chip-title">Design</strong>
+              <span class="chip-sub">(Thẩm mỹ thiết kế)</span>
+            </div>
+            <span class="formula-operator">+</span>
+            <div class="formula-chip formula-chip-core">
+              <strong class="chip-title">Core</strong>
+              <span class="chip-sub">(Công năng cốt lõi)</span>
+            </div>
+          </div>
+          <p class="formula-caption">
+            * Đồng âm và kế thừa trọn vẹn tinh thần của từ 'Decor' *
+          </p>
+        </div>
+
+        <!-- TẦNG 3: Hai cánh đối xứng - Design & Core (Split Grid 2 Cột cân xứng) -->
+        <div class="story-twin-pillars-grid">
+          <!-- Cột trái: Nhánh DESIGN (Thẩm mỹ & Ý tưởng) -->
+          <div class="pillar-column pillar-design">
+            <div class="pillar-header-card">
+              <div class="pillar-icon-box">
+                <app-icon name="Ruler" size="22"></app-icon>
+              </div>
+              <div class="pillar-text-content">
+                <h3 class="pillar-title">Design (Thiết Kế Thẩm Mỹ)</h3>
+                <p class="pillar-desc">
+                  Từng đường nét được tạo tác tỉ mỉ để chạm đến thị giác, mang lại sự thanh lịch, hài hòa và tôn vinh
+                  phong cách sống riêng biệt của gia chủ.
+                </p>
+              </div>
+            </div>
+            <div class="pillar-image-card">
+              <img src="/assets/img/about_blueprint.jpg" alt="Design - Bản vẽ phối cảnh 2D kỹ thuật kiến trúc"
+                class="pillar-photo" loading="lazy" />
+              <div class="pillar-photo-badge">
+                <app-icon name="Sparkles" size="13"></app-icon>
+                <span>BẢN VẼ PHỐI CẢNH 2D</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột phải: Nhánh CORE (Công năng & Chất liệu) -->
+          <div class="pillar-column pillar-core">
+            <div class="pillar-header-card">
+              <div class="pillar-icon-box">
+                <app-icon name="Layers" size="22"></app-icon>
+              </div>
+              <div class="pillar-text-content">
+                <h3 class="pillar-title">Core (Giá Trị Cốt Lõi)</h3>
+                <p class="pillar-desc">
+                  Giá trị thật nằm ở sự êm ái, công năng vừa vặn và nguồn vật liệu tinh tuyển, nâng niu trọn vẹn từng
+                  khoảnh khắc sinh hoạt mỗi ngày.
+                </p>
+              </div>
+            </div>
+            <div class="pillar-image-card">
+              <img src="/assets/img/about_material_core.jpg" alt="Core - Cận cảnh chất liệu gỗ và da may thủ công"
+                class="pillar-photo" loading="lazy" />
+              <div class="pillar-photo-badge">
+                <app-icon name="ShieldCheck" size="13"></app-icon>
+                <span>VẬT LIỆU CHỌN LỌC</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 3: KEY METRICS STRIP (4 CHỈ SỐ CỐT LÕI - MINIMALIST SCANDINAVIAN ARCHITECTURAL) -->
+    <section class="about-metrics-section" id="key-metrics">
+
+      <div class="about-container">
+        <!-- Section Header -->
+        <div class="metrics-header-center">
+
+          <h2 class="metrics-heading-title">
+            Những Con Số Định Hình <span class="text-accent-brand">Uy Tín DCor</span>
+          </h2>
+          <p class="metrics-sub-desc">
+            Hành trình số hóa và may đo nội thất chuẩn mực, khẳng định sự gắn kết cùng hàng nghìn gia chủ hiện đại.
+          </p>
+        </div>
+
+        <div class="metrics-cards-grid">
+          <!-- Card 1: Khách hàng & Tổ ấm -->
+          <div class="metric-card metric-card-1" [class.is-visible]="isMetricsAnimated()">
+            <div class="metric-card-top">
+              <div class="metric-icon-box">
+                <app-icon name="House" size="22"></app-icon>
+              </div>
+              <span class="metric-badge-tag">CHỈ SỐ 01</span>
+            </div>
+            <div class="metric-number-wrapper">
+              <span class="metric-number">{{ formattedHomes() }}</span>
+              <span class="metric-suffix">+</span>
+            </div>
+            <h3 class="metric-subtitle">Không Gian Sống Đã Hoàn Thiện</h3>
+            <p class="metric-desc">Đồng hành cùng các căn hộ cao cấp và tổ ấm hiện đại tại các đô thị lớn.</p>
+            <div class="metric-card-footer">
+              <span class="metric-feature-pill">
+                <app-icon name="Sparkles" size="13"></app-icon>
+                <span>100% bàn giao đúng tiến độ</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Card 2: Tương tác & Bản phối 2D -->
+          <div class="metric-card metric-card-2" [class.is-visible]="isMetricsAnimated()">
+            <div class="metric-card-top">
+              <div class="metric-icon-box">
+                <app-icon name="Layers" size="22"></app-icon>
+              </div>
+              <span class="metric-badge-tag">CHỈ SỐ 02</span>
+            </div>
+            <div class="metric-number-wrapper">
+              <span class="metric-number">{{ formattedRenderings() }}</span>
+              <span class="metric-suffix">+</span>
+            </div>
+            <h3 class="metric-subtitle">Bản Phối 2D Được Tạo Lập</h3>
+            <p class="metric-desc">Người dùng chủ động ướm thử và chia sẻ cảm hứng bài trí trên nền tảng số.</p>
+            <div class="metric-card-footer">
+              <span class="metric-feature-pill">
+                <app-icon name="Sparkles" size="13"></app-icon>
+                <span>Ướm thử trực quan tức thì</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Card 3: Tùy biến & Vật liệu -->
+          <div class="metric-card metric-card-3" [class.is-visible]="isMetricsAnimated()">
+            <div class="metric-card-top">
+              <div class="metric-icon-box">
+                <app-icon name="Ruler" size="22"></app-icon>
+              </div>
+              <span class="metric-badge-tag">CHỈ SỐ 03</span>
+            </div>
+            <div class="metric-number-wrapper">
+              <span class="metric-number">{{ metricMaterials() }}</span>
+              <span class="metric-suffix">+</span>
+            </div>
+            <h3 class="metric-subtitle">Mẫu Vật Liệu Tuyển Chọn</h3>
+            <p class="metric-desc">Tùy chọn chất liệu da bò Ý, vải dệt Bỉ và gỗ tự nhiên sẵn sàng tại Studio.</p>
+            <div class="metric-card-footer">
+              <span class="metric-feature-pill">
+                <app-icon name="Sparkles" size="13"></app-icon>
+                <span>Tiêu chuẩn an toàn CARB-P2</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Card 4: Mức độ hài lòng -->
+          <div class="metric-card metric-card-4" [class.is-visible]="isMetricsAnimated()">
+            <div class="metric-card-top">
+              <div class="metric-icon-box">
+                <app-icon name="ShieldCheck" size="22"></app-icon>
+              </div>
+              <!-- Animated SVG circular ring -->
+              <div class="metric-circular-meter" title="Tỷ lệ hài lòng 98%">
+                <svg width="40" height="40" viewBox="0 0 64 64">
+                  <circle class="meter-track" cx="32" cy="32" r="28" stroke-width="4.5"></circle>
+                  <circle class="meter-fill" cx="32" cy="32" r="28" stroke-width="4.5"
+                    [style.strokeDashoffset]="metricSatisfactionOffset()"></circle>
+                </svg>
+                <span class="meter-center-val">98%</span>
+              </div>
+            </div>
+            <div class="metric-number-wrapper">
+              <span class="metric-number">{{ metricSatisfaction() }}</span>
+              <span class="metric-suffix">%</span>
+            </div>
+            <h3 class="metric-subtitle">Khách Hàng Hài Lòng Tuyệt Đối</h3>
+            <p class="metric-desc">Đánh giá tích cực về độ vừa vặn không gian và kỹ nghệ mộc mộng hoàn thiện.</p>
+            <div class="metric-card-footer">
+              <span class="metric-feature-pill">
+                <app-icon name="Sparkles" size="13"></app-icon>
+                <span>Bảo hành chính hãng 36 tháng</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+    </section>
+
+    <!-- SECTION 4: THE DIFFERENTIATORS – 2 MÔ HÌNH & 1 CÔNG NGHỆ ĐỘT PHÁ -->
+    <section class="about-differentiators-section" id="differentiators">
+      <div class="about-container">
+        <div class="section-header-center">
+
+          <h2 class="about-heading-title">Giải Pháp Nội Thất Toàn Diện Đi Cùng Công Nghệ Trực Quan Số</h2>
+          <p class="section-sub-desc">Cách DCor vận hành hoàn toàn khác biệt so với các sàn nội thất thông thường trên
+            thị trường.</p>
+        </div>
+
+        <div class="diff-cards-grid">
+          <!-- Card 1: Standard -->
+          <div class="diff-card">
+            <div class="diff-card-badge">MÔ HÌNH 01</div>
+            <div class="diff-card-visual">
+              <img src="/assets/img/about_card_standard.jpg" alt="Sản phẩm định chuẩn DCor" class="diff-img"
+                loading="lazy" />
+            </div>
+            <div class="diff-card-body">
+              <h3 class="diff-card-title">Sản Phẩm Tiêu Chuẩn</h3>
+              <span class="diff-card-subtitle">Standard Ready-to-use</span>
+              <p class="diff-card-desc">
+                Sản xuất định chuẩn theo quy cách hiện đại, tối ưu giao vận thần tốc trong 24h, hoàn hảo cho nhu cầu bài
+                trí nhanh chóng và phong cách tối giản.
+              </p>
+              <div class="diff-tags-row">
+                <span class="diff-tag">Giao hỏa tốc 24h</span>
+                <span class="diff-tag">Tiêu chuẩn Bắc Âu</span>
+                <span class="diff-tag">Đóng hộp phẳng</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Customization -->
+          <div class="diff-card">
+            <div class="diff-card-badge">MÔ HÌNH 02</div>
+            <div class="diff-card-visual">
+              <img src="/assets/img/about_card_craft.jpg" alt="May đo tùy chỉnh xưởng mộc DCor" class="diff-img"
+                loading="lazy" />
+            </div>
+            <div class="diff-card-body">
+              <h3 class="diff-card-title">May Đo Tùy Chỉnh</h3>
+              <span class="diff-card-subtitle">Customization Network</span>
+              <p class="diff-card-desc">
+                Cá nhân hóa từng centimet kích thước, vật liệu da bò, vải nỉ và màu sắc qua mạng lưới đối tác xưởng mộc
+                lành nghề và KTS được DCor giám sát chặt chẽ.
+              </p>
+              <div class="diff-tags-row">
+                <span class="diff-tag">Tùy biến kích thước</span>
+                <span class="diff-tag">120+ mẫu vật liệu</span>
+                <span class="diff-tag">Giám sát 1-1</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Tech Planner -->
+          <div class="diff-card tech-highlight-card">
+            <div class="diff-card-badge tech-badge">CÔNG NGHỆ ĐỘC QUYỀN</div>
+            <div class="diff-card-visual">
+              <img src="/assets/img/about_card_planner.jpg" alt="Ướm thử trực quan không gian 2D" class="diff-img"
+                loading="lazy" />
+            </div>
+            <div class="diff-card-body">
+              <h3 class="diff-card-title">Ướm Thử Trực Quan 2D</h3>
+              <span class="diff-card-subtitle">Visual Space Planning</span>
+              <p class="diff-card-desc">
+                Công nghệ cốt lõi độc quyền của DCor – Kéo thả đồ nội thất trực tiếp lên bức ảnh căn phòng thật của bạn,
+                loại bỏ hoàn toàn mọi phỏng đoán mơ hồ.
+              </p>
+              <div class="diff-tags-row">
+                <span class="diff-tag">Kéo thả trực quan</span>
+                <span class="diff-tag">Tỷ lệ thực 100%</span>
+                <span class="diff-tag">Xóa bỏ phỏng đoán</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: THREE PILLARS (3 TRỤ CỘT NGUYÊN TẮC) -->
+    <section class="about-pillars-section" id="pillars">
+      <div class="about-container">
+        <div class="section-header-center">
+
+          <h2 class="about-heading-title">3 Trụ Cột Nguyên Tắc Của DCor</h2>
+          <p class="section-sub-desc">Kim chỉ nam định hình từng thiết kế, từng đường mộc và mỗi tương tác với khách
+            hàng.</p>
+        </div>
+
+        <div class="pillars-grid">
+          <!-- Pillar 1 -->
+          <div class="pillar-card">
+            <div class="pillar-icon-box">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <polyline points="9 12 11 14 15 10"></polyline>
+              </svg>
+            </div>
+            <span class="pillar-num">01</span>
+            <h3 class="pillar-title">Chất Lượng</h3>
+            <span class="pillar-en">Quality First</span>
+            <p class="pillar-desc">
+              Đồng nhất tuyệt đối giữa thông số kỹ thuật, hình ảnh trên màn hình và sản phẩm bàn giao thực tế tại nhà.
+              Tuyệt đối không sử dụng vật liệu thứ cấp hoặc tạp phẩm.
+            </p>
+          </div>
+
+          <!-- Pillar 2 -->
+          <div class="pillar-card">
+            <div class="pillar-icon-box">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <span class="pillar-num">02</span>
+            <h3 class="pillar-title">Minh Bạch</h3>
+            <span class="pillar-en">Transparency</span>
+            <p class="pillar-desc">
+              Rõ ràng từng đồng chi phí, xuất xứ nguyên vật liệu gỗ đạt chứng chỉ bền vững và chính sách bảo hành 36
+              tháng – đổi trả công khai không ẩn phí.
+            </p>
+          </div>
+
+          <!-- Pillar 3 -->
+          <div class="pillar-card">
+            <div class="pillar-icon-box">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <span class="pillar-num">03</span>
+            <h3 class="pillar-title">Tận Tâm</h3>
+            <span class="pillar-en">Dedication</span>
+            <p class="pillar-desc">
+              Đồng hành xuyên suốt hành trình, từ lúc bạn ướm thử bản vẽ, nhận tư vấn 1-1 chuyên sâu tại showroom đến
+              khi sản phẩm đứng vững và tỏa sáng trong tổ ấm.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: KẾT NỐI TRẢI NGHIỆM THỰC TẾ (SHOWROOM & TƯ VẤN 1-1) -->
+    <section class="about-experience-section" id="experience">
+      <div class="about-container">
+        <div class="experience-card">
+          <div class="experience-content-col">
+
+            <h2 class="experience-heading">
+              Chạm Tay Vào Chất Liệu, Cảm Nhận Trọn Vẹn Từng Đường Nét
+            </h2>
+
+            <p class="experience-desc">
+              Từ trải nghiệm ướm thử trực quan online, DCor mời bạn ghé thăm không gian trưng bày thực tế: nơi bạn trực
+              tiếp cảm nhận độ mềm mại của da bò Ý, đường vân gỗ sồi nguyên khối và nhận tư vấn bài trí miễn phí từ các
+              kiến trúc sư tâm huyết.
+            </p>
+
+            <div class="experience-perks-list">
+              <div class="perk-item">
+                <div class="perk-icon">✓</div>
+                <div>
+                  <strong>120+ Mẫu da & vải dệt thực tế:</strong>
+                  <span>Trực tiếp cảm nhận chất cảm và độ hoàn thiện tinh xảo trước khi đặt may đo.</span>
+                </div>
+              </div>
+
+              <div class="perk-item">
+                <div class="perk-icon">✓</div>
+                <div>
+                  <strong>Tư vấn 1-1 cùng Kiến Trúc Sư:</strong>
+                  <span>Nhận bản phối cảnh và giải pháp bố trí mặt bằng công năng hoàn toàn miễn phí.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="experience-actions">
+              <button type="button" class="btn-book-consultation" (click)="openConsultationModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Đặt Lịch Tư Vấn Trực Tiếp</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="experience-visual-col">
+            <div class="experience-img-frame">
+              <img src="/assets/img/showroom.jpg" alt="Không gian Showroom DCor Studio" class="experience-img"
+                loading="lazy" />
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7: FINAL CALL TO ACTION (CTA KẾT TRANG) -->
+    <section class="about-final-cta-section">
+      <div class="about-container">
+        <div class="final-cta-box">
+          <div class="final-cta-bg">
+            <img src="/assets/img/about_cta_living.jpg" alt="Không gian sống sang trọng DCor" class="final-cta-img"
+              loading="lazy" />
+            <div class="final-cta-overlay"></div>
+          </div>
+          <div class="final-cta-inner">
+
+            <h2 class="final-cta-title">
+              Sẵn Sàng Kiến Tạo Không Gian Sống Của Riêng Bạn?
+            </h2>
+
+            <p class="final-cta-subtitle">
+              "Hãy để DCor cùng bạn tìm kiếm những mảnh ghép nội thất vừa vặn nhất cho ngôi nhà."
+            </p>
+
+            <div class="final-cta-actions">
+              <a routerLink="/custom-design" class="btn-final-primary">
+                <span>Trải Nghiệm Thiết Kế Phòng 2D Ngay</span>
+                <svg class="btn-arrow-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+
+              <a routerLink="/explore" class="btn-final-secondary">
+                <span>Khám Phá</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="7" y1="17" x2="17" y2="7"></line>
+                  <polyline points="7 7 17 7 17 17"></polyline>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal Đặt Lịch Tư Vấn Showroom -->
+    <app-showroom-consultation-modal [isOpen]="isConsultationModalOpen" (close)="closeConsultationModal()">
+    </app-showroom-consultation-modal>
+
+  </div>
+</ng-container>
+
+<!-- FALLBACK FOR STANDARD SUPPORT / POLICIES / GUIDES -->
+<ng-template #standardSupportLayout>
+  <div class="support-page-wrapper">
+    <!-- Top Breadcrumb Bar -->
+    <div class="support-breadcrumb-bar">
+      <div class="container">
+        <nav class="support-breadcrumb-nav" aria-label="Điều hướng phân cấp">
+          <ol class="support-breadcrumb-list">
+            <li class="support-breadcrumb-item">
+              <a routerLink="/" class="support-breadcrumb-link" aria-label="Về trang chủ">
+                <app-icon name="House" size="14"></app-icon>
+                <span>Trang chủ</span>
+              </a>
+            </li>
+            <li class="support-breadcrumb-separator" aria-hidden="true">
+              <app-icon name="ChevronRight" size="14"></app-icon>
+            </li>
+            <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
+              <li class="support-breadcrumb-item" [class.is-active]="last" [attr.aria-current]="last ? 'page' : null">
+                <a *ngIf="!last && crumb.url" [routerLink]="crumb.url" class="support-breadcrumb-link">
+                  {{ crumb.label }}
+                </a>
+                <span *ngIf="last || !crumb.url" class="support-breadcrumb-current">
+                  {{ crumb.label }}
+                </span>
+              </li>
+              <li *ngIf="!last" class="support-breadcrumb-separator" aria-hidden="true">
+                <app-icon name="ChevronRight" size="14"></app-icon>
+              </li>
+            </ng-container>
+          </ol>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Header Section -->
+    <section class="support-hero" aria-label="Tiêu đề trang thông tin">
+      <div class="support-hero-content">
+        <div class="support-hero-badge">
+          <app-icon name="Sparkles" size="14"></app-icon>
+          <span>{{ badge }}</span>
+        </div>
+        <h1 class="support-hero-title">{{ title }}</h1>
+        <p class="support-hero-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+        <div class="support-hero-meta" *ngIf="showPolicyMeta && lastUpdated">
+          <span class="support-meta-item">
+            <app-icon name="Clock" size="14"></app-icon>
+            <span>Cập nhật lần cuối: {{ lastUpdated }}</span>
+          </span>
+          <span class="support-meta-divider" aria-hidden="true"></span>
+          <span class="support-meta-item">
+            <app-icon name="ShieldCheck" size="14"></app-icon>
+            <span>Chính sách áp dụng chính thức toàn hệ thống</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile Collapsible TOC Box (< 1024px) -->
+    <div class="support-mobile-toc-container">
+      <div class="support-mobile-toc-box">
+        <button type="button" class="support-mobile-toc-toggle" (click)="toggleMobileToc()"
+          [attr.aria-expanded]="isMobileTocOpen()" aria-controls="mobile-toc-list"
+          aria-label="Đóng mở hộp mục lục bài viết">
+          <div class="support-mobile-toc-label">
+            <app-icon name="ClipboardList" size="18" color="var(--color-primary)"></app-icon>
+            <span>Mục lục nội dung ({{ tocItems().length }} mục)</span>
+          </div>
+          <app-icon name="ChevronDown" size="18" [style.transform]="isMobileTocOpen() ? 'rotate(180deg)' : 'none'"
+            style="transition: transform 0.2s;"></app-icon>
+        </button>
+
+        <nav id="mobile-toc-list" class="support-mobile-toc-content" *ngIf="isMobileTocOpen()"
+          aria-label="Mục lục bài viết di động">
+          <ul class="support-mobile-toc-nav">
+            <li *ngFor="let item of tocItems()">
+              <a [href]="'#' + item.id" (click)="scrollToSection(item.id, $event)" class="support-mobile-toc-link"
+                [class.is-active]="activeSectionId() === item.id">
+                <span class="support-toc-text">{{ item.title }}</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Main Content Area: 2-column grid -->
+    <main class="support-main-container">
+      <div class="support-content-layout">
+        <!-- Article Column (Left/Center) -->
+        <article class="support-article" aria-label="Nội dung chi tiết">
+          <!-- Render each section -->
+          <section *ngFor="let section of sections" [id]="section.id" class="support-section scroll-mt-24">
+            <div class="support-section-header">
+              <h2 class="support-section-title">
+                <a [href]="'#' + section.id" (click)="scrollToSection(section.id, $event)"
+                  class="support-section-anchor" [attr.aria-label]="'Liên kết tới mục ' + section.title">
+                  {{ section.title }}
+                </a>
+              </h2>
+            </div>
+
+            <!-- Paragraphs -->
+            <div class="support-section-body" *ngIf="section.paragraphs?.length">
+              <p *ngFor="let p of section.paragraphs" class="support-paragraph">
+                {{ p }}
+              </p>
+            </div>
+
+            <!-- List Items -->
+            <div class="support-section-list" *ngIf="section.listItems?.length">
+              <ul class="support-bullet-list">
+                <li *ngFor="let item of section.listItems" class="support-bullet-item">
+                  <app-icon name="Check" size="16" class="support-check-icon"></app-icon>
+                  <span>{{ item }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Steps (if any) -->
+            <div class="support-steps-container" *ngIf="section.steps?.length">
+              <div *ngFor="let step of section.steps" class="support-step-card">
+                <div class="support-step-badge">{{ step.number }}</div>
+                <div class="support-step-content">
+                  <h3 class="support-step-title">{{ step.title }}</h3>
+                  <p class="support-step-desc">{{ step.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Callout box (if any) -->
+            <div *ngIf="section.callout" class="support-callout-box" [ngClass]="'callout-' + section.callout.type">
+              <div class="support-callout-icon">
+                <app-icon *ngIf="section.callout.type === 'tip'" name="Sparkles" size="20"></app-icon>
+                <app-icon *ngIf="section.callout.type === 'note'" name="Info" size="20"></app-icon>
+                <app-icon *ngIf="section.callout.type === 'warning'" name="AlertTriangle" size="20"></app-icon>
+                <app-icon *ngIf="section.callout.type === 'info'" name="CircleCheck" size="20"></app-icon>
+              </div>
+              <div class="support-callout-text">
+                <h4 class="support-callout-title" *ngIf="section.callout.title">{{ section.callout.title }}</h4>
+                <p>{{ section.callout.text }}</p>
+              </div>
+            </div>
+
+            <!-- Table (if any) -->
+            <div class="support-table-wrapper" *ngIf="section.table">
+              <table class="support-table">
+                <thead>
+                  <tr>
+                    <th *ngFor="let h of section.table.headers">{{ h }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of section.table.rows">
+                    <td *ngFor="let cell of row">{{ cell }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Subsections (if any) -->
+            <div class="support-subsections" *ngIf="section.subsections?.length">
+              <div *ngFor="let sub of section.subsections" [id]="sub.id" class="support-subsection">
+                <h3 class="support-subsection-title">{{ sub.title }}</h3>
+                <p *ngFor="let sp of sub.paragraphs" class="support-paragraph">{{ sp }}</p>
+                <ul *ngIf="sub.listItems?.length" class="support-bullet-list">
+                  <li *ngFor="let si of sub.listItems" class="support-bullet-item">
+                    <app-icon name="Check" size="14" class="support-check-icon"></app-icon>
+                    <span>{{ si }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Khối: Cần hỗ trợ thêm? -->
+          <section class="support-contact-card" aria-label="Khối hỗ trợ trực tiếp">
+            <div class="support-contact-header">
+              <div class="support-contact-icon-badge">
+                <app-icon name="Headphones" size="24" color="var(--color-primary)"></app-icon>
+              </div>
+              <div>
+                <h3 class="support-contact-title">Bạn vẫn cần hỗ trợ thêm?</h3>
+                <p class="support-contact-subtitle">
+                  Đội ngũ chuyên viên tư vấn DCor luôn sẵn sàng lắng nghe và giải đáp mọi băn khoăn của quý khách.
+                </p>
+              </div>
+            </div>
+
+            <div class="support-contact-grid">
+              <a [href]="'tel:' + hotline.replace(' ', '')" class="support-contact-item" aria-label="Gọi hotline">
+                <div class="support-contact-item-icon">
+                  <app-icon name="Phone" size="18"></app-icon>
+                </div>
+                <div class="support-contact-item-info">
+                  <span class="support-contact-item-label">Tổng đài Hotline</span>
+                  <strong class="support-contact-item-val">{{ hotline }}</strong>
+                </div>
+              </a>
+
+              <a [href]="'mailto:' + email" class="support-contact-item" aria-label="Gửi email hỗ trợ">
+                <div class="support-contact-item-icon">
+                  <app-icon name="Mail" size="18"></app-icon>
+                </div>
+                <div class="support-contact-item-info">
+                  <span class="support-contact-item-label">Hòm thư điện tử</span>
+                  <strong class="support-contact-item-val">{{ email }}</strong>
+                </div>
+              </a>
+
+              <div class="support-contact-item is-static">
+                <div class="support-contact-item-icon">
+                  <app-icon name="Clock" size="18"></app-icon>
+                </div>
+                <div class="support-contact-item-info">
+                  <span class="support-contact-item-label">Thời gian làm việc</span>
+                  <strong class="support-contact-item-val">{{ workingHours }}</strong>
+                </div>
+              </div>
+
+              <div class="support-contact-item is-static">
+                <div class="support-contact-item-icon">
+                  <app-icon name="MapPin" size="18"></app-icon>
+                </div>
+                <div class="support-contact-item-info">
+                  <span class="support-contact-item-label">Địa chỉ Showroom</span>
+                  <strong class="support-contact-item-val">{{ address }}</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Liên kết chính sách khác -->
+          <section class="support-other-policies" *ngIf="otherPolicies().length" aria-label="Các chính sách liên quan">
+            <h3 class="support-other-policies-title">Xem thêm các chính sách & hướng dẫn khác</h3>
+            <div class="support-other-policies-grid">
+              <a *ngFor="let p of otherPolicies()" [routerLink]="p.href" class="support-policy-card-link">
+                <div class="support-policy-card-header">
+                  <app-icon [name]="p.iconName" size="20" color="var(--color-primary)"></app-icon>
+                  <span class="support-policy-card-tag">{{ p.badge }}</span>
+                </div>
+                <h4 class="support-policy-card-title">{{ p.label }}</h4>
+                <p class="support-policy-card-desc">{{ p.description }}</p>
+                <span class="support-policy-card-arrow">
+                  <span>Tìm hiểu ngay</span>
+                  <app-icon name="ArrowRight" size="14"></app-icon>
+                </span>
+              </a>
+            </div>
+          </section>
+        </article>
+
+        <!-- Right Sticky Sidebar (Table of Contents) -->
+        <aside class="support-sidebar" aria-label="Mục lục bài viết">
+          <div class="support-sidebar-inner">
+            <div class="support-sidebar-header">
+              <app-icon name="ClipboardList" size="16" color="var(--color-primary)"></app-icon>
+              <span>Mục lục trang này</span>
+            </div>
+
+            <nav class="support-toc-wrapper" aria-label="Điều hướng nhanh nội dung">
+              <ul class="support-toc-list">
+                <li *ngFor="let item of tocItems()" class="support-toc-item" [class.is-sub]="item.level === 3">
+                  <a [href]="'#' + item.id" (click)="scrollToSection(item.id, $event)" class="support-toc-link"
+                    [class.is-active]="activeSectionId() === item.id"
+                    [attr.aria-current]="activeSectionId() === item.id ? 'true' : null">
+                    <span class="support-toc-text">{{ item.title }}</span>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+
+            <div class="support-sidebar-help">
+              <div class="support-sidebar-help-top">
+                <app-icon name="Headphones" size="16" color="var(--color-primary)"></app-icon>
+                <strong>Cần trợ giúp nhanh?</strong>
+              </div>
+              <p>Hotline: <a [href]="'tel:' + hotline.replace(' ', '')">{{ hotline }}</a></p>
+              <a routerLink="/custom-design" class="support-sidebar-cta">Đặt lịch tư vấn</a>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</ng-template>

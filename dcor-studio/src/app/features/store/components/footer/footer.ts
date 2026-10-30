@@ -34,9 +34,9 @@ export class Footer {
       id: 'explore',
       title: 'Về DCor',
       links: [
-        { label: 'Giới thiệu về DCor', href: '/' },
+        { label: 'Giới thiệu về DCor', href: '/about' },
         { label: 'Danh sách sản phẩm', href: '/explore' },
-        { label: 'Đặt lịch tư vấn Showroom', href: '/custom-design' },
+        { label: 'Đặt lịch tư vấn Showroom', href: '/account/appointments' },
         { label: 'Thiết kế không gian', href: '/custom-design' },
         { label: 'Cộng đồng', href: '/community' },
         { label: 'Blog', href: '/blog' },
@@ -46,7 +46,7 @@ export class Footer {
       id: 'support',
       title: 'Hỗ trợ',
       links: [
-        { label: 'Hướng dẫn đặt hàng', href: '/explore' },
+        { label: 'Hướng dẫn đặt hàng', href: '/huong-dan-mua-hang' },
         { label: 'Câu hỏi thường gặp', href: '/faq' },
       ],
     },
@@ -54,10 +54,10 @@ export class Footer {
       id: 'policies',
       title: 'Chính sách',
       links: [
-        { label: 'Chính sách bảo hành & đổi trả', href: '/blog' },
-        { label: 'Chính sách bảo hành', href: '/blog' },
-        { label: 'Chính sách thanh toán', href: '/blog' },
-        { label: 'Chính sách vận chuyển', href: '/blog' },
+        { label: 'Chính sách bảo hành & đổi trả', href: '/chinh-sach/doi-tra' },
+        { label: 'Chính sách bảo hành', href: '/chinh-sach/bao-hanh' },
+        { label: 'Chính sách thanh toán', href: '/chinh-sach/thanh-toan' },
+        { label: 'Chính sách vận chuyển', href: '/chinh-sach/van-chuyen' },
       ],
     },
   ];

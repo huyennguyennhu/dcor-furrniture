@@ -1,90 +1,890 @@
-<div class="custom-requests-container">
-  <div class="header">
-    <h2>Yêu cầu thiết kế đặc biệt (Custom Orders)</h2>
-    <p>Theo dõi tiến trình các bản vẽ 3D và trạng thái sản xuất nội thất may đo của bạn.</p>
+<div class="account-page">
+  <div class="account-container">
+    <div class="account-layout">
+      <!-- Sidebar Column -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
+
+      <!-- Main Content Column -->
+      <main class="content-column">
+        <!-- Breadcrumbs -->
+        <nav class="breadcrumb-nav">
+          <a routerLink="/" class="crumb-link">Trang chủ</a>
+          <span class="crumb-separator">/</span>
+          <a routerLink="/account/profile" class="crumb-link">Tài khoản</a>
+          <span class="crumb-separator">/</span>
+          <span class="crumb-current">Đơn may đo & Custom</span>
+        </nav>
+
+        <!-- Page Header & Action Bar -->
+        <div class="orders-header-wrap">
+          <div class="header-text">
+            <h1 class="page-title">Đơn may đo & Thiết kế Custom</h1>
+            <p class="page-subtitle">
+              Không gian cá nhân hóa: Theo dõi tiến trình khảo sát, bản vẽ 3D và trạng thái sản xuất.
+            </p>
+          </div>
+
+          <div class="header-actions-group">
+            <!-- Search Bar -->
+            <div *ngIf="canViewContent" class="search-box">
+              <lucide-angular [img]="icons.Search" size="18" class="search-icon"></lucide-angular>
+              <input 
+                type="text" 
+                [(ngModel)]="searchQuery" 
+                placeholder="Tìm theo mã đơn, tên mẫu, màu sắc..." 
+                class="search-input" />
+              <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''">×</button>
+            </div>
+
+            <!-- Nút Tạo yêu cầu custom -->
+            <button type="button" class="btn-create-custom" (click)="openCreateModal()">
+              <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
+              <span>Tạo yêu cầu custom</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Toast thông báo nhanh (ví dụ: Sao chép tài khoản) -->
+        <div *ngIf="copyFeedback" class="toast-banner success">
+          <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
+          <span>{{ copyFeedback }}</span>
+        </div>
+
+        <!-- Banner xác thực số điện thoại cho khách vãng lai -->
+        <app-guest-phone-banner
+          customTitle="Tra cứu hồ sơ may đo qua số điện thoại"
+          customDesc="Nhập và xác thực số điện thoại để theo dõi tiến trình bản vẽ 3D, báo giá và hợp đồng may đo."
+          (verified)="onGuestPhoneVerified($event)"
+          (reset)="onGuestPhoneReset()">
+        </app-guest-phone-banner>
+
+        <!-- Nội dung chính: Không dùng tab trạng thái, hiển thị trực quan theo dạng thẻ đơn hàng của tôi -->
+        <ng-container *ngIf="canViewContent">
+          <!-- Empty State khi không có yêu cầu nào -->
+          <div class="empty-state-box" *ngIf="filteredRequests.length === 0">
+            <div class="empty-icon-box">
+              <lucide-angular [img]="icons.Pencil" size="36" class="empty-icon"></lucide-angular>
+            </div>
+            <h3 class="empty-title">Không tìm thấy yêu cầu may đo nào</h3>
+            <p class="empty-desc" *ngIf="searchQuery">
+              Không có đơn may đo nào khớp với từ khóa "{{ searchQuery }}".
+            </p>
+            <p class="empty-desc" *ngIf="!searchQuery">
+              Bạn chưa có đơn may đo hoặc thiết kế riêng nào. Bạn có thể tùy biến kích thước dài x rộng x cao, chọn màu da bò Ý hoặc vải nỉ cao cấp theo từng thiết kế của DCor.
+            </p>
+            <button type="button" class="cta-btn shop-now-btn" (click)="openCreateModal()">
+              <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
+              <span>Tạo yêu cầu custom ngay</span>
+            </button>
+          </div>
+
+          <!-- Danh sách Đơn may đo (Định dạng giống bên Đơn hàng của tôi: có đường màu trạng thái ở trên) -->
+          <div class="orders-list" *ngIf="filteredRequests.length > 0">
+            <div *ngFor="let req of filteredRequests" class="order-card" (click)="openDetailModal(req)">
+              
+              <!-- 1. Header Topbar (Full màu trạng thái giống Đơn hàng của tôi) -->
+              <div class="order-card-topbar" [ngClass]="'status-' + getOrderStatusClass(req.status)">
+                <div class="topbar-status">
+                  <span class="status-indicator-dot"></span>
+                  <span class="topbar-status-text">
+                    {{ getStatusMeta(req.status).customerLabel }}
+                  </span>
+                </div>
+                <div class="topbar-meta">
+                  <span class="meta-date">{{ req.createdAt | date:'dd/MM/yyyy' }}</span>
+                  <span class="meta-divider">|</span>
+                  <span class="meta-items-count">{{ req.categoryName || 'Sofa May Đo' }}</span>
+                  <span class="meta-divider">|</span>
+                  <span class="meta-order-id">{{ req.code }}</span>
+                </div>
+              </div>
+
+              <!-- Notice: Đơn hàng chờ đặt cọc -->
+              <div *ngIf="req.status === 'AWAITING_PAYMENT'" class="waiting-payment-alert">
+                <lucide-angular [img]="icons.Clock" size="16" class="alert-icon"></lucide-angular>
+                <div class="alert-text">
+                  <strong>Đơn may đo chờ đặt cọc:</strong> Vui lòng đặt cọc <strong>{{ (req.quotedDeposit || (req.quotedPrice ? req.quotedPrice * 0.3 : 5000000)) | number }} đ</strong> trong 24h để xưởng tiến hành sản xuất theo bản vẽ.
+                </div>
+              </div>
+
+              <!-- Notice: Đã có báo giá & bản vẽ 3D -->
+              <div *ngIf="req.status === 'QUOTED'" class="quoted-alert-banner">
+                <lucide-angular [img]="icons.Sparkles" size="16" class="alert-icon"></lucide-angular>
+                <div class="alert-text">
+                  <strong>Đã có báo giá & bản vẽ 3D:</strong> Chuyên viên KTS đã gửi báo giá <strong>{{ req.quotedPrice | number }} đ</strong>. Bấm <em>Xem chi tiết</em> để duyệt bản vẽ.
+                </div>
+              </div>
+
+              <!-- Notice: Đơn đã bị hủy -->
+              <div *ngIf="req.status === 'CANCELLED'" class="cancelled-alert-banner">
+                <lucide-angular [img]="icons.XCircle" size="16" class="alert-icon"></lucide-angular>
+                <div class="alert-text">
+                  <strong>Đơn may đo đã hủy:</strong> {{ req.cancelReason || 'Đã kết thúc theo yêu cầu của quý khách.' }}
+                </div>
+              </div>
+
+              <!-- 2. Order Card Body (Hiển thị sản phẩm may đo đại diện theo chuẩn Đơn hàng của tôi) -->
+              <div class="order-card-body">
+                <div class="item-preview-row">
+                  <!-- Thumbnail & Tên sản phẩm + Quy cách -->
+                  <div class="item-main-left">
+                    <div class="item-img-wrap">
+                      <img 
+                        [src]="req.productImage || 'assets/placeholder.png'" 
+                        (error)="$any($event.target).src = 'assets/placeholder.png'"
+                        [alt]="req.productName" 
+                        class="item-img" />
+                    </div>
+                    <div class="item-details">
+                      <h4 class="item-name" [title]="req.productName">{{ req.productName }}</h4>
+                      <div class="custom-specs-inline">
+                        <span class="inline-spec">📐 {{ req.length || 0 }} x {{ req.width || 0 }} x {{ req.height || 0 }} cm</span>
+                        <span class="inline-divider">•</span>
+                        <span class="inline-spec color-spec">
+                          <span class="swatch-inline" [style.background]="req.colorHex || '#8B4513'"></span>
+                          {{ req.colorName || 'Tùy chọn' }}
+                        </span>
+                        <span class="inline-divider">•</span>
+                        <span class="inline-spec">{{ req.material || 'Da bò Ý / Vải Bỉ' }}</span>
+                      </div>
+                      <p class="item-unit-price" *ngIf="req.quotedPrice">
+                        Báo giá dự toán: <strong>{{ req.quotedPrice | number }} đ</strong>
+                      </p>
+                      <p class="item-unit-price text-muted" *ngIf="!req.quotedPrice">
+                        <em>KTS đang tiếp nhận thông số và chuẩn bị báo giá</em>
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Số lượng & Thành tiền dòng sản phẩm nằm góc phải -->
+                  <div class="item-qty-total-right">
+                    <span class="item-qty-label">Số lượng: 1 bộ</span>
+                    <span class="item-line-total" *ngIf="req.quotedPrice">{{ req.quotedPrice | number }} đ</span>
+                    <span class="item-line-total pending-price" *ngIf="!req.quotedPrice">Chờ báo giá</span>
+                  </div>
+                </div>
+
+                <div class="notes-preview-row" *ngIf="req.notes">
+                  <span class="notes-tag">Ghi chú riêng:</span>
+                  <span class="notes-content">"{{ req.notes }}"</span>
+                </div>
+              </div>
+
+              <!-- 3. Order Card Footer -->
+              <div class="order-card-footer" (click)="$event.stopPropagation()">
+                <div class="total-wrap">
+                  <span class="total-label">Tổng kinh phí sản xuất:</span>
+                  <span class="total-amount" *ngIf="req.quotedPrice">{{ req.quotedPrice | number }} đ</span>
+                  <span class="total-amount pending" *ngIf="!req.quotedPrice">Chờ KTS báo giá</span>
+                </div>
+
+                <div class="actions-wrap">
+                  <!-- Nút Xem chi tiết: Luôn hiển thị -->
+                  <button type="button" class="btn-outline" (click)="openDetailModal(req)">
+                    Xem chi tiết
+                  </button>
+
+                  <!-- Nút Thanh toán cọc ngay: Khi ở trạng thái AWAITING_PAYMENT -->
+                  <button 
+                    type="button" 
+                    class="btn-primary-action" 
+                    *ngIf="req.status === 'AWAITING_PAYMENT'"
+                    (click)="openPaymentModal(req)">
+                    Thanh toán cọc ngay
+                  </button>
+
+                  <!-- Nút Hủy yêu cầu: Cho phép hủy khi chưa sản xuất và chưa hủy -->
+                  <button 
+                    type="button" 
+                    class="btn-danger-outline" 
+                    *ngIf="!['PROCESSING', 'CANCELLED'].includes(req.status)"
+                    (click)="openCancelModal(req)">
+                    Hủy đơn
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </ng-container>
+      </main>
+    </div>
   </div>
 
-  <div class="requests-list">
-    <div class="request-card" *ngFor="let req of requests">
-      <div class="card-header">
-        <div class="title-wrap">
-          <span class="req-id">{{ req.id }}</span>
-          <h3>{{ req.title }}</h3>
+  <!-- ========================================================================= -->
+  <!-- POPUP MODAL: TẠO YÊU CẦU MAY ĐO & CUSTOM                                  -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isCreateModalOpen" (click)="closeCreateModal()">
+    <div class="modal-card custom-create-modal" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge">
+            <lucide-angular [img]="icons.Pencil" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h2 class="modal-title">Tạo Yêu Cầu May Đo & Custom</h2>
+            <p class="modal-subtitle">Tùy biến kích thước, chiều cao, màu sắc và chất liệu theo không gian phòng của bạn.</p>
+          </div>
         </div>
-        <span class="status-badge" [ngClass]="req.status">{{ getStatusText(req.status) }}</span>
+        <button type="button" class="btn-close-modal" (click)="closeCreateModal()">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
       </div>
 
-      <!-- BPMN Progress Timeline -->
-      <div class="timeline">
-        <div class="step" [class.active]="true">
-          <div class="dot"></div>
-          <p>Yêu cầu</p>
-        </div>
-        <div class="step" [class.active]="['drawing_3d', 'contract_signing', 'deposit_pending', 'processing', 'completed'].includes(req.status)">
-          <div class="line"></div>
-          <div class="dot"></div>
-          <p>Bản vẽ 3D</p>
-        </div>
-        <div class="step" [class.active]="['contract_signing', 'deposit_pending', 'processing', 'completed'].includes(req.status)">
-          <div class="line"></div>
-          <div class="dot"></div>
-          <p>Báo giá & HĐ</p>
-        </div>
-        <div class="step" [class.active]="['deposit_pending', 'processing', 'completed'].includes(req.status)">
-          <div class="line"></div>
-          <div class="dot"></div>
-          <p>Ký OTP</p>
-        </div>
-        <div class="step" [class.active]="['processing', 'completed'].includes(req.status)">
-          <div class="line"></div>
-          <div class="dot"></div>
-          <p>Đặt cọc</p>
-        </div>
-        <div class="step" [class.active]="req.status === 'completed'">
-          <div class="line"></div>
-          <div class="dot"></div>
-          <p>Sản xuất</p>
-        </div>
+      <!-- Modal Body Form -->
+      <div class="modal-body" *ngIf="!formSubmittedSuccess; else successMessageTpl">
+        <!-- Bước 1: Chọn mẫu thiết kế gốc -->
+        <section class="form-section">
+          <label class="section-title">
+            <span class="step-num">1</span>
+            Chọn mẫu nội thất cần may đo / custom
+          </label>
+
+          <div class="product-type-toggle">
+            <button 
+              type="button" 
+              class="toggle-btn" 
+              [class.active]="formProductType === 'template'"
+              (click)="formProductType = 'template'">
+              Chọn từ thiết kế mẫu của DCor
+            </button>
+            <button 
+              type="button" 
+              class="toggle-btn" 
+              [class.active]="formProductType === 'custom'"
+              (click)="formProductType = 'custom'">
+              Tôi có mẫu riêng / Thiết kế độc bản
+            </button>
+          </div>
+
+          <!-- Chọn từ sản phẩm DCor có sẵn: Tìm tên hoặc mã SKU -->
+          <div class="product-search-picker" *ngIf="formProductType === 'template'">
+            <!-- Thanh tìm kiếm sản phẩm theo tên hoặc SKU -->
+            <div class="search-product-box">
+              <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+              <input 
+                type="text" 
+                class="form-control search-prod-input" 
+                placeholder="Tìm theo tên sản phẩm hoặc mã SKU (Ví dụ: Sofa Roma, DCOR-SOFA-01, Bàn trà...)" 
+                [(ngModel)]="productSearchQuery" 
+              />
+              <button 
+                type="button" 
+                class="btn-clear-search" 
+                *ngIf="productSearchQuery" 
+                (click)="productSearchQuery = ''">
+                <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+              </button>
+            </div>
+
+            <!-- Khối hiển thị sản phẩm mẫu đang được chọn -->
+            <div class="selected-product-banner" *ngIf="selectedProduct">
+              <div class="sel-prod-thumb">
+                <img [src]="selectedProduct.image" [alt]="selectedProduct.name" />
+              </div>
+              <div class="sel-prod-meta">
+                <div class="sel-tag-line">
+                  <span class="sel-sku-pill">Mã SKU: {{ selectedProduct.sku }}</span>
+                  <span class="sel-cat-pill">{{ selectedProduct.categoryName }}</span>
+                  <span class="sel-status-pill">Đang chọn mẫu này</span>
+                </div>
+                <div class="sel-prod-name">{{ selectedProduct.name }}</div>
+                <div class="sel-prod-size">
+                  Kích thước tiêu chuẩn: <strong>{{ selectedProduct.length }} x {{ selectedProduct.width }} x {{ selectedProduct.height }} cm</strong>
+                  <span *ngIf="selectedProduct.price"> &bull; Giá niêm yết: {{ selectedProduct.price | number }} đ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Danh sách cuộn chọn sản phẩm có sẵn của DCor -->
+            <div class="products-picker-list">
+              <div class="picker-list-label">
+                <span>Chọn sản phẩm từ kho thiết kế DCor ({{ filteredDCorProducts.length }} mẫu):</span>
+              </div>
+              <div class="products-picker-grid">
+                <div 
+                  *ngFor="let p of filteredDCorProducts" 
+                  class="prod-picker-card"
+                  [class.selected]="selectedProduct?.id === p.id"
+                  (click)="selectProduct(p)">
+                  <div class="prod-thumb">
+                    <img [src]="p.image" [alt]="p.name" />
+                  </div>
+                  <div class="prod-details">
+                    <div class="prod-sku">{{ p.sku }}</div>
+                    <div class="prod-name" [title]="p.name">{{ p.name }}</div>
+                    <div class="prod-size">{{ p.length }}x{{ p.width }}x{{ p.height }} cm</div>
+                  </div>
+                  <div class="check-mark" *ngIf="selectedProduct?.id === p.id">
+                    <lucide-angular [img]="icons.CheckCircle2" size="16" color="#BC5F13"></lucide-angular>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nhập tên mẫu nếu tự custom -->
+          <div class="custom-name-box" *ngIf="formProductType === 'custom'">
+            <label class="field-label">Tên hoặc mô tả mẫu nội thất mong muốn *</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              placeholder="Ví dụ: Sofa góc L nỉ nhung phong cách Wabi-Sabi, Bàn đảo bếp đá vân..."
+              [(ngModel)]="formCustomProductName"
+            />
+          </div>
+        </section>
+
+        <!-- Bước 2: Tùy biến kích thước (Chiều dài, Rộng, Chiều cao) -->
+        <section class="form-section">
+          <label class="section-title">
+            <span class="step-num">2</span>
+            Tùy chỉnh kích thước mong muốn (cm)
+          </label>
+          <div class="dimension-inputs-row">
+            <div class="dimension-field">
+              <label class="field-label">Chiều Dài (cm) *</label>
+              <div class="input-unit-wrap">
+                <input type="number" class="form-control" [(ngModel)]="formLength" min="50" max="500" />
+                <span class="unit-text">cm</span>
+              </div>
+            </div>
+
+            <div class="dimension-field">
+              <label class="field-label">Chiều Rộng / Sâu (cm) *</label>
+              <div class="input-unit-wrap">
+                <input type="number" class="form-control" [(ngModel)]="formWidth" min="40" max="300" />
+                <span class="unit-text">cm</span>
+              </div>
+            </div>
+
+            <div class="dimension-field">
+              <label class="field-label">Chiều Cao (cm) *</label>
+              <div class="input-unit-wrap">
+                <input type="number" class="form-control" [(ngModel)]="formHeight" min="30" max="250" />
+                <span class="unit-text">cm</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bước 3: Chọn màu sắc -->
+        <section class="form-section">
+          <label class="section-title">
+            <span class="step-num">3</span>
+            Chọn màu sắc chủ đạo
+          </label>
+          <div class="color-swatches-grid">
+            <div 
+              *ngFor="let c of popularColors" 
+              class="swatch-card" 
+              [class.active]="formSelectedColorName === c.name"
+              (click)="selectColor(c)">
+              <span class="swatch-preview" [style.background]="c.hex"></span>
+              <span class="swatch-name">{{ c.name }}</span>
+            </div>
+          </div>
+          <div class="custom-color-row">
+            <label class="field-label">Hoặc nhập mã màu / tên màu theo bảng RAL/Pantone:</label>
+            <input type="text" class="form-control" [(ngModel)]="formSelectedColorName" placeholder="Ví dụ: Nâu cánh gián cổ điển, Ghi sáng..." />
+          </div>
+        </section>
+
+        <!-- Bước 4: Chất liệu & Chân đế -->
+        <section class="form-section">
+          <label class="section-title">
+            <span class="step-num">4</span>
+            Chất liệu bề mặt & Chân đế
+          </label>
+          <div class="two-cols-grid">
+            <div class="form-col">
+              <label class="field-label">Chất liệu bọc / hoàn thiện mặt:</label>
+              <select class="form-select" [(ngModel)]="formMaterial">
+                <option *ngFor="let m of materialsList" [value]="m">{{ m }}</option>
+              </select>
+            </div>
+
+            <div class="form-col">
+              <label class="field-label">Chất liệu chân ghế / khung đỡ:</label>
+              <select class="form-select" [(ngModel)]="formLegMaterial">
+                <option *ngFor="let leg of legMaterialsList" [value]="leg">{{ leg }}</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bước 5: Ghi chú & Đính kèm link ảnh -->
+        <section class="form-section">
+          <label class="section-title">
+            <span class="step-num">5</span>
+            Ghi chú chi tiết & Ảnh phòng mẫu
+          </label>
+          <div class="form-group">
+            <textarea 
+              class="form-control" 
+              rows="3" 
+              placeholder="Ví dụ: Cần bo tròn góc an toàn cho trẻ, nệm mút cao su thiên nhiên êm ái, cửa nhà rộng 90cm cần khung tháo lắp được..."
+              [(ngModel)]="formNotes">
+            </textarea>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="field-label">Link ảnh tham khảo hoặc bản vẽ phòng khách (URL ảnh):</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              placeholder="https://..." 
+              [(ngModel)]="formReferenceImageUrl" 
+            />
+          </div>
+        </section>
+
+        <!-- Bước 6: Thông tin người nhận khảo sát & báo giá -->
+        <section class="form-section customer-contact-section">
+          <label class="section-title">
+            <span class="step-num">6</span>
+            Thông tin liên hệ nhận khảo sát & bản vẽ 3D
+          </label>
+          <div class="two-cols-grid">
+            <div class="form-col">
+              <label class="field-label">Họ và tên *</label>
+              <input type="text" class="form-control" [(ngModel)]="formCustomerName" placeholder="Nguyễn Văn A" />
+            </div>
+            <div class="form-col">
+              <label class="field-label">Số điện thoại liên hệ *</label>
+              <input type="tel" class="form-control" [(ngModel)]="formCustomerPhone" placeholder="0988xxxxxx" />
+            </div>
+          </div>
+
+          <div class="two-cols-grid" style="margin-top: 12px;">
+            <div class="form-col">
+              <label class="field-label">Email nhận bản vẽ & báo giá</label>
+              <input type="email" class="form-control" [(ngModel)]="formCustomerEmail" placeholder="email@example.com" />
+            </div>
+            <div class="form-col">
+              <label class="field-label">Địa chỉ công trình / giao lắp</label>
+              <input type="text" class="form-control" [(ngModel)]="formCustomerAddress" placeholder="Số nhà, Tòa nhà, Phường, Quận, Tỉnh/TP" />
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div class="card-footer">
-        <p class="date">Ngày tạo: {{ req.date | date:'dd/MM/yyyy' }}</p>
-        <div class="actions">
-          <button *ngIf="req.status === 'contract_signing'" class="action-btn sign" (click)="openContract(req)">
-            <app-icon name="Pencil" size="18"></app-icon>
-            Xem Hợp đồng & Ký
-          </button>
-          
-          <button *ngIf="req.status === 'deposit_pending'" class="action-btn pay" (click)="payDeposit(req)">
-            <app-icon name="DollarSign" size="18"></app-icon>
-            Thanh toán Đặt cọc
-          </button>
-
-          <button *ngIf="req.status === 'drawing_3d'" class="action-btn outline">
-            Xem tiến độ 3D
-          </button>
+      <!-- Success Screen -->
+      <ng-template #successMessageTpl>
+        <div class="modal-success-screen">
+          <div class="success-icon-wrap">
+            <lucide-angular [img]="icons.CheckCircle2" size="48" color="#16a34a"></lucide-angular>
+          </div>
+          <h3 class="success-title">Gửi Yêu Cầu May Đo Thành Công!</h3>
+          <p class="success-text">
+            Hệ thống đã tạo yêu cầu mã <strong>CR-PENDING</strong>. Chuyên viên KTS DCor sẽ liên hệ qua số điện thoại 
+            <strong>{{ formCustomerPhone }}</strong> trong vòng 30 phút để chốt thông số và chuẩn bị bản vẽ 3D.
+          </p>
         </div>
+      </ng-template>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" *ngIf="!formSubmittedSuccess">
+        <button type="button" class="btn-cancel" (click)="closeCreateModal()">Hủy bỏ</button>
+        <button type="button" class="btn-submit-request" (click)="submitCustomRequest()">
+          <lucide-angular [img]="icons.Pencil" size="16"></lucide-angular>
+          <span>Gửi Yêu Cầu May Đo</span>
+        </button>
       </div>
     </div>
+  </div>
 
-    <div *ngIf="requests.length === 0" class="empty-state">
-      <app-icon name="FileText" size="64"></app-icon>
-      <p>Bạn chưa có yêu cầu thiết kế nào.</p>
+  <!-- ========================================================================= -->
+  <!-- DRAWER: CHI TIẾT ĐƠN MAY ĐO (THIẾT KẾ ĐỒNG BỘ MY-ORDERS)                   -->
+  <!-- ========================================================================= -->
+  <div *ngIf="isDetailModalOpen && selectedRequest" class="drawer-overlay" (click)="closeDetailModal()">
+    <div class="drawer-content" (click)="$event.stopPropagation()">
+      <!-- Drawer Header -->
+      <div class="drawer-header">
+        <div class="drawer-header-info">
+          <div class="drawer-title-row">
+            <h2 class="drawer-title">Chi tiết đơn may đo #{{ selectedRequest.code }}</h2>
+            <span class="order-status-pill" [ngClass]="'status-' + getOrderStatusClass(selectedRequest.status)">
+              <span class="status-dot"></span>
+              {{ getStatusMeta(selectedRequest.status).customerLabel }}
+            </span>
+          </div>
+          <p class="drawer-subtitle">
+            Thời gian tạo: <strong>{{ selectedRequest.createdAt | date:'HH:mm - dd/MM/yyyy' }}</strong>
+            <span *ngIf="selectedRequest.assignedStaff"> • KTS phụ trách: {{ selectedRequest.assignedStaff }}</span>
+            <span *ngIf="selectedRequest.categoryName"> • Phân loại: {{ selectedRequest.categoryName }}</span>
+          </p>
+        </div>
+        <button type="button" class="drawer-close" (click)="closeDetailModal()" title="Đóng">×</button>
+      </div>
+
+      <!-- Drawer Body -->
+      <div class="drawer-body">
+        <!-- 1. ALERT BANNERS: CHỜ THANH TOÁN / ĐẶT CỌC, BÁO GIÁ SẴN SÀNG, HOẶC ĐÃ HỦY -->
+        <section *ngIf="selectedRequest.status === 'AWAITING_PAYMENT'" class="drawer-alert-banner alert-warning-24h">
+          <div class="alert-24h-header">
+            <div class="alert-24h-title">
+              <span class="pulse-clock-icon">⏳</span>
+              <div>
+                <h4 class="alert-heading">ĐƠN MAY ĐO CHỜ ĐẶT CỌC TRONG 24 GIỜ</h4>
+                <p class="alert-desc">
+                  Ràng buộc hệ thống: Quý khách vui lòng chuyển khoản đặt cọc 
+                  <strong>{{ (selectedRequest.quotedDeposit || (selectedRequest.quotedPrice ? selectedRequest.quotedPrice * 0.3 : 5000000)) | number }} đ</strong> 
+                  trong vòng 24 giờ để xưởng DCOR kích hoạt lệnh cắt phôi và sản xuất theo bản vẽ.
+                </p>
+              </div>
+            </div>
+            <div class="countdown-chip">
+              <span class="countdown-label">Hạn đặt cọc:</span>
+              <span class="countdown-value">24 Giờ</span>
+            </div>
+          </div>
+
+          <!-- Khung chuyển khoản thanh toán tiện lợi -->
+          <div class="bank-transfer-box">
+            <div class="bank-info-header">
+              <span class="bank-tag">Tài khoản thanh toán đặt cọc Dcor</span>
+              <span class="bank-amount-label">
+                Số tiền cọc cần chuyển:
+                <strong class="highlight-amount">{{ (selectedRequest.quotedDeposit || (selectedRequest.quotedPrice ? selectedRequest.quotedPrice * 0.3 : 5000000)) | number }} đ</strong>
+              </span>
+            </div>
+            <div class="bank-grid">
+              <div class="bank-field">
+                <span class="field-label">Ngân hàng:</span>
+                <span class="field-val">MB Bank (Ngân hàng Quân Đội)</span>
+              </div>
+              <div class="bank-field">
+                <span class="field-label">Chủ tài khoản:</span>
+                <span class="field-val">CÔNG TY TNHH NỘI THẤT DCOR VIỆT NAM</span>
+              </div>
+              <div class="bank-field copyable">
+                <span class="field-label">Số tài khoản:</span>
+                <span class="field-val strong-val">0988 888 888</span>
+                <button type="button" class="copy-btn" (click)="copyToClipboard('0988888888', 'Số tài khoản')">Sao chép</button>
+              </div>
+              <div class="bank-field copyable">
+                <span class="field-label">Nội dung chuyển khoản:</span>
+                <span class="field-val strong-val">COC {{ selectedRequest.code }}</span>
+                <button type="button" class="copy-btn" (click)="copyToClipboard('COC ' + selectedRequest.code, 'Nội dung CK')">Sao chép</button>
+              </div>
+            </div>
+            <div class="bank-note">
+              <span>💡</span> <em>Hệ thống sẽ tự động xác nhận và khởi động dây chuyền xưởng mộc ngay khi nhận được đối soát giao dịch.</em>
+            </div>
+          </div>
+        </section>
+
+        <!-- Alert nếu đã có báo giá & bản vẽ 3D -->
+        <section *ngIf="selectedRequest.status === 'QUOTED'" class="drawer-alert-banner alert-quoted">
+          <div class="alert-header-row">
+            <div class="alert-icon-title">
+              <span class="sparkle-icon">✨</span>
+              <div>
+                <h4 class="alert-heading text-purple">BẢN VẼ 3D VÀ BÁO GIÁ MAY ĐO ĐÃ HOÀN TẤT</h4>
+                <p class="alert-desc">
+                  Chuyên viên KTS DCOR đã hoàn thiện bản vẽ phối cảnh 3D và bóc tách khối lượng vật liệu. Tổng kinh phí: 
+                  <strong class="text-purple">{{ selectedRequest.quotedPrice | number }} đ</strong>.
+                </p>
+              </div>
+            </div>
+            <a *ngIf="selectedRequest.drawing3dUrl" [href]="selectedRequest.drawing3dUrl" target="_blank" class="btn-3d-action">
+              <lucide-angular [img]="icons.Eye" size="15"></lucide-angular>
+              <span>Mở bản vẽ 3D</span>
+            </a>
+          </div>
+        </section>
+
+        <!-- Alert nếu đơn đã hủy -->
+        <section *ngIf="selectedRequest.status === 'CANCELLED'" class="drawer-alert-banner alert-cancelled">
+          <div class="cancelled-header">
+            <div class="cancelled-icon">✕</div>
+            <div class="cancelled-content">
+              <h4 class="cancelled-title">YÊU CẦU MAY ĐO ĐÃ BỊ HỦY</h4>
+              <p class="cancelled-reason">
+                <strong>Lý do:</strong> {{ selectedRequest.cancelReason || 'Yêu cầu may đo đã hủy theo nguyện vọng của khách hàng hoặc thỏa thuận với DCOR.' }}
+              </p>
+              <p *ngIf="selectedRequest.cancelledAt" class="cancelled-time">
+                Thời điểm ghi nhận hủy: {{ selectedRequest.cancelledAt | date:'HH:mm - dd/MM/yyyy' }}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Lịch sử trạng thái đơn hàng (Timeline) -->
+        <section class="drawer-section">
+          <h3 class="section-heading">Lịch sử trạng thái đơn hàng</h3>
+          <div *ngIf="selectedRequest.timeline && selectedRequest.timeline.length > 0; else noCustomHistory" class="timeline-list">
+            <div *ngFor="let step of selectedRequest.timeline; let first = first" class="timeline-item" [class.is-current]="first">
+              <div class="timeline-dot"></div>
+              <div class="timeline-info">
+                <div class="timeline-header-step">
+                  <span class="timeline-notes">{{ step.title }}</span>
+                  <span class="timeline-time">{{ step.timestamp | date:'HH:mm - dd/MM/yyyy' }}</span>
+                </div>
+                <div class="timeline-sub-notes" *ngIf="step.description">{{ step.description }}</div>
+                <div class="timeline-actor">Ghi nhận bởi: <strong>{{ step.performedBy || 'Hệ thống DCOR' }}</strong></div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noCustomHistory>
+            <p class="empty-note">Yêu cầu may đo vừa được khởi tạo, đang chờ KTS tiếp nhận.</p>
+          </ng-template>
+        </section>
+
+        <!-- 3. Thông tin nhận hàng & Công trình (grid-2 chuẩn my-orders) -->
+        <section class="drawer-section grid-2">
+          <div class="info-block">
+            <div class="block-header">
+              <h4 class="block-title">Thông tin khách hàng & Công trình</h4>
+            </div>
+            <p class="info-name"><strong>{{ selectedRequest.customerName }}</strong></p>
+            <p class="info-line">SĐT: <strong>{{ selectedRequest.customerPhone }}</strong></p>
+            <p *ngIf="selectedRequest.customerEmail" class="info-line">Email: {{ selectedRequest.customerEmail }}</p>
+            <p class="info-line">Địa chỉ bàn giao: {{ selectedRequest.customerAddress || 'Theo thỏa thuận khi đo đạc thực tế' }}</p>
+          </div>
+
+          <div class="info-block">
+            <div class="block-header">
+              <h4 class="block-title">Thông số Kỹ thuật & Khảo sát</h4>
+            </div>
+            <p class="info-line">Phân loại: <strong>{{ selectedRequest.categoryName || 'Sofa May Đo Cao Cấp' }}</strong></p>
+            <p class="info-line">Chuyên viên phụ trách: <strong>{{ selectedRequest.assignedStaff || 'KTS. DCOR Studio' }}</strong></p>
+            <p class="info-line">
+              Trạng thái hiện tại:
+              <span class="badge-status" [ngClass]="getOrderStatusClass(selectedRequest.status)">
+                {{ getStatusMeta(selectedRequest.status).customerLabel }}
+              </span>
+            </p>
+            <p *ngIf="selectedRequest.notes" class="info-line notes">Ghi chú riêng: {{ selectedRequest.notes }}</p>
+          </div>
+        </section>
+
+        <!-- 4. Chi tiết quy cách sản phẩm may đo (Ảnh + Thông số + Bảng quy cách) -->
+        <section class="drawer-section">
+          <h3 class="section-heading">Quy cách sản phẩm may đo</h3>
+          <div class="order-items-table">
+            <div class="table-row-item custom-item-row">
+              <div class="item-col-img">
+                <img [src]="selectedRequest.productImage || 'assets/placeholder.png'" [alt]="selectedRequest.productName" />
+              </div>
+              <div class="item-col-main">
+                <h5 class="table-item-name">{{ selectedRequest.productName }}</h5>
+                <div class="custom-specs-list">
+                  <span class="spec-pill"><strong>Kích thước:</strong> {{ selectedRequest.length || 0 }} x {{ selectedRequest.width || 0 }} x {{ selectedRequest.height || 0 }} cm</span>
+                  <span class="spec-pill color-pill">
+                    <strong>Màu sắc:</strong>
+                    <span class="swatch-mini" [style.background]="selectedRequest.colorHex || '#8B4513'"></span>
+                    {{ selectedRequest.colorName || 'Tùy chọn' }}
+                  </span>
+                  <span class="spec-pill"><strong>Chất liệu:</strong> {{ selectedRequest.material || 'Da bò Ý / Vải Bỉ' }}</span>
+                  <span class="spec-pill" *ngIf="selectedRequest.legMaterial"><strong>Chân đế:</strong> {{ selectedRequest.legMaterial }}</span>
+                </div>
+                <span *ngIf="selectedRequest.productSku" class="table-item-sku">Mã thiết kế: {{ selectedRequest.productSku }}</span>
+              </div>
+              <div class="item-col-price">
+                <span class="unit-price">{{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Đang báo giá' }}</span>
+                <span class="qty">SL: 1 bộ</span>
+              </div>
+              <div class="item-col-total">
+                {{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Liên hệ' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Ảnh bản vẽ hoặc phối cảnh nếu có -->
+          <div class="reference-drawing-box" *ngIf="selectedRequest.drawing3dUrl || (selectedRequest.referenceImages && selectedRequest.referenceImages.length > 0)">
+            <h5 class="sub-heading">Tư liệu thiết kế & Phối cảnh 3D</h5>
+            <div class="drawings-grid">
+              <div class="drawing-item" *ngIf="selectedRequest.drawing3dUrl">
+                <img [src]="selectedRequest.drawing3dUrl" alt="Bản vẽ 3D" class="drawing-thumb" />
+                <a [href]="selectedRequest.drawing3dUrl" target="_blank" class="view-link">Xem bản vẽ chi tiết ↗</a>
+              </div>
+              <div class="drawing-item" *ngFor="let refImg of selectedRequest.referenceImages">
+                <img [src]="refImg" alt="Ảnh tham khảo" class="drawing-thumb" />
+                <a [href]="refImg" target="_blank" class="view-link">Xem ảnh phóng to ↗</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. Chi tiết tài chính (finance-summary chuẩn my-orders) -->
+        <section class="drawer-section finance-summary">
+          <div class="finance-row">
+            <span>Dự toán may đo:</span>
+            <span>{{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Đang khảo sát & tính toán' }}</span>
+          </div>
+          <div class="finance-row">
+            <span>Khảo sát hiện trạng & Bản vẽ 3D:</span>
+            <span class="free-badge">Miễn phí (Tặng kèm)</span>
+          </div>
+          <div class="finance-row">
+            <span>Vận chuyển & Lắp đặt tận nhà:</span>
+            <span class="free-badge">Miễn phí nội thành</span>
+          </div>
+          <div class="finance-row grand-total">
+            <span>Tổng kinh phí may đo:</span>
+            <span class="highlight">{{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Chờ báo giá' }}</span>
+          </div>
+
+          <!-- Phân bổ đặt cọc nếu đã có giá -->
+          <div *ngIf="selectedRequest.quotedPrice" class="deposit-breakdown">
+            <div class="finance-row">
+              <span>Tiền đặt cọc xưởng (30% - 50%):</span>
+              <span class="deposit-target">{{ (selectedRequest.quotedDeposit || (selectedRequest.quotedPrice * 0.3)) | number }} đ</span>
+            </div>
+            <div class="finance-row">
+              <span>Tình trạng cọc:</span>
+              <span [class.success-text]="['CONTRACT_SIGNED', 'PROCESSING'].includes(selectedRequest.status)"
+                    [class.warning-text]="selectedRequest.status === 'AWAITING_PAYMENT'">
+                {{ ['CONTRACT_SIGNED', 'PROCESSING'].includes(selectedRequest.status) ? 'Đã hoàn tất đặt cọc' : (selectedRequest.status === 'AWAITING_PAYMENT' ? 'Đang chờ chuyển khoản cọc' : 'Chưa đến bước đặt cọc') }}
+              </span>
+            </div>
+            <div class="finance-row">
+              <span>Thanh toán còn lại khi bàn giao & nghiệm thu:</span>
+              <span class="remaining-text">{{ (selectedRequest.quotedPrice - (selectedRequest.quotedDeposit || (selectedRequest.quotedPrice * 0.3))) | number }} đ</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Drawer Footer Actions -->
+      <div class="drawer-footer">
+        <button type="button" class="btn-outline" (click)="closeDetailModal()">Đóng</button>
+        
+        <!-- Hủy đơn: nếu chưa vào sản xuất và chưa bị hủy -->
+        <button 
+          type="button" 
+          class="btn-danger-outline" 
+          *ngIf="!['PROCESSING', 'CANCELLED'].includes(selectedRequest.status)"
+          (click)="closeDetailModal(); openCancelModal(selectedRequest)">
+          Hủy yêu cầu may đo
+        </button>
+
+        <!-- Thanh toán cọc ngay khi ở trạng thái AWAITING_PAYMENT -->
+        <button 
+          type="button" 
+          class="btn-primary-action" 
+          *ngIf="selectedRequest.status === 'AWAITING_PAYMENT'"
+          (click)="closeDetailModal(); openPaymentModal(selectedRequest)">
+          <lucide-angular [img]="icons.DollarSign" size="16"></lucide-angular>
+          <span>Thanh toán cọc ngay</span>
+        </button>
+
+        <!-- Xem bản vẽ 3D nếu có -->
+        <a 
+          *ngIf="selectedRequest.drawing3dUrl" 
+          [href]="selectedRequest.drawing3dUrl" 
+          target="_blank" 
+          class="btn-secondary">
+          <lucide-angular [img]="icons.Eye" size="16"></lucide-angular>
+          <span>Xem bản vẽ 3D</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: THANH TOÁN TIỀN CỌC                                               -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isPaymentModalOpen && selectedRequest" (click)="closePaymentModal()">
+    <div class="modal-card payment-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Thanh Toán Đặt Cọc May Đo</h2>
+          <p class="modal-subtitle">Đơn may đo mã: <strong>{{ selectedRequest.code }}</strong></p>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closePaymentModal()">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="payment-amount-box">
+          <div class="pay-label">Số tiền đặt cọc cần chuyển:</div>
+          <div class="pay-val">{{ (selectedRequest.quotedDeposit || 5000000) | number }} đ</div>
+        </div>
+
+        <div class="bank-transfer-instructions">
+          <h4>Thông tin chuyển khoản ngân hàng:</h4>
+          <div class="bank-info-grid">
+            <div>Ngân hàng: <strong>Techcombank (TCB)</strong></div>
+            <div>Số tài khoản: <strong>1903 8888 9999</strong></div>
+            <div>Chủ tài khoản: <strong>CONG TY CO PHAN NOI THAT DCOR</strong></div>
+            <div>Nội dung chuyển khoản: <strong class="transfer-syntax">COC {{ selectedRequest.code }} {{ selectedRequest.customerPhone }}</strong></div>
+          </div>
+          <p class="note-auto">Sau khi chuyển khoản, hệ thống kế toán sẽ tự động quét mã giao dịch và kích hoạt lệnh sản xuất trong vòng 5 phút.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closePaymentModal()">Đóng</button>
+        <button type="button" class="btn-submit-request" (click)="confirmCustomerPayment()">
+          <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+          Tôi đã chuyển khoản thành công
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: HỦY YÊU CẦU MAY ĐO (POPUP ĐÀNG HOÀNG CHO KHÁCH HÀNG)              -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isCancelModalOpen && requestToCancel" (click)="closeCancelModal()">
+    <div class="modal-card cancel-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge danger-badge">
+            <lucide-angular [img]="icons.XCircle" size="22" color="#dc2626"></lucide-angular>
+          </div>
+          <div>
+            <h2 class="modal-title" style="color: #dc2626;">Yêu Cầu Hủy Đơn May Đo</h2>
+            <p class="modal-subtitle">Mã hồ sơ: <strong>{{ requestToCancel.code }}</strong> - {{ requestToCancel.productName }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeCancelModal()">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="cancel-warning-box">
+          <lucide-angular [img]="icons.AlertCircle" size="20" color="#dc2626"></lucide-angular>
+          <div>
+            <strong>Lưu ý:</strong> Khi bạn xác nhận hủy, yêu cầu may đo sẽ kết thúc. Đội ngũ KTS DCor sẽ không tiếp tục khảo sát hoặc thiết kế bản vẽ 3D cho hồ sơ này.
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="field-label">Lý do hủy yêu cầu *</label>
+          <div class="preset-reasons-list">
+            <label *ngFor="let opt of cancelPresetOptions" class="preset-radio-item" [class.selected]="cancelReasonPreset === opt">
+              <input type="radio" name="cancelOpt" [value]="opt" [(ngModel)]="cancelReasonPreset" />
+              <span>{{ opt }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section" style="margin-top: 10px;">
+          <label class="field-label">Chi tiết lý do / Góp ý cho DCor (tùy chọn):</label>
+          <textarea 
+            class="form-control" 
+            rows="3" 
+            placeholder="Chia sẻ lý do cụ thể để DCor có thể hỗ trợ bạn tốt hơn trong lần sau..."
+            [(ngModel)]="cancelReasonDetails">
+          </textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeCancelModal()">Giữ lại yêu cầu</button>
+        <button type="button" class="btn-danger-submit" (click)="confirmCustomerCancel()">
+          <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
+          <span>Xác nhận Hủy Đơn</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
-
-<!-- Modals -->
-<app-contract-modal 
-  [isOpen]="isContractModalOpen" 
-  [requestData]="selectedRequest"
-  (close)="isContractModalOpen = false"
-  (sign)="handleContractSigned()">
-</app-contract-modal>
-
-<app-otp-modal
-  [isOpen]="isOtpModalOpen"
-  [phoneNumber]="selectedRequest?.customerPhone"
-  (close)="isOtpModalOpen = false"
-  (verify)="handleOtpVerified($event)">
-</app-otp-modal>

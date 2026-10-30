@@ -1,0 +1,107 @@
+<!-- Valid policy display -->
+<app-info-page
+  *ngIf="currentPolicy() as policy; else notFoundTemplate"
+  [title]="policy.title"
+  [subtitle]="policy.shortDesc"
+  [badge]="policy.badge"
+  [lastUpdated]="policy.lastUpdated"
+  [showPolicyMeta]="true"
+  [currentHref]="'/chinh-sach/' + policy.slug"
+  [breadcrumbs]="breadcrumbs()"
+  [sections]="policy.sections"
+></app-info-page>
+
+<!-- 404 Not Found Template (when slug is invalid/unknown) -->
+<ng-template #notFoundTemplate>
+  <div class="policy-404-wrapper">
+    <div class="policy-404-breadcrumb-bar">
+      <div class="container">
+        <nav class="policy-404-nav" aria-label="Điều hướng">
+          <a routerLink="/" class="policy-404-crumb-link">
+            <app-icon name="House" size="14"></app-icon>
+            <span>Trang chủ</span>
+          </a>
+          <span class="policy-404-sep">/</span>
+          <a routerLink="/chinh-sach/bao-hanh" class="policy-404-crumb-link">Chính sách</a>
+          <span class="policy-404-sep">/</span>
+          <span class="policy-404-crumb-current">Trang 404</span>
+        </nav>
+      </div>
+    </div>
+
+    <div class="container policy-404-container">
+      <div class="policy-404-card">
+        <div class="policy-404-badge">
+          <app-icon name="AlertTriangle" size="18" color="var(--color-warning, #f2bf3d)"></app-icon>
+          <span>Mã lỗi: 404 - Not Found</span>
+        </div>
+
+        <h1 class="policy-404-title">Không tìm thấy trang chính sách</h1>
+        <p class="policy-404-desc">
+          Đường dẫn chính sách <code>/chinh-sach/{{ slug() }}</code> mà quý khách đang truy cập không tồn tại hoặc đã được chuyển sang địa chỉ mới.
+        </p>
+
+        <div class="policy-404-valid-box">
+          <h2 class="policy-404-valid-heading">Quý khách có thể đang tìm kiếm các chính sách sau:</h2>
+          <div class="policy-404-grid">
+            <a routerLink="/chinh-sach/bao-hanh" class="policy-404-item">
+              <div class="policy-404-item-icon">
+                <app-icon name="ShieldCheck" size="20" color="var(--color-primary)"></app-icon>
+              </div>
+              <div class="policy-404-item-text">
+                <strong>Chính sách bảo hành</strong>
+                <span>Thời hạn 12 - 36 tháng, quy trình hỗ trợ kỹ thuật tại nhà</span>
+              </div>
+            </a>
+
+            <a routerLink="/chinh-sach/doi-tra" class="policy-404-item">
+              <div class="policy-404-item-icon">
+                <app-icon name="RefreshCw" size="20" color="var(--color-primary)"></app-icon>
+              </div>
+              <div class="policy-404-item-text">
+                <strong>Chính sách đổi trả</strong>
+                <span>Quy định đổi mới và hoàn tiền minh bạch</span>
+              </div>
+            </a>
+
+            <a routerLink="/chinh-sach/van-chuyen" class="policy-404-item">
+              <div class="policy-404-item-icon">
+                <app-icon name="Truck" size="20" color="var(--color-primary)"></app-icon>
+              </div>
+              <div class="policy-404-item-text">
+                <strong>Chính sách vận chuyển</strong>
+                <span>Giao hàng toàn quốc và dịch vụ lắp đặt tận phòng</span>
+              </div>
+            </a>
+
+            <a routerLink="/chinh-sach/thanh-toan" class="policy-404-item">
+              <div class="policy-404-item-icon">
+                <app-icon name="CreditCard" size="20" color="var(--color-primary)"></app-icon>
+              </div>
+              <div class="policy-404-item-text">
+                <strong>Chính sách thanh toán</strong>
+                <span>Hình thức COD, quét mã QR, thẻ và chính sách đặt cọc</span>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div class="policy-404-actions">
+          <a routerLink="/" class="policy-btn-primary">
+            <app-icon name="House" size="18"></app-icon>
+            <span>Về Trang chủ</span>
+          </a>
+          <a routerLink="/huong-dan-mua-hang" class="policy-btn-outline">
+            <app-icon name="ShoppingBag" size="18"></app-icon>
+            <span>Hướng dẫn mua hàng</span>
+          </a>
+          <a [href]="'tel:' + hotline.replace(' ', '')" class="policy-btn-outline">
+            <app-icon name="Phone" size="18"></app-icon>
+            <span>Hotline: {{ hotline }}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+

@@ -487,6 +487,7 @@ export class CustomersComponent implements OnInit {
   }
 
   getMembershipColor(membership: string) {
+    if (membership === 'Kim Cương') return '#8B5CF6';
     if (membership === 'Vàng') return '#F59E0B';
     if (membership === 'Bạc') return '#9CA3AF';
     if (membership === 'Đồng') return '#D97706';

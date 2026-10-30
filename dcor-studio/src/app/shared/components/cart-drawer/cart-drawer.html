@@ -1,29 +1,350 @@
 <div class="cart-drawer-overlay" [class.active]="isOpen" (click)="closeDrawer()">
-  <div class="cart-drawer" (click)="$event.stopPropagation()">
 
-    <!-- Header -->
-    <div class="cart-drawer-header">
-      <div class="cart-drawer-title">
-        <h2>Giỏ hàng</h2>
-        <span *ngIf="totalItemsCount > 0" class="item-count">({{ totalItemsCount }})</span>
+  <!-- Sidebar Chỉnh sửa biến thể (nằm cạnh giỏ hàng bên trái như hình minh họa) -->
+  <aside
+    *ngIf="isVariantDrawerOpen"
+    class="drawer-variant-sidebar"
+    [class.open]="isVariantDrawerOpen"
+    (click)="$event.stopPropagation()">
+
+    <!-- Header Sidebar -->
+    <div class="drawer-variant-header">
+      <div class="drawer-variant-header-left">
+        <lucide-angular [img]="icons.Pencil" size="16" class="variant-header-icon"></lucide-angular>
+        <h3>Chỉnh sửa biến thể</h3>
       </div>
-      <button class="close-btn" (click)="closeDrawer()" title="Đóng giỏ hàng" aria-label="Đóng giỏ hàng">
-        <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+      <button class="variant-close-btn" (click)="closeVariantDrawer()" title="Đóng chỉnh sửa biến thể">
+        <lucide-angular [img]="icons.ChevronRight" size="20"></lucide-angular>
       </button>
     </div>
 
-    <!-- Toast Notification -->
-    <div *ngIf="toastMessage" class="drawer-toast" [ngClass]="toastType" role="alert">
-      <lucide-angular *ngIf="toastType === 'warning'" [img]="icons.AlertTriangle" size="16"></lucide-angular>
-      <lucide-angular *ngIf="toastType === 'error'" [img]="icons.AlertCircle" size="16"></lucide-angular>
-      <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="16"></lucide-angular>
-      <span>{{ toastMessage }}</span>
+    <!-- Body Sidebar (Thiết kế như trang xem nhanh sản phẩm) -->
+    <div class="drawer-variant-body">
+      <!-- 1. Khung xem trước hình ảnh sản phẩm (Gallery preview) -->
+      <div class="variant-gallery-container">
+        <div class="variant-main-image-box">
+          <img
+            [src]="variantImages[currentVariantImageIdx]"
+            [alt]="editingCartItem?.name"
+            class="variant-main-img" />
+
+          <!-- Nút đổi ảnh trước/sau nếu có nhiều ảnh -->
+          <button
+            *ngIf="variantImages.length > 1"
+            type="button"
+            class="gallery-nav-btn prev"
+            (click)="prevVariantImage($event)"
+            title="Ảnh trước">
+            <lucide-angular [img]="icons.ChevronLeft" size="18"></lucide-angular>
+          </button>
+          <button
+            *ngIf="variantImages.length > 1"
+            type="button"
+            class="gallery-nav-btn next"
+            (click)="nextVariantImage($event)"
+            title="Ảnh tiếp theo">
+            <lucide-angular [img]="icons.ChevronRight" size="18"></lucide-angular>
+          </button>
+        </div>
+
+        <!-- Dải ảnh thu nhỏ (Thumbnails) -->
+        <div *ngIf="variantImages.length > 1" class="variant-thumbs-strip">
+          <div
+            *ngFor="let img of variantImages; let i = index"
+            class="variant-thumb-item"
+            [class.active]="currentVariantImageIdx === i"
+            (click)="currentVariantImageIdx = i">
+            <img [src]="img" [alt]="editingCartItem?.name" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Thông tin cơ bản sản phẩm & Đơn giá của biến thể đang chọn -->
+      <div class="variant-product-info-box">
+        <h4 class="variant-product-title">{{ editingCartItem?.name }}</h4>
+        <div class="variant-product-price-row">
+          <span class="variant-price-val">{{ formatCurrency(selectedVariantDetails?.price || editingCartItem?.price || 0) }}</span>
+          <span class="variant-price-unit">/ 1 sản phẩm</span>
+        </div>
+      </div>
+
+      <!-- 3. Trạng thái tải / thông báo lỗi -->
+      <div *ngIf="isLoadingProductVariants" class="drawer-variant-loading">
+        <div class="variant-skeleton-box" style="height: 48px; border-radius: 8px; margin-bottom: 8px;"></div>
+        <div class="variant-skeleton-box" style="height: 48px; border-radius: 8px;"></div>
+      </div>
+
+      <div *ngIf="variantErrorMessage" class="drawer-toast error" style="margin: 0;">
+        <lucide-angular [img]="icons.AlertCircle" size="15"></lucide-angular>
+        <span>{{ variantErrorMessage }}</span>
+      </div>
+
+      <!-- 4. Danh sách các phiên bản / biến thể để chọn -->
+      <div *ngIf="!isLoadingProductVariants && availableVariantsForEdit.length > 0" class="drawer-variant-options-group">
+        <div class="variant-group-title">Chọn phiên bản / màu sắc / chất liệu:</div>
+
+        <div class="variant-selection-cards">
+          <div
+            *ngFor="let v of availableVariantsForEdit"
+            class="variant-select-card"
+            [class.selected]="v.id === selectedVariantId"
+            [class.disabled]="v.isActive === false || (v.stock - (v.reservedStock || 0)) <= 0"
+            (click)="selectVariant(v)">
+
+            <div class="vcard-left">
+              <span class="vcard-radio">
+                <span class="radio-dot" *ngIf="v.id === selectedVariantId"></span>
+              </span>
+              <div class="vcard-text">
+                <span class="vcard-name">{{ v.name }}</span>
+                <span class="vcard-stock">
+                  Tồn kho: {{ (v.stock - (v.reservedStock || 0)) > 0 ? (v.stock - (v.reservedStock || 0)) : 'Hết hàng' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="vcard-right">
+              <span class="vcard-price">{{ formatCurrency(v.price) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoadingProductVariants && availableVariantsForEdit.length === 0" class="drawer-variant-empty">
+        Sản phẩm này hiện chỉ có một tùy chọn duy nhất.
+      </div>
     </div>
 
-    <!-- Toolbar: Chọn tất cả & Xóa đã chọn -->
-    <div *ngIf="cartItems.length > 0" class="cart-drawer-toolbar">
-      <div class="drawer-toolbar-left">
+    <!-- Footer Sidebar -->
+    <div class="drawer-variant-footer">
+      <button type="button" class="btn-cancel-variant" (click)="closeVariantDrawer()">Hủy</button>
+      <button
+        type="button"
+        class="btn-confirm-variant"
+        (click)="saveVariantChange()"
+        [disabled]="isLoadingProductVariants || !selectedVariantId">
+        Xác nhận thay đổi
+      </button>
+    </div>
+  </aside>
+
+  <!-- Sidebar Khuyến Mãi & Voucher (Mở song song bên cạnh giỏ hàng như Variant Sidebar) -->
+  <aside
+    *ngIf="isVoucherDrawerOpen"
+    class="drawer-variant-sidebar drawer-voucher-sidebar"
+    [class.open]="isVoucherDrawerOpen"
+    (click)="$event.stopPropagation()">
+
+    <!-- Header Sidebar -->
+    <div class="drawer-variant-header">
+      <div class="drawer-variant-header-left">
+        <lucide-angular [img]="icons.Tag" size="16" class="variant-header-icon"></lucide-angular>
+        <h3>Mã khuyến mãi & Ưu đãi</h3>
+      </div>
+      <button class="variant-close-btn" (click)="closeVoucherDrawer()" title="Đóng khuyến mãi">
+        <lucide-angular [img]="icons.ChevronRight" size="20"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- Body Sidebar -->
+    <div class="drawer-variant-body">
+      <!-- 1. Khung nhập mã thủ công -->
+      <div class="voucher-custom-input-box">
+        <div class="custom-input-row">
+          <input
+            type="text"
+            [(ngModel)]="customVoucherInput"
+            placeholder="Nhập mã khuyến mãi hoặc Freeship..."
+            class="voucher-text-input"
+            (keyup.enter)="applyCustomVoucher()" />
+          <button type="button" class="btn-apply-custom" (click)="applyCustomVoucher()">
+            Áp dụng
+          </button>
+        </div>
+        <div *ngIf="voucherError" class="voucher-error-msg">
+          <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+          <span>{{ voucherError }}</span>
+        </div>
+      </div>
+
+      <!-- 2. Danh mục: MÃ GIẢM GIÁ SẢN PHẨM (Mặc định hiện 3 mã đầu, có nút xem thêm) -->
+      <div class="voucher-list-section">
+        <div class="voucher-list-header">
+          <div class="voucher-list-header-left">
+            <lucide-angular [img]="icons.Tag" size="14" color="#C67C4E"></lucide-angular>
+            <span class="voucher-list-title">Mã giảm giá sản phẩm</span>
+            <span *ngIf="eligibleProductPromotionsCount > 0" class="voucher-eligible-badge">
+              {{ eligibleProductPromotionsCount }} mã khả dụng
+            </span>
+          </div>
+          <span class="voucher-list-sub">Giảm trực tiếp tiền hàng</span>
+        </div>
+
+        <div *ngIf="productPromotions.length === 0" class="drawer-variant-empty">
+          Hiện tại chưa có mã giảm giá sản phẩm nào trong hệ thống.
+        </div>
+
+        <!-- Danh sách hiển thị: mặc định 3 mã đầu tiên, xem thêm sẽ mở hết -->
+        <div *ngIf="productPromotions.length > 0" class="voucher-tickets-list">
+          <div
+            *ngFor="let v of displayedProductPromotions"
+            class="voucher-ticket-card"
+            [class.is-applied]="appliedProductVoucher?.code === v.code"
+            [class.is-eligible]="isVoucherEligible(v)"
+            [class.is-ineligible]="!isVoucherEligible(v)">
+
+            <!-- Cạnh trái: Badge mức giảm -->
+            <div class="ticket-left-badge product-badge">
+              <span class="ticket-discount-val">
+                {{ v.discountType === 'PERCENT' ? '-' + v.discountValue + '%' : '-' + (v.discountValue / 1000) + 'k' }}
+              </span>
+              <span class="ticket-discount-sub">GIẢM GIÁ</span>
+            </div>
+
+            <!-- Ở giữa: Nội dung -->
+            <div class="ticket-center-content">
+              <div class="ticket-top-row">
+                <span class="ticket-code">{{ v.code }}</span>
+                <span *ngIf="appliedProductVoucher?.code === v.code" class="ticket-applied-tag">Đang dùng</span>
+              </div>
+              <h5 class="ticket-name">{{ v.name }}</h5>
+              <p class="ticket-condition">{{ v.description || ('Đơn từ ' + formatCurrency(v.minOrderValue || 0)) }}</p>
+              <div *ngIf="!isVoucherEligible(v)" class="ticket-need-more-hint">
+                Cần mua thêm <b>{{ formatCurrency(amountNeededForVoucher(v)) }}</b> để dùng mã
+              </div>
+            </div>
+
+            <!-- Cạnh phải: Thao tác -->
+            <div class="ticket-right-action">
+              <button
+                *ngIf="appliedProductVoucher?.code === v.code"
+                type="button"
+                class="btn-ticket-applied"
+                (click)="removeProductVoucher()"
+                title="Bỏ áp dụng">
+                <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                <span>Bỏ chọn</span>
+              </button>
+              <button
+                *ngIf="appliedProductVoucher?.code !== v.code && isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-apply"
+                (click)="applyVoucherDirectly(v)">
+                Áp dụng
+              </button>
+              <button
+                *ngIf="!isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-disabled"
+                disabled>
+                Chưa đủ ĐK
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nút Xem Thêm / Thu Gọn mã khuyến mãi sản phẩm -->
+        <button
+          *ngIf="hasMoreProductPromotions"
+          type="button"
+          class="btn-toggle-see-more"
+          (click)="toggleShowAllProductVouchers()">
+          <span>{{ showAllProductVouchers ? 'Thu gọn mã sản phẩm' : ('Xem thêm ' + (productPromotions.length - 3) + ' mã khuyến mãi sản phẩm') }}</span>
+          <lucide-angular [img]="showAllProductVouchers ? icons.ChevronUp : icons.ChevronDown" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- 3. Danh mục: MÃ FREESHIP (Nằm ngay bên dưới mã khuyến mãi sản phẩm, dùng đồng thời) -->
+      <div class="voucher-list-section freeship-section">
+        <div class="voucher-list-header">
+          <div class="voucher-list-header-left">
+            <lucide-angular [img]="icons.Truck" size="14" color="#10b981"></lucide-angular>
+            <span class="voucher-list-title">Mã miễn phí vận chuyển</span>
+            <span *ngIf="eligibleFreeshipPromotionsCount > 0" class="voucher-eligible-badge freeship-badge-count">
+              {{ eligibleFreeshipPromotionsCount }} mã khả dụng
+            </span>
+          </div>
+          <span class="voucher-list-sub freeship-sub-note">Dùng đồng thời với mã sản phẩm</span>
+        </div>
+
+        <div *ngIf="freeshipPromotions.length === 0" class="drawer-variant-empty">
+          Hiện tại chưa có mã Freeship nào trong hệ thống.
+        </div>
+
+        <div *ngIf="freeshipPromotions.length > 0" class="voucher-tickets-list">
+          <div
+            *ngFor="let v of freeshipPromotions"
+            class="voucher-ticket-card freeship-card"
+            [class.is-applied]="appliedFreeshipVoucher?.code === v.code"
+            [class.is-eligible]="isVoucherEligible(v)"
+            [class.is-ineligible]="!isVoucherEligible(v)">
+
+            <!-- Cạnh trái: Badge Freeship -->
+            <div class="ticket-left-badge freeship-badge">
+              <span class="ticket-discount-val">FREE</span>
+              <span class="ticket-discount-sub">SHIP</span>
+            </div>
+
+            <!-- Ở giữa: Nội dung -->
+            <div class="ticket-center-content">
+              <div class="ticket-top-row">
+                <span class="ticket-code freeship-code">{{ v.code }}</span>
+                <span *ngIf="appliedFreeshipVoucher?.code === v.code" class="ticket-applied-tag">Đang dùng</span>
+              </div>
+              <h5 class="ticket-name">{{ v.name }}</h5>
+              <p class="ticket-condition">{{ v.description || ('Đơn từ ' + formatCurrency(v.minOrderValue || 0)) }}</p>
+              <div *ngIf="!isVoucherEligible(v)" class="ticket-need-more-hint">
+                Cần mua thêm <b>{{ formatCurrency(amountNeededForVoucher(v)) }}</b> để dùng mã
+              </div>
+            </div>
+
+            <!-- Cạnh phải: Thao tác -->
+            <div class="ticket-right-action">
+              <button
+                *ngIf="appliedFreeshipVoucher?.code === v.code"
+                type="button"
+                class="btn-ticket-applied"
+                (click)="removeFreeshipVoucher()"
+                title="Bỏ áp dụng">
+                <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                <span>Bỏ chọn</span>
+              </button>
+              <button
+                *ngIf="appliedFreeshipVoucher?.code !== v.code && isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-apply freeship-btn"
+                (click)="applyVoucherDirectly(v)">
+                Áp dụng
+              </button>
+              <button
+                *ngIf="!isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-disabled"
+                disabled>
+                Chưa đủ ĐK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Sidebar -->
+    <div class="drawer-variant-footer">
+      <button type="button" class="btn-confirm-variant" style="flex: 1;" (click)="closeVoucherDrawer()">
+        Xác nhận & Hoàn tất
+      </button>
+    </div>
+  </aside>
+
+  <!-- Giỏ hàng chính (Trượt vào từ cạnh phải) -->
+  <div class="cart-drawer" (click)="$event.stopPropagation()">
+
+    <!-- Header: [checkbox] Giỏ hàng của bạn (1)    [X] -->
+    <div class="cart-drawer-header">
+      <div class="cart-drawer-title-wrap">
         <input
+          *ngIf="cartItems.length > 0"
           type="checkbox"
           id="drawer-select-all"
           class="custom-checkbox"
@@ -31,23 +352,31 @@
           (change)="toggleSelectAll()"
           [disabled]="selectableItems.length === 0"
           title="Chọn tất cả sản phẩm khả dụng" />
-        <label for="drawer-select-all" class="drawer-select-all-label">
-          Chọn tất cả
-        </label>
-        <span *ngIf="selectedCount > 0" class="drawer-selected-badge">
-          {{ selectedCount }}/{{ cartItems.length }}
-        </span>
+        <h2 class="cart-drawer-heading">Giỏ hàng của bạn</h2>
+        <span *ngIf="totalItemsCount > 0" class="item-count-badge">{{ totalItemsCount }}</span>
       </div>
 
-      <button
-        type="button"
-        class="drawer-btn-batch-delete"
-        (click)="promptDeleteSelected()"
-        [disabled]="selectedCount === 0"
-        title="Xóa các sản phẩm đã chọn">
-        <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
-        <span>Xóa tất cả ({{ selectedCount }})</span>
-      </button>
+      <div class="cart-header-actions">
+        <button
+          *ngIf="selectedCount > 0"
+          type="button"
+          class="drawer-btn-quick-delete"
+          (click)="promptDeleteSelected()"
+          title="Xóa {{ selectedCount }} sản phẩm đã chọn">
+          <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+        </button>
+        <button class="close-btn" (click)="closeDrawer()" title="Đóng giỏ hàng" aria-label="Đóng giỏ hàng">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div *ngIf="toastMessage" class="drawer-toast" [ngClass]="toastType" role="alert">
+      <lucide-angular *ngIf="toastType === 'warning'" [img]="icons.AlertTriangle" size="15"></lucide-angular>
+      <lucide-angular *ngIf="toastType === 'error'" [img]="icons.AlertCircle" size="15"></lucide-angular>
+      <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+      <span>{{ toastMessage }}</span>
     </div>
 
     <!-- Body -->
@@ -56,7 +385,7 @@
       <!-- Empty State -->
       <div *ngIf="cartItems.length === 0" class="cart-empty-state">
         <div class="empty-icon-wrap">
-          <lucide-angular [img]="icons.ShoppingBag" size="44" color="#757575"></lucide-angular>
+          <lucide-angular [img]="icons.ShoppingBag" size="40" color="#8C6A48"></lucide-angular>
         </div>
         <h3>Giỏ hàng đang trống</h3>
         <p>Khám phá các sản phẩm nội thất tinh tế của DCor và chọn cho mình món đồ ưng ý nhé.</p>
@@ -65,105 +394,89 @@
         </button>
       </div>
 
-      <!-- Item List -->
+      <!-- Danh sách sản phẩm (Mỗi thẻ chỉ tối đa 2 hàng so với hình ảnh) -->
       <ng-container *ngIf="cartItems.length > 0">
         <div
           *ngFor="let item of cartItems"
-          class="cart-drawer-item"
+          class="cart-drawer-item-card"
           [class.is-disabled]="item.isActive === false || (item.availableStock !== undefined && item.availableStock <= 0)">
 
-          <!-- 1. Checkbox chọn từng sản phẩm -->
-          <div class="item-check-cell">
-            <input
-              type="checkbox"
-              class="custom-checkbox"
-              [checked]="isItemSelected(item)"
-              (change)="toggleSelectItem(item)"
-              [disabled]="item.isActive === false || (item.availableStock !== undefined && item.availableStock <= 0)"
-              [title]="item.unavailableReason ? item.unavailableReason : 'Chọn sản phẩm này để thanh toán'" />
-          </div>
-
-          <!-- 2. Ảnh sản phẩm -->
-          <div class="item-thumb" [routerLink]="['/products', item.productId]" (click)="closeDrawer()" title="{{ item.name }}">
-            <img
-              [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop'"
-              [alt]="item.name"
-              loading="lazy" />
-          </div>
-
-          <!-- 3. Thông tin sản phẩm & Đổi biến thể -->
-          <div class="item-info">
-
-            <!-- Hàng 1: Tên + Nút xóa -->
-            <div class="item-top">
-              <a class="item-title" [routerLink]="['/products', item.productId]" (click)="closeDrawer()" [title]="item.name">
+          <!-- Hàng tiêu đề thẻ: Checkbox + Icon + Tên sản phẩm + Xóa -->
+          <div class="item-card-header">
+            <label class="item-card-header-left">
+              <input
+                type="checkbox"
+                class="custom-checkbox"
+                [checked]="isItemSelected(item)"
+                (change)="toggleSelectItem(item)"
+                [disabled]="item.isActive === false || (item.availableStock !== undefined && item.availableStock <= 0)"
+                [title]="item.unavailableReason ? item.unavailableReason : 'Chọn sản phẩm này để thanh toán'" />
+              <lucide-angular [img]="icons.Building2" size="15" class="item-brand-icon"></lucide-angular>
+              <a class="item-card-name" [routerLink]="['/products', item.productId]" (click)="closeDrawer()" [title]="item.name">
                 {{ item.name }}
               </a>
-              <button class="item-remove-btn" (click)="promptRemove(item)" title="Xóa sản phẩm" aria-label="Xóa {{ item.name }}">
-                <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
-              </button>
+            </label>
+          </div>
+
+          <!-- Khối thân sản phẩm: Ảnh bên trái + Nội dung (Đúng 2 hàng so với ảnh) bên phải -->
+          <div class="item-card-body">
+            <!-- Hình ảnh -->
+            <div class="item-thumb" [routerLink]="['/products', item.productId]" (click)="closeDrawer()" title="{{ item.name }}">
+              <img
+                [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop'"
+                [alt]="item.name"
+                loading="lazy" />
             </div>
 
-            <!-- Hàng 2: Nút Đổi Biến Thể -->
-            <button
-              type="button"
-              class="variant-badge-btn"
-              (click)="openVariantDrawer(item)"
-              [disabled]="item.isProductActive === false"
-              title="Thay đổi biến thể màu sắc, chất liệu, kích thước">
-              <span class="variant-text">
-                <ng-container *ngIf="item.variantTags && item.variantTags.length > 0">
-                  <ng-container *ngFor="let tag of item.variantTags; let isLast = last">
-                    {{ tag.label ? tag.label + ': ' : '' }}{{ tag.value }}{{ !isLast ? ' · ' : '' }}
+            <!-- Cột nội dung (Chỉ có 2 hàng) -->
+            <div class="item-two-rows-col">
+              <!-- Hàng 1: Nút Biến Thể -->
+              <button
+                type="button"
+                class="variant-badge-btn"
+                (click)="openVariantDrawer(item)"
+                [disabled]="item.isProductActive === false"
+                title="Nhấn để chỉnh sửa biến thể">
+                <span class="variant-text">
+                  <ng-container *ngIf="item.variantTags && item.variantTags.length > 0">
+                    <ng-container *ngFor="let tag of item.variantTags; let isLast = last">
+                      {{ tag.value }}{{ !isLast ? ' | ' : '' }}
+                    </ng-container>
                   </ng-container>
-                </ng-container>
-                <ng-container *ngIf="(!item.variantTags || item.variantTags.length === 0)">
-                  {{ item.variantName || 'Tùy chọn tiêu chuẩn' }}
-                </ng-container>
-              </span>
-              <lucide-angular [img]="icons.ChevronDown" size="13"></lucide-angular>
-            </button>
-
-            <!-- Hàng 3: Trạng thái hàng (khi hết hàng / ngừng kinh doanh) -->
-            <div *ngIf="item.unavailableReason" class="unavailable-badge">
-              <lucide-angular [img]="icons.AlertCircle" size="12"></lucide-angular>
-              <span>{{ item.unavailableReason }}</span>
-            </div>
-
-            <!-- Hàng 4: Đơn giá + Thành tiền -->
-            <div class="item-price-row">
-              <div class="item-unit-price">
-                <span class="unit-price-current">{{ formatCurrency(item.price) }}</span>
-                <span *ngIf="item.originalPrice && item.originalPrice > item.price" class="unit-price-original">
-                  {{ formatCurrency(item.originalPrice) }}
+                  <ng-container *ngIf="(!item.variantTags || item.variantTags.length === 0)">
+                    {{ item.variantName || 'Tùy chọn mặc định' }}
+                  </ng-container>
                 </span>
-              </div>
-              <span class="item-line-total">{{ formatCurrency(item.price * item.quantity) }}</span>
-            </div>
+                <lucide-angular [img]="icons.ChevronDown" size="13"></lucide-angular>
+              </button>
 
-            <!-- Hàng 5: Điều chỉnh số lượng -->
-            <div class="item-bottom">
-              <div class="quantity-control">
-                <button
-                  class="qty-btn"
-                  (click)="decreaseQuantity(item)"
-                  title="Giảm số lượng"
-                  [disabled]="item.isActive === false"
-                  aria-label="Giảm số lượng">−</button>
-                <span class="qty-val">{{ item.quantity }}</span>
-                <button
-                  class="qty-btn"
-                  (click)="increaseQuantity(item)"
-                  title="Tăng số lượng"
-                  [disabled]="item.isActive === false || (item.availableStock !== undefined && item.quantity >= item.availableStock)"
-                  aria-label="Tăng số lượng">+</button>
-              </div>
-              <span *ngIf="item.availableStock !== undefined && item.availableStock <= 5 && item.availableStock > 0"
-                class="stock-warning">
-                Còn {{ item.availableStock }}
-              </span>
-            </div>
+              <!-- Hàng 2: Giá 1 sản phẩm (không đổi dù tăng số lượng) & Bộ tăng giảm số lượng -->
+              <div class="item-price-qty-row">
+                <span class="unit-price-display">{{ formatCurrency(item.price) }}</span>
 
+                <div class="quantity-control">
+                  <button
+                    class="qty-btn"
+                    (click)="decreaseQuantity(item)"
+                    title="Giảm số lượng"
+                    [disabled]="item.isActive === false"
+                    aria-label="Giảm số lượng">−</button>
+                  <span class="qty-val">{{ item.quantity }}</span>
+                  <button
+                    class="qty-btn"
+                    (click)="increaseQuantity(item)"
+                    title="Tăng số lượng"
+                    [disabled]="item.isActive === false || (item.availableStock !== undefined && item.quantity >= item.availableStock)"
+                    aria-label="Tăng số lượng">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cảnh báo nếu hết hàng hoặc ngừng kinh doanh -->
+          <div *ngIf="item.unavailableReason" class="unavailable-badge">
+            <lucide-angular [img]="icons.AlertCircle" size="12"></lucide-angular>
+            <span>{{ item.unavailableReason }}</span>
           </div>
         </div>
       </ng-container>
@@ -172,79 +485,89 @@
     <!-- Footer Summary -->
     <div *ngIf="cartItems.length > 0" class="cart-drawer-footer">
 
+      <!-- Dòng Tạm tính -->
       <div class="summary-line">
-        <span>Tạm tính <span class="summary-count">({{ totalSelectedQuantity }} sản phẩm đã chọn)</span></span>
-        <span class="summary-subtotal">{{ formatCurrency(subTotal) }}</span>
+        <span class="summary-line-label">Tạm tính <span class="summary-count">({{ totalSelectedQuantity }} sản phẩm)</span></span>
+        <span class="summary-subtotal-val">{{ formatCurrency(subTotal) }}</span>
       </div>
 
-      <!-- Dòng Khuyến mãi (Ngay trên Vận chuyển) -->
-      <div class="summary-voucher-section" *ngIf="subTotal > 0">
-        <!-- Khi chưa áp dụng voucher -->
-        <div *ngIf="!appliedVoucher" class="voucher-control-row">
-          <div class="voucher-label-row">
-            <lucide-angular [img]="icons.Tag" size="15" color="#765337"></lucide-angular>
-            <span>Khuyến mãi</span>
+      <!-- Dòng Khuyến mãi duy nhất trong giỏ hàng (click để mở Sidebar bên cạnh) -->
+      <div class="drawer-voucher-trigger-bar" (click)="openVoucherDrawer()" title="Chọn hoặc thay đổi mã ưu đãi">
+        <!-- Khi CHƯA chọn mã nào -->
+        <ng-container *ngIf="!hasAnyAppliedVoucher">
+          <div class="voucher-trigger-left">
+            <lucide-angular [img]="icons.Tag" size="13" class="voucher-tag-icon"></lucide-angular>
+            <span class="voucher-trigger-label">Khuyến mãi</span>
+            <span *ngIf="totalEligibleVouchersCount > 0" class="voucher-eligible-badge">
+              {{ totalEligibleVouchersCount }} mã
+            </span>
+          </div>
+          <div class="voucher-trigger-right">
+            <div class="voucher-open-btn">
+              <span>Chọn mã</span>
+              <lucide-angular [img]="icons.ChevronRight" size="12"></lucide-angular>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Khi ĐÃ áp dụng mã: BỎ HOÀN TOÀN dòng chọn mã, chỉ hiện các mã đã chọn TRÊN CÙNG 1 HÀNG! -->
+        <ng-container *ngIf="hasAnyAppliedVoucher">
+          <div class="voucher-trigger-left voucher-applied-container">
+            <lucide-angular [img]="icons.Tag" size="13" color="#22c55e" class="applied-tag-icon"></lucide-angular>
+            <span class="voucher-trigger-label applied-label">Khuyến mãi:</span>
+            
+            <div class="voucher-applied-chips-wrap">
+              <!-- Chip mã giảm giá sản phẩm -->
+              <span *ngIf="appliedProductVoucher" class="voucher-applied-chip product-chip" [title]="appliedProductVoucher.code + ': -' + formatCurrency(discountAmount)">
+                <span class="chip-code-text">{{ appliedProductVoucher.code }}</span>
+                <span class="chip-val-text">-{{ formatShortDiscount(discountAmount) }}</span>
+                <button
+                  type="button"
+                  class="btn-chip-remove"
+                  (click)="$event.stopPropagation(); removeProductVoucher()"
+                  title="Bỏ mã giảm giá sản phẩm">
+                  <lucide-angular [img]="icons.X" size="10"></lucide-angular>
+                </button>
+              </span>
+
+              <!-- Chip mã freeship -->
+              <span *ngIf="appliedFreeshipVoucher" class="voucher-applied-chip freeship-chip" [title]="appliedFreeshipVoucher.code + ': Miễn phí vận chuyển'">
+                <span class="chip-code-text">{{ appliedFreeshipVoucher.code }}</span>
+                <span class="chip-val-text">Free ship</span>
+                <button
+                  type="button"
+                  class="btn-chip-remove"
+                  (click)="$event.stopPropagation(); removeFreeshipVoucher()"
+                  title="Bỏ mã Freeship">
+                  <lucide-angular [img]="icons.X" size="10"></lucide-angular>
+                </button>
+              </span>
+            </div>
           </div>
 
-          <!-- Dropdown khi có mã phù hợp từ hệ thống -->
-          <div *ngIf="eligibleVouchers.length > 0 && !showCustomInput" class="voucher-select-wrap">
-            <select 
-              class="drawer-voucher-select" 
-              [(ngModel)]="selectedVoucherCode" 
-              (change)="onVoucherSelectChange()">
-              <option value="">-- Chọn mã ưu đãi --</option>
-              <option *ngFor="let v of eligibleVouchers" [value]="v.code">
-                {{ v.code }} ({{ v.discountType === 'PERCENT' ? '-' + v.discountValue + '%' : '-' + formatCurrency(v.discountValue) }})
-              </option>
-              <option value="CUSTOM">Nhập mã khác...</option>
-            </select>
+          <div class="voucher-trigger-right">
+            <lucide-angular [img]="icons.ChevronRight" size="13" class="voucher-nav-arrow"></lucide-angular>
           </div>
-
-          <!-- Input nhập mã khi không có mã sẵn từ hệ thống hoặc muốn nhập mã khác -->
-          <div *ngIf="eligibleVouchers.length === 0 || showCustomInput" class="voucher-input-wrap">
-            <input 
-              type="text" 
-              [(ngModel)]="customVoucherInput" 
-              placeholder="Nhập mã KM" 
-              class="drawer-voucher-input" />
-            <button type="button" class="btn-drawer-apply-v" (click)="applyCustomVoucher()">Áp dụng</button>
-            <button *ngIf="eligibleVouchers.length > 0" type="button" class="btn-drawer-back-v" (click)="showCustomInput = false; voucherError = ''" title="Chọn từ danh sách">
-              <lucide-angular [img]="icons.Undo2" size="13"></lucide-angular>
-            </button>
-          </div>
-        </div>
-
-        <!-- Khi đã áp dụng voucher thành công -->
-        <div *ngIf="appliedVoucher" class="summary-line voucher-applied-line">
-          <div class="voucher-applied-info">
-            <lucide-angular [img]="icons.Tag" size="15" color="#00A30B"></lucide-angular>
-            <span>Mã <b>{{ appliedVoucher.code }}</b></span>
-            <button type="button" class="btn-drawer-remove-v" (click)="removeVoucher()" title="Bỏ mã ưu đãi">
-              <lucide-angular [img]="icons.X" size="14"></lucide-angular>
-            </button>
-          </div>
-          <span class="voucher-discount-val">-{{ formatCurrency(discountAmount) }}</span>
-        </div>
-
-        <div *ngIf="voucherError" class="drawer-voucher-error">
-          <span>{{ voucherError }}</span>
-        </div>
+        </ng-container>
       </div>
 
+      <!-- Dòng Vận chuyển -->
       <div class="summary-line shipping-hint" *ngIf="subTotal > 0">
-        <span>Vận chuyển</span>
-        <span>{{ (subTotal >= 50000000 || appliedVoucher?.code === 'FREESHIP') ? 'Miễn phí' : (shippingFee > 0 ? formatCurrency(shippingFee) : 'Tính ở bước tiếp theo') }}</span>
+        <span class="summary-line-label">Vận chuyển</span>
+        <span class="summary-shipping-val">
+          {{ (subTotal >= 50000000 || appliedFreeshipVoucher) ? 'Miễn phí' : (shippingFee > 0 ? formatCurrency(shippingFee) : 'Miễn phí') }}
+        </span>
       </div>
 
-      <div class="summary-line total-line" *ngIf="subTotal > 0">
-        <span>Tổng thanh toán</span>
+      <!-- Dòng Tổng cộng -->
+      <div class="summary-line total-line">
+        <span class="summary-total-label">Tổng cộng</span>
         <span class="summary-total-price">{{ formatCurrency(totalAmount) }}</span>
       </div>
 
       <div class="footer-actions">
         <button class="btn-checkout" (click)="goToCheckout()" [disabled]="!canCheckout">
-          <span>Thanh toán ({{ totalSelectedQuantity }})</span>
-          <lucide-angular [img]="icons.ArrowRight" size="16"></lucide-angular>
+          <span>Đặt Hàng & Thanh Toán</span>
         </button>
       </div>
     </div>
@@ -276,91 +599,6 @@
           <button class="btn-cancel" (click)="cancelDeleteSelected()">Hủy</button>
           <button class="btn-danger" (click)="confirmDeleteSelected()">Xóa tất cả</button>
         </div>
-      </div>
-    </div>
-
-    <!-- Variant Switcher Drawer (bên trong Drawer) -->
-    <div *ngIf="isVariantDrawerOpen" class="drawer-variant-overlay" (click)="closeVariantDrawer()">
-      <div class="drawer-variant-panel" (click)="$event.stopPropagation()">
-
-        <div class="drawer-variant-header">
-          <h3>Đổi biến thể</h3>
-          <button class="close-btn" (click)="closeVariantDrawer()" title="Đóng">
-            <lucide-angular [img]="icons.X" size="18"></lucide-angular>
-          </button>
-        </div>
-
-        <div class="drawer-variant-body">
-          <!-- Preview sản phẩm hiện tại -->
-          <div class="drawer-product-preview">
-            <img
-              class="drawer-preview-img"
-              [src]="editingCartItem?.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop'"
-              [alt]="editingCartItem?.name" />
-            <div class="drawer-preview-info">
-              <h4 class="drawer-preview-title">{{ editingCartItem?.name }}</h4>
-              <span class="drawer-preview-price">{{ formatCurrency(selectedVariantDetails?.price || editingCartItem?.price || 0) }}</span>
-              <span class="drawer-preview-qty">
-                Số lượng: <b>{{ editingCartItem?.quantity }}</b>
-              </span>
-            </div>
-          </div>
-
-          <!-- Loading State -->
-          <div *ngIf="isLoadingProductVariants" class="drawer-variant-loading">
-            <span>Đang tải danh sách biến thể...</span>
-          </div>
-
-          <!-- Error Message -->
-          <div *ngIf="variantErrorMessage" class="drawer-toast error" style="margin: 0; position: static;">
-            <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
-            <span>{{ variantErrorMessage }}</span>
-          </div>
-
-          <!-- Danh sách biến thể khả dụng -->
-          <div *ngIf="!isLoadingProductVariants && availableVariantsForEdit.length > 0" class="drawer-variant-list-wrap">
-            <div class="drawer-variant-section-title">Chọn phiên bản muốn đổi:</div>
-            <div class="drawer-variant-cards">
-              <div
-                *ngFor="let v of availableVariantsForEdit"
-                class="drawer-variant-card"
-                [class.active]="v.id === selectedVariantId"
-                [class.disabled]="v.isActive === false || (v.stock - (v.reservedStock || 0)) <= 0"
-                (click)="selectVariant(v)">
-                <div class="variant-card-info">
-                  <div class="variant-card-name">{{ v.name }}</div>
-                  <div class="variant-card-sub">
-                    <span *ngIf="v.sku">SKU: {{ v.sku }} · </span>
-                    <span>Tồn kho: {{ (v.stock - (v.reservedStock || 0)) > 0 ? (v.stock - (v.reservedStock || 0)) : 'Hết hàng' }}</span>
-                  </div>
-                </div>
-                <div class="variant-card-price-col">
-                  <div class="variant-card-price">{{ formatCurrency(v.price) }}</div>
-                  <span *ngIf="v.id === selectedVariantId" class="variant-card-check">
-                    <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
-                    <span>Đang chọn</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div *ngIf="!isLoadingProductVariants && availableVariantsForEdit.length === 0" class="drawer-variant-empty">
-            Sản phẩm này hiện chỉ có một phiên bản duy nhất.
-          </div>
-        </div>
-
-        <div class="drawer-variant-footer">
-          <button type="button" class="btn-cancel" (click)="closeVariantDrawer()">Hủy</button>
-          <button
-            type="button"
-            class="btn-confirm-variant"
-            (click)="saveVariantChange()"
-            [disabled]="isLoadingProductVariants || !selectedVariantId">
-            Xác nhận đổi
-          </button>
-        </div>
-
       </div>
     </div>
 

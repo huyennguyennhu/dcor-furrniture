@@ -8,6 +8,7 @@ import { CatalogProduct, ProductCategory } from '../../../../shared/models/catal
 import { IconComponent } from '../../../../shared/components/icon/icon';
 import { CartService } from '../../../../core/services/cart.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
+import { ProductService } from '../../../../core/services/product.service';
 import { environment } from '../../../../../environments/environment';
 
 export interface AttributeOption {
@@ -49,9 +50,9 @@ export interface ShowroomItem {
 }
 
 import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
-import { ProductCompareModalComponent } from '../../../../shared/components/product-compare-modal/product-compare-modal';
 import { CustomRequestModalComponent } from '../../../../shared/components/custom-request-modal/custom-request-modal';
 import { ShowroomConsultationModalComponent } from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
+import { CompareService } from '../../../../core/services/compare.service';
 
 const GROUP_LABEL_MAP: Record<string, string> = {
   vaConfigurationSize: 'Kích thước',
@@ -75,12 +76,11 @@ const GROUP_LABEL_MAP: Record<string, string> = {
   selector: 'app-product-detail',
   standalone: true,
   imports: [
-    IconComponent, 
-    CommonModule, 
-    RouterModule, 
-    FormsModule, 
-    ProductCardComponent, 
-    ProductCompareModalComponent,
+    IconComponent,
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ProductCardComponent,
     CustomRequestModalComponent,
     ShowroomConsultationModalComponent
   ],
@@ -96,10 +96,11 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   // Comparison State & Modal
   compareList: any[] = [];
   isCompareModalOpen = false;
-  private compareEventListener?: () => void;
+  showClearCompareConfirmModal = false;
+  private compareSub?: Subscription;
 
   // Active Tab: 'desc' | 'specs' | 'care' | 'policy' | 'reviews'
-  activeTab: 'desc' | 'specs' | 'care' | 'policy' | 'reviews' = 'desc';
+  activeTab: 'desc' | 'specs' | 'care' | 'policy' = 'desc';
 
   // Gallery
   activeImageIndex = 0;
@@ -128,7 +129,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   selectedAttributes: Record<string, string> = {};
   matchedVariant: any = null;
   expandedAttributeGroups: Record<string, boolean> = {};
-  readonly ATTRIBUTE_OPTIONS_LIMIT = 6;
+  readonly VISUAL_OPTIONS_LIMIT = 14; // 1 hàng tối đa 14 màu cho phần hình
+  readonly DEFAULT_OPTIONS_LIMIT = 6;
 
   // Real data
   currentSku = '';
@@ -174,6 +176,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   specsWeightLoad = '';
   specsFinish = '';
   specsDesignedBy = '';
+  specsLegsHeight = '';
+  specsSeatingHeight = '';
+  specsArmrestHeight = '';
 
   // Reviews (FR3-C-14)
   reviews: ReviewItem[] = [];
@@ -239,7 +244,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     private router: Router,
     private cartService: CartService,
     private wishlistService: WishlistService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private productService: ProductService,
+    public compareService: CompareService
   ) { }
 
   ngOnInit() {
@@ -264,27 +271,19 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     this.startFlashSaleTimer();
 
-    // Khởi tạo và lắng nghe đồng bộ danh sách so sánh sản phẩm
-    this.loadCompareList();
-    if (typeof window !== 'undefined') {
-      this.compareEventListener = () => {
-        this.loadCompareList();
-        this.cdr.detectChanges();
-      };
-      window.addEventListener('dcor_compare_updated', this.compareEventListener);
-      window.addEventListener('storage', this.compareEventListener);
-    }
+    // Khởi tạo và lắng nghe đồng bộ danh sách so sánh sản phẩm từ CompareService
+    this.compareSub = this.compareService.compareList$.subscribe(list => {
+      this.compareList = list || [];
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy() {
     this.wishlistSub?.unsubscribe();
+    this.compareSub?.unsubscribe();
     if (this.flashSaleInterval) clearInterval(this.flashSaleInterval);
     if (this.toastTimer) clearTimeout(this.toastTimer);
     if (this.copyTimer) clearTimeout(this.copyTimer);
-    if (typeof window !== 'undefined' && this.compareEventListener) {
-      window.removeEventListener('dcor_compare_updated', this.compareEventListener);
-      window.removeEventListener('storage', this.compareEventListener);
-    }
   }
 
   @HostListener('window:scroll', [])
@@ -319,14 +318,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   async loadProduct(id: string) {
     this.isLoading = true;
     try {
-      const res = await fetch(`${environment.apiUrl}/products/${id}`);
-      if (!res.ok) {
-        throw new Error(`Không thể tải sản phẩm (HTTP ${res.status}).`);
-      }
-
-      const data = await res.json();
+      const data = await this.productService.getProductById(id);
       this.product = {
         ...data,
+        allowCustom: !!(data.allowCustom ?? data.configOptions?.allowCustom),
         categoryObj: data.category,
         category: typeof data.category === 'string'
           ? data.category
@@ -412,13 +407,18 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       for (const attr of configAttrs) {
         const gid = attr.groupId || 'attr';
         const label = GROUP_LABEL_MAP[gid] || attr.groupName || gid;
-        const rawOpts: AttributeOption[] = (attr.options || []).map((o: any) => ({
-          id: String(o.id),
-          name: o.name,
-          image: o.image || null,
-          hexColor: o.hexColor || this.detectColor(o.name).hex,
-          groupName: o.groupName || null
-        }));
+        const rawOpts: AttributeOption[] = (attr.options || []).map((o: any) => {
+          // Chỉ lấy hình ảnh khi bản thân option có ảnh swatch/texture thực sự từ DB
+          // Tuyệt đối không lấy ảnh sản phẩm biến thể (v.images) gán vào option
+          const optImg = o.image || o.imageUrl || null;
+          return {
+            id: String(o.id),
+            name: o.name,
+            image: optImg,
+            hexColor: o.hexColor || this.detectColor(o.name)?.hex || null,
+            groupName: o.groupName || null
+          };
+        });
 
         const isComposite = rawOpts.length > 0 && rawOpts.every(o => {
           const parts = this.splitCompositeName(o.name);
@@ -436,7 +436,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
                   id: partVal,
                   name: partVal,
                   image: partIdx === 0 ? o.image : null,
-                  hexColor: (partIdx === 0 && o.hexColor) ? o.hexColor : this.detectColor(partVal).hex,
+                  hexColor: (partIdx === 0 && o.hexColor) ? o.hexColor : (this.detectColor(partVal)?.hex || null),
                   groupName: o.groupName || null
                 });
               }
@@ -467,7 +467,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
             return {
               ...o,
               name: parts.length === 1 ? parts[0] : o.name,
-              hexColor: o.hexColor || this.detectColor(o.name).hex
+              hexColor: o.hexColor || this.detectColor(o.name)?.hex || null
             };
           });
           const uniqueCleaned = Array.from(new Map(cleanedOpts.map(o => [o.name, o])).values());
@@ -500,7 +500,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
               options: uniqueVals.map(val => ({
                 id: val,
                 name: val,
-                hexColor: this.detectColor(val).hex
+                hexColor: this.detectColor(val)?.hex || null
               }))
             });
           }
@@ -519,7 +519,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         if (valId !== undefined && valId !== null && group.options.some(o => o.id === String(valId))) {
           this.selectedAttributes[group.groupId] = String(valId);
         } else {
-          const matchedOpt = group.options.find(o => vNameLower.includes(o.name.toLowerCase()));
+          const matchedOpt = group.options.find(o => this.isVariantMatchOption(inStockVariant, group, o))
+            || group.options.find(o => vNameLower.includes(o.name.toLowerCase()));
           this.selectedAttributes[group.groupId] = matchedOpt ? matchedOpt.id : (group.options[0]?.id || '');
         }
       }
@@ -528,25 +529,98 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.updateVariantData();
   }
 
-  // Kiểm tra xem một option có biến thể nào còn hàng hay không ("tùy chọn hết hàng ẩn đi")
-  isOptionAvailable(groupId: string, optionId: string): boolean {
+  isVariantMatchOption(v: any, group: ProductAttributeGroup, opt: AttributeOption): boolean {
+    if (!v || !opt) return false;
+    const optIdLower = (opt.id || '').toLowerCase();
+    const optNameLower = (opt.name || '').toLowerCase();
+    const vNameLower = (v.name || '').toLowerCase();
+    const vSkuLower = (v.sku || '').toLowerCase();
+    const groupId = group.groupId;
+
+    // 1. Kiểm tra trực tiếp trong optionValues theo groupId
+    const optVal = v.optionValues?.[groupId];
+    if (optVal !== undefined && optVal !== null) {
+      const optValStr = String(optVal).toLowerCase();
+      if (optValStr === optIdLower || optValStr === optNameLower) return true;
+    }
+
+    // 1b. Nếu là sub-group (_sub_0, _sub_1), kiểm tra parent groupId
+    const parentGroupId = groupId.replace(/_sub_\d+$/, '');
+    const parentOptVal = v.optionValues?.[parentGroupId];
+    if (parentOptVal !== undefined && parentOptVal !== null) {
+      const pStr = String(parentOptVal).toLowerCase();
+      if (pStr === optIdLower || pStr === optNameLower) return true;
+    }
+
+    // 2. Kiểm tra trong optionValues.attributes
+    const nestedVal = v.optionValues?.attributes?.[groupId] || v.optionValues?.attributes?.[parentGroupId];
+    if (nestedVal !== undefined && nestedVal !== null) {
+      const nestedStr = String(nestedVal).toLowerCase();
+      if (nestedStr === optIdLower || nestedStr === optNameLower) return true;
+    }
+
+    // 3. Khớp theo tên biến thể (v.name chứa opt.name hoặc ngược lại)
+    if (optNameLower && (vNameLower.includes(optNameLower) || optNameLower.includes(vNameLower))) {
+      return true;
+    }
+
+    // 4. Khớp theo các phần của tên biến thể (nếu có chia dấu /)
+    const vParts = this.parseVariantToParts(v.name || '');
+    if (vParts.some(p => p.toLowerCase() === optNameLower || p.toLowerCase() === optIdLower)) {
+      return true;
+    }
+
+    // 5. Khớp theo SKU (nếu mã optionId nằm trong SKU của biến thể)
+    if (optIdLower && optIdLower.length >= 3 && vSkuLower.includes(optIdLower)) {
+      return true;
+    }
+
+    // 6. Khớp trong optionValues (color, size, material)
+    if (v.optionValues) {
+      for (const key of ['color', 'size', 'material', 'finish']) {
+        const val = v.optionValues[key];
+        if (typeof val === 'string' && val.trim() && val !== 'Tiêu chuẩn' && val !== 'Mặc định') {
+          const valLower = val.toLowerCase();
+          if (valLower === optIdLower || valLower === optNameLower || optNameLower.includes(valLower)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  // Kiểm tra xem một option có biến thể nào khả dụng hay không
+  isOptionAvailable(group: ProductAttributeGroup, opt: AttributeOption): boolean {
     if (!this.product?.variants || this.product.variants.length === 0) return true;
 
     // Tìm các biến thể khớp với option này
-    const matchingVariants = this.product.variants.filter((v: any) => {
-      // 1. Phải khớp optionId ở nhóm này
-      const val = v.optionValues?.[groupId];
-      const nameMatch = (v.name || '').toLowerCase().includes(optionId.toLowerCase());
-      const hasThisOption = (val !== undefined && String(val) === optionId) || nameMatch;
+    const matchingVariants = this.product.variants.filter((v: any) => this.isVariantMatchOption(v, group, opt));
 
-      if (!hasThisOption) return false;
+    // Nếu sản phẩm không hề có biến thể nào ứng với option này (ví dụ thuộc danh mục vải mẫu BoConcept chung nhưng shop không nhập), ẩn đi
+    if (matchingVariants.length === 0) return false;
 
-      // 2. Tồn kho khả dụng phải > 0
+    // Kiểm tra xem có biến thể khớp nào còn tồn kho khả dụng (> 0)
+    const hasInStock = matchingVariants.some((v: any) => {
       const availStock = (v.stock ?? 0) - (v.reservedStock ?? 0);
       return availStock > 0 && v.isActive !== false;
     });
+    if (hasInStock) return true;
 
-    return matchingVariants.length > 0;
+    // Nếu toàn bộ nhóm hoặc toàn bộ sản phẩm đều hết hàng, vẫn giữ lại các tùy chọn để khách xem và chọn mẫu
+    const hasAnyInStockInGroup = group.options.some(otherOpt => {
+      return this.product.variants.some((v: any) =>
+        this.isVariantMatchOption(v, group, otherOpt) &&
+        ((v.stock ?? 0) - (v.reservedStock ?? 0)) > 0 &&
+        v.isActive !== false
+      );
+    });
+    if (!hasAnyInStockInGroup) {
+      return true;
+    }
+
+    return false;
   }
 
   selectOption(groupId: string, optionId: string) {
@@ -563,17 +637,19 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     for (const v of rawVariants) {
       let score = 0;
-      const vNameLower = (v.name || '').toLowerCase();
 
       for (const group of this.attributeGroups) {
         const selValId = this.selectedAttributes[group.groupId];
         if (!selValId) continue;
 
-        const optVal = v.optionValues?.[group.groupId];
-        if (optVal !== undefined && String(optVal) === selValId) {
+        const selectedOpt = group.options.find(o => o.id === selValId);
+        if (selectedOpt && this.isVariantMatchOption(v, group, selectedOpt)) {
           score += 10;
-        } else if (vNameLower.includes(selValId.toLowerCase())) {
-          score += 5;
+        } else {
+          const optVal = v.optionValues?.[group.groupId];
+          if (optVal !== undefined && String(optVal) === selValId) {
+            score += 10;
+          }
         }
       }
 
@@ -641,14 +717,17 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.activeImageIndex = 0;
 
     // Technical Specs
-    const attrs = v?.attributes || {};
-    const dims = v?.dimensions || {};
+    const attrs = v?.attributes || v?.optionValues?.attributes || {};
+    const dims = v?.dimensions || v?.optionValues?.dimensions || {};
 
     this.specsWidth = attrs.width || (dims.width ? `${dims.width} cm` : '');
     this.specsDepth = attrs.depth || (dims.depth ? `${dims.depth} cm` : '');
     this.specsHeight = attrs.height || (dims.height ? `${dims.height} cm` : '');
     this.specsWeight = attrs.weight || (dims.weight ? `${dims.weight} kg` : '');
-    this.specsDiameter = attrs.diameter || '';
+    this.specsDiameter = attrs.diameter ? (attrs.diameter.includes('cm') ? attrs.diameter : `${attrs.diameter} cm`) : '';
+    this.specsLegsHeight = attrs.legsHeight || (attrs.legHeight ? (attrs.legHeight.includes('cm') ? attrs.legHeight : `${attrs.legHeight} cm`) : '');
+    this.specsSeatingHeight = attrs.seatingHeight || '';
+    this.specsArmrestHeight = attrs.armrestHeight || '';
     this.specsWeightLoad = attrs.weightLoad || '120 kg';
     this.specsFinish = attrs.finish_vi || attrs.finish || prod?.description || 'Vật liệu tiêu chuẩn DCOR';
     this.specsDesignedBy = attrs.designedBy || 'BoConcept Design Team (Đan Mạch)';
@@ -658,6 +737,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     if (this.specsWidth) dimParts.push(`Rộng: ${this.specsWidth}`);
     if (this.specsDepth) dimParts.push(`Sâu: ${this.specsDepth}`);
     if (this.specsHeight) dimParts.push(`Cao: ${this.specsHeight}`);
+    if (this.specsLegsHeight) dimParts.push(`Chiều cao chân: ${this.specsLegsHeight}`);
     if (this.specsWeight) dimParts.push(`Trọng lượng: ${this.specsWeight}`);
     this.dimensionsText = dimParts.join(' • ');
 
@@ -687,21 +767,89 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   // Nhận diện loại nhóm thuộc tính để hiển thị phù hợp
   isColorGroup(group: ProductAttributeGroup): boolean {
-    const gLower = group.groupId.toLowerCase();
-    const lLower = group.label.toLowerCase();
+    const gLower = (group.groupId || '').toLowerCase();
+    const lLower = (group.label || '').toLowerCase();
     return gLower.includes('colour') || gLower.includes('color') || lLower.includes('màu');
   }
 
   isSizeGroup(group: ProductAttributeGroup): boolean {
-    const gLower = group.groupId.toLowerCase();
-    const lLower = group.label.toLowerCase();
-    return gLower.includes('size') || lLower.includes('kích thước') || lLower.includes('size');
+    const gLower = (group.groupId || '').toLowerCase();
+    const lLower = (group.label || '').toLowerCase();
+    if (gLower.includes('size') || gLower.includes('dimension') || gLower.includes('height') ||
+      lLower.includes('kích thước') || lLower.includes('size') || lLower.includes('chiều cao')) {
+      return true;
+    }
+    // Nếu tất cả các options trong nhóm này đều là dạng số đo kích cỡ (VD: 17cm, H45xØ38cm, W170xL240cm, Ø230cm)
+    if (group.options?.length > 0 && group.options.every(o => /^(H\d|W\d|L\d|D\d|Ø\d|\d+(\.\d+)?\s*(cm|mm|m)|[0-9½¼¾\.\s\/xX]+$)/i.test(o.name.trim()))) {
+      return true;
+    }
+    return false;
   }
 
   isMaterialGroup(group: ProductAttributeGroup): boolean {
-    const gLower = group.groupId.toLowerCase();
-    const lLower = group.label.toLowerCase();
+    const gLower = (group.groupId || '').toLowerCase();
+    const lLower = (group.label || '').toLowerCase();
     return gLower.includes('material') || gLower.includes('upholstery') || lLower.includes('chất liệu') || lLower.includes('vải');
+  }
+
+  isVisualGroup(group: ProductAttributeGroup): boolean {
+    // 1. Nhóm kích thước / số đo thì luôn hiển thị nút chữ rõ ràng có số liệu, không dùng swatch tròn
+    if (this.isSizeGroup(group)) return false;
+
+    // 2. Nếu nhóm có hình ảnh swatch texture thực tế từ nhà sản xuất (như vải bọc, da bọc o.image)
+    if (group.options?.some(o => !!o.image)) return true;
+
+    // 3. Nếu là nhóm màu sắc và có màu sắc hex hợp lệ
+    if (this.isColorGroup(group) && group.options?.some(o => !!o.hexColor)) return true;
+
+    // 4. Mọi trường hợp còn lại không có hình (như chân ghế, mặt bàn không ảnh, hướng ghế, chức năng...)
+    // thì để bình thường dạng nút bấm có chữ đàng hoàng, không chèn ảnh hay ép thành ô swatch tròn
+    return false;
+  }
+
+  formatOptionDisplayName(name: string, group?: ProductAttributeGroup): string {
+    if (!name) return '';
+    let str = name.trim();
+
+    const isSize = group ? this.isSizeGroup(group) : false;
+
+    // 1. Nếu là số thuần trong nhóm kích thước hoặc chân/độ cao, thêm đơn vị "cm"
+    if (/^\d+(\.\d+)?$/.test(str) && isSize) {
+      return `${str} cm`;
+    }
+
+    // 2. Chuẩn hóa khoảng trắng trước các đơn vị đo lường: 15cm -> 15 cm, 17cm -> 17 cm, 9,5cm -> 9,5 cm
+    str = str.replace(/(\d+(?:[½¼¾]|\/\d+)?)\s*(cm|mm|m)\b/gi, '$1 $2');
+
+    // 3. Chuẩn hóa ký tự nhân kích thước x thành × với khoảng cách đẹp: H45xØ38cm -> H45 × Ø38 cm
+    str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
+    str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
+
+    // 4. Chuẩn hóa ký hiệu đường kính Ø: Ø230cm -> Ø230 cm
+    str = str.replace(/[Øø]\s*(\d+)/g, 'Ø$1');
+
+    return str;
+  }
+
+  hoveredOption: Record<string, string | null> = {};
+
+  onOptionMouseEnter(groupId: string, name: string) {
+    this.hoveredOption[groupId] = name;
+  }
+
+  onOptionMouseLeave(groupId: string) {
+    this.hoveredOption[groupId] = null;
+  }
+
+  getHoveredOrSelectedName(group: ProductAttributeGroup): string {
+    const raw = this.hoveredOption[group.groupId] || this.getSelectedOptionName(group);
+    return this.formatOptionDisplayName(raw, group);
+  }
+
+  isBrightColor(opt: AttributeOption): boolean {
+    if (opt.image) return false;
+    const hex = (opt.hexColor || this.detectColor(opt.name)?.hex || '').toLowerCase();
+    return hex === '#ffffff' || hex === '#f3f4f6' || hex === '#f8f8f8' || hex === '#d8c8b8';
   }
 
   // --- QUẢN LÝ THU GỌN / XEM THÊM KHI THUỘC TÍNH CÓ NHIỀU OPTIONS ---
@@ -716,20 +864,25 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   getAvailableOptions(group: ProductAttributeGroup): AttributeOption[] {
     if (!group || !group.options) return [];
-    return group.options.filter(opt => this.isOptionAvailable(group.groupId, opt.id));
+    return group.options.filter(opt => this.isOptionAvailable(group, opt));
+  }
+
+  getGroupOptionsLimit(group: ProductAttributeGroup): number {
+    return this.isVisualGroup(group) ? this.VISUAL_OPTIONS_LIMIT : this.DEFAULT_OPTIONS_LIMIT;
   }
 
   shouldShowToggle(group: ProductAttributeGroup): boolean {
-    return this.getAvailableOptions(group).length > this.ATTRIBUTE_OPTIONS_LIMIT;
+    const limit = this.getGroupOptionsLimit(group);
+    return this.getAvailableOptions(group).length > limit;
   }
 
   getVisibleOptions(group: ProductAttributeGroup): AttributeOption[] {
     const available = this.getAvailableOptions(group);
-    if (this.isGroupExpanded(group.groupId) || available.length <= this.ATTRIBUTE_OPTIONS_LIMIT) {
+    const limit = this.getGroupOptionsLimit(group);
+    if (this.isGroupExpanded(group.groupId) || available.length <= limit) {
       return available;
     }
 
-    const limit = this.ATTRIBUTE_OPTIONS_LIMIT;
     const selectedId = this.selectedAttributes[group.groupId];
     const initialSlice = available.slice(0, limit);
 
@@ -746,7 +899,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   getRemainingOptionsCount(group: ProductAttributeGroup): number {
     const available = this.getAvailableOptions(group);
-    return Math.max(0, available.length - this.ATTRIBUTE_OPTIONS_LIMIT);
+    const limit = this.getGroupOptionsLimit(group);
+    return Math.max(0, available.length - limit);
   }
 
   getSelectedOptionName(group: ProductAttributeGroup): string {
@@ -756,7 +910,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return opt ? opt.name : '';
   }
 
-  detectColor(text: string): { name: string; hex: string } {
+  detectColor(text: string): { name: string; hex: string } | null {
     const lower = (text || '').toLowerCase();
     if (lower.includes('green') || lower.includes('xanh lá') || lower.includes('olive')) return { name: 'Xanh lá', hex: '#3B5E45' };
     if (lower.includes('sky blue') || lower.includes('blue') || lower.includes('xanh dương') || lower.includes('navy')) return { name: 'Xanh dương', hex: '#2B4C7E' };
@@ -770,7 +924,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     if (lower.includes('oak') || lower.includes('sồi')) return { name: 'Gỗ sồi tự nhiên', hex: '#C4A482' };
     if (lower.includes('brown') || lower.includes('walnut') || lower.includes('nâu') || lower.includes('espresso')) return { name: 'Nâu Walnut', hex: '#6B4423' };
     if (lower.includes('terracotta') || lower.includes('red') || lower.includes('đỏ') || lower.includes('rust')) return { name: 'Đỏ đất', hex: '#A84332' };
-    return { name: text || 'Tiêu chuẩn', hex: '#78716c' };
+    return null;
   }
 
   // --- GALLERY INTERACTIONS & LIGHTBOX ---
@@ -1005,7 +1159,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
             if (res?.cartItem?.id) {
               try {
                 sessionStorage.setItem('dcor_checkout_items', JSON.stringify([res.cartItem.id]));
-              } catch (e) {}
+              } catch (e) { }
             }
             this.router.navigate(['/checkout']);
           }
@@ -1034,38 +1188,20 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   get isCompared(): boolean {
     if (!this.product) return false;
-    try {
-      const stored = localStorage.getItem('dcor_compare_items');
-      const list: any[] = stored ? JSON.parse(stored) : [];
-      return list.some(item => (item.id === this.product.id || item.productId === this.product.id));
-    } catch {
-      return false;
-    }
+    return this.compareService.isInCompare(this.product.id || this.product.productId);
   }
 
   get isCompareDisabled(): boolean {
     if (!this.product) return false;
-    try {
-      const stored = localStorage.getItem('dcor_compare_items');
-      const list: any[] = stored ? JSON.parse(stored) : [];
-      if (list.length === 0) return false;
-      if (this.isCompared) return false;
-      return !this.isSameMainCategory(list[0], this.product);
-    } catch {
-      return false;
-    }
+    return this.compareService.isCompareDisabled(this.product);
   }
 
   get compareTooltip(): string {
     if (this.isCompared) return 'Bỏ so sánh';
     if (this.isCompareDisabled) {
-      try {
-        const stored = localStorage.getItem('dcor_compare_items');
-        const list: any[] = stored ? JSON.parse(stored) : [];
-        if (list.length > 0) {
-          return `Chỉ so sánh các sản phẩm cùng danh mục chính (${this.getRootCategoryName(list[0])})`;
-        }
-      } catch { }
+      if (this.compareList.length > 0) {
+        return `Chỉ so sánh các sản phẩm cùng danh mục chính (${this.getRootCategoryName(this.compareList[0])})`;
+      }
       return 'Không cùng danh mục so sánh';
     }
     return 'Thêm vào so sánh';
@@ -1127,127 +1263,44 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   toggleCompare() {
     if (!this.product) return;
-    try {
-      const stored = localStorage.getItem('dcor_compare_items');
-      let compareList: any[] = stored ? JSON.parse(stored) : [];
-
-      if (this.isCompareDisabled) {
-        if (compareList.length > 0) {
-          this.showToast(`Chỉ có thể so sánh sản phẩm cùng danh mục chính (${this.getRootCategoryName(compareList[0])})`, 'warning');
-        }
-        return;
-      }
-
-      const exists = compareList.some((item: any) => item.id === this.product.id || item.productId === this.product.id);
-      if (exists) {
-        compareList = compareList.filter((item: any) => item.id !== this.product.id && item.productId !== this.product.id);
-        localStorage.setItem('dcor_compare_items', JSON.stringify(compareList));
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('dcor_compare_updated'));
-          window.dispatchEvent(new Event('storage'));
-        }
-        this.showToast('Đã xóa khỏi danh sách so sánh.', 'info');
-      } else {
-        if (compareList.length >= 5) {
-          this.showToast('Tối đa 5 sản phẩm để so sánh.', 'warning');
-          return;
-        }
-        compareList.push({
-          id: this.product.id,
-          productId: this.product.id,
-          name: this.product.name,
-          category: this.product.category,
-          categoryId: this.product.categoryId,
-          basePrice: this.currentPrice,
-          images: this.galleryImages,
-          variants: this.product.variants
-        });
-        localStorage.setItem('dcor_compare_items', JSON.stringify(compareList));
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('dcor_compare_updated'));
-          window.dispatchEvent(new Event('storage'));
-        }
-        this.showToast(`Đã thêm vào so sánh (${compareList.length}/5 sản phẩm).`, 'success');
-      }
-      this.loadCompareList();
-      this.cdr.detectChanges();
-    } catch {
-      this.showToast('Thao tác so sánh hoàn tất.', 'info');
-    }
+    this.compareService.toggle(this.product);
   }
 
   loadCompareList() {
-    try {
-      const stored = localStorage.getItem('dcor_compare_items');
-      this.compareList = stored ? JSON.parse(stored) : [];
-    } catch {
-      this.compareList = [];
-    }
+    this.compareList = this.compareService.currentList;
     this.cdr.detectChanges();
   }
 
   openCompareModal() {
-    if (this.compareList.length < 2) {
-      this.showToast('Vui lòng chọn tối thiểu 2 sản phẩm để so sánh!', 'info');
-      return;
-    }
-    this.isCompareModalOpen = true;
-    this.cdr.detectChanges();
+    this.compareService.openModal();
   }
 
   closeCompareModal() {
-    this.isCompareModalOpen = false;
-    this.cdr.detectChanges();
+    this.compareService.closeModal();
   }
 
   removeCompare(productId: string) {
-    this.compareList = this.compareList.filter(p => (p.id !== productId && p.productId !== productId));
-    try {
-      localStorage.setItem('dcor_compare_items', JSON.stringify(this.compareList));
-    } catch {}
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('dcor_compare_updated'));
-      window.dispatchEvent(new Event('storage'));
-    }
-    if (this.compareList.length <= 1) {
-      this.isCompareModalOpen = false;
-    }
-    this.showToast('Đã xóa sản phẩm khỏi danh sách so sánh.', 'info');
-    this.cdr.detectChanges();
+    this.compareService.remove(productId);
+  }
+
+  confirmClearAllCompare() {
+    this.compareService.openConfirmClear();
+  }
+
+  cancelClearAllCompare() {
+    this.compareService.closeConfirmClear();
+  }
+
+  executeClearAllCompare() {
+    this.compareService.clear();
   }
 
   clearAllCompare() {
-    this.compareList = [];
-    try {
-      localStorage.setItem('dcor_compare_items', '[]');
-    } catch {}
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('dcor_compare_updated'));
-      window.dispatchEvent(new Event('storage'));
-    }
-    this.isCompareModalOpen = false;
-    this.showToast('Đã xóa toàn bộ sản phẩm đang so sánh.', 'info');
-    this.cdr.detectChanges();
+    this.compareService.clear();
   }
 
   copyCompareShareLink() {
-    if (typeof window === 'undefined') return;
-    const ids = this.compareList.map(p => p.productId || p.id).filter(Boolean);
-    const shareUrl = `${window.location.origin}/explore?compare=${ids.join(',')}`;
-
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        this.showToast('Đã sao chép liên kết so sánh!', 'success');
-      }).catch(() => {
-        this.fallbackCopyText(shareUrl, () => {
-          this.showToast('Đã sao chép liên kết so sánh!', 'success');
-        });
-      });
-    } else {
-      this.fallbackCopyText(shareUrl, () => {
-        this.showToast('Đã sao chép liên kết so sánh!', 'success');
-      });
-    }
+    this.compareService.copyShareLink();
   }
 
   shareProduct() {
@@ -1407,8 +1460,17 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     );
   }
 
+  get isCustomAllowed(): boolean {
+    if (!this.product) return false;
+    return !!(this.product.allowCustom ?? this.product.configOptions?.allowCustom);
+  }
+
   // --- CUSTOM REQUEST MODAL ---
   openCustomModal() {
+    if (!this.isCustomAllowed) {
+      this.showToast('Sản phẩm này hiện không hỗ trợ tùy chỉnh thiết kế riêng.', 'warning');
+      return;
+    }
     this.isCustomModalOpen = true;
     this.customSuccess = false;
   }
@@ -1467,9 +1529,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.isRelatedExpanded = false;
 
     try {
-      const res = await fetch(`${environment.apiUrl}/products`);
-      if (res.ok) {
-        const allProducts: any[] = await res.json();
+      const allProducts: any[] = await this.productService.getProducts();
+      if (Array.isArray(allProducts)) {
         const currentId = this.product.id || this.productId;
         const currentNormalizedName = (this.product.name || '').trim().toLowerCase();
 
@@ -1551,13 +1612,12 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
   // --- TAB NAVIGATION ---
-  setActiveTab(tab: 'desc' | 'specs' | 'care' | 'policy' | 'reviews') {
+  setActiveTab(tab: 'desc' | 'specs' | 'care' | 'policy') {
     this.activeTab = tab;
   }
 
   scrollToReviews() {
-    this.activeTab = 'reviews';
-    const el = document.getElementById('pdp-tabs-section');
+    const el = document.getElementById('pdp-reviews-section');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }

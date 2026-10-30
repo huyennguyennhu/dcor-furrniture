@@ -289,3 +289,29 @@
     flex-basis: 220px;
   }
 }
+
+
+/* Badge số tin nhắn chưa đọc cho mục Hội thoại */
+.sidebar-chat-badge {
+  margin-left: auto;
+  background-color: var(--color-accent, #BC5F13);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  line-height: 14px;
+}
+
+.sidebar-chat-badge.collapsed-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  margin: 0;
+  background-color: var(--color-accent, #BC5F13);
+  box-shadow: 0 0 0 2px #3b2819;
+}

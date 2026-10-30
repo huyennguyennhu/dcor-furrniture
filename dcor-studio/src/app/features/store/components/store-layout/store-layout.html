@@ -10,4 +10,10 @@
     [class.dock-active]="isDockActive" (click)="scrollToTop()" aria-label="Về đầu trang" title="Về đầu trang">
     <app-icon name="ArrowUp" size="20" color="#ffffff"></app-icon>
   </button>
+
+  <!-- Thanh So Sánh Nổi Toàn Cục (Đồng bộ giữa Explore và Product Detail) -->
+  <app-floating-compare-dock></app-floating-compare-dock>
+
+  <!-- Khung Chat Trực Tuyến Hỗ Trợ Khách Hàng -->
+  <app-chat-widget />
 </div>

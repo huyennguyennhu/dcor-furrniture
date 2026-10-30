@@ -849,3 +849,110 @@ model DesignComment {
   createdAt   DateTime    @default(now())
 }
 
+
+
+// 5. Thiết kế của tôi (3D Room Planner)
+model UserDesign {
+  id             String    @id @default(uuid())
+  customerId     String
+  title          String
+  status         String    @default("DRAFT") // DRAFT | SAVED
+  backgroundType String    // TEMPLATE | UPLOAD
+  backgroundUrl  String
+  templateId     String?
+  roomLength     Float
+  roomWidth      Float
+  roomHeight     Float?
+  layout         Json
+  coverImageUrl  String?
+  postId         String?   // DesignPost đã đăng từ thiết kế này
+  lastEditedAt   DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([customerId, status])
+}
+
+// 6. Lượt thích bài viết cộng đồng thiết kế
+model DesignPostLike {
+  id         String   @id @default(uuid())
+  postId     String
+  customerId String
+  createdAt  DateTime @default(now())
+
+  @@unique([postId, customerId])
+  @@index([customerId])
+}
+
+
+// ============================================================================
+// 10. CHATBOX & TRỢ LÝ TỰ ĐỘNG (DCor Customer Support & Handoff)
+// ============================================================================
+model ChatConversation {
+  id                 String        @id @default(uuid())
+  customerId         String?
+  guestName          String?
+  guestPhone         String?
+  guestTokenHash     String?
+  mode               String        @default("BOT") // 'BOT' | 'WAITING_STAFF' | 'STAFF'
+  status             String        @default("OPEN") // 'OPEN' | 'CLOSED'
+  assignedStaffId    String?
+  needsHuman         Boolean       @default(false)
+  unreadStaff        Int           @default(0)
+  unreadCustomer     Int           @default(0)
+  fallbackCount      Int           @default(0)
+  botState           Json?
+  internalNote       String?       @db.Text
+  lastMessageAt      DateTime      @default(now())
+  lastMessagePreview String?       @db.Text
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  closedAt           DateTime?
+
+  messages           ChatMessage[]
+
+  @@index([status, lastMessageAt])
+  @@index([assignedStaffId])
+  @@index([customerId])
+}
+
+model ChatMessage {
+  id              String           @id @default(uuid())
+  conversationId  String
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType      String           // 'CUSTOMER' | 'STAFF' | 'BOT' | 'SYSTEM'
+  senderId        String?
+  senderName      String?
+  content         String           @db.Text
+  imageUrl        String?          @db.Text
+  quickReplies    Json?
+  meta            Json?
+  clientMessageId String?
+  createdAt       DateTime         @default(now())
+  readAt          DateTime?
+
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, createdAt])
+}
+
+model ChatBotScript {
+  id           String   @id @default(uuid())
+  intent       String   @unique
+  name         String
+  patterns     String[]
+  answer       String   @db.Text
+  quickReplies Json?
+  actionType   String   @default("NONE") // 'NONE' | 'ORDER_STATUS' | 'PRODUCT_SEARCH' | 'HANDOFF' | 'BUSINESS_HOURS' | 'BOOK_CONSULT'
+  priority     Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ChatSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

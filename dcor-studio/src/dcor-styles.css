@@ -235,18 +235,28 @@ header.header-solid {
 
 header.store-site-header {
   height: 90px;
-  background: #fff;
+  background: #FCF8F3;
   border-bottom: 1px solid #eee9e3;
   box-shadow: 0 3px 12px rgb(54 39 25 / 16%);
-  transition: height 180ms ease;
+  transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
 header.store-site-header.is-scrolled {
   height: 60px;
 }
 
+.store-utility-bar {
+  transition: opacity 0.25s ease, max-height 0.25s ease, transform 0.25s ease;
+  overflow: hidden;
+  max-height: 35px;
+  opacity: 1;
+}
+
 header.store-site-header.is-scrolled .store-utility-bar {
-  display: none;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
 }
 
 /* Header Hero state on homepage top (Bóng mờ nhưng trong suốt để thấy ảnh) */
@@ -344,7 +354,7 @@ header.store-site-header .store-header-main {
   box-sizing: border-box;
   gap: 16px;
   padding: 5px 60px 5px 60px;
-  background: #fff;
+  background: #FCF8F3;
 }
 
 .store-wordmark {
@@ -361,27 +371,22 @@ header.store-site-header .store-header-main {
 }
 
 .store-header-main .icon-btn {
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   border: 1px solid #eee8e1;
   background: #fbf8f4;
   color: #765337;
   box-shadow: none;
-}
-
-#header-cart-icon {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
   padding: 0;
   box-sizing: border-box;
 }
 
-#header-cart-icon app-icon {
+.store-header-main .icon-btn app-icon,
+.store-header-main .icon-btn lucide-angular {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -390,7 +395,7 @@ header.store-site-header .store-header-main {
 
 .store-header-main .icon-btn:hover {
   background: #f5eee6;
-  border-color: #e6d9ca;
+  border-color: #bc5f13;
   color: #bc5f13;
   transform: none;
 }
@@ -416,7 +421,7 @@ header.store-site-header .store-header-main {
 
 .store-header-nav .header-nav-link {
   color: #352719;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
@@ -455,10 +460,14 @@ header.store-site-header .store-header-main {
   width: 100%;
   height: 36px;
   padding: 0 8px;
-  border: 1px solid #f0ebe5;
+  border: 1px solid #E0E0E0;
   border-radius: 50px;
   background: #fbf8f4;
   color: #4b3827;
+}
+
+.store-search-field:focus-within {
+  border-color: #bc5f13;
 }
 
 .store-search-icon {
@@ -466,6 +475,10 @@ header.store-site-header .store-header-main {
   width: 16px;
   height: 16px;
   color: #4b3827;
+}
+
+.store-search-field:focus-within .store-search-icon {
+  color: #bc5f13;
 }
 
 .store-search-field input {
@@ -525,7 +538,7 @@ header.store-site-header .store-header-main {
   border-radius: 50px;
   background: #765337;
   color: #fff3e3;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -672,6 +685,15 @@ header.store-site-header .store-header-main {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   overflow: hidden;
+}
+
+.user-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 0;
+  right: 0;
+  height: 14px;
 }
 
 .user-dropdown-header {
@@ -1562,7 +1584,7 @@ nav ul a:hover {
   height: 100%;
   background: var(--bg-primary);
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.4);
-  padding: 30px 15px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -1752,35 +1774,58 @@ nav ul a:hover {
   position: relative;
   width: 100%;
   height: 100vh;
-  min-height: 700px;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
+  clip-path: inset(0 0 0 0);
+  -webkit-clip-path: inset(0 0 0 0);
   display: flex;
   align-items: center;
-  /* Kéo lên dưới fixed header (thay cho body padding-top=0) */
-  margin-top: calc(-1 * var(--header-height));
+  justify-content: center;
+  margin-top: 0;
+  box-sizing: border-box;
 }
 
 .hero-bg {
-  position: absolute;
-  inset: -20%;
-  background-image: url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=90&auto=format&fit=crop');
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-image: url('/assets/img/banner.avif');
   background-size: cover;
   background-position: center;
-  will-change: transform;
+  transform: scale(1.08);
+  transform-origin: center center;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, rgba(31, 18, 10, .9) 0%, rgba(31, 18, 10, .55) 50%, rgba(31, 18, 10, .12) 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: radial-gradient(ellipse at center, rgba(15, 10, 6, 0.38) 0%, rgba(10, 7, 4, 0.68) 100%);
   z-index: 1;
+  pointer-events: none;
 }
 
 .hero-shoppable-content {
   position: relative;
   z-index: 2;
-  max-width: 600px;
-  padding: 0 80px;
+  max-width: 960px;
+  width: 100%;
+  padding: 80px 24px 0 24px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .hero-eyebrow {

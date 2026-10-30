@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HoverImageSlider } from '../hover-image-slider/hover-image-slider';
 import { CatalogProduct } from '../../models/catalog.model';
+import { WishlistService } from '../../../core/services/wishlist.service';
 
 @Component({
   selector: 'app-catalog-section',
@@ -13,6 +14,8 @@ import { CatalogProduct } from '../../models/catalog.model';
   styleUrls: ['./catalog-section.css']
 })
 export class CatalogSection implements OnInit, OnChanges {
+  constructor(private wishlistService: WishlistService) {}
+
   @Input() products: CatalogProduct[] = [];
   @Input() initialCategory: string = '';
   @Input() categories: { label: string; value: string; emoji: string; desc: string; img: string }[] = [];
@@ -24,7 +27,7 @@ export class CatalogSection implements OnInit, OnChanges {
   sortBy: string = 'featured';
   currentPage: number = 1;
 
-  readonly ITEMS_PER_PAGE = 8;
+  readonly ITEMS_PER_PAGE = 4;
   readonly COLOR_MAP: Record<string, string> = {
     Grey: '#808080', Beige: '#F5F5DC', Brown: '#8B4513',
     Blue: '#325A82', Green: '#4B6E50', Black: '#222',
@@ -140,5 +143,18 @@ export class CatalogSection implements OnInit, OnChanges {
       allImages = Array.from(new Set([...allImages, ...extraImgs]));
     }
     return allImages.slice(0, 6);
+  }
+
+  isInWishlist(productId?: string): boolean {
+    return !!productId && this.wishlistService.isWishlisted(productId);
+  }
+
+  toggleWishlist(event: Event, prod: CatalogProduct): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const pid = prod.productId || (prod as any).id;
+    if (!pid) return;
+
+    this.wishlistService.toggle(pid);
   }
 }

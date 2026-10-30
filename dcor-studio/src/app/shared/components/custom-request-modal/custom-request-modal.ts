@@ -582,7 +582,7 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
   onEmailInput() {
     const em = (this.email || '').trim();
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (em && emailRegex.test(em)) {
+    if (!em || emailRegex.test(em)) {
       delete this.formErrors['email'];
     }
   }
@@ -606,9 +606,7 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
     } else if (field === 'email') {
       const em = (this.email || '').trim();
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!em) {
-        this.formErrors['email'] = 'Vui lòng nhập Email để nhận Dự thảo Hợp đồng & Báo giá.';
-      } else if (!emailRegex.test(em)) {
+      if (em && !emailRegex.test(em)) {
         this.formErrors['email'] = 'Email không đúng định dạng (VD: hoten@gmail.com).';
       } else {
         delete this.formErrors['email'];
@@ -809,9 +807,7 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
     }
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!this.email.trim()) {
-      this.formErrors['email'] = 'Vui lòng nhập Email để DCOR gửi Dự thảo Hợp đồng & Báo giá chi tiết.';
-    } else if (!emailRegex.test(this.email.trim())) {
+    if (this.email.trim() && !emailRegex.test(this.email.trim())) {
       this.formErrors['email'] = 'Email không đúng định dạng (VD: hoten@gmail.com).';
     }
 
@@ -824,7 +820,11 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
 
   get isSubmitDisabled(): boolean {
     if (this.isSubmitting) return true;
-    if (!this.fullName.trim() || !this.phone.trim() || !this.email.trim()) {
+    if (!this.fullName.trim() || !this.phone.trim()) {
+      return true;
+    }
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (this.email.trim() && !emailRegex.test(this.email.trim())) {
       return true;
     }
     if (!this.selectedBudgetRange && !this.estimatedBudget.trim()) {

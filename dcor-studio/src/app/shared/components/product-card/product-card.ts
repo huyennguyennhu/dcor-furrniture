@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { CatalogProduct, ProductColorSwatch } from '../../models/catalog.model';
 import { IconComponent } from '../icon/icon';
 import { WishlistService } from '../../../core/services/wishlist.service';
+import { CompareService } from '../../../core/services/compare.service';
 
 const COMPARE_STORAGE_KEY = 'dcor_compare_items';
 
@@ -68,7 +69,8 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     private router: Router,
     private wishlistService: WishlistService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    public compareService: CompareService
   ) {}
 
   ngOnInit() {
@@ -395,30 +397,17 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private checkCompareState() {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      const stored = localStorage.getItem(COMPARE_STORAGE_KEY);
-      const list: any[] = stored ? JSON.parse(stored) : [];
-      this.isInCompare = list.some(item => (item.id === this.productId || item.productId === this.productId));
+    this.isInCompare = this.compareService.isInCompare(this.productId);
+    this.isCompareDisabled = this.compareService.isCompareDisabled({ ...this.product, id: this.productId, productId: this.productId });
 
-      if (list.length > 0 && !this.isInCompare) {
-        const rootCategoryOfFirst = this.getProductRootCategoryKey(list[0]);
-        const rootCategoryOfThis = this.getProductRootCategoryKey(this.product);
-        this.isCompareDisabled = rootCategoryOfFirst !== rootCategoryOfThis;
-      } else {
-        this.isCompareDisabled = false;
-      }
-
-      if (this.isInCompare) {
-        this.compareTooltip = 'Bỏ so sánh';
-      } else if (this.isCompareDisabled) {
-        this.compareTooltip = 'Chỉ so sánh các sản phẩm cùng danh mục chính';
-      } else {
-        this.compareTooltip = 'Thêm vào so sánh';
-      }
-    } catch {
-      this.isInCompare = false;
-      this.isCompareDisabled = false;
+    if (this.isInCompare) {
+      this.compareTooltip = 'Bỏ so sánh';
+    } else if (this.isCompareDisabled) {
+      const first = this.compareService.currentList[0];
+      const catName = first ? this.compareService.getRootCategoryName(first) : '';
+      this.compareTooltip = catName ? `Chỉ so sánh các sản phẩm cùng danh mục chính (${catName})` : 'Chỉ so sánh các sản phẩm cùng danh mục chính';
+    } else {
+      this.compareTooltip = 'Thêm vào so sánh';
     }
     this.cdr.detectChanges();
   }
@@ -426,42 +415,17 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   toggleCompare(e: Event) {
     e.stopPropagation();
     e.preventDefault();
-    if (this.isCompareDisabled) return;
-
-    try {
-      const stored = localStorage.getItem(COMPARE_STORAGE_KEY);
-      let list: any[] = stored ? JSON.parse(stored) : [];
-
-      if (this.isInCompare) {
-        list = list.filter(item => item.id !== this.productId && item.productId !== this.productId);
-        localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(list));
-      } else {
-        if (list.length >= 5) {
-          return;
-        }
-        list.push({
-          id: this.productId,
-          productId: this.productId,
-          name: this.displayName,
-          category: this.product.category,
-          categoryId: this.product.categoryId,
-          basePrice: this.currentPrice,
-          images: this.cardImages,
-          variants: this.product.variants
-        });
-        localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(list));
-      }
-
-      this.checkCompareState();
-      this.compareChange.emit(list);
-
-      // Notify other components
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('dcor_compare_updated'));
-      }
-    } catch (err) {
-      console.error('Lỗi toggle compare:', err);
-    }
+    this.compareService.toggle({
+      ...this.product,
+      id: this.productId,
+      productId: this.productId,
+      name: this.displayName,
+      cardImages: this.cardImages,
+      images: this.cardImages,
+      basePrice: this.currentPrice
+    });
+    this.checkCompareState();
+    this.compareChange.emit(this.compareService.currentList);
   }
 
   private getProductRootCategoryKey(prod: any): string {

@@ -5,6 +5,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { AdminAuthService, AdminModule } from '../../../../core/services/admin-auth.service';
+import { ChatUnreadService } from '../../pages/chat/services/chat-unread.service';
 
 interface MenuItem {
   title: string;
@@ -91,6 +92,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
       module: 'orders',
       subItems: [
         { title: 'Danh sách đơn hàng', href: '/admin/orders' },
+        { title: 'Đơn may đo & Custom', href: '/admin/custom-requests' },
         { title: 'Yêu cầu đổi trả', href: '/admin/orders/returns' },
         { title: 'Bảo hành', href: '/admin/orders/warranty' },
         { title: 'Cài đặt đơn hàng', href: '/admin/orders/settings' },
@@ -170,7 +172,8 @@ export class AdminSidebar implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private adminAuthService: AdminAuthService
+    private adminAuthService: AdminAuthService,
+    public chatUnreadService: ChatUnreadService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)

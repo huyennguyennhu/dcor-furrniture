@@ -14,7 +14,7 @@ export interface ProductCategory {
 export interface ProductPrice {
   price: number;
   formattedPrice: string;
-  currency: string;
+  currency?: string;
   isDefaultPrice?: boolean;
 }
 
@@ -40,7 +40,7 @@ export interface CatalogProduct {
   category: string;
   categoryObj?: ProductCategory;
   categoryId?: string;
-  variantUrl: string;
+  variantUrl?: string;
   images: string[];
   refinementColors: string[];
   refinementColors_vi?: string[];

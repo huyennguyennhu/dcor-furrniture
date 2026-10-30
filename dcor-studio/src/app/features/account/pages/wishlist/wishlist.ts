@@ -1,77 +1,79 @@
-import { IconComponent } from '../../../../shared/components/icon/icon';
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { LucideAngularModule, Check, Heart, ShoppingCart } from 'lucide-angular';
+import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
+import { WishlistService, WishlistItem } from '../../../../core/services/wishlist.service';
+import { CartService } from '../../../../core/services/cart.service';
 import { Subscription } from 'rxjs';
-import { WishlistService } from '../../../../core/services/wishlist.service';
-import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-wishlist',
   standalone: true,
-  imports: [IconComponent, CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, LucideAngularModule, AccountSidebarComponent],
   templateUrl: './wishlist.html',
   styleUrls: ['./wishlist.css']
 })
 export class WishlistComponent implements OnInit, OnDestroy {
-  wishlistItems: any[] = [];
-  isLoading = false;
-  private wishlistSub?: Subscription;
+  readonly icons = { Check, Heart, ShoppingCart };
+
+  wishlistItems: WishlistItem[] = [];
+  toastMessage = '';
+  private sub = new Subscription();
 
   constructor(
     private wishlistService: WishlistService,
-    private cdr: ChangeDetectorRef
+    private cartService: CartService
   ) {}
 
-  ngOnInit() {
-    this.wishlistSub = this.wishlistService.wishlist$.subscribe(ids => {
-      this.loadWishlistProducts(ids);
+  ngOnInit(): void {
+    this.sub.add(
+      this.wishlistService.wishlist$.subscribe(items => {
+        this.wishlistItems = items;
+      })
+    );
+  }
+
+  formatCurrency(val: number): string {
+    return (val || 0).toLocaleString('vi-VN') + ' ₫';
+  }
+
+  removeFromWishlist(item: WishlistItem, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.wishlistService.removeFromWishlist(item.productId);
+    this.showToast(`Đã bỏ "${item.name}" khỏi danh sách yêu thích.`);
+  }
+
+  addToCart(item: WishlistItem, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.cartService.addToCart(
+      item.variantId || 'default',
+      1,
+      null,
+      {
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        image: item.image
+      }
+    ).subscribe({
+      next: () => {
+        this.showToast(`Đã thêm "${item.name}" vào giỏ hàng!`);
+      },
+      error: () => {
+        this.showToast(`Không thể thêm vào giỏ hàng. Vui lòng thử lại.`);
+      }
     });
   }
 
-  ngOnDestroy() {
-    this.wishlistSub?.unsubscribe();
+  showToast(message: string): void {
+    this.toastMessage = message;
+    setTimeout(() => {
+      this.toastMessage = '';
+    }, 3500);
   }
 
-  async loadWishlistProducts(ids: string[]) {
-    if (!ids || ids.length === 0) {
-      this.wishlistItems = [];
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.isLoading = true;
-    try {
-      const res = await fetch(`${environment.apiUrl}/products`);
-      if (res.ok) {
-        const data = await res.json();
-        const allProds = Array.isArray(data) ? data : (data.data || []);
-        this.wishlistItems = allProds
-          .filter((p: any) => ids.includes(p.id) || ids.includes(p.productId))
-          .map((p: any) => ({
-            id: p.id || p.productId,
-            name: p.name || 'Sản phẩm DCor',
-            image: Array.isArray(p.images) && p.images[0] ? p.images[0] : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
-            price: p.basePrice || 0
-          }));
-      }
-    } catch (err) {
-      console.error('Lỗi tải sản phẩm yêu thích:', err);
-    } finally {
-      this.isLoading = false;
-      this.cdr.detectChanges();
-    }
-  }
-
-  formatCurrency(val: number) {
-    return val.toLocaleString('vi-VN') + ' ₫';
-  }
-
-  removeFromWishlist(index: number) {
-    const item = this.wishlistItems[index];
-    if (item) {
-      this.wishlistService.remove(item.id);
-    }
+  ngOnDestroy(): void {
+    this.sub.unsubscribe();
   }
 }
-

@@ -93,6 +93,7 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
   // Số lượng & Tồn kho thật
   quantity = 1;
   maxStock = 0;
+  safetyThreshold = 5;
 
   // Trạng thái thao tác
   isAddingToCart = false;
@@ -378,12 +379,17 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
   private updateDataForVariant() {
     const prod = this.activeProduct;
     const v = this.matchedVariant || prod?.variants?.[0];
-    const attrs = v?.attributes || {};
-    const dims = v?.dimensions || {};
+    const attrs = v?.attributes || v?.optionValues?.attributes || {};
+    const dims = v?.dimensions || v?.optionValues?.dimensions || {};
 
-    // A. Tồn kho khả dụng thật
+    // A. Tồn kho khả dụng & Ngưỡng cảnh báo từ Database
     const stockVal = v ? ((v.stock ?? 0) - (v.reservedStock ?? 0)) : (prod?.stock || 0);
     this.maxStock = Math.max(0, stockVal);
+    
+    // Mức cảnh báo tồn kho của biến thể từ database (WarehouseStock.safetyThreshold, mặc định là 5)
+    const rawThreshold = v?.safetyThreshold ?? v?.threshold ?? v?.warehouseStocks?.[0]?.safetyThreshold;
+    this.safetyThreshold = (typeof rawThreshold === 'number' && rawThreshold > 0) ? rawThreshold : 5;
+
     if (this.maxStock > 0 && this.quantity > this.maxStock) {
       this.quantity = this.maxStock;
     }
@@ -506,6 +512,30 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     return group.options.find(o => o.id === selId) || group.options[0];
   }
 
+  formatOptionDisplayName(name: string | undefined | null, group?: ProductAttributeGroup): string {
+    if (!name) return '';
+    let str = name.trim();
+
+    const isSize = group ? ((group.groupId || '').toLowerCase().includes('size') || (group.label || '').toLowerCase().includes('kích thước')) : false;
+
+    // 1. Nếu là số thuần trong nhóm kích thước hoặc chân/độ cao, thêm đơn vị "cm"
+    if (/^\d+(\.\d+)?$/.test(str) && isSize) {
+      return `${str} cm`;
+    }
+
+    // 2. Chuẩn hóa khoảng trắng trước các đơn vị đo lường: 15cm -> 15 cm, 17cm -> 17 cm, 9,5cm -> 9,5 cm
+    str = str.replace(/(\d+(?:[½¼¾]|\/\d+)?)\s*(cm|mm|m)\b/gi, '$1 $2');
+
+    // 3. Chuẩn hóa ký tự nhân kích thước x thành × với khoảng cách đẹp: H45xØ38cm -> H45 × Ø38 cm
+    str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
+    str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
+
+    // 4. Chuẩn hóa ký hiệu đường kính Ø: Ø230cm -> Ø230 cm
+    str = str.replace(/[Øø]\s*(\d+)/g, 'Ø$1');
+
+    return str;
+  }
+
   private findMatchingVariant(attrs: Record<string, string>): any | null {
     const variants: any[] = this.activeProduct?.variants || [];
     if (variants.length === 0) return null;
@@ -601,8 +631,11 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   decreaseQuantity() {
+    if (this.maxStock === 0) return;
     if (this.quantity > 1) {
       this.quantity--;
+    } else {
+      this.quantity = 1;
     }
   }
 
@@ -611,6 +644,82 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     if (this.quantity < this.maxStock) {
       this.quantity++;
     }
+  }
+
+  onQuantityFocus(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input) {
+      input.select();
+    }
+  }
+
+  onQuantityKeydown(event: KeyboardEvent) {
+    const allowedKeys = [
+      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Home', 'End'
+    ];
+    if (allowedKeys.includes(event.key)) {
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.increaseQuantity();
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.decreaseQuantity();
+      } else if (event.key === 'Enter') {
+        (event.target as HTMLElement).blur();
+      }
+      return;
+    }
+
+    if (event.ctrlKey || event.metaKey) {
+      return;
+    }
+
+    // Chỉ cho phép nhập các ký tự số từ 0 đến 9
+    if (!/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  onQuantityInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const cleanVal = input.value.replace(/\D/g, '');
+
+    if (!cleanVal) {
+      input.value = '';
+      return;
+    }
+
+    let num = parseInt(cleanVal, 10);
+    if (this.maxStock > 0 && num > this.maxStock) {
+      num = this.maxStock;
+    }
+    if (num < 1) {
+      num = 1;
+    }
+
+    input.value = String(num);
+    this.quantity = num;
+  }
+
+  onQuantityBlur(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const cleanVal = input.value.replace(/\D/g, '');
+    let num = parseInt(cleanVal, 10);
+
+    if (isNaN(num) || num < 1) {
+      num = this.maxStock > 0 ? 1 : 0;
+    } else if (this.maxStock > 0 && num > this.maxStock) {
+      num = this.maxStock;
+    }
+
+    this.quantity = num;
+    input.value = String(this.quantity);
+  }
+
+  get isLowStock(): boolean {
+    return this.maxStock > 0 && this.maxStock <= this.safetyThreshold;
   }
 
   get currentSku(): string {
@@ -688,6 +797,12 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
+    if (!this.quantity || this.quantity < 1) {
+      this.quantity = 1;
+    } else if (this.quantity > this.maxStock) {
+      this.quantity = this.maxStock;
+    }
+
     this.isAddingToCart = true;
     this.cartMessage = '';
 
@@ -752,6 +867,12 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     const variant = this.matchedVariant || this.activeProduct?.variants?.[0];
     if (!variant || this.maxStock === 0) return;
 
+    if (!this.quantity || this.quantity < 1) {
+      this.quantity = 1;
+    } else if (this.quantity > this.maxStock) {
+      this.quantity = this.maxStock;
+    }
+
     const cleanVariantName = (variant.name || '').replace(/([a-zA-Z])\/([a-zA-Z])/g, '$1 · ');
     const selectedConfig = {
       variantName: cleanVariantName,
@@ -814,8 +935,25 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
   viewFullDetail() {
     const pid = this.activeProduct?.productId || this.activeProduct?.id;
     if (pid) {
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = sessionStorage.getItem('dcor_explore_saved_state');
+          if (raw) {
+            const data = JSON.parse(raw);
+            data.productId = pid;
+            sessionStorage.setItem('dcor_explore_saved_state', JSON.stringify(data));
+          } else {
+            sessionStorage.setItem('dcor_explore_saved_state', JSON.stringify({
+              scrollY: window.scrollY || document.documentElement.scrollTop || 0,
+              productId: pid,
+              timestamp: Date.now()
+            }));
+          }
+        } catch {}
+      }
       this.closeAction();
       this.router.navigate(['/products', pid]);
     }
   }
+
 }

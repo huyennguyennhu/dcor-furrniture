@@ -38,11 +38,64 @@
       <form (submit)="$event.preventDefault(); submitCustomRequest()" class="custom-main-form">
 
         <!-- ================================================================= -->
-        <!-- KHỐI 1: THÔNG SỐ KỸ THUẬT & TÙY BIẾN SẢN PHẨM (DỮ LIỆU THẬT) -->
+        <!-- KHỐI 1: THÔNG TIN LIÊN HỆ -->
         <!-- ================================================================= -->
         <section class="form-section-card">
           <div class="section-card-header">
             <div class="section-badge-num">1</div>
+            <div class="section-header-text">
+              <h4>Thông tin liên hệ</h4>
+              <p>Thông tin người yêu cầu để Kiến trúc sư DCOR liên hệ tư vấn và gửi hồ sơ báo giá</p>
+            </div>
+          </div>
+
+          <div class="section-card-body">
+            <div class="form-grid-two-col">
+              <!-- Họ và tên -->
+              <div class="form-field-group">
+                <label for="cFullName">Họ và tên người liên hệ <span class="req">*</span></label>
+                <input type="text" id="cFullName" [(ngModel)]="fullName" (input)="onFullNameInput()"
+                  (blur)="onBlurField('fullName')" name="fullName" placeholder="Ví dụ: Nguyễn Văn A"
+                  class="custom-input" [class.is-invalid]="formErrors['fullName']" />
+                <span class="field-error-text" *ngIf="formErrors['fullName']">{{ formErrors['fullName'] }}</span>
+              </div>
+
+              <!-- Số điện thoại -->
+              <div class="form-field-group">
+                <label for="cPhone">Số điện thoại liên hệ <span class="req">*</span></label>
+                <div class="phone-input-row">
+                  <input type="tel" id="cPhone" [(ngModel)]="phone" (input)="onPhoneInput()"
+                    (blur)="onBlurField('phone')" name="phone" placeholder="Ví dụ: 0912345678" class="custom-input"
+                    [class.is-invalid]="formErrors['phone']" />
+                  <button *ngIf="!isPhoneVerified" type="button" class="btn-action-otp" (click)="sendOtp()"
+                    [disabled]="isSendingOtp">
+                    {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
+                  </button>
+                </div>
+                <span class="field-error-text" *ngIf="formErrors['phone']">{{ formErrors['phone'] }}</span>
+              </div>
+
+              <!-- Email nhận Draft Hợp đồng & Báo giá -->
+              <div class="form-field-group full-width">
+                <label for="cEmail">Email</label>
+                <input type="email" id="cEmail" [(ngModel)]="email" (input)="onEmailInput()"
+                  (blur)="onBlurField('email')" name="email" placeholder="Ví dụ: hoten@gmail.com (không bắt buộc)" class="custom-input"
+                  [class.is-invalid]="formErrors['email']" />
+                <span class="field-error-text" *ngIf="formErrors['email']">{{ formErrors['email'] }}</span>
+                <span class="field-hint-text">
+                  DCor sẽ gửi hồ sơ kỹ thuật, bản vẽ 3D và phụ lục vật liệu chi tiết về hòm thư này (nếu có cung cấp email).
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- KHỐI 2: THÔNG SỐ KỸ THUẬT & TÙY BIẾN SẢN PHẨM (DỮ LIỆU THẬT) -->
+        <!-- ================================================================= -->
+        <section class="form-section-card">
+          <div class="section-card-header">
+            <div class="section-badge-num">2</div>
             <div class="section-header-text">
               <h4>Thông số kỹ thuật & Tùy biến sản phẩm</h4>
               <p>Đối chiếu thông số tiêu chuẩn và tùy chỉnh các thuộc tính sẵn có của sản phẩm</p>
@@ -180,11 +233,11 @@
         </section>
 
         <!-- ================================================================= -->
-        <!-- KHỐI 2: TẢI TỆP TƯ LIỆU & MẪU THIẾT KẾ THAM KHẢO -->
+        <!-- KHỐI 3: TẢI TỆP TƯ LIỆU & MẪU THIẾT KẾ THAM KHẢO -->
         <!-- ================================================================= -->
         <section class="form-section-card">
           <div class="section-card-header">
-            <div class="section-badge-num">2</div>
+            <div class="section-badge-num">3</div>
             <div class="section-header-text">
               <h4>Tệp tư liệu & Mẫu thiết kế tham khảo</h4>
               <p>Tải lên bản phác thảo mặt bằng, hình ảnh phối cảnh 3D hoặc mẫu vân gỗ, màu vải thực tế</p>
@@ -232,68 +285,6 @@
               </div>
             </div>
 
-          </div>
-        </section>
-
-        <!-- ================================================================= -->
-        <!-- KHỐI 3: THÔNG TIN LIÊN HỆ -->
-        <!-- ================================================================= -->
-        <section class="form-section-card">
-          <div class="section-card-header">
-            <div class="section-badge-num">3</div>
-            <div class="section-header-text">
-              <h4>Thông tin liên hệ</h4>
-            </div>
-          </div>
-
-          <div class="section-card-body">
-            <div class="form-grid-two-col">
-              <!-- Họ và tên -->
-              <div class="form-field-group">
-                <label for="cFullName">Họ và tên người liên hệ <span class="req">*</span></label>
-                <input type="text" id="cFullName" [(ngModel)]="fullName" (input)="onFullNameInput()"
-                  (blur)="onBlurField('fullName')" name="fullName" placeholder="Ví dụ: Nguyễn Văn A"
-                  class="custom-input" [class.is-invalid]="formErrors['fullName']" />
-                <span class="field-error-text" *ngIf="formErrors['fullName']">{{ formErrors['fullName'] }}</span>
-              </div>
-
-              <!-- Số điện thoại kèm nút/badge xác thực OTP -->
-              <div class="form-field-group">
-                <div class="label-with-badge">
-                  <label for="cPhone">Số điện thoại liên hệ <span class="req">*</span></label>
-                  <span *ngIf="isPhoneVerified" class="verify-badge verified">
-                    <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
-                    <span>Đã xác thực</span>
-                  </span>
-                  <span *ngIf="!isPhoneVerified" class="verify-badge unverified" (click)="sendOtp()"
-                    title="Nhấn để gửi mã xác thực OTP ngay">
-                    Chưa xác thực SĐT
-                  </span>
-                </div>
-                <div class="phone-input-row">
-                  <input type="tel" id="cPhone" [(ngModel)]="phone" (input)="onPhoneInput()"
-                    (blur)="onBlurField('phone')" name="phone" placeholder="Ví dụ: 0912345678" class="custom-input"
-                    [class.is-invalid]="formErrors['phone']" />
-                  <button *ngIf="!isPhoneVerified" type="button" class="btn-action-otp" (click)="sendOtp()"
-                    [disabled]="isSendingOtp">
-                    {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
-                  </button>
-                </div>
-                <span class="field-error-text" *ngIf="formErrors['phone']">{{ formErrors['phone'] }}</span>
-              </div>
-
-              <!-- Email nhận Draft Hợp đồng & Báo giá -->
-              <div class="form-field-group full-width">
-                <label for="cEmail">Email<span class="req">*</span></label>
-                <input type="email" id="cEmail" [(ngModel)]="email" (input)="onEmailInput()"
-                  (blur)="onBlurField('email')" name="email" placeholder="Ví dụ: hoten@gmail.com" class="custom-input"
-                  [class.is-invalid]="formErrors['email']" />
-                <span class="field-error-text" *ngIf="formErrors['email']">{{ formErrors['email'] }}</span>
-                <span class="field-hint-text">
-                  DCor sẽ gửi hồ sơ kỹ thuật, bản vẽ 3D và phụ lục vật liệu chi tiết về hòm thư này.
-                </span>
-              </div>
-            </div>
           </div>
         </section>
 

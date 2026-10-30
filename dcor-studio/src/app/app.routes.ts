@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { adminGuestGuard } from './core/guards/guest.guard';
+import { customerGuard } from './core/guards/customer.guard';
 
 export const routes: Routes = [
   // --- Admin Area (Dashboard) ---
@@ -24,6 +25,7 @@ export const routes: Routes = [
       { path: 'products/categories', loadComponent: () => import('./features/admin/pages/product-categories/product-categories').then(m => m.ProductCategoriesComponent) },
       { path: 'products/:id', loadComponent: () => import('./features/admin/pages/products/product-form/product-form').then(m => m.ProductFormComponent) },
       { path: 'orders', loadComponent: () => import('./features/admin/pages/orders/orders').then(m => m.OrdersComponent) },
+      { path: 'custom-requests', loadComponent: () => import('./features/admin/pages/custom-requests/custom-requests').then(m => m.AdminCustomRequestsComponent) },
       { path: 'orders/returns', loadComponent: () => import('./features/admin/pages/orders/orders-returns/orders-returns').then(m => m.OrdersReturnsComponent) },
       { path: 'orders/returns/:id', loadComponent: () => import('./features/admin/pages/orders/orders-returns/order-return-detail/order-return-detail').then(m => m.OrderReturnDetailComponent) },
       { path: 'orders/warranty', loadComponent: () => import('./features/admin/pages/orders/orders-warranty/orders-warranty').then(m => m.OrdersWarrantyComponent) },
@@ -45,8 +47,8 @@ export const routes: Routes = [
       { path: 'vouchers', loadComponent: () => import('./features/admin/pages/promotions/vouchers/vouchers').then(m => m.VouchersComponent) },
       { path: 'campaigns', loadComponent: () => import('./features/admin/pages/promotions/campaigns/campaigns').then(m => m.CampaignsComponent) },
       { path: 'appointments', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
-      { path: 'appointments/schedule', loadComponent: () => import('./features/admin/pages/appointments/appointment-schedule/appointment-schedule').then(m => m.AppointmentScheduleComponent) },
-      { path: 'appointments/requests', loadComponent: () => import('./features/admin/pages/appointments/appointment-requests/appointment-requests').then(m => m.AppointmentRequestsComponent) },
+      { path: 'appointments/schedule', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
+      { path: 'appointments/requests', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
       { path: 'content', loadComponent: () => import('./features/admin/pages/content/content').then(m => m.ContentComponent) },
       { path: 'chat', loadComponent: () => import('./features/admin/pages/chat/chat').then(m => m.ChatComponent) },
       { path: 'designs', loadComponent: () => import('./features/admin/pages/designs/designs').then(m => m.DesignsComponent) },
@@ -83,6 +85,8 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./features/store/pages/home/home').then(m => m.HomeComponent) },
       { path: 'explore', loadComponent: () => import('./features/store/pages/explore/explore').then(m => m.ExploreComponent) },
+      { path: 'kham-pha', redirectTo: 'explore', pathMatch: 'full' },
+      { path: 'kham-pha/:id', redirectTo: 'products/:id' },
       { path: 'products/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) },
       { path: 'explore/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) }, // Alias
       { path: 'cart', redirectTo: '', pathMatch: 'full' },
@@ -90,6 +94,12 @@ export const routes: Routes = [
       { path: 'blog', loadComponent: () => import('./features/store/pages/blog/blog').then(m => m.BlogComponent) },
       { path: 'custom-design', loadComponent: () => import('./features/store/pages/custom-design/custom-design').then(m => m.CustomDesignComponent) },
       { path: 'community', loadComponent: () => import('./features/store/pages/community/community').then(m => m.CommunityComponent) },
+      { path: 'about', loadComponent: () => import('./features/store/pages/support/pages/about/about').then(m => m.AboutComponent) },
+      { path: 'faq', loadComponent: () => import('./features/store/pages/support/pages/faq/faq').then(m => m.FaqComponent) },
+      { path: 'huong-dan-mua-hang', loadComponent: () => import('./features/store/pages/support/pages/guide/guide').then(m => m.ShoppingGuideComponent) },
+      { path: 'chinh-sach/:slug', loadComponent: () => import('./features/store/pages/support/pages/policy/policy').then(m => m.PolicyComponent) },
+      { path: 'consultation', redirectTo: 'account/appointments', pathMatch: 'full' },
+      { path: 'showroom', redirectTo: 'account/appointments', pathMatch: 'full' },
       
       // --- Account Area (inside Store Layout) ---
       {
@@ -97,9 +107,16 @@ export const routes: Routes = [
         children: [
           { path: '', redirectTo: 'profile', pathMatch: 'full' },
           { path: 'profile', loadComponent: () => import('./features/account/pages/profile/profile').then(m => m.ProfileComponent) },
+          { path: 'addresses', canActivate: [customerGuard], loadComponent: () => import('./features/account/pages/addresses/addresses').then(m => m.AccountAddressesComponent) },
           { path: 'orders', loadComponent: () => import('./features/account/pages/my-orders/my-orders').then(m => m.MyOrdersComponent) },
+          { path: 'my-orders', redirectTo: 'orders', pathMatch: 'full' },
+          { path: 'returns', loadComponent: () => import('./features/account/pages/returns/returns').then(m => m.AccountReturnsComponent) },
+          { path: 'warranty', loadComponent: () => import('./features/account/pages/warranty/warranty').then(m => m.AccountWarrantyComponent) },
           { path: 'wishlist', loadComponent: () => import('./features/account/pages/wishlist/wishlist').then(m => m.WishlistComponent) },
+          { path: 'appointments', loadComponent: () => import('./features/account/pages/appointments/appointments').then(m => m.AccountAppointmentsComponent) },
           { path: 'custom-requests', loadComponent: () => import('./features/account/pages/custom-requests/custom-requests').then(m => m.CustomRequestsComponent) },
+          { path: 'designs', loadComponent: () => import('./features/account/pages/my-designs/my-designs').then(m => m.MyDesignsComponent) },
+          { path: 'notifications', canActivate: [customerGuard], loadComponent: () => import('./features/account/pages/notifications/notifications').then(m => m.AccountNotificationsComponent) },
         ]
       }
     ]

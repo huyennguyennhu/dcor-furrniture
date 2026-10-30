@@ -1,0 +1,452 @@
+<div class="account-page">
+  <div class="container account-layout-container">
+    
+    <!-- Sidebar Account -->
+    <aside class="account-sidebar" aria-label="Menu tài khoản">
+      <h2 class="sidebar-title">Tài khoản</h2>
+      <nav class="sidebar-nav">
+        <a routerLink="/account/profile" class="sidebar-link">
+          <app-icon name="CircleUserRound" size="18"></app-icon>
+          <span>Hồ sơ cá nhân</span>
+        </a>
+        <a routerLink="/account/orders" class="sidebar-link">
+          <app-icon name="Package" size="18"></app-icon>
+          <span>Đơn hàng của tôi</span>
+        </a>
+        <a routerLink="/account/designs" class="sidebar-link active" aria-current="page">
+          <app-icon name="Layers" size="18"></app-icon>
+          <span>Thiết kế của tôi</span>
+        </a>
+        <a routerLink="/account/wishlist" class="sidebar-link">
+          <app-icon name="Heart" size="18"></app-icon>
+          <span>Sản phẩm yêu thích</span>
+        </a>
+        <a routerLink="/account/custom-requests" class="sidebar-link">
+          <app-icon name="Pencil" size="18"></app-icon>
+          <span>Yêu cầu may đo</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="account-main-content">
+      
+      <!-- Page Header -->
+      <header class="designs-header">
+        <div class="header-text-group">
+          <h1 class="page-title">Thiết kế của tôi</h1>
+          <p class="page-desc">Quản lý các bản vẽ không gian 3D, bản nháp phòng và các bài viết cộng đồng bạn yêu thích.</p>
+        </div>
+        <a routerLink="/custom-design" class="new-design-btn" aria-label="Tạo thiết kế mới trong Room Planner">
+          <app-icon name="Plus" size="18"></app-icon>
+          <span>Tạo thiết kế mới</span>
+        </a>
+      </header>
+
+      <!-- 3 Tabs: Đã lưu, Bản nháp, Đã thích -->
+      <nav class="designs-tabs-bar" aria-label="Tab phân loại thiết kế">
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'SAVED'"
+          (click)="switchTab('SAVED')"
+          aria-label="Xem thiết kế đã lưu">
+          <app-icon name="Bookmark" size="16"></app-icon>
+          <span>Đã lưu</span>
+          <span class="tab-count-badge">{{ saved().length }}</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'DRAFT'"
+          (click)="switchTab('DRAFT')"
+          aria-label="Xem các bản nháp thiết kế">
+          <app-icon name="Clock" size="16"></app-icon>
+          <span>Bản nháp</span>
+          <span class="tab-count-badge" [class.badge-warning]="drafts().length > 0">{{ drafts().length }}</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'LIKED'"
+          (click)="switchTab('LIKED')"
+          aria-label="Xem các bài viết thiết kế đã thích">
+          <app-icon name="Heart" size="16"></app-icon>
+          <span>Đã thích</span>
+          <span class="tab-count-badge">{{ liked().length }}</span>
+        </button>
+      </nav>
+
+      <!-- TRẠNG THÁI SKELETON LOADING -->
+      <div *ngIf="isLoading()" class="designs-grid skeleton-grid" aria-busy="true" aria-label="Đang tải danh sách thiết kế">
+        <div class="design-card skeleton-card" *ngFor="let i of [1, 2, 3, 4]">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-body">
+            <div class="skeleton-line skeleton-title"></div>
+            <div class="skeleton-line skeleton-meta"></div>
+            <div class="skeleton-line skeleton-date"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRẠNG THÁI BÁO LỖI VÀ THỬ LẠI -->
+      <div *ngIf="!isLoading() && errorMessage()" class="error-state-card" role="alert">
+        <app-icon name="AlertTriangle" size="36" color="#C42326"></app-icon>
+        <h3 class="error-title">Không thể tải dữ liệu</h3>
+        <p class="error-desc">{{ errorMessage() }}</p>
+        <button type="button" class="retry-btn" (click)="loadAllData()" aria-label="Thử tải lại danh sách">
+          <app-icon name="RefreshCw" size="16"></app-icon>
+          <span>Thử lại</span>
+        </button>
+      </div>
+
+      <!-- NỘI DUNG KHI ĐÃ TẢI XONG -->
+      <ng-container *ngIf="!isLoading() && !errorMessage()">
+
+        <!-- TAB 1: ĐÃ LƯU (SAVED) -->
+        <section *ngIf="activeTab() === 'SAVED'" class="tab-panel">
+          <!-- Empty State -->
+          <div *ngIf="saved().length === 0" class="empty-state-card">
+            <div class="empty-icon-bubble">
+              <app-icon name="Bookmark" size="36" color="#BC5F13"></app-icon>
+            </div>
+            <h3 class="empty-title">Chưa có thiết kế đã lưu</h3>
+            <p class="empty-desc">Khi hoàn thiện phòng trong Room Planner, hãy bấm "Lưu thiết kế" để lưu trữ vĩnh viễn trong tài khoản của bạn.</p>
+            <a routerLink="/custom-design" class="empty-action-btn">
+              <app-icon name="Plus" size="18"></app-icon>
+              <span>Bắt đầu thiết kế</span>
+            </a>
+          </div>
+
+          <!-- Grid Thiết kế Đã lưu -->
+          <div *ngIf="saved().length > 0" class="designs-grid">
+            <article class="design-card" *ngFor="let item of saved()">
+              <div class="card-thumb-wrap" (click)="openDesign(item)" title="Bấm để mở thiết kế trong Room Planner">
+                <img 
+                  [src]="item.coverImageUrl || item.backgroundUrl" 
+                  [alt]="item.title"
+                  class="card-thumb-img"
+                  loading="lazy"
+                />
+                <div class="thumb-overlay">
+                  <span class="open-pill">
+                    <app-icon name="ExternalLink" size="15"></app-icon>
+                    <span>Mở thiết kế</span>
+                  </span>
+                </div>
+                <span class="status-badge badge-saved">Đã lưu</span>
+              </div>
+
+              <div class="card-body">
+                <div class="card-title-row">
+                  <h3 class="design-name" (click)="openDesign(item)" [title]="item.title">{{ item.title }}</h3>
+                </div>
+
+                <div class="card-meta-row">
+                  <span class="meta-item">
+                    <app-icon name="Ruler" size="14"></app-icon>
+                    <span>{{ item.roomLength }}m × {{ item.roomWidth }}m</span>
+                  </span>
+                  <span class="meta-separator">•</span>
+                  <span class="meta-item">
+                    <app-icon name="Package" size="14"></app-icon>
+                    <span>{{ item.layoutCount || 0 }} món đồ</span>
+                  </span>
+                </div>
+
+                <div class="card-footer-row">
+                  <span class="last-edited-text" [title]="'Cập nhật: ' + formatDate(item.lastEditedAt)">
+                    <app-icon name="Clock" size="13"></app-icon>
+                    <span>{{ formatDate(item.lastEditedAt) }}</span>
+                  </span>
+
+                  <div class="card-actions-group">
+                    <button 
+                      type="button" 
+                      class="card-action-btn rename-btn" 
+                      (click)="promptRename(item, $event)"
+                      title="Đổi tên thiết kế"
+                      aria-label="Đổi tên thiết kế">
+                      <app-icon name="Pencil" size="15"></app-icon>
+                    </button>
+                    <button 
+                      type="button" 
+                      class="card-action-btn delete-btn" 
+                      (click)="promptDelete(item, $event)"
+                      title="Xóa thiết kế"
+                      aria-label="Xóa thiết kế">
+                      <app-icon name="Trash2" size="15"></app-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- TAB 2: BẢN NHÁP (DRAFT) -->
+        <section *ngIf="activeTab() === 'DRAFT'" class="tab-panel">
+          
+          <!-- Banner chú ý về hạn xóa bản nháp 7 ngày -->
+          <aside class="drafts-expiry-notice" role="note">
+            <app-icon name="Info" size="18" color="#BC5F13"></app-icon>
+            <div class="notice-text">
+              <strong>Lưu ý về bản nháp:</strong> Các bản nháp tự động lưu sẽ được hệ thống tự dọn dẹp sau <strong>7 ngày</strong> không có chỉnh sửa. Hãy mở và bấm <em>"Lưu thiết kế"</em> để chuyển sang bản lưu chính thức vĩnh viễn.
+            </div>
+          </aside>
+
+          <!-- Empty State -->
+          <div *ngIf="drafts().length === 0" class="empty-state-card">
+            <div class="empty-icon-bubble">
+              <app-icon name="Clock" size="36" color="#765337"></app-icon>
+            </div>
+            <h3 class="empty-title">Không có bản nháp nào</h3>
+            <p class="empty-desc">Mọi không gian phòng bạn đang chỉnh sửa dở dang trên máy chủ sẽ tự động xuất hiện tại đây.</p>
+            <a routerLink="/custom-design" class="empty-action-btn">
+              <app-icon name="Plus" size="18"></app-icon>
+              <span>Bắt đầu thiết kế</span>
+            </a>
+          </div>
+
+          <!-- Grid Bản nháp -->
+          <div *ngIf="drafts().length > 0" class="designs-grid">
+            <article class="design-card" *ngFor="let item of drafts()">
+              <div class="card-thumb-wrap" (click)="openDesign(item)" title="Bấm để tiếp tục chỉnh sửa bản nháp">
+                <img 
+                  [src]="item.coverImageUrl || item.backgroundUrl" 
+                  [alt]="item.title"
+                  class="card-thumb-img"
+                  loading="lazy"
+                />
+                <div class="thumb-overlay">
+                  <span class="open-pill">
+                    <app-icon name="ExternalLink" size="15"></app-icon>
+                    <span>Tiếp tục chỉnh sửa</span>
+                  </span>
+                </div>
+
+                <!-- Badge ngày còn lại (Cảnh báo màu khi <= 2 ngày) -->
+                <span 
+                  class="days-left-badge" 
+                  [class.warning-urgent]="isDaysWarning(item.daysLeft)">
+                  <app-icon [name]="isDaysWarning(item.daysLeft) ? 'AlertTriangle' : 'Clock'" size="13"></app-icon>
+                  <span>Còn {{ item.daysLeft !== undefined ? item.daysLeft : 7 }} ngày</span>
+                </span>
+              </div>
+
+              <div class="card-body">
+                <div class="card-title-row">
+                  <h3 class="design-name" (click)="openDesign(item)" [title]="item.title">{{ item.title }}</h3>
+                </div>
+
+                <div class="card-meta-row">
+                  <span class="meta-item">
+                    <app-icon name="Ruler" size="14"></app-icon>
+                    <span>{{ item.roomLength }}m × {{ item.roomWidth }}m</span>
+                  </span>
+                  <span class="meta-separator">•</span>
+                  <span class="meta-item">
+                    <app-icon name="Package" size="14"></app-icon>
+                    <span>{{ item.layoutCount || 0 }} món đồ</span>
+                  </span>
+                </div>
+
+                <div class="card-footer-row">
+                  <span class="last-edited-text" [title]="'Cập nhật: ' + formatDate(item.lastEditedAt)">
+                    <app-icon name="Clock" size="13"></app-icon>
+                    <span>{{ formatDate(item.lastEditedAt) }}</span>
+                  </span>
+
+                  <div class="card-actions-group">
+                    <button 
+                      type="button" 
+                      class="card-action-btn rename-btn" 
+                      (click)="promptRename(item, $event)"
+                      title="Đổi tên bản nháp"
+                      aria-label="Đổi tên bản nháp">
+                      <app-icon name="Pencil" size="15"></app-icon>
+                    </button>
+                    <button 
+                      type="button" 
+                      class="card-action-btn delete-btn" 
+                      (click)="promptDelete(item, $event)"
+                      title="Xóa bản nháp"
+                      aria-label="Xóa bản nháp">
+                      <app-icon name="Trash2" size="15"></app-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- TAB 3: ĐÃ THÍCH (LIKED) -->
+        <section *ngIf="activeTab() === 'LIKED'" class="tab-panel">
+          
+          <!-- Empty State -->
+          <div *ngIf="liked().length === 0" class="empty-state-card">
+            <div class="empty-icon-bubble">
+              <app-icon name="Heart" size="36" color="#C42326"></app-icon>
+            </div>
+            <h3 class="empty-title">Chưa thích bài viết thiết kế nào</h3>
+            <p class="empty-desc">Khám phá các không gian sáng tạo do cộng đồng DCor chia sẻ và bấm thích để lưu lại nguồn cảm hứng.</p>
+            <a routerLink="/community" class="empty-action-btn">
+              <app-icon name="Share2" size="18"></app-icon>
+              <span>Khám phá Cộng đồng</span>
+            </a>
+          </div>
+
+          <!-- Grid Bài viết đã thích -->
+          <div *ngIf="liked().length > 0" class="designs-grid community-liked-grid">
+            <article class="design-card community-post-card" *ngFor="let post of liked()">
+              <div class="card-thumb-wrap" (click)="openCommunityPost(post)" title="Xem bài viết trên Cộng đồng">
+                <img 
+                  [src]="post.imageUrl" 
+                  [alt]="post.title"
+                  class="card-thumb-img"
+                  loading="lazy"
+                />
+                <div class="thumb-overlay">
+                  <span class="open-pill">
+                    <app-icon name="ExternalLink" size="15"></app-icon>
+                    <span>Xem bài viết</span>
+                  </span>
+                </div>
+                
+                <!-- Nút bỏ thích trực tiếp trên thẻ -->
+                <button 
+                  type="button" 
+                  class="unlike-card-btn" 
+                  (click)="unlikePost(post, $event)"
+                  title="Bỏ thích bài viết này"
+                  aria-label="Bỏ thích bài viết">
+                  <app-icon name="Heart" size="16" color="#C42326" [filled]="true"></app-icon>
+                </button>
+              </div>
+
+              <div class="card-body">
+                <div class="card-title-row">
+                  <h3 class="design-name" (click)="openCommunityPost(post)" [title]="post.title">{{ post.title }}</h3>
+                </div>
+
+                <div class="community-author-row">
+                  <span class="author-label">Tác giả:</span>
+                  <span class="author-name">{{ post.authorName }}</span>
+                </div>
+
+                <p *ngIf="post.description" class="post-snippet">{{ post.description }}</p>
+
+                <div class="card-footer-row community-footer-row">
+                  <span class="post-likes-count">
+                    <app-icon name="Heart" size="14" color="#C42326" [filled]="true"></app-icon>
+                    <span>{{ post.likesCount }} lượt thích</span>
+                  </span>
+
+                  <button 
+                    type="button" 
+                    class="unlike-text-btn" 
+                    (click)="unlikePost(post, $event)"
+                    aria-label="Bỏ thích">
+                    <span>Bỏ thích</span>
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+      </ng-container>
+
+    </main>
+
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: ĐỔI TÊN THIẾT KẾ                         -->
+<!-- ============================================== -->
+<app-modal 
+  [isOpen]="isRenameModalOpen()" 
+  title="Đổi tên thiết kế" 
+  width="440px" 
+  [hasFooter]="true"
+  (close)="closeRenameModal()">
+  
+  <div class="rename-modal-body">
+    <label class="modal-input-label" for="rename-input-field">Tiêu đề thiết kế mới</label>
+    <input 
+      id="rename-input-field"
+      type="text" 
+      class="modal-text-input" 
+      [(ngModel)]="renameInput" 
+      maxlength="100"
+      placeholder="Nhập tên mới cho thiết kế..."
+      (keyup.enter)="confirmRename()"
+      [disabled]="isActionLoading()"
+    />
+    <div class="input-char-counter">{{ renameInput().length }}/100 ký tự</div>
+    <div *ngIf="renameError()" class="modal-error-msg" role="alert">{{ renameError() }}</div>
+  </div>
+
+  <div footer class="modal-footer-btns">
+    <button type="button" class="btn-cancel" (click)="closeRenameModal()" [disabled]="isActionLoading()">
+      Hủy
+    </button>
+    <button type="button" class="btn-confirm" (click)="confirmRename()" [disabled]="isActionLoading() || !renameInput().trim()">
+      <app-icon *ngIf="isActionLoading()" name="LoaderCircle" size="16" class="icon-spin"></app-icon>
+      <span>{{ isActionLoading() ? 'Đang lưu...' : 'Lưu tên mới' }}</span>
+    </button>
+  </div>
+</app-modal>
+
+<!-- ============================================== -->
+<!-- MODAL: XÁC NHẬN XÓA THIẾT KẾ                   -->
+<!-- ============================================== -->
+<app-modal 
+  [isOpen]="isDeleteModalOpen()" 
+  title="Xác nhận xóa thiết kế" 
+  width="440px" 
+  [hasFooter]="true"
+  (close)="closeDeleteModal()">
+  
+  <div class="delete-modal-body">
+    <div class="delete-warning-icon">
+      <app-icon name="Trash2" size="28" color="#C42326"></app-icon>
+    </div>
+    <div class="delete-text-wrap">
+      <p class="delete-confirm-text">
+        Bạn có chắc chắn muốn xóa vĩnh viễn thiết kế 
+        <strong>"{{ itemToDelete()?.title }}"</strong>?
+      </p>
+      <p class="delete-sub-text">Hành động này không thể hoàn tác sau khi đã xóa.</p>
+    </div>
+  </div>
+
+  <div footer class="modal-footer-btns">
+    <button type="button" class="btn-cancel" (click)="closeDeleteModal()" [disabled]="isActionLoading()">
+      Hủy bỏ
+    </button>
+    <button type="button" class="btn-danger-confirm" (click)="confirmDelete()" [disabled]="isActionLoading()">
+      <app-icon *ngIf="isActionLoading()" name="LoaderCircle" size="16" class="icon-spin"></app-icon>
+      <span>{{ isActionLoading() ? 'Đang xóa...' : 'Xóa thiết kế' }}</span>
+    </button>
+  </div>
+</app-modal>
+
+<!-- ============================================== -->
+<!-- TOAST NOTIFICATION                             -->
+<!-- ============================================== -->
+<div *ngIf="toastMessage()" class="app-toast-alert" [ngClass]="toastType()" role="status">
+  <app-icon 
+    [name]="toastType() === 'success' ? 'Check' : (toastType() === 'error' ? 'AlertTriangle' : 'Info')" 
+    size="18">
+  </app-icon>
+  <span class="toast-text">{{ toastMessage() }}</span>
+  <button type="button" class="toast-close-btn" (click)="closeToast()" aria-label="Đóng thông báo">
+    <app-icon name="X" size="14"></app-icon>
+  </button>
+</div>
+

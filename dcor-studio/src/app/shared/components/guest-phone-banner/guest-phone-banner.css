@@ -1,0 +1,331 @@
+.guest-verify-banner {
+  margin-bottom: 28px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+}
+
+.guest-verify-banner.is-verified {
+  display: contents;
+}
+
+/* Header */
+.verify-header {
+  margin-bottom: 16px;
+}
+
+.verify-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(188, 95, 19, 0.1);
+  color: var(--color-accent, #BC5F13);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.verify-desc {
+  font-size: 14px;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.verify-desc strong {
+  color: var(--text-primary, #111827);
+}
+
+.phone-form-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.field-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-label .required {
+  color: var(--color-danger, #C42326);
+}
+
+/* Form Row */
+.verify-form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted, #757575);
+  pointer-events: none;
+}
+
+.phone-input {
+  width: 100%;
+  min-height: var(--control-md, 44px);
+  padding: 10px 14px 10px 42px;
+  font-size: 14px;
+  font-family: var(--font-body, "Poppins", sans-serif);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-control, 8px);
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #0A0A0A);
+  outline: none;
+  transition: border-color var(--duration-base, 200ms) ease, box-shadow var(--duration-base, 200ms) ease;
+  box-sizing: border-box;
+}
+
+.phone-input:focus {
+  border-color: var(--color-focus, #BC5F13);
+  box-shadow: 0 0 0 2px rgba(188, 95, 19, 0.2);
+}
+
+.input-wrapper.has-error .phone-input {
+  border-color: var(--color-danger, #C42326);
+  background-color: var(--color-danger-bg, #FFE8E8);
+}
+
+.input-wrapper.has-error .input-icon {
+  color: var(--color-danger, #C42326);
+}
+
+.field-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-danger, #C42326);
+  margin-top: 2px;
+}
+
+.phone-input.otp-field {
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+/* Buttons tuân thủ chuẩn DCor UI Style Guide */
+.btn-send-otp, .btn-confirm-otp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--control-md, 44px);
+  padding: 10px 20px;
+  background-color: var(--color-primary, #765337);
+  color: var(--color-surface, #FFFFFF);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-body, "Poppins", sans-serif);
+  border: none;
+  border-radius: var(--radius-control, 8px);
+  cursor: pointer;
+  transition: background-color var(--duration-base, 200ms) ease;
+  white-space: nowrap;
+}
+
+.btn-send-otp:hover:not(:disabled), .btn-confirm-otp:hover:not(:disabled) {
+  background-color: var(--color-primary-hover, #BC5F13);
+}
+
+.btn-send-otp:active:not(:disabled), .btn-confirm-otp:active:not(:disabled) {
+  background-color: var(--color-primary-pressed, #3F2C1B);
+}
+
+.btn-send-otp:disabled, .btn-confirm-otp:disabled {
+  background-color: var(--color-surface-muted, #EDEDED);
+  color: var(--color-text-muted, #757575);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.btn-cancel-otp, .btn-resend-otp {
+  padding: 11px 16px;
+  background: transparent;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-cancel-otp:hover, .btn-resend-otp:hover {
+  background: var(--bg-hover, #f3f4f6);
+  color: var(--text-primary, #111827);
+}
+
+.countdown-text {
+  font-size: 13px;
+  color: var(--text-muted, #9ca3af);
+  white-space: nowrap;
+}
+
+/* OTP Container */
+.otp-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.otp-notice {
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+}
+
+.otp-demo {
+  color: var(--color-accent, #BC5F13);
+  background: rgba(188, 95, 19, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Alert */
+.verify-alert.error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* Floating Change Phone Button (Bottom Right Chatbox Style) */
+.floating-change-phone-container {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 1050;
+  animation: floatFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.btn-floating-change-phone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
+  background: linear-gradient(135deg, #765337 0%, #BC5F13 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(188, 95, 19, 0.38), 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(8px);
+}
+
+.btn-floating-change-phone:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 14px 32px rgba(188, 95, 19, 0.48), 0 4px 12px rgba(0, 0, 0, 0.16);
+  background: linear-gradient(135deg, #62442c 0%, #a44f0d 100%);
+}
+
+.btn-floating-change-phone:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.floating-icon-wrap {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.floating-text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  line-height: 1.25;
+}
+
+.floating-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+
+.floating-phone-val {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 500;
+}
+
+@keyframes floatFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .guest-verify-banner {
+    padding: 16px;
+  }
+  .verify-form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .floating-change-phone-container {
+    bottom: 20px;
+    right: 16px;
+  }
+  .btn-floating-change-phone {
+    padding: 8px 14px 8px 10px;
+    gap: 10px;
+  }
+  .floating-icon-wrap {
+    width: 32px;
+    height: 32px;
+  }
+  .floating-label {
+    font-size: 12px;
+  }
+  .floating-phone-val {
+    font-size: 11px;
+  }
+}

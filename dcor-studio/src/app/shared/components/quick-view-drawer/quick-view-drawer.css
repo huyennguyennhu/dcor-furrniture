@@ -486,6 +486,7 @@
     opacity: 0;
     transform: translateY(-8px) scale(0.99);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -674,6 +675,35 @@
   text-align: center;
 }
 
+.stepper-input {
+  width: 36px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  /* -moz-appearance: textfield; */
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepper-input:focus {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.stepper-input:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
 .stock-info-col {
   display: flex;
   flex-direction: column;
@@ -686,6 +716,15 @@
   color: #059669;
 }
 
+.stock-status.in-stock {
+  color: #059669;
+}
+
+.stock-status.low-stock {
+  color: #d97706;
+  font-weight: 700;
+}
+
 .stock-status.out-of-stock {
   color: #dc2626;
   font-weight: 700;
@@ -694,6 +733,11 @@
 .stock-sub {
   font-size: 11px;
   color: #9ca3af;
+}
+
+.stock-sub.warning {
+  color: #b45309;
+  font-weight: 600;
 }
 
 /* 11. Bảng Thông số kỹ thuật tiêu chuẩn (gọn gàng, thanh lịch) */
@@ -780,8 +824,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .action-btn-row {
@@ -866,4 +917,38 @@
   0% { opacity: 0.6; }
   50% { opacity: 0.3; }
   100% { opacity: 0.6; }
+}
+
+.qv-wishlist-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.qv-wishlist-btn:hover {
+  background: #fff1f2;
+  border-color: #fca5a5;
+  color: #C42326;
+  transform: translateY(-2px);
+}
+
+.qv-wishlist-btn.active {
+  background: #fff1f2;
+  border-color: #fca5a5;
+  color: #C42326;
+}
+
+.qv-wishlist-btn.active ::ng-deep svg,
+.qv-wishlist-btn.active ::ng-deep svg path {
+  fill: #C42326 !important;
+  stroke: #C42326 !important;
 }

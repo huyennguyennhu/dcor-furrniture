@@ -6,10 +6,20 @@ import { FormsModule } from '@angular/forms';
 import { CatalogProduct, ProductCategory, ProductColorSwatch } from '../../../../shared/models/catalog.model';
 import { CustomSelect } from '../../../../shared/components/custom-select/custom-select';
 import { SidebarFilterComponent, FilterState as SidebarFilterState } from '../../../../shared/components/sidebar-filter/sidebar-filter'; 
+import { 
+  CategoryClassificationService, 
+  CategoryItem, 
+  matchProductRoom, 
+  matchProductCollection, 
+  matchProductStyle, 
+  matchProductMaterial 
+} from '../../../../core/services/category-classification.service';
 import { QuickViewDrawerComponent } from '../../../../shared/components/quick-view-drawer/quick-view-drawer';
 import { ProductCompareModalComponent } from '../../../../shared/components/product-compare-modal/product-compare-modal';
 import { Subscription } from 'rxjs';
 import { WishlistService } from '../../../../core/services/wishlist.service';
+import { ProductService } from '../../../../core/services/product.service';
+import { CompareService } from '../../../../core/services/compare.service';
 import { LucideAngularModule, Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star, SlidersHorizontal, X } from 'lucide-angular';
 
 import { environment } from '../../../../../environments/environment';
@@ -18,10 +28,11 @@ export type FilterState = SidebarFilterState;
 
 const INITIAL_FILTER_STATE: FilterState = {
   categories: [],
+  rooms: [],
+  collections: [],
+  styles: [],
   materials: [],
   colors: [],
-  rooms: [],
-  styles: [],
   minRating: undefined,
   priceRange: [0, 100000000]
 };
@@ -63,8 +74,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
   
   wishlist: string[] = [];
   private wishlistSub?: Subscription;
+  private compareSub?: Subscription;
   compareList: CatalogProduct[] = [];
   isCompareModalOpen = false;
+  showClearCompareConfirmModal = false;
   compareToastMessage: string | null = null;
   compareToastType: 'warning' | 'info' | 'success' = 'warning';
   private compareToastTimer: any = null;
@@ -74,14 +87,19 @@ export class ExploreComponent implements OnInit, OnDestroy {
   heroParallaxY = 0;
   isFilterDrawerOpen = false;
   selectedVariantMap: Record<string, ProductColorSwatch> = {};
+  private sub = new Subscription();
+
+  adminCategories: CategoryItem[] = [];
+  adminCategoryMap: Record<string, CategoryItem> = {};
 
   get activeFilterCount(): number {
     let count = 0;
     count += (this.filters.categories?.length || 0);
+    count += (this.filters.rooms?.length || 0);
+    count += (this.filters.collections?.length || 0);
+    count += (this.filters.styles?.length || 0);
     count += (this.filters.materials?.length || 0);
     count += (this.filters.colors?.length || 0);
-    count += (this.filters.rooms?.length || 0);
-    count += (this.filters.styles?.length || 0);
     if (this.filters.minRating !== undefined) count++;
     if (this.filters.priceRange && (this.filters.priceRange[0] > 0 || this.filters.priceRange[1] < this.dynamicMaxPrice)) count++;
     return count;
@@ -100,12 +118,14 @@ export class ExploreComponent implements OnInit, OnDestroy {
       document.body.style.overflow = '';
     }
   }
-
   constructor(
     private route: ActivatedRoute, 
     private router: Router, 
     private cdr: ChangeDetectorRef,
-    private wishlistService: WishlistService
+    private wishlistService: WishlistService,
+    private productService: ProductService,
+    public compareService: CompareService,
+    private categoryClassificationService: CategoryClassificationService
   ) {}
 
   @HostListener('window:scroll', [])
@@ -113,9 +133,6 @@ export class ExploreComponent implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       const scrollOffset = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
       this.showScrollTop = scrollOffset > 300;
-      if (scrollOffset <= 650) {
-        this.heroParallaxY = Math.round(scrollOffset * 0.35);
-      }
     }
   }
 
@@ -129,37 +146,100 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.wishlistSub = this.wishlistService.wishlist$.subscribe(ids => {
-      this.wishlist = ids;
+    this.adminCategories = this.categoryClassificationService.getAdminCategories();
+    this.adminCategories.forEach(cat => {
+      this.adminCategoryMap[cat.slug] = cat;
+      this.adminCategoryMap[cat.id] = cat;
+    });
+
+    this.wishlistSub = this.wishlistService.wishlist$.subscribe((ids: any) => {
+      this.wishlist = Array.isArray(ids) ? (typeof ids[0] === 'string' ? ids : ids.map((i: any) => i.productId || i.id)) : [];
       this.cdr.detectChanges();
     });
 
+    this.compareSub = this.compareService.compareList$.subscribe(list => {
+      this.compareList = (list as any[]) || [];
+      this.cdr.detectChanges();
+    });
+
+    const savedState = this.getSavedExploreState();
+
     this.route.queryParams.subscribe(params => {
-      this.filters.categories = params['category'] ? [params['category']] : [];
-      this.filters.rooms = params['room'] ? [params['room']] : [];
-      this.filters.styles = params['style'] ? [params['style']] : [];
-      this.filters.colors = params['color'] ? [params['color']] : (params['colors'] ? [params['colors']] : []);
-      this.searchQuery = params['q'] || '';
-      if (params['compare']) {
-        this.pendingCompareParam = params['compare'];
+      const hasFilterParams = Boolean(
+        params['category'] || params['categories'] ||
+        params['room'] || params['rooms'] ||
+        params['collection'] || params['collections'] ||
+        params['style'] || params['styles'] ||
+        params['material'] || params['materials'] ||
+        params['color'] || params['colors'] ||
+        params['q']
+      );
+
+      if (savedState && !hasFilterParams) {
+        // Phục hồi lại toàn bộ bộ lọc, sắp xếp, tìm kiếm và phân trang từ phiên trước khi click vào sản phẩm
+        if (savedState.filters) {
+          this.filters = { ...savedState.filters };
+        }
+        if (savedState.sortBy) {
+          this.sortBy = savedState.sortBy;
+        }
+        if (savedState.searchQuery !== undefined) {
+          this.searchQuery = savedState.searchQuery;
+        }
+        this.currentPage = savedState.currentPage || 1;
+        if (params['compare']) {
+          this.pendingCompareParam = params['compare'];
+        }
+        this.fetchData(savedState);
+      } else {
+        if (hasFilterParams && typeof window !== 'undefined') {
+          sessionStorage.removeItem('dcor_explore_saved_state');
+        }
+
+        this.filters.categories = params['category'] ? [params['category']] : [];
+        this.filters.rooms = params['room'] ? [params['room']] : (params['rooms'] ? (Array.isArray(params['rooms']) ? params['rooms'] : [params['rooms']]) : []);
+        this.filters.collections = params['collection'] ? [params['collection']] : (params['collections'] ? (Array.isArray(params['collections']) ? params['collections'] : [params['collections']]) : []);
+        
+        // Normalize style slug to match canonical admin categories (bac-au-scandinavian, etc.)
+        const rawStyle = params['style'] || (Array.isArray(params['styles']) ? params['styles'][0] : params['styles']);
+        if (rawStyle) {
+          const s = String(rawStyle).toLowerCase().trim();
+          let canonicalSlug = s;
+          if (s.includes('scandinavian') || s.includes('bac-au')) canonicalSlug = 'bac-au-scandinavian';
+          else if (s.includes('modern') || s.includes('hien-dai')) canonicalSlug = 'hien-dai-modern-luxury';
+          else if (s.includes('minimal') || s.includes('toi-gian')) canonicalSlug = 'toi-gian-minimalism';
+          else if (s.includes('japandi')) canonicalSlug = 'japandi';
+          else if (s.includes('wabi')) canonicalSlug = 'wabi-sabi';
+          else if (s.includes('industrial') || s.includes('cong-nghiep')) canonicalSlug = 'industrial';
+          this.filters.styles = [canonicalSlug];
+        } else {
+          this.filters.styles = [];
+        }
+
+        this.filters.materials = params['material'] ? [params['material']] : (params['materials'] ? (Array.isArray(params['materials']) ? params['materials'] : [params['materials']]) : []);
+        this.filters.colors = params['color'] ? [params['color']] : (params['colors'] ? [params['colors']] : []);
+        this.searchQuery = params['q'] || '';
+        if (params['compare']) {
+          this.pendingCompareParam = params['compare'];
+        }
+        this.currentPage = 1;
+        this.fetchData();
+        this.scrollToTop();
       }
-      this.currentPage = 1;
-      this.fetchData();
-      this.scrollToTop();
     });
   }
 
-  async fetchData() {
+  async fetchData(savedState?: any) {
     this.isLoading = true;
     try {
-      // 1. Gọi song song API categories và products từ database thật
-      const [catRes, prodRes] = await Promise.all([
-        fetch(`${environment.apiUrl}/categories`).catch(() => null),
-        fetch(`${environment.apiUrl}/products`)
+      // 1. Gọi song song API categories và products từ cached ProductService
+      const [categoriesData, productsData] = await Promise.all([
+        this.productService.getCategories().catch(() => []),
+        this.productService.getProducts()
       ]);
 
-      if (catRes && catRes.ok) {
-        this.rawCategories = await catRes.json();
+      if (Array.isArray(categoriesData)) {
+        this.rawCategories = categoriesData;
 
         // Đồng bộ và chuẩn hóa category filter nếu URL truyền slug hoặc tên
         if (this.filters.categories.length > 0) {
@@ -185,9 +265,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
         }
       }
 
-      if (prodRes.ok) {
-        const data = await prodRes.json();
-        const rawProducts = Array.isArray(data) ? data : (data.data || data.Items || data.products || []);
+      if (Array.isArray(productsData)) {
+        const rawProducts = productsData;
         
         this.products = rawProducts.map((p: any) => {
           // Tính toán giá và giá khuyến mãi
@@ -342,6 +421,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
             id: p.id,
             productId: p.id || p.productId,
             slug: p.slug,
+            variantUrl: p.slug || p.id || '',
             name: p.name,
             shortDescription: p.name || '',
             shortDescription_vi: p.name || '',
@@ -353,8 +433,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
             refinementColors: extractedColors,
             images: finalImages,
             colorSwatches: colorSwatches,
-            prices: [{ price: basePrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(basePrice) + ' đ' }],
-            lowestPrices: lowestPrice < basePrice ? [{ price: lowestPrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(lowestPrice) + ' đ' }] : [],
+            prices: [{ price: basePrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(basePrice) + ' đ', currency: 'VND' }],
+            lowestPrices: lowestPrice < basePrice ? [{ price: lowestPrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(lowestPrice) + ' đ', currency: 'VND' }] : [],
             isBestSeller: p.isBestSeller || false,
             isNew: p.isNew || false,
             discountValue: p.discountValue,
@@ -382,9 +462,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
           const matched = this.products.filter(p => ids.includes(p.productId || (p as any).id));
           if (matched.length > 0) {
             const first = matched[0];
-            this.compareList = matched.filter(p => this.isSameMainCategory(first, p)).slice(0, 5);
-            if (this.compareList.length >= 2) {
-              this.isCompareModalOpen = true;
+            const valid = matched.filter(p => this.compareService.isSameCategory(first, p)).slice(0, 5);
+            this.compareService.saveToStorage(valid);
+            if (valid.length >= 2) {
+              this.compareService.openModal();
             }
           }
           this.pendingCompareParam = null;
@@ -395,6 +476,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
     } finally {
       this.isLoading = false;
       this.cdr.detectChanges();
+
+      if (savedState && savedState.scrollY !== undefined) {
+        this.restoreScrollPosition(savedState);
+      }
     }
   }
 
@@ -455,42 +540,23 @@ export class ExploreComponent implements OnInit, OnDestroy {
     return counts;
   }
 
-  // Tiêu đề Banner động theo danh mục / phòng / phong cách
+  // Tiêu đề Banner động theo danh mục chính / phòng / bộ sưu tập / phong cách
   get currentCategoryTitle(): string {
-    // 1. Nếu chọn danh mục chính từ DB
     if (this.filters.categories && this.filters.categories.length > 0) {
-      const selectedSlug = this.filters.categories[0];
-      const match = this.rawCategories.find(c => c.slug === selectedSlug || c.id === selectedSlug);
-      if (match) {
-        return match.name;
-      }
-      return selectedSlug;
+      return this.getCategoryLabel(this.filters.categories[0]);
     }
-
-    // 2. Nếu chọn phòng (slug room)
     if (this.filters.rooms && this.filters.rooms.length > 0) {
-      const rSlug = this.filters.rooms[0];
-      if (rSlug === 'phong-ngu') return 'Bedroom';
-      if (rSlug === 'phong-khach') return 'Living Room';
-      if (rSlug === 'phong-bep') return 'Kitchen & Dining';
-      if (rSlug === 'phong-lam-viec') return 'Home Office';
-      if (rSlug === 'ngoai-troi') return 'Outdoor';
+      return this.getRoomLabel(this.filters.rooms[0]);
     }
-
-    // 3. Nếu chọn style
+    if (this.filters.collections && this.filters.collections.length > 0) {
+      return this.getCollectionLabel(this.filters.collections[0]);
+    }
     if (this.filters.styles && this.filters.styles.length > 0) {
-      const sSlug = this.filters.styles[0];
-      const styleNames: Record<string, string> = {
-        'japandi': 'Japandi Style',
-        'scandinavian': 'Scandinavian Style',
-        'modern-luxury': 'Modern Luxury',
-        'wabi-sabi': 'Wabi-Sabi Style',
-        'minimalism': 'Minimalism',
-        'industrial': 'Industrial Style'
-      };
-      return styleNames[sSlug] || sSlug;
+      return this.getStyleLabel(this.filters.styles[0]);
     }
-
+    if (this.filters.materials && this.filters.materials.length > 0) {
+      return this.getMaterialLabel(this.filters.materials[0]);
+    }
     return 'Tất cả sản phẩm';
   }
 
@@ -500,17 +566,18 @@ export class ExploreComponent implements OnInit, OnDestroy {
 
   get hasActiveFilters(): boolean {
     return (this.filters.categories.length > 0) ||
-           (this.filters.materials.length > 0) ||
-           (this.filters.colors.length > 0) ||
            ((this.filters.rooms?.length || 0) > 0) ||
+           ((this.filters.collections?.length || 0) > 0) ||
            ((this.filters.styles?.length || 0) > 0) ||
+           ((this.filters.materials?.length || 0) > 0) ||
+           (this.filters.colors.length > 0) ||
            (this.filters.minRating !== undefined) ||
            (this.filters.priceRange[0] > 0 || this.filters.priceRange[1] < this.dynamicMaxPrice);
   }
 
   get filteredExceptPrice(): CatalogProduct[] {
     return this.products.filter(prod => {
-      // 1. Lọc theo danh mục chính từ Database (parentId == null)
+      // 1. Lọc theo danh mục chính từ Database (parentId == null hoặc slug)
       if (this.filters.categories.length > 0) {
         const matchesCategory = this.filters.categories.some(selectedCatSlug => {
           const sel = selectedCatSlug.toLowerCase();
@@ -518,73 +585,55 @@ export class ExploreComponent implements OnInit, OnDestroy {
           const pCatId = (prod.categoryObj?.id || '').toLowerCase();
           const parentSlug = (prod.categoryObj?.parent?.slug || '').toLowerCase();
           const parentId = (prod.categoryObj?.parent?.id || '').toLowerCase();
+          const pName = (prod.categoryObj?.name || '').toLowerCase();
+          const parentName = (prod.categoryObj?.parent?.name || '').toLowerCase();
 
-          // Khớp slug danh mục chính hoặc slug danh mục con hoặc id
           return pCatSlug === sel || 
                  parentSlug === sel ||
                  pCatId === sel ||
                  parentId === sel ||
+                 pName === sel ||
+                 parentName === sel ||
                  pCatSlug.includes(sel) ||
                  parentSlug.includes(sel);
         });
         if (!matchesCategory) return false;
       }
 
-      // 2. Lọc theo phòng (slug room)
+      // 2. Lọc theo Phòng & Không gian (từ Admin Categories)
       if (this.filters.rooms && this.filters.rooms.length > 0) {
-        const roomMatches = this.filters.rooms.some(rSlug => {
-          const catSlug = (prod.categoryObj?.slug || '').toLowerCase();
-          const parentSlug = (prod.categoryObj?.parent?.slug || '').toLowerCase();
-          const name = (prod.name || '').toLowerCase();
-
-          if (rSlug === 'phong-khach') {
-            return parentSlug.includes('sofa') || parentSlug.includes('table') || parentSlug.includes('storage') || parentSlug.includes('rug') || parentSlug.includes('lamp') || name.includes('sofa') || name.includes('coffee') || name.includes('tv');
-          }
-          if (rSlug === 'phong-ngu') {
-            return parentSlug.includes('bed') || catSlug.includes('bed') || catSlug.includes('night-stand') || catSlug.includes('throw') || name.includes('bed') || name.includes('nightstand');
-          }
-          if (rSlug === 'phong-bep') {
-            return catSlug.includes('dining') || catSlug.includes('bar') || name.includes('dining') || name.includes('bar');
-          }
-          if (rSlug === 'phong-lam-viec') {
-            return catSlug.includes('desk') || catSlug.includes('office') || name.includes('desk') || name.includes('office');
-          }
-          if (rSlug === 'ngoai-troi') {
-            return parentSlug.includes('outdoor') || catSlug.includes('outdoor') || name.includes('outdoor');
-          }
-          return true;
+        const matchesRoom = this.filters.rooms.some(rSlug => {
+          const adminCat = this.adminCategoryMap[rSlug];
+          return matchProductRoom(prod, rSlug, adminCat);
         });
-        if (!roomMatches) return false;
+        if (!matchesRoom) return false;
       }
 
-      // 3. Lọc theo phong cách thiết kế (slug style)
-      if (this.filters.styles && this.filters.styles.length > 0) {
-        const styleMatches = this.filters.styles.some(sSlug => {
-          const desc = (prod.description || '').toLowerCase();
-          const name = (prod.name || '').toLowerCase();
-          const text = `${name} ${desc}`;
-
-          if (sSlug === 'japandi') {
-            return text.includes('oak') || text.includes('wood') || text.includes('ceramic') || text.includes('fabric') || text.includes('linen') || text.includes('natural');
-          }
-          if (sSlug === 'scandinavian') {
-            return text.includes('wool') || text.includes('oak') || text.includes('boucl') || text.includes('fabric') || text.includes('light');
-          }
-          if (sSlug === 'modern-luxury') {
-            return text.includes('leather') || text.includes('marble') || text.includes('lacquered') || text.includes('steel') || text.includes('dark');
-          }
-          if (sSlug === 'wabi-sabi') {
-            return text.includes('concrete') || text.includes('ceramic') || text.includes('rough') || text.includes('cotton') || text.includes('organic');
-          }
-          if (sSlug === 'minimalism') {
-            return text.includes('metal') || text.includes('glass') || text.includes('acrylic') || text.includes('aluminium');
-          }
-          if (sSlug === 'industrial') {
-            return text.includes('metal') || text.includes('concrete') || text.includes('steel') || text.includes('aluminium');
-          }
-          return true;
+      // 3. Lọc theo Bộ sưu tập (từ Admin Categories)
+      if (this.filters.collections && this.filters.collections.length > 0) {
+        const matchesCollection = this.filters.collections.some(cSlug => {
+          const adminCat = this.adminCategoryMap[cSlug];
+          return matchProductCollection(prod, cSlug, adminCat);
         });
-        if (!styleMatches) return false;
+        if (!matchesCollection) return false;
+      }
+
+      // 4. Lọc theo Phong cách (từ Admin Categories)
+      if (this.filters.styles && this.filters.styles.length > 0) {
+        const matchesStyle = this.filters.styles.some(sSlug => {
+          const adminCat = this.adminCategoryMap[sSlug];
+          return matchProductStyle(prod, sSlug, adminCat);
+        });
+        if (!matchesStyle) return false;
+      }
+
+      // 5. Lọc theo Chất liệu (từ Admin Categories)
+      if (this.filters.materials && this.filters.materials.length > 0) {
+        const matchesMaterial = this.filters.materials.some(mSlug => {
+          const adminCat = this.adminCategoryMap[mSlug];
+          return matchProductMaterial(prod, mSlug, adminCat);
+        });
+        if (!matchesMaterial) return false;
       }
 
       // 4. Lọc theo đánh giá thật
@@ -597,10 +646,11 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (min === 2 && prodRating < 2.0) return false;
       }
 
-      // 5. Lọc theo chất liệu thật
-      if (this.filters.materials.length > 0) {
+      // 5. Lọc theo chất liệu (nếu có)
+      if (this.filters.materials && this.filters.materials.length > 0) {
+        const selectedMats = this.filters.materials;
         const matchesMaterial = prod.refinementMaterials?.some(m => 
-          this.filters.materials.some(fm => m.toLowerCase().includes(fm.toLowerCase()) || fm.toLowerCase().includes(m.toLowerCase()))
+          selectedMats.some(fm => m.toLowerCase().includes(fm.toLowerCase()) || fm.toLowerCase().includes(m.toLowerCase()))
         );
         if (!matchesMaterial) return false;
       }
@@ -717,26 +767,23 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   getRoomLabel(slug: string): string {
-    const roomMap: Record<string, string> = {
-      'phong-khach': 'Phòng Khách',
-      'phong-ngu': 'Phòng Ngủ',
-      'phong-bep': 'Phòng Bếp',
-      'phong-lam-viec': 'Phòng Làm Việc',
-      'ngoai-troi': 'Ngoài Trời'
-    };
-    return roomMap[slug] || slug;
+    const match = this.adminCategoryMap[slug];
+    return match ? match.name : slug;
+  }
+
+  getCollectionLabel(slug: string): string {
+    const match = this.adminCategoryMap[slug];
+    return match ? match.name : slug;
   }
 
   getStyleLabel(slug: string): string {
-    const styleMap: Record<string, string> = {
-      'japandi': 'Japandi',
-      'scandinavian': 'Scandinavian',
-      'modern-luxury': 'Modern Luxury',
-      'wabi-sabi': 'Wabi-Sabi',
-      'minimalism': 'Minimalism',
-      'industrial': 'Industrial'
-    };
-    return styleMap[slug] || slug;
+    const match = this.adminCategoryMap[slug];
+    return match ? match.name : slug;
+  }
+
+  getMaterialLabel(slug: string): string {
+    const match = this.adminCategoryMap[slug];
+    return match ? match.name : slug;
   }
 
   getColorLabel(slug: string): string {
@@ -755,7 +802,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.scrollToTop();
   }
 
-  removeFilterTag(key: 'rooms' | 'styles' | 'materials' | 'colors', val: string) {
+  removeFilterTag(key: 'rooms' | 'collections' | 'styles' | 'materials' | 'colors', val: string) {
     if (this.filters[key]) {
       this.filters[key] = (this.filters[key] as string[]).filter(item => item !== val);
     }
@@ -792,10 +839,11 @@ export class ExploreComponent implements OnInit, OnDestroy {
   clearAllFilters() {
     this.filters = { ...INITIAL_FILTER_STATE };
     this.filters.categories = [];
+    this.filters.rooms = [];
+    this.filters.collections = [];
+    this.filters.styles = [];
     this.filters.materials = [];
     this.filters.colors = [];
-    this.filters.rooms = [];
-    this.filters.styles = [];
     this.filters.minRating = undefined;
     this.syncSelectedVariantsWithColorFilter();
     this.currentPage = 1;
@@ -806,10 +854,16 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.currentPage++;
   }
 
+  isInWishlist(productId?: string): boolean {
+    return !!productId && this.wishlistService.isWishlisted(productId);
+  }
+
   toggleWishlist(e: Event, productId: string) {
     e.stopPropagation();
     e.preventDefault();
-    this.wishlistService.toggle(productId);
+    if (productId) {
+      this.wishlistService.toggle(productId);
+    }
   }
 
   getProductMainCategoryKey(p: CatalogProduct): string {
@@ -910,12 +964,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   isCompareDisabledForProduct(prod: CatalogProduct): boolean {
-    // Khi chưa có sản phẩm nào được chọn, tất cả đều được bật
-    if (!this.compareList || this.compareList.length === 0) return false;
-    // Nếu sản phẩm đã được chọn trong compareList, không bị disable (để người dùng có thể click bỏ chọn)
-    if (this.isInCompare(prod.productId)) return false;
-    // Nếu khác danh mục chính với sản phẩm đầu tiên đã chọn, bị làm mờ và vô hiệu hóa
-    return !this.isSameMainCategory(this.compareList[0], prod);
+    return this.compareService.isCompareDisabled(prod);
   }
 
   getCompareButtonTooltip(prod: CatalogProduct): string {
@@ -931,77 +980,47 @@ export class ExploreComponent implements OnInit, OnDestroy {
   toggleCompare(e: Event, prod: CatalogProduct) {
     e.stopPropagation();
     e.preventDefault();
-
-    // Nếu sản phẩm bị vô hiệu hóa vì khác danh mục chính
-    if (this.isCompareDisabledForProduct(prod)) {
-      this.showCompareToast(`Chỉ có thể so sánh sản phẩm cùng danh mục chính (${this.getRootCategoryName(this.compareList[0])})`, 'info');
-      return;
-    }
-
-    const index = this.compareList.findIndex(p => p.productId === prod.productId);
-    if (index > -1) {
-      this.compareList = this.compareList.filter(p => p.productId !== prod.productId);
-      if (this.compareList.length <= 1) {
-        this.isCompareModalOpen = false;
-      }
-    } else {
-      if (this.compareList.length >= 5) {
-        this.showCompareToast('Tối đa 5 sản phẩm', 'warning');
-        return;
-      }
-      this.compareList = [...this.compareList, prod];
-    }
-    this.cdr.detectChanges();
+    this.compareService.toggle(prod);
   }
 
   isInCompare(productId: string): boolean {
-    return this.compareList.some(p => p.productId === productId);
+    return this.compareService.isInCompare(productId);
   }
 
   removeCompare(productId: string) {
-    this.compareList = this.compareList.filter(p => p.productId !== productId);
-    if (this.compareList.length <= 1) {
-      this.isCompareModalOpen = false;
-    }
-    this.cdr.detectChanges();
+    this.compareService.remove(productId);
+  }
+
+  confirmClearAllCompare() {
+    this.compareService.openConfirmClear();
+  }
+
+  cancelClearAllCompare() {
+    this.compareService.closeConfirmClear();
+  }
+
+  executeClearAllCompare() {
+    this.compareService.clear();
   }
 
   clearAllCompare() {
-    this.compareList = [];
-    this.isCompareModalOpen = false;
-    this.cdr.detectChanges();
+    this.compareService.clear();
   }
 
   openCompareModal() {
-    if (this.compareList.length < 2) {
-      this.showCompareToast('Chọn tối thiểu 2 sản phẩm để so sánh', 'info');
-      return;
-    }
-    this.isCompareModalOpen = true;
+    this.compareService.openModal();
   }
 
   closeCompareModal() {
-    this.isCompareModalOpen = false;
+    this.compareService.closeModal();
   }
 
   onRemoveCompareProduct(productId: string) {
-    this.removeCompare(productId);
+    this.compareService.remove(productId);
   }
 
   copyCompareShareLink() {
-    if (typeof window === 'undefined') return;
-    const ids = this.compareList.map(p => p.productId || (p as any).id).filter(Boolean);
-    const shareUrl = `${window.location.origin}/explore?compare=${ids.join(',')}`;
-
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        this.showCompareToast('Đã sao chép liên kết so sánh!', 'success');
-      }).catch(() => {
-        this.fallbackCopyLink(shareUrl);
-      });
-    } else {
-      this.fallbackCopyLink(shareUrl);
-    }
+    this.compareService.copyShareLink();
   }
 
   private fallbackCopyLink(text: string) {
@@ -1050,7 +1069,75 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   handleProductClick(productId: string) {
+    this.saveExploreState(productId);
     this.router.navigate(['/products', productId]);
+  }
+
+  saveExploreState(productId?: string) {
+    if (typeof window === 'undefined') return;
+    try {
+      const state = {
+        scrollY: window.scrollY || document.documentElement.scrollTop || 0,
+        currentPage: this.currentPage,
+        filters: this.filters,
+        sortBy: this.sortBy,
+        searchQuery: this.searchQuery,
+        productId: productId || '',
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem('dcor_explore_saved_state', JSON.stringify(state));
+    } catch (e) {
+      console.warn('Cannot save explore state:', e);
+    }
+  }
+
+  private getSavedExploreState(): any {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = sessionStorage.getItem('dcor_explore_saved_state');
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (data && (Date.now() - data.timestamp < 30 * 60 * 1000)) {
+        return data;
+      }
+    } catch (e) {
+      console.warn('Error reading explore saved state:', e);
+    }
+    return null;
+  }
+
+  private restoreScrollPosition(savedState: { scrollY: number; productId?: string }) {
+    if (typeof window === 'undefined') return;
+
+    const targetY = savedState.scrollY || 0;
+    const targetProductId = savedState.productId;
+
+    const executeScroll = () => {
+      window.scrollTo({
+        top: targetY,
+        behavior: 'instant' as ScrollBehavior
+      });
+
+      if (targetProductId) {
+        const el = document.getElementById('product-' + targetProductId);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < 50 || rect.bottom > window.innerHeight + 150) {
+            el.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+          }
+        }
+      }
+    };
+
+    requestAnimationFrame(() => {
+      executeScroll();
+      setTimeout(() => {
+        executeScroll();
+        try {
+          sessionStorage.removeItem('dcor_explore_saved_state');
+        } catch {}
+      }, 100);
+    });
   }
 
   // --- Quản lý biến thể màu sắc & ảnh tương ứng trên thẻ sản phẩm ---
@@ -1248,6 +1335,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
       document.body.style.overflow = '';
     }
     this.wishlistSub?.unsubscribe();
+    this.compareSub?.unsubscribe();
+    this.sub.unsubscribe();
     Object.keys(this.hoverTimerMap).forEach(id => clearInterval(this.hoverTimerMap[id]));
     Object.keys(this.mouseDebounceMap).forEach(id => clearTimeout(this.mouseDebounceMap[id]));
     this.hoverTimerMap = {};

@@ -933,6 +933,14 @@ app-summary-panel {
   border-radius: 4px;
 }
 
+.preview-badge.size-badge {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .preview-viewport-card {
   position: relative;
   width: 100%;
@@ -1285,3 +1293,28 @@ app-summary-panel {
   border-top: 1px solid var(--color-border-subtle, #f0f0f0);
 }
 
+
+/* Nút Thiết kế của tôi trên thanh trên của Planner */
+.topbar-action-btn.my-designs-btn {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  color: var(--color-text, #0a0a0a);
+  text-decoration: none;
+}
+
+.topbar-action-btn.my-designs-btn:hover {
+  background: var(--color-sub-bg, #fff3e3);
+  color: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
+}
+
+/* Trạng thái lỗi khi tự lưu */
+.topbar-action-btn.save-btn.save-error {
+  background: #FFE8E8;
+  border-color: #FFCCD0;
+  color: #C42326;
+}
+
+.topbar-action-btn.save-btn.save-error:hover {
+  background: #FFD4D7;
+}
