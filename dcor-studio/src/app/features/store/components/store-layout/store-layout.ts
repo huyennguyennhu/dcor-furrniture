@@ -4,13 +4,14 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { Header } from '../header/header';
 import { Footer } from '../footer/footer';
 import { IconComponent } from '../../../../shared/components/icon/icon';
+import { ChatWidgetComponent } from '../chat-widget/chat-widget';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-store-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header, Footer, IconComponent],
+  imports: [CommonModule, RouterModule, Header, Footer, IconComponent, ChatWidgetComponent],
   templateUrl: './store-layout.html',
   styleUrls: ['./store-layout.css']
 })
