@@ -383,7 +383,8 @@ export class ProductFormComponent implements OnInit {
           price: v.price || item.basePrice || 0,
           originalPrice: Math.round((v.price || item.basePrice || 0) * 1.15),
           image: (Array.isArray(opt.images) && opt.images[0]) || this.formData.basic.images[0]?.url || '',
-          isActive: v.isActive !== false
+          isActive: v.isActive !== false,
+          rawOptionValues: opt
         };
       });
     } else {
@@ -720,6 +721,7 @@ export class ProductFormComponent implements OnInit {
         price: v.price,
         isActive: v.isActive,
         optionValues: {
+          ...((v as any).rawOptionValues || {}),
           color: v.color,
           size: v.size,
           images: v.image ? [v.image] : []

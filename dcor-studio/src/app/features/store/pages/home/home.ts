@@ -1,13 +1,309 @@
 import { IconComponent } from '../../../../shared/components/icon/icon';
-import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, NgZone, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
-import { CatalogSection } from '../../../../shared/components/catalog-section/catalog-section';
-
+import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
+import { ProductService } from '../../../../core/services/product.service';
+import { ShowroomConsultationModalComponent } from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
 import { environment } from '../../../../../environments/environment';
 
 // Data from lib/collections
+export interface HomeCategoryItem {
+  id: string;
+  title: string;
+  titleVi: string;
+  subtitle: string;
+  subtitleVi?: string;
+  image: string;
+  query: string;
+}
+
+const HOME_CATEGORIES: HomeCategoryItem[] = [
+  {
+    id: 'chairs',
+    title: 'Chairs',
+    titleVi: 'Ghế',
+    subtitle: 'Ghế ngồi thanh lịch và êm ái.',
+    subtitleVi: 'Ghế ngồi thanh lịch và êm ái.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401063/dcor/variants/dcor_variants_974084349e566ad5f1f9f7fd29681a6a.webp',
+    query: 'chairs'
+  },
+  {
+    id: 'tables',
+    title: 'Tables',
+    titleVi: 'Bàn',
+    subtitle: 'Bàn tối giản, chất liệu vượt thời gian.',
+    subtitleVi: 'Bàn tối giản, chất liệu vượt thời gian.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401027/dcor/variants/dcor_variants_ba33ce64917773cec8d3cf653ae87963.webp',
+    query: 'tables'
+  },
+  {
+    id: 'beds',
+    title: 'Beds',
+    titleVi: 'Giường',
+    subtitle: 'Không gian thư thái, trọn vẹn giấc ngủ.',
+    subtitleVi: 'Không gian thư thái, trọn vẹn giấc ngủ.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400981/dcor/variants/dcor_variants_0bdda1d9e4b775c095cf56f47c815a40.webp',
+    query: 'beds'
+  },
+  {
+    id: 'storage',
+    title: 'Storage',
+    titleVi: 'Tủ Kệ',
+    subtitle: 'Giải pháp lưu trữ thông minh, tối giản.',
+    subtitleVi: 'Giải pháp lưu trữ thông minh, tối giản.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401092/dcor/variants/dcor_variants_44b6a5555bdd23b190ceb51346177fa4.webp',
+    query: 'storage'
+  },
+  {
+    id: 'sofas',
+    title: 'Sofas',
+    titleVi: 'Sofa',
+    subtitle: 'Sofa module cao cấp, thư giãn tối đa.',
+    subtitleVi: 'Sofa module cao cấp, thư giãn tối đa.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401137/dcor/variants/dcor_variants_61f15dbc9cfe1edbd15927874b9c2d58.webp',
+    query: 'sofas'
+  },
+  {
+    id: 'lamps',
+    title: 'Lamps',
+    titleVi: 'Đèn',
+    subtitle: 'Ánh sáng tinh tế cho từng không gian.',
+    subtitleVi: 'Ánh sáng tinh tế cho từng không gian.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401094/dcor/variants/dcor_variants_ec2dc93bd7fff63e2c07418d3c478874.webp',
+    query: 'lamps'
+  },
+  {
+    id: 'rugs',
+    title: 'Rugs',
+    titleVi: 'Thảm',
+    subtitle: 'Thảm dệt thủ công ấm áp và sang trọng.',
+    subtitleVi: 'Thảm dệt thủ công ấm áp và sang trọng.',
+    image: 'https://assets.boconcept.com/4ef91e1e-f3a3-41ff-96bf-b20c00d4597d/2768244_PNG-Web%2072dpi.png',
+    query: 'rugs'
+  },
+  {
+    id: 'accessories',
+    title: 'Accessories',
+    titleVi: 'Phụ kiện',
+    subtitle: 'Điểm nhấn nghệ thuật cho mọi căn phòng.',
+    subtitleVi: 'Điểm nhấn nghệ thuật cho mọi căn phòng.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401005/dcor/variants/dcor_variants_5d99b2b46d559221269e9c092ffc2f49.webp',
+    query: 'accessories'
+  },
+  {
+    id: 'outdoors',
+    title: 'Outdoors',
+    titleVi: 'Ngoài trời',
+    subtitle: 'Nội thất ngoài trời bền bỉ, tiện nghi.',
+    subtitleVi: 'Nội thất ngoài trời bền bỉ, tiện nghi.',
+    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400998/dcor/variants/dcor_variants_c7d2acfd58253f37da66a344cf38ef25.webp',
+    query: 'outdoors'
+  }
+];
+
+export interface StyleSubcategoryItem {
+  id: string;
+  name: string;
+  nameVi: string;
+  slug: string;
+  image: string;
+  gridSpan: 'wide' | 'normal';
+}
+
+const SUB_CATEGORY_STYLES: StyleSubcategoryItem[] = [
+  {
+    id: 'scandinavian',
+    name: 'Scandinavian',
+    nameVi: 'Bắc Âu',
+    slug: 'bac-au-scandinavian',
+    image: '/assets/img/scandinavian.jpg',
+    gridSpan: 'wide'
+  },
+  {
+    id: 'modern_luxury',
+    name: 'Modern Luxury',
+    nameVi: 'Hiện đại',
+    slug: 'hien-dai-modern-luxury',
+    image: '/assets/img/modern_luxury.jpg',
+    gridSpan: 'normal'
+  },
+  {
+    id: 'minimalism',
+    name: 'Minimalism',
+    nameVi: 'Tối giản',
+    slug: 'toi-gian-minimalism',
+    image: '/assets/img/minimalism.jpg',
+    gridSpan: 'normal'
+  },
+  {
+    id: 'japandi',
+    name: 'Japandi',
+    nameVi: 'Japandi',
+    slug: 'japandi',
+    image: '/assets/img/japandi.jpg',
+    gridSpan: 'normal'
+  },
+  {
+    id: 'wabi_sabi',
+    name: 'Wabi-Sabi',
+    nameVi: 'Wabi-Sabi',
+    slug: 'wabi-sabi',
+    image: '/assets/img/wabi_sabi.jpg',
+    gridSpan: 'normal'
+  },
+  {
+    id: 'industrial',
+    name: 'Industrial',
+    nameVi: 'Công nghiệp',
+    slug: 'industrial',
+    image: '/assets/img/industrial.jpg',
+    gridSpan: 'wide'
+  }
+];
+
+export interface RoomHotspotItem {
+  id: string;
+  code: string;
+  productId: string;
+  x: number;
+  y: number;
+  nameFallback: string;
+  priceFallback: string;
+  imageFallback: string;
+}
+
+export interface ShoppableRoom {
+  id: 'living' | 'office';
+  name: string;
+  title: string;
+  desc: string;
+  image: string;
+  hotspots: RoomHotspotItem[];
+}
+
+const SHOPPABLE_ROOMS: ShoppableRoom[] = [
+  {
+    id: 'living',
+    name: 'Phòng khách',
+    title: 'Không gian phòng khách hiện đại',
+    desc: 'Bản hòa ca giữa vẻ đẹp mộc mạc và sự thanh lịch với các điểm nhấn nội thất tinh tế',
+    image: '/assets/img/phong_khach.jpg',
+    hotspots: [
+      {
+        id: 'spot-como',
+        code: '340040500708-b4c3',
+        productId: 'b4c33d20-2c9a-419c-9e34-3d64f2e28f00',
+        x: 62,
+        y: 26,
+        nameFallback: 'Como bookcase',
+        priceFallback: '10.490.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400900/dcor/products/dcor_products_6734c605eb8af663370305ccd98368f4.webp'
+      },
+      {
+        id: 'spot-dawn',
+        code: '105000001510',
+        productId: '61ebc763-b326-46e0-bdce-65e310d29ce5',
+        x: 37,
+        y: 48,
+        nameFallback: 'Dawn table lamp',
+        priceFallback: '15.790.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_318afede83ece3445e8bbec1c3e6542d.webp'
+      },
+      {
+        id: 'spot-nawabari',
+        code: '447532013063702',
+        productId: '0bf53b23-d7d6-4df5-9ec7-b0c0a9021e18',
+        x: 65,
+        y: 67,
+        nameFallback: 'Nawabari 3 seater sofa, wooden leg',
+        priceFallback: '68.490.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_d0a5600206c59ef1e6d4f03aec74cf58.webp'
+      },
+      {
+        id: 'spot-bermuda',
+        code: '498590402110',
+        productId: 'db871e44-087f-492a-937c-ec128f841d13',
+        x: 22,
+        y: 76,
+        nameFallback: 'Bermuda footstool',
+        priceFallback: '11.290.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_291d399b741e99a50227c96175bffbe1.webp'
+      },
+      {
+        id: 'spot-madrid',
+        code: '3700AD180037180',
+        productId: 'd1faee79-dfef-48b6-8efa-8d9d85224a16',
+        x: 49,
+        y: 80,
+        nameFallback: 'Madrid coffee table',
+        priceFallback: '21.290.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_747ef1fb06df15c8cbe04ee8b69dcb69.webp'
+      }
+    ]
+  },
+  {
+    id: 'office',
+    name: 'Phòng làm việc',
+    title: 'Góc làm việc khơi nguồn cảm hứng',
+    desc: 'Không gian sáng tạo tối giản, đường nét thanh lịch giúp nâng cao hiệu suất làm việc',
+    image: '/assets/img/phong_lam_viec.jpg',
+    hotspots: [
+      {
+        id: 'spot-008128',
+        code: '344000100008128',
+        productId: 'a6167ea5-8422-4caa-84cc-032b6b24ac97',
+        x: 59,
+        y: 20,
+        nameFallback: 'Calgary storage with drawer',
+        priceFallback: '44.990.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400894/dcor/products/dcor_products_6b12bc3f2794da638fabf8ba0a8ec933.webp'
+      },
+      {
+        id: 'spot-702075',
+        code: '3790AC000702075',
+        productId: 'f1dc51ad-0de0-4e70-9e55-2214390839a8',
+        x: 86,
+        y: 60,
+        nameFallback: 'Element dresser with 4 drawers',
+        priceFallback: '47.490.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400897/dcor/products/dcor_products_d1e5d55345991edf4f36869f1d4bdf95.webp'
+      },
+      {
+        id: 'spot-GHf252',
+        code: '3700022T035CCGH-f252',
+        productId: 'f2520fc7-745d-41d0-9cfc-c60c10faf795',
+        x: 31,
+        y: 55,
+        nameFallback: 'Cupertino desk',
+        priceFallback: '51.390.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_0f25a79e1e07de08296ae348ff8f76fe.webp'
+      },
+      {
+        id: 'spot-992252',
+        code: '4025075D1992252',
+        productId: 'd687d599-cd97-4367-be05-790077014c9f',
+        x: 48,
+        y: 60,
+        nameFallback: 'Hamilton office chair',
+        priceFallback: '15.690.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400895/dcor/products/dcor_products_1db85f998325efe5fc888bf6bb3372d2.webp'
+      },
+      {
+        id: 'spot-012330',
+        code: '106071012330',
+        productId: '3835771b-ed6e-417f-befd-d28355f9dabd',
+        x: 60,
+        y: 90,
+        nameFallback: 'Tide rug',
+        priceFallback: '32.490.000 ₫',
+        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_92c9079ce72cd76e2e409ff23b9a642a.webp'
+      }
+    ]
+  }
+];
+
 const STYLE_COLLECTIONS = [
   { id: 'scandinavian', name: 'Scandinavian', name_vi: 'Bắc Âu Hiện Đại', description_vi: 'Đơn giản, tinh tế, ưu tiên ánh sáng tự nhiên và công năng.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/scandi.jpg', accentColor: '#D1D5DB' },
   { id: 'japandi', name: 'Japandi', name_vi: 'Japandi Tối Giản', description_vi: 'Sự pha trộn giữa sự mộc mạc của Nhật Bản và nét thanh lịch của Bắc Âu.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/japandi.jpg', accentColor: '#E5E7EB' },
@@ -20,8 +316,8 @@ const ROOM_INSPIRATIONS = [
 ];
 
 const HERO_HOTSPOTS = [
-  { id: 'spot-1', x: 25, y: 65, name_vi: 'Sofa Indivi', price: 'Từ 45.000.000đ', image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/indivi.jpg', productId: 'sofa-indivi' },
-  { id: 'spot-2', x: 70, y: 45, name_vi: 'Đèn treo trần', price: 'Từ 8.500.000đ', image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/lighting/105000001520_2751896_PNG-Web2072dpi.png', productId: 'light-1' }
+  { id: 'spot-1', x: 18, y: 72, name_vi: 'Ghế Bành Da Cao Cấp', price: 'Từ 18.500.000đ', image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/indivi.jpg', productId: 'sofa-indivi' },
+  { id: 'spot-2', x: 84, y: 68, name_vi: 'Sofa Góc L Đương Đại', price: 'Từ 48.900.000đ', image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/indivi.jpg', productId: 'sofa-indivi' }
 ];
 
 const TRUST_ITEMS = [
@@ -31,106 +327,241 @@ const TRUST_ITEMS = [
   { icon: 'wrench', title: 'Miễn phí lắp đặt', desc: 'Đội ngũ kỹ thuật chuyên nghiệp lắp đặt tận nơi.' },
 ];
 
-const STATIC_REVIEWS = [
-  { name: 'Nguyễn Minh Tuấn', city: 'TP. HCM', rating: 5, text: 'Sofa rất đẹp và chất lượng vượt mong đợi. Dịch vụ lắp đặt nhanh chóng, nhân viên nhiệt tình.', product: 'Sofa Indivi 3 chỗ' },
-  { name: 'Trần Thị Lan Anh', city: 'Hà Nội', rating: 5, text: 'Mua bàn ăn Augusta, giao hàng đúng hẹn, đóng gói cẩn thận. Chất lượng xứng với giá tiền.', product: 'Bàn ăn Augusta' },
-  { name: 'Lê Hữu Phước', city: 'Đà Nẵng', rating: 5, text: 'Tôi rất thích tính năng tùy biến chân sofa. Cảm giác như được thiết kế riêng cho mình.', product: 'Sofa Carmo 2 chỗ' },
+export interface CustomerReviewItem {
+  name: string;
+  role: string;
+  city?: string;
+  rating: number;
+  text: string;
+  avatar: string;
+}
+
+const STATIC_REVIEWS: CustomerReviewItem[] = [
+  {
+    name: 'Olivia Bennett',
+    role: 'Homeowner',
+    rating: 5,
+    text: 'Premium craftsmanship, timeless designs, and outstanding customer service made this one of the best furniture purchases we\'ve ever made for our home interiors.',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=80'
+  },
+  {
+    name: 'Nguyễn Minh Tuấn',
+    role: 'Kiến trúc sư nội thất',
+    rating: 5,
+    text: 'Đường nét thiết kế của DCor mang đậm tinh thần Bắc Âu tối giản và sang trọng. Chất liệu gỗ sồi tự nhiên cùng đệm bọc da cao cấp đem lại sự êm ái hoàn hảo cho cả gia đình.',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80'
+  },
+  {
+    name: 'Sophia Henderson',
+    role: 'Interior Stylist',
+    rating: 5,
+    text: 'The aesthetic balance and ergonomic comfort are world-class. It seamlessly transformed our open-plan penthouse into an inspiring, peaceful and stylish living space.',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80'
+  },
+  {
+    name: 'Trần Thị Lan Anh',
+    role: 'Chủ nhân Villa, Đà Nẵng',
+    rating: 5,
+    text: 'Dịch vụ tư vấn không gian và giao lắp đặt cực kỳ chuyên nghiệp. Từng chi tiết nhỏ như chân bàn, kệ sách và đệm ghế sofa đều chuẩn xác, tinh xảo vượt xa mong đợi.',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=160&q=80'
+  },
+  {
+    name: 'Alexander Wright',
+    role: 'Creative Consultant',
+    rating: 5,
+    text: 'Exceptional attention to detail and sustainable materials. Every single piece feels intentionally crafted, durable, and effortlessly elegant for contemporary living.',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80'
+  }
 ];
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [IconComponent, CommonModule, RouterModule, CatalogSection],
+  imports: [IconComponent, CommonModule, RouterModule, ProductCardComponent, ShowroomConsultationModalComponent],
   templateUrl: './home.html',
   styleUrls: ['./home.css']
 })
-export class HomeComponent implements OnInit {
-  constructor(private cdr: ChangeDetectorRef) {}
+export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
+
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private productService: ProductService,
+    private ngZone: NgZone
+  ) { }
 
   products: CatalogProduct[] = [];
   categories: any[] = [];
   isLoading = true;
 
+  // Showroom consultation modal state
+  isConsultationModalOpen = false;
+
+  openConsultationModal() {
+    this.isConsultationModalOpen = true;
+  }
+
+  closeConsultationModal() {
+    this.isConsultationModalOpen = false;
+  }
+
   activeHotspot: string | null = null;
-  scrollY = 0;
-  
   featuredTab: 'newest' | 'sale' = 'newest';
-  
+
+  saleProducts: CatalogProduct[] = [];
+  newestProducts: CatalogProduct[] = [];
+
+  SUB_CATEGORY_STYLES = SUB_CATEGORY_STYLES;
   STYLE_COLLECTIONS = STYLE_COLLECTIONS;
   ROOM_INSPIRATIONS = ROOM_INSPIRATIONS;
   HERO_HOTSPOTS = HERO_HOTSPOTS;
   TRUST_ITEMS = TRUST_ITEMS;
   STATIC_REVIEWS = STATIC_REVIEWS;
+  HOME_CATEGORIES = HOME_CATEGORIES;
+
+  // Category Carousel State: 9 items, 4 visible at once => 6 positions (indices 0 to 5)
+  activeCategoryIndex = 0;
+  categoryDots = [0, 1, 2, 3, 4, 5];
+  private categoryAutoPlayTimer?: any;
+  readonly CATEGORY_AUTOPLAY_INTERVAL = 4000;
 
   activeRoom: string | null = null;
   reviewIdx = 0;
-
-  get saleProducts() {
-    return this.products.filter(p => this.isOnSale(p)).slice(0, 8);
-  }
-
-  get newestProducts() {
-    return this.products.slice(0, 8);
-  }
+  private reviewAutoPlayTimer?: any;
+  readonly REVIEW_AUTOPLAY_INTERVAL = 5500;
 
   get displayedFeatured() {
     return this.featuredTab === 'sale' ? this.saleProducts : this.newestProducts;
   }
 
-  @HostListener('window:scroll', [])
-  onWindowScroll() {
-    this.scrollY = window.scrollY;
+  scrollToExplore() {
+    const el = document.getElementById('categories');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  startCategoryAutoPlay(): void {
+    this.stopCategoryAutoPlay();
+    if (typeof window === 'undefined') return;
+    this.categoryAutoPlayTimer = setInterval(() => {
+      this.nextCategory();
+      this.cdr.detectChanges();
+    }, this.CATEGORY_AUTOPLAY_INTERVAL);
+  }
+
+  stopCategoryAutoPlay(): void {
+    if (this.categoryAutoPlayTimer) {
+      clearInterval(this.categoryAutoPlayTimer);
+      this.categoryAutoPlayTimer = undefined;
+    }
+  }
+
+  nextCategory(): void {
+    this.activeCategoryIndex = (this.activeCategoryIndex + 1) % this.categoryDots.length;
+  }
+
+  prevCategory(): void {
+    this.activeCategoryIndex = (this.activeCategoryIndex - 1 + this.categoryDots.length) % this.categoryDots.length;
+  }
+
+  setCategoryIndex(index: number): void {
+    this.activeCategoryIndex = index;
+    this.startCategoryAutoPlay();
+  }
+
+  startReviewAutoPlay(): void {
+    this.stopReviewAutoPlay();
+    if (typeof window === 'undefined') return;
+    this.reviewAutoPlayTimer = setInterval(() => {
+      this.nextReview();
+      this.cdr.detectChanges();
+    }, this.REVIEW_AUTOPLAY_INTERVAL);
+  }
+
+  stopReviewAutoPlay(): void {
+    if (this.reviewAutoPlayTimer) {
+      clearInterval(this.reviewAutoPlayTimer);
+      this.reviewAutoPlayTimer = undefined;
+    }
+  }
+
+  pauseReviewAutoPlay(): void {
+    this.stopReviewAutoPlay();
+  }
+
+  resumeReviewAutoPlay(): void {
+    this.startReviewAutoPlay();
+  }
+
+  nextReview(): void {
+    this.reviewIdx = (this.reviewIdx + 1) % this.STATIC_REVIEWS.length;
+  }
+
+  prevReview(): void {
+    this.reviewIdx = (this.reviewIdx - 1 + this.STATIC_REVIEWS.length) % this.STATIC_REVIEWS.length;
+  }
+
+  setReviewIndex(index: number): void {
+    this.reviewIdx = index;
+    this.startReviewAutoPlay();
   }
 
   ngOnInit() {
     this.fetchProducts();
+    this.startCategoryAutoPlay();
+    this.startReviewAutoPlay();
+  }
+
+  ngAfterViewInit(): void {
+  }
+
+  ngOnDestroy(): void {
+    this.stopCategoryAutoPlay();
+    this.stopReviewAutoPlay();
   }
 
   async fetchProducts() {
     this.isLoading = true;
     try {
-      const res = await fetch(`${environment.apiUrl}/products`);
-      if (!res.ok) {
-        throw new Error(`Không thể tải danh sách sản phẩm (HTTP ${res.status}).`);
+      const data = await this.productService.getProducts();
+      let rawProducts = Array.isArray(data) ? data : [];
+
+      function getParentCategory(childCat: string): string {
+        if (!childCat) return 'Sofa';
+        const c = childCat.toLowerCase();
+        if (c.includes('sofa') || c.includes('chaise')) return 'Sofa';
+        if (c.includes('chair') || c.includes('bench') || c.includes('stool') || c.includes('recliner') || c.includes('poufs') || c.includes('cushion') || c.includes('seat')) return 'Ghế';
+        if (c.includes('table') || c.includes('desk') || (c.includes('stand') && !c.includes('night'))) return 'Bàn';
+        if (c.includes('storage') || c.includes('shelf') || c.includes('shelves') || c.includes('bookcase') || c.includes('board') || c.includes('unit') || c.includes('chest') || c.includes('drawer') || c.includes('system') || c.includes('night') || c.includes('hallway')) return 'Tủ Kệ';
+        if (c.includes('bed') || c.includes('daybed')) return 'Giường';
+        if (c.includes('lamp') || c.includes('pendant') || c.includes('lighting')) return 'Đèn';
+        if (c.includes('rug') || c.includes('carpet')) return 'Thảm';
+        return 'Phụ Kiện';
       }
 
-      if (res.ok) {
-        const data = await res.json();
-        
-        let rawProducts = Array.isArray(data) ? data : (data.data || data.Items || data.products || []);
-        
-function getParentCategory(childCat: string): string {
-  if (!childCat) return 'Sofa';
-  const c = childCat.toLowerCase();
-  if (c.includes('sofa') || c.includes('chaise')) return 'Sofa';
-  if (c.includes('chair') || c.includes('bench') || c.includes('stool') || c.includes('recliner') || c.includes('poufs') || c.includes('cushion') || c.includes('seat')) return 'Ghế';
-  if (c.includes('table') || c.includes('desk') || (c.includes('stand') && !c.includes('night'))) return 'Bàn';
-  if (c.includes('storage') || c.includes('shelf') || c.includes('shelves') || c.includes('bookcase') || c.includes('board') || c.includes('unit') || c.includes('chest') || c.includes('drawer') || c.includes('system') || c.includes('night') || c.includes('hallway')) return 'Tủ Kệ';
-  if (c.includes('bed') || c.includes('daybed')) return 'Giường';
-  if (c.includes('lamp') || c.includes('pendant') || c.includes('lighting')) return 'Đèn';
-  if (c.includes('rug') || c.includes('carpet')) return 'Thảm';
-  return 'Phụ Kiện';
-}
+      this.products = rawProducts.map((p: any) => ({
+        ...p,
+        productId: p.id || p.productId,
+        slug: p.slug || '',
+        variantUrl: p.slug || p.id || '',
+        shortDescription: p.name || p.shortDescription || '',
+        shortDescription_vi: p.name || p.shortDescription_vi || '',
+        category: getParentCategory(p.category?.name || (typeof p.category === 'string' ? p.category : '')),
+        description: p.description || p.description_vi,
+        refinementMaterials: p.description ? [p.description] : (p.refinementMaterials || []),
+        refinementMaterials_vi: p.description ? [p.description] : (p.refinementMaterials_vi || []),
+        refinementColors: p.refinementColors || [],
+        images: p.images || [],
+        prices: p.prices || [{ price: p.basePrice || 0, formattedPrice: new Intl.NumberFormat('vi-VN').format(p.basePrice || 0) + ' ₫', currency: 'VND' }],
+        lowestPrices: p.discountValue ? [{ price: (p.basePrice || 0) - p.discountValue, formattedPrice: new Intl.NumberFormat('vi-VN').format((p.basePrice || 0) - p.discountValue) + ' ₫', currency: 'VND' }] : (p.lowestPrices || []),
+        isBestSeller: p.isBestSeller || false,
+        isNew: p.isNew || false,
+        createdAt: p.createdAt
+      }));
 
-        this.products = rawProducts.map((p: any) => ({
-          productId: p.id || p.productId,
-          shortDescription: p.name || p.shortDescription || '',
-          shortDescription_vi: p.name || p.shortDescription_vi || '',
-          category: getParentCategory(p.category?.name || (typeof p.category === 'string' ? p.category : '')),
-          description: p.description || p.description_vi,
-          refinementMaterials: p.description ? [p.description] : (p.refinementMaterials || []),
-          refinementMaterials_vi: p.description ? [p.description] : (p.refinementMaterials_vi || []),
-          refinementColors: p.refinementColors || [],
-          images: p.images || [],
-          prices: p.prices || [{ price: p.basePrice || 0, formattedPrice: new Intl.NumberFormat('vi-VN').format(p.basePrice || 0) + ' ₫' }],
-          lowestPrices: p.discountValue ? [{ price: (p.basePrice || 0) - p.discountValue, formattedPrice: new Intl.NumberFormat('vi-VN').format((p.basePrice || 0) - p.discountValue) + ' ₫' }] : (p.lowestPrices || []),
-          isBestSeller: p.isBestSeller || false,
-          isNew: p.isNew || false,
-          createdAt: p.createdAt
-        }));
-        
-        this.generateCategories(this.products);
-      }
+      this.saleProducts = this.products.filter(p => this.isOnSale(p)).slice(0, 8);
+      this.newestProducts = this.products.slice(0, 8);
+      this.generateCategories(this.products);
     } catch (e) {
       console.error(e);
     } finally {
@@ -152,7 +583,7 @@ function getParentCategory(childCat: string): string {
     });
 
     const order = ['Sofa', 'Bàn', 'Ghế', 'Tủ Kệ', 'Giường', 'Đèn', 'Thảm', 'Phụ Kiện'];
-    
+
     this.categories = Object.keys(counts).map(cat => ({
       label: cat,
       value: cat,
@@ -178,9 +609,9 @@ function getParentCategory(childCat: string): string {
   }
 
   isOnSale(prod: CatalogProduct): boolean {
-    const base = prod.prices?.[0]?.price ?? 0;
-    const low = prod.lowestPrices?.[0]?.price ?? 0;
-    return low > 0 && low < base;
+    const base = (prod as any).basePrice ?? prod.prices?.[0]?.price ?? 0;
+    const low = prod.lowestPrices?.[0]?.price ?? ((prod as any).discountValue ? base - (prod as any).discountValue : 0);
+    return (low > 0 && low < base) || Boolean((prod as any).discountValue && (prod as any).discountValue > 0);
   }
 
   getProductsForRoom(productIds: string[]): CatalogProduct[] {
@@ -193,5 +624,54 @@ function getParentCategory(childCat: string): string {
 
   getStarsArray(rating: number): number[] {
     return Array(rating).fill(0);
+  }
+
+  SHOPPABLE_ROOMS = SHOPPABLE_ROOMS;
+  selectedRoomTab: 'living' | 'office' = 'living';
+  activeHotspotId: string | null = null;
+
+  get currentRoom(): ShoppableRoom {
+    return this.SHOPPABLE_ROOMS.find(r => r.id === this.selectedRoomTab) || this.SHOPPABLE_ROOMS[0];
+  }
+
+  selectRoomTab(tab: 'living' | 'office') {
+    this.selectedRoomTab = tab;
+    this.activeHotspotId = null;
+  }
+
+  setActiveHotspot(id: string) {
+    this.activeHotspotId = id;
+  }
+
+  clearActiveHotspot() {
+    this.activeHotspotId = null;
+  }
+
+  toggleActiveHotspot(id: string) {
+    this.activeHotspotId = this.activeHotspotId === id ? null : id;
+  }
+
+  getHotspotProduct(spot: RoomHotspotItem): any {
+    const prod = this.products.find(p => p.productId === spot.productId || (p as any).id === spot.productId);
+    if (prod) {
+      return {
+        id: prod.productId || (prod as any).id,
+        name: prod.shortDescription_vi || prod.shortDescription || (prod as any).name || spot.nameFallback,
+        price: this.isOnSale(prod) ? this.getLowestPriceFormatted(prod) : this.getProductPriceFormatted(prod),
+        originalPrice: this.isOnSale(prod) ? this.getProductPriceFormatted(prod) : null,
+        image: prod.images?.[0] || spot.imageFallback,
+        category: prod.category || 'Nội thất',
+        isOnSale: this.isOnSale(prod)
+      };
+    }
+    return {
+      id: spot.productId,
+      name: spot.nameFallback,
+      price: spot.priceFallback,
+      originalPrice: null,
+      image: spot.imageFallback,
+      category: 'Nội thất',
+      isOnSale: false
+    };
   }
 }

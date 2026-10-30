@@ -3,25 +3,32 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, ChevronDown, Check, Star } from 'lucide-angular';
 import { ProductCategory } from '../../models/catalog.model';
+import { 
+  CategoryClassificationService, 
+  CategoryItem, 
+  matchProductRoom, 
+  matchProductCollection, 
+  matchProductStyle, 
+  matchProductMaterial 
+} from '../../../core/services/category-classification.service';
 
 export interface FilterState {
-  categories: string[];
-  materials: string[];
-  colors: string[];
+  categories: string[];      // Danh mục chính (Sofas, Chairs, Tables, etc.)
+  rooms?: string[];          // Phòng & Không gian (Phòng khách, Phòng ăn, etc.)
+  collections?: string[];    // Bộ sưu tập (Bergamo, Como, etc.)
+  styles?: string[];         // Phong cách (Scandinavian, Modern Luxury, etc.)
+  materials?: string[];      // Chất liệu (Da bò, Vải nỉ, etc.)
+  colors: string[];          // Màu sắc
   priceRange: [number, number];
-  rooms?: string[];
-  styles?: string[];
   minRating?: number;
 }
 
-export interface RoomOption {
-  slug: string;
+export interface SubcategoryOption {
+  id: string;
   name: string;
-}
-
-export interface StyleOption {
   slug: string;
-  name: string;
+  type: 'room' | 'collection' | 'style' | 'material';
+  count?: number;
 }
 
 export interface ColorOption {
@@ -42,6 +49,7 @@ export class SidebarFilterComponent implements OnChanges {
 
   @Input() filters!: FilterState;
   @Input() rawCategories: ProductCategory[] = [];
+  @Input() allProducts: any[] = [];
   @Input() dynamicFilters: any = {};
   @Input() validFilters: any = {};
   @Input() dynamicMaxPrice = 100000000;
@@ -50,24 +58,31 @@ export class SidebarFilterComponent implements OnChanges {
 
   @Output() onFilterChange = new EventEmitter<FilterState>();
 
+  // Trạng thái đóng/mở từng khối bộ lọc
   expanded: Record<string, boolean> = {
     category: true,
-    price: true,
     room: true,
+    collection: true,
     style: true,
-    rating: true,
+    material: true,
+    price: true,
     color: true,
-    material: true
+    rating: true
   };
 
-  // Phân trang chất liệu
-  materialPage = 0;
-  materialPageSize = 5;
-  materialSearchQuery = '';
+  // 1. Danh mục chính (Root categories từ Database: parentId == null)
+  displayCategories: { key: string; label: string; count?: number }[] = [];
+
+  // 2. Các khối danh mục phụ được quản lý từ Admin
+  roomOptions: SubcategoryOption[] = [];
+  collectionOptions: SubcategoryOption[] = [];
+  styleOptions: SubcategoryOption[] = [];
+  materialOptions: SubcategoryOption[] = [];
 
   // Phân trang màu sắc
   colorPage = 0;
   colorPageSize = 12;
+  VALID_COLORS: ColorOption[] = [];
 
   localMinPrice = 0;
   localMaxPrice = 100000000;
@@ -82,33 +97,10 @@ export class SidebarFilterComponent implements OnChanges {
     return Math.min(100, Math.max(0, (this.localMaxPrice / this.dynamicMaxPrice) * 100));
   }
 
-  // Danh mục chính (Root categories từ DB)
-  displayCategories: { key: string; label: string; count?: number }[] = [];
-
-  // Phòng: slug room
-  ROOM_OPTIONS: RoomOption[] = [
-    { slug: 'phong-khach', name: 'Phòng Khách' },
-    { slug: 'phong-ngu', name: 'Phòng Ngủ' },
-    { slug: 'phong-bep', name: 'Phòng Bếp' },
-    { slug: 'phong-lam-viec', name: 'Phòng Làm Việc' },
-    { slug: 'ngoai-troi', name: 'Ngoài Trời' }
-  ];
-
-  // Phong cách thiết kế: slug style
-  STYLE_OPTIONS: StyleOption[] = [
-    { slug: 'japandi', name: 'Japandi' },
-    { slug: 'scandinavian', name: 'Scandinavian' },
-    { slug: 'modern-luxury', name: 'Modern Luxury' },
-    { slug: 'wabi-sabi', name: 'Wabi-Sabi' },
-    { slug: 'minimalism', name: 'Minimalism' },
-    { slug: 'industrial', name: 'Industrial' }
-  ];
-
-  VALID_MATERIALS: string[] = [];
-  VALID_COLORS: ColorOption[] = [];
+  constructor(private categoryClassificationService: CategoryClassificationService) {}
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['rawCategories'] || changes['dynamicFilters'] || changes['validFilters']) {
+    if (changes['rawCategories'] || changes['allProducts'] || changes['dynamicFilters'] || changes['validFilters']) {
       this.initFilters();
     }
     if (changes['filters']) {
@@ -123,28 +115,55 @@ export class SidebarFilterComponent implements OnChanges {
   }
 
   initFilters() {
-    // 1. Danh mục chính trong database (parentId == null)
+    // 1. Danh mục chính từ Database: Giữ nguyên tên gốc trong DB (Sofas, Chairs, Tables, etc.)
     if (this.rawCategories && this.rawCategories.length > 0) {
       const rootCats = this.rawCategories.filter(c => !c.parentId);
-      
       this.displayCategories = rootCats.map(c => ({
         key: c.slug,
-        label: c.name, // Dùng mặc định tên trong database
+        label: c.name, // Dùng đúng tên trong database, không thêm Sofa (Sofas)
         count: c._count?.products || 0
       }));
     }
 
-    // 2. Chất liệu thật từ database
-    if (this.dynamicFilters?.materials?.length) {
-      this.VALID_MATERIALS = [...this.dynamicFilters.materials];
-    } else {
-      this.VALID_MATERIALS = [
-        'Fabric', 'Leather', 'Oak', 'Wool', 'Ceramic', 'Concrete', 'Glass', 
-        'Acrylic', 'Polyester', 'Metal', 'Aluminium', 'Wood', 'Marble', 'Steel'
-      ];
-    }
+    // 2. Các khối danh mục phụ từ Admin (Phòng & Không gian, Bộ sưu tập, Phong cách, Chất liệu)
+    const adminRooms = this.categoryClassificationService.getRooms();
+    const adminCollections = this.categoryClassificationService.getCollections();
+    const adminStyles = this.categoryClassificationService.getStyles();
+    const adminMaterials = this.categoryClassificationService.getMaterials();
 
-    // 3. Màu sắc thật từ database
+    this.roomOptions = adminRooms.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      type: 'room',
+      count: this.countMatchingProducts((p) => matchProductRoom(p, cat.slug, cat))
+    }));
+
+    this.collectionOptions = adminCollections.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      type: 'collection',
+      count: this.countMatchingProducts((p) => matchProductCollection(p, cat.slug, cat))
+    }));
+
+    this.styleOptions = adminStyles.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      type: 'style',
+      count: this.countMatchingProducts((p) => matchProductStyle(p, cat.slug, cat))
+    }));
+
+    this.materialOptions = adminMaterials.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      type: 'material',
+      count: this.countMatchingProducts((p) => matchProductMaterial(p, cat.slug, cat))
+    }));
+
+    // 3. Màu sắc thật từ database / dynamicFilters
     if (this.dynamicFilters?.colors?.length) {
       this.VALID_COLORS = [...this.dynamicFilters.colors];
     } else {
@@ -165,11 +184,16 @@ export class SidebarFilterComponent implements OnChanges {
     }
   }
 
+  private countMatchingProducts(predicate: (prod: any) => boolean): number {
+    if (!this.allProducts || this.allProducts.length === 0) return 0;
+    return this.allProducts.filter(predicate).length;
+  }
+
   isCatActive(key: string): boolean {
     if (key === 'all') {
       return !this.filters.categories || this.filters.categories.length === 0;
     }
-    return this.filters.categories.some(c => c.toLowerCase() === key.toLowerCase() || key.toLowerCase().includes(c.toLowerCase()));
+    return Boolean(this.filters.categories && this.filters.categories.includes(key));
   }
 
   selectCategory(key: string) {
@@ -177,9 +201,28 @@ export class SidebarFilterComponent implements OnChanges {
     if (key !== 'all') {
       newCategories = [key];
     }
+
     this.onFilterChange.emit({
       ...this.filters,
       categories: newCategories
+    });
+  }
+
+  isItemActive(group: 'rooms' | 'collections' | 'styles' | 'materials', slug: string): boolean {
+    return Boolean(this.filters[group] && this.filters[group]!.includes(slug));
+  }
+
+  toggleFilterItem(group: 'rooms' | 'collections' | 'styles' | 'materials', slug: string) {
+    const current = this.filters[group] || [];
+    let updated: string[];
+    if (current.includes(slug)) {
+      updated = current.filter(s => s !== slug);
+    } else {
+      updated = [...current, slug];
+    }
+    this.onFilterChange.emit({
+      ...this.filters,
+      [group]: updated
     });
   }
 
@@ -189,22 +232,6 @@ export class SidebarFilterComponent implements OnChanges {
 
   formatPriceNumber(price: number): string {
     return new Intl.NumberFormat('vi-VN').format(price) + ' đ';
-  }
-
-  // --- Phân trang Chất liệu ---
-  get filteredMaterials(): string[] {
-    if (!this.materialSearchQuery) return this.VALID_MATERIALS;
-    const q = this.materialSearchQuery.toLowerCase();
-    return this.VALID_MATERIALS.filter(m => m.toLowerCase().includes(q));
-  }
-
-  get totalMaterialPages(): number {
-    return Math.max(1, Math.ceil(this.filteredMaterials.length / this.materialPageSize));
-  }
-
-  get currentMaterials(): string[] {
-    const start = this.materialPage * this.materialPageSize;
-    return this.filteredMaterials.slice(start, start + this.materialPageSize);
   }
 
   // --- Phân trang Màu sắc ---
@@ -217,44 +244,20 @@ export class SidebarFilterComponent implements OnChanges {
     return this.VALID_COLORS.slice(start, start + this.colorPageSize);
   }
 
-  handleCheckboxChange(key: 'materials' | 'colors' | 'rooms' | 'styles', value: string) {
-    const currentList = (this.filters[key] as string[]) || [];
-    let newList: string[] = [];
-    if (currentList.includes(value)) {
-      newList = currentList.filter(item => item !== value);
-    } else {
-      newList = [...currentList, value];
-    }
-    this.onFilterChange.emit({ ...this.filters, [key]: newList });
-  }
-
   selectRating(rating: number) {
     const newRating = this.filters.minRating === rating ? undefined : rating;
     this.onFilterChange.emit({ ...this.filters, minRating: newRating });
   }
 
-  // --- Lọc Màu sắc: Mỗi lần chỉ chọn 1 màu (toggle chọn/bỏ chọn) ---
+  // --- Lọc Màu sắc ---
   isColorActive(slug: string): boolean {
     return Boolean(this.filters.colors && this.filters.colors.includes(slug));
   }
 
   selectColor(slug: string) {
     const isCurrentlySelected = this.filters.colors?.includes(slug);
-    // Click vào màu đang chọn sẽ bỏ chọn (toggle), click màu khác sẽ chọn duy nhất màu đó
     const newColors = isCurrentlySelected ? [] : [slug];
     this.onFilterChange.emit({ ...this.filters, colors: newColors });
-  }
-
-  // --- Lọc Phòng: Chỉ được chọn 1 phòng tại 1 thời điểm ---
-  isRoomActive(slug: string): boolean {
-    return Boolean(this.filters.rooms && this.filters.rooms.includes(slug));
-  }
-
-  selectRoom(slug: string) {
-    const isCurrentlySelected = this.filters.rooms?.includes(slug);
-    // Click vào phòng đang chọn sẽ bỏ chọn (toggle), click phòng khác sẽ chọn duy nhất phòng đó
-    const newRooms = isCurrentlySelected ? [] : [slug];
-    this.onFilterChange.emit({ ...this.filters, rooms: newRooms });
   }
 
   // --- Điều khiển 2 phía Min và Max & Nhập thủ công ---

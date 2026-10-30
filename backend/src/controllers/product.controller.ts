@@ -107,22 +107,69 @@ export const productController = {
   getDetail: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id as string;
-      const product = await prisma.product.findUnique({
-        where: { id },
+      let product = null;
+
+      const variantInclude = {
         include: {
-          category: {
-            include: { parent: true }
-          },
-          variants: true
+          warehouseStocks: {
+            select: {
+              warehouseId: true,
+              physicalStock: true,
+              reservedStock: true,
+              safetyThreshold: true
+            }
+          }
         }
-      });
+      };
+
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
+      if (isUuid) {
+        product = await prisma.product.findUnique({
+          where: { id },
+          include: {
+            category: {
+              include: { parent: true }
+            },
+            variants: variantInclude
+          }
+        });
+      }
+
+      if (!product) {
+        product = await prisma.product.findUnique({
+          where: { slug: id },
+          include: {
+            category: {
+              include: { parent: true }
+            },
+            variants: variantInclude
+          }
+        });
+      }
 
       if (!product) {
         res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
         return;
       }
 
-      res.json(product);
+      const config = (product.configOptions as any) || {};
+
+      const variantsWithThreshold = (product.variants || []).map((v: any) => {
+        const whThresholds = (v.warehouseStocks || [])
+          .map((ws: any) => ws.safetyThreshold)
+          .filter((t: any) => typeof t === 'number' && t > 0);
+        const safetyThreshold = whThresholds.length > 0 ? Math.min(...whThresholds) : 5;
+        return {
+          ...v,
+          safetyThreshold
+        };
+      });
+
+      res.json({
+        ...product,
+        variants: variantsWithThreshold,
+        allowCustom: !!config.allowCustom
+      });
     } catch (error: any) {
       console.error('Lỗi lấy chi tiết sản phẩm:', error);
       res.status(500).json({ message: 'Lỗi server.', error: error?.message });

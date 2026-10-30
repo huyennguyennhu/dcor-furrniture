@@ -4,13 +4,15 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { Header } from '../header/header';
 import { Footer } from '../footer/footer';
 import { IconComponent } from '../../../../shared/components/icon/icon';
+import { FloatingCompareDockComponent } from '../../../../shared/components/floating-compare-dock/floating-compare-dock';
+import { CompareService } from '../../../../core/services/compare.service';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-store-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header, Footer, IconComponent],
+  imports: [CommonModule, RouterModule, Header, Footer, IconComponent, FloatingCompareDockComponent],
   templateUrl: './store-layout.html',
   styleUrls: ['./store-layout.css']
 })
@@ -20,11 +22,12 @@ export class StoreLayout implements OnInit, OnDestroy {
   isDockActive = false;
 
   private routerSub: Subscription;
-  private compareEventListener?: () => void;
+  private compareSub?: Subscription;
 
   constructor(
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private compareService: CompareService
   ) {
     this.isHomePage = this.router.url === '/' || this.router.url === '';
 
@@ -43,31 +46,26 @@ export class StoreLayout implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.checkDockState();
-    if (typeof window !== 'undefined') {
-      this.compareEventListener = () => {
-        this.checkDockState();
-        this.cdr.detectChanges();
-      };
-      window.addEventListener('dcor_compare_updated', this.compareEventListener);
-      window.addEventListener('storage', this.compareEventListener);
-    }
+    this.compareSub = this.compareService.compareList$.subscribe(list => {
+      this.isDockActive = (list && list.length > 0);
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy() {
     this.routerSub?.unsubscribe();
-    if (typeof window !== 'undefined' && this.compareEventListener) {
-      window.removeEventListener('dcor_compare_updated', this.compareEventListener);
-      window.removeEventListener('storage', this.compareEventListener);
-    }
+    this.compareSub?.unsubscribe();
   }
 
   @HostListener('window:scroll', [])
   onWindowScroll() {
     if (typeof window !== 'undefined') {
       const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-      this.showScrollTop = scrollY > 360;
-      this.cdr.detectChanges();
+      const shouldShow = scrollY > 360;
+      if (this.showScrollTop !== shouldShow) {
+        this.showScrollTop = shouldShow;
+        this.cdr.markForCheck();
+      }
     }
   }
 
@@ -77,17 +75,6 @@ export class StoreLayout implements OnInit, OnDestroy {
         top: 0,
         behavior: 'smooth'
       });
-    }
-  }
-
-  private checkDockState() {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      const stored = localStorage.getItem('dcor_compare_items');
-      const list = stored ? JSON.parse(stored) : [];
-      this.isDockActive = list.length > 0;
-    } catch {
-      this.isDockActive = false;
     }
   }
 }

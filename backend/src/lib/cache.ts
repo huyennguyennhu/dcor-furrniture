@@ -28,6 +28,14 @@ class MemoryCache {
     this.store.delete(key);
   }
 
+  invalidatePrefix(prefix: string): void {
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) {
+        this.store.delete(key);
+      }
+    }
+  }
+
   clear(): void {
     this.store.clear();
   }
@@ -40,5 +48,7 @@ export const CACHE_KEYS = {
   CATEGORIES_LIST: 'categories_list',
   STAFF_LIST: 'staff_list',
   DESIGN_TEMPLATES: 'design_templates',
-  DESIGN_POSTS: 'design_posts'
+  DESIGN_POSTS: 'design_posts',
+  SHOWROOMS_LIST: 'showrooms_list',
+  CONSULTATIONS_ADMIN_PREFIX: 'consultations_admin_'
 };

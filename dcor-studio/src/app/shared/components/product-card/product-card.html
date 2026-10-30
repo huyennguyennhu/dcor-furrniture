@@ -19,14 +19,8 @@
       </span>
     </div>
 
-    <!-- Cụm nút thao tác góc trên: Xem nhanh + So sánh + Yêu thích -->
+    <!-- Cụm nút thao tác góc trên: So sánh + Yêu thích -->
     <div class="card-corner-actions">
-      <!-- Nút xem nhanh -->
-      <button *ngIf="showQuickView" type="button" class="round-action-btn quickview-btn" title="Xem nhanh"
-        (click)="onQuickViewClick($event)">
-        <app-icon name="Eye" size="16" color="#4b5563"></app-icon>
-      </button>
-
       <!-- Nút so sánh -->
       <button *ngIf="showCompare" type="button" class="round-action-btn compare-btn"
         [class.active]="isInCompare"

@@ -36,6 +36,10 @@
   --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 25%);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* ==========================================================================
    DCor UI Design Tokens (:root & [data-theme="light"])
    ========================================================================== */
@@ -756,3 +760,4 @@ body.admin-body {
     transform: scale(1);
   }
 }
+ 

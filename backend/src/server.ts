@@ -2,8 +2,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import prisma from './lib/prisma';
+import { memoryCache, CACHE_KEYS } from './lib/cache';
 import authRoutes from './routes/auth.routes';
 import cartRoutes from './routes/cart.routes';
 import inventoryRoutes from './routes/inventory.routes';
@@ -17,7 +19,7 @@ import categoryRoutes from './routes/category.routes';
 import uploadRoutes from './routes/upload.routes';
 import adminOrderRoutes from './routes/admin-order.routes';
 import consultationRoutes from './routes/consultation.routes';
-import { consultationController } from './controllers/consultation.controller';
+import { consultationController, ensureConsultationTable } from './controllers/consultation.controller';
 import voucherRoutes from './routes/voucher.routes';
 import { voucherController } from './controllers/voucher.controller';
 import designRoutes from './routes/design.routes';
@@ -32,6 +34,7 @@ import { initPromotionsAndDesignsDatabase } from './lib/init-promotions-and-desi
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 
@@ -90,6 +93,11 @@ app.use('/api/upload', uploadRoutes);
 // API danh mục sản phẩm từ database thực
 app.get('/api/categories', async (req, res) => {
   try {
+    const cached = memoryCache.get<any[]>(CACHE_KEYS.CATEGORIES_LIST, 5 * 60 * 1000);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const categories = await prisma.category.findMany({
       where: { isActive: true },
       include: {
@@ -107,6 +115,8 @@ app.get('/api/categories', async (req, res) => {
       },
       orderBy: { sortOrder: 'asc' }
     });
+
+    memoryCache.set(CACHE_KEYS.CATEGORIES_LIST, categories);
     res.json(categories);
   } catch (error) {
     console.error('Lỗi lấy danh mục:', error);
@@ -118,6 +128,15 @@ app.get('/api/categories', async (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     const { categoryId, categorySlug } = req.query;
+    const cacheKey = categoryId
+      ? `products_cat_${categoryId}`
+      : (categorySlug ? `products_slug_${categorySlug}` : CACHE_KEYS.PRODUCTS_CATALOG);
+
+    const cached = memoryCache.get<any[]>(cacheKey, 5 * 60 * 1000);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const whereClause: any = {
       isActive: true,
       deletedAt: null
@@ -177,6 +196,7 @@ app.get('/api/products', async (req, res) => {
       };
     });
 
+    memoryCache.set(cacheKey, enrichedProducts);
     res.json(enrichedProducts);
   } catch (error) {
     console.error('Lỗi lấy danh sách sản phẩm:', error);
@@ -186,6 +206,22 @@ app.get('/api/products', async (req, res) => {
 
 app.get('/api/products/:id', async (req, res) => {
   try {
+    const cacheKey = `product_detail_${req.params.id}`;
+    const cached = memoryCache.get<any>(cacheKey, 5 * 60 * 1000);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const variantInclude = {
+      include: {
+        warehouseStocks: {
+          select: {
+            safetyThreshold: true
+          }
+        }
+      }
+    };
+
     let product = await prisma.product.findUnique({ 
       where: { id: req.params.id },
       include: {
@@ -194,7 +230,7 @@ app.get('/api/products/:id', async (req, res) => {
             parent: true
           }
         },
-        variants: true
+        variants: variantInclude
       }
     });
 
@@ -207,7 +243,7 @@ app.get('/api/products/:id', async (req, res) => {
               parent: true
             }
           },
-          variants: true
+          variants: variantInclude
         }
       });
     }
@@ -221,8 +257,14 @@ app.get('/api/products/:id', async (req, res) => {
           const match = String(val).match(/\d+/);
           return match ? parseInt(match[0], 10) : null;
         };
+        const whThresholds = (v.warehouseStocks || [])
+          .map((ws: any) => ws.safetyThreshold)
+          .filter((t: any) => typeof t === 'number' && t > 0);
+        const safetyThreshold = whThresholds.length > 0 ? Math.min(...whThresholds) : 5;
+
         return {
           ...v,
+          safetyThreshold,
           images: opt.images || [],
           dimensions: {
             width: parseNum(attrs.width) || parseNum(attrs.length),
@@ -263,13 +305,16 @@ app.get('/api/products/:id', async (req, res) => {
         }
       }
 
-      res.json({
+      const responseData = {
         ...product,
         rating,
         reviewCount,
         description_vi: descVi,
         variants: variantsWithDimensions
-      });
+      };
+
+      memoryCache.set(cacheKey, responseData);
+      res.json(responseData);
     } else {
       res.status(404).json({ error: 'Product not found' });
     }
@@ -497,6 +542,7 @@ import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+  ensureConsultationTable().catch(err => console.error('Failed to init consultation DB:', err));
   initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
   initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
   initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));

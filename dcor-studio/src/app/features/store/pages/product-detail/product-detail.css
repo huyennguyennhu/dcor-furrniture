@@ -22,7 +22,7 @@
    ========================================================================== */
 .pdp-toast {
   position: fixed;
-  top: 80px;
+  top: 104px;
   right: 24px;
   z-index: 9999;
   display: flex;
@@ -820,53 +820,113 @@
   font-weight: 700;
 }
 
-/* Ô màu Swatch */
+/* Ô màu / hình ảnh chất liệu Swatch (1 hàng hiển thị tối đa 12 màu) */
 .color-swatches-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0 6px 0;
+  max-width: 100%;
 }
 
 .color-swatch-btn {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px 6px 6px;
-  border-radius: 30px;
-  background: #ffffff;
-  border: 1px solid #d6d3d1;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.swatch-color-circle {
-  width: 24px;
-  height: 24px;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 2px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  outline: none;
   flex-shrink: 0;
-}
-
-.swatch-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #44403c;
 }
 
 .color-swatch-btn:hover {
   border-color: #a8a29e;
-  transform: translateY(-1px);
 }
 
 .color-swatch-btn.active {
   border-color: #9A461E;
-  background: #fff7ed;
-  box-shadow: 0 0 0 2px rgba(154, 70, 30, 0.2);
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
-.color-swatch-btn.active .swatch-label {
-  color: #9A461E;
+.swatch-color-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.swatch-color-circle.has-image {
+  background-size: cover;
+}
+
+.swatch-check-icon {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+/* Tooltip hiển thị chữ ở phía trên khi lia chuột vào */
+.swatch-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #1c1917;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  z-index: 60;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  max-width: 250px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.swatch-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1c1917 transparent transparent transparent;
+}
+
+.color-swatch-btn:hover .swatch-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.group-selected-val {
+  font-size: 14px;
   font-weight: 600;
+  color: #9A461E;
+  margin-left: 6px;
+  transition: color 0.15s ease;
 }
 
 /* Nút chọn Kích thước & Chất liệu (Pills) */
@@ -1480,11 +1540,77 @@
 }
 
 /* ==========================================================================
-   9. ĐÁNH GIÁ KHÁCH HÀNG (FR3-C-14)
+   9. ĐÁNH GIÁ KHÁCH HÀNG (FR3-C-14 - TÁCH ĐỘC LẬP)
    ========================================================================== */
+.pdp-reviews-standalone-section {
+  background: #ffffff;
+  border: 1px solid #ebe8e1;
+  border-radius: 24px;
+  padding: 36px;
+  margin-bottom: 64px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.reviews-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f3f2ee;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.reviews-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reviews-section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #292524;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.reviews-section-badge {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #9A461E;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+.btn-write-review-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #292524;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-write-review-trigger:hover {
+  background: #9A461E;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(154, 70, 30, 0.25);
+}
+
 .reviews-summary-card {
   display: grid;
-  grid-template-columns: 200px 1fr 280px;
+  grid-template-columns: 200px 1fr;
   gap: 36px;
   padding: 28px;
   background: #fbfaf7;
@@ -1492,6 +1618,7 @@
   border-radius: 18px;
   align-items: center;
   margin-bottom: 32px;
+  max-width: 760px;
 }
 
 .rating-overall-box {
@@ -1563,50 +1690,6 @@
   color: #78716c;
   text-align: right;
   font-size: 12px;
-}
-
-/* Write Review CTA */
-.write-review-cta-box {
-  padding-left: 24px;
-  border-left: 1px solid #ebe8e1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.write-review-cta-box h4 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: #292524;
-}
-
-.write-review-cta-box p {
-  margin: 0;
-  font-size: 12px;
-  color: #78716c;
-  line-height: 1.5;
-}
-
-.btn-write-review {
-  margin-top: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 12px;
-  background: #9A461E;
-  color: #ffffff;
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-write-review:hover {
-  background: #7c3513;
 }
 
 /* Filter bar đánh giá */
@@ -2651,13 +2734,6 @@
     padding-right: 0;
     padding-bottom: 20px;
   }
-
-  .write-review-cta-box {
-    border-left: none;
-    border-top: 1px solid #ebe8e1;
-    padding-left: 0;
-    padding-top: 20px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -2925,4 +3001,136 @@
   .compare-counter {
     display: none;
   }
+}
+
+/* Modal Cảnh Báo Nhắc Xác Nhận Xóa So Sánh */
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeInConfirmBackdrop 0.2s ease forwards;
+}
+
+.confirm-modal-box {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 22px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: scaleInConfirmBox 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInConfirmBackdrop {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleInConfirmBox {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.confirm-modal-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #dc2626;
+}
+
+.confirm-modal-content {
+  margin-bottom: 22px;
+}
+
+.confirm-modal-title {
+  margin: 0 0 8px 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.confirm-modal-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.confirm-modal-desc strong {
+  color: #111827;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-confirm-cancel {
+  flex: 1;
+  height: 40px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-cancel:hover {
+  background: #f9fafb;
+  border-color: #cbd5e1;
+}
+
+.btn-confirm-delete {
+  flex: 1;
+  height: 40px;
+  border: none;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-delete:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
 }

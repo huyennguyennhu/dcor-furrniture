@@ -18,44 +18,121 @@
 
     <nav class="store-header-nav">
       <ul>
-        <li #shopNavItem
-            class="store-shop-nav-item"
-            [class.is-open]="shopMenuOpen"
-            [class.is-hover-dismissed]="shopHoverDismissed"
-            (mouseleave)="onShopNavMouseLeave()">
-          <a routerLink="/explore"
-             routerLinkActive="active"
-             class="header-nav-link store-shop-nav-link"
-             (click)="onShopLinkClick()">Sản Phẩm</a>
-          <button type="button"
-                  class="store-shop-menu-toggle"
-                  aria-label="Mở danh mục sản phẩm"
-                  aria-controls="store-shop-mega-menu"
-                  [attr.aria-expanded]="shopMenuOpen"
-                  (click)="toggleShopMenu()">
+        <li #shopNavItem class="store-shop-nav-item" [class.is-hovered]="isShopHovered"
+          (mouseenter)="onShopMouseEnter()" (mouseleave)="onShopMouseLeave()">
+          <a routerLink="/explore" routerLinkActive="active" class="header-nav-link store-shop-nav-link"
+            (click)="closeShopMenu()">Sản Phẩm</a>
+          <span class="store-shop-menu-toggle" aria-hidden="true">
             <svg class="store-shop-nav-chevron" viewBox="0 0 12 12" aria-hidden="true">
               <path d="m2.5 4.5 3.5 3 3.5-3" />
             </svg>
-          </button>
-          <div id="store-shop-mega-menu" class="store-shop-mega-menu">
-            <section class="store-shop-menu-column store-shop-product-categories">
-              <h2>Danh Mục</h2>
-              <ul>
-                <li>
-                  <a [routerLink]="['/explore']" (click)="closeShopMenu()">
-                    <span>Tất cả sản phẩm</span>
-                  </a>
-                </li>
-                <li *ngFor="let category of storeCategories">
-                  <a [routerLink]="['/explore']" [queryParams]="{ category: category.slug }" (click)="closeShopMenu()">
-                    <span>{{ category.name }}</span>
-                    <span class="store-shop-category-count" *ngIf="category.productCount">({{ category.productCount }})</span>
-                  </a>
-                </li>
-                <li *ngIf="isStoreCategoriesLoading" class="store-shop-menu-loading">Đang tải danh mục...</li>
-                <li *ngIf="!isStoreCategoriesLoading && !storeCategories.length" class="store-shop-menu-loading">Chưa có danh mục sản phẩm</li>
-              </ul>
-            </section>
+          </span>
+          <div id="store-shop-mega-menu" class="store-shop-mega-menu" (mouseenter)="onShopMouseEnter()"
+            (mouseleave)="onShopMouseLeave()">
+            <div class="mega-menu-inner">
+              <div class="mega-menu-grid">
+                <!-- CỘT 1: DANH MỤC SẢN PHẨM -->
+                <section class="mega-col mega-col-categories">
+                  <div class="mega-col-header">
+                    <h3 class="mega-col-title">Danh Mục</h3>
+                  </div>
+                  <ul class="mega-list">
+                    <li *ngFor="let category of filteredStoreCategories" class="mega-list-item">
+                      <a [routerLink]="['/explore']" [queryParams]="{ category: category.slug }"
+                        (click)="closeShopMenu()" class="mega-link">
+                        <span class="mega-link-name">{{ category.name }}</span>
+                      </a>
+                    </li>
+                    <li *ngIf="isStoreCategoriesLoading" class="mega-loading">
+                      <span class="mega-spinner"></span> Đang tải danh mục...
+                    </li>
+                    <li *ngIf="!isStoreCategoriesLoading && !filteredStoreCategories.length" class="mega-loading">
+                      Chưa có danh mục sản phẩm
+                    </li>
+                  </ul>
+                </section>
+
+                <!-- CỘT 2: PHÒNG & KHÔNG GIAN -->
+                <section class="mega-col mega-col-rooms">
+                  <div class="mega-col-header">
+                    <h3 class="mega-col-title">Không Gian</h3>
+                  </div>
+                  <ul class="mega-list">
+                    <li *ngFor="let room of roomList" class="mega-list-item">
+                      <a [routerLink]="['/explore']" [queryParams]="{ room: room.slug }" (click)="closeShopMenu()"
+                        class="mega-link">
+                        <span class="mega-link-name">{{ room.name }}</span>
+                        <span class="mega-badge-tag" *ngIf="room.badge">{{ room.badge }}</span>
+                      </a>
+                    </li>
+                  </ul>
+                </section>
+
+                <!-- CỘT 3: CHẤT LIỆU TUYỂN CHỌN -->
+                <section class="mega-col mega-col-materials">
+                  <div class="mega-col-header">
+                    <h3 class="mega-col-title">Chất Liệu</h3>
+                  </div>
+                  <ul class="mega-list">
+                    <li *ngFor="let mat of materialList" class="mega-list-item">
+                      <a [routerLink]="['/explore']" [queryParams]="{ material: mat.slug }" (click)="closeShopMenu()"
+                        class="mega-link">
+                        <span class="mega-link-name">{{ mat.name }}</span>
+                        <span class="mega-badge-tag" *ngIf="mat.badge">{{ mat.badge }}</span>
+                      </a>
+                    </li>
+                  </ul>
+                </section>
+
+                <!-- CỘT 4: PHONG CÁCH THIẾT KẾ -->
+                <section class="mega-col mega-col-styles">
+                  <div class="mega-col-header">
+                    <h3 class="mega-col-title">Phong Cách</h3>
+                  </div>
+                  <ul class="mega-list">
+                    <li *ngFor="let style of styleList" class="mega-list-item">
+                      <a [routerLink]="['/explore']" [queryParams]="{ style: style.slug }" (click)="closeShopMenu()"
+                        class="mega-link">
+                        <span class="mega-link-name">{{ style.name }}</span>
+                      </a>
+                    </li>
+                  </ul>
+                </section>
+
+                <!-- CỘT 5: BỘ SƯU TẬP TIÊU BIỂU (FEATURED SHOWCASE) -->
+                <section class="mega-col mega-col-featured">
+                  <div class="mega-featured-card">
+                    <div class="featured-img-wrap">
+                      <img
+                        src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80"
+                        alt="Bộ sưu tập Bergamo" class="featured-img" />
+                      <span class="featured-badge">LOOKBOOK 2026</span>
+                    </div>
+                    <div class="featured-info">
+                      <h4 class="featured-title">Bộ sưu tập Bergamo</h4>
+                      <p class="featured-desc">Đường nét hữu cơ đương đại Đan Mạch mang đến cảm giác êm ái, phóng
+                        khoáng.</p>
+                      <a [routerLink]="['/explore']" [queryParams]="{ collection: 'bo-suu-tap-bergamo' }"
+                        (click)="closeShopMenu()" class="featured-cta-btn">
+                        <span>Xem bộ sưu tập</span>
+                        <app-icon name="ArrowRight" size="14"></app-icon>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Quick Collection Links -->
+                  <div class="mega-quick-collections">
+                    <span class="quick-title">Bộ sưu tập nổi bật:</span>
+                    <div class="quick-tags-wrap">
+                      <a *ngFor="let col of collectionList.slice(1, 4)" [routerLink]="['/explore']"
+                        [queryParams]="{ collection: col.slug }" (click)="closeShopMenu()" class="quick-col-pill">
+                        {{ col.name }}
+                      </a>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
           </div>
         </li>
         <li>
@@ -216,7 +293,8 @@
     </div>
 
     <!-- Dropdown kết quả trên mobile -->
-    <div *ngIf="isDropdownOpen && searchQuery.trim()" class="mobile-search-dropdown-wrap container" (mousedown)="$event.preventDefault()">
+    <div *ngIf="isDropdownOpen && searchQuery.trim()" class="mobile-search-dropdown-wrap container"
+      (mousedown)="$event.preventDefault()">
       <div *ngIf="searchResults.length > 0; else noMobileResults" class="mobile-search-results-list">
         <a *ngFor="let p of searchResults.slice(0, 4)" [routerLink]="['/explore', p.productId]"
           (click)="isDropdownOpen = false; isMobileSearchOpen = false" class="mobile-search-item">
@@ -280,23 +358,53 @@
         <div class="mobile-accordion-title-row">
           <a routerLink="/explore" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Sản Phẩm</a>
           <button type="button" class="mobile-accordion-btn" (click)="toggleMobileShop()" aria-label="Mở rộng danh mục">
-            <app-icon name="ChevronDown" size="18" [style.transform]="mobileShopOpen ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+            <app-icon name="ChevronDown" size="18" [style.transform]="mobileShopOpen ? 'rotate(180deg)' : 'none'"
+              style="transition: transform 0.2s;"></app-icon>
           </button>
         </div>
         <div class="mobile-accordion-sublinks" *ngIf="mobileShopOpen">
-          <a routerLink="/explore" class="mobile-sublink-item" (click)="closeMobileMenu()">
+          <a routerLink="/explore" class="mobile-sublink-item mobile-sublink-all" (click)="closeMobileMenu()">
             <span>Tất cả sản phẩm</span>
+            <app-icon name="ArrowRight" size="14"></app-icon>
           </a>
-          <a *ngFor="let cat of storeCategories" [routerLink]="['/explore']" [queryParams]="{ category: cat.slug }" class="mobile-sublink-item" (click)="closeMobileMenu()">
-            <span>{{ cat.name }}</span>
+
+          <!-- Nhóm: Danh mục sản phẩm -->
+          <div class="mobile-subgroup-label">Danh mục sản phẩm</div>
+          <a *ngFor="let cat of filteredStoreCategories" [routerLink]="['/explore']"
+            [queryParams]="{ category: cat.slug }" class="mobile-sublink-item" (click)="closeMobileMenu()">
+            <span>{{ getCategoryDisplayName(cat) }}</span>
             <span class="mobile-sublink-badge" *ngIf="cat.productCount">({{ cat.productCount }})</span>
+          </a>
+
+          <!-- Nhóm: Phòng & Không gian -->
+          <div class="mobile-subgroup-label">Phòng & Không gian</div>
+          <a *ngFor="let room of roomList" [routerLink]="['/explore']" [queryParams]="{ room: room.slug }"
+            class="mobile-sublink-item" (click)="closeMobileMenu()">
+            <span>{{ room.name }}</span>
+          </a>
+
+          <!-- Nhóm: Chất liệu tuyển chọn -->
+          <div class="mobile-subgroup-label">Chất liệu tuyển chọn</div>
+          <a *ngFor="let mat of materialList" [routerLink]="['/explore']" [queryParams]="{ material: mat.slug }"
+            class="mobile-sublink-item" (click)="closeMobileMenu()">
+            <span>{{ mat.name }}</span>
+          </a>
+
+          <!-- Nhóm: Phong cách thiết kế -->
+          <div class="mobile-subgroup-label">Phong cách thiết kế</div>
+          <a *ngFor="let st of styleList" [routerLink]="['/explore']" [queryParams]="{ style: st.slug }"
+            class="mobile-sublink-item" (click)="closeMobileMenu()">
+            <span>{{ st.name }}</span>
           </a>
         </div>
       </div>
 
-      <a routerLink="/custom-design" routerLinkActive="active" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Thiết kế</a>
-      <a routerLink="/community" routerLinkActive="active" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Cộng đồng</a>
-      <a routerLink="/blog" routerLinkActive="active" class="mobile-nav-link-primary" (click)="closeMobileMenu()">Blog</a>
+      <a routerLink="/custom-design" routerLinkActive="active" class="mobile-nav-link-primary"
+        (click)="closeMobileMenu()">Thiết kế</a>
+      <a routerLink="/community" routerLinkActive="active" class="mobile-nav-link-primary"
+        (click)="closeMobileMenu()">Cộng đồng</a>
+      <a routerLink="/blog" routerLinkActive="active" class="mobile-nav-link-primary"
+        (click)="closeMobileMenu()">Blog</a>
 
       <div class="mobile-nav-divider"></div>
 
@@ -341,7 +449,8 @@
           <app-icon name="Package" size="18"></app-icon>
           <span>Đơn hàng của tôi</span>
         </a>
-        <a *ngIf="user?.role === 'ADMIN'" routerLink="/admin" class="mobile-nav-link-secondary" (click)="closeMobileMenu()">
+        <a *ngIf="user?.role === 'ADMIN'" routerLink="/admin" class="mobile-nav-link-secondary"
+          (click)="closeMobileMenu()">
           <app-icon name="Shield" size="18"></app-icon>
           <span>Hệ thống Admin</span>
         </a>

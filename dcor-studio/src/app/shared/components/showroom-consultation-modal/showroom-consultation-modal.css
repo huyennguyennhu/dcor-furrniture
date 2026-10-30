@@ -18,8 +18,13 @@
 }
 
 @keyframes backdropFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .showroom-drawer-box {
@@ -36,8 +41,13 @@
 }
 
 @keyframes drawerSlideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 /* 2. Header */
@@ -345,7 +355,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ==========================================================================
@@ -600,36 +612,94 @@
   background: #ffffff;
 }
 
-/* Horizontal Date Strip */
+/* Horizontal Date Strip Carousel (8 days visible per batch) */
+.date-carousel-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+}
+
+.btn-carousel-nav {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  user-select: none;
+}
+
+.btn-carousel-nav:hover:not(:disabled) {
+  background: #fffbeb;
+  border-color: #b45309;
+  color: #b45309;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.15);
+}
+
+.btn-carousel-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: #f9fafb;
+  border-color: #f3f4f6;
+  color: #9ca3af;
+  box-shadow: none;
+}
+
 .date-carousel-strip {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 2px 1px;
 }
 
 .date-carousel-strip::-webkit-scrollbar {
-  height: 5px;
-}
-
-.date-carousel-strip::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
+  display: none;
 }
 
 .date-pill-btn {
-  flex: 0 0 76px;
+  flex: 0 0 calc((100% - 56px) / 8);
+  min-width: 0;
+  box-sizing: border-box;
+  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 6px;
+  padding: 8px 4px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
   background: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  user-select: none;
+}
+
+@media (max-width: 680px) {
+  .date-pill-btn {
+    flex: 0 0 calc((100% - 24px) / 4);
+  }
+}
+
+@media (max-width: 440px) {
+  .date-pill-btn {
+    flex: 0 0 calc((100% - 16px) / 3);
+  }
 }
 
 .date-pill-btn:hover {
@@ -645,10 +715,14 @@
 }
 
 .date-pill-day {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: #6b7280;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .date-pill-btn.active .date-pill-day {
@@ -656,9 +730,10 @@
 }
 
 .date-pill-value {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: #111827;
+  white-space: nowrap;
 }
 
 .date-pill-btn.active .date-pill-value {
@@ -666,13 +741,14 @@
 }
 
 .date-pill-tag {
-  margin-top: 4px;
-  font-size: 0.62rem;
+  margin-top: 3px;
+  font-size: 0.6rem;
   font-weight: 700;
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-radius: 4px;
   background: #fef3c7;
   color: #92400e;
+  white-space: nowrap;
 }
 
 .date-pill-btn.active .date-pill-tag {
@@ -763,7 +839,7 @@
   position: relative;
 }
 
-.slot-card-btn:not(.disabled):hover {
+.slot-card-btn:hover {
   border-color: #b45309;
   background: #fffbeb;
   transform: translateY(-2px);
@@ -775,36 +851,50 @@
   box-shadow: 0 4px 14px rgba(180, 83, 9, 0.15);
 }
 
-.slot-card-btn.disabled {
-  opacity: 0.5;
-  background: #f9fafb;
-  border-color: #e5e7eb;
-  cursor: not-allowed;
-}
-
 .slot-time-range {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #111827;
 }
 
-.slot-status-pill {
+.slot-card-btn.selected .slot-time-range {
+  color: #b45309;
+}
+
+.slot-period-badge {
   font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.slot-status-pill.available {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
-}
-
-.slot-status-pill.full {
-  background: #f3f4f6;
+  font-weight: 500;
   color: #6b7280;
-  border: 1px solid #e5e7eb;
+  transition: color 0.2s ease;
+}
+
+.slot-card-btn.selected .slot-period-badge {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.empty-slots-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  color: #4b5563;
+}
+
+.empty-slots-text strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.empty-slots-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
 }
 
 .slot-selected-mark {
@@ -973,7 +1063,7 @@
 
 .field-hint-text {
   font-size: 0.78rem;
-  color: #6b7280;
+  color: #1b2fe2;
   line-height: 1.4;
 }
 
@@ -1144,8 +1234,15 @@
 }
 
 @keyframes popSuccess {
-  0% { transform: scale(0.6); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .success-title {
@@ -1332,8 +1429,15 @@
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .sub-modal-header {

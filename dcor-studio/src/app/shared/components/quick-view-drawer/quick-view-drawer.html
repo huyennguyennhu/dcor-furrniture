@@ -100,7 +100,7 @@
                  [style.background-color]="getSelectedOption(group)?.hexColor"></div>
 
             <div class="trigger-content">
-              <span class="trigger-name">{{ getSelectedOption(group)?.name }}</span>
+              <span class="trigger-name">{{ formatOptionDisplayName(getSelectedOption(group)?.name, group) }}</span>
             </div>
             <app-icon name="ChevronDown" size="16" class="trigger-chevron"></app-icon>
           </div>
@@ -119,7 +119,7 @@
                    [style.background-color]="opt.hexColor"></div>
 
               <div class="item-info">
-                <span class="item-title">{{ opt.name }}</span>
+                <span class="item-title">{{ formatOptionDisplayName(opt.name, group) }}</span>
                 <span class="item-subtitle" *ngIf="opt.groupName">{{ opt.groupName }}</span>
               </div>
               <app-icon *ngIf="selectedAttributes[group.groupId] === opt.id" name="Check" size="16" class="item-check-icon"></app-icon>
@@ -133,16 +133,39 @@
         <div class="quantity-col">
           <span class="quantity-label">Số lượng</span>
           <div class="stepper-box">
-            <button type="button" class="stepper-btn" (click)="decreaseQuantity()" [disabled]="quantity <= 1 || maxStock === 0">—</button>
-            <span class="stepper-val">{{ quantity }}</span>
-            <button type="button" class="stepper-btn" (click)="increaseQuantity()" [disabled]="quantity >= maxStock || maxStock === 0">+</button>
+            <button type="button" class="stepper-btn" (click)="decreaseQuantity()" [disabled]="quantity <= 1 || maxStock === 0" aria-label="Giảm số lượng">—</button>
+            <input 
+              type="text" 
+              inputmode="numeric" 
+              pattern="[0-9]*"
+              class="stepper-val stepper-input" 
+              [value]="quantity"
+              (focus)="onQuantityFocus($event)"
+              (keydown)="onQuantityKeydown($event)"
+              (input)="onQuantityInput($event)"
+              (blur)="onQuantityBlur($event)"
+              [disabled]="maxStock === 0"
+              aria-label="Số lượng sản phẩm">
+            <button type="button" class="stepper-btn" (click)="increaseQuantity()" [disabled]="quantity >= maxStock || maxStock === 0" aria-label="Tăng số lượng">+</button>
           </div>
         </div>
         <div class="stock-info-col">
-          <span class="stock-status" [class.out-of-stock]="maxStock === 0">
-            {{ maxStock > 0 ? ('Tồn kho khả dụng: ' + maxStock + ' sản phẩm') : 'Tạm hết hàng' }}
-          </span>
-          <span class="stock-sub" *ngIf="maxStock > 0">Sẵn sàng giao hàng</span>
+          <!-- Khi hết hàng -->
+          <ng-container *ngIf="maxStock === 0">
+            <span class="stock-status out-of-stock">Tạm hết hàng</span>
+          </ng-container>
+
+          <!-- Chỉ hiện số lượng tồn kho khi sản phẩm đang <= mức cảnh báo -->
+          <ng-container *ngIf="maxStock > 0 && isLowStock">
+            <span class="stock-status low-stock">Chỉ còn {{ maxStock }} sản phẩm</span>
+            <span class="stock-sub warning">Sắp hết hàng</span>
+          </ng-container>
+
+          <!-- Bình thường (> mức cảnh báo): Không cần hiện số lượng tồn kho -->
+          <ng-container *ngIf="maxStock > safetyThreshold">
+            <span class="stock-status in-stock">Còn hàng</span>
+            <span class="stock-sub">Sẵn sàng giao hàng</span>
+          </ng-container>
         </div>
       </div>
 

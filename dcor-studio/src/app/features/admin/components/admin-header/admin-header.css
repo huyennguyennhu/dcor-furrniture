@@ -3,6 +3,10 @@
   flex: 0 0 60px;
 }
 
+header {
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
 .header-actions {
   display: flex;
   align-items: center;

@@ -1,0 +1,76 @@
+<!-- 1. Floating Compare Bar (Thanh so sánh nổi đồng bộ toàn cục) -->
+<div class="floating-compare-dock" *ngIf="compareList.length > 0">
+  <div class="compare-dock-container">
+
+    <div class="dock-left">
+      <div class="compare-badge">
+        <app-icon name="Scale" size="16" color="#b45309"></app-icon>
+        <span class="compare-tag-title">So sánh ({{ getRootCategoryName(compareList[0]) }})</span>
+      </div>
+      <span class="compare-counter">{{ compareList.length }} / 5 đã chọn</span>
+
+      <div class="compare-items-thumbs">
+        <div class="thumb-box" *ngFor="let item of compareList">
+          <img [src]="getItemImage(item)" [alt]="item.name || item.shortDescription || 'Sản phẩm'">
+          <button type="button" class="thumb-remove" (click)="removeCompare(item.productId || item.id)"
+            title="Bỏ chọn">&times;</button>
+        </div>
+        <div class="thumb-placeholder" *ngIf="compareList.length < 5"
+          title="Chọn thêm sản phẩm cùng danh mục để so sánh">+</div>
+      </div>
+    </div>
+
+    <div class="dock-right">
+      <!-- Nút Xóa tất cả -->
+      <button type="button" class="btn-clear-compare" (click)="confirmClearAllCompare()"
+        title="Xóa tất cả sản phẩm đang so sánh">
+        Xóa tất cả
+      </button>
+
+      <!-- Nút Sao chép liên kết chia sẻ -->
+      <button type="button" class="dock-share-btn" (click)="copyCompareShareLink()" title="Sao chép liên kết so sánh">
+        <app-icon name="Share2" size="16" color="#4b5563"></app-icon>
+      </button>
+
+      <!-- Nút So sánh ngay (bật khi chọn >= 2) -->
+      <button type="button" class="btn-compare-action" [disabled]="compareList.length < 2"
+        (click)="openCompareModal()"
+        [title]="compareList.length < 2 ? 'Chọn tối thiểu 2 sản phẩm để so sánh' : 'Mở bảng so sánh chi tiết'">
+        So sánh ngay ({{ compareList.length }}) &rarr;
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- 2. Popup Bảng So Sánh Sản Phẩm Chi Tiết -->
+<app-product-compare-modal [isOpen]="isCompareModalOpen" [products]="compareList" (onClose)="closeCompareModal()"
+  (onRemove)="removeCompare($event)">
+</app-product-compare-modal>
+
+<!-- 3. Modal Cảnh Báo Nhắc Xác Nhận Xóa So Sánh -->
+<div class="confirm-modal-backdrop" *ngIf="showClearCompareConfirmModal" (click)="cancelClearAllCompare()">
+  <div class="confirm-modal-box" (click)="$event.stopPropagation()">
+    <div class="confirm-modal-header">
+      <div class="confirm-modal-icon-wrap">
+        <app-icon name="AlertTriangle" size="24" color="#dc2626"></app-icon>
+      </div>
+      <h3 class="confirm-modal-title">Xóa tất cả so sánh?</h3>
+    </div>
+    <div class="confirm-modal-body">
+      <p class="confirm-modal-message">
+        Bạn có chắc chắn muốn xóa toàn bộ <strong>{{ compareList.length }} sản phẩm</strong> khỏi danh sách so sánh không? Thao tác này không thể hoàn tác.
+      </p>
+    </div>
+    <div class="confirm-modal-footer">
+      <button type="button" class="btn-confirm-cancel" (click)="cancelClearAllCompare()">Hủy</button>
+      <button type="button" class="btn-confirm-clear" (click)="executeClearAllCompare()">Xóa tất cả</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Floating Compare Toast Notification (hiển thị góc trên bên phải) -->
+<div class="floating-compare-toast" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
+  <app-icon [name]="toastType === 'success' ? 'CircleCheck' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
+  <span>{{ toastMessage }}</span>
+</div>
