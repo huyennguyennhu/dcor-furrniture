@@ -6,7 +6,23 @@ import {
   LucideAngularModule, 
   Users, UserPlus, Star, Building2, Activity, Tag, Clock, Download, ChevronDown, Search, ArrowUpDown, ArrowUp, ArrowDown, X, RotateCcw, DollarSign, Check, Lock, ExternalLink, MoreHorizontal, ChevronsRight, ChevronRight, ChevronLeft, ChevronsLeft, Loader2 
 } from 'lucide-angular';
-import { CustomerService, BackendCustomer } from '../../../../core/services/customer.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
+
+export interface BackendCustomer {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  type: string;
+  companyName: string;
+  totalSpent: string;
+  rewardPoints: number;
+  orderCount: number;
+  lastPurchaseAt: string | null;
+  isLocked: boolean;
+  createdAt: string;
+}
 
 export interface Customer {
   id: string;
@@ -41,7 +57,7 @@ export class CustomersComponent implements OnInit {
     MoreHorizontal, ExternalLink, Lock, Loader2 
   };
 
-  private customerService = inject(CustomerService);
+  private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -102,8 +118,8 @@ export class CustomersComponent implements OnInit {
 
   loadCustomers(): void {
     this.isLoading = true;
-    this.customerService.getCustomers().subscribe({
-      next: (data) => {
+    this.http.get<BackendCustomer[]>(`${environment.apiUrl}/admin/customers`).subscribe({
+      next: (data: BackendCustomer[]) => {
         this.isLoading = false;
         if (data && Array.isArray(data)) {
           this.customers = data.map(c => this.mapBackendCustomer(c));
@@ -112,7 +128,7 @@ export class CustomersComponent implements OnInit {
         this.applyFilters();
         this.cdr.markForCheck();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Không thể tải danh sách khách hàng từ API:', err);
         this.isLoading = false;
         this.calculateKpi();
@@ -433,8 +449,11 @@ export class CustomersComponent implements OnInit {
       const willLock = cust.status === 'Hoạt động';
       const actionName = willLock ? 'khóa' : 'mở khóa';
       if (confirm(`Bạn có chắc chắn muốn ${actionName} tài khoản của khách hàng "${cust.name}"?`)) {
-        this.customerService.toggleLock(id, willLock).subscribe({
-          next: (res) => {
+        this.http.patch<{ message: string }>(`${environment.apiUrl}/admin/customers/${id}/lock`, {
+          lock: willLock,
+          reason: willLock ? 'Khóa tài khoản bởi quản trị viên' : undefined
+        }).subscribe({
+          next: (res: any) => {
             cust.status = willLock ? 'Khóa' : 'Hoạt động';
             if (willLock && !cust.labels.includes('Đã khóa')) {
               cust.labels.push('Đã khóa');
@@ -445,7 +464,7 @@ export class CustomersComponent implements OnInit {
             this.cdr.markForCheck();
             alert(res.message || `Đã ${actionName} tài khoản thành công!`);
           },
-          error: (err) => {
+          error: (err: any) => {
             console.error('Lỗi khi thay đổi trạng thái:', err);
             alert('Không thể thay đổi trạng thái tài khoản. Vui lòng kiểm tra quyền hạn!');
           }
