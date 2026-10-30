@@ -6,7 +6,11 @@ export const cartController = {
   // Lấy giỏ hàng của Customer
   getCart: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const customerId = req.user.userId;
+      const customerId = req.user?.userId;
+      if (!customerId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập để xem giỏ hàng thành viên.' });
+        return;
+      }
       const cartItems = await prisma.cartItem.findMany({
         where: { customerId },
         include: {
@@ -144,7 +148,11 @@ export const cartController = {
   // Thêm vào giỏ hàng
   addToCart: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const customerId = req.user.userId;
+      const customerId = req.user?.userId;
+      if (!customerId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập để thêm vào giỏ hàng thành viên.' });
+        return;
+      }
       const { variantId, quantity, selectedOptions } = req.body;
 
       if (!variantId || !quantity) {
@@ -212,7 +220,11 @@ export const cartController = {
   // Cập nhật số lượng hoặc đổi biến thể
   updateCartItem: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const customerId = req.user.userId;
+      const customerId = req.user?.userId;
+      if (!customerId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập để cập nhật giỏ hàng.' });
+        return;
+      }
       const { id } = req.params; // id của CartItem
       const { quantity, variantId, selectedOptions } = req.body;
 
@@ -359,7 +371,11 @@ export const cartController = {
   // Xóa nhiều sản phẩm khỏi giỏ hàng cùng lúc
   removeMultiple: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const customerId = req.user.userId;
+      const customerId = req.user?.userId;
+      if (!customerId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập.' });
+        return;
+      }
       const { ids } = req.body;
 
       if (!Array.isArray(ids) || ids.length === 0) {

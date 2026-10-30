@@ -1,0 +1,124 @@
+<div *ngIf="!isLoggedIn" class="guest-verify-banner" [class.is-verified]="isPhoneVerified">
+  <!-- 1. Trạng thái CHƯA XÁC THỰC -->
+  <div *ngIf="!isPhoneVerified" class="verify-box">
+    <div class="verify-header">
+      <div class="verify-badge">
+        <lucide-angular [img]="icons.Phone" size="16"></lucide-angular>
+        <span>{{ customTitle }}</span>
+      </div>
+      <p class="verify-desc">
+        {{ customDesc }}
+      </p>
+    </div>
+
+    <!-- Bước 1: Nhập số điện thoại -->
+    <div *ngIf="step === 'INPUT_PHONE'" class="phone-form-block">
+      <label for="guest-phone-input" class="field-label">
+        Số điện thoại <span class="required">*</span>
+      </label>
+      <div class="verify-form-row">
+        <div class="input-wrapper" [class.has-error]="phoneTouched && !isValidPhone">
+          <lucide-angular [img]="icons.Phone" size="18" class="input-icon"></lucide-angular>
+          <input 
+            id="guest-phone-input"
+            type="tel" 
+            [ngModel]="phoneNumber"
+            (ngModelChange)="onPhoneInput($event)"
+            (blur)="onPhoneBlur()"
+            (keyup.enter)="sendOtp()"
+            maxlength="10"
+            [attr.aria-invalid]="phoneTouched && !isValidPhone"
+            placeholder="0912 345 678" 
+            class="phone-input" />
+        </div>
+
+        <button 
+          type="button" 
+          (click)="sendOtp()" 
+          [disabled]="isSending || !isValidPhone" 
+          class="btn-send-otp btn-primary">
+          <span *ngIf="!isSending">Xác thực số điện thoại</span>
+          <span *ngIf="isSending">Đang gửi mã...</span>
+          <lucide-angular *ngIf="!isSending" [img]="icons.ArrowRight" size="16"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- Thông báo lỗi chuẩn DCor UI: Số điện thoại cần đủ 10 chữ số -->
+      <div *ngIf="phoneTouched && phoneNumber && !isValidPhone" class="field-error-msg">
+        <lucide-angular [img]="icons.AlertCircle" size="15"></lucide-angular>
+        <span>Số điện thoại cần đủ 10 chữ số</span>
+      </div>
+    </div>
+
+    <!-- Bước 2: Nhập mã OTP -->
+    <div *ngIf="step === 'INPUT_OTP'" class="otp-container">
+      <div class="otp-notice">
+        <span>Mã OTP đã được gửi đến số <strong>{{ phoneNumber }}</strong> (Mã thử nghiệm: <strong class="otp-demo">111111</strong>)</span>
+      </div>
+
+      <div class="verify-form-row">
+        <div class="input-wrapper">
+          <lucide-angular [img]="icons.ShieldCheck" size="18" class="input-icon"></lucide-angular>
+          <input 
+            type="text" 
+            [(ngModel)]="otpCode" 
+            (keyup.enter)="verifyOtp()"
+            maxlength="6"
+            placeholder="Nhập 6 số OTP (111111)..." 
+            class="phone-input otp-field" />
+        </div>
+
+        <button 
+          type="button" 
+          (click)="verifyOtp()" 
+          [disabled]="isVerifying || !otpCode" 
+          class="btn-confirm-otp">
+          <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
+          <span *ngIf="!isVerifying">Xác nhận</span>
+          <span *ngIf="isVerifying">Đang kiểm tra...</span>
+        </button>
+
+        <button 
+          type="button" 
+          (click)="cancelOtp()" 
+          class="btn-cancel-otp">
+          Đổi số
+        </button>
+
+        <button 
+          *ngIf="resendCountdown === 0" 
+          type="button" 
+          (click)="sendOtp()" 
+          class="btn-resend-otp">
+          Gửi lại mã
+        </button>
+        <span *ngIf="resendCountdown > 0" class="countdown-text">
+          Gửi lại sau ({{ resendCountdown }}s)
+        </span>
+      </div>
+    </div>
+
+    <!-- Thông báo lỗi nếu có -->
+    <div *ngIf="errorMessage" class="verify-alert error">
+      <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+      <span>{{ errorMessage }}</span>
+    </div>
+  </div>
+
+  <!-- 2. Trạng thái ĐÃ XÁC THỰC: Nút nổi cố định ở góc dưới bên phải như chatbox -->
+  <div *ngIf="isPhoneVerified" class="floating-change-phone-container">
+    <button 
+      type="button" 
+      (click)="resetVerification()" 
+      class="btn-floating-change-phone" 
+      title="Bấm để đổi số điện thoại tra cứu">
+      <div class="floating-icon-wrap">
+        <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
+      </div>
+      <div class="floating-text-wrap">
+        <span class="floating-label">Đổi số điện thoại</span>
+        <span *ngIf="verifiedPhone" class="floating-phone-val">{{ verifiedPhone }}</span>
+      </div>
+    </button>
+  </div>
+</div>

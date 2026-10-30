@@ -15,21 +15,23 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
  * khi gặp lỗi mất kết nối tạm thời (P1017: Server has closed the connection)
  * do Supabase PgBouncer/Supavisor đóng TCP socket khi nhàn rỗi.
  */
-export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 2): Promise<T> {
+export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let attempt = 0;
   while (true) {
     try {
       return await queryFn();
     } catch (error: any) {
       attempt++;
-      const isPoolTimeout = error?.code === 'P2024' || error?.message?.includes('Timed out fetching a new connection');
+      const errStr = String(error?.message || '') + ' ' + String(error?.cause || '');
+      const isPoolTimeout = error?.code === 'P2024' || errStr.includes('Timed out fetching a new connection');
       const isConnectionError =
         error?.code === 'P1017' ||
         error?.code === 'P1001' ||
-        error?.message?.includes('Server has closed the connection') ||
-        error?.message?.includes('connection closed') ||
-        error?.message?.includes('Connection lost') ||
-        error?.message?.includes("Can't reach database server");
+        errStr.includes('Server has closed the connection') ||
+        errStr.includes('connection closed') ||
+        errStr.includes('Connection lost') ||
+        errStr.includes('bytes remaining on stream') ||
+        errStr.includes("Can't reach database server");
 
       if (isPoolTimeout && attempt <= maxRetries) {
         console.warn(`[Prisma] Pool timeout (P2024), đang chờ giải phóng kết nối và thử lại (lần ${attempt}/${maxRetries})...`);

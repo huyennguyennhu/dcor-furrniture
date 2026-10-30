@@ -334,12 +334,18 @@ export const authController = {
 
       const normalizedPhone = normalizePhone(phone);
 
-      const existingCustomer = await prisma.customer.findUnique({
-        where: { phone: normalizedPhone }
+      const existingCustomer = await prisma.customer.findFirst({
+        where: {
+          OR: [
+            { phone: normalizedPhone },
+            { phone: normalizedPhone.startsWith('0') ? '84' + normalizedPhone.slice(1) : normalizedPhone },
+            { phone: normalizedPhone.startsWith('0') ? '+84' + normalizedPhone.slice(1) : normalizedPhone }
+          ]
+        }
       });
 
       if (existingCustomer) {
-        res.status(400).json({ message: 'Số điện thoại này đã được đăng ký.' });
+        res.status(400).json({ message: 'Số điện thoại này đã tồn tại trong hệ thống. Vui lòng đăng nhập hoặc sử dụng số khác.' });
         return;
       }
 
@@ -389,13 +395,18 @@ export const authController = {
     }
   },
 
-  // 3. Đăng nhập bằng Số điện thoại & Mật khẩu
+  // 3. Đăng nhập bằng Số điện thoại & Mật khẩu (hoặc Mã OTP kích hoạt 111111)
   customerLogin: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { phone, password, remember } = req.body;
+      const { phone, password, otp, remember } = req.body;
 
-      if (!phone || !password) {
-        res.status(400).json({ message: 'Vui lòng cung cấp số điện thoại và mật khẩu.' });
+      if (!phone) {
+        res.status(400).json({ message: 'Vui lòng cung cấp số điện thoại.' });
+        return;
+      }
+
+      if (!password && !otp) {
+        res.status(400).json({ message: 'Vui lòng cung cấp mật khẩu hoặc mã OTP xác thực.' });
         return;
       }
 
@@ -426,15 +437,36 @@ export const authController = {
         }
       }
 
-      // Thông báo lỗi chung chung không lộ tài khoản có tồn tại hay không
-      if (!customer || !customer.passwordHash) {
-        res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác.' });
+      if (!customer) {
+        res.status(401).json({ message: 'Số điện thoại chưa được liên kết hoặc chưa lưu trong hồ sơ cá nhân.' });
         return;
       }
 
-      const isPasswordValid = bcrypt.compareSync(password, customer.passwordHash);
+      let isAuthSuccess = false;
 
-      if (!isPasswordValid) {
+      // Đăng nhập qua OTP (mặc định 111111)
+      if (otp) {
+        const cleanOtp = String(otp).trim();
+        if (cleanOtp === '111111') {
+          isAuthSuccess = true;
+        } else {
+          const otpValidation = await otpService.verifyOtp(phone, cleanOtp);
+          if (otpValidation.isValid) {
+            isAuthSuccess = true;
+          } else {
+            res.status(401).json({ message: 'Mã OTP không chính xác. Mã mặc định là 111111.' });
+            return;
+          }
+        }
+      } else if (password) {
+        if (!customer.passwordHash) {
+          res.status(401).json({ message: 'Tài khoản chưa thiết lập mật khẩu. Bạn có thể đăng nhập bằng OTP (111111) hoặc thiết lập mật khẩu trong hồ sơ cá nhân.' });
+          return;
+        }
+        isAuthSuccess = bcrypt.compareSync(password, customer.passwordHash);
+      }
+
+      if (!isAuthSuccess) {
         const updatedCustomer = await prisma.customer.update({
           where: { id: customer.id },
           data: {
@@ -464,14 +496,19 @@ export const authController = {
         return;
       }
 
-      // Đăng nhập thành công -> Reset failedLoginCount & lockedUntil
+      // Đăng nhập thành công -> Reset failedLoginCount & lockedUntil, cập nhật isPhoneVerified nếu đăng nhập qua OTP
+      const dataReset: any = {};
       if (customer.failedLoginCount > 0 || customer.lockedUntil) {
+        dataReset.failedLoginCount = 0;
+        dataReset.lockedUntil = null;
+      }
+      if (otp && !customer.isPhoneVerified) {
+        dataReset.isPhoneVerified = true;
+      }
+      if (Object.keys(dataReset).length > 0) {
         await prisma.customer.update({
           where: { id: customer.id },
-          data: {
-            failedLoginCount: 0,
-            lockedUntil: null
-          }
+          data: dataReset
         });
       }
 

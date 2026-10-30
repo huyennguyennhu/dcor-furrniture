@@ -955,4 +955,5 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
       this.router.navigate(['/products', pid]);
     }
   }
+
 }

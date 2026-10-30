@@ -92,6 +92,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
       module: 'orders',
       subItems: [
         { title: 'Danh sách đơn hàng', href: '/admin/orders' },
+        { title: 'Đơn may đo & Custom', href: '/admin/custom-requests' },
         { title: 'Yêu cầu đổi trả', href: '/admin/orders/returns' },
         { title: 'Bảo hành', href: '/admin/orders/warranty' },
         { title: 'Cài đặt đơn hàng', href: '/admin/orders/settings' },

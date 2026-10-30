@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, OnChanges, SimpleChanges, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -16,11 +16,16 @@ import {
   Check, 
   ShoppingBag, 
   ChevronDown, 
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ArrowRight, 
   Tag, 
   Undo2,
   Sparkles,
-  Truck
+  Truck,
+  Pencil,
+  Building2
 } from 'lucide-angular';
 
 @Component({
@@ -30,7 +35,7 @@ import {
   templateUrl: './cart-drawer.html',
   styleUrl: './cart-drawer.css'
 })
-export class CartDrawerComponent implements OnInit, OnDestroy {
+export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
   @Input() isOpen = false;
   @Output() close = new EventEmitter<void>();
 
@@ -44,11 +49,16 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
     Check,
     ShoppingBag,
     ChevronDown,
+    ChevronUp,
+    ChevronLeft,
+    ChevronRight,
     ArrowRight,
     Tag,
     Undo2,
     Sparkles,
-    Truck
+    Truck,
+    Pencil,
+    Building2
   };
 
   // Cache biến thể sản phẩm theo productId để tải nhanh tức thì
@@ -60,11 +70,24 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
 
   // Khuyến mãi / Vouchers từ hệ thống thực tế (đồng bộ qua PromotionService)
   systemPromotions: Promotion[] = [];
-  appliedVoucher: AppliedPromotion | null = null;
+  appliedProductVoucher: AppliedPromotion | null = null;
+  appliedFreeshipVoucher: AppliedPromotion | null = null;
+  voucherActiveTab: 'product' | 'freeship' = 'product';
+  showAllProductVouchers = false;
+  manuallyRemovedProduct = false;
+  manuallyRemovedFreeship = false;
   selectedVoucherCode = '';
   customVoucherInput = '';
   showCustomInput = false;
   voucherError = '';
+
+  get appliedVoucher(): AppliedPromotion | null {
+    return this.appliedProductVoucher;
+  }
+
+  get hasAnyAppliedVoucher(): boolean {
+    return !!this.appliedProductVoucher || !!this.appliedFreeshipVoucher;
+  }
 
   // Confirm delete single item modal
   isConfirmDeleteOpen = false;
@@ -81,6 +104,9 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
   selectedVariantId: string | null = null;
   variantErrorMessage: string | null = null;
 
+  // Voucher Switcher Drawer / Panel (Mở song song bên cạnh giỏ hàng)
+  isVoucherDrawerOpen = false;
+
   // Toast notifications
   toastMessage: string | null = null;
   toastType: 'success' | 'warning' | 'error' = 'success';
@@ -94,6 +120,34 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
     private promotionService: PromotionService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['isOpen']?.currentValue === true) {
+      // Khi người dùng ấn vào giỏ hàng: nạp khuyến mãi và tự động áp mã tốt nhất ngay lập tức!
+      this.promotionService.loadPromotions().subscribe(() => {
+        this.syncPromotionsWithSubTotal();
+      });
+      this.syncPromotionsWithSubTotal();
+    }
+  }
+
+  // Đồng bộ kiểm tra điều kiện khuyến mãi & tự động áp mã có số tiền giảm cao nhất
+  syncPromotionsWithSubTotal() {
+    const total = this.subTotal;
+    this.promotionService.recalculate(total);
+    if (total > 0) {
+      this.promotionService.autoApplyBestPromotions(
+        total,
+        false,
+        this.manuallyRemovedProduct,
+        this.manuallyRemovedFreeship
+      );
+    } else {
+      this.promotionService.removeAppliedPromotion();
+      this.promotionService.removeAppliedFreeship();
+    }
+    this.cdr.detectChanges();
+  }
 
   ngOnInit() {
     this.sub.add(
@@ -121,8 +175,7 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
         }
 
         // Đồng bộ tính lại giá trị giảm giá khi sản phẩm trong giỏ thay đổi
-        this.promotionService.recalculate(this.subTotal);
-        this.cdr.detectChanges();
+        this.syncPromotionsWithSubTotal();
       })
     );
 
@@ -130,20 +183,22 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.promotionService.promotions$.subscribe(promos => {
         this.systemPromotions = promos;
+        this.syncPromotionsWithSubTotal();
+      })
+    );
+
+    // Đồng bộ mã giảm giá sản phẩm
+    this.sub.add(
+      this.promotionService.appliedPromotion$.subscribe(applied => {
+        this.appliedProductVoucher = applied;
         this.cdr.detectChanges();
       })
     );
 
-    // Đồng bộ mã ưu đãi đang áp dụng (giữa giỏ hàng, trang thanh toán & khuyến mãi)
+    // Đồng bộ mã miễn phí vận chuyển (Freeship)
     this.sub.add(
-      this.promotionService.appliedPromotion$.subscribe(applied => {
-        this.appliedVoucher = applied;
-        if (applied) {
-          this.selectedVoucherCode = applied.code;
-          this.customVoucherInput = applied.code;
-        } else {
-          this.selectedVoucherCode = '';
-        }
+      this.promotionService.appliedFreeship$.subscribe(freeship => {
+        this.appliedFreeshipVoucher = freeship;
         this.cdr.detectChanges();
       })
     );
@@ -197,6 +252,7 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
       this.selectedItemIds.clear();
       this.selectableItems.forEach(i => this.selectedItemIds.add(i.id));
     }
+    this.syncPromotionsWithSubTotal();
   }
 
   toggleSelectItem(item: CartItem) {
@@ -209,6 +265,7 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
     } else {
       this.selectedItemIds.add(item.id);
     }
+    this.syncPromotionsWithSubTotal();
   }
 
   isItemSelected(item: CartItem): boolean {
@@ -216,24 +273,58 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
   }
 
   // --- Tính toán Tạm tính, Khuyến mãi & Tổng cộng ---
-  // --- Tính toán Tạm tính, Khuyến mãi & Tổng cộng ---
+  get subTotal(): number {
+    return this.selectedValidItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }
+
+  get productPromotions(): Promotion[] {
+    return this.systemPromotions.filter(p => !p.isFreeShip && !p.code.startsWith('FREESHIP'));
+  }
+
+  get displayedProductPromotions(): Promotion[] {
+    return this.showAllProductVouchers ? this.productPromotions : this.productPromotions.slice(0, 3);
+  }
+
+  get hasMoreProductPromotions(): boolean {
+    return this.productPromotions.length > 3;
+  }
+
+  get freeshipPromotions(): Promotion[] {
+    return this.systemPromotions.filter(p => !!p.isFreeShip || p.code.startsWith('FREESHIP'));
+  }
+
+  get eligibleProductPromotionsCount(): number {
+    return this.productPromotions.filter(p => this.isVoucherEligible(p)).length;
+  }
+
+  get eligibleFreeshipPromotionsCount(): number {
+    return this.freeshipPromotions.filter(p => this.isVoucherEligible(p)).length;
+  }
+
+  get totalEligibleVouchersCount(): number {
+    return this.eligibleProductPromotionsCount + this.eligibleFreeshipPromotionsCount;
+  }
+
   get eligibleVouchers(): Promotion[] {
     return this.promotionService.getEligiblePromotions(this.subTotal);
   }
 
-  get subTotal(): number {
-    return this.selectedValidItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  get discountAmount(): number {
+    return this.appliedProductVoucher ? this.appliedProductVoucher.calculatedDiscount : 0;
+  }
+
+  get freeshipDiscountAmount(): number {
+    return this.appliedFreeshipVoucher ? this.appliedFreeshipVoucher.calculatedDiscount : 0;
   }
 
   get shippingFee(): number {
     if (this.subTotal === 0) return 0;
     if (this.subTotal >= 50000000) return 0;
-    if (this.appliedVoucher?.code === 'FREESHIP') return 0;
-    return 250000;
-  }
-
-  get discountAmount(): number {
-    return this.appliedVoucher ? this.appliedVoucher.calculatedDiscount : 0;
+    const baseFee = 250000;
+    if (this.appliedFreeshipVoucher) {
+      return Math.max(0, baseFee - (this.appliedFreeshipVoucher.calculatedDiscount || baseFee));
+    }
+    return baseFee;
   }
 
   get totalAmount(): number {
@@ -280,26 +371,111 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
       return;
     }
     this.voucherError = '';
+    this.manuallyRemovedProduct = false;
+    this.manuallyRemovedFreeship = false;
     this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
       if (!res.success) {
         this.voucherError = res.message;
       } else {
         this.voucherError = '';
         this.showCustomInput = false;
+        const isFreeship = code.startsWith('FREESHIP');
+        this.showToast(`Đã áp dụng mã "${code}" thành công!`, 'success');
       }
       this.cdr.detectChanges();
     });
   }
 
-  removeVoucher() {
-    this.promotionService.removeAppliedPromotion();
-    this.selectedVoucherCode = '';
-    this.customVoucherInput = '';
+  // --- Logic Sidebar Khuyến Mãi (Mở song song bên cạnh giỏ hàng) ---
+  openVoucherDrawer() {
+    this.isVariantDrawerOpen = false;
+    this.isVoucherDrawerOpen = true;
     this.voucherError = '';
+    this.showAllProductVouchers = false;
+    // Đồng bộ danh sách voucher mới nhất từ cùng database của Admin
+    this.promotionService.loadPromotions().subscribe();
+  }
+
+  toggleShowAllProductVouchers() {
+    this.showAllProductVouchers = !this.showAllProductVouchers;
+  }
+
+  closeVoucherDrawer() {
+    this.isVoucherDrawerOpen = false;
+  }
+
+  get eligibleVouchersCount(): number {
+    return this.systemPromotions.filter(v => this.isVoucherEligible(v)).length;
+  }
+
+  isVoucherEligible(v: Promotion): boolean {
+    if (v.isActive === false) return false;
+    if (v.minOrderValue && this.subTotal < v.minOrderValue) return false;
+    return true;
+  }
+
+  amountNeededForVoucher(v: Promotion): number {
+    const min = v.minOrderValue || 0;
+    return Math.max(0, min - this.subTotal);
+  }
+
+  applyVoucherDirectly(v: Promotion) {
+    if (!this.isVoucherEligible(v)) {
+      this.voucherError = `Đơn hàng cần tối thiểu ${this.formatCurrency(v.minOrderValue || 0)} để áp dụng mã "${v.code}".`;
+      return;
+    }
+    this.voucherError = '';
+    const isFreeship = !!v.isFreeShip || v.code.startsWith('FREESHIP');
+    if (isFreeship) {
+      this.manuallyRemovedFreeship = false;
+    } else {
+      this.manuallyRemovedProduct = false;
+    }
+    this.promotionService.applyPromotion(v.code, this.subTotal).subscribe(res => {
+      if (res.success) {
+        const desc = isFreeship ? 'miễn phí vận chuyển' : `giảm ${this.formatCurrency(res.applied?.calculatedDiscount || 0)}`;
+        this.showToast(`Đã áp dụng mã "${v.code}" (${desc})!`, 'success');
+      } else {
+        this.voucherError = res.message;
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+  removeProductVoucher() {
+    this.manuallyRemovedProduct = true;
+    this.promotionService.removeAppliedPromotion();
+    this.voucherError = '';
+    this.cdr.detectChanges();
+  }
+
+  removeFreeshipVoucher() {
+    this.manuallyRemovedFreeship = true;
+    this.promotionService.removeAppliedFreeship();
+    this.voucherError = '';
+    this.cdr.detectChanges();
+  }
+
+  removeVoucher() {
+    this.removeProductVoucher();
   }
 
   formatCurrency(val: number): string {
     return (val || 0).toLocaleString('vi-VN') + ' ₫';
+  }
+
+  // Định dạng rút gọn số tiền giảm giá cho chip hiển thị trên cùng 1 hàng
+  formatShortDiscount(val: number): string {
+    if (!val || val <= 0) return '0₫';
+    if (val >= 1000000) {
+      const m = val / 1000000;
+      return m % 1 === 0 ? `${m}tr` : `${m.toFixed(1)}tr`;
+    }
+    if (val >= 1000) {
+      const k = val / 1000;
+      return k % 1 === 0 ? `${k}k` : `${k.toFixed(0)}k`;
+    }
+    return `${val}₫`;
   }
 
   showToast(message: string, type: 'success' | 'warning' | 'error' = 'warning', durationMs = 3000) {
@@ -408,11 +584,42 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
     this.isBatchDeleteModalOpen = false;
   }
 
+  currentVariantImageIdx = 0;
+
+  get variantImages(): string[] {
+    const v = this.selectedVariantDetails;
+    if (v?.images && Array.isArray(v.images) && v.images.length > 0) {
+      return v.images;
+    }
+    const p = this.productForVariantEdit;
+    if (p?.images && Array.isArray(p.images) && p.images.length > 0) {
+      return p.images;
+    }
+    if (this.editingCartItem?.image) {
+      return [this.editingCartItem.image];
+    }
+    return ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop'];
+  }
+
+  prevVariantImage(e?: Event) {
+    if (e) e.stopPropagation();
+    const imgs = this.variantImages;
+    this.currentVariantImageIdx = this.currentVariantImageIdx <= 0 ? imgs.length - 1 : this.currentVariantImageIdx - 1;
+  }
+
+  nextVariantImage(e?: Event) {
+    if (e) e.stopPropagation();
+    const imgs = this.variantImages;
+    this.currentVariantImageIdx = this.currentVariantImageIdx >= imgs.length - 1 ? 0 : this.currentVariantImageIdx + 1;
+  }
+
   // --- Logic Đổi Biến Thể Sản Phẩm (Drawer) ---
   openVariantDrawer(item: CartItem) {
     this.editingCartItem = item;
     this.selectedVariantId = item.variantId;
     this.isVariantDrawerOpen = true;
+    this.isVoucherDrawerOpen = false;
+    this.currentVariantImageIdx = 0;
     this.variantErrorMessage = null;
 
     // Kiểm tra cache: Nếu sản phẩm đã tải trước đó, hiển thị ngay lập tức không cần chờ mạng!
@@ -449,6 +656,7 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
     this.editingCartItem = null;
     this.productForVariantEdit = null;
     this.selectedVariantId = null;
+    this.currentVariantImageIdx = 0;
     this.variantErrorMessage = null;
   }
 
@@ -465,6 +673,7 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedVariantId = variant.id;
+    this.currentVariantImageIdx = 0;
     this.variantErrorMessage = null;
   }
 
@@ -519,6 +728,7 @@ export class CartDrawerComponent implements OnInit, OnDestroy {
     this.isConfirmDeleteOpen = false;
     this.isBatchDeleteModalOpen = false;
     this.isVariantDrawerOpen = false;
+    this.isVoucherDrawerOpen = false;
     this.itemToDelete = null;
     this.close.emit();
   }

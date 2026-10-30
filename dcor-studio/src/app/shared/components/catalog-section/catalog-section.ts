@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HoverImageSlider } from '../hover-image-slider/hover-image-slider';
 import { CatalogProduct } from '../../models/catalog.model';
+import { WishlistService } from '../../../core/services/wishlist.service';
 
 @Component({
   selector: 'app-catalog-section',
@@ -13,6 +14,8 @@ import { CatalogProduct } from '../../models/catalog.model';
   styleUrls: ['./catalog-section.css']
 })
 export class CatalogSection implements OnInit, OnChanges {
+  constructor(private wishlistService: WishlistService) {}
+
   @Input() products: CatalogProduct[] = [];
   @Input() initialCategory: string = '';
   @Input() categories: { label: string; value: string; emoji: string; desc: string; img: string }[] = [];
@@ -140,5 +143,18 @@ export class CatalogSection implements OnInit, OnChanges {
       allImages = Array.from(new Set([...allImages, ...extraImgs]));
     }
     return allImages.slice(0, 6);
+  }
+
+  isInWishlist(productId?: string): boolean {
+    return !!productId && this.wishlistService.isWishlisted(productId);
+  }
+
+  toggleWishlist(event: Event, prod: CatalogProduct): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const pid = prod.productId || (prod as any).id;
+    if (!pid) return;
+
+    this.wishlistService.toggle(pid);
   }
 }

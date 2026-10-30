@@ -4,6 +4,7 @@ import {
   AlertCircle,
   AlertTriangle,
   AtSign,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
@@ -98,7 +99,6 @@ import {
   Unlock,
   Grid3x3,
   RotateCw,
-  ArrowDown,
   Ticket,
   Percent,
   TrendingUp,
@@ -111,6 +111,9 @@ import {
   CornerDownLeft,
   RotateCcw,
   ShieldAlert,
+  Code,
+  Link,
+  Film,
 } from 'lucide-angular';
 
 const ICONS = {
@@ -118,6 +121,7 @@ const ICONS = {
   AlertCircle,
   AlertTriangle,
   AtSign,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
@@ -211,7 +215,6 @@ const ICONS = {
   Unlock,
   Grid3x3,
   RotateCw,
-  ArrowDown,
   Ticket,
   Percent,
   TrendingUp,
@@ -224,6 +227,9 @@ const ICONS = {
   CornerDownLeft,
   RotateCcw,
   ShieldAlert,
+  Code,
+  Link,
+  Film,
 } as const;
 
 export type IconName = keyof typeof ICONS;

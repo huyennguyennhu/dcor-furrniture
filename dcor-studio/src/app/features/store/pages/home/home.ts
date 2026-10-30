@@ -6,6 +6,7 @@ import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
 import { ProductService } from '../../../../core/services/product.service';
 import { ShowroomConsultationModalComponent } from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
+import { WishlistService } from '../../../../core/services/wishlist.service';
 import { environment } from '../../../../../environments/environment';
 
 // Data from lib/collections
@@ -386,8 +387,23 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private cdr: ChangeDetectorRef,
     private productService: ProductService,
+    private wishlistService: WishlistService,
     private ngZone: NgZone
   ) { }
+
+  isInWishlist(productId?: string): boolean {
+    return !!productId && this.wishlistService.isWishlisted(productId);
+  }
+
+  toggleWishlist(event: Event, prod: CatalogProduct): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const pid = prod.productId || (prod as any).id;
+    if (!pid) return;
+
+    this.wishlistService.toggle(pid);
+    this.cdr.detectChanges();
+  }
 
   products: CatalogProduct[] = [];
   categories: any[] = [];

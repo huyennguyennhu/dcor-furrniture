@@ -1,14 +1,26 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, map } from 'rxjs';
 
+export interface WishlistItem {
+  id?: string;
+  productId: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  image?: string;
+  categoryName?: string;
+  variantId?: string;
+  inStock?: boolean;
+}
+
 const STORAGE_KEY = 'dcor_wishlist';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WishlistService {
-  private wishlistSubject = new BehaviorSubject<string[]>(this.getInitialWishlist());
-  public wishlist$: Observable<string[]> = this.wishlistSubject.asObservable();
+  private wishlistSubject = new BehaviorSubject<any[]>(this.getInitialWishlist());
+  public wishlist$: Observable<any[]> = this.wishlistSubject.asObservable();
   public count$: Observable<number> = this.wishlist$.pipe(map(list => list.length));
 
   constructor() {
@@ -38,13 +50,21 @@ export class WishlistService {
     }
   }
 
-  public get currentWishlist(): string[] {
+  private getId(item: any): string {
+    return typeof item === 'string' ? item : item?.productId || item?.id || '';
+  }
+
+  public get currentWishlist(): any[] {
     return this.wishlistSubject.value;
   }
 
   public isWishlisted(productId: string): boolean {
     if (!productId) return false;
-    return this.currentWishlist.includes(productId);
+    return this.currentWishlist.some(item => this.getId(item) === productId);
+  }
+
+  public isInWishlist(productId: string): boolean {
+    return this.isWishlisted(productId);
   }
 
   public toggle(productId: string): boolean {
@@ -52,8 +72,8 @@ export class WishlistService {
     let list = [...this.currentWishlist];
     let added = false;
 
-    if (list.includes(productId)) {
-      list = list.filter(id => id !== productId);
+    if (this.isWishlisted(productId)) {
+      list = list.filter(item => this.getId(item) !== productId);
       added = false;
     } else {
       list.push(productId);
@@ -65,18 +85,27 @@ export class WishlistService {
     return added;
   }
 
-  public add(productId: string): void {
-    if (!productId || this.isWishlisted(productId)) return;
-    const list = [...this.currentWishlist, productId];
+  public add(item: any): void {
+    const pid = this.getId(item);
+    if (!pid || this.isWishlisted(pid)) return;
+    const list = [...this.currentWishlist, item];
     this.saveToStorage(list);
     this.wishlistSubject.next(list);
   }
 
+  public addToWishlist(item: any): void {
+    this.add(item);
+  }
+
   public remove(productId: string): void {
     if (!productId) return;
-    const list = this.currentWishlist.filter(id => id !== productId);
+    const list = this.currentWishlist.filter(item => this.getId(item) !== productId);
     this.saveToStorage(list);
     this.wishlistSubject.next(list);
+  }
+
+  public removeFromWishlist(productId: string): void {
+    this.remove(productId);
   }
 
   public clear(): void {

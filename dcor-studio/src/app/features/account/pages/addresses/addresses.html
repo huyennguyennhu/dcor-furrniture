@@ -1,0 +1,337 @@
+<div class="account-page-container">
+  <div class="account-shell">
+    <div class="account-layout">
+      <!-- Sidebar Left Column -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
+
+      <!-- Main Content Column -->
+      <main class="content-column">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
+          <span class="breadcrumb-separator">/</span>
+          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Sổ địa chỉ</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Sổ địa chỉ nhận hàng</h1>
+            <p class="page-subtitle">Quản lý danh sách địa chỉ giao hàng của bạn để thanh toán nhanh chóng hơn.</p>
+          </div>
+          <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+            <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
+            <span>Thêm địa chỉ mới</span>
+          </button>
+        </div>
+
+        <!-- Success Toast -->
+        <div *ngIf="successMessage" class="alert alert-success">
+          <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
+          <span>{{ successMessage }}</span>
+        </div>
+
+        <!-- Error Alert -->
+        <div *ngIf="errorMessage" class="alert alert-danger">
+          <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Đang tải danh sách địa chỉ...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!isLoading && addresses.length === 0" class="empty-state">
+          <div class="empty-icon-box">
+            <lucide-angular [img]="icons.MapPin" size="48"></lucide-angular>
+          </div>
+          <h3 class="empty-title">Chưa có địa chỉ giao hàng nào</h3>
+          <p class="empty-desc">Bạn chưa thêm địa chỉ nhận hàng nào vào tài khoản. Hãy tạo địa chỉ để nhận nội thất Dcor tận nhà.</p>
+          <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+            <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
+            <span>Thêm địa chỉ ngay</span>
+          </button>
+        </div>
+
+        <!-- Addresses List (Each address is one row) -->
+        <div *ngIf="!isLoading && addresses.length > 0" class="addresses-list">
+          <div 
+            *ngFor="let addr of addresses" 
+            class="address-row-card"
+            [ngClass]="{ 'is-default': addr.isDefault }">
+            
+            <div class="address-info-col">
+              <div class="receiver-header-row">
+                <span class="receiver-name">{{ addr.receiverName }}</span>
+                <span class="info-divider">|</span>
+                <span class="receiver-phone">
+                  <lucide-angular [img]="icons.Phone" size="14" class="text-muted"></lucide-angular>
+                  {{ addr.phone }}
+                </span>
+                <span class="address-type-tag" [ngClass]="addr.addressType?.toLowerCase() || 'home'">
+                  {{ addr.addressType === 'OFFICE' ? 'Văn phòng' : 'Nhà riêng' }}
+                </span>
+                <span *ngIf="addr.isDefault" class="default-badge">
+                  <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular>
+                  Mặc định
+                </span>
+              </div>
+
+              <div class="address-body-row">
+                <lucide-angular [img]="icons.MapPin" size="15" class="text-muted pin-icon"></lucide-angular>
+                <span class="detail-address-text">{{ getFullAddress(addr) }}</span>
+              </div>
+            </div>
+
+            <div class="address-actions-col">
+              <div class="action-buttons-group">
+                <button type="button" class="btn-action-text" (click)="openEditModal(addr)">
+                  <lucide-angular [img]="icons.Pencil" size="15"></lucide-angular>
+                  <span>Chỉnh sửa</span>
+                </button>
+                <span class="action-divider">|</span>
+                <button type="button" class="btn-action-text text-danger" (click)="deleteAddress(addr)">
+                  <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
+                  <span>Xóa</span>
+                </button>
+              </div>
+
+              <div class="default-btn-group" *ngIf="!addr.isDefault">
+                <button 
+                  type="button" 
+                  class="btn-set-default"
+                  (click)="setDefault(addr)">
+                  Thiết lập làm mặc định
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT ADDRESS MODAL -->
+  <div *ngIf="isModalOpen" class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ editingId ? 'Cập nhật địa chỉ nhận hàng' : 'Thêm địa chỉ nhận hàng mới' }}</h3>
+        <button type="button" class="close-btn" (click)="closeModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row form-grid-2">
+          <div class="form-group" [class.has-error]="formErrors.receiverName">
+            <label class="form-label">Họ và tên người nhận <span class="required">*</span></label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [class.is-invalid]="formErrors.receiverName"
+              placeholder="Ví dụ: Nguyễn Văn A"
+              [(ngModel)]="formData.receiverName"
+              (input)="onReceiverNameInput()" />
+            <div *ngIf="formErrors.receiverName" class="field-error-msg">
+              <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+              <span>{{ formErrors.receiverName }}</span>
+            </div>
+          </div>
+
+          <div class="form-group" [class.has-error]="formErrors.phone">
+            <label class="form-label">Số điện thoại <span class="required">*</span></label>
+            <input 
+              type="tel" 
+              class="form-control" 
+              [class.is-invalid]="formErrors.phone"
+              placeholder="Ví dụ: 0912345678"
+              [(ngModel)]="formData.phone"
+              (input)="onPhoneInput()" />
+            <div *ngIf="formErrors.phone" class="field-error-msg">
+              <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+              <span>{{ formErrors.phone }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row form-grid-2">
+          <div class="form-group" [class.has-error]="formErrors.province">
+            <label class="form-label">Tỉnh / Thành phố <span class="required">*</span></label>
+            <select class="form-control" [class.is-invalid]="formErrors.province" [(ngModel)]="formData.province" (change)="onProvinceChange()">
+              <option value="">-- Chọn Tỉnh / Thành phố --</option>
+              <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
+            </select>
+            <div *ngIf="formErrors.province" class="field-error-msg">
+              <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+              <span>{{ formErrors.province }}</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phường / Xã / Thị trấn</label>
+            <select class="form-control" [(ngModel)]="formData.ward" [disabled]="!formData.province">
+              <option value="">-- Chọn Phường / Xã --</option>
+              <option *ngFor="let w of wards" [value]="w">{{ w }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" [class.has-error]="formErrors.detail">
+          <label class="form-label">Địa chỉ chi tiết (Số nhà, tên đường, tòa nhà) <span class="required">*</span></label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [class.is-invalid]="formErrors.detail"
+            placeholder="Ví dụ: Căn hộ 12B Tòa Landmark 81, 720A Điện Biên Phủ"
+            [(ngModel)]="formData.detail"
+            (input)="onDetailInput()" />
+          <div *ngIf="formErrors.detail" class="field-error-msg">
+            <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+            <span>{{ formErrors.detail }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Loại địa chỉ</label>
+          <div class="address-type-selector">
+            <label class="type-option" [ngClass]="{ 'active': formData.addressType === 'HOME' }">
+              <input type="radio" name="addressType" value="HOME" [(ngModel)]="formData.addressType" />
+              <span>Nhà riêng</span>
+            </label>
+            <label class="type-option" [ngClass]="{ 'active': formData.addressType === 'OFFICE' }">
+              <input type="radio" name="addressType" value="OFFICE" [(ngModel)]="formData.addressType" />
+              <span>Văn phòng</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Đặt làm mặc định đặt ở cuối form -->
+        <div class="form-group form-default-checkbox-group">
+          <label class="checkbox-label default-toggle-label">
+            <input type="checkbox" [(ngModel)]="formData.isDefault" class="custom-checkbox" />
+            <span class="default-toggle-text">Đặt làm địa chỉ nhận hàng mặc định</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="closeModal()" [disabled]="isSaving">
+          Hủy bỏ
+        </button>
+        <button type="button" class="btn btn-primary" (click)="saveAddress()" [disabled]="isSaving">
+          <span *ngIf="isSaving" class="spinner-small"></span>
+          <span>{{ isSaving ? 'Đang lưu...' : (editingId ? 'Lưu thay đổi' : 'Thêm địa chỉ') }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     OTP MODAL KHI THÊM ĐỊA CHỈ TRONG SỔ ĐỊA CHỈ
+     ============================================================ -->
+<div *ngIf="isOtpModalOpen" class="modal-backdrop-overlay" (click)="isOtpModalOpen = false">
+  <div class="otp-modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <lucide-angular [img]="icons.Smartphone" size="20" color="#765337"></lucide-angular>
+        <h3 style="margin:0;font-size:16px;font-weight:700;">Xác thực số điện thoại</h3>
+      </div>
+      <button type="button" class="modal-close-btn" (click)="isOtpModalOpen = false">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <div class="modal-body" style="padding:20px 24px;">
+      <p style="margin:0 0 16px;font-size:13px;color:#616161;line-height:1.5;">
+        Mã xác thực gồm 6 chữ số đã được gửi đến số điện thoại <b>{{ targetPhoneForOtp }}</b>.
+      </p>
+
+      <div style="display:flex;align-items:center;gap:8px;background:#FFF3E3;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;color:#765337;">
+        <lucide-angular [img]="icons.CheckCircle2" size="14" color="#765337"></lucide-angular>
+        <span>Mã OTP xác thực: <b>111111</b></span>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <input 
+          type="text" 
+          maxlength="6" 
+          [(ngModel)]="otpCode" 
+          placeholder="Nhập 6 số OTP" 
+          style="width:100%;height:48px;text-align:center;font-size:22px;letter-spacing:0.25em;font-weight:800;border:2px solid #E0E0E0;border-radius:8px;color:#765337;" />
+      </div>
+
+      <div *ngIf="otpErrorMessage" style="display:flex;align-items:center;gap:6px;color:#CF1322;font-size:13px;margin-bottom:12px;">
+        <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
+        <span>{{ otpErrorMessage }}</span>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#757575;">
+        <span *ngIf="otpCountdown > 0">Gửi lại mã sau: <b>{{ otpCountdown }}s</b></span>
+        <button *ngIf="otpCountdown === 0" type="button" style="background:none;border:none;color:#765337;font-weight:600;cursor:pointer;" (click)="sendOtp()">Gửi lại mã OTP</button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:12px;padding:14px 24px;border-top:1px solid #E0E0E0;">
+      <button type="button" class="btn btn-outline" (click)="isOtpModalOpen = false">Hủy</button>
+      <button type="button" class="btn btn-primary" (click)="verifyOtp()">Xác nhận OTP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     POPUP HỎI LƯU SỐ ĐIỆN THOẠI VÀO HỒ SƠ CÁ NHÂN
+     ============================================================ -->
+<div *ngIf="showSavePhonePromptModal" class="modal-backdrop-overlay" (click)="dismissSavePhonePrompt()">
+  <div class="save-phone-modal-box" (click)="$event.stopPropagation()">
+    <div class="save-phone-icon-badge">
+      <lucide-angular [img]="icons.Smartphone" size="26" color="#765337"></lucide-angular>
+    </div>
+    
+    <h3 class="save-phone-title">Lưu số điện thoại vào hồ sơ cá nhân?</h3>
+    
+    <p class="save-phone-desc">
+      Số điện thoại <strong>{{ phoneToSaveToProfile }}</strong> vừa được xác thực thành công.
+      <br/>
+      Bạn có muốn lưu số điện thoại này vào hồ sơ cá nhân để sau này dùng để đăng nhập hay không?
+    </p>
+
+    <div class="save-phone-benefits">
+      <div class="benefit-item">
+        <lucide-angular [img]="icons.Check" size="14" color="#16a34a"></lucide-angular>
+        <span>Miễn xác thực OTP vĩnh viễn cho tất cả các đơn hàng sau này.</span>
+      </div>
+      <div class="benefit-item">
+        <lucide-angular [img]="icons.Check" size="14" color="#16a34a"></lucide-angular>
+        <span>Sử dụng số điện thoại này để đăng nhập nhanh chóng vào DCor.</span>
+      </div>
+    </div>
+
+    <div class="save-phone-actions">
+      <button 
+        type="button" 
+        class="btn-confirm-save-phone" 
+        (click)="confirmSavePhoneToProfile()"
+        [disabled]="isSavingPhoneToProfile">
+        <lucide-angular *ngIf="!isSavingPhoneToProfile" [img]="icons.Check" size="16"></lucide-angular>
+        <span>{{ isSavingPhoneToProfile ? 'Đang lưu vào hồ sơ...' : 'Lưu vào hồ sơ cá nhân' }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="btn-dismiss-save-phone" 
+        (click)="dismissSavePhonePrompt()"
+        [disabled]="isSavingPhoneToProfile">
+        Để lần sau
+      </button>
+    </div>
+  </div>
+</div>
+

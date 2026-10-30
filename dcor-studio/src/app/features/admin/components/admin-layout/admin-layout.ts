@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AdminHeader } from '../admin-header/admin-header';
@@ -14,7 +14,7 @@ const SIDEBAR_COLLAPSED_KEY = 'dcor_admin_sidebar_collapsed';
   templateUrl: './admin-layout.html',
   styleUrls: ['./admin-layout.css']
 })
-export class AdminLayout implements OnInit {
+export class AdminLayout implements OnInit, OnDestroy {
   mounted = false;
   isSidebarCollapsed = this.getInitialSidebarState();
 
@@ -52,8 +52,14 @@ export class AdminLayout implements OnInit {
 
   ngOnInit(): void {
     this.mounted = true;
+    document.body.classList.add('admin-body');
+    window.scrollTo(0, 0);
     if (!this.adminAuthService.isLoggedIn()) {
       this.router.navigate(['/admin-login']);
     }
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('admin-body');
   }
 }

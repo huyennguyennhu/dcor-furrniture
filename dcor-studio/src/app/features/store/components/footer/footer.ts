@@ -36,7 +36,7 @@ export class Footer {
       links: [
         { label: 'Giới thiệu về DCor', href: '/about' },
         { label: 'Danh sách sản phẩm', href: '/explore' },
-        { label: 'Đặt lịch tư vấn Showroom', href: '/custom-design' },
+        { label: 'Đặt lịch tư vấn Showroom', href: '/account/appointments' },
         { label: 'Thiết kế không gian', href: '/custom-design' },
         { label: 'Cộng đồng', href: '/community' },
         { label: 'Blog', href: '/blog' },

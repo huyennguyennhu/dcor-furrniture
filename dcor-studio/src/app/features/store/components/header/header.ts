@@ -7,6 +7,8 @@ import { filter } from 'rxjs/operators';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CartDrawerComponent } from '../../../../shared/components/cart-drawer/cart-drawer';
 import { CartService } from '../../../../core/services/cart.service';
+import { CustomerService, CustomerNotification } from '../../../../core/services/customer.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
 import { environment } from '../../../../../environments/environment';
@@ -21,6 +23,8 @@ interface StoreUser {
   email?: string;
   phone?: string;
   role?: string;
+  avatar?: string;
+  avatarUrl?: string;
 }
 
 interface StoreCategory {
@@ -58,6 +62,10 @@ export class Header implements OnInit, OnDestroy {
   storeCategories: StoreCategory[] = [];
   cartCount = 0;
   wishlistCount = 0;
+  unreadNotificationCount = 0;
+  isNotificationDropdownOpen = false;
+  unreadNotificationsPreview: CustomerNotification[] = [];
+  private notifCloseTimer: any = null;
   products: CatalogProduct[] = [];
   user: StoreUser | null = null;
   private lastCartToken: string | null = null;
@@ -126,6 +134,8 @@ export class Header implements OnInit, OnDestroy {
     private router: Router, 
     private cartService: CartService,
     private wishlistService: WishlistService,
+    private customerService: CustomerService,
+    private authService: AuthService,
     private productService: ProductService,
     private classificationService: CategoryClassificationService,
     private cdr: ChangeDetectorRef
@@ -138,6 +148,8 @@ export class Header implements OnInit, OnDestroy {
       this.shopMenuOpen = false;
       this.closeMobileMenu();
       this.isMobileSearchOpen = false;
+      this.isNotificationDropdownOpen = false;
+      this.closeGuestUserMenu();
       this.syncUser();
     });
   }
@@ -186,8 +198,14 @@ export class Header implements OnInit, OnDestroy {
     this.cartService.cart$.subscribe(items => {
       this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
     });
-    this.wishlistService.count$.subscribe(count => {
-      this.wishlistCount = count;
+    this.wishlistService.wishlist$.subscribe(items => {
+      this.wishlistCount = items.length;
+    });
+    this.customerService.unreadCount$.subscribe(count => {
+      this.unreadNotificationCount = count;
+    });
+    this.customerService.notifications$.subscribe(list => {
+      this.updateNotificationsPreview(list);
     });
 
     // Init theme
@@ -196,11 +214,77 @@ export class Header implements OnInit, OnDestroy {
       this.theme = savedTheme;
       document.documentElement.setAttribute('data-theme', this.theme);
     }
+  }
 
+  onNotificationMouseEnter(): void {
+    if (this.notifCloseTimer) {
+      clearTimeout(this.notifCloseTimer);
+      this.notifCloseTimer = null;
+    }
+    this.updateNotificationsPreview(this.customerService.currentNotifications);
+    this.isNotificationDropdownOpen = true;
+  }
+
+  onNotificationMouseLeave(): void {
+    this.notifCloseTimer = setTimeout(() => {
+      this.isNotificationDropdownOpen = false;
+    }, 200);
+  }
+
+  updateNotificationsPreview(list: CustomerNotification[]): void {
+    const unread = (list || []).filter(n => !n.isRead);
+    this.unreadNotificationsPreview = unread.slice(0, 3);
+  }
+
+  onNotificationItemClick(notif: CustomerNotification): void {
+    this.isNotificationDropdownOpen = false;
+    if (!notif.isRead) {
+      this.customerService.markNotificationRead(notif.id).subscribe();
+    }
+    let targetLink = notif.link;
+    if (notif.type === 'ORDER') {
+      if (!targetLink || targetLink === '/account/orders' || !targetLink.includes('orderNumber=')) {
+        const match = notif.title?.match(/#([A-Za-z0-9_-]+)/) || notif.message?.match(/#([A-Za-z0-9_-]+)/);
+        if (match && match[1]) {
+          targetLink = `/account/orders?orderNumber=${match[1]}`;
+        } else {
+          targetLink = targetLink || '/account/orders';
+        }
+      }
+    }
+    if (targetLink) {
+      this.router.navigateByUrl(targetLink);
+    } else {
+      this.router.navigateByUrl('/account/notifications');
+    }
+  }
+
+  formatNotifTime(dateStr?: string): string {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      if (diffMins < 1) return 'Vừa xong';
+      if (diffMins < 60) return `${diffMins} phút trước`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours} giờ trước`;
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays < 7) return `${diffDays} ngày trước`;
+      return `${d.getDate()}/${d.getMonth() + 1}`;
+    } catch (_) {
+      return '';
+    }
   }
 
   @HostListener('window:storage')
   onStorageChange(): void {
+    this.syncUser();
+  }
+
+  @HostListener('window:dcor-user-updated')
+  onUserUpdated(): void {
     this.syncUser();
   }
 
@@ -379,8 +463,38 @@ export class Header implements OnInit, OnDestroy {
     this.router.navigate(['/login']);
   }
 
+  get guestPhone(): string | null {
+    return this.authService.getGuestPhone();
+  }
+
   toggleUserMenu() {
     this.userMenuOpen = !this.userMenuOpen;
+  }
+
+  isGuestHovering = false;
+  isGuestMenuClicked = false;
+  private guestHoverTimer: any = null;
+
+  onGuestMouseEnter(): void {
+    if (this.isGuestMenuClicked) return;
+    clearTimeout(this.guestHoverTimer);
+    this.isGuestHovering = true;
+  }
+
+  onGuestMouseLeave(): void {
+    this.guestHoverTimer = setTimeout(() => {
+      this.isGuestHovering = false;
+    }, 250);
+  }
+
+  toggleGuestUserMenu(): void {
+    this.isGuestHovering = false;
+    this.isGuestMenuClicked = !this.isGuestMenuClicked;
+  }
+
+  closeGuestUserMenu(): void {
+    this.isGuestMenuClicked = false;
+    this.isGuestHovering = false;
   }
 
   toggleCartDrawer() {
@@ -417,6 +531,7 @@ export class Header implements OnInit, OnDestroy {
     if (!storedUser) {
       this.user = null;
       this.isLoggedIn = false;
+      this.customerService.clearNotifications();
       return;
     }
 
@@ -425,14 +540,17 @@ export class Header implements OnInit, OnDestroy {
       if (user.role === 'ADMIN' || user.role === 'STAFF') {
         this.user = null;
         this.isLoggedIn = false;
+        this.customerService.clearNotifications();
         return;
       }
       this.user = user;
       this.isLoggedIn = true;
+      this.customerService.refreshNotifications();
     } catch (error) {
       console.error('Không thể đọc thông tin tài khoản khách hàng.', error);
       this.user = null;
       this.isLoggedIn = false;
+      this.customerService.clearNotifications();
     }
   }
 }

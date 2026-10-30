@@ -1,21 +1,281 @@
-<div style="padding: 60px 0; min-height: 80vh; background-color: var(--bg-primary);">
-  <div class="container">
-    <div style="text-align: center; margin-bottom: 60px;">
-      <h1 style="font-size: 36px; font-weight: 800; font-family: var(--font-title);">Blog & Cảm hứng</h1>
-      <p style="color: var(--text-muted); margin-top: 10px;">Những xu hướng thiết kế nội thất mới nhất.</p>
-    </div>
+<div class="store-blog-page">
+  <div class="blog-container">
 
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
-      <!-- Post 1 -->
-      <div style="background: var(--bg-secondary); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
-        <div style="height: 200px; background: url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80') center/cover;"></div>
-        <div style="padding: 24px;">
-          <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Xu hướng thiết kế 2024</h3>
-          <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 16px;">Khám phá những phong cách thiết kế sẽ thống trị không gian sống của bạn trong năm nay...</p>
-          <a href="#" style="color: var(--accent); font-weight: 600; text-decoration: none;">Đọc tiếp &rarr;</a>
+    <!-- ===================================================================== -->
+    <!-- VIEW A: ARTICLE DETAIL READER (WITH RELATED PRODUCTS AT BOTTOM)       -->
+    <!-- ===================================================================== -->
+    <article *ngIf="activeArticle" class="article-reader-view">
+      <!-- Breadcrumb & Back Button -->
+      <nav class="reader-nav-bar">
+        <button class="btn-back-to-list" (click)="backToList()">
+          <app-icon name="ArrowLeft" [size]="16"></app-icon>
+          Quay lại danh sách bài viết
+        </button>
+        <div class="reader-breadcrumbs">
+          <a routerLink="/">Trang chủ</a>
+          <span>/</span>
+          <span style="cursor: pointer;" (click)="backToList()">Blog</span>
+          <span>/</span>
+          <span class="active-crumb">{{ activeArticle.categoryName }}</span>
+        </div>
+      </nav>
+
+      <!-- Article Header -->
+      <header class="reader-header">
+        <div class="reader-category-pill">{{ activeArticle.categoryName }}</div>
+        <h1 class="reader-title">{{ activeArticle.title }}</h1>
+        
+        <div class="reader-meta-row">
+          <div class="reader-author">
+            <img
+              [src]="activeArticle.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'"
+              [alt]="activeArticle.author"
+              class="reader-author-avatar"
+            />
+            <div>
+              <span class="reader-author-name">{{ activeArticle.author }}</span>
+              <span class="reader-date">Đăng ngày {{ formatDate(activeArticle.publishedAt || activeArticle.createdAt) }}</span>
+            </div>
+          </div>
+
+          <div class="reader-stats">
+            <span class="reader-views-count">
+              <app-icon name="Eye" [size]="14"></app-icon>
+              {{ activeArticle.views | number }} lượt đọc
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Cover Image -->
+      <div class="reader-cover-wrap">
+        <img [src]="activeArticle.coverImage" [alt]="activeArticle.title" class="reader-cover-image" />
+      </div>
+
+      <!-- Sapo / Excerpt -->
+      <div *ngIf="activeArticle.excerpt" class="reader-excerpt-box">
+        <p class="reader-excerpt-text">{{ activeArticle.excerpt }}</p>
+      </div>
+
+      <!-- Article Body HTML -->
+      <div class="reader-body-content" [innerHTML]="activeArticle.content"></div>
+
+      <!-- Tags & Social Share -->
+      <div class="reader-footer-tags" *ngIf="activeArticle.tags && activeArticle.tags.length > 0">
+        <span class="tags-label">Chủ đề liên quan:</span>
+        <div class="tags-list">
+          <span *ngFor="let t of activeArticle.tags" class="store-tag-chip">
+            #{{ t }}
+          </span>
         </div>
       </div>
+
+      <!-- =================================================================== -->
+      <!-- CUSTOMER-FACING RELATED PRODUCTS SECTION (FR8-A-02)                 -->
+      <!-- =================================================================== -->
+      <section
+        *ngIf="getRelatedProducts(activeArticle.relatedProductIds).length > 0"
+        class="related-products-section"
+      >
+        <div class="related-section-header">
+          <div class="related-header-badge">
+            <app-icon name="Sparkles" [size]="16" color="#BC5F13"></app-icon>
+            Gợi ý mua sắm
+          </div>
+          <h2 class="related-section-title">Sản Phẩm Trong Bài Viết Này</h2>
+          <p class="related-section-subtitle">
+            Các sản phẩm nội thất cao cấp được chuyên gia và kiến trúc sư lựa chọn trong không gian trên:
+          </p>
+        </div>
+
+        <div class="related-products-grid">
+          <div
+            *ngFor="let prod of getRelatedProducts(activeArticle.relatedProductIds)"
+            class="store-related-product-card"
+          >
+            <div class="prod-img-box">
+              <img [src]="prod.imageUrl" [alt]="prod.name" class="prod-img" />
+              <span *ngIf="prod.sku" class="prod-sku-badge">{{ prod.sku }}</span>
+            </div>
+            <div class="prod-card-body">
+              <span class="prod-card-cat">{{ prod.categoryName || 'Nội thất DCor' }}</span>
+              <h3 class="prod-card-title">{{ prod.name }}</h3>
+              <div class="prod-card-pricing">
+                <span class="prod-price-current">{{ formatCurrency(prod.price) }}</span>
+                <span *ngIf="prod.originalPrice && prod.originalPrice > prod.price" class="prod-price-old">
+                  {{ formatCurrency(prod.originalPrice) }}
+                </span>
+              </div>
+              <a [routerLink]="['/products', prod.id]" class="btn-view-product">
+                <app-icon name="Eye" [size]="14"></app-icon>
+                Xem chi tiết sản phẩm
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Back To Blog Button at Bottom -->
+      <div class="reader-bottom-nav">
+        <button class="btn-back-pill" (click)="backToList()">
+          <app-icon name="ArrowLeft" [size]="16"></app-icon>
+          Khám phá thêm các bài viết khác
+        </button>
+      </div>
+    </article>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW B: BLOG ARTICLES LIST & SIDEBAR                                  -->
+    <!-- ===================================================================== -->
+    <div *ngIf="!activeArticle" class="blog-list-view">
+      <!-- Hero Banner -->
+      <section class="blog-hero-section">
+        <span class="hero-subhead">DCor Inspiration & Journal</span>
+        <h1 class="hero-main-title">Kiến Trúc & Không Gian Sống Thượng Lưu</h1>
+        <p class="hero-description">
+          Khám phá xu hướng thiết kế nội thất hiện đại, cẩm nang lựa chọn chất liệu da bò Ý và bí quyết bài trí không gian sống sang trọng cùng các kiến trúc sư DCor.
+        </p>
+      </section>
+
+      <!-- Category Filter Pills Bar -->
+      <div class="blog-filter-bar">
+        <div class="categories-scroll">
+          <button
+            class="cat-pill-btn"
+            [class.active]="selectedCategory === 'ALL'"
+            (click)="filterByCategory('ALL')"
+          >
+            Tất cả bài viết
+          </button>
+          <button
+            *ngFor="let cat of categories"
+            class="cat-pill-btn"
+            [class.active]="selectedCategory === cat.id"
+            (click)="filterByCategory(cat.id)"
+          >
+            {{ cat.name }} ({{ cat.articleCount }})
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="blog-search-box">
+          <app-icon name="Search" [size]="16" class="blog-search-icon"></app-icon>
+          <input
+            type="text"
+            class="blog-search-input"
+            placeholder="Tìm bài viết, chất liệu..."
+            [(ngModel)]="searchQuery"
+          />
+        </div>
+      </div>
+
+      <!-- Layout 2 Columns: Main Articles List + Sidebar -->
+      <div class="blog-layout-grid">
+        <!-- Main Column: Articles Cards -->
+        <main class="articles-main-col">
+          <!-- Empty State -->
+          <div *ngIf="displayedArticles.length === 0" class="blog-empty-state">
+            <app-icon name="FileText" [size]="48" style="color: #cbd5e1; margin-bottom: 12px;"></app-icon>
+            <h3>Không tìm thấy bài viết nào</h3>
+            <p>Vui lòng thử tìm kiếm với từ khóa khác hoặc chọn chuyên mục khác.</p>
+          </div>
+
+          <!-- Articles Grid -->
+          <div class="articles-cards-grid">
+            <article
+              *ngFor="let art of displayedArticles"
+              class="blog-card"
+              (click)="selectArticle(art)"
+            >
+              <div class="card-cover-wrap">
+                <img [src]="art.coverImage" [alt]="art.title" class="card-cover-img" />
+                <span class="card-cat-badge">{{ art.categoryName }}</span>
+                <span *ngIf="art.relatedProductIds && art.relatedProductIds.length > 0" class="card-prods-badge" title="Bài viết có đính kèm sản phẩm gợi ý">
+                  <app-icon name="ShoppingCart" [size]="12"></app-icon>
+                  {{ art.relatedProductIds.length }} SP
+                </span>
+              </div>
+
+              <div class="card-body">
+                <div class="card-meta">
+                  <span>{{ formatDate(art.publishedAt || art.createdAt) }}</span>
+                  <span>&bull;</span>
+                  <span>{{ art.author }}</span>
+                </div>
+
+                <h3 class="card-title">{{ art.title }}</h3>
+                <p class="card-excerpt">{{ art.excerpt }}</p>
+
+                <!-- Mini Assigned Products Preview -->
+                <div class="card-related-preview" *ngIf="getRelatedProducts(art.relatedProductIds).length > 0">
+                  <span class="preview-label">
+                    <app-icon name="ShoppingCart" [size]="12" color="#BC5F13"></app-icon>
+                    Sản phẩm trong bài:
+                  </span>
+                  <div class="preview-thumbs">
+                    <div *ngFor="let p of getRelatedProducts(art.relatedProductIds).slice(0, 3)" class="preview-thumb-item" [title]="p.name + ' - ' + formatCurrency(p.price)">
+                      <img [src]="p.imageUrl" [alt]="p.name" />
+                    </div>
+                    <span *ngIf="getRelatedProducts(art.relatedProductIds).length > 3" class="preview-more-badge">
+                      +{{ getRelatedProducts(art.relatedProductIds).length - 3 }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="card-footer">
+                  <div class="card-tags">
+                    <span *ngFor="let t of art.tags.slice(0, 2)" class="card-tag">#{{ t }}</span>
+                  </div>
+                  <span class="read-more-link">
+                    Đọc tiếp &rarr;
+                  </span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </main>
+
+        <!-- Sidebar Column -->
+        <aside class="blog-sidebar-col">
+          <!-- Marketing Banners -->
+          <div *ngIf="sidebarBanners.length > 0" class="sidebar-widget banner-widget">
+            <h4 class="widget-title">Ưu Đãi Đặc Biệt</h4>
+            <div *ngFor="let b of sidebarBanners" class="sidebar-banner-item">
+              <a [href]="b.linkUrl" target="_blank">
+                <img [src]="b.imageUrl" [alt]="b.title" class="sidebar-banner-img" />
+              </a>
+              <p class="sidebar-banner-text">{{ b.title }}</p>
+            </div>
+          </div>
+
+          <!-- Featured Topics / Categories -->
+          <div class="sidebar-widget">
+            <h4 class="widget-title">Chuyên Mục Quan Tâm</h4>
+            <ul class="sidebar-cat-list">
+              <li
+                *ngFor="let cat of categories"
+                (click)="filterByCategory(cat.id)"
+                [class.active]="selectedCategory === cat.id"
+              >
+                <span>{{ cat.name }}</span>
+                <span class="cat-count-pill">{{ cat.articleCount }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Consultation Box -->
+          <div class="sidebar-widget consultation-widget">
+            <h4 class="widget-title" style="color: #ffffff;">Tư Vấn Thiết Kế 3D</h4>
+            <p style="font-size: 13px; color: #f4ebe2; line-height: 1.5; margin-bottom: 14px;">
+              Đội ngũ kiến trúc sư DCor sẵn sàng tư vấn giải pháp nội thất và phối màu sofa trực tiếp tại căn hộ của bạn.
+            </p>
+            <a routerLink="/account/appointments" class="btn-consultation">
+              Đặt Lịch Tư Vấn Miễn Phí
+            </a>
+          </div>
+        </aside>
+      </div>
     </div>
+
   </div>
 </div>
-

@@ -34,6 +34,8 @@ import {
 } from 'lucide-angular';
 import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { PromotionService, AppliedPromotion } from '../../../../core/services/promotion.service';
+import { CustomerService } from '../../../../core/services/customer.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ALL_VIETNAM_PROVINCE_NAMES, getDistrictsForProvince, getWardsForDistrict, getWardsForProvince } from '../../../../shared/data/vietnam-administrative.data';
@@ -152,6 +154,17 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   newAddressWards: string[] = [];
   isSavingNewAddress = false;
   newAddressError = '';
+  newAddressErrors: {
+    receiverName?: string;
+    phone?: string;
+    email?: string;
+    province?: string;
+    district?: string;
+    ward?: string;
+    detail?: string;
+    otp?: string;
+  } = {};
+  addressSelectionError = '';
 
   // Guest / Gmail không SĐT: Tra cứu địa chỉ qua số điện thoại
   guestPhoneLookup = '';
@@ -160,7 +173,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   guestLookupMessage = '';
 
   get hasUserPhone(): boolean {
-    return !!(this.currentUser && this.currentUser.phone && this.currentUser.phone.trim().length >= 9);
+    return !!(this.currentUser && this.currentUser.phone && !this.currentUser.phone.startsWith('GOOG_') && this.currentUser.phone.trim().length >= 9);
   }
 
   get hasSelectedAddress(): boolean {
@@ -177,9 +190,18 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   otpErrorMessage: string | null = null;
   isSendingOtp = false;
 
+  // Danh sách các số điện thoại đã từng xác thực OTP của tài khoản
+  verifiedPhonesList: string[] = [];
+  // Popup hỏi lưu số điện thoại vào hồ sơ cá nhân
+  showSavePhonePromptModal = false;
+  phoneToSaveToProfile = '';
+  isSavingPhoneToProfile = false;
+  pendingActionAfterPhonePrompt: 'SUBMIT_ORDER' | 'SAVE_ADDRESS' | null = null;
+
   // Mã giảm giá (Đồng bộ qua PromotionService)
   voucherInput = '';
   appliedVoucher: AppliedPromotion | null = null;
+  appliedFreeshipVoucher: AppliedPromotion | null = null;
   voucherErrorMessage: string | null = null;
   voucherSuccessMessage: string | null = null;
   isCheckingVoucher = false;
@@ -253,12 +275,13 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     private router: Router,
     private cartService: CartService,
     private promotionService: PromotionService,
+    private customerService: CustomerService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.checkUserAuth();
-    this.checkPendingBuyNow();
     this.initPromotionSync();
     this.initAdministrativeAddress();
     this.loadCheckoutItems();
@@ -278,63 +301,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       })
     );
-  }
-
-  applyVoucherCode() {
-    const code = (this.voucherInput || '').trim().toUpperCase();
-    if (!code) {
-      this.voucherErrorMessage = 'Vui lòng nhập mã ưu đãi / voucher.';
-      this.voucherSuccessMessage = null;
-      return;
-    }
-
-    if (this.subTotal <= 0) {
-      this.voucherErrorMessage = 'Giỏ hàng chưa có sản phẩm để áp dụng mã giảm giá.';
-      this.voucherSuccessMessage = null;
-      return;
-    }
-
-    this.isCheckingVoucher = true;
-    this.voucherErrorMessage = null;
-    this.voucherSuccessMessage = null;
-
-    this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
-      this.isCheckingVoucher = false;
-      if (res.success && res.applied) {
-        this.appliedVoucher = res.applied;
-        this.voucherSuccessMessage = res.message;
-        this.voucherErrorMessage = null;
-      } else {
-        this.appliedVoucher = null;
-        this.voucherErrorMessage = res.message || `Mã "${code}" không hợp lệ hoặc không đủ điều kiện.`;
-        this.voucherSuccessMessage = null;
-      }
-      this.cdr.detectChanges();
-    });
-  }
-
-  removeVoucher() {
-    this.appliedVoucher = null;
-    this.voucherInput = '';
-    this.voucherSuccessMessage = null;
-    this.voucherErrorMessage = null;
-    this.promotionService.removeAppliedPromotion();
-    this.cdr.detectChanges();
-  }
-
-  recalculateVoucher() {
-    if (!this.appliedVoucher) return;
-    if (this.subTotal <= 0) {
-      this.removeVoucher();
-      return;
-    }
-    const updated = this.promotionService.recalculate(this.subTotal);
-    if (updated) {
-      this.appliedVoucher = updated;
-    } else {
-      this.removeVoucher();
-    }
-    this.cdr.detectChanges();
+    this.sub.add(
+      this.promotionService.appliedFreeship$.subscribe(freeship => {
+        this.appliedFreeshipVoucher = freeship;
+        this.cdr.detectChanges();
+      })
+    );
   }
 
   selectPaymentMethod(method: 'COD' | 'BANK_TRANSFER') {
@@ -361,7 +333,15 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   // Xử lý Popup Đặt hàng thành công
   viewMyOrders() {
     this.showSuccessModal = false;
-    this.router.navigate(['/account/orders']);
+    const orderPhone = (this.createdOrder?.phone || this.phone || '').trim();
+    if (!this.isLoggedIn && orderPhone) {
+      this.authService.setGuestPhone(orderPhone, 'guest-order-token');
+      this.router.navigate(['/account/orders'], {
+        queryParams: { phone: orderPhone }
+      });
+    } else {
+      this.router.navigate(['/account/orders']);
+    }
   }
 
   closeSuccessModal() {
@@ -378,7 +358,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- 1. Lấy thông tin tài khoản thực tế & Sổ địa chỉ thực tế (Không mock) ---
+  // --- 1. Lấy thông tin tài khoản thực tế & Sổ địa chỉ thực tế (Đồng bộ với Hồ sơ cá nhân) ---
   checkUserAuth() {
     const token = localStorage.getItem('dcor_customer_token');
     const storedUser = localStorage.getItem('dcor_customer') || localStorage.getItem('dcor_customer_user') || localStorage.getItem('dcor_user');
@@ -389,40 +369,30 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.isLoggedIn = true;
         this.fullName = this.currentUser.fullName || this.currentUser.name || '';
         this.email = this.currentUser.email || '';
-        this.phone = this.currentUser.phone || '';
-        this.isGoogleAccount = !this.currentUser.phone || this.currentUser.authProvider === 'GOOGLE';
-        this.isPhoneVerified = !!this.currentUser.phone && this.currentUser.isPhoneVerified !== false && !this.isGoogleAccount;
-        if (this.isPhoneVerified) {
-          this.verifiedPhone = this.currentUser.phone.trim();
-        } else {
-          this.verifiedPhone = '';
-        }
+        const rawPhone = this.currentUser.phone || '';
+        this.phone = rawPhone.startsWith('GOOG_') ? '' : rawPhone;
+        this.isGoogleAccount = !rawPhone || rawPhone.startsWith('GOOG_') || this.currentUser.authProvider === 'GOOGLE';
 
-        // Chỉ lấy sổ địa chỉ thực tế nếu tài khoản có trường addresses hoặc đã lưu địa chỉ
-        if (Array.isArray(this.currentUser.addresses) && this.currentUser.addresses.length > 0) {
-          this.savedAddresses = this.currentUser.addresses.map((a: any, idx: number) => ({
-            id: a.id || `addr-${idx}`,
-            receiverName: a.receiverName || this.fullName,
-            phone: a.phone || this.phone,
-            address: a.detail ? `${a.detail}, ${a.ward || ''}, ${a.district || ''}, ${a.province || ''}` : (a.address || ''),
-            isDefault: !!a.isDefault
-          }));
-
-          const defaultAddr = this.savedAddresses.find(a => a.isDefault) || this.savedAddresses[0];
-          if (defaultAddr) {
-            this.selectedAddressId = defaultAddr.id;
-            this.address = defaultAddr.address;
-            if (!this.phone) this.phone = defaultAddr.phone;
+        // 1. Tải tức thì từ cache dcor_saved_addresses để không bị giật lag
+        try {
+          const cached = localStorage.getItem('dcor_saved_addresses');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              this.applyAddresses(parsed);
+            }
           }
-        } else if (this.currentUser.address) {
-          // Nếu có 1 địa chỉ trong profile
-          this.address = this.currentUser.address;
-        }
+        } catch (e) {}
 
-        // Tự động tải thêm các địa chỉ gắn với SĐT từ lịch sử đơn hàng
-        if (this.hasUserPhone) {
-          this.loadAddressesForUserPhone();
-        }
+        // Tải danh sách các số điện thoại đã từng xác thực của tài khoản
+        this.loadVerifiedPhones();
+
+        // Kiểm tra xem số điện thoại hiện tại có cần xác thực OTP không
+        this.isPhoneVerified = !this.isPhoneOtpRequired(this.phone);
+        this.verifiedPhone = this.isPhoneVerified && this.phone ? this.phone.trim() : '';
+
+        // 2. Đồng bộ danh sách địa chỉ mới nhất từ CustomerService
+        this.syncCustomerAddresses();
       } catch (e) {
         console.error('Lỗi đọc dữ liệu người dùng:', e);
       }
@@ -434,30 +404,108 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- 1.1 Xử lý mua ngay khi vừa đăng nhập xong chuyển đến checkout ---
-  checkPendingBuyNow() {
-    try {
-      const pendingRaw = sessionStorage.getItem('dcor_pending_buy_now');
-      if (pendingRaw) {
-        sessionStorage.removeItem('dcor_pending_buy_now');
-        const pending = JSON.parse(pendingRaw);
-        if (pending && pending.variantId) {
-          this.cartService.addToCart(pending.variantId, pending.quantity || 1, pending.selectedConfig)
-            .subscribe({
-              next: (res) => {
-                if (res?.cartItem?.id) {
-                  try {
-                    sessionStorage.setItem('dcor_checkout_items', JSON.stringify([res.cartItem.id]));
-                  } catch (e) {}
-                }
-                this.cartService.loadCart().subscribe();
-              }
-            });
-        }
+  /** Đồng bộ sổ địa chỉ trực tiếp từ API backend của tài khoản */
+  syncCustomerAddresses() {
+    if (!this.isLoggedIn) return;
+    this.sub.add(
+      this.customerService.getAddresses().subscribe({
+        next: (data) => {
+          if (Array.isArray(data)) {
+            try {
+              localStorage.setItem('dcor_saved_addresses', JSON.stringify(data));
+            } catch (e) {}
+            this.applyAddresses(data);
+          }
+        },
+        error: () => {}
+      })
+    );
+  }
+
+  /** Áp dụng danh sách địa chỉ và tự động chọn địa chỉ mặc định theo quy tắc */
+  applyAddresses(data: any[]) {
+    this.savedAddresses = data.map((a: any, idx: number) => ({
+      id: a.id || `addr-${idx}`,
+      receiverName: a.receiverName || this.fullName,
+      phone: a.phone && !a.phone.startsWith('GOOG_') ? a.phone : this.phone,
+      email: a.email || this.email,
+      address: [a.detail, a.ward, a.district, a.province].filter(Boolean).join(', ') || a.address || '',
+      province: a.province,
+      district: a.district || '',
+      ward: a.ward || '',
+      detail: a.detail,
+      isDefault: !!a.isDefault
+    }));
+
+    // Quy tắc: Nếu có địa chỉ mặc định thì chọn địa chỉ đó, nếu không thì địa chỉ đầu tiên được xem là mặc định
+    if (this.savedAddresses.length > 0) {
+      const defaultAddr = this.savedAddresses.find(a => a.isDefault) || this.savedAddresses[0];
+      if (defaultAddr && (!this.selectedAddressId || !this.address)) {
+        this.selectAddress(defaultAddr);
       }
-    } catch (e) {
-      console.error('Lỗi xử lý pending buy now:', e);
     }
+    this.loadVerifiedPhones();
+    this.cdr.detectChanges();
+  }
+
+  /** Tải danh sách số điện thoại đã từng xác thực OTP của tài khoản */
+  loadVerifiedPhones() {
+    if (!this.isLoggedIn || !this.currentUser) return;
+    const userId = this.currentUser.id || this.currentUser._id || this.currentUser.email || 'user';
+    try {
+      const stored = localStorage.getItem(`dcor_verified_phones_${userId}`);
+      const parsed: string[] = stored ? JSON.parse(stored) : [];
+      const addressPhones = (this.savedAddresses || [])
+        .map(a => (a.phone || '').trim())
+        .filter(Boolean);
+      this.verifiedPhonesList = Array.from(new Set([...parsed, ...addressPhones]));
+    } catch (e) {
+      this.verifiedPhonesList = [];
+    }
+  }
+
+  /** Thêm số điện thoại vào danh sách đã xác thực của tài khoản */
+  addVerifiedPhone(phone: string) {
+    if (!phone) return;
+    const clean = phone.trim();
+    if (!this.verifiedPhonesList.includes(clean)) {
+      this.verifiedPhonesList.push(clean);
+    }
+    if (this.isLoggedIn && this.currentUser) {
+      const userId = this.currentUser.id || this.currentUser._id || this.currentUser.email || 'user';
+      try {
+        localStorage.setItem(`dcor_verified_phones_${userId}`, JSON.stringify(this.verifiedPhonesList));
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * RÀNG BUỘC THEO QUY ĐỊNH HỆ THỐNG:
+   * 1. Khách hàng đã có số điện thoại trong hồ sơ cá nhân -> KHÔNG CẦN xác thực OTP
+   * 2. Khách hàng đăng nhập email/Google: nếu SĐT đã từng xác thực OTP (trong verifiedPhonesList) -> KHÔNG CẦN xác thực
+   * 3. Khách vãng lai hoặc số mới chưa từng xác thực -> BẮT BUỘC xác thực OTP
+   */
+  isPhoneOtpRequired(phoneStr?: string): boolean {
+    const phone = (phoneStr || '').trim();
+    if (!phone) return true;
+
+    // 1. Khách hàng đã có số điện thoại trong hồ sơ cá nhân
+    if (this.isLoggedIn && this.hasUserPhone) {
+      return false;
+    }
+
+    // 2. Khách hàng đăng nhập email/Google nhưng SĐT này đã từng xác thực OTP hoặc có trong sổ địa chỉ
+    if (this.isLoggedIn && this.verifiedPhonesList.includes(phone)) {
+      return false;
+    }
+
+    // 3. Số điện thoại vừa xác thực thành công trong phiên làm việc hiện tại
+    if (this.verifiedPhone && this.verifiedPhone === phone) {
+      return false;
+    }
+
+    // Khách vãng lai hoặc số mới chưa xác thực -> Bắt buộc xác thực OTP
+    return true;
   }
 
   // --- 2. Tải cấu hình thanh toán cửa hàng từ Backend (nếu có dữ liệu) ---
@@ -511,6 +559,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
         this.isLoadingCart = false;
         this.recalculateVoucher();
+        if (this.subTotal > 0) {
+          this.promotionService.autoApplyBestPromotions(this.subTotal);
+        }
         this.cdr.detectChanges();
       })
     );
@@ -641,8 +692,11 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   get shippingFee(): number {
     if (this.subTotal === 0) return 0;
     if (this.subTotal >= 50000000) return 0;
-    if (this.appliedVoucher?.discountType === 'AMOUNT' && this.appliedVoucher.code === 'FREESHIP') return 0;
-    return 250000;
+    const baseFee = 250000;
+    if (this.appliedFreeshipVoucher) {
+      return Math.max(0, baseFee - (this.appliedFreeshipVoucher.calculatedDiscount || baseFee));
+    }
+    return baseFee;
   }
 
   get discountAmount(): number {
@@ -684,14 +738,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     }
 
     // Trạng thái xác thực SĐT:
-    // User đăng nhập thường có SĐT trong hệ thống -> đã xác thực
-    // Khách vãng lai / Google -> chỉ xác thực nếu số điện thoại trùng với số đã verify OTP trong phiên
-    if (this.isLoggedIn && this.hasUserPhone && !this.isGoogleAccount) {
-      this.isPhoneVerified = true;
-    } else if (this.verifiedPhone && addr.phone && addr.phone.trim() === this.verifiedPhone) {
-      this.isPhoneVerified = true;
-    } else {
-      this.isPhoneVerified = false;
+    // Kiểm tra theo quy tắc: nếu đã có trong hồ sơ hoặc đã từng xác thực OTP -> miễn OTP
+    this.isPhoneVerified = !this.isPhoneOtpRequired(this.phone);
+    if (this.isPhoneVerified) {
+      this.verifiedPhone = this.phone ? this.phone.trim() : '';
     }
 
     // Phân tách nếu chuỗi địa chỉ khớp định dạng
@@ -721,6 +771,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     delete this.errors.phone;
     delete this.errors.fullName;
     delete this.errors.address;
+    this.addressSelectionError = '';
     this.isAddressModalOpen = false;
     this.cdr.detectChanges();
   }
@@ -731,9 +782,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.guestLookupMessage = '';
     this.initNewAddressForm();
 
-    // Nếu người dùng đã đăng nhập có SĐT -> tự động load các địa chỉ gắn với SĐT đó
-    if (this.isLoggedIn && this.hasUserPhone) {
-      this.loadAddressesForUserPhone();
+    // Nếu người dùng đã đăng nhập -> luôn đồng bộ danh sách địa chỉ thật từ tài khoản
+    if (this.isLoggedIn) {
+      this.syncCustomerAddresses();
       this.addressModalMode = this.savedAddresses.length > 0 ? mode : 'add';
     } else {
       // Khách vãng lai hoặc Google chưa có SĐT
@@ -775,35 +826,79 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
     // Kiểm tra trạng thái verify của SĐT trong form mới
     const phone = (this.newAddress.phone || '').trim();
-    if (phone) {
-      if (this.isLoggedIn && this.hasUserPhone && !this.isGoogleAccount && phone === (this.currentUser?.phone || '').trim()) {
-        this.isPhoneVerified = true;
-      } else if (this.verifiedPhone && phone === this.verifiedPhone) {
-        this.isPhoneVerified = true;
-      } else {
-        this.isPhoneVerified = false;
-      }
+    this.isPhoneVerified = !this.isPhoneOtpRequired(phone);
+  }
+
+  onNewAddressReceiverNameBlur() {
+    if (!this.newAddress.receiverName || !this.newAddress.receiverName.trim()) {
+      this.newAddressErrors.receiverName = 'Vui lòng nhập họ và tên người nhận.';
     } else {
-      this.isPhoneVerified = false;
+      delete this.newAddressErrors.receiverName;
+    }
+  }
+
+  onNewAddressReceiverNameInput() {
+    if (this.newAddress.receiverName && this.newAddress.receiverName.trim()) {
+      delete this.newAddressErrors.receiverName;
     }
   }
 
   onNewAddressPhoneInput() {
     const phone = (this.newAddress.phone || '').trim();
-    if (this.isLoggedIn && this.hasUserPhone && !this.isGoogleAccount && phone === (this.currentUser?.phone || '').trim()) {
-      this.isPhoneVerified = true;
-    } else if (this.verifiedPhone && phone === this.verifiedPhone) {
-      this.isPhoneVerified = true;
-    } else {
-      this.isPhoneVerified = false;
-    }
+    this.isPhoneVerified = !this.isPhoneOtpRequired(phone);
     this.newAddressError = '';
+    delete this.newAddressErrors.otp;
+    if (phone && !this.validatePhone(phone)) {
+      this.newAddressErrors.phone = 'Số điện thoại cần đủ 10 chữ số (đầu số 03, 05, 07, 08, 09).';
+    } else {
+      delete this.newAddressErrors.phone;
+    }
+  }
+
+  onNewAddressPhoneBlur() {
+    const phone = (this.newAddress.phone || '').trim();
+    if (!phone) {
+      this.newAddressErrors.phone = 'Vui lòng nhập số điện thoại nhận hàng.';
+    } else if (!this.validatePhone(phone)) {
+      this.newAddressErrors.phone = 'Số điện thoại cần đủ 10 chữ số (đầu số 03, 05, 07, 08, 09).';
+    } else {
+      delete this.newAddressErrors.phone;
+    }
+  }
+
+  onNewAddressEmailBlur() {
+    const email = (this.newAddress.email || '').trim();
+    if (email && !this.validateEmail(email)) {
+      this.newAddressErrors.email = 'Email không đúng định dạng (VD: example@domain.com).';
+    } else {
+      delete this.newAddressErrors.email;
+    }
+  }
+
+  onNewAddressDetailBlur() {
+    const detail = (this.newAddress.detail || '').trim();
+    if (!detail) {
+      this.newAddressErrors.detail = 'Vui lòng nhập số nhà, tên đường cụ thể.';
+    } else {
+      delete this.newAddressErrors.detail;
+    }
+  }
+
+  onNewAddressDetailInput() {
+    if (this.newAddress.detail && this.newAddress.detail.trim()) {
+      delete this.newAddressErrors.detail;
+    }
   }
 
   onNewAddressProvinceChange() {
+    delete this.newAddressErrors.province;
     this.newAddressDistricts = getDistrictsForProvince(this.newAddress.province);
     this.newAddress.district = this.newAddressDistricts.length > 0 ? this.newAddressDistricts[0] : '';
     this.onNewAddressDistrictChange();
+  }
+
+  onNewAddressWardChange() {
+    delete this.newAddressErrors.ward;
   }
 
   onNewAddressDistrictChange() {
@@ -891,32 +986,50 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   /** Lưu và chọn địa chỉ mới */
   submitNewAddress() {
+    this.newAddressErrors = {};
     const { receiverName, phone, province, district, ward, detail, email, isDefault } = this.newAddress;
+    let hasErr = false;
+
     if (!receiverName || !receiverName.trim()) {
-      this.newAddressError = 'Vui lòng nhập họ và tên người nhận.';
-      return;
+      this.newAddressErrors.receiverName = 'Vui lòng nhập họ và tên người nhận.';
+      hasErr = true;
     }
-    if (!phone || !this.validatePhone(phone.trim())) {
-      this.newAddressError = 'Vui lòng nhập số điện thoại hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09).';
-      return;
+    if (!phone || !phone.trim()) {
+      this.newAddressErrors.phone = 'Vui lòng nhập số điện thoại nhận hàng.';
+      hasErr = true;
+    } else if (!this.validatePhone(phone.trim())) {
+      this.newAddressErrors.phone = 'Số điện thoại cần đủ 10 chữ số (đầu số 03, 05, 07, 08, 09).';
+      hasErr = true;
+    }
+    if (email && email.trim() && !this.validateEmail(email.trim())) {
+      this.newAddressErrors.email = 'Email không đúng định dạng (VD: example@domain.com).';
+      hasErr = true;
     }
     if (!province) {
-      this.newAddressError = 'Vui lòng chọn Tỉnh / Thành phố.';
-      return;
+      this.newAddressErrors.province = 'Vui lòng chọn Tỉnh / Thành phố.';
+      hasErr = true;
     }
     if (!ward) {
-      this.newAddressError = 'Vui lòng chọn Phường / Xã.';
-      return;
+      this.newAddressErrors.ward = 'Vui lòng chọn Phường / Xã.';
+      hasErr = true;
     }
     if (!detail || !detail.trim()) {
-      this.newAddressError = 'Vui lòng nhập số nhà, tên đường cụ thể.';
+      this.newAddressErrors.detail = 'Vui lòng nhập số nhà, tên đường cụ thể.';
+      hasErr = true;
+    }
+
+    if (hasErr) {
+      this.newAddressError = 'Vui lòng kiểm tra lại các thông tin chưa chính xác bên dưới.';
+      this.cdr.detectChanges();
       return;
     }
 
-    // Bắt buộc xác thực OTP đối với khách vãng lai và tài khoản Google (hoặc chưa xác thực)
-    const requiresOtp = !this.isLoggedIn || this.isGoogleAccount || !this.hasUserPhone;
-    if (requiresOtp && !this.isPhoneVerified) {
+    // Bắt buộc xác thực OTP nếu số điện thoại này chưa được xác thực
+    const cleanPhone = (phone || '').trim();
+    if (this.isPhoneOtpRequired(cleanPhone)) {
+      this.newAddressErrors.otp = 'Vui lòng bấm "Xác thực OTP" để xác minh số điện thoại trước khi lưu địa chỉ.';
       this.newAddressError = 'Vui lòng bấm "Xác thực OTP" để xác minh số điện thoại trước khi lưu địa chỉ.';
+      this.pendingActionAfterPhonePrompt = 'SAVE_ADDRESS';
       this.sendOtp();
       return;
     }
@@ -950,20 +1063,35 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       localStorage.setItem('dcor_guest_addresses', JSON.stringify(localGuestAddrs.slice(0, 10)));
     } catch (e) {}
 
-    // Nếu đã login, gửi API lưu address vào hồ sơ
+    // Nếu đã login, gửi API lưu address vào sổ địa chỉ tài khoản
     if (this.isLoggedIn) {
-      const token = localStorage.getItem('dcor_customer_token');
-      fetch(`${environment.apiUrl}/account/addresses`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`
-        },
-        body: JSON.stringify(this.newAddress)
-      }).catch(() => {});
+      this.sub.add(
+        this.customerService.createAddress({
+          receiverName: receiverName.trim(),
+          phone: phone.trim(),
+          province: province.trim(),
+          district: district ? district.trim() : null,
+          ward: ward ? ward.trim() : null,
+          detail: detail.trim(),
+          isDefault: !!isDefault
+        }).subscribe({
+          next: (res: any) => {
+            this.isSavingNewAddress = false;
+            if (res && res.address) {
+              newAddr.id = res.address.id;
+            }
+            this.syncCustomerAddresses();
+          },
+          error: (err) => {
+            this.isSavingNewAddress = false;
+            console.error('Lỗi khi lưu địa chỉ mới vào tài khoản:', err);
+          }
+        })
+      );
+    } else {
+      this.isSavingNewAddress = false;
     }
 
-    this.isSavingNewAddress = false;
     this.selectAddress(newAddr);
     this.isAddressModalOpen = false;
     this.cdr.detectChanges();
@@ -974,6 +1102,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     const targetPhone = (this.isAddressModalOpen && this.addressModalMode === 'add')
       ? (this.newAddress.phone || '').trim()
       : (this.phone || '').trim();
+
+    // Nếu số này không cần OTP (đã có trong hồ sơ hoặc đã xác thực), không cần gửi
+    if (!this.isPhoneOtpRequired(targetPhone)) {
+      this.isPhoneVerified = true;
+      return;
+    }
 
     if (!this.validatePhone(targetPhone)) {
       const msg = 'Vui lòng nhập số điện thoại hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09) trước khi gửi mã OTP.';
@@ -1028,17 +1162,42 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const targetPhone = this.phone;
+    const targetPhone = (this.isAddressModalOpen && this.addressModalMode === 'add')
+      ? (this.newAddress.phone || '').trim()
+      : (this.phone || '').trim();
 
-    // Mã OTP cố định 111111 cho khách vãng lai và mọi khách hàng theo yêu cầu
-    if (code === '111111') {
+    const onOtpSuccess = () => {
       this.isPhoneVerified = true;
       this.verifiedPhone = targetPhone;
+      this.addVerifiedPhone(targetPhone);
       this.isOtpModalOpen = false;
       this.otpErrorMessage = null;
       this.newAddressError = '';
       if (this.otpTimer) clearInterval(this.otpTimer);
+
+      // NẾU LÀ TÀI KHOẢN ĐĂNG NHẬP BẰNG EMAIL/GOOGLE MÀ CHƯA CÓ SĐT TRONG HỒ SƠ:
+      // Bật popup hỏi: "Bạn có muốn lưu số điện thoại này vào hồ sơ cá nhân để sau này đăng nhập hay không?"
+      if (this.isLoggedIn && !this.hasUserPhone) {
+        this.phoneToSaveToProfile = targetPhone;
+        this.showSavePhonePromptModal = true;
+        this.cdr.detectChanges();
+        return;
+      }
+
+      // Tiếp tục thực hiện hành động đang chờ (nếu có)
+      if (this.pendingActionAfterPhonePrompt === 'SAVE_ADDRESS') {
+        this.pendingActionAfterPhonePrompt = null;
+        this.submitNewAddress();
+      } else if (this.pendingActionAfterPhonePrompt === 'SUBMIT_ORDER') {
+        this.pendingActionAfterPhonePrompt = null;
+        this.handleSubmitOrder();
+      }
       this.cdr.detectChanges();
+    };
+
+    // Mã OTP cố định 111111 cho khách vãng lai và mọi khách hàng theo yêu cầu
+    if (code === '111111') {
+      onOtpSuccess();
       return;
     }
 
@@ -1053,12 +1212,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         return res.json();
       })
       .then(() => {
-        this.isPhoneVerified = true;
-        this.verifiedPhone = targetPhone;
-        this.isOtpModalOpen = false;
-        this.otpErrorMessage = null;
-        this.newAddressError = '';
-        if (this.otpTimer) clearInterval(this.otpTimer);
+        onOtpSuccess();
       })
       .catch(() => {
         this.otpErrorMessage = 'Mã OTP không chính xác. Vui lòng nhập mã 111111.';
@@ -1068,19 +1222,143 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Xác nhận lưu số điện thoại vào hồ sơ cá nhân */
+  confirmSavePhoneToProfile() {
+    if (!this.phoneToSaveToProfile) return;
+    this.isSavingPhoneToProfile = true;
+    const phone = this.phoneToSaveToProfile;
+
+    this.sub.add(
+      this.customerService.updateProfile({
+        fullName: this.fullName || this.currentUser?.fullName || 'Khách hàng',
+        phone: phone,
+        otp: '111111'
+      }).subscribe({
+        next: (res) => {
+          this.isSavingPhoneToProfile = false;
+          this.showSavePhonePromptModal = false;
+          if (this.currentUser) {
+            this.currentUser.phone = phone;
+            this.currentUser.isPhoneVerified = true;
+          }
+          this.authService.updateCurrentUser({
+            phone: phone,
+            isPhoneVerified: true
+          });
+          this.addVerifiedPhone(phone);
+          this.isPhoneVerified = true;
+          this.phone = phone;
+
+          // Tiếp tục hành động dở dang nếu có
+          if (this.pendingActionAfterPhonePrompt === 'SAVE_ADDRESS') {
+            this.pendingActionAfterPhonePrompt = null;
+            this.submitNewAddress();
+          } else if (this.pendingActionAfterPhonePrompt === 'SUBMIT_ORDER') {
+            this.pendingActionAfterPhonePrompt = null;
+            this.handleSubmitOrder();
+          }
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.isSavingPhoneToProfile = false;
+          console.warn('Lỗi khi lưu SĐT vào hồ sơ:', err);
+          if (this.currentUser) {
+            this.currentUser.phone = phone;
+            this.currentUser.isPhoneVerified = true;
+          }
+          this.authService.updateCurrentUser({
+            phone: phone,
+            isPhoneVerified: true
+          });
+          this.addVerifiedPhone(phone);
+          this.showSavePhonePromptModal = false;
+          if (this.pendingActionAfterPhonePrompt === 'SAVE_ADDRESS') {
+            this.pendingActionAfterPhonePrompt = null;
+            this.submitNewAddress();
+          } else if (this.pendingActionAfterPhonePrompt === 'SUBMIT_ORDER') {
+            this.pendingActionAfterPhonePrompt = null;
+            this.handleSubmitOrder();
+          }
+          this.cdr.detectChanges();
+        }
+      })
+    );
+  }
+
+  /** Người dùng chọn 'Để lần sau': vẫn lưu số vào danh sách số đã xác thực để lần sau không bắt OTP */
+  dismissSavePhonePrompt() {
+    if (this.phoneToSaveToProfile) {
+      this.addVerifiedPhone(this.phoneToSaveToProfile);
+    }
+    this.showSavePhonePromptModal = false;
+    if (this.pendingActionAfterPhonePrompt === 'SAVE_ADDRESS') {
+      this.pendingActionAfterPhonePrompt = null;
+      this.submitNewAddress();
+    } else if (this.pendingActionAfterPhonePrompt === 'SUBMIT_ORDER') {
+      this.pendingActionAfterPhonePrompt = null;
+      this.handleSubmitOrder();
+    }
+    this.cdr.detectChanges();
+  }
+
+  // --- 8. Mã giảm giá (Đồng bộ qua PromotionService, không tự sinh voucher giả) ---
+  applyVoucherCode() {
+    const code = (this.voucherInput || '').trim().toUpperCase();
+    if (!code) {
+      this.voucherErrorMessage = 'Vui lòng nhập mã ưu đãi trước khi bấm áp dụng.';
+      return;
+    }
+
+    this.isCheckingVoucher = true;
+    this.voucherErrorMessage = null;
+    this.voucherSuccessMessage = null;
+
+    this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
+      this.isCheckingVoucher = false;
+      if (!res.success) {
+        this.voucherErrorMessage = res.message;
+      } else {
+        this.voucherErrorMessage = null;
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+  removeVoucher() {
+    this.promotionService.removeAppliedPromotion();
+    this.voucherInput = '';
+    this.voucherSuccessMessage = null;
+    this.voucherErrorMessage = null;
+  }
+
+  recalculateVoucher() {
+    this.promotionService.recalculate(this.subTotal);
+    if (this.subTotal > 0) {
+      this.promotionService.autoApplyBestPromotions(this.subTotal);
+    }
+  }
 
   // --- 9. Tiến hành Đặt hàng với kiểm tra định dạng toàn diện ---
-  handleSubmitOrder(e: Event) {
-    e.preventDefault();
+  handleSubmitOrder(e?: Event) {
+    if (e) {
+      e.preventDefault();
+    }
     this.orderErrorMessage = null;
+    this.addressSelectionError = '';
 
     if (this.checkoutItems.length === 0) {
       this.orderErrorMessage = 'Giỏ hàng của bạn đang trống. Vui lòng quay lại chọn sản phẩm trước khi thanh toán.';
       return;
     }
 
+    // Tự động áp dụng mã tốt nhất nếu có khi đặt hàng
+    if (this.subTotal > 0) {
+      this.promotionService.autoApplyBestPromotions(this.subTotal);
+    }
+
     // Kiểm tra đã có địa chỉ nhận hàng từ Sổ địa chỉ chưa
     if (!this.hasSelectedAddress) {
+      this.addressSelectionError = '⚠ Vui lòng chọn hoặc điền thông tin địa chỉ nhận hàng trước khi thanh toán.';
       this.orderErrorMessage = 'Vui lòng mở Sổ địa chỉ để chọn hoặc nhập thông tin nhận hàng trước khi thanh toán.';
       this.openAddressBookModal('select');
       return;
@@ -1105,9 +1383,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Khách vãng lai hoặc Google chưa verify SĐT -> Bắt buộc xác thực OTP
-    if (!this.isPhoneVerified) {
+    // Bắt buộc xác thực OTP nếu số điện thoại này chưa được xác minh
+    if (this.isPhoneOtpRequired(this.phone)) {
       this.orderErrorMessage = 'Vui lòng xác thực số điện thoại bằng mã OTP trước khi đặt hàng.';
+      this.pendingActionAfterPhonePrompt = 'SUBMIT_ORDER';
       this.sendOtp();
       return;
     }
@@ -1222,17 +1501,26 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     // Lưu đơn vào danh sách đơn của khách để hiển thị tại "Đơn hàng của tôi"
     try {
       const existing = JSON.parse(localStorage.getItem('dcor_placed_orders') || '[]');
+      const firstItem = (this.checkoutItems && this.checkoutItems.length > 0 ? this.checkoutItems[0] : null) as any;
       const newEntry = {
         id: orderNumber,
+        phone: this.phone ? this.phone.trim() : '',
         date: new Date().toISOString().split('T')[0],
-        total: this.totalAmount,
+        total: this.totalAmount || 0,
         status: this.isHighValueOrder ? 'Chờ đặt cọc' : 'Chờ xác nhận',
-        items: this.checkoutItems.length,
-        depositAmount: this.isHighValueOrder ? this.depositAmount : undefined
+        items: this.checkoutItems.length || 1,
+        depositAmount: this.isHighValueOrder ? this.depositAmount : undefined,
+        firstProductName: firstItem?.name || firstItem?.productName || `Đơn hàng DCor #${orderNumber}`,
+        imageUrl: firstItem?.image || firstItem?.imageUrl || 'assets/img/furniture-placeholder.svg'
       };
       existing.unshift(newEntry);
       localStorage.setItem('dcor_placed_orders', JSON.stringify(existing));
     } catch (_) {}
+
+    // Lưu số điện thoại khách vãng lai để tự động tải đơn hàng
+    if (!this.isLoggedIn && this.phone) {
+      this.authService.setGuestPhone(this.phone.trim(), 'guest-order-token');
+    }
 
     // Hiển thị Popup theo phân loại đơn hàng:
     // + Đơn > 50 triệu: hiện popup đặt cọc trong 24h

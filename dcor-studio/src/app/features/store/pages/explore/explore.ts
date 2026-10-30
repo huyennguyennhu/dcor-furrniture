@@ -86,6 +86,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
   heroParallaxY = 0;
   isFilterDrawerOpen = false;
   selectedVariantMap: Record<string, ProductColorSwatch> = {};
+  private sub = new Subscription();
 
   adminCategories: CategoryItem[] = [];
   adminCategoryMap: Record<string, CategoryItem> = {};
@@ -116,7 +117,6 @@ export class ExploreComponent implements OnInit, OnDestroy {
       document.body.style.overflow = '';
     }
   }
-
   constructor(
     private route: ActivatedRoute, 
     private router: Router, 
@@ -151,8 +151,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
       this.adminCategoryMap[cat.id] = cat;
     });
 
-    this.wishlistSub = this.wishlistService.wishlist$.subscribe(ids => {
-      this.wishlist = ids;
+    this.wishlistSub = this.wishlistService.wishlist$.subscribe((ids: any) => {
+      this.wishlist = Array.isArray(ids) ? (typeof ids[0] === 'string' ? ids : ids.map((i: any) => i.productId || i.id)) : [];
       this.cdr.detectChanges();
     });
 
@@ -853,10 +853,16 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.currentPage++;
   }
 
+  isInWishlist(productId?: string): boolean {
+    return !!productId && this.wishlistService.isWishlisted(productId);
+  }
+
   toggleWishlist(e: Event, productId: string) {
     e.stopPropagation();
     e.preventDefault();
-    this.wishlistService.toggle(productId);
+    if (productId) {
+      this.wishlistService.toggle(productId);
+    }
   }
 
   getProductMainCategoryKey(p: CatalogProduct): string {
@@ -1329,6 +1335,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     }
     this.wishlistSub?.unsubscribe();
     this.compareSub?.unsubscribe();
+    this.sub.unsubscribe();
     Object.keys(this.hoverTimerMap).forEach(id => clearInterval(this.hoverTimerMap[id]));
     Object.keys(this.mouseDebounceMap).forEach(id => clearTimeout(this.mouseDebounceMap[id]));
     this.hoverTimerMap = {};

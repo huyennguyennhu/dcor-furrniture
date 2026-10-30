@@ -1,45 +1,101 @@
-<div class="account-page">
-  <div class="container" style="display: flex; gap: 40px; padding: 40px 0;">
-    
-    <!-- Sidebar Account -->
-    <div style="width: 250px; flex-shrink: 0;">
-      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">Tài khoản</h2>
-      <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px;">
-        <li><a routerLink="/account/profile" style="color: var(--text-secondary); text-decoration: none;">Hồ sơ cá nhân</a></li>
-        <li><a routerLink="/account/orders" style="color: var(--text-secondary); text-decoration: none;">Đơn hàng của tôi</a></li>
-        <li><a routerLink="/account/wishlist" style="color: var(--accent); font-weight: 600; text-decoration: none;">Sản phẩm yêu thích</a></li>
-        <li><a style="color: #E74C3C; text-decoration: none; cursor: pointer; margin-top: 20px; display: inline-block;">Đăng xuất</a></li>
-      </ul>
-    </div>
+<div class="account-page-container">
+  <div class="account-shell">
+    <div class="account-layout">
+      <!-- Sidebar Column -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
 
-    <!-- Main Content -->
-    <div style="flex-grow: 1;">
-      <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 30px;">Sản phẩm yêu thích</h1>
+      <!-- Main Content Column -->
+      <main class="content-column">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
+          <span class="breadcrumb-separator">/</span>
+          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Sản phẩm yêu thích</span>
+        </nav>
 
-      <div *ngIf="wishlistItems.length === 0" style="text-align: center; padding: 60px; background: var(--bg-secondary); border-radius: 12px; border: 1px dashed var(--border-color);">
-        <p style="color: var(--text-muted); margin-bottom: 20px;">Danh sách yêu thích của bạn đang trống.</p>
-        <a routerLink="/explore" class="cta-btn" style="text-decoration: none; display: inline-block;">Khám phá sản phẩm</a>
-      </div>
-
-      <div *ngIf="wishlistItems.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px;">
-        <div *ngFor="let item of wishlistItems; let i = index" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; position: relative;">
-          
-          <button (click)="removeFromWishlist(i)" style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-            <app-icon name="X" size="16"></app-icon>
-          </button>
-
-          <div style="padding: 20px; background: var(--bg-tertiary); display: flex; justify-content: center; align-items: center; height: 200px; cursor: pointer;" [routerLink]="['/products', item.id]">
-            <img [src]="item.image" [alt]="item.name" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        <!-- Header -->
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Sản phẩm yêu thích</h1>
+            <p class="page-subtitle">Danh sách các món đồ nội thất bạn đã lưu lại để cân nhắc và mua sắm.</p>
           </div>
+          <span *ngIf="wishlistItems.length > 0" class="items-count-badge">
+            {{ wishlistItems.length }} sản phẩm
+          </span>
+        </div>
 
-          <div style="padding: 16px;">
-            <div style="font-size: 15px; font-weight: 600; margin-bottom: 8px; cursor: pointer;" [routerLink]="['/products', item.id]">{{ item.name }}</div>
-            <div style="font-size: 14px; color: var(--accent); font-weight: 700;">{{ formatCurrency(item.price) }}</div>
+        <!-- Toast notification -->
+        <div *ngIf="toastMessage" class="toast-banner">
+          <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
+          <span>{{ toastMessage }}</span>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="wishlistItems.length === 0" class="empty-state-box">
+          <lucide-angular [img]="icons.Heart" size="56" class="empty-icon"></lucide-angular>
+          <h3>Danh sách yêu thích trống</h3>
+          <p>Bạn chưa lưu sản phẩm nào. Hãy khám phá các thiết kế sofa, bàn ăn, giường ngủ cao cấp tại Dcor!</p>
+          <a routerLink="/explore" class="cta-btn shop-btn">Khám phá sản phẩm ngay</a>
+        </div>
+
+        <!-- Wishlist Grid -->
+        <div *ngIf="wishlistItems.length > 0" class="wishlist-grid">
+          <div *ngFor="let item of wishlistItems" class="wishlist-card">
+            <!-- Image & Link -->
+            <div class="card-img-wrap">
+              <a [routerLink]="['/products', item.productId]" class="img-link">
+                <img [src]="item.image || 'assets/placeholder.png'" [alt]="item.name" class="product-img" />
+              </a>
+
+              <!-- Remove heart button -->
+              <button 
+                type="button" 
+                class="remove-heart-btn" 
+                title="Bỏ yêu thích"
+                (click)="removeFromWishlist(item, $event)">
+                <lucide-angular [img]="icons.Heart" size="18" style="fill: #C42326; stroke: #C42326;"></lucide-angular>
+              </button>
+
+              <!-- Stock Tag if available -->
+              <span *ngIf="item.inStock !== false" class="stock-tag in-stock">Còn hàng</span>
+              <span *ngIf="item.inStock === false" class="stock-tag out-of-stock">Tạm hết</span>
+            </div>
+
+            <!-- Content -->
+            <div class="card-body">
+              <span class="card-category">{{ item.categoryName || 'Nội thất DCor' }}</span>
+              <h4 class="card-name">
+                <a [routerLink]="['/products', item.productId]">{{ item.name }}</a>
+              </h4>
+
+              <div class="price-wrap">
+                <span class="price-current">{{ formatCurrency(item.price) }}</span>
+                <span *ngIf="item.originalPrice && item.originalPrice > item.price" class="price-original">
+                  {{ formatCurrency(item.originalPrice) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="card-footer">
+              <button 
+                type="button" 
+                class="btn-add-cart" 
+                [disabled]="item.inStock === false"
+                (click)="addToCart(item, $event)">
+                <lucide-angular [img]="icons.ShoppingCart" size="16"></lucide-angular>
+                <span>Thêm vào giỏ hàng</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+
+      </main>
     </div>
 
   </div>
 </div>
-
