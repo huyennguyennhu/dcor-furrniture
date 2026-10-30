@@ -13,6 +13,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { IconComponent } from '../../../../../../shared/components/icon/icon';
+import { ShowroomConsultationModalComponent } from '../../../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
 import { BreadcrumbItem, ContentSection, OtherPolicyLink, TocItem } from '../../models/support.model';
 import {
   HOTLINE,
@@ -25,7 +26,7 @@ import { getOtherPolicies } from '../../data/other-policies.data';
 @Component({
   selector: 'app-info-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, IconComponent],
+  imports: [CommonModule, RouterModule, IconComponent, ShowroomConsultationModalComponent],
   templateUrl: './info-page.html',
   styleUrls: ['./info-page.css']
 })
@@ -46,6 +47,109 @@ export class InfoPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly activeSectionId = signal<string>('');
   readonly isMobileTocOpen = signal<boolean>(false);
+
+  // About page detection
+  get isAboutPage(): boolean {
+    return Boolean(
+      this.currentHref === '/about' ||
+      this.badge === 'Câu chuyện thương hiệu' ||
+      (this.breadcrumbs && this.breadcrumbs.length > 0 && this.breadcrumbs[0].label === 'Về DCor') ||
+      (this.title && this.title.includes('Về DCor'))
+    );
+  }
+
+  // Showroom modal state
+  isConsultationModalOpen = false;
+
+  openConsultationModal(): void {
+    this.isConsultationModalOpen = true;
+  }
+
+  closeConsultationModal(): void {
+    this.isConsultationModalOpen = false;
+  }
+
+  scrollToStory(id: string): void {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  // 4 Key Metrics Signals
+  readonly metricHomes = signal<number>(0);
+  readonly metricRenderings = signal<number>(0);
+  readonly metricMaterials = signal<number>(0);
+  readonly metricSatisfaction = signal<number>(0);
+  readonly formattedHomes = computed(() => this.metricHomes().toLocaleString('en-US'));
+  readonly formattedRenderings = computed(() => this.metricRenderings().toLocaleString('en-US'));
+  readonly metricSatisfactionOffset = computed(() => {
+    const circumference = 175.93; // 2 * PI * 28
+    return Math.max(0, circumference - (this.metricSatisfaction() / 100) * circumference);
+  });
+  readonly isMetricsAnimated = signal<boolean>(false);
+
+  animateMetrics(): void {
+    if (this.isMetricsAnimated()) return;
+    this.isMetricsAnimated.set(true);
+
+    const duration = 1800;
+    const start = performance.now();
+
+    const step = (time: number) => {
+      const elapsed = time - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      this.metricHomes.set(Math.floor(easeOut * 1500));
+      this.metricRenderings.set(Math.floor(easeOut * 10000));
+      this.metricMaterials.set(Math.floor(easeOut * 120));
+      this.metricSatisfaction.set(Math.floor(easeOut * 98));
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        this.metricHomes.set(1500);
+        this.metricRenderings.set(10000);
+        this.metricMaterials.set(120);
+        this.metricSatisfaction.set(98);
+      }
+    };
+
+    requestAnimationFrame(step);
+  }
+
+  private initMetricsObserver(): void {
+    if (!isPlatformBrowser(this.platformId) || typeof IntersectionObserver === 'undefined') {
+      this.animateMetrics();
+      return;
+    }
+
+    const metricsEl = document.getElementById('key-metrics');
+    if (!metricsEl) {
+      this.animateMetrics();
+      return;
+    }
+
+    const metricsObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !this.isMetricsAnimated()) {
+          this.animateMetrics();
+          metricsObserver.disconnect();
+        }
+      });
+    }, { threshold: 0.1 });
+
+    metricsObserver.observe(metricsEl);
+
+    // Safe fallback to guarantee cards reveal even if observer is bypassed
+    setTimeout(() => {
+      if (!this.isMetricsAnimated()) {
+        this.animateMetrics();
+      }
+    }, 3500);
+  }
 
   private platformId = inject(PLATFORM_ID);
   private titleService = inject(Title);
@@ -79,7 +183,10 @@ export class InfoPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
     setTimeout(() => {
       this.initIntersectionObserver();
-    }, 150);
+      if (this.isAboutPage) {
+        this.initMetricsObserver();
+      }
+    }, 200);
   }
 
   ngOnDestroy(): void {

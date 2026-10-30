@@ -1237,7 +1237,7 @@
    CUSTOMER TESTIMONIALS SHOWCASE SECTION (Why Us / Reviews)
    ============================================================ */
 .trust-section {
-  padding: 80px 0 85px 0 !important;
+  padding: 80px 0 100px 0 !important;
   background-color: #faf9f6 !important;
   position: relative;
   overflow: hidden;
@@ -1672,7 +1672,7 @@
    ============================================================ */
 .space-design-section {
   background-color: #faf9f6 !important;
-  padding: 40px 0 85px 0;
+  padding: 85px 0 85px 0;
 }
 
 .space-banner-card {
@@ -2061,5 +2061,336 @@
     position: static;
     margin-top: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* ============================================================
+   CREATIVE FURNITURE STYLING TIPS (BLOG SECTION)
+   ============================================================ */
+.styling-tips-section {
+  padding: 85px 0 85px 0;
+  background-color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.styling-tips-section .container {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.styling-tips-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.styling-tips-main-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #3F2C1B;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+  font-family: var(--font-title, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+}
+
+.styling-tips-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+/* --- Left Column: Featured Card --- */
+.featured-styling-card {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 480px;
+  height: 100%;
+  background-color: #1a1715;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.featured-styling-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.12);
+}
+
+.featured-card-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+}
+
+.featured-card-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.featured-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.featured-styling-card:hover .featured-card-img {
+  transform: scale(1.045);
+}
+
+.featured-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+      rgba(0, 0, 0, 0) 30%,
+      rgba(15, 12, 10, 0.35) 60%,
+      rgba(15, 12, 10, 0.88) 100%);
+  z-index: 2;
+}
+
+.featured-card-content {
+  position: relative;
+  z-index: 3;
+  padding: 36px 36px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.styling-meta-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.meta-calendar-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.styling-meta-bullet {
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.styling-meta-cat {
+  opacity: 0.85;
+}
+
+.featured-card-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.styling-readmore-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.readmore-icon-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: #B28758;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+
+.featured-styling-card:hover .readmore-icon-badge,
+.side-styling-card:hover .readmore-icon-badge {
+  transform: translate(2px, -2px);
+  background-color: #9C7246;
+}
+
+/* --- Right Column: Stacked Cards --- */
+.styling-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+}
+
+.side-styling-card {
+  flex: 1;
+  display: flex;
+  background-color: #FAF8F5;
+  border-radius: 20px;
+  padding: 24px 28px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+}
+
+.side-styling-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+  border-color: rgba(178, 135, 88, 0.2);
+}
+
+.side-card-link {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+  height: 100%;
+}
+
+.side-card-visual {
+  width: 175px;
+  height: 175px;
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #eae5df;
+}
+
+.side-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.side-styling-card:hover .side-card-img {
+  transform: scale(1.06);
+}
+
+.side-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.styling-meta-row.dark-meta {
+  color: #78716c;
+  font-size: 13.5px;
+  margin-bottom: 10px;
+}
+
+.styling-meta-row.dark-meta .meta-calendar-icon {
+  stroke: #78716c;
+}
+
+.side-card-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: #1c1917;
+  line-height: 1.35;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.01em;
+  transition: color 0.2s ease;
+}
+
+.side-styling-card:hover .side-card-title {
+  color: #B28758;
+}
+
+.side-card-divider {
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.06);
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.styling-readmore-row.dark-readmore {
+  color: #1c1917;
+  font-size: 15px;
+}
+
+/* --- Responsive Breakpoints --- */
+@media (max-width: 1024px) {
+  .styling-tips-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .featured-styling-card {
+    min-height: 420px;
+  }
+
+  .styling-side-column {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .styling-tips-section {
+    padding: 60px 0;
+  }
+
+  .styling-tips-main-title {
+    font-size: 28px;
+  }
+
+  .styling-tips-header {
+    margin-bottom: 32px;
+  }
+
+  .featured-styling-card {
+    min-height: 360px;
+    border-radius: 20px;
+  }
+
+  .featured-card-content {
+    padding: 24px 20px;
+  }
+
+  .featured-card-title {
+    font-size: 22px;
+  }
+
+  .side-styling-card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .side-card-link {
+    gap: 16px;
+  }
+
+  .side-card-visual {
+    width: 110px;
+    height: 110px;
+    border-radius: 14px;
+  }
+
+  .side-card-title {
+    font-size: 17px;
+    margin-bottom: 10px;
   }
 }
