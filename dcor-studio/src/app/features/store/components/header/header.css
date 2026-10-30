@@ -650,22 +650,131 @@
 }
 
 /* ==========================================================================
-   Breakpoints for Header
+   Header Desktop Layout & Flex Rules
    ========================================================================== */
-@media (max-width: 992px) {
+:host {
+  display: block;
+}
+
+header.store-site-header .store-header-main,
+.store-header-main {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  height: 60px !important;
+  box-sizing: border-box !important;
+  padding: 5px clamp(16px, 2.5vw, 48px) !important;
+  gap: clamp(12px, 1.8vw, 24px) !important;
+}
+
+.store-wordmark {
+  flex: 0 0 auto !important;
+  width: clamp(84px, 7vw, 104px) !important;
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.store-wordmark img {
+  display: block !important;
+  max-height: 100% !important;
+  width: auto !important;
+  object-fit: contain !important;
+}
+
+.store-header-nav {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+}
+
+.store-header-nav ul {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: clamp(14px, 1.8vw, 32px) !important;
+  transform: none !important; /* Loại bỏ -11px đè lên logo */
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  white-space: nowrap !important;
+}
+
+.store-header-nav .header-nav-link {
+  font-size: clamp(14px, 1.1vw, 16.5px) !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  letter-spacing: normal !important;
+}
+
+.store-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  gap: clamp(10px, 1.2vw, 18px) !important;
+}
+
+.floating-search-bar {
+  position: relative !important;
+  width: clamp(160px, 15vw, 240px) !important;
+  flex-shrink: 1 !important;
+  z-index: 101 !important;
+}
+
+.user-dropdown-wrapper {
+  position: relative !important;
+  flex: 0 0 auto !important;
+}
+
+.store-login-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: unset !important;
+  padding: 0 clamp(12px, 1.2vw, 18px) !important;
+  height: 34px !important;
+  font-size: clamp(13px, 0.95vw, 14px) !important;
+  white-space: nowrap !important;
+}
+
+.store-header-main .icon-btn {
+  flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   Breakpoints for Header (Responsive 1024, 900, 768, 520, 420, 390px)
+   ========================================================================== */
+@media (max-width: 1024px) {
   .btn-mobile-menu-toggle {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
-  /* Ẩn thanh menu ngang desktop trên mobile & tablet */
+  /* Chuyển menu chính sang drawer mobile để tránh chồng lấn ở tablet */
   .store-header-nav {
     display: none !important;
   }
 
   .store-wordmark {
-    width: 90px;
-    height: 48px;
-    flex: 0 0 90px;
+    width: 86px !important;
+    height: 46px !important;
+    flex: 0 0 86px !important;
+  }
+
+  header.store-site-header .store-header-main,
+  .store-header-main {
+    padding: 0 20px !important;
+    gap: 12px !important;
+  }
+
+  .floating-search-bar {
+    width: clamp(140px, 20vw, 200px) !important;
+  }
+
+  .store-header-actions {
+    gap: 10px !important;
   }
 }
 
@@ -679,11 +788,23 @@
   }
 
   .notification-icon-btn {
-    display: none;
+    display: none !important;
   }
 
   .store-header-actions {
-    gap: 12px;
+    gap: 10px !important;
+  }
+
+  header.store-site-header .store-header-main,
+  .store-header-main {
+    padding: 0 16px !important;
+    gap: 10px !important;
+  }
+
+  .store-wordmark {
+    width: 80px !important;
+    height: 42px !important;
+    flex: 0 0 80px !important;
   }
 }
 
@@ -697,36 +818,65 @@
   }
 
   .store-wordmark {
-    width: 76px;
-    height: 42px;
-    flex: 0 0 76px;
+    width: 76px !important;
+    height: 40px !important;
+    flex: 0 0 76px !important;
+  }
+
+  header.store-site-header .store-header-main,
+  .store-header-main {
+    padding: 0 12px !important;
+    gap: 8px !important;
   }
 
   .store-header-actions {
-    gap: 8px;
+    gap: 8px !important;
   }
 
   .store-login-button {
-    width: auto;
-    padding: 0 12px;
-    height: 32px;
-    font-size: 13px;
+    width: auto !important;
+    padding: 0 10px !important;
+    height: 32px !important;
+    font-size: 13px !important;
   }
 }
 
 @media (max-width: 420px) {
   .login-text {
-    display: none;
+    display: none !important;
   }
 
   .login-mobile-icon {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
   .store-login-button {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 50%;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+
+  .btn-mobile-menu-toggle {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .store-wordmark {
+    width: 72px !important;
+    height: 38px !important;
+    flex: 0 0 72px !important;
+  }
+
+  .store-header-main .icon-btn {
+    width: 28px !important;
+    height: 28px !important;
+    flex: 0 0 28px !important;
+  }
+
+  #header-cart-icon {
+    width: 30px !important;
+    height: 30px !important;
+    flex: 0 0 30px !important;
   }
 }
