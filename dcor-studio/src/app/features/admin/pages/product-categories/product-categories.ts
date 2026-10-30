@@ -410,6 +410,42 @@ export const INITIAL_CATEGORIES: CategoryItem[] = [
     productsCount: 14,
     linkedProducts: []
   },
+  {
+    id: 'st-japandi',
+    name: 'Japandi',
+    slug: 'japandi',
+    description: 'Sự giao thoa hoàn hảo giữa thẩm mỹ tối giản Nhật Bản và sự ấm cúng Bắc Âu.',
+    image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=300&q=80',
+    type: 'style',
+    sortOrder: 4,
+    status: 'Hiển thị',
+    productsCount: 10,
+    linkedProducts: []
+  },
+  {
+    id: 'st-wabisabi',
+    name: 'Wabi-Sabi',
+    slug: 'wabi-sabi',
+    description: 'Vẻ đẹp của sự mộc mạc, bất toàn và hài hòa với thiên nhiên.',
+    image: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?auto=format&fit=crop&w=300&q=80',
+    type: 'style',
+    sortOrder: 5,
+    status: 'Hiển thị',
+    productsCount: 8,
+    linkedProducts: []
+  },
+  {
+    id: 'st-industrial',
+    name: 'Công nghiệp (Industrial)',
+    slug: 'industrial',
+    description: 'Phong cách phóng khoáng với khung kim loại, thép đen và bề mặt bê tông độc đáo.',
+    image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=300&q=80',
+    type: 'style',
+    sortOrder: 6,
+    status: 'Hiển thị',
+    productsCount: 7,
+    linkedProducts: []
+  },
 
   // ==========================================
   // 2.4 CÁC CON CỦA CHẤT LIỆU (sub-material)
@@ -655,22 +691,44 @@ export class ProductCategoriesComponent implements OnInit {
             }
           });
 
-          const otherGroups = INITIAL_CATEGORIES.filter(c => c.type !== 'main');
+          const otherGroups = this.getStoredNonMainCategories();
           this.allCategories = [...apiCats, ...otherGroups];
         } else {
-          this.allCategories = [...INITIAL_CATEGORIES];
+          this.allCategories = [...INITIAL_CATEGORIES.filter(c => c.type === 'main'), ...this.getStoredNonMainCategories()];
         }
         this.isLoading = false;
         this.applyFilters();
         this.cdr.detectChanges();
       },
       error: () => {
-        this.allCategories = [...INITIAL_CATEGORIES];
+        this.allCategories = [...INITIAL_CATEGORIES.filter(c => c.type === 'main'), ...this.getStoredNonMainCategories()];
         this.isLoading = false;
         this.applyFilters();
         this.cdr.detectChanges();
       }
     });
+  }
+
+  getStoredNonMainCategories(): CategoryItem[] {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('dcor_admin_categories');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } catch (e) {}
+      }
+    }
+    return INITIAL_CATEGORIES.filter(c => c.type !== 'main');
+  }
+
+  saveNonMainCategories() {
+    if (typeof localStorage !== 'undefined') {
+      const nonMain = this.allCategories.filter(c => c.type !== 'main');
+      localStorage.setItem('dcor_admin_categories', JSON.stringify(nonMain));
+    }
   }
 
   // Lấy các danh mục gốc (cấp 1 / cha) để hiển thị trên bảng
@@ -836,6 +894,7 @@ export class ProductCategoriesComponent implements OnInit {
       target.status = newStatusText;
       this.showToast(`Đã chuyển "${target.name}" sang trạng thái ${newStatusText}!`, 'success');
       this.closeToggleModal();
+      this.saveNonMainCategories();
       this.applyFilters();
     }
   }
@@ -973,6 +1032,7 @@ export class ProductCategoriesComponent implements OnInit {
           linkedProducts: []
         };
         this.allCategories.push(newItem);
+        this.saveNonMainCategories();
         this.showToast(`Đã thêm mới ${this.activeGroupLabel} "${newItem.name}"`, 'success');
         this.closeModal();
         this.applyFilters();
@@ -1019,6 +1079,7 @@ export class ProductCategoriesComponent implements OnInit {
             sortOrder: Number(this.formData.sortOrder) || 1,
             status: this.formData.status
           };
+          this.saveNonMainCategories();
           this.showToast(`Đã cập nhật ${this.activeGroupLabel} "${this.formData.name}"`, 'success');
         }
         this.closeModal();
@@ -1075,6 +1136,7 @@ export class ProductCategoriesComponent implements OnInit {
       });
     } else {
       this.allCategories = this.allCategories.filter(c => c.id !== targetId);
+      this.saveNonMainCategories();
       this.showToast(`Đã xóa "${targetName}" thành công!`, 'success');
       this.closeConfirmDeleteModal();
       this.applyFilters();

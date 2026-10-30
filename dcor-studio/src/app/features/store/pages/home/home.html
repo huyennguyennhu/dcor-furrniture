@@ -1,42 +1,31 @@
 <div style="display: flex; flex-direction: column; min-height: 100vh;">
   <!-- 1. Hero -->
   <section class="hero-shoppable" id="hero">
-    <div class="hero-bg" [ngStyle]="{'transform': 'translateY(' + (scrollY * 0.35) + 'px)'}"></div>
+    <div class="hero-bg"></div>
     <div class="hero-overlay"></div>
-    
+
     <div class="hero-shoppable-content">
-      <span class="hero-eyebrow">Nội thất cao cấp</span>
       <h1 class="hero-headline">
-        Biến ngôi nhà
-        <span class="hero-headline-accent" style="display: block; white-space: nowrap;">thành tổ ấm</span>
+        Design Your Core
       </h1>
+
       <p class="hero-tagline">
-        Hơn 300 mẫu nội thất thiết kế độc quyền — tùy biến theo phong cách của bạn.
+        Nâng tầm không gian sống đương đại qua từng đường nét nội thất được may đo hoàn mỹ
       </p>
+
+      <a [routerLink]="['/explore']" class="hero-btn-shop">
+        <span>Mua sắm ngay</span>
+        <span class="hero-btn-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="7" y1="17" x2="17" y2="7"></line>
+            <polyline points="7 7 17 7 17 17"></polyline>
+          </svg>
+        </span>
+      </a>
     </div>
 
-    <!-- Interactive Hotspots -->
-    <div *ngFor="let spot of HERO_HOTSPOTS" 
-         class="hotspot" 
-         [class.active]="activeHotspot === spot.id"
-         [ngStyle]="{'left': spot.x + '%', 'top': spot.y + '%'}"
-         (mouseenter)="activeHotspot = spot.id"
-         (mouseleave)="activeHotspot = null">
-      <div class="hotspot-pulse"></div>
-      <div class="hotspot-dot"></div>
-      <div class="hotspot-tooltip">
-        <img [src]="spot.image" [alt]="spot.name_vi" class="hotspot-img" />
-        <div class="hotspot-info">
-          <span class="hotspot-name">{{ spot.name_vi }}</span>
-          <span class="hotspot-price">{{ spot.price }}</span>
-          <a [routerLink]="['/kham-pha', spot.productId]" class="hotspot-cta">
-            Xem chi tiết →
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <div class="hero-scroll-cue">
+    <div class="hero-scroll-cue" (click)="scrollToExplore()" role="button" tabindex="0" title="Khám phá ngay">
       <span>Khám phá</span>
       <div class="scroll-arrow"></div>
     </div>
@@ -45,23 +34,58 @@
   <!-- 2. Categories -->
   <section class="categories-section" id="categories">
     <div class="container">
-      <div class="section-header-simple">
-        <h2 class="section-title">Danh mục <span>sản phẩm</span></h2>
-        <p class="section-tagline">Khám phá bộ sưu tập nội thất đa dạng</p>
+      <div class="categories-header-wrap">
+        <h2 class="categories-main-title">Danh mục sản phẩm</h2>
       </div>
-      <div class="categories-grid">
-        <a *ngFor="let cat of categories"
-           [routerLink]="['/kham-pha']" [queryParams]="{category: cat.value}"
-           class="category-card"
-           [id]="'cat-' + cat.value">
-          <div class="category-card-img">
-            <img [src]="cat.img" [alt]="cat.label" loading="lazy" />
-            <div class="category-card-overlay"></div>
-          </div>
-          <div class="category-card-body">
-            <span class="category-card-emoji">{{ cat.emoji }}</span>
-            <span class="category-card-name">{{ cat.label }}</span>
-            <span class="category-card-count">{{ cat.desc }}</span>
+
+      <div class="category-carousel-viewport" (mouseenter)="stopCategoryAutoPlay()"
+        (mouseleave)="startCategoryAutoPlay()">
+        <div class="category-carousel-track"
+          [style.transform]="'translateX(calc(-' + activeCategoryIndex + ' * ((100% - 60px) / 4 + 20px)))'">
+          <a *ngFor="let cat of HOME_CATEGORIES" [routerLink]="['/explore']" [queryParams]="{ category: cat.query }"
+            class="category-showcase-card" [ngClass]="'cat-' + cat.id" [id]="'cat-card-' + cat.id">
+            <div class="cat-card-header">
+              <h3 class="cat-card-title">{{ cat.title }}</h3>
+              <p class="cat-card-desc">{{ cat.subtitle }}</p>
+            </div>
+            <div class="cat-card-img-wrap">
+              <img [src]="cat.image" [alt]="cat.title" class="cat-product-img" loading="lazy" />
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Morphing Pagination Indicator -->
+      <div class="morph-pagination" aria-label="Category pages">
+        <button *ngFor="let dot of categoryDots; let i = index" type="button" class="morph-dot"
+          [class.active]="activeCategoryIndex === i" (click)="setCategoryIndex(i)"
+          [attr.aria-label]="'Trang danh mục ' + (i + 1)">
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2.5. Sub-category: Phong cách (Styles Showcase) -->
+  <section class="styles-section" id="styles">
+    <div class="container">
+      <div class="styles-header-wrap">
+        <h2 class="styles-main-title">Phong cách <span>thiết kế</span></h2>
+        <p class="styles-main-desc">
+          Mỗi phong cách là một tuyên ngôn nghệ thuật — lựa chọn đường nét phản chiếu trọn vẹn bản sắc không gian sống
+          của bạn
+        </p>
+      </div>
+
+      <div class="styles-mosaic-grid">
+        <a *ngFor="let item of SUB_CATEGORY_STYLES" [routerLink]="['/explore']" [queryParams]="{ style: item.slug }"
+          class="style-mosaic-card" [ngClass]="'card-' + item.gridSpan" [id]="'style-card-' + item.id"
+          [attr.aria-label]="item.name + ' - ' + item.nameVi">
+          <img [src]="item.image" [alt]="item.name" class="style-mosaic-img" loading="lazy" />
+          <div class="style-mosaic-overlay">
+            <div class="style-mosaic-content">
+              <h3 class="style-mosaic-name">{{ item.name }}</h3>
+              <span class="style-mosaic-sub" *ngIf="item.nameVi && item.nameVi !== item.name">{{ item.nameVi }}</span>
+            </div>
           </div>
         </a>
       </div>
@@ -71,184 +95,319 @@
   <!-- 3. Featured -->
   <section class="featured-section" id="featured">
     <div class="container">
-      <div *ngIf="isLoading" style="height: 400px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+      <div *ngIf="isLoading" class="featured-loading-box">
         Đang tải sản phẩm nổi bật...
       </div>
-      
+
       <ng-container *ngIf="!isLoading">
-        <div class="featured-header">
-          <div>
-            <h2 class="section-title">Sản phẩm <span>nổi bật</span></h2>
-            <p class="section-tagline">Được yêu thích nhiều nhất tháng này</p>
-          </div>
-          <div class="featured-tabs">
-            <button class="featured-tab" [class.active]="featuredTab === 'newest'" (click)="featuredTab = 'newest'">
-              Mới nhất
-            </button>
-            <button class="featured-tab" [class.active]="featuredTab === 'sale'" (click)="featuredTab = 'sale'">
-              Đang sale
-            </button>
+        <div class="featured-header-wrap">
+          <h2 class="featured-main-title">Sản phẩm <span>nổi bật</span></h2>
+          <div class="featured-tabs-wrap">
+            <div class="featured-tabs">
+              <button class="featured-tab" [class.active]="featuredTab === 'newest'" (click)="featuredTab = 'newest'">
+                Mới nhất
+              </button>
+              <button class="featured-tab" [class.active]="featuredTab === 'sale'" (click)="featuredTab = 'sale'">
+                Đang sale
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="featured-grid">
-          <a *ngFor="let prod of displayedFeatured" [routerLink]="['/kham-pha', prod.productId]" class="featured-card">
-            <div class="featured-card-img">
-              <img class="img-primary" [src]="prod.images[0] || ''"  loading="lazy" />
-              <img class="img-secondary" [src]="prod.images[1] || prod.images[0] || ''"  loading="lazy" />
-              <div *ngIf="isOnSale(prod)" class="sale-badge">SALE</div>
-              <div class="featured-card-hover-cta">Xem chi tiết</div>
-            </div>
-            <div class="featured-card-body">
-              <span class="featured-card-cat">{{ prod.category }}</span>
-              <h3 class="featured-card-name">{{ prod.shortDescription_vi || prod.shortDescription }}</h3>
-              <div class="featured-card-price-row">
-                <ng-container *ngIf="isOnSale(prod) && getLowestPriceFormatted(prod); else noSale">
-                  <span class="price-sale">{{ getLowestPriceFormatted(prod) }}</span>
-                  <span class="price-original">{{ getProductPriceFormatted(prod) }}</span>
-                </ng-container>
-                <ng-template #noSale>
-                  <span class="price-main">{{ getProductPriceFormatted(prod) }}</span>
-                </ng-template>
-              </div>
-            </div>
+        <div class="featured-products-grid">
+          <app-product-card *ngFor="let prod of displayedFeatured.slice(0, 4)" [product]="prod">
+          </app-product-card>
+        </div>
+
+        <div class="featured-cta-wrap">
+          <a [routerLink]="['/explore']" class="featured-btn-explore">
+            <span>Xem tất cả sản phẩm</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
           </a>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px;">
-          <a href="#catalog" class="cta-btn-outline">Xem tất cả sản phẩm</a>
         </div>
       </ng-container>
     </div>
   </section>
 
-  <!-- 4. Collections -->
-  <section class="collections-section" id="collections">
+  <!-- 4. Shop The Look Theo Phòng (Replaces Collections) -->
+  <section class="shoplook-section" id="collections">
     <div class="container">
-      <div class="collections-header">
-        <div>
-          <h2 class="section-title">Phong cách <span>thiết kế</span></h2>
-          <p class="section-tagline">Chọn phong cách — chúng tôi lo phần còn lại</p>
-        </div>
-        <div class="collection-nav-btns">
-          <button class="col-nav-btn" (click)="scrollCollections(track, 'left')" aria-label="Cuộn trái">‹</button>
-          <button class="col-nav-btn" (click)="scrollCollections(track, 'right')" aria-label="Cuộn phải">›</button>
-        </div>
+      <div class="shoplook-header-wrap">
+        <h2 class="shoplook-main-title">Shop The Look</h2>
       </div>
 
-      <div class="collections-track" #track>
-        <div *ngFor="let col of STYLE_COLLECTIONS" class="collection-card" [ngStyle]="{'--col-accent': col.accentColor}">
-          <div class="collection-card-img">
-            <img [src]="col.coverImage" [alt]="col.name_vi" loading="lazy" />
-            <div class="collection-card-gradient"></div>
-          </div>
-          <div class="collection-card-body">
-            <span class="collection-tag">{{ col.name }}</span>
-            <h3 class="collection-name">{{ col.name_vi }}</h3>
-            <p class="collection-desc">{{ col.description_vi }}</p>
-            <a href="#catalog" class="collection-cta" [ngStyle]="{'background-color': col.accentColor}">
-              Khám phá
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+      <!-- Shop The Look Container for Current Selected Room (Full Width Wide Image) -->
+      <div class="shoplook-showcase-wrap">
+        <div class="shoplook-visual-box">
+          <div class="shoplook-image-wrapper">
+            <img [src]="currentRoom.image" [alt]="currentRoom.name" class="shoplook-room-img" loading="lazy" />
 
-  <!-- 5. Inspirations -->
-  <section *ngIf="!isLoading" class="inspirations-section" id="inspirations">
-    <div class="container">
-      <div class="section-header-simple">
-        <h2 class="section-title">Không gian <span>mẫu</span></h2>
-        <p class="section-tagline">Bộ sưu tập nội thất hoàn chỉnh theo diện tích và phong cách sống</p>
-      </div>
+            <!-- Hotspot Pins without numbers -->
+            <div *ngFor="let spot of currentRoom.hotspots" class="shoplook-hotspot-pin" [style.left.%]="spot.x"
+              [style.top.%]="spot.y" [class.active]="activeHotspotId === spot.id" [class.popover-top]="spot.y > 55"
+              [class.popover-bottom]="spot.y <= 55" [class.popover-right]="spot.x > 50"
+              [class.popover-left]="spot.x <= 50" (mouseenter)="setActiveHotspot(spot.id)"
+              (mouseleave)="clearActiveHotspot()" (click)="toggleActiveHotspot(spot.id)"
+              [attr.aria-label]="getHotspotProduct(spot).name">
 
-      <div class="inspirations-grid">
-        <div *ngFor="let room of ROOM_INSPIRATIONS" class="inspiration-card" [class.expanded]="activeRoom === room.id">
-          <div class="inspiration-card-img" (click)="activeRoom = activeRoom === room.id ? null : room.id">
-            <img [src]="room.coverImage" [alt]="room.name_vi" loading="lazy" />
-            <div class="inspiration-overlay">
-              <span class="inspiration-tag">{{ room.tag }}</span>
-              <h3 class="inspiration-name">{{ room.name_vi }}</h3>
-              <span class="inspiration-area">{{ room.area }}</span>
-            </div>
-            <div class="inspiration-toggle">{{ activeRoom === room.id ? '−' : '+' }}</div>
-          </div>
+              <!-- Pulse animation rings & Beacon Core (No number) -->
+              <span class="hotspot-pulse"></span>
+              <span class="hotspot-core-dot">
+                <span class="hotspot-inner-beacon"></span>
+              </span>
 
-          <div *ngIf="activeRoom === room.id" class="inspiration-products">
-            <p class="inspiration-desc">{{ room.description_vi }}</p>
-            <div class="inspiration-products-list">
-              <a *ngFor="let prod of getProductsForRoom(room.productIds)" [routerLink]="['/kham-pha', prod.productId]" class="insp-prod-item">
-                <img [src]="prod.images[0]"  />
-                <div>
-                  <span class="insp-prod-name">{{ prod.shortDescription_vi || prod.shortDescription }}</span>
-                  <span class="insp-prod-price">{{ isOnSale(prod) ? getLowestPriceFormatted(prod) : getProductPriceFormatted(prod) }}</span>
-                </div>
-              </a>
-            </div>
-            <a href="#catalog" class="insp-view-all">Xem toàn bộ sản phẩm →</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 6. Trust + Reviews -->
-  <section class="trust-section" id="why-us">
-    <div class="container">
-      <!-- Trust grid -->
-      <div class="section-header-simple" style="margin-bottom: 50px;">
-        <h2 class="section-title">Vì sao chọn <span>DCor Studio?</span></h2>
-      </div>
-      <div class="trust-grid">
-        <div *ngFor="let item of TRUST_ITEMS" class="trust-card">
-          <span class="trust-icon" style="display: inline-flex; margin-bottom: 20px; color: var(--accent);">
-            <!-- Icon placeholder -->
-            <app-icon name="Leaf" size="40" *ngIf="item.icon === 'leaf'"></app-icon>
-            <app-icon name="ShieldCheck" size="40" *ngIf="item.icon === 'shield'"></app-icon>
-            <app-icon name="Truck" size="40" *ngIf="item.icon === 'truck'"></app-icon>
-            <app-icon name="Wrench" size="40" *ngIf="item.icon === 'wrench'"></app-icon>
-          </span>
-          <h4 class="trust-title">{{ item.title }}</h4>
-          <p class="trust-desc">{{ item.desc }}</p>
-        </div>
-      </div>
-
-      <!-- Reviews -->
-      <div class="reviews-block" style="margin-top: 80px;">
-        <h2 class="section-title" style="text-align: center; margin-bottom: 40px;">
-          Khách hàng <span>nói gì?</span>
-        </h2>
-        <div class="review-carousel">
-          <button class="review-nav review-nav-prev" (click)="reviewIdx = reviewIdx > 0 ? reviewIdx - 1 : 0">‹</button>
-          <div class="review-card">
-            <div class="review-stars">
-              <span *ngFor="let star of getStarsArray(STATIC_REVIEWS[reviewIdx].rating)">★</span>
-            </div>
-            <p class="review-text">"{{ STATIC_REVIEWS[reviewIdx].text }}"</p>
-            <div class="review-product">{{ STATIC_REVIEWS[reviewIdx].product }}</div>
-            <div class="review-author">
-              <div class="review-avatar">{{ STATIC_REVIEWS[reviewIdx].name[0] }}</div>
-              <div>
-                <span class="review-name">{{ STATIC_REVIEWS[reviewIdx].name }}</span>
-                <span class="review-city">{{ STATIC_REVIEWS[reviewIdx].city }}</span>
+              <!-- Hover/Click Floating Popover Card with 'Xem chi tiết' arrow -->
+              <div class="hotspot-popover-card" (click)="$event.stopPropagation()">
+                <a [routerLink]="['/products', spot.productId]" class="popover-card-inner">
+                  <img [src]="getHotspotProduct(spot).image" [alt]="getHotspotProduct(spot).name" class="popover-img" />
+                  <div class="popover-info">
+                    <span class="popover-cat">{{ getHotspotProduct(spot).category }}</span>
+                    <h4 class="popover-name">{{ getHotspotProduct(spot).name }}</h4>
+                    <div class="popover-price-row">
+                      <span class="popover-price">{{ getHotspotProduct(spot).price }}</span>
+                      <span *ngIf="getHotspotProduct(spot).originalPrice" class="popover-old-price">
+                        {{ getHotspotProduct(spot).originalPrice }}
+                      </span>
+                    </div>
+                    <!-- Mũi tên xem chi tiết dẫn đến trang chi tiết sản phẩm -->
+                    <div class="popover-detail-action">
+                      <span class="detail-text">Xem chi tiết</span>
+                      <svg class="popover-detail-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                </a>
               </div>
             </div>
           </div>
-          <button class="review-nav review-nav-next" (click)="reviewIdx = reviewIdx < STATIC_REVIEWS.length - 1 ? reviewIdx + 1 : reviewIdx">›</button>
         </div>
-        <div class="review-dots">
-          <button *ngFor="let rv of STATIC_REVIEWS; let i = index" 
-                  class="review-dot" 
-                  [class.active]="i === reviewIdx" 
-                  (click)="reviewIdx = i"></button>
+      </div>
+
+      <!-- Morphing Pagination Indicator for Rooms (Placed centered below the room image) -->
+      <div class="morph-pagination" aria-label="Room pages">
+        <button *ngFor="let room of SHOPPABLE_ROOMS; let i = index" type="button" class="morph-dot"
+          [class.active]="selectedRoomTab === room.id" (click)="selectRoomTab(room.id)" [attr.aria-label]="room.name">
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 5. Đặt Lịch Tư Vấn Showroom (Intro Section) -->
+  <section class="home-service-section consultation-service-section" id="consultation">
+    <div class="container">
+      <div class="service-split-card">
+        <!-- Cột thông tin / Giới thiệu -->
+        <div class="service-info-col">
+
+          <h2 class="service-title">
+            Đặt Lịch Tư Vấn
+          </h2>
+
+          <p class="service-description">
+            Đến với không gian trưng bày DCOR Studio để trực tiếp cảm nhận từng đường nét gỗ tự nhiên, da cao cấp và
+            nhận bản phác thảo bài trí nội thất được cá nhân hóa hoàn toàn miễn phí từ kiến trúc sư của chúng tôi.
+          </p>
+
+          <div class="service-highlights-grid">
+            <div class="highlight-item">
+              <div class="highlight-icon-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div class="highlight-text">
+                <strong>Tư vấn 1-1</strong>
+                <span>Lắng nghe phong cách sống & phân tích bố cục không gian chi tiết</span>
+              </div>
+            </div>
+
+            <div class="highlight-item">
+              <div class="highlight-icon-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"></path>
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                  <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"></path>
+                  <path d="M2 7h20"></path>
+                </svg>
+              </div>
+              <div class="highlight-text">
+                <strong>Vật liệu & màu sắc thực tế</strong>
+                <span>Hơn 120+ mẫu da bò Ý, vải dệt & bề mặt gỗ nguyên khối cao cấp</span>
+              </div>
+            </div>
+
+            <div class="highlight-item">
+              <div class="highlight-icon-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="highlight-text">
+                <strong>Linh hoạt thời gian</strong>
+                <span>Chọn ngày giờ thuận tiện, đón tiếp riêng biệt chu đáo không chờ đợi</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="service-actions-row">
+            <button type="button" class="btn-service-primary" (click)="openConsultationModal()">
+              <span>Đặt lịch tư vấn ngay</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Cột Visual / Image -->
+        <div class="service-visual-col">
+          <div class="service-img-wrapper">
+            <img src="/assets/img/showroom.jpg" alt="Showroom DCOR Studio" class="service-showcase-img"
+              loading="lazy" />
+
+
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 7. Catalog Section -->
-  <app-catalog-section *ngIf="!isLoading" [products]="products" [categories]="categories"></app-catalog-section>
+  <!-- 6. Thiết Kế Không Gian (Banner Thông Tin Nằm Trên Ảnh) -->
+  <section class="home-service-section space-design-section" id="space-design">
+    <div class="container">
+      <div class="space-banner-card">
+        <!-- Background Image -->
+        <img src="/assets/img/tuvan.png" alt="Thiết Kế Không Gian DCor" class="space-banner-bg" loading="lazy" />
+
+        <!-- Gradient Overlay -->
+        <div class="space-banner-overlay"></div>
+
+        <!-- Content Floating On Top of Image -->
+        <div class="space-banner-content">
+
+
+          <h2 class="space-banner-title">
+            Thiết Kế Không Gian
+          </h2>
+
+          <p class="space-banner-description">
+            Tự do phác thảo, thử nghiệm vị trí đặt đồ nội thất và phối màu ăn ý cho từng căn phòng ngay trên
+            trình duyệt với công cụ thiết kế thông minh độc quyền từ DCor.
+          </p>
+
+          <div class="space-banner-actions">
+            <a [routerLink]="['/custom-design']" class="btn-space-cta">
+              <span>Bắt đầu thiết kế ngay</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Customer Testimonials Showcase -->
+  <section class="trust-section" id="why-us">
+    <div class="container">
+      <div class="customer-showcase-layout" (mouseenter)="pauseReviewAutoPlay()" (mouseleave)="resumeReviewAutoPlay()">
+
+        <!-- Left: Review Items Composition Image -->
+        <div class="customer-showcase-visual">
+          <img src="/assets/img/review_items.png" alt="DCor Studio Furniture Set" class="customer-composition-img"
+            loading="lazy" />
+        </div>
+
+        <!-- Right: Testimonial Content & Slider -->
+        <div class="customer-showcase-content">
+          <!-- Main Title -->
+          <h2 class="customer-main-heading">
+            Sự Hài Lòng Của Khách Hàng Trong Từng Không Gian Sống
+          </h2>
+
+          <!-- Slider Viewport -->
+          <div class="customer-slider-viewport">
+            <div class="customer-slider-track" [style.transform]="'translateX(-' + (reviewIdx * 100) + '%)'">
+              <div *ngFor="let rv of STATIC_REVIEWS; let i = index" class="customer-slide-item">
+
+                <!-- 5 Stars with Lucide Star -->
+                <div class="customer-stars">
+                  <app-icon *ngFor="let s of getStarsArray(rv.rating)" name="Star" [size]="18" [filled]="true"
+                    color="#C48A48"></app-icon>
+                </div>
+
+                <!-- Quote Text -->
+                <p class="customer-quote">
+                  "{{ rv.text }}"
+                </p>
+
+                <!-- Divider -->
+                <div class="customer-divider"></div>
+
+                <!-- Author Row -->
+                <div class="customer-author-row">
+                  <div class="author-profile">
+                    <img [src]="rv.avatar" [alt]="rv.name" class="author-avatar" loading="lazy" />
+                    <div class="author-details">
+                      <h4 class="author-name">{{ rv.name }}</h4>
+                      <span class="author-role">{{ rv.role }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Large Double Quote Watermark -->
+                  <div class="quote-watermark" aria-hidden="true">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                    </svg>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Slider Controls: Dots only -->
+          <div class="customer-slider-controls">
+            <div class="customer-slider-dots">
+              <button *ngFor="let rv of STATIC_REVIEWS; let i = index" type="button" class="customer-dot"
+                [class.active]="i === reviewIdx" (click)="setReviewIndex(i)" [attr.aria-label]="'Đánh giá ' + (i + 1)">
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Đặt Lịch Tư Vấn Showroom -->
+  <app-showroom-consultation-modal [isOpen]="isConsultationModalOpen" (close)="closeConsultationModal()">
+  </app-showroom-consultation-modal>
 
 </div>
-

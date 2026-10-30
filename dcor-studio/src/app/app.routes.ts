@@ -45,8 +45,8 @@ export const routes: Routes = [
       { path: 'vouchers', loadComponent: () => import('./features/admin/pages/promotions/vouchers/vouchers').then(m => m.VouchersComponent) },
       { path: 'campaigns', loadComponent: () => import('./features/admin/pages/promotions/campaigns/campaigns').then(m => m.CampaignsComponent) },
       { path: 'appointments', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
-      { path: 'appointments/schedule', loadComponent: () => import('./features/admin/pages/appointments/appointment-schedule/appointment-schedule').then(m => m.AppointmentScheduleComponent) },
-      { path: 'appointments/requests', loadComponent: () => import('./features/admin/pages/appointments/appointment-requests/appointment-requests').then(m => m.AppointmentRequestsComponent) },
+      { path: 'appointments/schedule', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
+      { path: 'appointments/requests', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
       { path: 'content', loadComponent: () => import('./features/admin/pages/content/content').then(m => m.ContentComponent) },
       { path: 'chat', loadComponent: () => import('./features/admin/pages/chat/chat').then(m => m.ChatComponent) },
       { path: 'designs', loadComponent: () => import('./features/admin/pages/designs/designs').then(m => m.DesignsComponent) },
@@ -83,6 +83,8 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./features/store/pages/home/home').then(m => m.HomeComponent) },
       { path: 'explore', loadComponent: () => import('./features/store/pages/explore/explore').then(m => m.ExploreComponent) },
+      { path: 'kham-pha', redirectTo: 'explore', pathMatch: 'full' },
+      { path: 'kham-pha/:id', redirectTo: 'products/:id' },
       { path: 'products/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) },
       { path: 'explore/:id', loadComponent: () => import('./features/store/pages/product-detail/product-detail').then(m => m.ProductDetailComponent) }, // Alias
       { path: 'cart', redirectTo: '', pathMatch: 'full' },

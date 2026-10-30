@@ -18,7 +18,7 @@
 
       <div *ngIf="wishlistItems.length === 0" style="text-align: center; padding: 60px; background: var(--bg-secondary); border-radius: 12px; border: 1px dashed var(--border-color);">
         <p style="color: var(--text-muted); margin-bottom: 20px;">Danh sách yêu thích của bạn đang trống.</p>
-        <a routerLink="/kham-pha" class="cta-btn" style="text-decoration: none; display: inline-block;">Khám phá sản phẩm</a>
+        <a routerLink="/explore" class="cta-btn" style="text-decoration: none; display: inline-block;">Khám phá sản phẩm</a>
       </div>
 
       <div *ngIf="wishlistItems.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px;">
@@ -28,12 +28,12 @@
             <app-icon name="X" size="16"></app-icon>
           </button>
 
-          <div style="padding: 20px; background: var(--bg-tertiary); display: flex; justify-content: center; align-items: center; height: 200px; cursor: pointer;" [routerLink]="['/kham-pha', item.id]">
+          <div style="padding: 20px; background: var(--bg-tertiary); display: flex; justify-content: center; align-items: center; height: 200px; cursor: pointer;" [routerLink]="['/products', item.id]">
             <img [src]="item.image" [alt]="item.name" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
           </div>
 
           <div style="padding: 16px;">
-            <div style="font-size: 15px; font-weight: 600; margin-bottom: 8px; cursor: pointer;" [routerLink]="['/kham-pha', item.id]">{{ item.name }}</div>
+            <div style="font-size: 15px; font-weight: 600; margin-bottom: 8px; cursor: pointer;" [routerLink]="['/products', item.id]">{{ item.name }}</div>
             <div style="font-size: 14px; color: var(--accent); font-weight: 700;">{{ formatCurrency(item.price) }}</div>
           </div>
         </div>

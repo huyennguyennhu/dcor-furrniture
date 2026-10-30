@@ -1,5 +1,5 @@
 import { IconComponent } from '../../../../shared/components/icon/icon';
-import { Component, HostListener, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,8 +8,11 @@ import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CartDrawerComponent } from '../../../../shared/components/cart-drawer/cart-drawer';
 import { CartService } from '../../../../core/services/cart.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
+import { ProductService } from '../../../../core/services/product.service';
 import { environment } from '../../../../../environments/environment';
 import { getParentCategory } from '../../utils/category-grouping';
+
+import { CategoryClassificationService } from '../../../../core/services/category-classification.service';
 
 interface StoreUser {
   id?: string;
@@ -48,6 +51,8 @@ export class Header implements OnInit, OnDestroy {
   isCartDrawerOpen = false;
   isScrolled = false;
   shopMenuOpen = false;
+  isShopHovered = false;
+  private shopHoverTimeout: any = null;
   shopHoverDismissed = false;
   isStoreCategoriesLoading = true;
   storeCategories: StoreCategory[] = [];
@@ -57,10 +62,73 @@ export class Header implements OnInit, OnDestroy {
   user: StoreUser | null = null;
   private lastCartToken: string | null = null;
 
+  readonly DEFAULT_ROOMS = [
+    { name: 'Phòng khách', slug: 'phong-khach', desc: 'Sofa, bàn trà, kệ tivi' },
+    { name: 'Phòng ăn', slug: 'phong-an', desc: 'Bàn ăn mở rộng, ghế ăn' },
+    { name: 'Phòng ngủ', slug: 'phong-ngu', desc: 'Giường đệm bọc, tap đầu giường' },
+    { name: 'Phòng làm việc', slug: 'phong-lam-viec', desc: 'Bàn làm việc, ghế da' },
+    { name: 'Ngoài trời & Ban công', slug: 'ngoai-troi-ban-cong', desc: 'Bàn ghế cafe ngoài trời' }
+  ];
+
+  readonly DEFAULT_MATERIALS = [
+    { name: 'Da bò Aniline Ý', slug: 'da-bo-aniline-y', badge: 'Thượng hạng' },
+    { name: 'Vải nỉ Copenhagen / Bouclé', slug: 'vai-ni-copenhagen', badge: 'Mềm mịn' },
+    { name: 'Gỗ sồi (Oak) tự nhiên', slug: 'go-soi-tu-nhien', badge: 'Chuẩn FSC' },
+    { name: 'Gỗ óc chó (Walnut)', slug: 'go-oc-cho-walnut', badge: 'Vân gỗ đậm' },
+    { name: 'Gốm Ceramic chống trầy', slug: 'gom-ceramic-chong-tray', badge: 'Chịu nhiệt' }
+  ];
+
+  readonly DEFAULT_STYLES = [
+    { name: 'Bắc Âu (Scandinavian)', slug: 'bac-au-scandinavian' },
+    { name: 'Hiện đại (Modern Luxury)', slug: 'hien-dai-modern-luxury' },
+    { name: 'Tối giản (Minimalism)', slug: 'toi-gian-minimalism' },
+    { name: 'Japandi đương đại', slug: 'japandi' },
+    { name: 'Wabi-Sabi mộc mạc', slug: 'wabi-sabi' },
+    { name: 'Công nghiệp (Industrial)', slug: 'industrial' }
+  ];
+
+  readonly DEFAULT_COLLECTIONS = [
+    { name: 'Bộ sưu tập Bergamo', slug: 'bo-suu-tap-bergamo', tag: 'Bán chạy' },
+    { name: 'Bộ sưu tập Como', slug: 'bo-suu-tap-como', tag: 'Kính & Óc chó' },
+    { name: 'Bộ sưu tập Lugano', slug: 'bo-suu-tap-lugano', tag: 'Phòng ngủ' },
+    { name: 'Bộ sưu tập Santiago', slug: 'bo-suu-tap-santiago', tag: 'Bàn mở rộng' }
+  ];
+
+  get roomList(): any[] {
+    const list = this.classificationService?.getRooms?.() || [];
+    return list.length > 0 ? list : this.DEFAULT_ROOMS;
+  }
+
+  get materialList(): any[] {
+    const list = this.classificationService?.getMaterials?.() || [];
+    return list.length > 0 ? list : this.DEFAULT_MATERIALS;
+  }
+
+  get styleList(): any[] {
+    const list = this.classificationService?.getStyles?.() || [];
+    return list.length > 0 ? list : this.DEFAULT_STYLES;
+  }
+
+  get collectionList(): any[] {
+    const list = this.classificationService?.getCollections?.() || [];
+    return list.length > 0 ? list : this.DEFAULT_COLLECTIONS;
+  }
+
+  get filteredStoreCategories(): StoreCategory[] {
+    return this.storeCategories;
+  }
+
+  getCategoryDisplayName(cat: StoreCategory): string {
+    return cat.name;
+  }
+
   constructor(
     private router: Router, 
     private cartService: CartService,
-    private wishlistService: WishlistService
+    private wishlistService: WishlistService,
+    private productService: ProductService,
+    private classificationService: CategoryClassificationService,
+    private cdr: ChangeDetectorRef
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -104,6 +172,10 @@ export class Header implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.shopHoverTimeout) {
+      clearTimeout(this.shopHoverTimeout);
+      this.shopHoverTimeout = null;
+    }
     if (typeof document !== 'undefined') {
       document.body.style.overflow = '';
     }
@@ -134,13 +206,25 @@ export class Header implements OnInit, OnDestroy {
 
   @HostListener('window:scroll')
   onWindowScroll(): void {
-    this.isScrolled = window.scrollY > 10;
+    const nextScrolled = window.scrollY > 20;
+    if (this.isScrolled !== nextScrolled) {
+      this.isScrolled = nextScrolled;
+      this.cdr.markForCheck();
+    }
+    if (this.isShopHovered) {
+      this.closeShopMenu();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closeShopMenu();
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (this.shopMenuOpen && !this.shopNavItem.nativeElement.contains(event.target as Node)) {
-      this.shopMenuOpen = false;
+    if (this.shopMenuOpen && !this.shopNavItem?.nativeElement?.contains(event.target as Node)) {
+      this.closeShopMenu();
     }
   }
 
@@ -159,15 +243,13 @@ export class Header implements OnInit, OnDestroy {
   private async loadSearchProducts(): Promise<void> {
     try {
       this.isStoreCategoriesLoading = true;
-      const [prodRes, catRes] = await Promise.all([
-        fetch(`${environment.apiUrl}/products`),
-        fetch(`${environment.apiUrl}/categories`).catch(() => null)
+      const [productsData, categoriesData] = await Promise.all([
+        this.productService.getProducts(),
+        this.productService.getCategories().catch(() => [])
       ]);
 
-      if (prodRes && prodRes.ok) {
-        const data = await prodRes.json();
-        const products = Array.isArray(data) ? data : (data.data || data.products || []);
-        this.products = products.map((product: any): CatalogProduct => ({
+      if (Array.isArray(productsData)) {
+        this.products = productsData.map((product: any): CatalogProduct => ({
           id: product.id,
           productId: product.id || product.productId,
           shortDescription: product.name || product.shortDescription || '',
@@ -182,10 +264,9 @@ export class Header implements OnInit, OnDestroy {
         }));
       }
 
-      if (catRes && catRes.ok) {
-        const categories = await catRes.json();
+      if (Array.isArray(categoriesData)) {
         // Lấy danh mục gốc từ database (parentId === null)
-        const rootCats = categories.filter((c: any) => !c.parentId);
+        const rootCats = categoriesData.filter((c: any) => !c.parentId);
         this.storeCategories = rootCats.map((c: any) => ({
           name: c.name,
           slug: c.slug,
@@ -200,7 +281,14 @@ export class Header implements OnInit, OnDestroy {
   }
 
   closeShopMenu(): void {
+    if (this.shopHoverTimeout) {
+      clearTimeout(this.shopHoverTimeout);
+      this.shopHoverTimeout = null;
+    }
+    this.isShopHovered = false;
     this.shopMenuOpen = false;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
     const activeElement = document.activeElement;
     if (activeElement instanceof HTMLElement) {
       activeElement.blur();
@@ -209,19 +297,38 @@ export class Header implements OnInit, OnDestroy {
 
   toggleShopMenu(): void {
     this.shopMenuOpen = !this.shopMenuOpen;
+    this.cdr.markForCheck();
+  }
+
+  onShopMouseEnter(): void {
+    if (this.shopHoverTimeout) {
+      clearTimeout(this.shopHoverTimeout);
+      this.shopHoverTimeout = null;
+    }
+    this.isShopHovered = true;
+    this.cdr.markForCheck();
+  }
+
+  onShopMouseLeave(): void {
+    if (this.shopHoverTimeout) {
+      clearTimeout(this.shopHoverTimeout);
+      this.shopHoverTimeout = null;
+    }
+    // Khi chuột ra ngoài: đóng lại nhanh (70ms) và kích hoạt Change Detection ngay
+    this.shopHoverTimeout = setTimeout(() => {
+      this.isShopHovered = false;
+      this.shopHoverTimeout = null;
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
+    }, 70);
   }
 
   onShopLinkClick(): void {
-    this.shopMenuOpen = false;
-    this.shopHoverDismissed = true;
-    const activeElement = document.activeElement;
-    if (activeElement instanceof HTMLElement) {
-      activeElement.blur();
-    }
+    this.closeShopMenu();
   }
 
   onShopNavMouseLeave(): void {
-    this.shopHoverDismissed = false;
+    this.onShopMouseLeave();
   }
 
   private normalizeSearchText(value: string): string {

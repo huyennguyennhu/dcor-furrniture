@@ -472,8 +472,9 @@ export class ProductFormComponent implements OnInit {
           stock: v.stock !== undefined ? v.stock : 0,
           barcode: opt.barcode || '',
           images: variantImages,
-          image: variantImages[0] || '',
-          isActive: v.isActive !== false
+          image: variantImages[0] || (Array.isArray(opt.images) && opt.images[0]) || this.formData.basic.images[0]?.url || '',
+          isActive: v.isActive !== false,
+          rawOptionValues: opt
         };
       });
 
@@ -1179,6 +1180,7 @@ export class ProductFormComponent implements OnInit {
           stock: Number(v.stock) || 0,
           isActive: v.isActive,
           optionValues: {
+            ...((v as any).rawOptionValues || {}),
             attributes: v.attributes || {},
             color: v.color || (v.attributes ? v.attributes['Màu sắc'] : ''),
             size: v.size || (v.attributes ? v.attributes['Kích thước'] : ''),

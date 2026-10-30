@@ -15,27 +15,42 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  clip-path: inset(0 0 0 0);
+  -webkit-clip-path: inset(0 0 0 0);
+  background: none !important;
+  border-bottom: none;
+  box-sizing: border-box;
+}
+
+.explore-hero::before {
+  display: none !important;
+  content: none !important;
 }
 
 .explore-hero-bg {
-  position: absolute;
-  top: -15%;
+  position: fixed;
+  top: 0;
   left: 0;
-  width: 100%;
-  height: 130%;
+  width: 100vw;
+  height: 100dvh;
+  height: 100dvh;
   background-image: url('/assets/img/banner.jpg');
   background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  will-change: transform;
+  background-position: absolute;
+  top: -120px;
   pointer-events: none;
   z-index: 0;
 }
 
 .explore-hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(15, 12, 10, 0.1) 0%, rgba(15, 12, 10, 0) 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: linear-gradient(180deg, rgba(15, 12, 10, 0.25) 0%, rgba(15, 12, 10, 0.5) 100%);
+  pointer-events: none;
   z-index: 1;
 }
 
@@ -99,6 +114,8 @@
    2. Sub-header Bar (Active filter pills & Sort dropdown)
    ========================================================================== */
 .explore-subbar {
+  position: relative;
+  z-index: 10;
   background-color: #ffffff;
   border-bottom: 1px solid #edebe4;
   padding: 14px 30px;
@@ -913,7 +930,7 @@
   border: 1px solid #e5e7eb;
   padding: 10px 24px;
   width: calc(100% - 48px);
-  max-width: 880px;
+  max-width: 1000px;
   animation: slideUp 0.3s ease;
 }
 
@@ -1082,47 +1099,49 @@
   opacity: 0.7;
 }
 
-/* Floating Compare Toast */
+/* Compare Toast (Thông Báo Thẻ Nổi Góc Trên Phải Giống PDP) */
 .floating-compare-toast {
   position: fixed;
-  bottom: 95px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
+  top: 80px;
+  right: 24px;
+  z-index: 10001;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 9999px;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
-  z-index: 10000;
-  animation: slideToastUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  font-weight: 500;
+  animation: slideInCompareToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes slideToastUp {
+@keyframes slideInCompareToast {
   from {
+    transform: translateX(100%);
     opacity: 0;
-    transform: translate(-50%, 15px);
   }
 
   to {
+    transform: translateX(0);
     opacity: 1;
-    transform: translate(-50%, 0);
   }
 }
 
+.floating-compare-toast.toast-success {
+  border-left: 4px solid #10b981;
+  color: #065f46;
+}
+
 .floating-compare-toast.toast-warning {
-  background: #b45309;
+  border-left: 4px solid #f59e0b;
+  color: #92400e;
 }
 
 .floating-compare-toast.toast-info {
-  background: #2563eb;
-}
-
-.floating-compare-toast.toast-success {
-  background: #15803d;
+  border-left: 4px solid #3b82f6;
+  color: #1e40af;
 }
 
 /* ==========================================================================
@@ -1192,4 +1211,136 @@
   .btn-back-to-top.dock-active {
     bottom: 96px;
   }
+}
+
+/* Modal Cảnh Báo Nhắc Xác Nhận Xóa So Sánh */
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeInConfirmBackdrop 0.2s ease forwards;
+}
+
+.confirm-modal-box {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 22px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: scaleInConfirmBox 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInConfirmBackdrop {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleInConfirmBox {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.confirm-modal-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #dc2626;
+}
+
+.confirm-modal-content {
+  margin-bottom: 22px;
+}
+
+.confirm-modal-title {
+  margin: 0 0 8px 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.confirm-modal-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.confirm-modal-desc strong {
+  color: #111827;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-confirm-cancel {
+  flex: 1;
+  height: 40px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-cancel:hover {
+  background: #f9fafb;
+  border-color: #cbd5e1;
+}
+
+.btn-confirm-delete {
+  flex: 1;
+  height: 40px;
+  border: none;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-delete:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
 }

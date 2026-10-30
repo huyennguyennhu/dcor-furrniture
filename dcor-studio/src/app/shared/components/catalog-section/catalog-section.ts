@@ -24,7 +24,7 @@ export class CatalogSection implements OnInit, OnChanges {
   sortBy: string = 'featured';
   currentPage: number = 1;
 
-  readonly ITEMS_PER_PAGE = 8;
+  readonly ITEMS_PER_PAGE = 4;
   readonly COLOR_MAP: Record<string, string> = {
     Grey: '#808080', Beige: '#F5F5DC', Brown: '#8B4513',
     Blue: '#325A82', Green: '#4B6E50', Black: '#222',

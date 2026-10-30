@@ -173,38 +173,49 @@
               <span class="group-title">{{ group.label }}:</span>
             </div>
 
-            <!-- Trường hợp 1: Nhóm Màu sắc (Hiển thị ô màu swatch) -->
-            <div class="color-swatches-grid" *ngIf="isColorGroup(group)">
+            <!-- Trường hợp 1: Nhóm Màu sắc / Chất liệu có hình ảnh hoặc swatch (Hiển thị ô swatch không kèm chữ) -->
+            <div class="color-swatches-grid" *ngIf="isVisualGroup(group)">
               <ng-container *ngFor="let opt of getVisibleOptions(group)">
                 <button type="button" class="color-swatch-btn"
                   [class.active]="selectedAttributes[group.groupId] === opt.id"
-                  (click)="selectOption(group.groupId, opt.id)" [title]="opt.name">
-                  <span class="swatch-color-circle"
-                    [style.background-color]="opt.hexColor || detectColor(opt.name).hex"></span>
-                  <span class="swatch-label">{{ opt.name }}</span>
+                  (click)="selectOption(group.groupId, opt.id)"
+                  (mouseenter)="onOptionMouseEnter(group.groupId, opt.name)"
+                  (mouseleave)="onOptionMouseLeave(group.groupId)" [title]="formatOptionDisplayName(opt.name, group)"
+                  [attr.aria-label]="opt.name">
+                  <span class="swatch-color-circle" [class.has-image]="!!opt.image"
+                    [style.background-color]="opt.hexColor || (detectColor(opt.name)?.hex || '#d1d5db')"
+                    [style.background-image]="opt.image ? 'url(' + opt.image + ')' : 'none'">
+                    <app-icon *ngIf="selectedAttributes[group.groupId] === opt.id" name="Check" size="14"
+                      class="swatch-check-icon" [color]="isBrightColor(opt) ? '#1c1917' : '#ffffff'"></app-icon>
+                  </span>
+                  <span class="swatch-tooltip">{{ formatOptionDisplayName(opt.name, group) }}</span>
                 </button>
               </ng-container>
             </div>
 
-            <!-- Trường hợp 2: Nhóm Kích thước (Nút chọn / Chips) -->
-            <div class="pills-grid size-pills-grid" *ngIf="isSizeGroup(group)">
+            <!-- Trường hợp 2: Nhóm Kích thước (Nút chọn với số liệu đàng hoàng 17cm, H45 × Ø38 cm...) -->
+            <div class="pills-grid size-pills-grid" *ngIf="!isVisualGroup(group) && isSizeGroup(group)">
               <ng-container *ngFor="let opt of getVisibleOptions(group)">
                 <button type="button" class="pill-btn size-pill-btn"
                   [class.active]="selectedAttributes[group.groupId] === opt.id"
-                  (click)="selectOption(group.groupId, opt.id)">
-                  <span>{{ opt.name }}</span>
+                  (click)="selectOption(group.groupId, opt.id)"
+                  (mouseenter)="onOptionMouseEnter(group.groupId, opt.name)"
+                  (mouseleave)="onOptionMouseLeave(group.groupId)">
+                  <span>{{ formatOptionDisplayName(opt.name, group) }}</span>
                 </button>
               </ng-container>
             </div>
 
-            <!-- Trường hợp 3: Nhóm Chất liệu hoặc thuộc tính khác (Nút chọn chất liệu) -->
-            <div class="pills-grid material-pills-grid" *ngIf="!isColorGroup(group) && !isSizeGroup(group)">
+            <!-- Trường hợp 3: Nhóm khác không có hình ảnh (Chất liệu không ảnh, Chân, Khung, Cấu hình... để bình thường dạng nút có chữ) -->
+            <div class="pills-grid material-pills-grid" *ngIf="!isVisualGroup(group) && !isSizeGroup(group)">
               <ng-container *ngFor="let opt of getVisibleOptions(group)">
                 <button type="button" class="pill-btn material-pill-btn"
                   [class.active]="selectedAttributes[group.groupId] === opt.id"
-                  (click)="selectOption(group.groupId, opt.id)">
+                  (click)="selectOption(group.groupId, opt.id)"
+                  (mouseenter)="onOptionMouseEnter(group.groupId, opt.name)"
+                  (mouseleave)="onOptionMouseLeave(group.groupId)">
                   <span class="pill-dot" *ngIf="opt.hexColor" [style.background-color]="opt.hexColor"></span>
-                  <span>{{ opt.name }}</span>
+                  <span>{{ formatOptionDisplayName(opt.name, group) }}</span>
                 </button>
               </ng-container>
             </div>
@@ -282,7 +293,7 @@
             <span>Đặt lịch tư vấn tại Showroom</span>
           </button>
 
-          <button type="button" class="btn-extra-action" (click)="openCustomModal()">
+          <button *ngIf="isCustomAllowed" type="button" class="btn-extra-action" (click)="openCustomModal()">
             <app-icon name="Sparkles" size="16"></app-icon>
             <span>Tùy chỉnh theo yêu cầu</span>
           </button>
@@ -313,12 +324,6 @@
           (click)="setActiveTab('policy')">
           <app-icon name="Truck" size="18"></app-icon>
           <span>Chính sách dịch vụ</span>
-        </button>
-
-        <button type="button" class="tab-nav-btn" [class.active]="activeTab === 'reviews'"
-          (click)="setActiveTab('reviews')">
-          <app-icon name="Star" size="18" [filled]="true"></app-icon>
-          <span>Đánh giá khách hàng ({{ totalReviewsCount }})</span>
         </button>
       </div>
 
@@ -418,6 +423,18 @@
                 <tr *ngIf="specsWeight">
                   <td class="spec-label">Trọng lượng tịnh</td>
                   <td class="spec-value">{{ specsWeight }}</td>
+                </tr>
+                <tr *ngIf="specsLegsHeight">
+                  <td class="spec-label">Chiều cao chân</td>
+                  <td class="spec-value">{{ specsLegsHeight }}</td>
+                </tr>
+                <tr *ngIf="specsSeatingHeight">
+                  <td class="spec-label">Chiều cao mặt ngồi</td>
+                  <td class="spec-value">{{ specsSeatingHeight }}</td>
+                </tr>
+                <tr *ngIf="specsArmrestHeight">
+                  <td class="spec-label">Chiều cao tay vịn</td>
+                  <td class="spec-value">{{ specsArmrestHeight }}</td>
                 </tr>
                 <tr>
                   <td class="spec-label">Tải trọng tối đa</td>
@@ -532,182 +549,180 @@
           </div>
         </div>
 
-        <!-- TAB 5: ĐÁNH GIÁ KHÁCH HÀNG (FR3-C-14) -->
-        <div class="tab-pane tab-pane-reviews" *ngIf="activeTab === 'reviews'">
-          <!-- TỔNG QUAN ĐIỂM & BIỂU ĐỒ PHÂN BỐ -->
-          <div class="reviews-summary-card">
-            <!-- Điểm trung bình -->
-            <div class="rating-overall-box">
-              <div class="big-score">{{ averageRating }}</div>
-              <div class="overall-stars">
-                <app-icon *ngFor="let s of [1,2,3,4,5]" name="Star" size="18" class="star-filled"
-                  [filled]="true"></app-icon>
-              </div>
-              <div class="total-reviews-text">Dựa trên {{ totalReviewsCount }} lượt đánh giá</div>
-            </div>
+      </div>
+    </section>
 
-            <!-- Biểu đồ phân bố 1 - 5 sao -->
-            <div class="rating-distribution-box">
-              <div class="dist-row" *ngFor="let star of [5, 4, 3, 2, 1]">
-                <span class="dist-star-label">{{ star }} sao</span>
-                <div class="dist-bar-track">
-                  <div class="dist-bar-fill" [style.width.%]="getStarDistributionPercent(star)"></div>
+    <!-- KHỐI ĐÁNH GIÁ KHÁCH HÀNG ĐỘC LẬP (TÁCH KHỎI TABS ĐƯA XUỐNG PHÍA DƯỚI) -->
+    <section class="pdp-reviews-standalone-section" id="pdp-reviews-section" *ngIf="!isLoading && product">
+      <div class="reviews-section-header">
+        <div class="reviews-title-wrap">
+          <h2 class="reviews-section-title">Đánh giá từ khách hàng</h2>
+          <span class="reviews-section-badge">({{ totalReviewsCount }} đánh giá)</span>
+        </div>
+      </div>
+
+      <!-- TỔNG QUAN ĐIỂM & BIỂU ĐỒ PHÂN BỐ -->
+      <div class="reviews-summary-card">
+        <!-- Điểm trung bình -->
+        <div class="rating-overall-box">
+          <div class="big-score">{{ averageRating }}</div>
+          <div class="overall-stars">
+            <app-icon *ngFor="let s of [1,2,3,4,5]" name="Star" size="18" class="star-filled"
+              [filled]="true"></app-icon>
+          </div>
+          <div class="total-reviews-text">Dựa trên {{ totalReviewsCount }} lượt đánh giá</div>
+        </div>
+
+        <!-- Biểu đồ phân bố 1 - 5 sao -->
+        <div class="rating-distribution-box">
+          <div class="dist-row" *ngFor="let star of [5, 4, 3, 2, 1]">
+            <span class="dist-star-label">{{ star }} sao</span>
+            <div class="dist-bar-track">
+              <div class="dist-bar-fill" [style.width.%]="getStarDistributionPercent(star)"></div>
+            </div>
+            <span class="dist-count">{{ starDistribution[star] || 0 }} ({{ getStarDistributionPercent(star)
+              }}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- THANH LỌC ĐÁNH GIÁ (FILTER BAR) -->
+      <div class="reviews-filter-bar">
+        <!-- Lọc theo số sao -->
+        <div class="filter-pills-group">
+          <button type="button" class="filter-pill" [class.active]="selectedStarFilter === 'all'"
+            (click)="setStarFilter('all')">
+            Tất cả ({{ totalReviewsCount }})
+          </button>
+          <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '5'"
+            (click)="setStarFilter('5')">
+            5 sao ({{ starDistribution[5] || 0 }})
+          </button>
+          <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '4'"
+            (click)="setStarFilter('4')">
+            4 sao ({{ starDistribution[4] || 0 }})
+          </button>
+          <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '3'"
+            (click)="setStarFilter('3')">
+            3 sao ({{ starDistribution[3] || 0 }})
+          </button>
+          <button type="button" class="filter-pill" [class.active]="selectedStarFilter === 'hasImage'"
+            (click)="setStarFilter('hasImage')">
+            Có hình ảnh ({{ hasImageFilterCount }})
+          </button>
+        </div>
+
+        <!-- Lọc theo biến thể đã mua -->
+        <div class="variant-filter-wrap" *ngIf="product.variants && product.variants.length > 1">
+          <label class="variant-filter-label" for="reviewVariantFilter">
+            <app-icon name="Layers" size="14" class="variant-filter-icon"></app-icon>
+            <span>Biến thể:</span>
+          </label>
+          <div class="variant-filter-select-box">
+            <select id="reviewVariantFilter" class="variant-filter-select"
+              [class.has-filter-applied]="selectedVariantFilter !== 'all'" [ngModel]="selectedVariantFilter"
+              (ngModelChange)="setVariantFilter($event)">
+              <option value="all">Tất cả biến thể</option>
+              <option *ngFor="let v of product.variants" [value]="v.id">
+                {{ v.name }}
+              </option>
+            </select>
+            <button type="button" *ngIf="selectedVariantFilter !== 'all'" class="btn-clear-variant-filter"
+              (click)="setVariantFilter('all')" title="Bỏ lọc theo biến thể">
+              <app-icon name="X" size="12"></app-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DANH SÁCH ĐÁNH GIÁ CHI TIẾT -->
+      <div class="reviews-list">
+        <!-- Loading state -->
+        <div class="reviews-loading" *ngIf="isLoadingReviews">
+          <div class="spinner-circle"></div>
+          <span>Đang tải đánh giá...</span>
+        </div>
+
+        <!-- Empty state -->
+        <div class="reviews-empty" *ngIf="!isLoadingReviews && reviews.length === 0">
+          <app-icon name="MessagesSquare" size="40" class="empty-icon"></app-icon>
+          <h4>Chưa có đánh giá nào phù hợp với bộ lọc</h4>
+          <p>Hãy thử chọn số sao khác hoặc đặt lại bộ lọc để xem toàn bộ đánh giá.</p>
+          <button type="button" class="btn-reset-filter" (click)="setStarFilter('all'); setVariantFilter('all')">
+            Đặt lại bộ lọc
+          </button>
+        </div>
+
+        <!-- Item đánh giá -->
+        <div class="review-item-card" *ngFor="let rev of reviews">
+          <div class="review-header">
+            <div class="reviewer-meta">
+              <div class="avatar-circle">
+                {{ rev.reviewerName.charAt(0) }}
+              </div>
+              <div class="reviewer-info">
+                <div class="name-row">
+                  <span class="reviewer-name">{{ rev.reviewerName }}</span>
+                  <span class="verified-tag" *ngIf="rev.isVerifiedPurchase">
+                    <app-icon name="CircleCheck" size="13"></app-icon>
+                    Đã mua tại DCOR Studio
+                  </span>
                 </div>
-                <span class="dist-count">{{ starDistribution[star] || 0 }} ({{ getStarDistributionPercent(star)
-                  }}%)</span>
+                <div class="purchased-variant-badge" *ngIf="rev.variantName">
+                  Phân loại: <strong>{{ rev.variantName }}</strong>
+                </div>
               </div>
             </div>
 
-            <!-- Nút viết đánh giá -->
-            <div class="write-review-cta-box">
-              <h4>Bạn đã trải nghiệm sản phẩm này?</h4>
-              <p>Chia sẻ đánh giá chân thực để nhận ngay voucher giảm 5% cho đơn hàng tiếp theo!</p>
-              <button type="button" class="btn-write-review" (click)="openWriteReviewModal()">
-                <app-icon name="Pencil" size="16"></app-icon>
-                <span>Viết đánh giá của bạn</span>
-              </button>
+            <div class="review-date-stars">
+              <div class="review-stars">
+                <app-icon *ngFor="let s of [1,2,3,4,5]" name="Star" size="13" [class.star-filled]="s <= rev.rating"
+                  [filled]="s <= rev.rating"></app-icon>
+              </div>
+              <span class="review-date">{{ rev.formattedDate }}</span>
             </div>
           </div>
 
-          <!-- THANH LỌC ĐÁNH GIÁ (FILTER BAR) -->
-          <div class="reviews-filter-bar">
-            <!-- Lọc theo số sao -->
-            <div class="filter-pills-group">
-              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === 'all'"
-                (click)="setStarFilter('all')">
-                Tất cả ({{ totalReviewsCount }})
-              </button>
-              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '5'"
-                (click)="setStarFilter('5')">
-                5 sao ({{ starDistribution[5] || 0 }})
-              </button>
-              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '4'"
-                (click)="setStarFilter('4')">
-                4 sao ({{ starDistribution[4] || 0 }})
-              </button>
-              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === '3'"
-                (click)="setStarFilter('3')">
-                3 sao ({{ starDistribution[3] || 0 }})
-              </button>
-              <button type="button" class="filter-pill" [class.active]="selectedStarFilter === 'hasImage'"
-                (click)="setStarFilter('hasImage')">
-                Có hình ảnh ({{ hasImageFilterCount }})
-              </button>
-            </div>
+          <!-- Nội dung đánh giá -->
+          <div class="review-body">
+            <p class="review-comment">{{ rev.comment }}</p>
 
-            <!-- Lọc theo biến thể đã mua -->
-            <div class="variant-filter-wrap" *ngIf="product.variants && product.variants.length > 1">
-              <label class="variant-filter-label" for="reviewVariantFilter">
-                <app-icon name="Layers" size="14" class="variant-filter-icon"></app-icon>
-                <span>Biến thể:</span>
-              </label>
-              <div class="variant-filter-select-box">
-                <select id="reviewVariantFilter" class="variant-filter-select"
-                  [class.has-filter-applied]="selectedVariantFilter !== 'all'" [ngModel]="selectedVariantFilter"
-                  (ngModelChange)="setVariantFilter($event)">
-                  <option value="all">Tất cả biến thể</option>
-                  <option *ngFor="let v of product.variants" [value]="v.id">
-                    {{ v.name }}
-                  </option>
-                </select>
-                <button type="button" *ngIf="selectedVariantFilter !== 'all'" class="btn-clear-variant-filter"
-                  (click)="setVariantFilter('all')" title="Bỏ lọc theo biến thể">
-                  <app-icon name="X" size="12"></app-icon>
-                </button>
-              </div>
+            <!-- Dải ảnh đính kèm (nếu có) -->
+            <div class="review-images-strip" *ngIf="rev.images && rev.images.length > 0">
+              <img *ngFor="let img of rev.images" [src]="img" [alt]="'Ảnh thực tế từ ' + rev.reviewerName"
+                class="review-thumb-img" (click)="openLightbox(0)" />
             </div>
           </div>
 
-          <!-- DANH SÁCH ĐÁNH GIÁ CHI TIẾT -->
-          <div class="reviews-list">
-            <!-- Loading state -->
-            <div class="reviews-loading" *ngIf="isLoadingReviews">
-              <div class="spinner-circle"></div>
-              <span>Đang tải đánh giá...</span>
-            </div>
-
-            <!-- Empty state -->
-            <div class="reviews-empty" *ngIf="!isLoadingReviews && reviews.length === 0">
-              <app-icon name="MessagesSquare" size="40" class="empty-icon"></app-icon>
-              <h4>Chưa có đánh giá nào phù hợp với bộ lọc</h4>
-              <p>Hãy thử chọn số sao khác hoặc đặt lại bộ lọc để xem toàn bộ đánh giá.</p>
-              <button type="button" class="btn-reset-filter" (click)="setStarFilter('all'); setVariantFilter('all')">
-                Đặt lại bộ lọc
-              </button>
-            </div>
-
-            <!-- Item đánh giá -->
-            <div class="review-item-card" *ngFor="let rev of reviews">
-              <div class="review-header">
-                <div class="reviewer-meta">
-                  <div class="avatar-circle">
-                    {{ rev.reviewerName.charAt(0) }}
-                  </div>
-                  <div class="reviewer-info">
-                    <div class="name-row">
-                      <span class="reviewer-name">{{ rev.reviewerName }}</span>
-                      <span class="verified-tag" *ngIf="rev.isVerifiedPurchase">
-                        <app-icon name="CircleCheck" size="13"></app-icon>
-                        Đã mua tại DCOR Studio
-                      </span>
-                    </div>
-                    <div class="purchased-variant-badge" *ngIf="rev.variantName">
-                      Phân loại: <strong>{{ rev.variantName }}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="review-date-stars">
-                  <div class="review-stars">
-                    <app-icon *ngFor="let s of [1,2,3,4,5]" name="Star" size="13" [class.star-filled]="s <= rev.rating"
-                      [filled]="s <= rev.rating"></app-icon>
-                  </div>
-                  <span class="review-date">{{ rev.formattedDate }}</span>
-                </div>
-              </div>
-
-              <!-- Nội dung đánh giá -->
-              <div class="review-body">
-                <p class="review-comment">{{ rev.comment }}</p>
-
-                <!-- Dải ảnh đính kèm (nếu có) -->
-                <div class="review-images-strip" *ngIf="rev.images && rev.images.length > 0">
-                  <img *ngFor="let img of rev.images" [src]="img" [alt]="'Ảnh thực tế từ ' + rev.reviewerName"
-                    class="review-thumb-img" (click)="openLightbox(0)" />
-                </div>
-              </div>
-
-              <!-- Nút phản hồi & Hữu ích -->
-              <div class="review-footer">
-                <button type="button" class="btn-helpful" [class.liked]="rev.liked" (click)="likeReview(rev)">
-                  <app-icon name="ThumbsUp" size="14"></app-icon>
-                  <span>Hữu ích ({{ rev.helpfulCount }})</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Phân trang đánh giá -->
-            <div class="reviews-pagination" *ngIf="reviewTotalPages > 1">
-              <button type="button" class="page-btn prev-btn" [disabled]="reviewPage <= 1"
-                (click)="loadReviews(reviewPage - 1)">
-                <app-icon name="ChevronLeft" size="16"></app-icon>
-                <span>Trước</span>
-              </button>
-
-              <div class="page-numbers">
-                <button *ngFor="let p of [].constructor(reviewTotalPages); let idx = index" type="button"
-                  class="page-num-btn" [class.active]="reviewPage === idx + 1" (click)="loadReviews(idx + 1)">
-                  {{ idx + 1 }}
-                </button>
-              </div>
-
-              <button type="button" class="page-btn next-btn" [disabled]="reviewPage >= reviewTotalPages"
-                (click)="loadReviews(reviewPage + 1)">
-                <span>Sau</span>
-                <app-icon name="ChevronRight" size="16"></app-icon>
-              </button>
-            </div>
+          <!-- Nút phản hồi & Hữu ích -->
+          <div class="review-footer">
+            <button type="button" class="btn-helpful" [class.liked]="rev.liked" (click)="likeReview(rev)">
+              <app-icon name="ThumbsUp" size="14"></app-icon>
+              <span>Hữu ích ({{ rev.helpfulCount }})</span>
+            </button>
           </div>
+        </div>
+
+        <!-- Phân trang đánh giá -->
+        <div class="reviews-pagination" *ngIf="reviewTotalPages > 1">
+          <button type="button" class="page-btn prev-btn" [disabled]="reviewPage <= 1"
+            (click)="loadReviews(reviewPage - 1)">
+            <app-icon name="ChevronLeft" size="16"></app-icon>
+            <span>Trước</span>
+          </button>
+
+          <div class="page-numbers">
+            <button *ngFor="let p of [].constructor(reviewTotalPages); let idx = index" type="button"
+              class="page-num-btn" [class.active]="reviewPage === idx + 1" (click)="loadReviews(idx + 1)">
+              {{ idx + 1 }}
+            </button>
+          </div>
+
+          <button type="button" class="page-btn next-btn" [disabled]="reviewPage >= reviewTotalPages"
+            (click)="loadReviews(reviewPage + 1)">
+            <span>Sau</span>
+            <app-icon name="ChevronRight" size="16"></app-icon>
+          </button>
         </div>
       </div>
     </section>
@@ -729,7 +744,7 @@
       <!-- Nút xem thêm / thu gọn dạng sổ xuống -->
       <div class="related-expand-wrap" *ngIf="relatedProducts.length > RELATED_ROW_SIZE">
         <button type="button" class="btn-toggle-related" (click)="toggleRelatedExpansion()">
-          <span>{{ isRelatedExpanded ? 'Thu gọn' : 'Xem thêm (' + remainingRelatedCount + ' sản phẩm)' }}</span>
+          <span>{{ isRelatedExpanded ? 'Thu gọn' : 'Xem thêm' }}</span>
           <app-icon name="ChevronDown" size="16" class="toggle-related-icon"
             [class.rotated]="isRelatedExpanded"></app-icon>
         </button>
@@ -799,126 +814,16 @@
   </div>
 
   <!-- MODAL / DRAWER: ĐẶT LỊCH TƯ VẤN TẠI SHOWROOM (4 BƯỚC LOGIC) -->
-  <app-showroom-consultation-modal
-    [isOpen]="isShowroomModalOpen"
-    [product]="product"
-    [matchedVariant]="matchedVariant"
-    (close)="closeShowroomModal()"
-    (appointmentSuccess)="onConsultationSuccess($event)">
+  <app-showroom-consultation-modal [isOpen]="isShowroomModalOpen" [product]="product" [matchedVariant]="matchedVariant"
+    (close)="closeShowroomModal()" (appointmentSuccess)="onConsultationSuccess($event)">
   </app-showroom-consultation-modal>
 
   <!-- DRAWER / MODAL: TÙY CHỈNH THIẾT KẾ THEO YÊU CẦU -->
-  <app-custom-request-modal
-    [isOpen]="isCustomModalOpen"
-    [product]="product"
-    [matchedVariant]="matchedVariant"
-    [attributeGroups]="attributeGroups"
-    [selectedAttributes]="selectedAttributes"
-    [dimensionsText]="dimensionsText"
-    (close)="closeCustomModal()"
-    (submitSuccess)="onCustomSubmitSuccess($event)">
+  <app-custom-request-modal *ngIf="isCustomAllowed" [isOpen]="isCustomModalOpen" [product]="product"
+    [matchedVariant]="matchedVariant" [attributeGroups]="attributeGroups" [selectedAttributes]="selectedAttributes"
+    [dimensionsText]="dimensionsText" (close)="closeCustomModal()" (submitSuccess)="onCustomSubmitSuccess($event)">
   </app-custom-request-modal>
 
-  <!-- MODAL: VIẾT ĐÁNH GIÁ SẢN PHẨM -->
-  <div class="pdp-modal-backdrop" *ngIf="isWriteReviewModalOpen" (click)="closeWriteReviewModal()">
-    <div class="modal-dialog-box" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-header-title">
-          <app-icon name="Star" size="22" class="modal-title-icon" [filled]="true"></app-icon>
-          <h3>Đánh giá sản phẩm</h3>
-        </div>
-        <button type="button" class="btn-modal-close" (click)="closeWriteReviewModal()">
-          <app-icon name="X" size="18"></app-icon>
-        </button>
-      </div>
 
-      <div class="modal-body">
-        <form class="consultation-form" (ngSubmit)="submitReview()">
-          <div class="form-group text-center">
-            <label class="form-label">Mức độ hài lòng của bạn</label>
-            <div class="interactive-star-rating">
-              <button type="button" *ngFor="let s of [1,2,3,4,5]" class="interactive-star-btn"
-                [class.active]="s <= newReview.rating" (click)="newReview.rating = s">
-                <app-icon name="Star" size="28" [filled]="s <= newReview.rating"></app-icon>
-              </button>
-            </div>
-            <div class="star-rating-text">
-              {{ newReview.rating === 5 ? 'Tuyệt vời, rất hài lòng' : (newReview.rating === 4 ? 'Hài lòng' :
-              (newReview.rating === 3 ? 'Bình thường' : 'Chưa hài lòng')) }}
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Họ và tên của bạn</label>
-            <input type="text" class="form-input" [(ngModel)]="newReview.reviewerName" name="revName"
-              placeholder="Tên hiển thị (sẽ được che một phần bảo vệ riêng tư)" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Nội dung đánh giá <span class="req">*</span></label>
-            <textarea class="form-textarea" [(ngModel)]="newReview.comment" name="revComment" rows="4"
-              placeholder="Chia sẻ cảm nhận về chất liệu, độ thoải mái, chất lượng hoàn thiện và trải nghiệm giao hàng..."
-              required></textarea>
-          </div>
-
-          <div class="modal-footer-btns">
-            <button type="button" class="btn-modal-cancel" (click)="closeWriteReviewModal()">Hủy</button>
-            <button type="submit" class="btn-modal-submit" [disabled]="isSubmittingReview">
-              <span *ngIf="isSubmittingReview" class="spinner-circle"></span>
-              <span>Gửi đánh giá</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. Floating Compare Bar (Thanh so sánh nổi bên dưới) -->
-  <div class="floating-compare-dock" *ngIf="compareList.length > 0">
-    <div class="compare-dock-container">
-      <div class="dock-left">
-        <div class="compare-badge">
-          <app-icon name="Scale" size="16" color="#9A461E"></app-icon>
-          <span class="compare-tag-title">So sánh ({{ getRootCategoryName(compareList[0]) }})</span>
-        </div>
-        <span class="compare-counter">{{ compareList.length }} / 5 sản phẩm đã chọn</span>
-
-        <div class="compare-items-thumbs">
-          <div class="thumb-box" *ngFor="let item of compareList">
-            <img [src]="item.images?.[0] || item.images || item.image || ''" [alt]="item.name || 'Sản phẩm'">
-            <button type="button" class="thumb-remove" (click)="removeCompare(item.productId || item.id)"
-              title="Bỏ chọn">&times;</button>
-          </div>
-          <div class="thumb-placeholder" *ngIf="compareList.length < 5"
-            title="Chọn thêm sản phẩm cùng danh mục để so sánh">+</div>
-        </div>
-      </div>
-
-      <div class="dock-right">
-        <!-- Nút Xóa tất cả -->
-        <button type="button" class="btn-clear-compare" (click)="clearAllCompare()"
-          title="Xóa tất cả sản phẩm đang so sánh">
-          Xóa tất cả
-        </button>
-
-        <!-- Nút Sao chép liên kết chia sẻ -->
-        <button type="button" class="dock-share-btn" (click)="copyCompareShareLink()" title="Sao chép liên kết so sánh">
-          <app-icon name="Share2" size="16" color="#4b5563"></app-icon>
-        </button>
-
-        <!-- Nút So sánh ngay (bật khi chọn >= 2) -->
-        <button type="button" class="btn-compare-action" [disabled]="compareList.length < 2"
-          (click)="openCompareModal()"
-          [title]="compareList.length < 2 ? 'Chọn tối thiểu 2 sản phẩm để so sánh' : 'Mở bảng so sánh chi tiết'">
-          So sánh ngay ({{ compareList.length }}) &rarr;
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Popup Bảng So Sánh Sản Phẩm -->
-  <app-product-compare-modal [isOpen]="isCompareModalOpen" [products]="compareList" (onClose)="closeCompareModal()"
-    (onRemove)="removeCompare($event)">
-  </app-product-compare-modal>
 
 </div>

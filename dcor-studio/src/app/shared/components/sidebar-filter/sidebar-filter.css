@@ -483,6 +483,63 @@
   cursor: not-allowed;
 }
 
+/* Subcategory Filter Styles */
+.section-subcategories .subcategory-search-wrap {
+  margin-bottom: 10px;
+}
+
+.subcategory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subcat-item-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.subcat-item-label .filter-checkbox-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: #374151;
+  transition: color 0.15s ease;
+}
+
+.subcat-parent-tag {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 4px;
+  font-weight: 400;
+}
+
+.subcat-count-badge {
+  font-size: 11px;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 9999px;
+  padding: 1px 7px;
+  font-weight: 500;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.subcat-item-label:hover .subcat-count-badge {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.subcat-item-label:hover .filter-checkbox-text {
+  color: #b45309;
+}
+
 /* ==========================================================================
    Responsive Sidebar Filter (Mobile Drawer & Small Screens)
    ========================================================================== */

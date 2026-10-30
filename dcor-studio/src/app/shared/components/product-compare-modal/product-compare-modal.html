@@ -1,6 +1,6 @@
 <div class="compare-modal-backdrop" *ngIf="isOpen" (click)="closeModal()">
   <div class="compare-modal-container" (click)="$event.stopPropagation()">
-    
+
     <!-- Modal Header -->
     <div class="compare-modal-header">
       <div class="header-left">
@@ -14,7 +14,6 @@
               <span class="category-pill" *ngIf="products.length > 0">
                 {{ getCategoryPillText(products[0]) }}
               </span>
-              <span class="count-pill">{{ products.length }} / 5 sản phẩm</span>
             </div>
           </div>
         </div>
@@ -31,9 +30,11 @@
         </label>
 
         <!-- Nút sao chép liên kết chia sẻ -->
-        <button type="button" class="btn-share-link" (click)="copyShareLink()" title="Sao chép liên kết để mở lại đúng danh sách so sánh này">
-          <app-icon [name]="copiedLinkSuccess ? 'Check' : 'Share2'" size="16" [color]="copiedLinkSuccess ? '#15803d' : '#4b5563'"></app-icon>
-          <span>{{ copiedLinkSuccess ? 'Đã sao chép!' : 'Sao chép liên kết' }}</span>
+        <button type="button" class="btn-share-link" (click)="copyShareLink()"
+          title="Sao chép liên kết để mở lại đúng danh sách so sánh này">
+          <app-icon [name]="copiedLinkSuccess ? 'Check' : 'Share2'" size="16"
+            [color]="copiedLinkSuccess ? '#15803d' : '#4b5563'"></app-icon>
+          <span>{{ copiedLinkSuccess ? 'Đã sao chép!' : 'Chia sẻ' }}</span>
         </button>
 
         <!-- Nút đóng -->
@@ -50,16 +51,13 @@
         <thead>
           <tr>
             <th class="cell-prop-label cell-sticky-head">
-              <div class="prop-label-head">
-                <span class="prop-title">Thuộc tính sản phẩm</span>
-                <span class="prop-subtitle">So sánh chi tiết từng tiêu chí</span>
-              </div>
             </th>
 
             <th *ngFor="let prod of products" class="cell-product-col cell-sticky-head">
               <div class="product-column-head">
                 <!-- Nút bỏ sản phẩm khỏi bảng so sánh -->
-                <button type="button" class="btn-remove-col" (click)="removeProduct($event, prod.productId)" title="Bỏ sản phẩm này khỏi so sánh">
+                <button type="button" class="btn-remove-col" (click)="removeProduct($event, prod.productId)"
+                  title="Bỏ sản phẩm này khỏi so sánh">
                   <app-icon name="X" size="14" color="#6b7280"></app-icon>
                 </button>
 
@@ -81,19 +79,22 @@
                   <div class="field-group" *ngFor="let group of getAttributeGroups(prod)">
                     <div class="field-label">
                       <span>{{ group.label }}</span>
-                      <span class="variant-count-pill">{{ group.options.length }} lựa chọn</span>
                     </div>
 
-                    <div class="custom-select-box" [class.is-open]="openDropdownKey === (getProdId(prod) + '_' + group.groupId)">
+                    <div class="custom-select-box"
+                      [class.is-open]="openDropdownKey === (getProdId(prod) + '_' + group.groupId)">
                       <!-- Nút kích hoạt dropdown hiển thị option đang chọn -->
-                      <div class="custom-select-trigger" (click)="toggleDropdown(getProdId(prod), group.groupId, $event)">
+                      <div class="custom-select-trigger"
+                        (click)="toggleDropdown(getProdId(prod), group.groupId, $event)">
                         <!-- Swatch ảnh nếu có -->
                         <div class="trigger-thumb" *ngIf="getSelectedOption(prod, group)?.image">
-                          <img [src]="getSelectedOption(prod, group)?.image" [alt]="getSelectedOption(prod, group)?.name || ''" />
+                          <img [src]="getSelectedOption(prod, group)?.image"
+                            [alt]="getSelectedOption(prod, group)?.name || ''" />
                         </div>
                         <!-- Swatch màu nếu có -->
-                        <div class="trigger-color-swatch" *ngIf="!getSelectedOption(prod, group)?.image && getSelectedOption(prod, group)?.hexColor"
-                             [style.background-color]="getSelectedOption(prod, group)?.hexColor"></div>
+                        <div class="trigger-color-swatch"
+                          *ngIf="!getSelectedOption(prod, group)?.image && getSelectedOption(prod, group)?.hexColor"
+                          [style.background-color]="getSelectedOption(prod, group)?.hexColor"></div>
 
                         <div class="trigger-content">
                           <span class="trigger-name">{{ getSelectedOption(prod, group)?.name }}</span>
@@ -102,23 +103,24 @@
                       </div>
 
                       <!-- Menu thả xuống của nhóm thuộc tính này -->
-                      <div class="custom-dropdown-menu" *ngIf="openDropdownKey === (getProdId(prod) + '_' + group.groupId)">
-                        <div *ngFor="let opt of group.options" 
-                             class="dropdown-item" 
-                             [class.selected]="getSelectedAttributeId(prod, group.groupId) === opt.id"
-                             (click)="selectAttributeOption(prod, group.groupId, opt.id, $event)">
+                      <div class="custom-dropdown-menu"
+                        *ngIf="openDropdownKey === (getProdId(prod) + '_' + group.groupId)">
+                        <div *ngFor="let opt of group.options" class="dropdown-item"
+                          [class.selected]="getSelectedAttributeId(prod, group.groupId) === opt.id"
+                          (click)="selectAttributeOption(prod, group.groupId, opt.id, $event)">
                           <!-- Swatch ảnh hoặc màu -->
                           <div class="item-thumb" *ngIf="opt.image">
                             <img [src]="opt.image" [alt]="opt.name" />
                           </div>
                           <div class="item-color-swatch" *ngIf="!opt.image && opt.hexColor"
-                               [style.background-color]="opt.hexColor"></div>
+                            [style.background-color]="opt.hexColor"></div>
 
                           <div class="item-info">
                             <span class="item-title">{{ opt.name }}</span>
                             <span class="item-subtitle" *ngIf="opt.groupName">{{ opt.groupName }}</span>
                           </div>
-                          <app-icon *ngIf="getSelectedAttributeId(prod, group.groupId) === opt.id" name="Check" size="14" class="item-check-icon"></app-icon>
+                          <app-icon *ngIf="getSelectedAttributeId(prod, group.groupId) === opt.id" name="Check"
+                            size="14" class="item-check-icon"></app-icon>
                         </div>
                       </div>
                     </div>
@@ -135,7 +137,7 @@
                   </div>
                 </div>
 
-                <!-- Cụm Giá tiền & Nút Thêm vào giỏ hàng cố định phía dưới cùng của thẻ th -->
+                <!-- Cụm Giá tiền & Nút Mua hàng ngang hàng -->
                 <div class="col-head-bottom-action">
                   <!-- Giá tiền cập nhật theo biến thể -->
                   <div class="compare-col-price-box">
@@ -145,13 +147,11 @@
                     </span>
                   </div>
 
-                  <!-- Nút Thêm vào giỏ hàng ngay trong từng cột -->
-                  <button type="button" class="btn-col-add-cart" 
-                          [class.btn-added]="addedSuccessMap[prod.productId]"
-                          [disabled]="addingToCartMap[prod.productId]"
-                          (click)="addToCart(prod)">
-                    <app-icon [name]="addedSuccessMap[prod.productId] ? 'Check' : 'ShoppingCart'" size="15" color="#ffffff"></app-icon>
-                    <span>{{ addedSuccessMap[prod.productId] ? 'Đã thêm vào giỏ' : (addingToCartMap[prod.productId] ? 'Đang thêm...' : 'Thêm vào giỏ') }}</span>
+                  <!-- Nút Mua hàng (chỉ icon) -->
+                  <button type="button" class="btn-col-add-cart" [class.btn-added]="addedSuccessMap[prod.productId]"
+                    [disabled]="addingToCartMap[prod.productId]" (click)="addToCart(prod)"
+                    [title]="addedSuccessMap[prod.productId] ? 'Đã thêm vào giỏ' : (addingToCartMap[prod.productId] ? 'Đang thêm...' : 'Thêm vào giỏ')">
+                    <app-icon [name]="addedSuccessMap[prod.productId] ? 'Check' : 'ShoppingCart'" size="16"></app-icon>
                   </button>
                 </div>
               </div>
@@ -165,8 +165,7 @@
           <tr [class.highlight-row]="highlightDifferences && isRowDifferent('rating')">
             <td class="cell-prop-label">
               <div class="prop-item-info">
-                <span class="prop-name">Đánh giá khách hàng</span>
-                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('rating')">Khác nhau</span>
+                <span class="prop-name">Đánh giá</span>
               </div>
             </td>
             <td *ngFor="let prod of products" class="cell-product-data">
@@ -183,7 +182,6 @@
             <td class="cell-prop-label">
               <div class="prop-item-info">
                 <span class="prop-name">Chiều rộng</span>
-                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('width')">Khác nhau</span>
               </div>
             </td>
             <td *ngFor="let prod of products" class="cell-product-data">
@@ -197,8 +195,7 @@
           <tr [class.highlight-row]="highlightDifferences && isRowDifferent('depth')">
             <td class="cell-prop-label">
               <div class="prop-item-info">
-                <span class="prop-name">Chiều sâu / dài</span>
-                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('depth')">Khác nhau</span>
+                <span class="prop-name">Chiều dài</span>
               </div>
             </td>
             <td *ngFor="let prod of products" class="cell-product-data">
@@ -213,7 +210,6 @@
             <td class="cell-prop-label">
               <div class="prop-item-info">
                 <span class="prop-name">Chiều cao</span>
-                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('height')">Khác nhau</span>
               </div>
             </td>
             <td *ngFor="let prod of products" class="cell-product-data">
@@ -228,7 +224,6 @@
             <td class="cell-prop-label">
               <div class="prop-item-info">
                 <span class="prop-name">Trọng lượng</span>
-                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('weight')">Khác nhau</span>
               </div>
             </td>
             <td *ngFor="let prod of products" class="cell-product-data">
@@ -242,8 +237,7 @@
           <tr [class.highlight-row]="highlightDifferences && isRowDifferent('material')">
             <td class="cell-prop-label">
               <div class="prop-item-info">
-                <span class="prop-name">Chất liệu & Hoàn thiện</span>
-                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('material')">Khác nhau</span>
+                <span class="prop-name">Chất liệu</span>
               </div>
             </td>
             <td *ngFor="let prod of products" class="cell-product-data">
@@ -257,8 +251,7 @@
           <tr [class.highlight-row]="highlightDifferences && isRowDifferent('color')">
             <td class="cell-prop-label">
               <div class="prop-item-info">
-                <span class="prop-name">Màu sắc biến thể</span>
-                <span class="diff-badge" *ngIf="highlightDifferences && isRowDifferent('color')">Khác nhau</span>
+                <span class="prop-name">Màu sắc</span>
               </div>
             </td>
             <td *ngFor="let prod of products" class="cell-product-data">
@@ -272,22 +265,11 @@
       </table>
     </div>
 
-    <!-- Modal Footer -->
-    <footer class="compare-modal-footer">
-      <div class="footer-left-info">
-        <span class="tip-dot">💡</span>
-        <span>Mẹo: Bạn có thể thay đổi biến thể màu/chất liệu ngay trong từng cột để xem giá và thông số cập nhật theo thời gian thực.</span>
-      </div>
-      <div class="footer-actions">
-        <button type="button" class="btn-footer-close" (click)="closeModal()">
-          Đóng bảng so sánh
-        </button>
-      </div>
-    </footer>
 
     <!-- Toast Thông Báo Nội Bộ -->
     <div class="compare-internal-toast" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
-      <app-icon [name]="toastType === 'success' ? 'Check' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="16" color="#ffffff"></app-icon>
+      <app-icon [name]="toastType === 'success' ? 'CircleCheck' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')"
+        size="18"></app-icon>
       <span>{{ toastMessage }}</span>
     </div>
 
