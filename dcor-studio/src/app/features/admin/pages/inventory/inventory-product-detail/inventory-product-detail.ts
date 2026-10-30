@@ -216,6 +216,8 @@ interface StockHistory {
       <!-- Floating Toast Notification (Góc dưới bên phải) -->
       <div *ngIf="showToast" 
         class="inventory-toast-container"
+        (mouseenter)="pauseToastTimer()"
+        (mouseleave)="resumeToastTimer()"
         style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; width: max-content; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; animation: toastSlideUpRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;"
         [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
       >
@@ -257,7 +259,7 @@ interface StockHistory {
         <!-- Countdown Progress Bar -->
         <div style="width: 100%; height: 3px; background: rgba(0, 0, 0, 0.06); border-radius: 2px; overflow: hidden; margin-top: 2px;">
           <div 
-            style="height: 100%; border-radius: 2px; animation: toastProgress 4.5s linear forwards;"
+            style="height: 100%; border-radius: 2px; animation: toastProgress 3s linear forwards;"
             [style.background]="toastType === 'success' ? '#10b981' : (toastType === 'error' ? '#ef4444' : '#3b82f6')"
           ></div>
         </div>
@@ -601,25 +603,35 @@ export class InventoryProductDetailComponent implements OnInit {
   showToast = false;
   toastTimer: any = null;
 
-  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 4500) {
-    if (this.toastTimer) {
-      clearTimeout(this.toastTimer);
-    }
+  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 3000) {
+    this.pauseToastTimer();
     this.toastMessage = message;
     this.toastSubMessage = subMessage;
     this.toastType = type;
     this.showToast = true;
     this.cdr.markForCheck();
     this.toastTimer = setTimeout(() => {
-      this.showToast = false;
-      this.cdr.markForCheck();
+      this.closeToast();
     }, durationMs);
   }
 
-  closeToast() {
+  pauseToastTimer(): void {
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
+      this.toastTimer = null;
     }
+  }
+
+  resumeToastTimer(): void {
+    if (!this.showToast) return;
+    this.pauseToastTimer();
+    this.toastTimer = setTimeout(() => {
+      this.closeToast();
+    }, 3000);
+  }
+
+  closeToast() {
+    this.pauseToastTimer();
     this.showToast = false;
     this.cdr.markForCheck();
   }

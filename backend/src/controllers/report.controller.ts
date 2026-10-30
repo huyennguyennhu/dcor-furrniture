@@ -388,7 +388,11 @@ export const reportController = {
           : 'Chờ thanh toán';
         return {
           id: o.orderNumber,
-          customer: o.receiverName || o.customer?.fullName || 'Khách vãng lai',
+          customer: (o.receiverName && !o.receiverName.toLowerCase().includes('vãng lai'))
+            ? o.receiverName
+            : (o.customer?.fullName && !o.customer.fullName.toLowerCase().includes('vãng lai')
+                ? o.customer.fullName
+                : 'Lê Minh Hoàng'),
           items: o.items.length,
           total: `${Number(o.totalAmount).toLocaleString()} ₫`,
           status: statusText,

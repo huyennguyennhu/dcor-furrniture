@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, ChangeDetectorRef, NgZone, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -15,6 +15,7 @@ import {
   ReturnStatus, 
   ReturnType 
 } from './services/orders-returns-mock.service';
+import { OrdersService } from '../services/orders.service';
 
 @Component({
   selector: 'app-orders-returns',
@@ -24,6 +25,26 @@ import {
   styleUrls: ['./orders-returns.css']
 })
 export class OrdersReturnsComponent implements OnInit {
+
+  onCustomerClick(req: ReturnRequest, event: MouseEvent): void {
+    event.stopPropagation();
+    if (req.customer?.phone) {
+      this.router.navigate(['/admin/customers'], { queryParams: { q: req.customer.phone } });
+    } else if (req.customer?.name) {
+      this.router.navigate(['/admin/customers'], { queryParams: { q: req.customer.name } });
+    } else {
+      this.router.navigate(['/admin/customers']);
+    }
+  }
+
+  onOrderClick(req: ReturnRequest, event: MouseEvent): void {
+    event.stopPropagation();
+    const orderKey = (req.orderNumber || req.orderId || '').replace(/^#/g, '').trim();
+    this.router.navigate(['/admin/orders', orderKey]);
+  }
+
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
   icons = { 
     Search, RotateCcw, AlertCircle, CheckCircle2, Clock, XCircle, Package,
     ArrowRightLeft, HelpCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X,
@@ -56,6 +77,7 @@ export class OrdersReturnsComponent implements OnInit {
   toastMessage = '';
   toastType: 'success' | 'info' | 'error' = 'success';
   showToast = false;
+  private toastTimer: any = null;
 
   readonly typeOptions = [
     { label: 'Tất cả loại yêu cầu', value: 'ALL' },
@@ -90,10 +112,22 @@ export class OrdersReturnsComponent implements OnInit {
 
   constructor(
     private router: Router,
-    public returnsService: OrdersReturnsMockService
+    public returnsService: OrdersReturnsMockService,
+    private ordersService: OrdersService
   ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.ordersService.orders$.subscribe(orders => {
+      if (orders && orders.length > 0) {
+        orders.forEach(order => {
+          if (['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status) || order.returnInfo) {
+            this.returnsService.syncFromOrder(order);
+          }
+        });
+        this.cdr.markForCheck();
+      }
+    });
+  }
 
   @HostListener('document:mousedown', ['$event'])
   onGlobalClick(event: MouseEvent) {
@@ -309,11 +343,42 @@ export class OrdersReturnsComponent implements OnInit {
     return this.returnsService.formatVND(num);
   }
 
-  triggerToast(msg: string, type: 'success' | 'info' | 'error' = 'success') {
+  triggerToast(msg: string, type: 'success' | 'info' | 'error' = 'success', durationMs = 3500) {
+    this.pauseToastTimer();
     this.toastMessage = msg;
     this.toastType = type;
     this.showToast = true;
-    setTimeout(() => { this.showToast = false; }, 3200);
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+    this.toastTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        this.closeToast();
+      });
+    }, durationMs);
+  }
+
+  pauseToastTimer(): void {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+  }
+
+  resumeToastTimer(): void {
+    if (!this.showToast) return;
+    this.pauseToastTimer();
+    this.toastTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        this.closeToast();
+      });
+    }, 2000);
+  }
+
+  closeToast(): void {
+    this.pauseToastTimer();
+    this.showToast = false;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   // Navigate to return detail page

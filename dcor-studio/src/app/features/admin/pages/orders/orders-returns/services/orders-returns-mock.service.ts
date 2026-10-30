@@ -37,7 +37,7 @@ export interface ReturnQcChecklist {
   condition: string;
   defectAssessment: string;
   refundPercent: number;
-  restockOption: 'RESTOCK_SALE' | 'REFURBISH' | 'SCRAP';
+  restockOption?: 'RESTOCK_SALE' | 'REFURBISH' | 'SCRAP' | '' | undefined;
   inspector: string;
 }
 
@@ -64,10 +64,11 @@ export interface ReturnPickupDispatch {
 export interface ReturnReplacementOrder {
   orderNumber: string;
   createdAt: string;
-  status: 'PROCESSING' | 'SHIPPED' | 'DELIVERED';
+  status: 'DRAFT' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED';
   item: ReturnItemInfo;
   priceDiff: number;
   deliveryAddress: string;
+  notes?: string;
 }
 
 export interface ReturnRequest {
@@ -102,6 +103,7 @@ export interface ReturnRequest {
   pickupInfo?: ReturnPickupDispatch;
   replacementOrder?: ReturnReplacementOrder;
   qcReport?: ReturnQcChecklist;
+  verificationChecklist?: { [itemId: string]: boolean };
   timeline: ReturnTimelineEvent[];
 }
 
@@ -109,7 +111,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
   {
     id: 'RET-20261021-001',
     orderNumber: 'DCOR-ORD-1008',
-    orderId: 'ORD-20261014-1008',
+    orderId: 'ord-1008',
     createdAt: '21/10/2026 08:30',
     customer: {
       name: 'Nguyễn Văn An',
@@ -130,11 +132,15 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
     customerNote: 'Sofa nhận thực tế màu xám sáng hơn so với phối cảnh 3D nội thất, muốn đổi sang phiên bản Vải nỉ nâu trầm cao cấp.',
     proofImages: [
       'https://res.cloudinary.com/dsasf753c/image/upload/v1792400898/dcor/products/dcor_products_64b4f3319263ff6db7c03d740f513353.webp',
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_0f4553531b740523e10faee5876615b3.webp'
+      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_0f4553531b740523e10faee5876615b3.webp',
+      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400900/dcor/products/dcor_products_feff2d6409600a72c1c69c5e53308d74.webp',
+      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp',
+      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_c6c4c9b9101662fb16a18274719bb807.webp',
+      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400903/dcor/products/dcor_products_67a216eefd2089b2518eec4ff5be3c09.webp'
     ],
     status: 'PENDING',
     stage: 1,
-    assignee: 'CSKH Kim Ngân',
+    assignee: 'Chưa phân công',
     exchangeItem: {
       name: 'Salamanca 3 seater lounge sofa - Bản da nỉ cao cấp',
       sku: 'SKU-SAL-3S-BROWN',
@@ -150,7 +156,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
   {
     id: 'RET-20261021-002',
     orderNumber: 'DCOR-ORD-1007',
-    orderId: 'ORD-20261012-1007',
+    orderId: 'ord-1007',
     createdAt: '21/10/2026 07:15',
     customer: {
       name: 'Trần Thị Mai',
@@ -224,10 +230,10 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
     },
     pickupInfo: {
       provider: 'DCOR Express Đội xe chuyên dụng',
-      driverName: 'Phạm Quốc Cường',
-      driverPhone: '0909 333 444',
-      vehiclePlate: '51D-892.45 (Xe tải 1.9 tấn có bửng nâng)',
-      movingTeam: 'Đội bốc xếp 1 (2 thợ khiêng lầu)',
+      driverName: '',
+      driverPhone: '',
+      vehiclePlate: '',
+      movingTeam: '',
       trackingCode: 'DCOR-TRK-7712',
       estimatedTime: '21/10/2026 14:00 - 16:00',
       dispatchNote: 'Chuẩn bị màng xốp bọc bảo vệ mặt gỗ sồi và cờ lê tháo chân bàn',
@@ -278,7 +284,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       provider: 'DCOR Express Logistics',
       driverName: 'Đỗ Văn Thành',
       driverPhone: '0918 222 333',
-      vehiclePlate: '51C-645.18 (Xe tải 2.5 tấn thùng kín)',
+      vehiclePlate: '51C-645.18',
       movingTeam: 'Đội phản ứng nhanh DCOR Express (Tài xế + Phụ xe)',
       trackingCode: 'DCOR-TRK-8801',
       estimatedTime: '21/10/2026 11:30',
@@ -331,7 +337,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       provider: 'DCOR Express',
       driverName: 'Lê Văn Hiền',
       driverPhone: '0908 555 777',
-      vehiclePlate: '51D-901.22 (Xe tải 1.5 tấn)',
+      vehiclePlate: '51D-901.22',
       movingTeam: 'Đội bốc xếp 2 (2 nhân sự)',
       trackingCode: 'DCOR-TRK-7650',
       estimatedTime: '20/10/2026 15:30',
@@ -340,15 +346,15 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       currentLocation: 'Trung tâm phân phối & QC DCOR Bình Tân'
     },
     qcReport: {
-      surfaceChecked: true,
-      structureChecked: true,
+      surfaceChecked: false,
+      structureChecked: false,
       cushionLeatherChecked: false,
-      accessoriesChecked: true,
-      condition: 'Khung dát giường nguyên vẹn, da đầu giường đúng bị lỗi căng mút tại xưởng.',
-      defectAssessment: 'Lỗi công đoạn may bọc tại xưởng sofa DCOR.',
+      accessoriesChecked: false,
+      condition: '',
+      defectAssessment: '',
       refundPercent: 100,
-      restockOption: 'REFURBISH',
-      inspector: 'KTV Trịnh Văn Bách'
+      restockOption: '' as any,
+      inspector: ''
     },
     timeline: [
       { time: '18/10/2026 16:45', status: 'PENDING', actor: 'Khách hàng', desc: 'Báo lỗi da chùng.' },
@@ -360,7 +366,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
   {
     id: 'RET-20261017-006',
     orderNumber: 'DCOR-ORD-0994',
-    orderId: 'ORD-20261002-0994',
+    orderId: 'ord-0994',
     createdAt: '17/10/2026 11:20',
     customer: {
       name: 'Đặng Ngọc Trâm',
@@ -507,14 +513,201 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
   providedIn: 'root'
 })
 export class OrdersReturnsMockService {
-  private returns: ReturnRequest[] = JSON.parse(JSON.stringify(INITIAL_MOCK_RETURNS));
+  private readonly STORAGE_KEY = 'dcor_returns_mock_data_v2';
+  private returns: ReturnRequest[] = this.loadInitialData();
+
+  private loadInitialData(): ReturnRequest[] {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            let changed = false;
+            for (const item of INITIAL_MOCK_RETURNS) {
+              if (!parsed.some((p: ReturnRequest) => p.id === item.id)) {
+                parsed.push(item);
+                changed = true;
+              }
+            }
+            // Tự động nạp các đơn có trạng thái đổi trả từ kho đơn hàng nếu chưa có trong danh sách
+            try {
+              const ordersRaw = localStorage.getItem('dcor_orders_v2_store');
+              if (ordersRaw) {
+                const orders = JSON.parse(ordersRaw);
+                if (Array.isArray(orders)) {
+                  orders.forEach((ord: any) => {
+                    if (['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(ord.status) || ord.returnInfo) {
+                      const hasRet = parsed.some((p: ReturnRequest) => p.orderNumber === ord.orderNumber || p.orderId === ord.id);
+                      if (!hasRet) {
+                        const newRet = this.buildReturnFromOrder(ord);
+                        if (newRet) {
+                          parsed.unshift(newRet);
+                          changed = true;
+                        }
+                      }
+                    }
+                  });
+                }
+              }
+            } catch (_) {}
+
+            if (changed) {
+              try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed)); } catch (_) {}
+            }
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Cannot load returns from localStorage', e);
+    }
+    return JSON.parse(JSON.stringify(INITIAL_MOCK_RETURNS));
+  }
+
+  // Khởi tạo đối tượng ReturnRequest từ OrderV2 thực tế
+  buildReturnFromOrder(order: any, returnData?: { reason?: string; customerNote?: string; type?: ReturnType; proofImages?: string[] }): ReturnRequest {
+    const now = new Date();
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+    const nowStr = `${pad(now.getHours())}:${pad(now.getMinutes())} ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+    const cleanNum = (order.orderNumber || 'ORD').replace(/[^a-zA-Z0-9]/g, '');
+    const retId = order.returnInfo?.returnRequestId || `RET-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${cleanNum.slice(-4)}`;
+
+    const productList = order.products || order.items || [];
+    const firstProduct = productList[0] || {
+      name: 'Sản phẩm nội thất DCOR',
+      sku: 'SKU-DCOR',
+      variant: 'Tiêu chuẩn',
+      quantity: 1,
+      price: order.totalAmount || 0,
+      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp'
+    };
+
+    const retType: ReturnType = returnData?.type || order.returnInfo?.type || 'REFUND';
+    const reason = returnData?.reason || order.returnInfo?.reason || 'Khách hàng yêu cầu đổi trả theo chính sách 72h';
+    const customerNote = returnData?.customerNote || order.returnInfo?.customerNote || '';
+    const proofImages = returnData?.proofImages?.length ? returnData.proofImages : (order.returnInfo?.proofImages || [firstProduct.imageUrl]);
+
+    let retStatus: ReturnStatus = 'PENDING';
+    let stage: 1 | 2 | 3 | 4 = 1;
+    if (order.status === 'RETURNING') {
+      retStatus = 'RETURNING';
+      stage = 2;
+    } else if (order.status === 'RETURNED') {
+      retStatus = retType === 'EXCHANGE' ? 'EXCHANGING' : 'REFUNDING';
+      stage = 3;
+    } else if (order.status === 'COMPLETED') {
+      retStatus = 'COMPLETED';
+      stage = 4;
+    }
+
+    return {
+      id: retId,
+      orderNumber: order.orderNumber,
+      orderId: order.id,
+      createdAt: order.returnInfo?.requestedAt || order.createdAt || nowStr,
+      customer: {
+        name: order.customerName || 'Khách hàng DCOR',
+        phone: order.phone || '0901 234 567',
+        email: order.email || order.customerEmail || 'khachhang@gmail.com',
+        address: order.address || 'Địa chỉ giao hàng'
+      },
+      item: {
+        name: firstProduct.name,
+        sku: firstProduct.sku,
+        variant: firstProduct.variant || 'Tiêu chuẩn',
+        quantity: firstProduct.quantity || 1,
+        price: firstProduct.price,
+        imageUrl: firstProduct.imageUrl
+      },
+      type: retType,
+      reason,
+      customerNote,
+      proofImages,
+      status: retStatus,
+      stage,
+      assignee: 'CSKH DCOR',
+      timeline: [
+        {
+          time: order.returnInfo?.requestedAt || nowStr,
+          status: retStatus,
+          actor: 'Khách hàng',
+          desc: `Khách hàng gửi yêu cầu ${retType === 'EXCHANGE' ? 'đổi hàng' : 'trả hàng hoàn tiền'}. Lý do: ${reason}`
+        }
+      ],
+      ...(retType === 'REFUND' ? {
+        refundInfo: {
+          bank: 'Vietcombank',
+          accountNumber: '0071009988776',
+          accountHolder: (order.customerName || 'KHACH HANG').toUpperCase(),
+          refundAmount: order.returnInfo?.refundAmount || order.totalAmount
+        }
+      } : {
+        exchangeItem: {
+          name: firstProduct.name,
+          sku: firstProduct.sku + '-EX',
+          variant: firstProduct.variant || 'Tiêu chuẩn đổi',
+          price: firstProduct.price,
+          priceDiff: 0,
+          imageUrl: firstProduct.imageUrl
+        }
+      })
+    };
+  }
+
+  // Đồng bộ từ đơn hàng OrdersService
+  syncFromOrder(order: any, returnData?: { reason?: string; customerNote?: string; type?: ReturnType; proofImages?: string[] }): ReturnRequest {
+    let existing = this.returns.find(r => r.orderNumber === order.orderNumber || r.orderId === order.id);
+    if (!existing) {
+      existing = this.buildReturnFromOrder(order, returnData);
+      this.returns.unshift(existing);
+      this.saveToStorage();
+    } else {
+      if (order.status === 'RETURNING' && existing.status !== 'COMPLETED') {
+        existing.status = 'RETURNING';
+        existing.stage = 2;
+      } else if (order.status === 'RETURNED' && existing.status !== 'COMPLETED') {
+        existing.status = existing.type === 'EXCHANGE' ? 'EXCHANGING' : 'REFUNDING';
+        existing.stage = 3;
+      } else if (order.status === 'COMPLETED') {
+        existing.status = 'COMPLETED';
+        existing.stage = 4;
+      }
+      this.saveToStorage();
+    }
+    return existing;
+  }
+
+  private saveToStorage(): void {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.returns));
+      }
+    } catch (e) {
+      console.warn('Cannot save returns to localStorage', e);
+    }
+  }
+
+  resetMockData(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
+    this.returns = JSON.parse(JSON.stringify(INITIAL_MOCK_RETURNS));
+  }
 
   getAll(): ReturnRequest[] {
     return this.returns;
   }
 
   getById(id: string): ReturnRequest | undefined {
-    return this.returns.find(r => r.id === id);
+    if (!id) return undefined;
+    const cleanId = id.trim().toLowerCase();
+    const withoutHash = cleanId.startsWith('#') ? cleanId.slice(1) : cleanId;
+    return this.returns.find(r => 
+      (r.id && (r.id.toLowerCase() === cleanId || r.id.toLowerCase() === withoutHash)) ||
+      (r.orderNumber && (r.orderNumber.toLowerCase() === cleanId || r.orderNumber.toLowerCase() === withoutHash || r.orderNumber.replace(/#/g, '').toLowerCase() === withoutHash)) ||
+      (r.orderId && r.orderId.toLowerCase() === cleanId)
+    );
   }
 
   updateStatus(id: string, newStatus: ReturnStatus, desc: string, actor: string = 'CSKH'): ReturnRequest | null {
@@ -529,18 +722,38 @@ export class OrdersReturnsMockService {
     else if (['REFUNDING', 'EXCHANGING'].includes(newStatus)) item.stage = 3;
     else if (newStatus === 'COMPLETED') item.stage = 4;
 
-    const nowStr = new Date().toLocaleDateString('vi-VN', { 
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-    });
+    // Khi đã duyệt hoặc qua các bước sau, toàn bộ checklist Bước 1 luôn đạt 100%
+    if (!['PENDING', 'REVIEWING', 'REJECTED'].includes(newStatus)) {
+      if (!item.verificationChecklist) {
+        item.verificationChecklist = {
+          auto_time_limit: true,
+          auto_sku_valid: true,
+          auto_warranty_valid: true,
+          auto_policy_valid: true,
+          auto_attachments: true,
+          auto_inventory: true,
+          auto_calc_refund: true,
+          manual_sku_physical: true,
+          manual_qc_intact: true,
+          manual_accessories: true
+        };
+      } else {
+        Object.keys(item.verificationChecklist).forEach(k => item.verificationChecklist![k] = true);
+      }
+    }
+
+    const now = new Date();
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+    const nowStr = `${pad(now.getHours())}:${pad(now.getMinutes())} ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
 
     // Auto-setup logic theo từng trạng thái mới
     if (newStatus === 'APPROVED' && !item.pickupInfo) {
       item.pickupInfo = {
         provider: 'DCOR Express Đội xe chuyên dụng',
-        driverName: 'Nguyễn Văn Cường',
-        driverPhone: '0909 333 444',
-        vehiclePlate: '51D-892.45 (Xe tải 1.9 tấn có bửng nâng)',
-        movingTeam: 'Đội bốc xếp 1 (2 thợ khiêng lầu)',
+        driverName: '',
+        driverPhone: '',
+        vehiclePlate: '',
+        movingTeam: '',
         trackingCode: `DCOR-TRK-${Math.floor(1000 + Math.random() * 9000)}`,
         estimatedTime: 'Hôm nay, 14:00 - 16:00',
         dispatchNote: 'Chuẩn bị màng PE 3 lớp bọc bảo vệ bề mặt chống trầy xước và đồ nghề tháo dỡ',
@@ -557,39 +770,49 @@ export class OrdersReturnsMockService {
         item.pickupInfo.currentLeg = 4;
         item.pickupInfo.currentLocation = 'Đã về tới Trung tâm phân phối & QC DCOR Bình Tân';
       }
-      if (!item.qcReport) {
-        item.qcReport = {
-          surfaceChecked: true,
-          structureChecked: true,
-          cushionLeatherChecked: true,
-          accessoriesChecked: true,
-          condition: 'Kiện hàng nguyên vẹn tem niêm phong khi tài xế thu hồi về kho.',
-          defectAssessment: item.reason,
-          refundPercent: 100,
-          restockOption: 'RESTOCK_SALE',
-          inspector: 'KTV Trịnh Văn Bách'
-        };
-      }
+      item.qcReport = {
+        surfaceChecked: false,
+        structureChecked: false,
+        cushionLeatherChecked: false,
+        accessoriesChecked: false,
+        condition: '',
+        defectAssessment: '',
+        refundPercent: 100,
+        restockOption: '' as any,
+        inspector: ''
+      };
     } else if (newStatus === 'EXCHANGING') {
-      // TỰ ĐỘNG KÍCH HOẠT 1 ĐƠN HÀNG MỚI NẾU LÀ ĐỔI HÀNG
-      if (item.type === 'EXCHANGE' && !item.replacementOrder && item.exchangeItem) {
+      // LÊN SẴN CẤU TRÚC ĐƠN HÀNG DỰ THẢO NẾU LÀ ĐỔI HÀNG
+      if (item.type === 'EXCHANGE' && !item.replacementOrder) {
+        const targetItem = item.exchangeItem || {
+          name: item.item.name,
+          sku: item.item.sku,
+          variant: item.item.variant,
+          price: item.item.price,
+          imageUrl: item.item.imageUrl,
+          priceDiff: 0
+        };
         const randomNum = Math.floor(1000 + Math.random() * 9000);
         item.replacementOrder = {
           orderNumber: `DCOR-ORD-EX${randomNum}`,
           createdAt: nowStr,
-          status: 'PROCESSING',
+          status: 'DRAFT',
           item: {
-            name: item.exchangeItem.name,
-            sku: item.exchangeItem.sku,
-            variant: item.exchangeItem.variant,
+            name: targetItem.name,
+            sku: targetItem.sku,
+            variant: targetItem.variant,
             quantity: item.item.quantity || 1,
-            price: item.exchangeItem.price,
-            imageUrl: item.exchangeItem.imageUrl
+            price: targetItem.price,
+            imageUrl: targetItem.imageUrl
           },
-          priceDiff: item.exchangeItem.priceDiff,
+          priceDiff: targetItem.priceDiff || 0,
           deliveryAddress: item.customer.address
         };
-        desc += ` (Tự động kích hoạt đơn hàng thay thế mới #${item.replacementOrder.orderNumber})`;
+        desc += ` (Lên sẵn cấu trúc thông tin đơn hàng thay thế dự kiến #${item.replacementOrder?.orderNumber})`;
+      }
+    } else if (newStatus === 'COMPLETED') {
+      if (item.type === 'EXCHANGE' && item.replacementOrder) {
+        item.replacementOrder.status = 'COMPLETED';
       }
     }
 
@@ -600,6 +823,40 @@ export class OrdersReturnsMockService {
       desc
     });
 
+    // Đồng bộ ngược lại trạng thái đơn hàng gốc trong kho đơn hàng
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const ordersRaw = localStorage.getItem('dcor_orders_v2_store');
+        if (ordersRaw) {
+          const ordersList: any[] = JSON.parse(ordersRaw);
+          const target = ordersList.find(o => o.orderNumber === item.orderNumber || o.id === item.orderId);
+          if (target) {
+            if (newStatus === 'APPROVED' || newStatus === 'RETURNING') {
+              target.status = 'RETURNING';
+            } else if (newStatus === 'RECEIVED') {
+              target.status = 'RETURNED';
+            } else if (newStatus === 'REJECTED') {
+              target.status = 'COMPLETED';
+              if (!target.returnInfo) target.returnInfo = {};
+              target.returnInfo.rejectionReason = desc;
+            } else if (newStatus === 'COMPLETED') {
+              target.status = 'COMPLETED';
+            }
+            localStorage.setItem('dcor_orders_v2_store', JSON.stringify(ordersList));
+          }
+        }
+      }
+    } catch (_) {}
+
+    this.saveToStorage();
+    return item;
+  }
+
+  updateVerificationChecklist(id: string, checklist: { [itemId: string]: boolean }): ReturnRequest | null {
+    const item = this.returns.find(r => r.id === id);
+    if (!item) return null;
+    item.verificationChecklist = { ...item.verificationChecklist, ...checklist };
+    this.saveToStorage();
     return item;
   }
 
@@ -609,16 +866,17 @@ export class OrdersReturnsMockService {
     if (!item.pickupInfo) {
       item.pickupInfo = {
         provider: 'DCOR Express Đội xe chuyên dụng',
-        driverName: 'Nguyễn Văn Cường',
-        driverPhone: '0909 333 444',
-        vehiclePlate: '51D-892.45 (Xe tải 1.9 tấn có bửng nâng)',
-        movingTeam: 'Đội bốc xếp 1 (2 thợ khiêng lầu)',
+        driverName: '',
+        driverPhone: '',
+        vehiclePlate: '',
+        movingTeam: '',
         trackingCode: `DCOR-TRK-${Math.floor(1000 + Math.random() * 9000)}`,
         estimatedTime: 'Hôm nay, 14:00 - 16:00',
         currentLeg: 1
       };
     }
     Object.assign(item.pickupInfo, dispatch);
+    this.saveToStorage();
     return item;
   }
 
@@ -629,9 +887,9 @@ export class OrdersReturnsMockService {
     const oldAssignee = item.assignee;
     item.assignee = newAssignee;
 
-    const nowStr = new Date().toLocaleDateString('vi-VN', { 
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-    });
+    const now = new Date();
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+    const nowStr = `${pad(now.getHours())}:${pad(now.getMinutes())} ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
 
     item.timeline.unshift({
       time: nowStr,
@@ -640,6 +898,20 @@ export class OrdersReturnsMockService {
       desc: `Phân công phụ trách: Chuyển quyền xử lý từ "${oldAssignee}" sang "${newAssignee}"`
     });
 
+    this.saveToStorage();
+    return item;
+  }
+
+  updateReplacementOrder(id: string, update: { customer?: Partial<ReturnCustomerInfo>; replacementOrder?: Partial<ReturnReplacementOrder> }): ReturnRequest | null {
+    const item = this.returns.find(r => r.id === id);
+    if (!item) return null;
+    if (update.customer && item.customer) {
+      item.customer = { ...item.customer, ...update.customer };
+    }
+    if (update.replacementOrder && item.replacementOrder) {
+      item.replacementOrder = { ...item.replacementOrder, ...update.replacementOrder };
+    }
+    this.saveToStorage();
     return item;
   }
 
@@ -652,6 +924,7 @@ export class OrdersReturnsMockService {
         count++;
       }
     });
+    this.saveToStorage();
     return count;
   }
 
@@ -711,8 +984,8 @@ export class OrdersReturnsMockService {
         };
       case 'RECEIVED':
         return {
-          labelAdmin: 'Đã nhận hàng (QC Kho)',
-          labelUser: 'Đã nhận hàng tại kho',
+          labelAdmin: 'Kiểm tra hàng',
+          labelUser: 'Kiểm tra hàng tại kho',
           bg: '#F0FDF4',
           color: '#15803D',
           border: '#BBF7D0',

@@ -6,7 +6,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { 
   LucideAngularModule,
-  Search, Calendar, Filter, SlidersHorizontal, RotateCcw, Download,
+  Activity, Search, Calendar, Filter, SlidersHorizontal, RotateCcw, Download,
   ChevronDown, ChevronLeft, ChevronRight, Eye, Copy, Check, X,
   AlertTriangle, ShieldAlert, Info, CheckCircle2, User, Clock,
   Layers, Package, ShoppingCart, Warehouse, Settings, Users,
@@ -65,7 +65,7 @@ interface SeverityOption {
 export class AuditLogComponent implements OnInit, OnDestroy {
   // Lucide Icons Map
   icons = {
-    Search, Calendar, Filter, SlidersHorizontal, RotateCcw, Download,
+    Activity, Search, Calendar, Filter, SlidersHorizontal, RotateCcw, Download,
     ChevronDown, ChevronLeft, ChevronRight, Eye, Copy, Check, X,
     AlertTriangle, ShieldAlert, Info, CheckCircle2, User, Clock,
     Layers, Package, ShoppingCart, Warehouse, Settings, Users,
@@ -110,8 +110,11 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   };
 
   // Dropdown UI states
-  showModuleDropdown = false;
   showDateDropdown = false;
+  showModuleDropdown = false;
+  showActionDropdown = false;
+  showRoleDropdown = false;
+  showSeverityDropdown = false;
   showAdvancedFilters = false;
 
   // Custom date picker inputs inside date dropdown
@@ -130,39 +133,43 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
 
-  // Danh mục Options
-  readonly MODULE_OPTIONS: ModuleOption[] = [
+  // Danh mục Options Phân hệ thực tế (không kèm tiếng Anh trong ngoặc đơn)
+  moduleOptions: ModuleOption[] = [
     { key: 'ALL', label: 'Tất cả phân hệ', iconName: 'Layers' },
-    { key: 'ORDERS', label: 'Quản lý Đơn hàng (Order Management)', iconName: 'ShoppingCart' },
-    { key: 'PRODUCTS', label: 'Quản lý Sản phẩm / Nội thất (Catalog/Product)', iconName: 'Package' },
-    { key: 'INVENTORY', label: 'Quản lý Kho & Kiểm kê (Inventory/WMS)', iconName: 'Warehouse' },
-    { key: 'CUSTOMERS', label: 'Quản lý Khách hàng / Cấu hình (CRM/Settings)', iconName: 'Users' },
-    { key: 'SYSTEM', label: 'Phân quyền & Hệ thống (User/Role)', iconName: 'ShieldCheck' }
+    { key: 'ORDERS', label: 'Quản lý Đơn hàng', iconName: 'ShoppingCart' },
+    { key: 'PRODUCTS', label: 'Quản lý Sản phẩm', iconName: 'Package' },
+    { key: 'INVENTORY', label: 'Quản lý Kho & Kiểm kê', iconName: 'Warehouse' },
+    { key: 'CUSTOMERS', label: 'Quản lý Khách hàng', iconName: 'Users' },
+    { key: 'SYSTEM', label: 'Phân quyền & Hệ thống', iconName: 'ShieldCheck' }
   ];
+
+  get MODULE_OPTIONS(): ModuleOption[] {
+    return this.moduleOptions;
+  }
 
   readonly ACTION_OPTIONS: ActionOption[] = [
     { key: 'ALL', label: 'Tất cả hành động', badgeClass: 'badge-gray' },
-    { key: 'CREATE', label: 'Tạo mới (Create)', badgeClass: 'badge-emerald' },
-    { key: 'UPDATE', label: 'Cập nhật (Update)', badgeClass: 'badge-blue' },
-    { key: 'DELETE', label: 'Xóa (Delete)', badgeClass: 'badge-rose' },
-    { key: 'AUTH', label: 'Đăng nhập / Đăng xuất (Auth)', badgeClass: 'badge-purple' },
-    { key: 'APPROVE', label: 'Phê duyệt (Approve)', badgeClass: 'badge-amber' }
+    { key: 'CREATE', label: 'Tạo mới', badgeClass: 'badge-emerald' },
+    { key: 'UPDATE', label: 'Cập nhật', badgeClass: 'badge-blue' },
+    { key: 'DELETE', label: 'Xóa', badgeClass: 'badge-rose' },
+    { key: 'AUTH', label: 'Đăng nhập / Đăng xuất', badgeClass: 'badge-purple' },
+    { key: 'APPROVE', label: 'Phê duyệt', badgeClass: 'badge-amber' }
   ];
 
   readonly ROLE_OPTIONS: RoleOption[] = [
     { key: 'ALL', label: 'Tất cả vai trò' },
-    { key: 'ADMIN', label: 'Quản trị viên (Admin)' },
-    { key: 'WAREHOUSE', label: 'Thủ kho (Warehouse Keeper)' },
-    { key: 'SALES', label: 'Nhân viên Sale (Sales)' },
-    { key: 'ACCOUNTANT', label: 'Kế toán (Accountant)' },
-    { key: 'CONTENT', label: 'Biên tập viên (Content)' }
+    { key: 'ADMIN', label: 'Quản trị viên' },
+    { key: 'WAREHOUSE', label: 'Thủ kho' },
+    { key: 'SALES', label: 'Nhân viên Sale' },
+    { key: 'ACCOUNTANT', label: 'Kế toán' },
+    { key: 'CONTENT', label: 'Biên tập viên' }
   ];
 
   readonly SEVERITY_OPTIONS: SeverityOption[] = [
     { key: 'ALL', label: 'Tất cả mức độ', badgeClass: 'badge-gray' },
-    { key: 'INFO', label: 'Info (Thông thường)', desc: 'Đăng nhập, xem báo cáo, tra cứu dữ liệu', badgeClass: 'badge-info' },
-    { key: 'WARNING', label: 'Warning (Cảnh báo)', desc: 'Nhập sai pass 3 lần, xuất kho vượt tồn khả dụng', badgeClass: 'badge-warning' },
-    { key: 'CRITICAL', label: 'Critical / Danger (Nguy hiểm)', desc: 'Xóa sản phẩm, sửa cấu hình thanh toán, sửa tồn trực tiếp', badgeClass: 'badge-danger' }
+    { key: 'INFO', label: 'Thông thường', desc: 'Đăng nhập, xem báo cáo, tra cứu dữ liệu', badgeClass: 'badge-info' },
+    { key: 'WARNING', label: 'Cảnh báo', desc: 'Nhập sai mật khẩu 3 lần, xuất kho vượt tồn khả dụng', badgeClass: 'badge-warning' },
+    { key: 'CRITICAL', label: 'Nguy hiểm', desc: 'Xóa sản phẩm, sửa cấu hình thanh toán, sửa tồn trực tiếp', badgeClass: 'badge-danger' }
   ];
 
   constructor(
@@ -182,7 +189,50 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       this.loadAuditLogs();
     });
 
+    this.loadModules();
     this.loadAuditLogs();
+  }
+
+  // Tải danh sách phân hệ thực tế từ backend
+  loadModules(): void {
+    this.auditLogService.getAuditLogModules().subscribe({
+      next: (res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          this.applyLoadedModules(res.data);
+        }
+      },
+      error: (err) => {
+        console.warn('Không thể tải danh sách phân hệ động, dùng danh sách mặc định:', err);
+      }
+    });
+  }
+
+  // Áp dụng danh sách phân hệ thực tế vào bộ lọc (lấy đúng tên, không có tiếng Anh trong ngoặc)
+  applyLoadedModules(data: { key: string; label: string; count?: number }[]): void {
+    const list: ModuleOption[] = [
+      { key: 'ALL', label: 'Tất cả phân hệ', iconName: 'Layers' }
+    ];
+
+    for (const item of data) {
+      if (!item.key || item.key === 'ALL') continue;
+      const clean = this.cleanLabelText(item.label || item.key);
+      list.push({
+        key: item.key,
+        label: clean,
+        iconName: this.getIconNameForModule(item.key)
+      });
+    }
+
+    this.moduleOptions = list;
+  }
+
+  // Tiện ích làm sạch tên nhãn phân hệ (bỏ hoàn toàn tiếng Anh hoặc dấu ngoặc thừa)
+  cleanLabelText(text: string): string {
+    if (!text) return '';
+    let cleaned = text.replace(/\s*\([^)]*\)/g, '').trim();
+    cleaned = cleaned.replace(/\s*\/\s*Nội thất/gi, '');
+    cleaned = cleaned.replace(/\s*\/\s*Cấu hình/gi, '');
+    return cleaned || text;
   }
 
   ngOnDestroy(): void {
@@ -197,17 +247,41 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLElement;
     const clickedInside = this.elementRef.nativeElement.contains(target);
     if (!clickedInside) {
-      this.showModuleDropdown = false;
-      this.showDateDropdown = false;
+      this.closeAllDropdowns();
     } else {
-      // Đóng dropdown nếu click ra ngoài nút trigger/popup tương ứng
-      if (!target.closest('.module-dropdown-wrapper')) {
-        this.showModuleDropdown = false;
-      }
-      if (!target.closest('.date-dropdown-wrapper')) {
-        this.showDateDropdown = false;
-      }
+      if (!target.closest('.date-dropdown-wrapper')) this.showDateDropdown = false;
+      if (!target.closest('.module-dropdown-wrapper')) this.showModuleDropdown = false;
+      if (!target.closest('.action-dropdown-wrapper')) this.showActionDropdown = false;
+      if (!target.closest('.role-dropdown-wrapper')) this.showRoleDropdown = false;
+      if (!target.closest('.severity-dropdown-wrapper')) this.showSeverityDropdown = false;
     }
+  }
+
+  closeAllDropdowns(): void {
+    this.showDateDropdown = false;
+    this.showModuleDropdown = false;
+    this.showActionDropdown = false;
+    this.showRoleDropdown = false;
+    this.showSeverityDropdown = false;
+  }
+
+  toggleDropdown(name: 'date' | 'module' | 'action' | 'role' | 'severity', event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    const current = {
+      date: this.showDateDropdown,
+      module: this.showModuleDropdown,
+      action: this.showActionDropdown,
+      role: this.showRoleDropdown,
+      severity: this.showSeverityDropdown
+    };
+    this.closeAllDropdowns();
+    if (name === 'date') this.showDateDropdown = !current.date;
+    if (name === 'module') this.showModuleDropdown = !current.module;
+    if (name === 'action') this.showActionDropdown = !current.action;
+    if (name === 'role') this.showRoleDropdown = !current.role;
+    if (name === 'severity') this.showSeverityDropdown = !current.severity;
   }
 
   // Tải danh sách Audit Logs từ API
@@ -222,6 +296,9 @@ export class AuditLogComponent implements OnInit, OnDestroy {
           this.logs = res.data || [];
           this.pagination = res.pagination || this.pagination;
           this.stats = res.stats || this.stats;
+          if (res.modules && Array.isArray(res.modules) && res.modules.length > 0) {
+            this.applyLoadedModules(res.modules);
+          }
         } else {
           this.logs = [];
         }
@@ -246,11 +323,8 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   }
 
   // Xử lý bộ lọc Module
-  toggleModuleDropdown(): void {
-    this.showModuleDropdown = !this.showModuleDropdown;
-    if (this.showModuleDropdown) {
-      this.showDateDropdown = false;
-    }
+  toggleModuleDropdown(event?: Event): void {
+    this.toggleDropdown('module', event);
   }
 
   selectModule(modKey: AuditModule): void {
@@ -265,12 +339,48 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     return found ? found.label : 'Tất cả phân hệ';
   }
 
+  // Xử lý bộ lọc Action (Loại hành động)
+  selectAction(actKey: AuditAction): void {
+    this.filters.actionType = actKey;
+    this.filters.page = 1;
+    this.showActionDropdown = false;
+    this.loadAuditLogs();
+  }
+
+  getSelectedActionLabel(): string {
+    const found = this.ACTION_OPTIONS.find(a => a.key === this.filters.actionType);
+    return found ? found.label : 'Tất cả hành động';
+  }
+
+  // Xử lý bộ lọc Role (Vai trò)
+  selectRole(roleKey: AuditRole): void {
+    this.filters.role = roleKey;
+    this.filters.page = 1;
+    this.showRoleDropdown = false;
+    this.loadAuditLogs();
+  }
+
+  getSelectedRoleLabel(): string {
+    const found = this.ROLE_OPTIONS.find(r => r.key === this.filters.role);
+    return found ? found.label : 'Tất cả vai trò';
+  }
+
+  // Xử lý bộ lọc Severity (Mức độ nghiêm trọng)
+  selectSeverity(sevKey: AuditSeverity | 'ALL'): void {
+    this.filters.severity = sevKey;
+    this.filters.page = 1;
+    this.showSeverityDropdown = false;
+    this.loadAuditLogs();
+  }
+
+  getSelectedSeverityLabel(): string {
+    const found = this.SEVERITY_OPTIONS.find(s => s.key === this.filters.severity);
+    return found ? found.label : 'Tất cả mức độ';
+  }
+
   // Xử lý bộ lọc Date Range
-  toggleDateDropdown(): void {
-    this.showDateDropdown = !this.showDateDropdown;
-    if (this.showDateDropdown) {
-      this.showModuleDropdown = false;
-    }
+  toggleDateDropdown(event?: Event): void {
+    this.toggleDropdown('date', event);
   }
 
   selectDatePreset(preset: 'TODAY' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'THIS_MONTH' | 'ALL'): void {
@@ -346,8 +456,8 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     let count = 0;
     if (this.filters.actionType !== 'ALL') count++;
     if (this.filters.role !== 'ALL') count++;
-    if (this.filters.staffName.trim()) count++;
     if (this.filters.severity !== 'ALL') count++;
+    if (this.filters.staffName.trim()) count++;
     return count;
   }
 
@@ -356,7 +466,10 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       (this.filters.search && this.filters.search.trim()) ||
       this.filters.datePreset !== 'ALL' ||
       this.filters.module !== 'ALL' ||
-      this.activeAdvancedFilterCount > 0
+      this.filters.actionType !== 'ALL' ||
+      this.filters.role !== 'ALL' ||
+      this.filters.severity !== 'ALL' ||
+      (this.filters.staffName && this.filters.staffName.trim())
     );
   }
 
@@ -391,6 +504,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     };
     this.customStartDate = '';
     this.customEndDate = '';
+    this.closeAllDropdowns();
     this.loadAuditLogs();
   }
 
@@ -479,12 +593,26 @@ export class AuditLogComponent implements OnInit, OnDestroy {
 
   getModuleIcon(module: string): any {
     const mod = (module || '').toUpperCase();
-    if (mod.includes('ORDER')) return this.icons.ShoppingCart;
-    if (mod.includes('PRODUCT')) return this.icons.Package;
-    if (mod.includes('INVENTORY')) return this.icons.Warehouse;
-    if (mod.includes('CUSTOMER')) return this.icons.Users;
-    if (mod.includes('SYSTEM')) return this.icons.ShieldCheck;
+    if (mod.includes('ORDER') || mod.includes('ĐƠN')) return this.icons.ShoppingCart;
+    if (mod.includes('PRODUCT') || mod.includes('SẢN PHẨM')) return this.icons.Package;
+    if (mod.includes('INVENTORY') || mod.includes('KHO')) return this.icons.Warehouse;
+    if (mod.includes('CUSTOMER') || mod.includes('KHÁCH')) return this.icons.Users;
+    if (mod.includes('SYSTEM') || mod.includes('HỆ THỐNG')) return this.icons.ShieldCheck;
+    if (mod.includes('STAFF') || mod.includes('NHÂN SỰ')) return this.icons.User;
+    if (mod.includes('REPORT') || mod.includes('BÁO CÁO')) return this.icons.FileText;
     return this.icons.Layers;
+  }
+
+  getIconNameForModule(module: string): string {
+    const mod = (module || '').toUpperCase();
+    if (mod.includes('ORDER') || mod.includes('ĐƠN')) return 'ShoppingCart';
+    if (mod.includes('PRODUCT') || mod.includes('SẢN PHẨM')) return 'Package';
+    if (mod.includes('INVENTORY') || mod.includes('KHO')) return 'Warehouse';
+    if (mod.includes('CUSTOMER') || mod.includes('KHÁCH')) return 'Users';
+    if (mod.includes('SYSTEM') || mod.includes('HỆ THỐNG')) return 'ShieldCheck';
+    if (mod.includes('STAFF') || mod.includes('NHÂN SỰ')) return 'User';
+    if (mod.includes('REPORT') || mod.includes('BÁO CÁO')) return 'FileText';
+    return 'Layers';
   }
 
   getActorRoleBadgeClass(role: string): string {

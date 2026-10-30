@@ -1228,10 +1228,262 @@
   line-height: 1.4;
 }
 
-/* Return Claim Card */
+/* Return Claim Card - Nằm nổi bật ngay dưới Stepper Timeline */
 .return-claim-card {
-  border-color: #FED7AA;
-  background: #FFFAF5;
+  border: 1.5px solid #FDBA74 !important;
+  background: #FFFBF5 !important;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.08);
+  overflow: hidden;
+  padding: 12px 18px !important;
+  margin-bottom: 0 !important;
+}
+
+.return-claim-nav-header {
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 14px !important;
+  border-bottom: none !important;
+}
+
+.return-claim-nav-header .card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.return-claim-nav-header .card-title-group h3 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #7C2D12;
+}
+
+.return-claim-nav-header .card-header-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.type-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.type-pill.pill-exchange {
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #BFDBFE;
+}
+
+.type-pill.pill-refund {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.btn-open-docket {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  color: #C2410C;
+  background: #FFEDD5;
+  border: 1px solid #FDBA74;
+  padding: 5px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.btn-open-docket:hover {
+  background: #EA580C;
+  color: #ffffff;
+  border-color: #EA580C;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.2);
+}
+
+.return-detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13.5px;
+  border-bottom: 1px dashed rgba(251, 146, 60, 0.25);
+}
+
+.return-detail-row:last-child {
+  border-bottom: none;
+}
+
+.ret-lbl {
+  font-weight: 600;
+  color: #78350F;
+  min-width: 170px;
+  flex-shrink: 0;
+}
+
+.ret-val {
+  color: var(--text-primary, #111827);
+}
+
+.ret-val.text-danger {
+  color: #DC2626;
+}
+
+.ret-note {
+  font-style: italic;
+  color: #4B5563;
+  margin: 0;
+}
+
+.return-proof-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.return-proof-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.proof-img-thumb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid #FDBA74;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.proof-img-thumb:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 10px rgba(234, 88, 12, 0.2);
+}
+
+.proof-img-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.proof-img-zoom {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.proof-img-thumb:hover .proof-img-zoom {
+  opacity: 1;
+}
+
+.return-bank-box {
+  margin-top: 10px;
+  background: #ffffff;
+  border: 1px solid #FED7AA;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.bank-box-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9A3412;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #FFEDD5;
+}
+
+.bank-box-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 18px;
+}
+
+.bank-box-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.b-sub {
+  font-size: 11.5px;
+  color: #9CA3AF;
+}
+
+.b-amount {
+  font-size: 16px;
+  color: #DC2626;
+  font-weight: 800;
+}
+
+.return-qc-summary-box {
+  margin-top: 10px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.qc-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #DCFCE7;
+}
+
+.qc-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 18px;
+}
+
+.qc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.qc-sub {
+  font-size: 11.5px;
+  color: #6B7280;
 }
 
 .badge-return-status {

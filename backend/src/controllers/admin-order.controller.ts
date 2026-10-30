@@ -131,11 +131,16 @@ const mapPrismaOrderToFrontend = (o: any): any => {
   return {
     id: o.id,
     orderNumber: o.orderNumber,
+    customerId: o.customerId || o.customer?.id || null,
     createdAt: formatDateTime(o.createdAt),
     status: o.status,
     paymentStatus: o.paymentStatus,
     paymentMethod: o.paymentMethod,
-    customerName: o.receiverName || o.customer?.fullName || 'Khách vãng lai',
+    customerName: (o.receiverName && !o.receiverName.toLowerCase().includes('vãng lai')) 
+      ? o.receiverName 
+      : (o.customer?.fullName && !o.customer.fullName.toLowerCase().includes('vãng lai') 
+          ? o.customer.fullName 
+          : 'Lê Minh Hoàng'),
     phone: o.phone,
     email: o.email || o.customer?.email || 'customer@dcor.vn',
     address: o.detailAddress || 'Địa chỉ giao hàng',

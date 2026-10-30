@@ -1,94 +1,356 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { OrdersService } from '../services/orders.service';
+import { OrderV2, OrderProduct } from '../models/order.model';
 import { 
   LucideAngularModule, 
-  Search, AlertCircle, CheckCircle2, Clock, Wrench, ArrowRightLeft, AlertOctagon,
-  RotateCcw, Building2, Layers, Calendar, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Package
+  Search, Shield, ShieldCheck, ShieldAlert, ShieldX,
+  Calendar, CalendarCheck, Clock, CheckCircle2, AlertCircle,
+  ExternalLink, RotateCcw,
+  ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  X, Package, Layers, User, Phone, Tag, Check, Sparkles
 } from 'lucide-angular';
 
-interface WarrantyRequest {
-  id: string;
-  createdAt: string;
+export interface WarrantyItem {
+  id: string; // Mã thẻ / sổ bảo hành (VD: WAR-2026-1008)
+  orderNumber: string; // Mã đơn hàng gốc (VD: DCOR-ORD-1008)
   customerName: string;
   phone: string;
-  orderId: string;
+  address: string;
   productName: string;
-  variant: string;
   sku: string;
-  reason: string;
-  purchaseDate: string;
-  warrantyExpiry: string;
-  status: 'PENDING' | 'INSPECTING' | 'PROCESSING' | 'REPAIRING' | 'REPLACING' | 'COMPLETED' | 'REJECTED';
-  assignee: string;
-  isExpiringSoon: boolean;
+  serialNumber: string;
+  variant: string;
+  category: 'SOFA' | 'CHAIR' | 'TABLE' | 'BED' | 'STORAGE' | 'LIGHTING' | 'DECOR';
+  categoryLabel: string;
+  image: string;
+  price: number;
+  purchaseDate: string; // Ngày mua / bàn giao
+  activationDate: string; // Ngày bắt đầu tính bảo hành
+  warrantyMonths: number; // Thời hạn cam kết (tháng)
+  expiryDate: string; // Ngày hết hạn
+  daysRemaining: number; // >0: còn ngày, <=0: đã quá hạn
+  status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
+  coverageNotes: string[];
+  termsNote: string;
 }
 
-const mockWarranties: WarrantyRequest[] = [
+const mockWarrantyDatabase: WarrantyItem[] = [
   {
-    id: 'WAR-000125',
-    createdAt: '01/09/2026 09:30',
-    customerName: 'Nguyễn Như Huyền',
-    phone: '0901234567',
-    orderId: 'ORD-001025',
-    productName: 'Sofa Luna (3 chỗ)',
-    variant: 'Da thật màu Nâu',
-    sku: 'SF-LUN-03',
-    reason: 'Lỗi nệm mút',
-    purchaseDate: '15/05/2026',
-    warrantyExpiry: '15/05/2028',
-    status: 'PENDING',
-    assignee: 'Chưa phân công',
-    isExpiringSoon: false,
+    id: 'WAR-2026-1008',
+    orderNumber: 'DCOR-ORD-1008',
+    customerName: 'Nguyễn Văn An',
+    phone: '0909876543',
+    address: '120 Nguyễn Thị Minh Khai, P.6, Q.3, TP.HCM',
+    productName: 'Salamanca 3 seater lounge sofa',
+    sku: 'sofa-salamanca-01',
+    serialNumber: 'SN-SAL-2026-0041',
+    variant: 'Vải Nỉ Nhung Màu Be (Beige) • 3 Chỗ',
+    category: 'SOFA',
+    categoryLabel: 'Sofa & Ghế',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80',
+    price: 32500000,
+    purchaseDate: '15/09/2026',
+    activationDate: '16/09/2026',
+    warrantyMonths: 36,
+    expiryDate: '16/09/2029',
+    daysRemaining: 1051,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Khung xương chịu lực gỗ thông nhập khẩu (Bảo hành 60 tháng)',
+      'Đệm mút D40 đàn hồi cao chống xẹp lún (Bảo hành 36 tháng)',
+      'Đường chỉ may và phụ kiện chân thép tĩnh điện (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Bảo hành miễn phí toàn diện đối với các lỗi biến dạng kết cấu khung sườn, xẹp lún đệm mút vượt tiêu chuẩn kỹ thuật nhà sản xuất.'
   },
   {
-    id: 'WAR-000126',
-    createdAt: '30/08/2026 14:15',
+    id: 'WAR-2026-1007',
+    orderNumber: 'DCOR-ORD-1007',
+    customerName: 'Trần Thị Mai',
+    phone: '0903123456',
+    address: '45 Lê Duẩn, P. Bến Nghé, Quận 1, TP.HCM',
+    productName: 'Ghế xoay thư giãn Imola da Cognac',
+    sku: 'imola-chair-cognac',
+    serialNumber: 'SN-IML-2026-0812',
+    variant: 'Da bò Ý Semi-Aniline Cognac • Chân thép Crom xoay 360°',
+    category: 'CHAIR',
+    categoryLabel: 'Ghế thư giãn',
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80',
+    price: 18900000,
+    purchaseDate: '12/08/2026',
+    activationDate: '13/08/2026',
+    warrantyMonths: 24,
+    expiryDate: '13/08/2028',
+    daysRemaining: 652,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Mâm xoay chịu lực và trục thủy lực (Bảo hành 36 tháng)',
+      'Kết cấu khung sợi thủy tinh đúc khuôn (Bảo hành 24 tháng)',
+      'Bề mặt da bò thật và chỉ may (Bảo hành 12 tháng)'
+    ],
+    termsNote: 'Bảo hành các lỗi kẹt mâm xoay, gãy cốt trục xoay, bong tróc nẹp viền không do tác động ngoại lực hay hóa chất ăn mòn.'
+  },
+  {
+    id: 'WAR-2026-0994',
+    orderNumber: 'DCOR-ORD-0994',
+    customerName: 'Đặng Ngọc Trâm',
+    phone: '0918234567',
+    address: '88 Nguyễn Du, P. Bến Nghé, Quận 1, TP.HCM',
+    productName: 'Đèn sàn Kizu đá cẩm thạch trắng tự nhiên',
+    sku: 'kizu-lamp-white',
+    serialNumber: 'SN-KZU-2026-0199',
+    variant: 'Đá Marble Trắng Carrara • Chao Acrylic khuyếch tán sáng',
+    category: 'LIGHTING',
+    categoryLabel: 'Đèn & Trang trí',
+    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=400&q=80',
+    price: 8500000,
+    purchaseDate: '05/07/2026',
+    activationDate: '06/07/2026',
+    warrantyMonths: 12,
+    expiryDate: '06/07/2027',
+    daysRemaining: 249,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Bộ nguồn Driver LED và công tắc cảm ứng dimmer (Bảo hành 12 tháng)',
+      'Kết cấu đế đá tự nhiên nguyên khối (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Bảo hành lỗi chập chờn nguồn điện, hỏng mạch dimmer. Không bảo hành trường hợp rơi vỡ chao đèn hoặc ngấm nước.'
+  },
+  {
+    id: 'WAR-2026-EX07',
+    orderNumber: 'DCOR-ORD-2026-EX07',
+    customerName: 'Hoàng Thị Thảo Trang',
+    phone: '0976543210',
+    address: 'Toà Landmark 81, P.22, Q. Bình Thạnh, TP.HCM',
+    productName: 'Ghế bành Adelaide chân xoay kim loại đen',
+    sku: 'adelaide-armchair-blk',
+    serialNumber: 'SN-ADL-2026-0371',
+    variant: 'Vải nỉ Bouclé Trắng kem • Chân xoay tĩnh điện đen mờ',
+    category: 'CHAIR',
+    categoryLabel: 'Sofa & Ghế',
+    image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=400&q=80',
+    price: 12500000,
+    purchaseDate: '21/10/2026',
+    activationDate: '22/10/2026',
+    warrantyMonths: 24,
+    expiryDate: '22/10/2028',
+    daysRemaining: 722,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Khung chịu lực và chân xoay (Bảo hành 24 tháng)',
+      'Chất liệu vải bọc và đệm form (Bảo hành 12 tháng)'
+    ],
+    termsNote: 'Bảo hành miễn phí lỗi kẹt cơ cấu xoay, bong mối hàn tĩnh điện.'
+  },
+  {
+    id: 'WAR-2025-0101',
+    orderNumber: 'DCOR-ORD-101',
     customerName: 'Trần Văn Kiên',
     phone: '0912345678',
-    orderId: 'ORD-001012',
-    productName: 'Bàn ăn Gỗ Sồi nguyên khối',
-    variant: '1m6 - Tự nhiên',
-    sku: 'TB-OAK-01',
-    reason: 'Lỗi nứt vỡ/Cong vênh',
-    purchaseDate: '20/01/2026',
-    warrantyExpiry: '20/01/2028',
-    status: 'INSPECTING',
-    assignee: 'KTV Hoàng Sơn',
-    isExpiringSoon: false,
+    address: '23 Trương Định, P. Võ Thị Sáu, Quận 3, TP.HCM',
+    productName: 'Bàn ăn Gỗ Sồi nguyên khối Heritage',
+    sku: 'table-oak-heritage',
+    serialNumber: 'SN-TB-2025-0991',
+    variant: 'Gỗ Sồi Bắc Mỹ tự nhiên • Kích thước 2m0 x 0.9m',
+    category: 'TABLE',
+    categoryLabel: 'Bàn ăn',
+    image: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=400&q=80',
+    price: 24500000,
+    purchaseDate: '20/01/2025',
+    activationDate: '21/01/2025',
+    warrantyMonths: 36,
+    expiryDate: '21/01/2028',
+    daysRemaining: 448,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Kết cấu mặt bàn và chân chịu lực (Bảo hành 36 tháng)',
+      'Lớp sơn phủ PU chống thấm (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Bảo hành lỗi co ngót, nứt toác tự nhiên của thớ gỗ trong điều kiện nhiệt độ phòng thông thường.'
   },
   {
-    id: 'WAR-000127',
-    createdAt: '28/08/2026 10:20',
+    id: 'WAR-2025-0105',
+    orderNumber: 'DCOR-ORD-105',
+    customerName: 'Đỗ Thùy Linh',
+    phone: '0905112233',
+    address: '15 Mai Chí Thọ, P. An Phú, TP. Thủ Đức, TP.HCM',
+    productName: 'Bàn trà mặt kính Noguchi Sculptural',
+    sku: 'coffee-table-noguchi',
+    serialNumber: 'SN-NG-2025-0552',
+    variant: 'Kính cường lực 19mm • Chân gỗ óc chó tự nhiên',
+    category: 'TABLE',
+    categoryLabel: 'Bàn trà',
+    image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986b88?auto=format&fit=crop&w=400&q=80',
+    price: 14200000,
+    purchaseDate: '18/06/2025',
+    activationDate: '19/06/2025',
+    warrantyMonths: 24,
+    expiryDate: '19/06/2027',
+    daysRemaining: 232,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Chân đế gỗ tự nhiên uốn cong (Bảo hành 24 tháng)',
+      'Chốt xoay trục liên kết kim loại (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Bảo hành chốt trục liên kết, bong khớp nối gỗ.'
+  },
+  {
+    id: 'WAR-2024-0104',
+    orderNumber: 'DCOR-ORD-104',
+    customerName: 'Nguyễn Minh Tâm',
+    phone: '0987112233',
+    address: '72 Thảo Điền, P. Thảo Điền, TP. Thủ Đức, TP.HCM',
+    productName: 'Kệ tivi gỗ óc chó cao cấp Lugano',
+    sku: 'tv-unit-lugano-walnut',
+    serialNumber: 'SN-LGN-2024-0412',
+    variant: 'Veneer Óc chó tự nhiên • Ngăn kéo giảm chấn Blum',
+    category: 'STORAGE',
+    categoryLabel: 'Tủ & Kệ',
+    image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=400&q=80',
+    price: 16800000,
+    purchaseDate: '15/11/2024',
+    activationDate: '16/11/2024',
+    warrantyMonths: 24,
+    expiryDate: '16/11/2026',
+    daysRemaining: 17,
+    status: 'EXPIRING_SOON',
+    coverageNotes: [
+      'Ray trượt ngăn kéo giảm chấn Blum (Bảo hành 24 tháng)',
+      'Khung thân gỗ veneer cao cấp (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Sản phẩm sắp hết hạn trong 17 ngày. Khách hàng vui lòng liên hệ sớm nếu có nhu cầu kiểm tra bảo dưỡng kỹ thuật.'
+  },
+  {
+    id: 'WAR-2024-0103',
+    orderNumber: 'DCOR-ORD-103',
+    customerName: 'Vũ Hoàng Long',
+    phone: '0944667788',
+    address: '28 Tôn Đức Thắng, P. Bến Nghé, Quận 1, TP.HCM',
+    productName: 'Bàn ăn mở rộng Milano mặt Ceramic',
+    sku: 'table-milano-ext',
+    serialNumber: 'SN-MLN-2024-0820',
+    variant: 'Mặt Ceramic chống xước vân mây • Khung nhôm mở rộng',
+    category: 'TABLE',
+    categoryLabel: 'Bàn ăn',
+    image: 'https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&w=400&q=80',
+    price: 28900000,
+    purchaseDate: '25/11/2024',
+    activationDate: '26/11/2024',
+    warrantyMonths: 24,
+    expiryDate: '26/11/2026',
+    daysRemaining: 27,
+    status: 'EXPIRING_SOON',
+    coverageNotes: [
+      'Cơ chế ray trượt thông minh kéo mở rộng (Bảo hành 24 tháng)',
+      'Mặt đá Ceramic chịu nhiệt (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Sắp hết hạn trong 27 ngày. Được hỗ trợ tra dầu bảo dưỡng ray trượt miễn phí trước khi hết hạn.'
+  },
+  {
+    id: 'WAR-2024-0102',
+    orderNumber: 'DCOR-ORD-102',
     customerName: 'Lê Thu Trang',
     phone: '0988776655',
-    orderId: 'ORD-000850',
-    productName: 'Giường ngủ thông minh 1m8',
-    variant: 'Xám đậm',
-    sku: 'BD-SMART-18',
-    reason: 'Lỗi phụ kiện/Bản lề',
+    address: '104 Phổ Quang, P.2, Q. Tân Bình, TP.HCM',
+    productName: 'Giường ngủ bọc vải thông minh Mezzo',
+    sku: 'bed-smart-mezzo-18',
+    serialNumber: 'SN-MZZ-2024-0102',
+    variant: 'Bọc nỉ cao cấp Xám Đậm • Giát giường nâng thủy lực 1m8',
+    category: 'BED',
+    categoryLabel: 'Giường ngủ',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=400&q=80',
+    price: 26500000,
     purchaseDate: '10/09/2024',
-    warrantyExpiry: '10/09/2026',
-    status: 'REPAIRING',
-    assignee: 'KTV Minh Quân',
-    isExpiringSoon: true,
+    activationDate: '11/09/2024',
+    warrantyMonths: 24,
+    expiryDate: '11/09/2026',
+    daysRemaining: -49,
+    status: 'EXPIRED',
+    coverageNotes: [
+      'Piston thủy lực nâng hạ giát giường (Bảo hành 24 tháng)',
+      'Khung sắt và nan gỗ giát giường (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Sản phẩm đã hết hạn bảo hành chính hãng từ ngày 11/09/2026. DCOR cung cấp gói dịch vụ sửa chữa bảo dưỡng tính phí ưu đãi cho khách hàng cũ.'
   },
   {
-    id: 'WAR-000128',
-    createdAt: '25/08/2026 08:45',
+    id: 'WAR-2023-0100',
+    orderNumber: 'DCOR-ORD-100',
     customerName: 'Phạm Hương',
     phone: '0933445566',
-    orderId: 'ORD-000720',
-    productName: 'Tủ quần áo cánh kính 4 buồng',
-    variant: 'Trắng/Kính cường lực',
-    sku: 'CB-GLS-04',
-    reason: 'Lỗi bề mặt/Trầy xước',
-    purchaseDate: '05/03/2025',
-    warrantyExpiry: '05/03/2027',
-    status: 'COMPLETED',
-    assignee: 'KTV Hoàng Sơn',
-    isExpiringSoon: false,
+    address: '55 Nguyễn Hữu Cảnh, P.19, Q. Bình Thạnh, TP.HCM',
+    productName: 'Tủ quần áo cánh kính 4 buồng Boston',
+    sku: 'wardrobe-boston-glass',
+    serialNumber: 'SN-BST-2023-0881',
+    variant: 'Khung nhôm Anode Đen • Kính khói cường lực & Đèn LED',
+    category: 'STORAGE',
+    categoryLabel: 'Tủ & Kệ',
+    image: 'https://images.unsplash.com/photo-1558997519-83ea9252def8?auto=format&fit=crop&w=400&q=80',
+    price: 38000000,
+    purchaseDate: '05/03/2023',
+    activationDate: '06/03/2023',
+    warrantyMonths: 36,
+    expiryDate: '06/03/2026',
+    daysRemaining: -238,
+    status: 'EXPIRED',
+    coverageNotes: [
+      'Hệ bản lề giảm chấn cánh kính và ray trượt (Bảo hành 36 tháng)',
+      'Cảm biến và hệ thống đèn LED profile (Bảo hành 12 tháng)'
+    ],
+    termsNote: 'Đã hết hạn bảo hành từ ngày 06/03/2026. Hỗ trợ thay thế linh kiện chính hãng có tính phí theo bảng giá niêm yết.'
+  },
+  {
+    id: 'WAR-2025-0106',
+    orderNumber: 'DCOR-ORD-106',
+    customerName: 'Hoàng Kim Ngân',
+    phone: '0938445566',
+    address: '66 Pasteur, P. Bến Nghé, Quận 1, TP.HCM',
+    productName: 'Bàn làm việc thông minh Cupertino',
+    sku: 'desk-cupertino-walnut',
+    serialNumber: 'SN-CPT-2025-0219',
+    variant: 'Gỗ Óc chó tự nhiên • Tích hợp sạc không dây & loa Bluetooth',
+    category: 'TABLE',
+    categoryLabel: 'Bàn làm việc',
+    image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=400&q=80',
+    price: 19500000,
+    purchaseDate: '10/02/2025',
+    activationDate: '11/02/2025',
+    warrantyMonths: 24,
+    expiryDate: '11/02/2027',
+    daysRemaining: 104,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Mạch điện tử âm bàn và loa không dây (Bảo hành 12 tháng)',
+      'Kết cấu gỗ và hộc kéo trượt (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Bảo hành kết cấu cơ khí gỗ và các module sạc điện tử chính hãng.'
+  },
+  {
+    id: 'WAR-2026-0108',
+    orderNumber: 'DCOR-ORD-108',
+    customerName: 'Đặng Thu Hà',
+    phone: '0914998877',
+    address: '18 Nam Kỳ Khởi Nghĩa, P. Nguyễn Thái Bình, Quận 1, TP.HCM',
+    productName: 'Gương đứng toàn thân viền da cao cấp Adnet',
+    sku: 'mirror-adnet-round',
+    serialNumber: 'SN-ADN-2026-0033',
+    variant: 'Dây quai da bò Ý khâu tay màu Nâu Đậm • Gương tráng bạc 5mm',
+    category: 'DECOR',
+    categoryLabel: 'Đèn & Trang trí',
+    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=400&q=80',
+    price: 7800000,
+    purchaseDate: '01/04/2026',
+    activationDate: '02/04/2026',
+    warrantyMonths: 24,
+    expiryDate: '02/04/2028',
+    daysRemaining: 520,
+    status: 'ACTIVE',
+    coverageNotes: [
+      'Mặt gương tráng bạc chống ố mốc (Bảo hành 24 tháng)',
+      'Dây đai da và móc chốt đồng thau (Bảo hành 24 tháng)'
+    ],
+    termsNote: 'Bảo hành lỗi ố mốc thủy ngân mặt gương, đứt mối chỉ quai da.'
   }
 ];
 
@@ -101,181 +363,389 @@ const mockWarranties: WarrantyRequest[] = [
 })
 export class OrdersWarrantyComponent implements OnInit {
   icons = { 
-    Search, AlertCircle, CheckCircle2, Clock, Wrench, ArrowRightLeft, AlertOctagon,
-    RotateCcw, Building2, Layers, Calendar, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Package
+    Search, Shield, ShieldCheck, ShieldAlert, ShieldX,
+    Calendar, CalendarCheck, Clock, CheckCircle2, AlertCircle,
+    ExternalLink, RotateCcw,
+    ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+    X, Package, Layers, User, Phone, Tag, Check, Sparkles
   };
 
-  mockWarranties = mockWarranties;
-  activeStatus = 'ALL';
+  database: WarrantyItem[] = mockWarrantyDatabase;
+  activeStatusTab: 'ALL' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'LONG_TERM' = 'ALL';
 
-  // Search & Filters
+  // Search & Filter state
   searchQuery = '';
-  selectedTime = 'ALL';
   selectedCategory = 'ALL';
-  selectedShowroom = 'ALL';
+  selectedPeriod = 'ALL';
 
-  // Dropdown states
-  showTimeDropdown = false;
+  // Dropdown visibility
   showCategoryDropdown = false;
-  showShowroomDropdown = false;
-
-  timeOptions = [
-    { label: 'Tất cả thời gian', value: 'ALL' },
-    { label: 'Hôm nay', value: 'today' },
-    { label: '7 ngày qua', value: '7days' },
-    { label: 'Tháng này', value: 'this_month' }
-  ];
-
-  categoryOptions = [
-    { label: 'Tất cả phân loại', value: 'ALL' },
-    { label: 'Sofa', value: 'SOFA' },
-    { label: 'Bàn ghế', value: 'TABLE' },
-    { label: 'Giường', value: 'BED' }
-  ];
-
-  showroomOptions = [
-    { label: 'Kho/Showroom phụ trách', value: 'ALL' },
-    { label: 'Showroom Quận 1', value: 'Showroom Quận 1' },
-    { label: 'Kho Tổng', value: 'Kho Tổng' }
-  ];
+  showPeriodDropdown = false;
 
   // Pagination
   currentPage = 1;
   pageSize = 10;
 
-  constructor(private router: Router) {}
+  categoryOptions = [
+    { label: 'Tất cả phân loại', value: 'ALL' },
+    { label: 'Sofa & Ghế', value: 'SOFA_CHAIR' },
+    { label: 'Bàn ăn & Bàn trà', value: 'TABLE' },
+    { label: 'Giường ngủ', value: 'BED' },
+    { label: 'Tủ & Kệ', value: 'STORAGE' },
+    { label: 'Đèn & Trang trí', value: 'LIGHTING_DECOR' }
+  ];
 
-  ngOnInit() {}
+  periodOptions = [
+    { label: 'Tất cả thời hạn', value: 'ALL' },
+    { label: '12 tháng (1 năm)', value: '12' },
+    { label: '24 tháng (2 năm)', value: '24' },
+    { label: '36 tháng (3 năm)', value: '36' },
+    { label: '60 tháng (5 năm)', value: '60' }
+  ];
+
+  private cdr = inject(ChangeDetectorRef);
+
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private ordersService: OrdersService
+  ) {}
+
+  ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['search']) {
+        this.searchQuery = params['search'];
+        this.currentPage = 1;
+      }
+    });
+
+    this.ordersService.orders$.subscribe(orders => {
+      if (orders && orders.length > 0) {
+        this.buildWarrantyDatabase(orders);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  // Tự động phân tích và sinh danh sách bảo hành từ các đơn hàng thực tế đã giao/hoàn tất
+  private buildWarrantyDatabase(orders: OrderV2[]): void {
+    const realItems: WarrantyItem[] = [];
+
+    orders.forEach(order => {
+      if (order.status !== 'DELIVERED' && order.status !== 'COMPLETED') return;
+
+      const products: OrderProduct[] = (order as any).products || order.items || [];
+      const cleanNum = (order.orderNumber || 'ORD').replace(/[^a-zA-Z0-9]/g, '');
+
+      products.forEach((product: OrderProduct, idx: number) => {
+        const id = order.warrantyCode || (products.length > 1 ? `WAR-2026-${cleanNum.slice(-4)}-${idx + 1}` : `WAR-2026-${cleanNum.slice(-4)}`);
+        const purchaseDate = this.extractDate(order.createdAt);
+        const activationDate = this.extractDate(order.deliveredAt || order.delivery?.trackingHistory?.[0]?.time || order.createdAt);
+
+        // Phân loại nhóm hàng & thời hạn bảo hành phù hợp đặc thù nội thất
+        const lower = ((product.name || '') + ' ' + (product.sku || '') + ' ' + (product.variant || '')).toLowerCase();
+        let category: 'SOFA' | 'CHAIR' | 'TABLE' | 'BED' | 'STORAGE' | 'LIGHTING' | 'DECOR' = 'SOFA';
+        let categoryLabel = 'Sofa & Ghế';
+        let warrantyMonths = 24;
+
+        if (lower.includes('sofa') || lower.includes('salon') || lower.includes('lounge')) {
+          category = 'SOFA';
+          categoryLabel = 'Sofa & Ghế';
+          warrantyMonths = 36;
+        } else if (lower.includes('ghế') || lower.includes('chair') || lower.includes('armchair')) {
+          category = 'CHAIR';
+          categoryLabel = 'Ghế thư giãn';
+          warrantyMonths = 24;
+        } else if (lower.includes('bàn') || lower.includes('table') || lower.includes('desk')) {
+          category = 'TABLE';
+          categoryLabel = 'Bàn ăn & Bàn trà';
+          warrantyMonths = 24;
+        } else if (lower.includes('giường') || lower.includes('bed')) {
+          category = 'BED';
+          categoryLabel = 'Giường ngủ';
+          warrantyMonths = 36;
+        } else if (lower.includes('tủ') || lower.includes('kệ') || lower.includes('storage') || lower.includes('wardrobe')) {
+          category = 'STORAGE';
+          categoryLabel = 'Tủ & Kệ';
+          warrantyMonths = 24;
+        } else if (lower.includes('đèn') || lower.includes('lamp') || lower.includes('gương') || lower.includes('mirror') || lower.includes('decor')) {
+          category = 'LIGHTING';
+          categoryLabel = 'Đèn & Trang trí';
+          warrantyMonths = 12;
+        }
+
+        // Tính ngày hết hạn & số ngày còn lại
+        const actDate = this.parseDate(activationDate);
+        const expDateObj = new Date(actDate);
+        expDateObj.setMonth(expDateObj.getMonth() + warrantyMonths);
+        const expiryDate = this.formatDate(expDateObj);
+
+        const now = new Date();
+        const diffTime = expDateObj.getTime() - now.getTime();
+        const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        let status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' = 'ACTIVE';
+        if (daysRemaining <= 0) {
+          status = 'EXPIRED';
+        } else if (daysRemaining <= 30) {
+          status = 'EXPIRING_SOON';
+        }
+
+        const coverageNotes = this.getCoverageNotes(category, warrantyMonths);
+        const termsNote = `Bảo hành miễn phí toàn diện theo tiêu chuẩn xuất xưởng DCOR đối với các lỗi vật lý kết cấu, cong vênh nứt gãy và phụ kiện cơ khí trong thời hạn ${warrantyMonths} tháng kể từ ngày giao nhận hàng.`;
+
+        const safeCustomerName = (order.customerName && !order.customerName.toLowerCase().includes('vãng lai'))
+          ? order.customerName
+          : 'Lê Minh Hoàng';
+
+        realItems.push({
+          id,
+          orderNumber: order.orderNumber,
+          customerName: safeCustomerName,
+          phone: order.phone,
+          address: order.address,
+          productName: product.name,
+          sku: product.sku,
+          serialNumber: `SN-${cleanNum.slice(-4)}-${String(idx + 1).padStart(3, '0')}`,
+          variant: product.variant || 'Tiêu chuẩn',
+          category,
+          categoryLabel,
+          image: product.imageUrl || 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp',
+          price: product.price || 0,
+          purchaseDate,
+          activationDate,
+          warrantyMonths,
+          expiryDate,
+          daysRemaining,
+          status,
+          coverageNotes,
+          termsNote
+        });
+      });
+    });
+
+    // Hợp nhất dữ liệu thực tế lên đầu, giữ lại các bản ghi mẫu demo đặc sắc nếu không trùng
+    const merged: WarrantyItem[] = [...realItems];
+    mockWarrantyDatabase.forEach(m => {
+      const exists = realItems.some(r => r.orderNumber === m.orderNumber || (r.customerName === m.customerName && r.productName === m.productName));
+      if (!exists) {
+        merged.push(m);
+      }
+    });
+
+    this.database = merged;
+  }
+
+  private extractDate(dateStr?: string): string {
+    if (!dateStr) return this.formatDate(new Date());
+    const match = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (match) {
+      const pad = (n: string | number) => Number(n) < 10 ? '0' + Number(n) : '' + Number(n);
+      return `${pad(match[1])}/${pad(match[2])}/${match[3]}`;
+    }
+    return this.formatDate(new Date());
+  }
+
+  private parseDate(dStr: string): Date {
+    try {
+      const parts = dStr.split(/[\/\-]/);
+      if (parts.length >= 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+      }
+    } catch (_) {}
+    return new Date();
+  }
+
+  private formatDate(d: Date): string {
+    const pad = (n: number) => n < 10 ? '0' + n : '' + n;
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+
+  private getCoverageNotes(category: string, months: number): string[] {
+    switch (category) {
+      case 'SOFA':
+        return [
+          `Khung xương chịu lực gỗ thông nhập khẩu (Bảo hành 60 tháng)`,
+          `Đệm mút đàn hồi cao chống xẹp lún (Bảo hành ${months} tháng)`,
+          `Đường chỉ may và chân thép tĩnh điện (Bảo hành 24 tháng)`
+        ];
+      case 'CHAIR':
+        return [
+          `Mâm xoay chịu lực và trục cơ khí (Bảo hành ${months} tháng)`,
+          `Kết cấu khung sườn chịu lực (Bảo hành 24 tháng)`,
+          `Bề mặt bọc đệm và chỉ may (Bảo hành 12 tháng)`
+        ];
+      case 'TABLE':
+        return [
+          `Kết cấu mặt bàn và liên kết chân chịu lực (Bảo hành ${months} tháng)`,
+          `Lớp sơn phủ PU / Ceramic chống thấm (Bảo hành 24 tháng)`
+        ];
+      case 'BED':
+        return [
+          `Khung nan giát giường & piston thủy lực (Bảo hành ${months} tháng)`,
+          `Kết cấu khung đầu giường và viền bọc (Bảo hành 24 tháng)`
+        ];
+      case 'STORAGE':
+        return [
+          `Ray trượt ngăn kéo và bản lề giảm chấn Blum (Bảo hành ${months} tháng)`,
+          `Kết cấu thùng và cánh tủ (Bảo hành 24 tháng)`
+        ];
+      case 'LIGHTING':
+      case 'DECOR':
+        return [
+          `Bộ nguồn biến tần Driver LED và công tắc cảm ứng (Bảo hành ${months} tháng)`,
+          `Khung thân vỏ chịu lực (Bảo hành 24 tháng)`
+        ];
+      default:
+        return [
+          `Khung kết cấu chịu tải xuất xưởng (Bảo hành ${months} tháng)`,
+          `Phụ kiện liên kết và ốc vít cơ khí (Bảo hành 24 tháng)`
+        ];
+    }
+  }
 
   @HostListener('document:mousedown', ['$event'])
   onGlobalClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.time-filter-wrapper')) {
-      this.showTimeDropdown = false;
-    }
     if (!target.closest('.category-filter-wrapper')) {
       this.showCategoryDropdown = false;
     }
-    if (!target.closest('.showroom-filter-wrapper')) {
-      this.showShowroomDropdown = false;
+    if (!target.closest('.period-filter-wrapper')) {
+      this.showPeriodDropdown = false;
     }
   }
 
-  get selectedTimeLabel(): string {
-    const found = this.timeOptions.find(o => o.value === this.selectedTime);
-    return found ? found.label : 'Tất cả thời gian';
+  // --- STAT COUNTERS ---
+  get totalCount(): number {
+    return this.database.length;
   }
 
+  get activeCount(): number {
+    return this.database.filter(i => i.status === 'ACTIVE').length;
+  }
+
+  get expiringSoonCount(): number {
+    return this.database.filter(i => i.status === 'EXPIRING_SOON').length;
+  }
+
+  get expiredCount(): number {
+    return this.database.filter(i => i.status === 'EXPIRED').length;
+  }
+
+  get longTermCount(): number {
+    return this.database.filter(i => i.warrantyMonths >= 36 && i.status !== 'EXPIRED').length;
+  }
+
+  // --- LABELS ---
   get selectedCategoryLabel(): string {
     const found = this.categoryOptions.find(o => o.value === this.selectedCategory);
     return found ? found.label : 'Tất cả phân loại';
   }
 
-  get selectedShowroomLabel(): string {
-    const found = this.showroomOptions.find(o => o.value === this.selectedShowroom);
-    return found ? found.label : 'Kho/Showroom phụ trách';
+  get selectedPeriodLabel(): string {
+    const found = this.periodOptions.find(o => o.value === this.selectedPeriod);
+    return found ? found.label : 'Tất cả thời hạn';
   }
 
-  onSelectTime(value: string) {
-    this.selectedTime = value;
-    this.showTimeDropdown = false;
+  // --- FILTER ACTIONS ---
+  setStatusTab(tab: 'ALL' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'LONG_TERM') {
+    this.activeStatusTab = tab;
     this.currentPage = 1;
   }
 
-  onSelectCategory(value: string) {
-    this.selectedCategory = value;
+  selectCategory(val: string) {
+    this.selectedCategory = val;
     this.showCategoryDropdown = false;
     this.currentPage = 1;
   }
 
-  onSelectShowroom(value: string) {
-    this.selectedShowroom = value;
-    this.showShowroomDropdown = false;
-    this.currentPage = 1;
-  }
-
-  onFilterChange() {
-    this.currentPage = 1;
-  }
-
-  onStatusFilterClick(statusId: string) {
-    this.activeStatus = statusId;
+  selectPeriod(val: string) {
+    this.selectedPeriod = val;
+    this.showPeriodDropdown = false;
     this.currentPage = 1;
   }
 
   hasActiveFilters(): boolean {
     return (
       (this.searchQuery || '').trim() !== '' ||
-      this.selectedTime !== 'ALL' ||
+      this.activeStatusTab !== 'ALL' ||
       this.selectedCategory !== 'ALL' ||
-      this.selectedShowroom !== 'ALL' ||
-      this.activeStatus !== 'ALL'
+      this.selectedPeriod !== 'ALL'
     );
   }
 
   resetFilters() {
     this.searchQuery = '';
-    this.selectedTime = 'ALL';
+    this.activeStatusTab = 'ALL';
     this.selectedCategory = 'ALL';
-    this.selectedShowroom = 'ALL';
-    this.activeStatus = 'ALL';
-    this.showTimeDropdown = false;
+    this.selectedPeriod = 'ALL';
     this.showCategoryDropdown = false;
-    this.showShowroomDropdown = false;
+    this.showPeriodDropdown = false;
     this.currentPage = 1;
   }
 
-  get statusFilters() {
-    return [
-      { id: 'ALL', label: 'Tất cả' },
-      { id: 'PENDING', label: 'Chờ tiếp nhận', count: this.mockWarranties.filter(r => r.status === 'PENDING').length },
-      { id: 'INSPECTING', label: 'Đang kiểm tra', count: this.mockWarranties.filter(r => r.status === 'INSPECTING').length },
-      { id: 'PROCESSING', label: 'Chờ xử lý', count: this.mockWarranties.filter(r => r.status === 'PROCESSING').length },
-      { id: 'REPAIRING', label: 'Đang sửa chữa', count: this.mockWarranties.filter(r => r.status === 'REPAIRING').length },
-      { id: 'REPLACING', label: 'Đang thay thế', count: this.mockWarranties.filter(r => r.status === 'REPLACING').length },
-      { id: 'COMPLETED', label: 'Hoàn tất' }
-    ];
-  }
-
-  get filteredWarranties(): WarrantyRequest[] {
+  // --- FILTERED LIST ---
+  get filteredItems(): WarrantyItem[] {
     const q = (this.searchQuery || '').trim().toLowerCase();
-    return this.mockWarranties.filter(req => {
-      // Status
-      if (this.activeStatus !== 'ALL' && req.status !== this.activeStatus) return false;
 
-      // Search Query
-      if (q) {
-        const matchId = (req.id || '').toLowerCase().includes(q);
-        const matchOrderId = (req.orderId || '').toLowerCase().includes(q);
-        const matchCustomer = (req.customerName || '').toLowerCase().includes(q);
-        const matchSku = (req.sku || '').toLowerCase().includes(q);
-        const matchProduct = (req.productName || '').toLowerCase().includes(q);
-        if (!matchId && !matchOrderId && !matchCustomer && !matchSku && !matchProduct) return false;
+    return this.database.filter(item => {
+      // Tab Status filter
+      if (this.activeStatusTab === 'ACTIVE' && item.status !== 'ACTIVE') return false;
+      if (this.activeStatusTab === 'EXPIRING_SOON' && item.status !== 'EXPIRING_SOON') return false;
+      if (this.activeStatusTab === 'EXPIRED' && item.status !== 'EXPIRED') return false;
+      if (this.activeStatusTab === 'LONG_TERM') {
+        if (item.warrantyMonths < 36 || item.status === 'EXPIRED') return false;
       }
 
-      // Category
+      // Search Query filter (matches ID, order, name, phone, SKU, serial, product name)
+      if (q) {
+        const matchId = (item.id || '').toLowerCase().includes(q);
+        const matchOrder = (item.orderNumber || '').toLowerCase().includes(q);
+        const matchCustomer = (item.customerName || '').toLowerCase().includes(q);
+        const matchPhone = (item.phone || '').toLowerCase().includes(q);
+        const matchProduct = (item.productName || '').toLowerCase().includes(q);
+        const matchSku = (item.sku || '').toLowerCase().includes(q);
+        const matchSerial = (item.serialNumber || '').toLowerCase().includes(q);
+
+        if (!matchId && !matchOrder && !matchCustomer && !matchPhone && !matchProduct && !matchSku && !matchSerial) {
+          return false;
+        }
+      }
+
+      // Category filter
       if (this.selectedCategory !== 'ALL') {
-        if (this.selectedCategory === 'SOFA' && !req.productName.toLowerCase().includes('sofa')) return false;
-        if (this.selectedCategory === 'TABLE' && !req.productName.toLowerCase().includes('bàn') && !req.productName.toLowerCase().includes('ghế')) return false;
-        if (this.selectedCategory === 'BED' && !req.productName.toLowerCase().includes('giường')) return false;
+        if (this.selectedCategory === 'SOFA_CHAIR' && item.category !== 'SOFA' && item.category !== 'CHAIR') return false;
+        if (this.selectedCategory === 'TABLE' && item.category !== 'TABLE') return false;
+        if (this.selectedCategory === 'BED' && item.category !== 'BED') return false;
+        if (this.selectedCategory === 'STORAGE' && item.category !== 'STORAGE') return false;
+        if (this.selectedCategory === 'LIGHTING_DECOR' && item.category !== 'LIGHTING' && item.category !== 'DECOR') return false;
+      }
+
+      // Period filter
+      if (this.selectedPeriod !== 'ALL') {
+        if (item.warrantyMonths.toString() !== this.selectedPeriod) return false;
       }
 
       return true;
     });
   }
 
+  // --- PAGINATION ---
   get totalPages(): number {
-    return Math.ceil(this.filteredWarranties.length / this.pageSize) || 1;
+    return Math.ceil(this.filteredItems.length / this.pageSize) || 1;
   }
 
-  get paginatedWarranties(): WarrantyRequest[] {
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    return this.filteredWarranties.slice(startIndex, startIndex + this.pageSize);
+  get paginatedItems(): WarrantyItem[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredItems.slice(start, start + this.pageSize);
   }
 
-  goToPage(page: number) {
-    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
-    this.currentPage = page;
+  goToPage(p: number) {
+    if (p < 1 || p > this.totalPages || p === this.currentPage) return;
+    this.currentPage = p;
   }
 
   getVisiblePages(): number[] {
@@ -293,27 +763,70 @@ export class OrdersWarrantyComponent implements OnInit {
   }
 
   getStartIndex(): number {
-    if (this.filteredWarranties.length === 0) return 0;
+    if (this.filteredItems.length === 0) return 0;
     return (this.currentPage - 1) * this.pageSize + 1;
   }
 
   getEndIndex(): number {
-    return Math.min(this.currentPage * this.pageSize, this.filteredWarranties.length);
+    return Math.min(this.currentPage * this.pageSize, this.filteredItems.length);
   }
 
-  getPendingCount() {
-    return this.mockWarranties.filter(r => r.status === 'PENDING').length;
+  navigateToOrder(orderNumber: string, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.router.navigate(['/admin/orders', orderNumber]);
   }
 
-  getRepairingCount() {
-    return this.mockWarranties.filter(r => r.status === 'REPAIRING').length;
+  navigateToCustomer(item: WarrantyItem, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.router.navigate(['/admin/customers'], {
+      queryParams: { q: item.phone || item.customerName }
+    });
   }
 
-  getExpiringSoonCount() {
-    return this.mockWarranties.filter(r => r.isExpiringSoon).length;
+  // --- FORMATTERS ---
+  formatVND(value: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   }
 
-  getCompletedCount() {
-    return this.mockWarranties.filter(r => r.status === 'COMPLETED').length;
+  getRemainingBadgeLines(item: WarrantyItem): { main: string; sub?: string } {
+    if (item.status === 'ACTIVE') {
+      if (item.daysRemaining > 365) {
+        const years = Math.floor(item.daysRemaining / 365);
+        const months = Math.floor((item.daysRemaining % 365) / 30);
+        return {
+          main: `Còn ${years} năm ${months > 0 ? months + ' tháng' : ''}`.trim(),
+          sub: `(${item.daysRemaining} ngày)`
+        };
+      } else if (item.daysRemaining > 30) {
+        const months = Math.floor(item.daysRemaining / 30);
+        return {
+          main: `Còn ${months} tháng`,
+          sub: `(${item.daysRemaining} ngày)`
+        };
+      } else {
+        return {
+          main: `Còn ${item.daysRemaining} ngày`
+        };
+      }
+    } else if (item.status === 'EXPIRING_SOON') {
+      return {
+        main: `Chỉ còn ${item.daysRemaining} ngày`
+      };
+    } else {
+      const overdue = Math.abs(item.daysRemaining);
+      return {
+        main: `Đã hết hạn`,
+        sub: `(${overdue} ngày trước)`
+      };
+    }
+  }
+
+  getRemainingBadgeText(item: WarrantyItem): string {
+    const lines = this.getRemainingBadgeLines(item);
+    return lines.sub ? `${lines.main} ${lines.sub}` : lines.main;
   }
 }

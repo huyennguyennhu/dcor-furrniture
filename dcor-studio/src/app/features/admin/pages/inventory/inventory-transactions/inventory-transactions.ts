@@ -81,25 +81,35 @@ export class InventoryTransactionsComponent implements OnInit {
   showToast = false;
   toastTimer: any = null;
 
-  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 4500) {
-    if (this.toastTimer) {
-      clearTimeout(this.toastTimer);
-    }
+  triggerToast(message: string, subMessage: string = '', type: 'success' | 'warning' | 'error' | 'info' = 'success', durationMs = 3000) {
+    this.pauseToastTimer();
     this.toastMessage = message;
     this.toastSubMessage = subMessage;
     this.toastType = type;
     this.showToast = true;
     this.cdr.markForCheck();
     this.toastTimer = setTimeout(() => {
-      this.showToast = false;
-      this.cdr.markForCheck();
+      this.closeToast();
     }, durationMs);
   }
 
-  closeToast() {
+  pauseToastTimer(): void {
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
+      this.toastTimer = null;
     }
+  }
+
+  resumeToastTimer(): void {
+    if (!this.showToast) return;
+    this.pauseToastTimer();
+    this.toastTimer = setTimeout(() => {
+      this.closeToast();
+    }, 3000);
+  }
+
+  closeToast() {
+    this.pauseToastTimer();
     this.showToast = false;
     this.cdr.markForCheck();
   }

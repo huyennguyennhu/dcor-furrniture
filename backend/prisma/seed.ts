@@ -164,8 +164,8 @@ async function main() {
   // - Guest ko có password, nhưng để lại SDT lúc thanh toán
   await prisma.customer.create({
     data: {
-      fullName: 'Khách Vãng Lai',
-      email: 'guest_9999@guest.com', // Fake email để hệ thống bắt buộc có
+      fullName: 'Nguyễn Anh Tuấn',
+      email: 'anhtuan.nguyen@dcor.vn', // Email khách hàng
       phone: '0988777666',          // <--- SĐT của khách Guest
       passwordHash: null,
     }

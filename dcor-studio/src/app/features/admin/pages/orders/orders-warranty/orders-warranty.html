@@ -1,265 +1,301 @@
-<div>
-  <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 24px;">Yêu cầu Bảo hành</h2>
-  
-  <!-- Stat Cards -->
-  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;">
-    <div style="background: var(--bg-primary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.AlertCircle" size="20" color="var(--accent)"></lucide-angular> Tổng yêu cầu
+<div class="warranty-page-container">
+  <!-- 1. PAGE HEADER (Đồng bộ chuẩn cấu trúc từ Yêu cầu đổi trả & Danh sách đơn hàng) -->
+  <div style="margin-bottom: 24px;">
+    <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-primary, #111827);">Tra cứu bảo hành</h2>
+    <p style="font-size: 14px; color: var(--text-secondary, #6B7280); margin: 0;">Tra cứu thông tin, thời hạn bảo hành và hiệu lực chính sách của các sản phẩm nội thất khách hàng đã mua.</p>
+  </div>
+
+  <!-- 2. KPI STATUS CARDS (Đồng bộ chuẩn 100% từ Yêu cầu đổi trả) -->
+  <div class="orders-kpi-grid">
+    <!-- Card 1: Tất cả -->
+    <div class="orders-kpi-card card-all" 
+         [class.active]="activeStatusTab === 'ALL'"
+         (click)="setStatusTab('ALL')"
+         title="Xem toàn bộ sản phẩm bảo hành">
+      <div class="card-header">
+        <span class="card-label">Tất cả</span>
+        <div class="card-icon-wrapper icon-all">
+          <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+        </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ mockWarranties.length }}</div>
+      <div class="card-count">{{ totalCount }}</div>
+      <div class="card-subtitle">Toàn bộ sản phẩm</div>
     </div>
-    <div style="background: #fffbeb; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.Clock" size="20" color="#d97706"></lucide-angular> Chờ tiếp nhận
+
+    <!-- Card 2: Còn hạn bảo hành -->
+    <div class="orders-kpi-card card-completed" 
+         [class.active]="activeStatusTab === 'ACTIVE'"
+         (click)="setStatusTab('ACTIVE')"
+         title="Lọc các sản phẩm đang còn hạn bảo hành">
+      <div class="card-header">
+        <span class="card-label">Còn bảo hành</span>
+        <div class="card-icon-wrapper icon-completed">
+          <lucide-angular [img]="icons.ShieldCheck" size="18"></lucide-angular>
+        </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getPendingCount() }}</div>
+      <div class="card-count">{{ activeCount }}</div>
+      <div class="card-subtitle">Hiệu lực bảo hành tốt</div>
     </div>
-    <div style="background: #faf5ff; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.Wrench" size="20" color="#9333ea"></lucide-angular> Đang sửa chữa
+
+    <!-- Card 3: Sắp hết hạn -->
+    <div class="orders-kpi-card card-confirmation" 
+         [class.active]="activeStatusTab === 'EXPIRING_SOON'"
+         (click)="setStatusTab('EXPIRING_SOON')"
+         title="Lọc các sản phẩm sắp hết hạn trong 30 ngày">
+      <div class="card-header">
+        <span class="card-label">Sắp hết hạn</span>
+        <div class="card-icon-wrapper icon-confirmation">
+          <lucide-angular [img]="icons.ShieldAlert" size="18"></lucide-angular>
+        </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getRepairingCount() }}</div>
+      <div class="card-count">{{ expiringSoonCount }}</div>
+      <div class="card-subtitle">Thời hạn còn ≤ 30 ngày</div>
     </div>
-    <div style="background: #fef2f2; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.AlertOctagon" size="20" color="#dc2626"></lucide-angular> Sắp hết hạn xử lý
+
+    <!-- Card 4: Đã hết hạn -->
+    <div class="orders-kpi-card card-cancelled" 
+         [class.active]="activeStatusTab === 'EXPIRED'"
+         (click)="setStatusTab('EXPIRED')"
+         title="Lọc các sản phẩm đã hết thời hạn bảo hành">
+      <div class="card-header">
+        <span class="card-label">Đã hết hạn</span>
+        <div class="card-icon-wrapper icon-cancelled">
+          <lucide-angular [img]="icons.ShieldX" size="18"></lucide-angular>
+        </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getExpiringSoonCount() }}</div>
+      <div class="card-count">{{ expiredCount }}</div>
+      <div class="card-subtitle">Quá thời hạn cam kết</div>
     </div>
-    <div style="background: #ecfdf5; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-        <lucide-angular [img]="icons.CheckCircle2" size="20" color="#059669"></lucide-angular> Đã hoàn tất
+
+    <!-- Card 5: Gói dài hạn 3-5 năm -->
+    <div class="orders-kpi-card card-processing" 
+         [class.active]="activeStatusTab === 'LONG_TERM'"
+         (click)="setStatusTab('LONG_TERM')"
+         title="Lọc các sản phẩm gói bảo hành dài hạn (36 - 60 tháng)">
+      <div class="card-header">
+        <span class="card-label">Gói dài hạn</span>
+        <div class="card-icon-wrapper icon-processing">
+          <lucide-angular [img]="icons.CalendarCheck" size="18"></lucide-angular>
+        </div>
       </div>
-      <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ getCompletedCount() }}</div>
+      <div class="card-count">{{ longTermCount }}</div>
+      <div class="card-subtitle">Cam kết từ 3 - 5 năm</div>
     </div>
   </div>
 
-  <!-- Status Filters (Pills) -->
-  <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
-    <button *ngFor="let filter of statusFilters"
-      (click)="onStatusFilterClick(filter.id)"
-      [ngStyle]="{
-        'padding': '6px 16px',
-        'border-radius': '20px',
-        'font-size': '13px',
-        'font-weight': activeStatus === filter.id ? 600 : 500,
-        'background': activeStatus === filter.id ? 'var(--text-primary)' : 'var(--bg-primary)',
-        'color': activeStatus === filter.id ? 'var(--bg-primary)' : 'var(--text-secondary)',
-        'border': '1px solid ' + (activeStatus === filter.id ? 'var(--text-primary)' : 'var(--border-color)'),
-        'cursor': 'pointer',
-        'display': 'flex',
-        'align-items': 'center',
-        'gap': '6px',
-        'transition': 'all 0.2s'
-      }"
-    >
-      {{ filter.label }}
-      <span *ngIf="filter.count !== undefined" [ngStyle]="{
-        'background': activeStatus === filter.id ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
-        'color': activeStatus === filter.id ? '#fff' : 'inherit',
-        'padding': '2px 6px',
-        'border-radius': '10px',
-        'font-size': '11px'
-      }">
-        {{ filter.count }}
-      </span>
-    </button>
-  </div>
-
-  <!-- Filters Bar -->
-  <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
-    <!-- Search Input with Clear Button -->
-    <div class="filter-search-box">
+  <!-- 3. FILTER & SEARCH TOOLBAR (Đồng bộ chuẩn 100% từ Danh sách đơn hàng & Yêu cầu đổi trả) -->
+  <div class="v2-toolbar">
+    <div class="filter-search-box v2-search-box">
       <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
       <input 
         type="text" 
         [(ngModel)]="searchQuery" 
-        (ngModelChange)="onFilterChange()"
-        placeholder="Tìm mã bảo hành, mã đơn, khách hàng hoặc SKU..." 
-        class="filter-search-input" 
+        (ngModelChange)="currentPage = 1"
+        placeholder="Tra cứu theo mã đơn hàng (DCOR-ORD-...), SĐT, tên khách hàng, mã SKU hoặc số Serial..."
+        class="filter-search-input"
       />
-      <button *ngIf="searchQuery" (click)="searchQuery = ''; onFilterChange()" class="search-clear-btn" title="Xóa tìm kiếm">
+      <button *ngIf="searchQuery" type="button" class="search-clear-btn clear-search" (click)="searchQuery = ''; currentPage = 1" title="Xóa tìm kiếm">
         <lucide-angular [img]="icons.X" size="14"></lucide-angular>
       </button>
     </div>
 
-    <!-- 1. Dropdown Thời gian -->
-    <div class="filter-dropdown-wrapper time-filter-wrapper">
-      <button 
-        type="button"
-        (click)="showTimeDropdown = !showTimeDropdown; showCategoryDropdown = false; showShowroomDropdown = false"
-        class="filter-trigger-btn"
-        [class.active]="selectedTime !== 'ALL'"
-        title="Chọn khoảng thời gian"
-      >
-        <div class="trigger-label">
-          <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
-          <span class="truncate-label">{{ selectedTimeLabel }}</span>
-        </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showTimeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-      </button>
-      
-      <div *ngIf="showTimeDropdown" class="filter-menu-dropdown">
-        <div *ngFor="let opt of timeOptions"
-          (click)="onSelectTime(opt.value)"
-          class="filter-menu-item"
-          [class.selected]="selectedTime === opt.value"
+    <div class="v2-filter-group">
+      <!-- Dropdown Phân loại sản phẩm -->
+      <div class="filter-dropdown-wrapper category-filter-wrapper">
+        <button 
+          type="button"
+          (click)="showCategoryDropdown = !showCategoryDropdown; showPeriodDropdown = false"
+          class="filter-trigger-btn"
+          [class.active]="selectedCategory !== 'ALL'"
+          title="Chọn phân loại sản phẩm"
         >
-          <span>{{ opt.label }}</span>
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.Layers" size="14" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedCategoryLabel }}</span>
+          </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showCategoryDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+        </button>
+        
+        <div *ngIf="showCategoryDropdown" class="filter-menu-dropdown">
+          <div *ngFor="let opt of categoryOptions"
+            (click)="selectCategory(opt.value)"
+            class="filter-menu-item"
+            [class.selected]="selectedCategory === opt.value"
+          >
+            <span>{{ opt.label }}</span>
+            <lucide-angular *ngIf="selectedCategory === opt.value" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 2. Dropdown Phân loại -->
-    <div class="filter-dropdown-wrapper category-filter-wrapper">
-      <button 
-        type="button"
-        (click)="showCategoryDropdown = !showCategoryDropdown; showTimeDropdown = false; showShowroomDropdown = false"
-        class="filter-trigger-btn"
-        [class.active]="selectedCategory !== 'ALL'"
-        title="Chọn phân loại"
-      >
-        <div class="trigger-label">
-          <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
-          <span class="truncate-label">{{ selectedCategoryLabel }}</span>
-        </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showCategoryDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-      </button>
-      
-      <div *ngIf="showCategoryDropdown" class="filter-menu-dropdown">
-        <div *ngFor="let opt of categoryOptions"
-          (click)="onSelectCategory(opt.value)"
-          class="filter-menu-item"
-          [class.selected]="selectedCategory === opt.value"
+      <!-- Dropdown Gói thời hạn -->
+      <div class="filter-dropdown-wrapper period-filter-wrapper">
+        <button 
+          type="button"
+          (click)="showPeriodDropdown = !showPeriodDropdown; showCategoryDropdown = false"
+          class="filter-trigger-btn"
+          [class.active]="selectedPeriod !== 'ALL'"
+          title="Chọn gói thời hạn bảo hành"
         >
-          <span>{{ opt.label }}</span>
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.CalendarCheck" size="14" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedPeriodLabel }}</span>
+          </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showPeriodDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+        </button>
+        
+        <div *ngIf="showPeriodDropdown" class="filter-menu-dropdown">
+          <div *ngFor="let opt of periodOptions"
+            (click)="selectPeriod(opt.value)"
+            class="filter-menu-item"
+            [class.selected]="selectedPeriod === opt.value"
+          >
+            <span>{{ opt.label }}</span>
+            <lucide-angular *ngIf="selectedPeriod === opt.value" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 3. Dropdown Kho/Showroom phụ trách -->
-    <div class="filter-dropdown-wrapper showroom-filter-wrapper">
+      <!-- Nút Đặt lại bộ lọc -->
       <button 
-        type="button"
-        (click)="showShowroomDropdown = !showShowroomDropdown; showTimeDropdown = false; showCategoryDropdown = false"
-        class="filter-trigger-btn"
-        [class.active]="selectedShowroom !== 'ALL'"
-        title="Chọn kho/showroom"
+        *ngIf="hasActiveFilters()" 
+        type="button" 
+        (click)="resetFilters()" 
+        class="reset-filters-btn" 
+        title="Đặt lại toàn bộ bộ lọc"
       >
-        <div class="trigger-label">
-          <lucide-angular [img]="icons.Building2" size="15" class="trigger-icon"></lucide-angular>
-          <span class="truncate-label">{{ selectedShowroomLabel }}</span>
-        </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showShowroomDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+        <span>Đặt lại</span>
       </button>
-      
-      <div *ngIf="showShowroomDropdown" class="filter-menu-dropdown">
-        <div *ngFor="let opt of showroomOptions"
-          (click)="onSelectShowroom(opt.value)"
-          class="filter-menu-item"
-          [class.selected]="selectedShowroom === opt.value"
-        >
-          <span>{{ opt.label }}</span>
-        </div>
-      </div>
     </div>
-
-    <!-- Nút Đặt lại tất cả bộ lọc -->
-    <button 
-      *ngIf="hasActiveFilters()" 
-      type="button" 
-      (click)="resetFilters()" 
-      class="reset-filters-btn" 
-      title="Đặt lại toàn bộ bộ lọc về mặc định"
-    >
-      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
-      <span>Xóa bộ lọc</span>
-    </button>
   </div>
 
-  <!-- Data Table -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
-    <div style="width: 100%; overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+  <!-- 4. RESULTS TABLE (CHUYÊN DỤNG TRA CỨU NHANH) -->
+  <div class="warranty-table-card">
+    <div class="table-responsive">
+      <table class="warranty-table">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-left-radius: 11px;">Mã yêu cầu</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Ngày YC</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Khách hàng</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); min-width: 200px;">Sản phẩm</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Bảo hành</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Trạng thái</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; border-top-right-radius: 11px;">Người xử lý</th>
+          <tr>
+            <th style="width: 140px;">Mã BH</th>
+            <th style="width: 150px;">Đơn hàng gốc</th>
+            <th style="width: 180px;">Khách hàng</th>
+            <th style="min-width: 250px;">Sản phẩm đã mua</th>
+            <th style="width: 130px;">Ngày nhận hàng</th>
+            <th style="width: 120px;">Thời hạn BH</th>
+            <th style="width: 190px; min-width: 175px; white-space: nowrap !important;">Hạn bảo hành</th>
+            <th style="width: 150px; text-align: center;">Tình trạng</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of paginatedWarranties" style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
-              [routerLink]="['/admin/orders/warranty', item.id]"
-              onmouseover="this.style.background='#F3E5D3'" 
-              onmouseout="this.style.background='transparent'">
-            <td style="padding: 16px; white-space: nowrap;">
-              <div>
-                <span style="font-weight: 600; color: var(--accent); font-family: monospace; font-size: 13px;">{{ item.id }}</span>
-                <div *ngIf="item.isExpiringSoon" style="font-size: 10.5px; color: #ef4444; margin-top: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">
-                  <lucide-angular [img]="icons.AlertOctagon" size="10"></lucide-angular> SẮP HẾT HẠN
+          <tr 
+            *ngFor="let item of paginatedItems"
+            (click)="navigateToOrder(item.orderNumber)"
+            class="warranty-row-clickable"
+            title="Nhấp để xem chi tiết đơn hàng #{{ item.orderNumber }}"
+          >
+            <!-- Mã BH -->
+            <td>
+              <span class="warranty-id">{{ item.id }}</span>
+            </td>
+
+            <!-- Đơn hàng gốc -->
+            <td>
+              <a 
+                class="order-link" 
+                (click)="navigateToOrder(item.orderNumber, $event)"
+                [routerLink]="['/admin/orders', item.orderNumber]"
+                title="Xem chi tiết đơn hàng gốc #{{ item.orderNumber }}"
+              >
+                <span>#{{ item.orderNumber }}</span>
+                <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
+              </a>
+            </td>
+
+            <!-- Khách hàng & SĐT -->
+            <td (click)="navigateToCustomer(item, $event)" title="Nhấp để xem hồ sơ khách hàng {{ item.customerName }}">
+              <div class="cell-customer-group">
+                <span class="customer-name customer-name-link">{{ item.customerName }}</span>
+                <span class="customer-phone font-mono">{{ item.phone }}</span>
+              </div>
+            </td>
+
+            <!-- Sản phẩm & SKU -->
+            <td>
+              <div class="product-cell-group">
+                <div class="product-info-texts">
+                  <div class="product-name" [title]="item.productName">{{ item.productName }}</div>
+                  <div class="product-variant">{{ item.variant }}</div>
+                  <div class="product-sku font-mono">SKU: {{ item.sku }}</div>
                 </div>
               </div>
             </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <div>
-                <div style="font-weight: 500; font-size: 13px;">{{ item.createdAt.split(' ')[0] }}</div>
-                <div style="font-size: 11.5px; color: var(--text-muted);">{{ item.createdAt.split(' ')[1] }}</div>
+
+            <!-- Ngày nhận hàng (Kích hoạt BH) -->
+            <td>
+              <span class="main-date">{{ item.activationDate }}</span>
+            </td>
+
+            <!-- Thời hạn BH -->
+            <td>
+              <span class="period-badge-tag font-bold">
+                {{ item.warrantyMonths }} tháng
+              </span>
+            </td>
+
+            <!-- Hạn bảo hành & Thời gian còn lại -->
+            <td style="white-space: nowrap !important; min-width: 175px !important;">
+              <div class="cell-expiry-group">
+                <span class="expiry-date font-bold">{{ item.expiryDate }}</span>
+                <span 
+                  class="countdown-badge"
+                  [class.badge-active]="item.status === 'ACTIVE'"
+                  [class.badge-warning]="item.status === 'EXPIRING_SOON'"
+                  [class.badge-expired]="item.status === 'EXPIRED'"
+                >
+                  <lucide-angular *ngIf="item.status === 'EXPIRING_SOON'" [img]="icons.Clock" size="12" class="countdown-icon"></lucide-angular>
+                  <lucide-angular *ngIf="item.status === 'EXPIRED'" [img]="icons.AlertCircle" size="12" class="countdown-icon"></lucide-angular>
+                  <span class="countdown-text-group">
+                    <span class="countdown-main">{{ getRemainingBadgeLines(item).main }}</span>
+                    <span *ngIf="getRemainingBadgeLines(item).sub" class="countdown-sub">{{ getRemainingBadgeLines(item).sub }}</span>
+                  </span>
+                </span>
               </div>
             </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <div>
-                <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">{{ item.customerName }}</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ item.phone }}</div>
-              </div>
-            </td>
-            <td style="padding: 16px;">
-              <div>
-                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">{{ item.productName }}</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">{{ item.variant }} • SKU: {{ item.sku }}</div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color);">
-                  Lỗi: {{ item.reason }}
-                </div>
-              </div>
-            </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <div style="font-size: 12px; min-width: 130px; line-height: 1.5;">
-                <div><span style="color: var(--text-muted);">Mua:</span> {{ item.purchaseDate }}</div>
-                <div><span style="color: var(--text-muted);">Hạn:</span> <span [ngStyle]="{'font-weight': 600, 'color': item.isExpiringSoon ? '#ef4444' : 'var(--text-primary)'}">{{ item.warrantyExpiry }}</span></div>
-              </div>
-            </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <span *ngIf="item.status === 'PENDING'" style="padding: 4px 10px; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Chờ tiếp nhận</span>
-              <span *ngIf="item.status === 'INSPECTING'" style="padding: 4px 10px; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang kiểm tra</span>
-              <span *ngIf="item.status === 'PROCESSING'" style="padding: 4px 10px; background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Chờ xử lý</span>
-              <span *ngIf="item.status === 'REPAIRING'" style="padding: 4px 10px; background: rgba(168, 85, 247, 0.12); color: #9333ea; border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang sửa chữa</span>
-              <span *ngIf="item.status === 'REPLACING'" style="padding: 4px 10px; background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Đang thay thế</span>
-              <span *ngIf="item.status === 'COMPLETED'" style="padding: 4px 10px; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Hoàn tất</span>
-              <span *ngIf="item.status === 'REJECTED'" style="padding: 4px 10px; background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; font-size: 12px; font-weight: 600;">Từ chối</span>
-            </td>
-            <td style="padding: 16px; white-space: nowrap;">
-              <span [ngStyle]="{
-                'color': item.assignee === 'Chưa phân công' ? '#dc2626' : 'var(--text-primary)',
-                'font-weight': item.assignee === 'Chưa phân công' ? 600 : 500,
-                'font-size': '13px'
-              }">
-                {{ item.assignee }}
+
+            <!-- Tình trạng hiệu lực -->
+            <td style="text-align: center;">
+              <span 
+                class="status-pill"
+                [class.pill-active]="item.status === 'ACTIVE'"
+                [class.pill-warning]="item.status === 'EXPIRING_SOON'"
+                [class.pill-expired]="item.status === 'EXPIRED'"
+              >
+                <lucide-angular *ngIf="item.status === 'ACTIVE'" [img]="icons.ShieldCheck" size="13"></lucide-angular>
+                <lucide-angular *ngIf="item.status === 'EXPIRING_SOON'" [img]="icons.ShieldAlert" size="13"></lucide-angular>
+                <lucide-angular *ngIf="item.status === 'EXPIRED'" [img]="icons.ShieldX" size="13"></lucide-angular>
+                
+                <span *ngIf="item.status === 'ACTIVE'">Còn bảo hành</span>
+                <span *ngIf="item.status === 'EXPIRING_SOON'">Sắp hết hạn</span>
+                <span *ngIf="item.status === 'EXPIRED'">Đã hết hạn</span>
               </span>
             </td>
           </tr>
 
-          <!-- Empty State -->
-          <tr *ngIf="filteredWarranties.length === 0">
-            <td colspan="7" style="padding: 64px 20px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
-              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-                <lucide-angular [img]="icons.Package" size="36" style="color: var(--text-muted); opacity: 0.45;"></lucide-angular>
-                <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">Không tìm thấy yêu cầu bảo hành nào phù hợp</span>
-                <span style="font-size: 12.5px; color: var(--text-muted);">Vui lòng thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn.</span>
+          <!-- EMPTY STATE -->
+          <tr *ngIf="filteredItems.length === 0">
+            <td colspan="8" class="table-empty-cell">
+              <div class="empty-state-wrap">
+                <div class="empty-icon-circle">
+                  <lucide-angular [img]="icons.Search" size="32"></lucide-angular>
+                </div>
+                <h3 class="empty-title">Không tìm thấy sản phẩm bảo hành phù hợp</h3>
+                <p class="empty-desc">
+                  Vui lòng kiểm tra lại từ khóa tìm kiếm (Mã đơn hàng, Số điện thoại, Mã SKU) hoặc đặt lại bộ lọc.
+                </p>
+                <button type="button" class="btn-empty-reset" (click)="resetFilters()">
+                  <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+                  <span>Đặt lại bộ lọc tìm kiếm</span>
+                </button>
               </div>
             </td>
           </tr>
@@ -267,14 +303,13 @@
       </table>
     </div>
 
-    <!-- Pagination Footer -->
-    <div *ngIf="filteredWarranties.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
-      <div style="font-size: 13px; color: var(--text-secondary);">
-        Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ filteredWarranties.length }}</span> yêu cầu
+    <!-- TABLE PAGINATION FOOTER -->
+    <div *ngIf="filteredItems.length > 0" class="table-pagination-footer">
+      <div class="pagination-info">
+        Hiển thị <span class="font-bold">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span class="font-bold">{{ filteredItems.length }}</span> sản phẩm bảo hành
       </div>
 
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <!-- First Page -->
+      <div class="pagination-controls">
         <button 
           type="button"
           (click)="goToPage(1)" 
@@ -283,10 +318,9 @@
           [class.disabled]="currentPage === 1"
           title="Trang đầu"
         >
-          <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+          <lucide-angular [img]="icons.ChevronsLeft" size="14"></lucide-angular>
         </button>
 
-        <!-- Previous Page -->
         <button 
           type="button"
           (click)="goToPage(currentPage - 1)" 
@@ -295,12 +329,11 @@
           [class.disabled]="currentPage === 1"
           title="Trang trước"
         >
-          <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+          <lucide-angular [img]="icons.ChevronLeft" size="14"></lucide-angular>
         </button>
 
-        <!-- Page numbers -->
         <button 
-          type="button"
+          type="button" 
           *ngFor="let p of getVisiblePages()"
           (click)="goToPage(p)"
           class="admin-pagination-btn"
@@ -309,7 +342,6 @@
           {{ p }}
         </button>
 
-        <!-- Next Page -->
         <button 
           type="button"
           (click)="goToPage(currentPage + 1)" 
@@ -318,10 +350,9 @@
           [class.disabled]="currentPage === totalPages"
           title="Trang sau"
         >
-          <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+          <lucide-angular [img]="icons.ChevronRight" size="14"></lucide-angular>
         </button>
 
-        <!-- Last Page -->
         <button 
           type="button"
           (click)="goToPage(totalPages)" 
@@ -330,7 +361,7 @@
           [class.disabled]="currentPage === totalPages"
           title="Trang cuối"
         >
-          <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+          <lucide-angular [img]="icons.ChevronsRight" size="14"></lucide-angular>
         </button>
       </div>
     </div>

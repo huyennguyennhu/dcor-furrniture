@@ -761,3 +761,11 @@ body.admin-body {
     transform: scale(1);
   }
 }
+
+
+/* Pause toast progress bar animation on hover */
+.inventory-toast-container:hover [style*="animation: toastProgress"],
+.settings-toast-container:hover [style*="animation: toastProgress"],
+.v2-toast:hover [style*="animation: toastProgress"] {
+  animation-play-state: paused;
+}

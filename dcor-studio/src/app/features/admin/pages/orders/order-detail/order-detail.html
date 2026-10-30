@@ -3,6 +3,8 @@
   <!-- Floating Toast Notification -->
   <div *ngIf="showToast" 
     class="v2-toast"
+    (mouseenter)="pauseToastTimer()"
+    (mouseleave)="resumeToastTimer()"
     [class.toast-success]="toastType === 'success'"
     [class.toast-error]="toastType === 'error'"
     [class.toast-info]="toastType === 'info'"
@@ -34,13 +36,23 @@
 
     <div class="v2-header-main">
       <div class="order-meta-title">
-        <div class="title-with-tags">
+        <div class="title-with-tags" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
           <h1>Đơn hàng #{{ order.orderNumber }}</h1>
+          <a *ngIf="order.status === 'COMPLETED' || order.warrantyCode"
+             [routerLink]="['/admin/orders/warranty']"
+             [queryParams]="{ search: order.orderNumber }"
+             class="warranty-header-pill"
+             title="Đơn hàng được kích hoạt Bảo hành chính hãng - Nhấp để tra cứu hồ sơ bảo hành"
+             style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; background: rgba(118, 83, 55, 0.08); border: 1px solid rgba(118, 83, 55, 0.22); color: var(--accent-color, #765337); font-size: 12px; font-weight: 600; text-decoration: none;">
+            <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
+            <span>Hồ sơ BH: {{ order.warrantyCode || 'WAR-2026' }}</span>
+            <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+          </a>
         </div>
         <div class="order-sub-meta">
           <span>Ngày đặt: <strong>{{ formatDate(order.createdAt) }}</strong></span>
           <span class="dot">•</span>
-          <span>Khách hàng: <strong>{{ order.customerName }}</strong> ({{ order.phone }})</span>
+          <span>Khách hàng: <strong (click)="onViewCustomerDetail()" style="cursor: pointer; color: var(--accent-color, #c5a880); text-decoration: underline; text-underline-offset: 3px;" title="Xem chi tiết hồ sơ khách hàng">{{ order.customerName }}</strong> ({{ order.phone }})</span>
         </div>
       </div>
     </div>
@@ -239,14 +251,28 @@
       <lucide-angular [img]="icons.AlertTriangle" size="16"></lucide-angular>
       <span>Trạng thái ngoại lệ: <strong>Giao thất bại</strong> — Lý do: "{{ order.delivery.failureReason || 'Không liên lạc được' }}". Chờ CSKH gọi lại lên lịch giao lần tiếp theo.</span>
     </div>
-
-    <div class="stepper-branch-pill branch-return" *ngIf="isReturnFlow">
-      <lucide-angular [img]="order.returnInfo?.type === 'EXCHANGE' ? icons.RefreshCw : icons.CornerDownLeft" size="16"></lucide-angular>
-      <span>Trạng thái ngoại lệ: <strong>{{ order.returnInfo?.type === 'EXCHANGE' ? 'EXCHANGE (Yêu cầu đổi hàng)' : 'RETURN (Yêu cầu Trả hàng)' }}</strong> — {{ order.returnInfo?.reason || 'Khách hàng đã yêu cầu đổi/trả sản phẩm trong thời hạn 72h' }}</span>
-    </div>
   </div>
 
-  <!-- DELIVERED 72H COUNTDOWN WIDGET: ĐỒNG HỒ ĐẾM NGƯỢC 72H ĐỔI TRẢ (TỰ ĐỘNG CHUYỂN COMPLETED) -->
+  <!-- HỒ SƠ YÊU CẦU ĐỔI / TRẢ HÀNG - ĐIỀU HƯỚNG SANG TRANG ĐỔI TRẢ -->
+  <div class="v2-card return-claim-card" *ngIf="hasReturnClaim">
+    <div class="v2-card-header return-claim-nav-header">
+      <div class="card-title-group">
+        <lucide-angular [img]="order.returnInfo?.type === 'EXCHANGE' ? icons.RefreshCw : icons.CornerDownLeft" size="18" class="text-accent"></lucide-angular>
+        <h3>{{ order.returnInfo?.type === 'EXCHANGE' ? 'Hồ sơ Yêu cầu Đổi hàng' : 'Hồ sơ Yêu cầu Trả hàng & Hoàn tiền' }}</h3>
+      </div>
+      <div class="card-header-badge-group">
+          <button type="button" 
+                  (click)="goToReturnDetail()"
+                  class="btn-open-docket" 
+                  title="Mở trực tiếp hồ sơ chi tiết yêu cầu đổi trả">
+            <span>Đến đơn Đổi trả</span>
+            <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELIVERED 72H COUNTDOWN WIDGET: ĐỒNG HỒ ĐẾM NGƯỢC 72H ĐỔI TRẢ (TỰ ĐỘNG CHUYỂN COMPLETED) -->
   <div class="delivered-countdown-widget" *ngIf="order && order.status === 'DELIVERED'">
     <div class="countdown-left-block">
       <div class="countdown-badge-icon">
@@ -551,6 +577,7 @@
 
 
 
+      
       <!-- CARD 5: Nhật ký thao tác & Audit Trail -->
       <div class="v2-card">
         <div class="v2-card-header">
@@ -601,7 +628,7 @@
           <div class="cust-profile">
             <div class="cust-avatar">{{ order.customerName.charAt(0) }}</div>
             <div class="cust-meta">
-              <div class="cust-name">{{ order.customerName }}</div>
+              <div class="cust-name" (click)="onViewCustomerDetail()" style="cursor: pointer;" title="Xem chi tiết hồ sơ khách hàng">{{ order.customerName }}</div>
               <button type="button" class="btn-customer-nav" (click)="onViewCustomerDetail()" title="Xem chi tiết hồ sơ khách hàng">
                 <lucide-angular [img]="icons.User" size="12"></lucide-angular>
                 <span>Chi tiết khách hàng</span>
@@ -931,7 +958,7 @@
   <!-- =========================================================================
        CRITICAL REQUIREMENT: BOTTOM ACTION CARD (Placed at bottom of page!)
        ========================================================================= -->
-  <div class="v2-bottom-action-card" *ngIf="!isHistoricalView && order.status !== 'DELIVERED' && !isReturnFlow">
+  <div class="v2-bottom-action-card" *ngIf="!isHistoricalView && order.status !== 'DELIVERED'">
     <div class="bottom-action-inner">
       <!-- LIVE CONTEXTUAL BUTTONS -->
       <div class="action-buttons-group">
@@ -1013,6 +1040,15 @@
           <span class="closed-order-note">
             {{ order.status === 'COMPLETED' ? 'Đơn hàng đã hoàn tất thành công và khóa dữ liệu.' : 'Đơn hàng đã hủy bỏ.' }}
           </span>
+          <a *ngIf="order.status === 'COMPLETED'" 
+             class="btn-secondary-action" 
+             [routerLink]="['/admin/orders/warranty']" 
+             [queryParams]="{ search: order.orderNumber }"
+             style="text-decoration: none;"
+             title="Tra cứu hồ sơ bảo hành điện tử của đơn hàng này">
+            <lucide-angular [img]="icons.ShieldCheck" size="16"></lucide-angular>
+            <span>Xem bảo hành điện tử</span>
+          </a>
           <button type="button" class="btn-secondary-action" (click)="handlePrint()">
             <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
             <span>In phiếu lưu trữ</span>
@@ -1326,3 +1362,14 @@
     <button type="button" class="btn-primary-action" (click)="goBack()">Quay lại danh sách</button>
   </div>
 </ng-template>
+
+
+  <!-- PROOF IMAGE LIGHTBOX -->
+  <div class="v2-modal-backdrop" *ngIf="selectedProofImage" (click)="closeProofLightbox()">
+    <div class="proof-lightbox-modal" (click)="$event.stopPropagation()">
+      <button type="button" class="btn-close-lightbox" (click)="closeProofLightbox()" title="Đóng ảnh phóng to">
+        <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+      </button>
+      <img [src]="selectedProofImage" alt="Ảnh phóng to hiện trường" class="lightbox-img" />
+    </div>
+  </div>

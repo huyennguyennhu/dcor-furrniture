@@ -320,10 +320,12 @@ export interface LineItem {
     }
   `],
   template: `
-    <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; backdrop-filter: blur(2px);">
+    <div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; backdrop-filter: blur(2px);">
       
       <!-- Floating Toast Cảnh Báo Tồn Kho Khả Dụng = 0 (Phiếu Xuất) -->
       <div *ngIf="showToast" 
+        (mouseenter)="pauseToastTimer()"
+        (mouseleave)="resumeToastTimer()"
         style="position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 380px; max-width: 620px; width: max-content; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 20px 45px -8px rgba(0,0,0,0.25), 0 0 0 1px rgba(239, 68, 68, 0.25); border-left: 5px solid #ef4444; padding: 14px 18px 12px; animation: toastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; display: flex; flex-direction: column; gap: 10px; pointer-events: auto;">
         
         <div style="display: flex; align-items: flex-start; gap: 12px;">
@@ -358,7 +360,7 @@ export interface LineItem {
 
         <!-- Countdown Progress Bar -->
         <div style="width: 100%; height: 3px; background: rgba(239, 68, 68, 0.15); border-radius: 2px; overflow: hidden;">
-          <div style="height: 100%; background: #ef4444; border-radius: 2px; animation: toastProgress 5s linear forwards;"></div>
+          <div style="height: 100%; background: #ef4444; border-radius: 2px; animation: toastProgress 3s linear forwards;"></div>
         </div>
       </div>
 
@@ -373,7 +375,7 @@ export interface LineItem {
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <h2 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                 <ng-container *ngIf="!isViewMode">
-                  {{ type === 'import' ? 'Tạo phiếu Nhập kho' : 'Tạo phiếu Xuất kho' }}
+                  {{ modalTitle || (type === 'import' ? 'Tạo phiếu Nhập kho' : 'Tạo phiếu Xuất kho') }}
                 </ng-container>
                 <ng-container *ngIf="isViewMode">
                   <span>{{ type === 'import' ? 'Phiếu nhập kho' : 'Phiếu xuất kho' }}</span>
@@ -1646,20 +1648,9 @@ export interface LineItem {
           <!-- Left spacer in view mode -->
           <div *ngIf="isViewMode"></div>
 
-          <!-- CREATE MODE: Hủy + Lưu nháp + Tạo phiếu -->
+          <!-- CREATE MODE: Lưu nháp + Tạo phiếu -->
           <div *ngIf="!isViewMode" style="display: flex; align-items: center; gap: 10px;">
-            <!-- Nút 1: HỦY -->
-            <button type="button" (click)="requestClose()" [disabled]="isAnyActionProcessing"
-              [style.opacity]="isAnyActionProcessing ? '0.5' : '1'"
-              [style.cursor]="isAnyActionProcessing ? 'not-allowed' : 'pointer'"
-              style="padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-weight: 500; transition: all 0.15s ease;"
-              onmouseover="if(!this.disabled) this.style.background='var(--bg-secondary)'"
-              onmouseout="if(!this.disabled) this.style.background='var(--bg-primary)'"
-            >
-              Hủy
-            </button>
-
-            <!-- Nút 2: LƯU NHÁP -->
+            <!-- Nút 1: LƯU NHÁP -->
             <button type="button" (click)="handleSaveDraft()" [disabled]="!canSaveDraft() || isAnyActionProcessing"
               [ngStyle]="{
                 'display': 'flex', 'align-items': 'center', 'gap': '6px',
@@ -1682,7 +1673,7 @@ export interface LineItem {
             </button>
 
             <!-- Nút 3: TẠO PHIẾU XUẤT / NHẬP (PLANNED) -->
-            <button type="button" (click)="handleSubmitConfirmed()" [disabled]="!canSubmitOrder() || isAnyActionProcessing"
+            <button *ngIf="!draftOnly" type="button" (click)="handleSubmitConfirmed()" [disabled]="!canSubmitOrder() || isAnyActionProcessing"
               [ngStyle]="{
                 'display': 'flex', 'align-items': 'center', 'gap': '6px',
                 'padding': '9px 24px', 'border-radius': '8px', 'border': 'none',
@@ -2113,6 +2104,10 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   @Input() isVariantFixed = false;
   /** When set, modal opens in VIEW mode for an existing order */
   @Input() viewOrderData: any = null;
+  /** Prefill data for creating a new transaction */
+  @Input() prefillData: any = null;
+  @Input() draftOnly = false;
+  @Input() modalTitle = '';
 
   @Output() onClose = new EventEmitter<void>();
   @Output() onSubmit = new EventEmitter<any>();
@@ -2890,23 +2885,34 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   toastTimer: any = null;
   showDiscardConfirmModal = false;
 
-  triggerToast(message: string, subMessage = '', type: 'warning' | 'error' | 'info' = 'warning', durationMs = 5000) {
-    if (this.toastTimer) {
-      clearTimeout(this.toastTimer);
-    }
+  triggerToast(message: string, subMessage = '', type: 'warning' | 'error' | 'info' = 'warning', durationMs = 3000) {
+    this.pauseToastTimer();
     this.toastMessage = message;
     this.toastSubMessage = subMessage;
     this.toastType = type;
     this.showToast = true;
     this.toastTimer = setTimeout(() => {
-      this.showToast = false;
+      this.closeToast();
     }, durationMs);
   }
 
-  closeToast() {
+  pauseToastTimer(): void {
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
+      this.toastTimer = null;
     }
+  }
+
+  resumeToastTimer(): void {
+    if (!this.showToast) return;
+    this.pauseToastTimer();
+    this.toastTimer = setTimeout(() => {
+      this.closeToast();
+    }, 3000);
+  }
+
+  closeToast() {
+    this.pauseToastTimer();
     this.showToast = false;
   }
 
@@ -2961,6 +2967,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
   readonly STORAGE_KEY_PARTNER_LABELS = 'dcor_inventory_reasons_partner_labels';
 
   exportReasonOptions: string[] = [
+    'Xuất đổi hàng',
     'Bán hàng',
     'Chuyển kho',
     'Trả nhà cung cấp',
@@ -2984,6 +2991,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     'Mua hàng từ Nhà cung cấp',
     'Hàng trả lại từ khách hàng (Trả hàng/Đổi trả)',
     'Bán hàng',
+    'Xuất đổi hàng',
     'Trả nhà cung cấp',
     'Trưng bày mẫu'
   ]);
@@ -2997,6 +3005,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     'Mua hàng từ Nhà cung cấp': 'Nhà cung cấp',
     'Hàng trả lại từ khách hàng (Trả hàng/Đổi trả)': 'Khách hàng',
     'Bán hàng': 'Khách hàng',
+    'Xuất đổi hàng': 'Khách hàng',
     'Trả nhà cung cấp': 'Nhà cung cấp',
     'Trưng bày mẫu': 'Nơi trưng bày'
   };
@@ -3082,7 +3091,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     if (this.reasonsRequiringSupplier.has(reason)) return true;
 
     if (this.type === 'export') {
-      return r.includes('bán') || r.includes('trả') || r.includes('trưng bày') || r.includes('mẫu') || r.includes('ncc') || r.includes('nhà cung cấp');
+      return r.includes('bán') || r.includes('đổi') || r.includes('trả') || r.includes('trưng bày') || r.includes('mẫu') || r.includes('ncc') || r.includes('nhà cung cấp');
     } else {
       return r.includes('nhà cung cấp') || r.includes('ncc') || r.includes('mua') || r.includes('khách') || r.includes('trả lại') || r.includes('đổi trả');
     }
@@ -3238,7 +3247,18 @@ export class TransactionModalComponent implements OnInit, OnChanges {
           this.warehouses = data;
           if (this.isViewMode) {
             this.populateFromViewOrder();
+          } else {
+            if (!this.transactionLocation && this.prefillData?.locationId) {
+              this.transactionLocation = this.prefillData.locationId;
+            } else if (!this.transactionLocation && this.prefillData?.locationName) {
+              const matched = this.warehouses.find((w: any) => w.name?.toLowerCase().includes(this.prefillData.locationName.toLowerCase()));
+              if (matched) this.transactionLocation = matched.id;
+            } else if (!this.transactionLocation) {
+              const defWh = this.warehouses.find((w: any) => w.isDefault) || this.warehouses[0];
+              if (defWh) this.transactionLocation = defWh.id;
+            }
           }
+          this.cdr.markForCheck();
         }
       },
       error: (err) => console.warn('Could not fetch warehouses:', err)
@@ -3270,6 +3290,29 @@ export class TransactionModalComponent implements OnInit, OnChanges {
           this.fetchedProducts = data;
           if (this.isViewMode) {
             this.populateFromViewOrder();
+          } else if (this.prefillData) {
+            this.lineItems.forEach((item) => {
+              if (item.productId) {
+                const p = this.availableProducts.find((x: any) => String(x.id) === String(item.productId));
+                if (p && !item.productNameDisplay) {
+                  item.productNameDisplay = p.name || p.productName;
+                }
+                const vars = this.getVariantsForProduct(item.productId);
+                if (item.variantId) {
+                  const v = vars.find((vx: any) => String(vx.id) === String(item.variantId));
+                  if (v) {
+                    if (!item.variantNameDisplay) item.variantNameDisplay = v.name;
+                    if (!item.price && v.price) item.price = new Intl.NumberFormat('vi-VN').format(v.price);
+                    if (!item.skuDisplay) item.skuDisplay = v.sku;
+                  }
+                } else if (vars.length > 0 && !item.variantId) {
+                  item.variantId = vars[0].id;
+                  item.variantNameDisplay = vars[0].name;
+                  if (!item.price && vars[0].price) item.price = new Intl.NumberFormat('vi-VN').format(vars[0].price);
+                }
+              }
+            });
+            this.cdr.markForCheck();
           }
         }
       },
@@ -3350,6 +3393,8 @@ export class TransactionModalComponent implements OnInit, OnChanges {
         this.isCancellingOrder = false;
         this.showDiscardConfirmModal = false;
       }
+    } else if (changes['prefillData'] && this.isOpen) {
+      this.resetState();
     }
   }
 
@@ -3406,40 +3451,141 @@ export class TransactionModalComponent implements OnInit, OnChanges {
     this.dropdownPositions = { tax: 'down' };
     this.showDiscardConfirmModal = false;
 
+    // Áp dụng prefillData nếu có
+    if (this.prefillData) {
+      if (this.prefillData.reason) {
+        this.transactionReason = this.prefillData.reason;
+        if (this.type === 'export') {
+          if (!this.exportReasonOptions.includes(this.prefillData.reason)) {
+            this.exportReasonOptions.unshift(this.prefillData.reason);
+          }
+        } else {
+          if (!this.importReasonOptions.includes(this.prefillData.reason)) {
+            this.importReasonOptions.unshift(this.prefillData.reason);
+          }
+        }
+        this.reasonsRequiringSupplier.add(this.prefillData.reason);
+        this.reasonPartnerLabelMap[this.prefillData.reason] = this.prefillData.partnerLabel || (this.type === 'export' ? 'Khách hàng' : 'Nhà cung ứng');
+        if (this.prefillData.reasonPrefix) {
+          this.reasonPrefixMap[this.prefillData.reason] = this.prefillData.reasonPrefix;
+        } else if (this.prefillData.reason.toLowerCase().includes('đổi')) {
+          this.reasonPrefixMap[this.prefillData.reason] = 'PXK-DH';
+        }
+      }
+      if (this.prefillData.recipientName) {
+        this.recipientName = this.prefillData.recipientName;
+      }
+      if (this.prefillData.referenceCode) {
+        this.referenceCode = this.prefillData.referenceCode;
+      }
+      if (this.prefillData.notes || this.prefillData.note) {
+        this.transactionNote = this.prefillData.notes || this.prefillData.note;
+      }
+      if (this.prefillData.locationId) {
+        this.transactionLocation = this.prefillData.locationId;
+      }
+      if (this.prefillData.taxRate !== undefined && this.prefillData.taxRate !== null) {
+        this.taxRate = Number(this.prefillData.taxRate);
+      }
+      if (this.prefillData.discountAmount !== undefined) {
+        this.discountAmount = String(this.prefillData.discountAmount);
+      }
+      if (this.prefillData.shippingFee !== undefined) {
+        this.shippingFee = String(this.prefillData.shippingFee);
+      }
+    }
+
+    if (!this.transactionLocation && this.warehouses.length > 0) {
+      if (this.prefillData?.locationName) {
+        const matched = this.warehouses.find((w: any) => w.name?.toLowerCase().includes(this.prefillData.locationName.toLowerCase()));
+        if (matched) this.transactionLocation = matched.id;
+      }
+      if (!this.transactionLocation) {
+        const defWh = this.warehouses.find((w: any) => w.isDefault) || this.warehouses[0];
+        if (defWh) this.transactionLocation = defWh.id;
+      }
+    }
+
     // Khởi tạo mã phiếu ban đầu
     this.generateOrderCode();
 
-    // Dòng sản phẩm ban đầu: khởi tạo từ input nếu có
-    const initialProd = this.initialProductId || '';
-    const initialVar = this.initialVariantId || '';
-    const initialUnit = (initialProd && initialVar) ? this.inferUnit(this.getProductName(initialProd)) : '';
-
-    this.lineItems = [{
-      id: Date.now().toString(),
-      productId: initialProd,
-      variantId: initialVar,
-      quantity: '',
-      price: '',
-      unit: initialUnit,
-      lotNumber: '',
-      expiryDate: '',
-      isProductFixed: this.isProductFixed,
-      isVariantFixed: this.isVariantFixed,
-    }];
-
-    // Nếu có initialProductId nhưng chưa có variantId, chọn variant đầu tiên
-    if (initialProd && !initialVar) {
-      const vars = this.getVariantsForProduct(initialProd);
-      if (vars.length > 0) {
-        this.lineItems[0].variantId = vars[0].id;
-        this.lineItems[0].unit = this.inferUnit(this.getProductName(initialProd));
-        this.lineItems[0].price = new Intl.NumberFormat('vi-VN').format(vars[0].price || 0);
+    // Dòng sản phẩm ban đầu: khởi tạo từ input hoặc prefillData nếu có
+    if (this.prefillData?.items && Array.isArray(this.prefillData.items) && this.prefillData.items.length > 0) {
+      this.lineItems = this.prefillData.items.map((it: any) => {
+        const pId = it.productId || '';
+        const vId = it.variantId || '';
+        const pName = it.productName || (pId ? this.getProductName(pId) : '');
+        const vName = it.variantName || (pId && vId ? this.getVariantName(pId, vId) : '');
+        let price = '';
+        if (it.price !== undefined && it.price !== null && it.price !== '') {
+          price = typeof it.price === 'number' ? new Intl.NumberFormat('vi-VN').format(it.price) : String(it.price);
+        } else if (pId && vId) {
+          const vars = this.getVariantsForProduct(pId);
+          const v = vars.find((x: any) => String(x.id) === String(vId));
+          if (v && v.price) {
+            price = new Intl.NumberFormat('vi-VN').format(v.price);
+          }
+        }
+        return {
+          id: it.id || (Date.now() + Math.random()).toString(),
+          productId: pId,
+          variantId: vId,
+          quantity: it.quantity ? String(it.quantity) : '1',
+          price: price,
+          unit: it.unit || this.inferUnit(pName) || 'Bộ',
+          lotNumber: it.lotNumber || '',
+          expiryDate: it.expiryDate || '',
+          productNameDisplay: pName,
+          variantNameDisplay: vName,
+          skuDisplay: it.sku || '',
+          isProductFixed: it.isProductFixed ?? this.isProductFixed,
+          isVariantFixed: it.isVariantFixed ?? this.isVariantFixed,
+        };
+      });
+    } else {
+      const initialProd = this.prefillData?.productId || this.initialProductId || '';
+      const initialVar = this.prefillData?.variantId || this.initialVariantId || '';
+      const initialPName = this.prefillData?.productName || (initialProd ? this.getProductName(initialProd) : '');
+      const initialVName = this.prefillData?.variantName || (initialProd && initialVar ? this.getVariantName(initialProd, initialVar) : '');
+      const initialUnit = this.prefillData?.unit || (initialPName ? this.inferUnit(initialPName) : 'Bộ');
+      let initialPrice = '';
+      if (this.prefillData?.price !== undefined && this.prefillData?.price !== null && this.prefillData?.price !== '') {
+        initialPrice = typeof this.prefillData.price === 'number' ? new Intl.NumberFormat('vi-VN').format(this.prefillData.price) : String(this.prefillData.price);
+      } else if (initialProd && initialVar) {
+        const vars = this.getVariantsForProduct(initialProd);
+        const v = vars.find((x: any) => String(x.id) === String(initialVar));
+        if (v && v.price) {
+          initialPrice = new Intl.NumberFormat('vi-VN').format(v.price);
+        }
       }
-    } else if (initialProd && initialVar) {
-      const vars = this.getVariantsForProduct(initialProd);
-      const v = vars.find((x: any) => x.id === initialVar);
-      if (v) {
-        this.lineItems[0].price = new Intl.NumberFormat('vi-VN').format(v.price || 0);
+
+      const initialQty = this.prefillData?.quantity ? String(this.prefillData.quantity) : (this.prefillData ? '1' : '');
+
+      this.lineItems = [{
+        id: Date.now().toString(),
+        productId: initialProd,
+        variantId: initialVar,
+        quantity: initialQty,
+        price: initialPrice,
+        unit: initialUnit,
+        lotNumber: '',
+        expiryDate: '',
+        productNameDisplay: initialPName,
+        variantNameDisplay: initialVName,
+        skuDisplay: this.prefillData?.sku || '',
+        isProductFixed: this.isProductFixed,
+        isVariantFixed: this.isVariantFixed,
+      }];
+
+      // Nếu có initialProductId nhưng chưa có variantId, chọn variant đầu tiên
+      if (initialProd && !initialVar) {
+        const vars = this.getVariantsForProduct(initialProd);
+        if (vars.length > 0) {
+          this.lineItems[0].variantId = vars[0].id;
+          this.lineItems[0].variantNameDisplay = vars[0].name;
+          this.lineItems[0].unit = this.inferUnit(this.getProductName(initialProd));
+          this.lineItems[0].price = new Intl.NumberFormat('vi-VN').format(vars[0].price || 0);
+        }
       }
     }
 
@@ -3479,6 +3625,7 @@ export class TransactionModalComponent implements OnInit, OnChanges {
       return 'PNK';
     }
     if (!r) return 'PXK';
+    if (r.includes('đổi') || r.includes('thay thế') || r.includes('bảo hành')) return 'PXK-DH';
     if (r.includes('bán lẻ') || r.includes('showroom')) return 'PXK-BL';
     if (r.includes('bán buôn') || r.includes('dự án') || r.includes('bán')) return 'PXK-DA';
     if (r.includes('chuyển kho')) return 'PXK-CK';

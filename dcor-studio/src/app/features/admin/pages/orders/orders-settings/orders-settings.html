@@ -3,6 +3,8 @@
   <!-- Floating Toast Notification -->
   <div *ngIf="showToast" 
     class="settings-toast-container"
+    (mouseenter)="pauseToastTimer()"
+    (mouseleave)="resumeToastTimer()"
     style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; animation: toastSlideUpRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;"
     [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
   >
@@ -38,44 +40,16 @@
   </div>
 
   <!-- Page Header -->
-  <div class="settings-page-header">
-    <div style="display: flex; align-items: center; gap: 14px;">
-      <a routerLink="/admin/orders" class="back-link-btn" title="Quay lại danh sách đơn hàng">
-        <lucide-angular [img]="icons.ArrowLeft" size="18"></lucide-angular>
-      </a>
-      <div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0;">
-            Cài đặt đơn hàng
-          </h1>
-          <span class="settings-version-badge">Hệ thống</span>
-        </div>
-        <p style="color: var(--text-secondary); font-size: 13.5px; margin: 4px 0 0;">
-          Cấu hình quy trình xử lý, biểu phí giao lắp nội thất, chính sách đổi trả, bảo hành và mẫu phiếu in.
-        </p>
+  <div class="settings-page-header" style="margin-bottom: 24px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary, #111827); margin: 0 0 6px 0;">
+          Cài đặt đơn hàng
+        </h2>
       </div>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <button 
-        type="button" 
-        (click)="resetTabToDefault()"
-        class="admin-btn-secondary"
-        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary);"
-      >
-        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
-        <span>Mặc định</span>
-      </button>
-
-      <button 
-        type="button" 
-        (click)="saveAllSettings()" 
-        class="admin-btn-primary"
-        style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
-      >
-        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
-        <span>Lưu cài đặt</span>
-      </button>
+      <p style="font-size: 14px; color: var(--text-secondary, #6B7280); margin: 0;">
+        Thiết lập quy trình xử lý đơn, chính sách giao lắp, đổi trả, bảo hành và mẫu in chứng từ.
+      </p>
     </div>
   </div>
 
@@ -90,6 +64,7 @@
       >
         <lucide-angular [img]="icons.GitBranch" size="16"></lucide-angular>
         <span>Quy trình & Trạng thái</span>
+        <span *ngIf="isTabDirty(1)" class="tab-dirty-indicator" title="Có thay đổi chưa lưu"></span>
       </button>
       
       <button 
@@ -100,6 +75,7 @@
       >
         <lucide-angular [img]="icons.Truck" size="16"></lucide-angular>
         <span>Vận chuyển & Giao lắp</span>
+        <span *ngIf="isTabDirty(2)" class="tab-dirty-indicator" title="Có thay đổi chưa lưu"></span>
       </button>
       
       <button 
@@ -110,6 +86,7 @@
       >
         <lucide-angular [img]="icons.ArrowRightLeft" size="16"></lucide-angular>
         <span>Chính sách Đổi trả</span>
+        <span *ngIf="isTabDirty(3)" class="tab-dirty-indicator" title="Có thay đổi chưa lưu"></span>
       </button>
 
       <button 
@@ -120,6 +97,7 @@
       >
         <lucide-angular [img]="icons.ShieldCheck" size="16"></lucide-angular>
         <span>Bảo hành & Hậu mãi</span>
+        <span *ngIf="isTabDirty(4)" class="tab-dirty-indicator" title="Có thay đổi chưa lưu"></span>
       </button>
 
       <button 
@@ -130,6 +108,7 @@
       >
         <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
         <span>Mẫu in & Thông báo</span>
+        <span *ngIf="isTabDirty(5)" class="tab-dirty-indicator" title="Có thay đổi chưa lưu"></span>
       </button>
     </nav>
   </div>
@@ -146,7 +125,7 @@
             <lucide-angular [img]="icons.SlidersHorizontal" size="20"></lucide-angular>
           </div>
           <div>
-            <h3 class="card-title">Ngưỡng đơn hàng giá trị cao (High-Value Order)</h3>
+            <h3 class="card-title">Ngưỡng đơn hàng giá trị cao</h3>
             <p class="card-desc">Thiết lập điều kiện kích hoạt cờ "ĐƠN LỚN" và kiểm duyệt nghiêm ngặt trước khi xuất kho.</p>
           </div>
         </div>
@@ -157,14 +136,22 @@
               <label class="form-label">Mức tiền kích hoạt Đơn lớn (VNĐ)</label>
               <span class="form-help">Các đơn hàng từ mức này trở lên sẽ hiển thị huy hiệu ĐƠN LỚN màu cam nổi bật.</span>
             </div>
-            <div class="form-input-group">
-              <input 
-                type="number" 
-                [(ngModel)]="workflowSettings.highValueThreshold" 
-                step="5000000"
-                class="setting-input" 
-              />
-              <span class="input-suffix">VNĐ</span>
+            <div class="form-input-wrapper">
+              <div class="form-input-group">
+                <input 
+                  type="text" 
+                  inputmode="numeric"
+                  [value]="formatCurrencyDisplay(workflowSettings.highValueThreshold)" 
+                  (keydown)="onlyAllowNumbers($event, 0)"
+                  (input)="onCurrencyInput(workflowSettings, 'highValueThreshold', $event)"
+                  class="setting-input currency-input" 
+                  placeholder="0"
+                />
+                <span class="input-suffix">VNĐ</span>
+              </div>
+              <div class="money-unit-hint" *ngIf="workflowSettings.highValueThreshold > 0">
+                ≈ {{ formatMoneyUnitText(workflowSettings.highValueThreshold) }}
+              </div>
             </div>
           </div>
 
@@ -199,8 +186,8 @@
             <lucide-angular [img]="icons.Clock" size="20"></lucide-angular>
           </div>
           <div>
-            <h3 class="card-title">Thời hạn thanh toán & Tự động hủy đơn (Payment Timeout)</h3>
-            <p class="card-desc">Kiểm soát giải phóng lượng hàng tồn giữ chỗ (Reserved) để tránh ứ đọng kho.</p>
+            <h3 class="card-title">Thời hạn thanh toán & Tự động hủy đơn</h3>
+            <p class="card-desc">Kiểm soát giải phóng lượng hàng tồn giữ chỗ để tránh ứ đọng kho.</p>
           </div>
         </div>
 
@@ -222,19 +209,37 @@
               <span class="form-help">Hệ thống gửi thông báo nhắc nhở trước khi chính thức hủy đơn 3 tiếng.</span>
             </div>
             <div class="form-input-group">
-              <select [(ngModel)]="workflowSettings.unpaidTimeoutHours" class="setting-select">
-                <option [ngValue]="12">12 Giờ</option>
-                <option [ngValue]="24">24 Giờ (1 Ngày - Mặc định)</option>
-                <option [ngValue]="48">48 Giờ (2 Ngày)</option>
-                <option [ngValue]="72">72 Giờ (3 Ngày)</option>
-              </select>
+              <div class="filter-dropdown-wrapper timeout-dropdown-wrapper">
+                <button 
+                  type="button" 
+                  title="Thời gian chờ thanh toán tối đa" 
+                  class="filter-trigger-btn"
+                  [class.active]="workflowSettings.unpaidTimeoutHours !== 24"
+                  (click)="toggleTimeoutDropdown($event)"
+                >
+                  <div class="trigger-label">
+                    <lucide-angular [img]="icons.Clock" size="15" class="trigger-icon"></lucide-angular>
+                    <span class="truncate-label">{{ selectedTimeoutLabel }}</span>
+                  </div>
+                  <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showTimeoutDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+                </button>
+                <div *ngIf="showTimeoutDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+                  <div *ngFor="let opt of TIMEOUT_OPTIONS" 
+                       (click)="setTimeoutHours(opt.value)" 
+                       class="filter-menu-item" 
+                       [class.selected]="workflowSettings.unpaidTimeoutHours === opt.value">
+                    <span>{{ opt.label }}</span>
+                    <lucide-angular *ngIf="workflowSettings.unpaidTimeoutHours === opt.value" [img]="icons.Check" size="14"></lucide-angular>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="setting-toggle-row">
             <div>
-              <div class="toggle-title">Tự động hoàn trả tồn kho giữ chỗ (Reserved Stock)</div>
-              <div class="toggle-desc">Khi đơn bị hủy, số lượng tồn giữ chỗ lập tức được cộng lại vào Tồn có thể bán (Available).</div>
+              <div class="toggle-title">Tự động hoàn trả tồn kho giữ chỗ</div>
+              <div class="toggle-desc">Khi đơn bị hủy, số lượng tồn giữ chỗ lập tức được cộng lại vào Tồn có thể bán.</div>
             </div>
             <label class="switch">
               <input type="checkbox" [(ngModel)]="workflowSettings.autoReleaseReservedStock">
@@ -292,6 +297,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Tab Action Footer -->
+    <div class="tab-action-footer">
+      <button 
+        type="button" 
+        (click)="resetTabToDefault()"
+        class="admin-btn-secondary"
+        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary);"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+        <span>Mặc định</span>
+      </button>
+
+      <button 
+        type="button" 
+        (click)="saveCurrentTab()" 
+        class="admin-btn-primary"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
+      >
+        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
+        <span>Lưu cài đặt</span>
+      </button>
+    </div>
   </div>
 
   <!-- ========================================================================= -->
@@ -306,7 +334,7 @@
             <lucide-angular [img]="icons.Truck" size="20"></lucide-angular>
           </div>
           <div>
-            <h3 class="card-title">Chính sách Miễn phí vận chuyển (Free Shipping)</h3>
+            <h3 class="card-title">Chính sách Miễn phí vận chuyển</h3>
             <p class="card-desc">Cấu hình giá trị đơn tối thiểu để kích hoạt chính sách miễn phí giao hàng tận nhà.</p>
           </div>
         </div>
@@ -323,19 +351,129 @@
             </label>
           </div>
 
-          <div class="form-row" *ngIf="shippingSettings.enableFreeShipping">
-            <div class="form-label-group">
-              <label class="form-label">Giá trị đơn hàng tối thiểu để được Free Ship</label>
-              <span class="form-help">Áp dụng cho các quận nội thành TP.HCM và Hà Nội.</span>
+          <div *ngIf="shippingSettings.enableFreeShipping">
+            <div class="form-row">
+              <div class="form-label-group">
+                <label class="form-label">Giá trị đơn hàng tối thiểu để được Free Ship (VNĐ)</label>
+                <span class="form-help">Các đơn hàng từ mức này trở lên sẽ được kích hoạt miễn cước trong bán kính cho phép.</span>
+              </div>
+              <div class="form-input-wrapper">
+                <div class="form-input-group">
+                  <input 
+                    type="text" 
+                    inputmode="numeric"
+                    [value]="formatCurrencyDisplay(shippingSettings.freeShippingMinAmount)" 
+                    (keydown)="onlyAllowNumbers($event, 0)"
+                    (input)="onCurrencyInput(shippingSettings, 'freeShippingMinAmount', $event)"
+                    class="setting-input currency-input" 
+                    placeholder="0"
+                  />
+                  <span class="input-suffix">VNĐ</span>
+                </div>
+                <div class="money-unit-hint" *ngIf="shippingSettings.freeShippingMinAmount > 0">
+                  ≈ {{ formatMoneyUnitText(shippingSettings.freeShippingMinAmount) }}
+                </div>
+              </div>
             </div>
-            <div class="form-input-group">
-              <input 
-                type="number" 
-                [(ngModel)]="shippingSettings.freeShippingMinAmount" 
-                step="1000000"
-                class="setting-input" 
-              />
-              <span class="input-suffix">VNĐ</span>
+
+            <div class="form-row">
+              <div class="form-label-group">
+                <label class="form-label">Khoảng cách miễn phí tối đa (Bán kính từ Showroom / Kho)</label>
+                <span class="form-help">Đơn đạt giá trị tối thiểu sẽ được miễn phí giao lắp 100% trong phạm vi bán kính này.</span>
+              </div>
+              <div class="form-input-wrapper">
+                <div class="form-input-group">
+                  <input 
+                    type="number" 
+                    [(ngModel)]="shippingSettings.freeShippingMaxDistanceKm" 
+                    (keydown)="onlyAllowNumbers($event, 1)"
+                    (input)="validateNumber(shippingSettings, 'freeShippingMaxDistanceKm', 1, 500, $event)"
+                    (blur)="validateNumberOnBlur(shippingSettings, 'freeShippingMaxDistanceKm', 1, 500, $event)"
+                    class="setting-input" 
+                    placeholder="15"
+                    min="1"
+                    max="500"
+                  />
+                  <span class="input-suffix">Km</span>
+                </div>
+                <div class="money-unit-hint" *ngIf="shippingSettings.freeShippingMaxDistanceKm > 0">
+                  Bán kính ≤ {{ shippingSettings.freeShippingMaxDistanceKm }} km
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-label-group">
+                <label class="form-label">Đơn giá cước cho mỗi km vượt khoảng cách (VNĐ / Km)</label>
+                <span class="form-help">Khi khoảng cách vượt quá bán kính miễn phí, mỗi km phát sinh sẽ cộng thêm mức cước này.</span>
+              </div>
+              <div class="form-input-wrapper">
+                <div class="form-input-group">
+                  <input 
+                    type="text" 
+                    inputmode="numeric"
+                    [value]="formatCurrencyDisplay(shippingSettings.extraDistanceFeePerKm)" 
+                    (keydown)="onlyAllowNumbers($event, 0)"
+                    (input)="onCurrencyInput(shippingSettings, 'extraDistanceFeePerKm', $event)"
+                    class="setting-input currency-input" 
+                    placeholder="0"
+                  />
+                  <span class="input-suffix">VNĐ / Km</span>
+                </div>
+                <div class="money-unit-hint" *ngIf="shippingSettings.extraDistanceFeePerKm > 0">
+                  ≈ {{ formatMoneyUnitText(shippingSettings.extraDistanceFeePerKm) }} / Km
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-label-group">
+                <label class="form-label">Cước vận chuyển cơ bản khi không đạt Free Ship (VNĐ)</label>
+                <span class="form-help">Cước tiêu chuẩn áp dụng cho các đơn hàng chưa đạt giá trị tối thiểu trong bán kính quy định.</span>
+              </div>
+              <div class="form-input-wrapper">
+                <div class="form-input-group">
+                  <input 
+                    type="text" 
+                    inputmode="numeric"
+                    [value]="formatCurrencyDisplay(shippingSettings.baseShippingFee)" 
+                    (keydown)="onlyAllowNumbers($event, 0)"
+                    (input)="onCurrencyInput(shippingSettings, 'baseShippingFee', $event)"
+                    class="setting-input currency-input" 
+                    placeholder="0"
+                  />
+                  <span class="input-suffix">VNĐ</span>
+                </div>
+                <div class="money-unit-hint" *ngIf="shippingSettings.baseShippingFee > 0">
+                  ≈ {{ formatMoneyUnitText(shippingSettings.baseShippingFee) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Hộp mô tả Quy tắc tính cước vận chuyển -->
+            <div class="shipping-rule-preview-box">
+              <div class="rule-box-header">
+                <lucide-angular [img]="icons.Info" size="16"></lucide-angular>
+                <strong>Quy tắc tính cước vận chuyển tự động:</strong>
+              </div>
+              <div class="rule-box-content">
+                <div class="rule-item">
+                  <span class="rule-badge badge-free">Miễn phí 100%</span>
+                  <span>Đơn hàng ≥ <strong>{{ formatCurrencyDisplay(shippingSettings.freeShippingMinAmount) }} VNĐ</strong> VÀ khoảng cách giao ≤ <strong>{{ shippingSettings.freeShippingMaxDistanceKm }} km</strong>: Cước giao = <strong>0đ</strong>.</span>
+                </div>
+                <div class="rule-item">
+                  <span class="rule-badge badge-calc">Cước vượt cự ly</span>
+                  <span>Đơn hàng ≥ <strong>{{ formatCurrencyDisplay(shippingSettings.freeShippingMinAmount) }} VNĐ</strong> NHƯNG khoảng cách &gt; <strong>{{ shippingSettings.freeShippingMaxDistanceKm }} km</strong>: <br/>
+                    <em>Cước phát sinh = (Khoảng cách thực tế - {{ shippingSettings.freeShippingMaxDistanceKm }} km) × {{ formatCurrencyDisplay(shippingSettings.extraDistanceFeePerKm) }} đ/km</em>
+                  </span>
+                </div>
+                <div class="rule-item">
+                  <span class="rule-badge badge-standard">Cước tiêu chuẩn</span>
+                  <span>Đơn hàng &lt; <strong>{{ formatCurrencyDisplay(shippingSettings.freeShippingMinAmount) }} VNĐ</strong>: <br/>
+                    <em>Cước giao = {{ formatCurrencyDisplay(shippingSettings.baseShippingFee) }} VNĐ + (Khoảng cách vượt {{ shippingSettings.freeShippingMaxDistanceKm }} km × {{ formatCurrencyDisplay(shippingSettings.extraDistanceFeePerKm) }} đ/km)</em>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -407,14 +545,22 @@
               <label class="form-label">Phí bốc vác cầu thang bộ (VNĐ / Tầng)</label>
               <span class="form-help">Áp dụng cho chung cư cũ hoặc nhà phố không vừa thang máy.</span>
             </div>
-            <div class="form-input-group">
-              <input 
-                type="number" 
-                [(ngModel)]="shippingSettings.stairCarryFeePerFloor" 
-                step="50000"
-                class="setting-input" 
-              />
-              <span class="input-suffix">VNĐ/tầng</span>
+            <div class="form-input-wrapper">
+              <div class="form-input-group">
+                <input 
+                  type="text" 
+                  inputmode="numeric"
+                  [value]="formatCurrencyDisplay(shippingSettings.stairCarryFeePerFloor)" 
+                  (keydown)="onlyAllowNumbers($event, 0)"
+                  (input)="onCurrencyInput(shippingSettings, 'stairCarryFeePerFloor', $event)"
+                  class="setting-input currency-input" 
+                  placeholder="0"
+                />
+                <span class="input-suffix">VNĐ/tầng</span>
+              </div>
+              <div class="money-unit-hint" *ngIf="shippingSettings.stairCarryFeePerFloor > 0">
+                ≈ {{ formatMoneyUnitText(shippingSettings.stairCarryFeePerFloor) }}/tầng
+              </div>
             </div>
           </div>
 
@@ -427,7 +573,10 @@
               <input 
                 type="number" 
                 [(ngModel)]="shippingSettings.stairCarryStartFloor" 
-                min="1" max="10"
+                (keydown)="onlyAllowNumbers($event, 1)"
+                (input)="validateNumber(shippingSettings, 'stairCarryStartFloor', 1, 50, $event)"
+                (blur)="validateNumberOnBlur(shippingSettings, 'stairCarryStartFloor', 1, 50, $event)"
+                min="1" max="50"
                 class="setting-input" 
               />
               <span class="input-suffix">Tầng</span>
@@ -439,14 +588,22 @@
               <label class="form-label">Phí thuê cẩu dây kéo qua ban công (VNĐ / Lần)</label>
               <span class="form-help">Dành cho sofa nguyên khối kích thước lớn không vừa cửa chính.</span>
             </div>
-            <div class="form-input-group">
-              <input 
-                type="number" 
-                [(ngModel)]="shippingSettings.balconyCraneFee" 
-                step="100000"
-                class="setting-input" 
-              />
-              <span class="input-suffix">VNĐ</span>
+            <div class="form-input-wrapper">
+              <div class="form-input-group">
+                <input 
+                  type="text" 
+                  inputmode="numeric"
+                  [value]="formatCurrencyDisplay(shippingSettings.balconyCraneFee)" 
+                  (keydown)="onlyAllowNumbers($event, 0)"
+                  (input)="onCurrencyInput(shippingSettings, 'balconyCraneFee', $event)"
+                  class="setting-input currency-input" 
+                  placeholder="0"
+                />
+                <span class="input-suffix">VNĐ</span>
+              </div>
+              <div class="money-unit-hint" *ngIf="shippingSettings.balconyCraneFee > 0">
+                ≈ {{ formatMoneyUnitText(shippingSettings.balconyCraneFee) }}
+              </div>
             </div>
           </div>
 
@@ -455,18 +612,49 @@
               <label class="form-label">Phí hỗ trợ tháo dỡ nội thất cũ (VNĐ / Bộ)</label>
               <span class="form-help">Hỗ trợ khách tháo dỡ bàn ghế cũ để lấy chỗ đặt sản phẩm mới.</span>
             </div>
-            <div class="form-input-group">
-              <input 
-                type="number" 
-                [(ngModel)]="shippingSettings.oldFurnitureDismantleFee" 
-                step="50000"
-                class="setting-input" 
-              />
-              <span class="input-suffix">VNĐ</span>
+            <div class="form-input-wrapper">
+              <div class="form-input-group">
+                <input 
+                  type="text" 
+                  inputmode="numeric"
+                  [value]="formatCurrencyDisplay(shippingSettings.oldFurnitureDismantleFee)" 
+                  (keydown)="onlyAllowNumbers($event, 0)"
+                  (input)="onCurrencyInput(shippingSettings, 'oldFurnitureDismantleFee', $event)"
+                  class="setting-input currency-input" 
+                  placeholder="0"
+                />
+                <span class="input-suffix">VNĐ</span>
+              </div>
+              <div class="money-unit-hint" *ngIf="shippingSettings.oldFurnitureDismantleFee > 0">
+                ≈ {{ formatMoneyUnitText(shippingSettings.oldFurnitureDismantleFee) }}
+              </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Tab Action Footer -->
+    <div class="tab-action-footer">
+      <button 
+        type="button" 
+        (click)="resetTabToDefault()"
+        class="admin-btn-secondary"
+        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary);"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+        <span>Mặc định</span>
+      </button>
+
+      <button 
+        type="button" 
+        (click)="saveCurrentTab()" 
+        class="admin-btn-primary"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
+      >
+        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
+        <span>Lưu cài đặt</span>
+      </button>
     </div>
   </div>
 
@@ -491,7 +679,16 @@
           <div>
             <label class="form-label">Thời hạn đổi sản phẩm khác</label>
             <div class="form-input-group" style="margin-top: 6px;">
-              <input type="number" [(ngModel)]="returnsSettings.exchangeMaxDays" class="setting-input" />
+              <input 
+                type="number" 
+                [(ngModel)]="returnsSettings.exchangeMaxDays" 
+                (keydown)="onlyAllowNumbers($event, 1)"
+                (input)="validateNumber(returnsSettings, 'exchangeMaxDays', 1, 365, $event)"
+                (blur)="validateNumberOnBlur(returnsSettings, 'exchangeMaxDays', 1, 365, $event)"
+                min="1" 
+                max="365"
+                class="setting-input" 
+              />
               <span class="input-suffix">Ngày</span>
             </div>
             <span class="form-help">Tính từ thời điểm đơn hàng chuyển sang Hoàn tất.</span>
@@ -500,7 +697,16 @@
           <div>
             <label class="form-label">Thời hạn trả hàng hoàn tiền</label>
             <div class="form-input-group" style="margin-top: 6px;">
-              <input type="number" [(ngModel)]="returnsSettings.refundMaxDays" class="setting-input" />
+              <input 
+                type="number" 
+                [(ngModel)]="returnsSettings.refundMaxDays" 
+                (keydown)="onlyAllowNumbers($event, 1)"
+                (input)="validateNumber(returnsSettings, 'refundMaxDays', 1, 365, $event)"
+                (blur)="validateNumberOnBlur(returnsSettings, 'refundMaxDays', 1, 365, $event)"
+                min="1" 
+                max="365"
+                class="setting-input" 
+              />
               <span class="input-suffix">Ngày</span>
             </div>
             <span class="form-help">Áp dụng cho trường hợp lỗi kỹ thuật sản xuất.</span>
@@ -509,7 +715,16 @@
           <div>
             <label class="form-label">Phí khấu trừ hàng đã bóc bao bì</label>
             <div class="form-input-group" style="margin-top: 6px;">
-              <input type="number" [(ngModel)]="returnsSettings.unsealedRestockingFeePercent" class="setting-input" />
+              <input 
+                type="number" 
+                [(ngModel)]="returnsSettings.unsealedRestockingFeePercent" 
+                (keydown)="onlyAllowNumbers($event, 0)"
+                (input)="validateNumber(returnsSettings, 'unsealedRestockingFeePercent', 0, 100, $event)"
+                (blur)="validateNumberOnBlur(returnsSettings, 'unsealedRestockingFeePercent', 0, 100, $event)"
+                min="0" 
+                max="100"
+                class="setting-input" 
+              />
               <span class="input-suffix">%</span>
             </div>
             <span class="form-help">Phí tân trang đối với trường hợp khách đổi ý.</span>
@@ -519,7 +734,7 @@
     </div>
 
     <!-- Return Reasons Table -->
-    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
+    <div style="background: transparent; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: none; overflow: visible; position: relative;">
       <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
         <div>
           <h3 style="font-size: 15px; font-weight: 600; margin: 0; color: var(--text-primary);">
@@ -606,6 +821,29 @@
         </table>
       </div>
     </div>
+
+    <!-- Tab Action Footer -->
+    <div class="tab-action-footer">
+      <button 
+        type="button" 
+        (click)="resetTabToDefault()"
+        class="admin-btn-secondary"
+        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary);"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+        <span>Mặc định</span>
+      </button>
+
+      <button 
+        type="button" 
+        (click)="saveCurrentTab()" 
+        class="admin-btn-primary"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
+      >
+        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
+        <span>Lưu cài đặt</span>
+      </button>
+    </div>
   </div>
 
   <!-- ========================================================================= -->
@@ -645,7 +883,10 @@
             <input 
               type="number" 
               [(ngModel)]="warrantySettings.expiringAlertDays" 
-              min="5" max="90"
+              (keydown)="onlyAllowNumbers($event, 1)"
+              (input)="validateNumber(warrantySettings, 'expiringAlertDays', 1, 180, $event)"
+              (blur)="validateNumberOnBlur(warrantySettings, 'expiringAlertDays', 1, 180, $event)"
+              min="1" max="180"
               class="setting-input" 
             />
             <span class="input-suffix">Ngày</span>
@@ -665,57 +906,27 @@
       </div>
     </div>
 
-    <!-- Warranty Terms Table -->
-    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
-      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
-        <h3 style="font-size: 15px; font-weight: 600; margin: 0; color: var(--text-primary);">
-          Thời hạn bảo hành mặc định theo cấu kiện nội thất
-        </h3>
-        <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0;">
-          Quy định số tháng bảo hành chuẩn áp dụng khi xuất xưởng từng dòng sản phẩm DCor Studio.
-        </p>
-      </div>
+    <!-- Tab Action Footer -->
+    <div class="tab-action-footer">
+      <button 
+        type="button" 
+        (click)="resetTabToDefault()"
+        class="admin-btn-secondary"
+        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary);"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+        <span>Mặc định</span>
+      </button>
 
-      <div style="width: 100%; overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-          <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-top-left-radius: 11px;">Hạng mục / Cấu kiện</th>
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; text-align: center;">Thời hạn bảo hành</th>
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Phạm vi bảo hành chi tiết</th>
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap; text-align: center; border-top-right-radius: 11px;">Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of warrantyTerms" style="border-bottom: 1px solid var(--border-color); transition: background 0.15s ease;"
-                onmouseover="this.style.background='#F3E5D3'" 
-                onmouseout="this.style.background='transparent'">
-              <td style="padding: 16px; font-weight: 600; font-size: 13.5px; color: var(--text-primary);">
-                {{ item.componentName }}
-              </td>
-              <td style="padding: 16px; text-align: center; white-space: nowrap;">
-                <span style="font-family: monospace; font-weight: 700; color: var(--accent); font-size: 14px; padding: 4px 10px; background: rgba(118, 83, 55, 0.08); border-radius: 6px;">
-                  {{ item.durationMonths }} tháng ({{ item.durationMonths / 12 }} năm)
-                </span>
-              </td>
-              <td style="padding: 16px; font-size: 13px; color: var(--text-secondary);">
-                {{ item.coverageScope }}
-              </td>
-              <td style="padding: 16px; text-align: center; white-space: nowrap;">
-                <button 
-                  type="button" 
-                  (click)="toggleWarrantyTerm(item)"
-                  [style.background]="item.isActive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(107, 114, 128, 0.12)'"
-                  [style.color]="item.isActive ? '#059669' : '#6b7280'"
-                  style="border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;"
-                >
-                  {{ item.isActive ? 'Áp dụng' : 'Khóa' }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <button 
+        type="button" 
+        (click)="saveCurrentTab()" 
+        class="admin-btn-primary"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
+      >
+        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
+        <span>Lưu cài đặt</span>
+      </button>
     </div>
   </div>
 
@@ -846,6 +1057,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Tab Action Footer -->
+    <div class="tab-action-footer">
+      <button 
+        type="button" 
+        (click)="resetTabToDefault()"
+        class="admin-btn-secondary"
+        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary);"
+      >
+        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+        <span>Mặc định</span>
+      </button>
+
+      <button 
+        type="button" 
+        (click)="saveCurrentTab()" 
+        class="admin-btn-primary"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
+      >
+        <lucide-angular [img]="icons.Save" size="16"></lucide-angular>
+        <span>Lưu cài đặt</span>
+      </button>
+    </div>
   </div>
 
   <!-- Modal Thêm/Sửa Lý Do Đổi Trả -->
@@ -909,6 +1143,67 @@
         </button>
         <button type="button" (click)="saveReason()" class="admin-btn-primary" style="padding: 8px 18px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer;">
           Lưu lý do
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cảnh Báo Thay Đổi Chưa Lưu Khi Chuyển Tab -->
+  <div *ngIf="showUnsavedModal" class="modal-backdrop" (click)="cancelTabSwitch()">
+    <div class="modal-content unsaved-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary);">
+              Cài đặt chưa được lưu
+            </h3>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0;">
+              Tab "{{ getTabName(activeTab) }}" có thay đổi chưa lưu
+            </p>
+          </div>
+        </div>
+        <button type="button" (click)="cancelTabSwitch()" class="modal-close-btn" title="Đóng">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p style="font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.55;">
+          Bạn vừa chỉnh sửa các thông số trong tab <strong>{{ getTabName(activeTab) }}</strong>. Nếu chuyển sang tab <strong>{{ getTabName(pendingTabSwitch!) }}</strong> mà không lưu, các thay đổi này sẽ bị hủy bỏ.
+        </p>
+        <p style="font-size: 13.5px; color: var(--text-muted); margin: 8px 0 0;">
+          Bạn muốn lưu lại các thay đổi này trước khi tiếp tục không?
+        </p>
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 24px; display: flex; justify-content: flex-end; gap: 10px; background: var(--bg-secondary);">
+        <button 
+          type="button" 
+          (click)="cancelTabSwitch()" 
+          class="admin-btn-secondary" 
+          style="padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 13px;"
+        >
+          Ở lại tab này
+        </button>
+        <button 
+          type="button" 
+          (click)="discardAndSwitchTab()" 
+          class="admin-btn-secondary" 
+          style="padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); color: #dc2626; cursor: pointer; font-size: 13px; font-weight: 600;"
+        >
+          Bỏ qua thay đổi
+        </button>
+        <button 
+          type="button" 
+          (click)="saveAndSwitchTab()" 
+          class="admin-btn-primary" 
+          style="padding: 8px 16px; border-radius: 8px; border: none; background: var(--accent, #765337); color: white; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(118, 83, 55, 0.25);"
+        >
+          <lucide-angular [img]="icons.Save" size="15"></lucide-angular>
+          <span>Lưu & Chuyển tab</span>
         </button>
       </div>
     </div>

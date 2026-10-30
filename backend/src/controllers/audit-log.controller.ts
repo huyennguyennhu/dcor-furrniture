@@ -135,9 +135,24 @@ export const auditLogController = {
         total_actors: 0
       };
 
+      // Danh sách các phân hệ thực tế có trong hệ thống Audit Logs
+      const modulesRes: any = await prisma.$queryRawUnsafe(`
+        SELECT module as key, module_label as label, COUNT(*)::int as count
+        FROM "AuditLogs"
+        WHERE module IS NOT NULL AND module != ''
+        GROUP BY module, module_label
+        ORDER BY module ASC
+      `);
+      const modules = (modulesRes || []).map((m: any) => ({
+        key: m.key,
+        label: (m.label || '').replace(/\s*\([^)]*\)/g, '').trim() || m.key,
+        count: m.count
+      }));
+
       res.json({
         success: true,
         data: logs,
+        modules,
         pagination: {
           total,
           page: pageNum,
@@ -155,6 +170,28 @@ export const auditLogController = {
     } catch (error: any) {
       console.error('Lỗi lấy danh sách Audit Logs:', error);
       res.status(500).json({ success: false, message: 'Lỗi máy chủ khi truy xuất nhật ký hoạt động.', error: error.message });
+    }
+  },
+
+  // Lấy danh sách các phân hệ thực tế có trong hệ thống Audit Logs
+  getModules: async (req: Request, res: Response) => {
+    try {
+      const modulesRes: any = await prisma.$queryRawUnsafe(`
+        SELECT module as key, module_label as label, COUNT(*)::int as count
+        FROM "AuditLogs"
+        WHERE module IS NOT NULL AND module != ''
+        GROUP BY module, module_label
+        ORDER BY module ASC
+      `);
+      const modules = (modulesRes || []).map((m: any) => ({
+        key: m.key,
+        label: (m.label || '').replace(/\s*\([^)]*\)/g, '').trim() || m.key,
+        count: m.count
+      }));
+      res.json({ success: true, data: modules });
+    } catch (error: any) {
+      console.error('Lỗi khi lấy danh sách phân hệ:', error);
+      res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh mục phân hệ.', error: error.message });
     }
   },
 

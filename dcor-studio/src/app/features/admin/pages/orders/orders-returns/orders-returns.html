@@ -3,6 +3,8 @@
   <!-- Floating Toast Notification -->
   <div *ngIf="showToast" 
     class="v2-toast"
+    (mouseenter)="pauseToastTimer()"
+    (mouseleave)="resumeToastTimer()"
     [class.toast-success]="toastType === 'success'"
     [class.toast-error]="toastType === 'error'"
     [class.toast-info]="toastType === 'info'"
@@ -17,7 +19,7 @@
         <div class="v2-toast-title">{{ toastType === 'success' ? 'Thao tác thành công' : 'Thông báo' }}</div>
         <div class="v2-toast-msg">{{ toastMessage }}</div>
       </div>
-      <button type="button" class="v2-toast-close" (click)="showToast = false" title="Đóng">
+      <button type="button" class="v2-toast-close" (click)="closeToast()" title="Đóng">
         <lucide-angular [img]="icons.X" size="16"></lucide-angular>
       </button>
     </div>
@@ -265,7 +267,7 @@
           <th style="width: 175px;">Mã yêu cầu</th>
           <th style="width: 140px;">Thời gian gửi</th>
           <th style="width: 180px;">Khách hàng</th>
-          <th style="width: 240px;">Sản phẩm đổi / trả</th>
+          <th style="width: 240px;">Sản phẩm</th>
           <th style="width: 180px;">Trạng thái xử lý</th>
           <th style="width: 140px;">Người phụ trách</th>
           <th style="width: 160px;">Đơn hàng gốc</th>
@@ -308,22 +310,16 @@
           </td>
 
           <!-- Khách hàng -->
-          <td>
+          <td (click)="onCustomerClick(req, $event)" style="cursor: pointer;" title="Xem hồ sơ chi tiết khách hàng">
             <div class="customer-cell">
-              <span class="customer-name">{{ req.customer.name }}</span>
+              <span class="customer-name" style="color: var(--accent-color, #a87d46); text-decoration: underline; text-underline-offset: 2px;">{{ req.customer.name }}</span>
               <span class="customer-phone">{{ req.customer.phone }}</span>
             </div>
           </td>
 
-          <!-- Sản phẩm đổi / trả (Hình ảnh co tỉ lệ cách viền khung đúng 1px) -->
+          <!-- Sản phẩm đổi / trả -->
           <td>
             <div class="prod-row-item">
-              <img 
-                loading="lazy" 
-                class="item-img" 
-                [src]="req.item.imageUrl" 
-                [alt]="req.item.name"
-              />
               <div class="item-names">
                 <span class="item-title" [title]="req.item.name">{{ req.item.name }}</span>
                 <span class="item-variant">{{ req.item.variant }}</span>
@@ -355,7 +351,7 @@
           </td>
 
           <!-- Đơn hàng gốc -->
-          <td>
+          <td (click)="onOrderClick(req, $event)" style="cursor: pointer;" title="Xem chi tiết đơn hàng gốc {{ req.orderNumber }}">
             <div class="order-code-cell">
               <a class="orig-order-link" 
                  [routerLink]="['/admin/orders', req.orderNumber]" 

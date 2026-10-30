@@ -1704,11 +1704,15 @@ export const inventoryController = {
                 }
               }).catch(e => console.warn('Could not decrement variant stock/reservedStock:', e));
 
+              let stockBefore = 0;
+              let stockAfter = 0;
               if (order.sourceWarehouseId) {
                 const whStock = await (prisma as any).warehouseStock.findFirst({
                   where: { warehouseId: order.sourceWarehouseId, variantId: item.variantId }
                 });
                 if (whStock) {
+                  stockBefore = whStock.physicalStock;
+                  stockAfter = Math.max(0, whStock.physicalStock - item.quantity);
                   const decWhReserved = Math.min(whStock.reservedStock || 0, item.quantity);
                   await (prisma as any).warehouseStock.update({
                     where: { id: whStock.id },
@@ -1719,6 +1723,31 @@ export const inventoryController = {
                   }).catch((e: any) => console.warn('Could not decrement warehouseStock:', e));
                 }
               }
+
+              // Ghi bút toán sổ cái StockTransaction cho Xuất kho khi chuyển sang COMPLETED
+              try {
+                const now = new Date();
+                const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+                const txRandom = Math.floor(1000 + Math.random() * 9000);
+                const txType = (order.reason?.includes('hủy') || order.reason?.includes('Hư hỏng')) ? 'DISPOSAL_DISPATCH' : 'SALES_DISPATCH';
+                await (prisma as any).stockTransaction.create({
+                  data: {
+                    txCode: `TX-${yearMonth}-${txRandom}`,
+                    type: txType,
+                    variantId: item.variantId,
+                    location: order.sourceLocation || 'Kho xuất',
+                    warehouseId: order.sourceWarehouseId || null,
+                    stockBefore,
+                    quantityChange: -item.quantity,
+                    stockAfter,
+                    referenceCode: order.referenceCode || order.orderCode,
+                    stockOrderId: order.id,
+                    notes: `Xuất kho [${order.orderCode}]: ${order.reason || 'Xuất kho chính thức'}`
+                  }
+                });
+              } catch (txErr) {
+                console.warn('Could not create export transaction ledger on complete:', txErr);
+              }
             } else if (order.type === 'IMPORT') {
               // NHẬP KHO THÔNG THƯỜNG (Mua hàng NCC, khách trả hàng...)
               await prisma.productVariant.update({
@@ -1726,12 +1755,16 @@ export const inventoryController = {
                 data: { stock: { increment: item.quantity } }
               }).catch(e => console.warn('Could not increment variant stock:', e));
 
+              let stockBefore = 0;
+              let stockAfter = item.quantity;
               const targetWhId = order.destWarehouseId || order.sourceWarehouseId;
               if (targetWhId) {
                 const whStock = await (prisma as any).warehouseStock.findFirst({
                   where: { warehouseId: targetWhId, variantId: item.variantId }
                 });
                 if (whStock) {
+                  stockBefore = whStock.physicalStock;
+                  stockAfter = whStock.physicalStock + item.quantity;
                   await (prisma as any).warehouseStock.update({
                     where: { id: whStock.id },
                     data: { physicalStock: { increment: item.quantity } }
@@ -1746,6 +1779,31 @@ export const inventoryController = {
                     }
                   }).catch((e: any) => console.warn('Could not create warehouseStock at dest:', e));
                 }
+              }
+
+              // Ghi bút toán sổ cái biến động kho StockTransaction cho Nhập kho khi chuyển sang COMPLETED
+              try {
+                const now = new Date();
+                const yearMonth = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+                const txRandom = Math.floor(1000 + Math.random() * 9000);
+                const txType = (order.reason?.includes('trả lại') || order.reason?.includes('khách hàng')) ? 'RETURN_RECEIPT' : 'IMPORT_RECEIPT';
+                await (prisma as any).stockTransaction.create({
+                  data: {
+                    txCode: `TX-${yearMonth}-${txRandom}`,
+                    type: txType,
+                    variantId: item.variantId,
+                    location: order.destinationLocation || 'Kho nhập',
+                    warehouseId: targetWhId || null,
+                    stockBefore,
+                    quantityChange: item.quantity,
+                    stockAfter,
+                    referenceCode: order.referenceCode || order.orderCode,
+                    stockOrderId: order.id,
+                    notes: `Nhập kho [${order.orderCode}]: ${order.reason || 'Nhập kho hàng hóa'}`
+                  }
+                });
+              } catch (txErr) {
+                console.warn('Could not create import transaction ledger on complete:', txErr);
               }
             }
           } catch (e) {

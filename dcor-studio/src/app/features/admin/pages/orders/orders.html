@@ -3,6 +3,8 @@
   <!-- Floating Toast Notification -->
   <div *ngIf="showToast" 
     class="v2-toast"
+    (mouseenter)="pauseToastTimer()"
+    (mouseleave)="resumeToastTimer()"
     [class.toast-success]="toastType === 'success'"
     [class.toast-error]="toastType === 'error'"
     [class.toast-info]="toastType === 'info'"
@@ -308,9 +310,9 @@
           </td>
 
           <!-- Khách hàng -->
-          <td>
+          <td (click)="onCustomerClick(order, $event)" style="cursor: pointer;" title="Xem chi tiết hồ sơ khách hàng">
             <div class="customer-cell">
-              <span class="customer-name">{{ order.customerName }}</span>
+              <span class="customer-name" style="color: var(--accent-color, #a87d46); text-decoration: underline; text-underline-offset: 2px;">{{ order.customerName }}</span>
               <span class="customer-phone">{{ order.phone }}</span>
             </div>
           </td>
@@ -368,6 +370,15 @@
               <span class="dept-indicator">
                 Bộ phận: <strong>{{ getAdminStatusMeta(order.status, order).dept }}</strong>
               </span>
+              <button 
+                *ngIf="hasReturnOrder(order)"
+                type="button" 
+                (click)="goToReturnOrder(order, $event)"
+                style="margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: #FEF3C7; color: #B45309; border: 1px solid #FCD34D; cursor: pointer;"
+                title="Mở trực tiếp phiếu đổi trả hàng">
+                <span>Đơn đổi trả</span>
+                <lucide-angular [img]="icons.ExternalLink" size="10"></lucide-angular>
+              </button>
             </div>
           </td>
 

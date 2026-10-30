@@ -640,9 +640,28 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   get shippingFee(): number {
     if (this.subTotal === 0) return 0;
-    if (this.subTotal >= 50000000) return 0;
     if (this.appliedVoucher?.discountType === 'AMOUNT' && this.appliedVoucher.code === 'FREESHIP') return 0;
-    return 250000;
+
+    let enableFreeShipping = true;
+    let minFreeShipAmount = 15000000;
+    let baseShippingFee = 250000;
+
+    try {
+      const raw = localStorage.getItem('dcor_orders_settings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.shipping) {
+          enableFreeShipping = parsed.shipping.enableFreeShipping !== false;
+          minFreeShipAmount = parsed.shipping.freeShippingMinAmount ?? 15000000;
+          baseShippingFee = parsed.shipping.baseShippingFee ?? 250000;
+        }
+      }
+    } catch (e) {}
+
+    if (enableFreeShipping && this.subTotal >= minFreeShipAmount) {
+      return 0;
+    }
+    return baseShippingFee;
   }
 
   get discountAmount(): number {
@@ -658,7 +677,17 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   }
 
   get isHighValueOrder(): boolean {
-    return this.totalAmount > 50000000;
+    let threshold = 50000000;
+    try {
+      const raw = localStorage.getItem('dcor_orders_settings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.workflow?.highValueThreshold) {
+          threshold = parsed.workflow.highValueThreshold;
+        }
+      }
+    } catch (e) {}
+    return this.totalAmount >= threshold;
   }
 
   get depositAmount(): number {

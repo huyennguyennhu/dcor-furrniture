@@ -8,7 +8,7 @@ import {
   Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck, 
   Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, 
   ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-  Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown
+  Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink
 } from 'lucide-angular';
 import { IconComponent } from '../../../../shared/components/icon/icon';
 import { OrdersService } from './services/orders.service';
@@ -27,11 +27,33 @@ export type KpiTab = 'ALL' | 'CONFIRMATION' | 'PENDING' | 'CONFIRMED' | 'PROCESS
   styleUrls: ['./orders.css']
 })
 export class OrdersComponent implements OnInit, OnDestroy {
+
+  onCustomerClick(order: OrderV2, event: MouseEvent): void {
+    event.stopPropagation();
+    if (order.customerId) {
+      this.router.navigate(['/admin/customers', order.customerId]);
+    } else {
+      this.router.navigate(['/admin/customers'], {
+        queryParams: { q: order.phone || order.customerName }
+      });
+    }
+  }
+
+  hasReturnOrder(order: OrderV2): boolean {
+    return ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status) || !!order.returnInfo;
+  }
+
+  goToReturnOrder(order: OrderV2, event: MouseEvent): void {
+    event.stopPropagation();
+    const retId = order.returnInfo?.returnRequestId || order.orderNumber || order.id;
+    this.router.navigate(['/admin/orders/returns', retId]);
+  }
+
   icons = {
     Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck,
     Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft,
     ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-    Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown
+    Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink
   };
 
   orders: OrderV2[] = [];
@@ -557,15 +579,30 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-  triggerToast(title: string, message: string, type: 'success' | 'error' | 'info' = 'success') {
-    if (this.toastTimer) clearTimeout(this.toastTimer);
+  triggerToast(title: string, message: string, type: 'success' | 'error' | 'info' = 'success', durationMs = 3000) {
+    this.pauseToastTimer();
     this.toastTitle = title;
     this.toastMessage = message;
     this.toastType = type;
     this.showToast = true;
     this.toastTimer = setTimeout(() => {
-      this.showToast = false;
-    }, 4500);
+      this.closeToast();
+    }, durationMs);
+  }
+
+  pauseToastTimer(): void {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+  }
+
+  resumeToastTimer(): void {
+    if (!this.showToast) return;
+    this.pauseToastTimer();
+    this.toastTimer = setTimeout(() => {
+      this.closeToast();
+    }, 3000);
   }
 
   refreshOrders() {
@@ -574,7 +611,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   closeToast() {
     this.showToast = false;
-    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.pauseToastTimer();
   }
 }
 

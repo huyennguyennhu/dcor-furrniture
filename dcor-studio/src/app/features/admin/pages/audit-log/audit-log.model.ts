@@ -2,7 +2,13 @@ export type AuditSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'AUTH' | 'APPROVE' | 'ALL';
 
-export type AuditModule = 'ORDERS' | 'PRODUCTS' | 'INVENTORY' | 'CUSTOMERS' | 'SYSTEM' | 'ALL';
+export type AuditModule = 'ORDERS' | 'PRODUCTS' | 'INVENTORY' | 'CUSTOMERS' | 'SYSTEM' | 'ALL' | string;
+
+export interface AuditModuleItem {
+  key: string;
+  label: string;
+  count?: number;
+}
 
 export type AuditRole = 'ADMIN' | 'WAREHOUSE' | 'SALES' | 'ACCOUNTANT' | 'CONTENT' | 'ALL';
 

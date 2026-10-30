@@ -6,12 +6,14 @@ import {
   AuditLogItem, 
   AuditLogPagination, 
   AuditLogStats, 
-  AuditLogFilterState 
+  AuditLogFilterState,
+  AuditModuleItem
 } from './audit-log.model';
 
 export interface AuditLogResponse {
   success: boolean;
   data: AuditLogItem[];
+  modules?: AuditModuleItem[];
   pagination: AuditLogPagination;
   stats: AuditLogStats;
 }
@@ -23,6 +25,10 @@ export class AuditLogService {
   private readonly apiUrl = `${environment.apiUrl}/admin/audit-logs`;
 
   constructor(private http: HttpClient) {}
+
+  getAuditLogModules(): Observable<{ success: boolean; data: AuditModuleItem[] }> {
+    return this.http.get<{ success: boolean; data: AuditModuleItem[] }>(`${this.apiUrl}/modules`);
+  }
 
   getAuditLogs(filters: Partial<AuditLogFilterState>): Observable<AuditLogResponse> {
     let params = new HttpParams();

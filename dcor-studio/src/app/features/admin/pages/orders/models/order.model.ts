@@ -76,6 +76,7 @@ export interface ReturnQcReport {
 }
 
 export interface ReturnInfo {
+  returnRequestId?: string;
   requestedAt?: string;
   reason?: string;
   type?: 'REFUND' | 'EXCHANGE';
@@ -85,6 +86,9 @@ export interface ReturnInfo {
   qcReport?: ReturnQcReport;
   refundAmount?: number;
   refundTransactionCode?: string;
+  bank?: string;
+  accountNumber?: string;
+  accountHolder?: string;
 }
 export type ReturnInfoV2 = ReturnInfo;
 
@@ -108,6 +112,7 @@ export type QcChecklistV2 = QcChecklist;
 export interface Order {
   id: string;
   orderNumber: string;
+  customerId?: string;
   createdAt: string;
   status: AdminOrderStatus;
   paymentStatus: PaymentStatus;

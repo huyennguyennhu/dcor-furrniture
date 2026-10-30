@@ -3,6 +3,8 @@
   <!-- Floating Toast Notification -->
   <div *ngIf="showToast" 
     class="inventory-toast-container"
+    (mouseenter)="pauseToastTimer()"
+    (mouseleave)="resumeToastTimer()"
     style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; min-width: 380px; max-width: 540px; background: var(--bg-primary, #ffffff); border-radius: 12px; box-shadow: 0 16px 36px -6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06); padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; animation: toastSlideUpRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;"
     [style.border-left]="toastType === 'success' ? '5px solid #10b981' : (toastType === 'error' ? '5px solid #ef4444' : '5px solid #3b82f6')"
   >
@@ -1019,7 +1021,6 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeReasonModal()" [disabled]="isSavingReason">Hủy</button>
         <button 
           type="button" 
           class="admin-btn admin-btn-primary" 
@@ -1154,7 +1155,6 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeTaxModal()" [disabled]="isSavingTax">Hủy</button>
         <button 
           type="button" 
           class="admin-btn admin-btn-primary" 

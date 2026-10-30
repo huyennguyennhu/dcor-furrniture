@@ -3,6 +3,8 @@
   <!-- Floating Toast Notification -->
   <div *ngIf="showToast" 
        class="v2-toast"
+       (mouseenter)="pauseToastTimer()"
+       (mouseleave)="resumeToastTimer()"
        [class.toast-success]="toastType === 'success'"
        [class.toast-error]="toastType === 'error'"
        [class.toast-info]="toastType === 'info'">
@@ -16,9 +18,16 @@
         <div class="v2-toast-title">{{ toastTitle }}</div>
         <div class="v2-toast-msg">{{ toastMessage }}</div>
       </div>
-      <button type="button" class="v2-toast-close" (click)="closeToast()">
+      <button type="button" class="v2-toast-close" (click)="closeToast()" title="Đóng thông báo">
         <lucide-angular [img]="icons.X" size="16"></lucide-angular>
       </button>
+    </div>
+    <!-- Countdown Progress Bar -->
+    <div class="v2-toast-progress">
+      <div class="v2-toast-progress-bar"
+           [class.bar-success]="toastType === 'success'"
+           [class.bar-error]="toastType === 'error'"
+           [class.bar-info]="toastType === 'info'"></div>
     </div>
   </div>
 
@@ -48,39 +57,10 @@
 
         <div class="order-sub-meta">
           <span>Ngày gửi: <strong>{{ returnReq.createdAt }}</strong></span>
-          <span class="dot">•</span>
-          <span>Đơn hàng gốc: 
-            <a class="order-link-ref" [routerLink]="['/admin/orders', returnReq.orderNumber]" title="Xem chi tiết đơn hàng gốc">
-              #{{ returnReq.orderNumber }}
-              <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
-            </a>
-          </span>
-          <span class="dot">•</span>
-          <span>Khách hàng: <strong>{{ returnReq.customer.name }}</strong> ({{ returnReq.customer.phone }})</span>
-          <span class="dot">•</span>
-          <div class="assignee-badge-selector" (click)="toggleAssigneeDropdown($event)" title="Nhấn để đổi người phụ trách">
-            <lucide-angular [img]="icons.UserCheck" size="13" class="text-accent"></lucide-angular>
-            <span>Phụ trách: <strong>{{ returnReq.assignee }}</strong></span>
-            <lucide-angular [img]="icons.ChevronDown" size="12" [style.transform]="showAssigneeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
-
-            <!-- Popover dropdown chọn nhanh tại Header -->
-            <div *ngIf="showAssigneeDropdown" class="assignee-quick-dropdown" (click)="$event.stopPropagation()">
-              <div class="quick-dropdown-header">Chỉ định người phụ trách:</div>
-              <div *ngFor="let staff of staffList" 
-                   class="quick-dropdown-item" 
-                   [class.selected]="returnReq.assignee === staff.name"
-                   (click)="changeAssignee(staff.name)">
-                <div class="staff-item-left">
-                  <div class="staff-mini-avatar">{{ staff.avatar }}</div>
-                  <div class="staff-item-text">
-                    <span class="staff-name">{{ staff.name }}</span>
-                    <span class="staff-role">{{ staff.role }}</span>
-                  </div>
-                </div>
-                <lucide-angular *ngIf="returnReq.assignee === staff.name" [img]="icons.Check" size="14" class="text-success"></lucide-angular>
-              </div>
-            </div>
-          </div>
+          <span class="dot" style="margin: 0 8px; color: var(--border-color, #e5e7eb);">•</span>
+          <span>Đơn hàng gốc: <a [routerLink]="['/admin/orders', returnReq.orderNumber]" style="cursor: pointer; color: var(--accent-color, #c5a880); font-weight: 700; text-decoration: underline;" title="Xem chi tiết đơn hàng gốc">#{{ returnReq.orderNumber }}</a></span>
+          <span class="dot" style="margin: 0 8px; color: var(--border-color, #e5e7eb);">•</span>
+          <span>Khách hàng: <strong (click)="onOpenCustomerInfo()" style="cursor: pointer; color: var(--accent-color, #c5a880); text-decoration: underline;" title="Xem chi tiết hồ sơ khách hàng">{{ returnReq.customer.name }}</strong> ({{ returnReq.customer.phone }})</span>
         </div>
       </div>
 
@@ -97,7 +77,6 @@
           <span>1</span>
         </div>
         <div class="step-label">Xử lý yêu cầu</div>
-        <div class="step-sub">Khách gửi yêu cầu</div>
       </div>
 
       <div class="step-line line-cancelled"></div>
@@ -107,7 +86,6 @@
           <lucide-angular [img]="icons.X" size="16"></lucide-angular>
         </div>
         <div class="step-label text-cancelled">Đã từ chối</div>
-        <div class="step-sub text-cancelled-sub">Hồ sơ vi phạm điều kiện</div>
       </div>
     </div>
 
@@ -117,15 +95,15 @@
       <div class="stepper-step" 
            [class.step-done]="isStepDone(0)" 
            [class.step-active]="isStepActive(0)"
+           [class.step-viewing]="isStepViewing(0)"
            [class.step-clickable]="isStepDone(0) || isStepActive(0)"
            (click)="onStepClick(0)"
-           title="Bước 1: Tiếp nhận và xử lý yêu cầu khiếu nại">
+           title="Bước 1: Tiếp nhận và xử lý yêu cầu khiếu nại (Nhấn để xem lại)">
         <div class="step-circle">
           <lucide-angular *ngIf="isStepDone(0)" [img]="icons.Check" size="16"></lucide-angular>
           <span *ngIf="!isStepDone(0)">1</span>
         </div>
         <div class="step-label">Xử lý yêu cầu</div>
-        <div class="step-sub">{{ returnReq.status === 'REVIEWING' ? 'Đang xem xét' : (returnReq.status === 'PENDING' ? 'Chờ duyệt đổi trả' : 'Đã duyệt yêu cầu') }}</div>
       </div>
 
       <div class="step-line" [class.line-done]="isLineDone(0)"></div>
@@ -134,15 +112,15 @@
       <div class="stepper-step" 
            [class.step-done]="isStepDone(1)" 
            [class.step-active]="isStepActive(1)"
+           [class.step-viewing]="isStepViewing(1)"
            [class.step-clickable]="isStepDone(1) || isStepActive(1)"
            (click)="onStepClick(1)"
-           title="Bước 2: Phân công người thu hồi, lái xe và đội vận chuyển">
+           title="Bước 2: Phân công người thu hồi, lái xe và đội vận chuyển (Nhấn để xem lại)">
         <div class="step-circle">
           <lucide-angular *ngIf="isStepDone(1)" [img]="icons.Check" size="16"></lucide-angular>
           <span *ngIf="!isStepDone(1)">2</span>
         </div>
         <div class="step-label">Chuẩn bị thu hồi</div>
-        <div class="step-sub">{{ returnReq.status === 'APPROVED' ? 'Phân công đội xe' : (isStepDone(1) ? 'Đã điều phối xe' : 'Chờ duyệt') }}</div>
       </div>
 
       <div class="step-line" [class.line-done]="isLineDone(1)"></div>
@@ -151,32 +129,32 @@
       <div class="stepper-step" 
            [class.step-done]="isStepDone(2)" 
            [class.step-active]="isStepActive(2)"
+           [class.step-viewing]="isStepViewing(2)"
            [class.step-clickable]="isStepDone(2) || isStepActive(2)"
            (click)="onStepClick(2)"
-           title="Bước 3: Theo dõi tiến trình lái xe đến nhà khách rồi vận chuyển về qua Live Map">
+           title="Bước 3: Theo dõi tiến trình lái xe đến nhà khách rồi vận chuyển về qua Live Map (Nhấn để xem lại)">
         <div class="step-circle">
           <lucide-angular *ngIf="isStepDone(2)" [img]="icons.Check" size="16"></lucide-angular>
           <span *ngIf="!isStepDone(2)">3</span>
         </div>
         <div class="step-label">Đang thu hồi</div>
-        <div class="step-sub">{{ returnReq.status === 'RETURNING' ? 'Lộ trình xe (Map)' : (isStepDone(2) ? 'Đã về tới kho' : 'Chờ lấy hàng') }}</div>
       </div>
 
       <div class="step-line" [class.line-done]="isLineDone(2)"></div>
 
-      <!-- Bước 4: Đã nhận hàng (Received) -->
+      <!-- Bước 4: Kiểm tra hàng (Received) -->
       <div class="stepper-step" 
            [class.step-done]="isStepDone(3)" 
            [class.step-active]="isStepActive(3)"
+           [class.step-viewing]="isStepViewing(3)"
            [class.step-clickable]="isStepDone(3) || isStepActive(3)"
            (click)="onStepClick(3)"
-           title="Bước 4: Hàng về kho và tiến hành kiểm định chất lượng QC">
+           title="Bước 4: Kiểm tra hàng và tiến hành kiểm định chất lượng QC (Nhấn để xem lại)">
         <div class="step-circle">
           <lucide-angular *ngIf="isStepDone(3)" [img]="icons.Check" size="16"></lucide-angular>
           <span *ngIf="!isStepDone(3)">4</span>
         </div>
-        <div class="step-label">Đã nhận hàng</div>
-        <div class="step-sub">{{ returnReq.status === 'RECEIVED' ? 'Kiểm định QC kho' : (isStepDone(3) ? 'QC hoàn tất' : 'Chờ nhận hàng') }}</div>
+        <div class="step-label">Kiểm tra hàng</div>
       </div>
 
       <div class="step-line" [class.line-done]="isLineDone(3)"></div>
@@ -185,15 +163,15 @@
       <div class="stepper-step" 
            [class.step-done]="isStepDone(4)" 
            [class.step-active]="isStepActive(4)"
+           [class.step-viewing]="isStepViewing(4)"
            [class.step-clickable]="isStepDone(4) || isStepActive(4)"
            (click)="onStepClick(4)"
-           title="Bước 5: Tự động kích hoạt đơn hàng mới (nếu đổi) hoặc Chuyển khoản hoàn tiền">
+           title="Bước 5: Tự động kích hoạt đơn hàng mới (nếu đổi) hoặc Chuyển khoản hoàn tiền (Nhấn để xem lại)">
         <div class="step-circle">
           <lucide-angular *ngIf="isStepDone(4)" [img]="icons.Check" size="16"></lucide-angular>
           <span *ngIf="!isStepDone(4)">5</span>
         </div>
         <div class="step-label">{{ returnReq.type === 'EXCHANGE' ? 'Đổi hàng mới' : 'Hoàn tiền' }}</div>
-        <div class="step-sub">{{ returnReq.status === 'EXCHANGING' ? 'Tự kích hoạt đơn mới' : (returnReq.status === 'REFUNDING' ? 'Chuyển khoản hoàn' : (returnReq.type === 'EXCHANGE' ? 'Tự tạo đơn mới' : 'Ủy nhiệm chi')) }}</div>
       </div>
 
       <div class="step-line" [class.line-done]="isLineDone(4)"></div>
@@ -202,6 +180,7 @@
       <div class="stepper-step" 
            [class.step-done]="returnReq.status === 'COMPLETED'" 
            [class.step-active]="isStepActive(5)"
+           [class.step-viewing]="isStepViewing(5)"
            [class.step-completed]="returnReq.status === 'COMPLETED'"
            [class.step-clickable]="returnReq.status === 'COMPLETED'"
            (click)="onStepClick(5)"
@@ -211,39 +190,53 @@
           <span *ngIf="returnReq.status !== 'COMPLETED'">6</span>
         </div>
         <div class="step-label" [class.text-completed]="returnReq.status === 'COMPLETED'">Hoàn tất</div>
-        <div class="step-sub">{{ returnReq.status === 'COMPLETED' ? 'Đổi trả thành công' : 'Đóng hồ sơ' }}</div>
       </div>
     </div>
 
-    <!-- Branch Pill nếu bị từ chối -->
-    <div class="stepper-branch-pill branch-cancelled" *ngIf="returnReq.status === 'REJECTED'">
-      <span class="branch-pill-dot"></span>
-      Quy trình đã dừng do yêu cầu đổi trả bị từ chối tiếp nhận
+  </div>
+
+  <!-- KHỐI 6: HOÀN TẤT ĐỔI TRẢ THÀNH CÔNG (COMPLETED) ĐƯA LÊN TRÊN CÙNG DƯỚI STEPPER -->
+  <div class="v2-card completed-showcase-card" 
+       id="step-block-5"
+       *ngIf="returnReq.status === 'COMPLETED' || activeViewingStep === 5"
+       style="margin-bottom: 20px;">
+    <div class="completed-banner-inner">
+      <div class="completed-icon-large">
+        <lucide-angular [img]="icons.CheckCircle2" size="44"></lucide-angular>
+      </div>
+      <div class="completed-info">
+        <h2>Hồ sơ đổi trả #{{ returnReq.id }} đã hoàn tất thành công!</h2>
+        <p>
+          {{ returnReq.type === 'EXCHANGE' ? 'Đã thu hồi sản phẩm lỗi và bàn giao hoàn tất đơn hàng thay thế mới cho khách hàng.' : 'Đã tiếp nhận sản phẩm về kho và chuyển khoản hoàn tiền 100% cho khách hàng.' }}
+        </p>
+      </div>
+      <button type="button" class="btn-print-archive" (click)="handlePrint()">
+        <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
+        <span>In biên bản lưu trữ hồ sơ</span>
+      </button>
     </div>
   </div>
 
-  <!-- 2-COLUMN MAIN CONTENT GRID -->
-  <div class="v2-main-grid">
+  <!-- Main 2-Column Responsive Layout -->
+  <div class="v2-content-grid">
     <!-- =========================================================================
          LEFT COLUMN: 6 Khối hiển thị chuẩn xác theo đúng tiến trình nghiệp vụ
          ========================================================================= -->
     <div class="v2-col-left">
 
       <!-- KHỐI 1 (Bước 1): XỬ LÝ YÊU CẦU (PENDING & Tiếp nhận) -->
-      <div class="v2-card" 
-           id="step-block-0"
-           [class.card-highlight-action]="activeViewingStep === 0">
+      <div class="v2-card" id="step-block-0">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.Package" size="18" class="text-accent"></lucide-angular>
-            <h3>1. Xử lý yêu cầu (Tiếp nhận & Bằng chứng khiếu nại)</h3>
+            <h3>Yêu cầu đổi trả</h3>
           </div>
-          <span class="card-header-badge" 
-                [style.background]="currentStepIndex === 0 ? '#FEF3C7' : '#F3F4F6'"
-                [style.color]="currentStepIndex === 0 ? '#D97706' : '#4B5563'"
-                [style.border-color]="currentStepIndex === 0 ? '#FDE68A' : '#E5E7EB'">
-            {{ currentStepIndex === 0 ? 'Đang xử lý yêu cầu' : 'Đã duyệt yêu cầu' }}
-          </span>
+          <a class="order-link-ref" 
+             [routerLink]="['/admin/orders', returnReq.orderNumber]" 
+             title="Xem chi tiết đơn hàng gốc">
+            #{{ returnReq.orderNumber }}
+            <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
+          </a>
         </div>
 
         <div class="v2-card-body">
@@ -254,11 +247,12 @@
             </div>
             <div class="item-details">
               <div class="item-title">{{ returnReq.item.name }}</div>
-              <div class="item-tags-row">
-                <span class="item-meta-tag">Mã SKU: <strong>{{ returnReq.item.sku }}</strong></span>
-                <span class="item-meta-tag">Biến thể: <strong>{{ returnReq.item.variant }}</strong></span>
-                <span class="item-meta-tag">Đơn giá mua: <strong>{{ formatVND(returnReq.item.price) }}</strong></span>
-                <span class="item-meta-tag">Số lượng: <strong>{{ returnReq.item.quantity }}</strong></span>
+              <div class="item-meta-line">Biến thể: <strong>{{ returnReq.item.variant }}</strong></div>
+              <div class="item-meta-line">Mã SKU: <strong>{{ returnReq.item.sku }}</strong></div>
+              <div class="item-meta-line item-pricing-qty">
+                <span>Đơn giá mua: <strong>{{ formatVND(returnReq.item.price) }}</strong></span>
+                <span class="meta-dot-sep">•</span>
+                <span>Số lượng: <strong>{{ returnReq.item.quantity }}</strong></span>
               </div>
             </div>
           </div>
@@ -281,36 +275,131 @@
           <!-- Bằng chứng hình ảnh thực tế (Click để phóng to Lightbox) -->
           <div class="proof-gallery-section" *ngIf="returnReq.proofImages && returnReq.proofImages.length > 0">
             <div class="gallery-title-row">
-              <span class="gallery-title">Hình ảnh / Video bằng chứng thực tế khách gửi:</span>
-              <span class="gallery-sub">({{ returnReq.proofImages.length }} tệp đính kèm • Bấm để xem kích thước lớn)</span>
+              <div class="gallery-title-left">
+                <span class="gallery-title">Minh chứng:</span>
+              </div>
             </div>
-            <div class="proof-thumbnails-grid">
-              <div *ngFor="let img of returnReq.proofImages; let i = index" 
-                   class="proof-thumb-card" 
-                   (click)="openLightbox(img)"
-                   title="Bấm để xem ảnh phóng to chi tiết">
-                <img [src]="img" [alt]="'Bằng chứng khiếu nại ' + (i + 1)" class="thumb-img" />
-                <div class="thumb-hover-overlay">
-                  <lucide-angular [img]="icons.Eye" size="18"></lucide-angular>
-                  <span>Phóng to</span>
+
+            <div class="proof-carousel-wrapper">
+              <button 
+                type="button" 
+                class="carousel-nav-btn nav-btn-left" 
+                *ngIf="returnReq.proofImages.length > 3"
+                (click)="scrollProofGallery('left')"
+                title="Cuộn sang trái"
+              >
+                <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
+              </button>
+
+              <div class="proof-thumbnails-grid" #proofGalleryRef>
+                <div *ngFor="let img of returnReq.proofImages; let i = index" 
+                     class="proof-thumb-card" 
+                     (click)="openLightbox(img)"
+                     title="Bấm để xem ảnh phóng to chi tiết">
+                  <img [src]="img" [alt]="'Bằng chứng khiếu nại ' + (i + 1)" class="thumb-img" />
+                  <div class="thumb-hover-overlay">
+                    <lucide-angular [img]="icons.Eye" size="18"></lucide-angular>
+                    <span>Phóng to</span>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="button" 
+                class="carousel-nav-btn nav-btn-right" 
+                *ngIf="returnReq.proofImages.length > 3"
+                (click)="scrollProofGallery('right')"
+                title="Cuộn sang phải"
+              >
+                <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BỘ QUY TẮC KIỂM TRA & THẨM ĐỊNH (Bước 1: Xử lý yêu cầu) -->
+      <div class="v2-card verification-checklist-card" *ngIf="activeViewingStep === 0" [class.card-highlight-action]="activeViewingStep === 0">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.ClipboardCheck" size="18" class="text-accent"></lucide-angular>
+            <h3>Quy tắc kiểm tra & Thẩm định yêu cầu</h3>
+          </div>
+          <span class="card-header-badge" 
+                [class.badge-saved]="isChecklistSaved || currentStepIndex > 0"
+                [class.badge-all-passed]="totalPassedCount === totalChecklistCount">
+            <ng-container *ngIf="currentStepIndex === 0 && !isChecklistSaved">Đang đánh giá: {{ totalPassedCount }}/{{ totalChecklistCount }} tiêu chí</ng-container>
+            <ng-container *ngIf="currentStepIndex === 0 && isChecklistSaved">Đã lưu: {{ totalPassedCount }}/{{ totalChecklistCount }} tiêu chí đạt</ng-container>
+            <ng-container *ngIf="currentStepIndex > 0">Đã khóa: {{ totalPassedCount }}/{{ totalChecklistCount }} tiêu chí đạt</ng-container>
+          </span>
+        </div>
+
+        <div class="v2-card-body">
+          <div class="checklist-groups-wrapper">
+            <div *ngFor="let group of verificationGroups" class="checklist-group-block">
+              <div class="checklist-group-title-row">
+                <div class="group-title-left">
+                  <h4>{{ group.title }}</h4>
+                </div>
+                <span class="group-counter" [class.counter-all-passed]="getGroupPassedCount(group) === group.items.length">
+                  {{ getGroupPassedCount(group) }}/{{ group.items.length }} đạt
+                </span>
+              </div>
+
+              <div class="checklist-items-list">
+                <div *ngFor="let item of group.items" 
+                     class="checklist-item-card" 
+                     [class.saved-mode]="isChecklistSaved || currentStepIndex > 0"
+                     [class.item-passed]="(isChecklistSaved || currentStepIndex > 0) && item.checked"
+                     [class.item-failed]="(isChecklistSaved || currentStepIndex > 0) && !item.checked"
+                     [class.item-checked]="!(isChecklistSaved || currentStepIndex > 0) && item.checked"
+                     [class.read-only-item]="currentStepIndex > 0"
+                     (click)="toggleVerificationItem(item)">
+                  
+                  <!-- Checkbox / Status Icon -->
+                  <div class="chk-icon-col">
+                    <ng-container *ngIf="!isChecklistSaved && currentStepIndex === 0">
+                      <lucide-angular *ngIf="!item.checked" [img]="icons.Square" size="16" class="chk-square"></lucide-angular>
+                      <lucide-angular *ngIf="item.checked" [img]="icons.CheckSquare" size="16" class="chk-square checked"></lucide-angular>
+                    </ng-container>
+                    <ng-container *ngIf="isChecklistSaved || currentStepIndex > 0">
+                      <lucide-angular *ngIf="item.checked" [img]="icons.CheckCircle2" size="18" class="chk-circle-pass"></lucide-angular>
+                      <lucide-angular *ngIf="!item.checked" [img]="icons.XCircle" size="18" class="chk-circle-fail"></lucide-angular>
+                    </ng-container>
+                  </div>
+
+                  <!-- Text details -->
+                  <div class="chk-content-col">
+                    <div class="chk-title-line">
+                      <span class="chk-item-title">{{ item.title }}</span>
+                      <span *ngIf="(isChecklistSaved || currentStepIndex > 0) && item.checked" class="chk-tag-status pass">Hợp lệ</span>
+                      <span *ngIf="(isChecklistSaved || currentStepIndex > 0) && !item.checked" class="chk-tag-status fail">Chưa đạt</span>
+                    </div>
+                    <p class="chk-item-desc" [innerHTML]="item.desc"></p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- NÚT HÀNH ĐỘNG TRỰC TIẾP TẠI BƯỚC 1 (PENDING / REVIEWING) -->
-          <div class="card-action-bar" *ngIf="currentStepIndex === 0">
-            <button type="button" class="btn-flow btn-danger" (click)="openRejectModal()">
-              <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
-              <span>Từ chối yêu cầu</span>
+          <!-- Bottom Action Bar: Chỉ hiển thị ở Bước 1 khi chưa duyệt -->
+          <div class="checklist-action-bar" *ngIf="currentStepIndex === 0">
+            <button *ngIf="!isChecklistSaved" 
+                    type="button" 
+                    class="btn-save-checklist-btn" 
+                    [disabled]="!isAllChecklistChecked"
+                    [title]="!isAllChecklistChecked ? 'Vui lòng tích chọn đầy đủ các tiêu chí kiểm tra trước khi lưu' : 'Lưu kết quả kiểm tra'"
+                    (click)="saveVerificationChecklist()">
+              <lucide-angular [img]="icons.Check" size="14"></lucide-angular>
+              <span>Lưu kết quả kiểm tra</span>
             </button>
-            <button *ngIf="returnReq.status === 'PENDING'" type="button" class="btn-flow btn-secondary" (click)="advanceStatus('REVIEWING', 'CSKH tiếp nhận và bắt đầu liên hệ xác minh')">
-              <lucide-angular [img]="icons.Phone" size="16"></lucide-angular>
-              <span>Tiếp nhận & Gọi xác minh</span>
-            </button>
-            <button type="button" class="btn-flow btn-primary btn-lg" (click)="confirmApproval()">
-              <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
-              <span>Duyệt yêu cầu (Chuyển sang Chuẩn bị Thu hồi)</span>
+
+            <button *ngIf="isChecklistSaved" 
+                    type="button" 
+                    class="btn-edit-checklist-btn" 
+                    (click)="editVerificationChecklist()">
+              <lucide-angular [img]="icons.Pencil" size="14"></lucide-angular>
+              <span>Chỉnh sửa checklist</span>
             </button>
           </div>
         </div>
@@ -320,41 +409,61 @@
       <!-- Phân công người đi thu hồi, Lái xe + Đội vận chuyển -->
       <div class="v2-card dispatch-prep-card" 
            id="step-block-1"
-           *ngIf="currentStepIndex >= 1 || activeViewingStep === 1"
-           [class.card-highlight-action]="activeViewingStep === 1">
+           *ngIf="activeViewingStep >= 1"
+           [class.card-highlight-action]="activeViewingStep === 1"
+           [class.has-open-dropdown]="showDriverDropdown || showTeamDropdown || showScheduleDropdown">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.Truck" size="18" class="text-accent"></lucide-angular>
-            <h3>2. Chuẩn bị Thu hồi (Phân công Người thu hồi, Lái xe & Đội vận chuyển)</h3>
+            <h3>Phân công đội vận chuyển</h3>
           </div>
-          <span class="card-header-badge" 
-                [style.background]="returnReq.status === 'APPROVED' ? '#FAF5FF' : '#F3F4F6'"
-                [style.color]="returnReq.status === 'APPROVED' ? '#9333EA' : '#4B5563'"
-                [style.border-color]="returnReq.status === 'APPROVED' ? '#E9D5FF' : '#E5E7EB'">
-            {{ returnReq.status === 'APPROVED' ? 'Đang chờ phân công' : 'Đã phân công' }}
-          </span>
         </div>
 
         <div class="v2-card-body">
-          <p class="section-help-text" *ngIf="returnReq.status === 'APPROVED'">
-            Hồ sơ đã được duyệt đổi trả. Vui lòng phân công người đi thu hồi, lái xe, đội vận chuyển/bốc xếp chuyên dụng và khung giờ hẹn đến nhà khách hàng:
+          <p class="section-help-text" *ngIf="activeViewingStep === 1">
+            Hồ sơ đã được duyệt đổi trả. {{ isPastView ? 'Thông tin phân công người đi thu hồi, lái xe và đội vận chuyển đã hoàn tất:' : 'Vui lòng phân công người đi thu hồi, lái xe, đội vận chuyển/bốc xếp chuyên dụng và khung giờ hẹn đến nhà khách hàng:' }}
           </p>
 
-          <!-- Form phân công điều phối xe (cho phép chỉnh sửa khi APPROVED) -->
-          <div class="dispatch-form-grid" *ngIf="returnReq.status === 'APPROVED'">
+          <!-- Form phân công điều phối xe (cho phép chỉnh sửa khi APPROVED, chỉ xem khi xem lại bước cũ) -->
+          <div class="dispatch-form-grid" *ngIf="activeViewingStep === 1">
             <!-- Chọn Lái xe (Driver) -->
             <div class="form-field-group">
               <label class="form-field-label">
                 <lucide-angular [img]="icons.UserCheck" size="14"></lucide-angular>
-                <span>Lái xe phụ trách (Driver): <span class="required-star">*</span></span>
+                <span>Lái xe phụ trách: <span class="required-star" *ngIf="!isPastView">*</span></span>
               </label>
-              <select class="admin-select-input" 
-                      [(ngModel)]="dispatchDriverName" 
-                      (ngModelChange)="onDriverChange($event)">
-                <option *ngFor="let d of driverOptions" [value]="d.name">
-                  {{ d.name }} — Hotline: {{ d.phone }}
-                </option>
-              </select>
+              <div class="filter-dropdown-wrapper driver-dropdown-wrapper" [class.is-open]="showDriverDropdown && !isPastView">
+                <button 
+                  type="button" 
+                  title="Chọn lái xe phụ trách thu hồi" 
+                  class="filter-trigger-btn"
+                  [disabled]="isPastView"
+                  [class.disabled-trigger]="isPastView"
+                  [class.active]="!!dispatchDriverName"
+                  (click)="!isPastView && toggleDispatchDropdown('driver', $event)"
+                >
+                  <div class="trigger-label">
+                    <lucide-angular [img]="icons.UserCheck" size="15" class="trigger-icon"></lucide-angular>
+                    <span class="truncate-label" [class.text-muted-placeholder]="!dispatchDriverName">
+                      {{ dispatchDriverName || 'Chọn lái xe...' }}
+                    </span>
+                  </div>
+                  <lucide-angular *ngIf="!isPastView" [img]="icons.ChevronDown" size="14" [style.transform]="showDriverDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+                  <lucide-angular *ngIf="isPastView" [img]="icons.Lock" size="13" class="text-muted"></lucide-angular>
+                </button>
+                <div *ngIf="showDriverDropdown && !isPastView" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+                  <div *ngFor="let d of driverOptions" 
+                       (click)="selectDriverOption(d)" 
+                       class="filter-menu-item" 
+                       [class.selected]="dispatchDriverName === d.name">
+                    <div class="menu-item-info">
+                      <span class="menu-item-title">{{ d.name }}</span>
+                      <span class="menu-item-sub">Hotline: {{ d.phone }} • {{ d.defaultPlate }} ({{ d.vehicleType }})</span>
+                    </div>
+                    <lucide-angular *ngIf="dispatchDriverName === d.name" [img]="icons.Check" size="14"></lucide-angular>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Hotline liên hệ lái xe -->
@@ -363,38 +472,90 @@
                 <lucide-angular [img]="icons.Phone" size="14"></lucide-angular>
                 <span>Số điện thoại lái xe:</span>
               </label>
-              <input type="text" class="admin-text-input" [(ngModel)]="dispatchDriverPhone" placeholder="SĐT lái xe..." />
+              <input type="text" class="admin-text-input" [(ngModel)]="dispatchDriverPhone" (ngModelChange)="saveDispatchDetails()" [disabled]="isPastView" placeholder="SĐT lái xe..." />
             </div>
 
-            <!-- Chọn Đội vận chuyển / bốc xếp -->
+            <!-- Đội vận chuyển / Bốc xếp -->
             <div class="form-field-group">
               <label class="form-field-label">
                 <lucide-angular [img]="icons.Layers" size="14"></lucide-angular>
-                <span>Đội vận chuyển / Bốc xếp: <span class="required-star">*</span></span>
+                <span>Đội vận chuyển / Bốc xếp: <span class="required-star" *ngIf="!isPastView">*</span></span>
               </label>
-              <select class="admin-select-input" [(ngModel)]="dispatchMovingTeam">
-                <option *ngFor="let t of teamOptions" [value]="t">{{ t }}</option>
-              </select>
+              <div class="filter-dropdown-wrapper team-dropdown-wrapper" [class.is-open]="showTeamDropdown && !isPastView">
+                <button 
+                  type="button" 
+                  title="Chọn đội vận chuyển / bốc xếp" 
+                  class="filter-trigger-btn"
+                  [disabled]="isPastView"
+                  [class.disabled-trigger]="isPastView"
+                  [class.active]="!!dispatchMovingTeam"
+                  (click)="!isPastView && toggleDispatchDropdown('team', $event)"
+                >
+                  <div class="trigger-label">
+                    <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
+                    <span class="truncate-label" [class.text-muted-placeholder]="!dispatchMovingTeam">
+                      {{ dispatchMovingTeam || 'Chọn đội vận chuyển / bốc xếp...' }}
+                    </span>
+                  </div>
+                  <lucide-angular *ngIf="!isPastView" [img]="icons.ChevronDown" size="14" [style.transform]="showTeamDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+                  <lucide-angular *ngIf="isPastView" [img]="icons.Lock" size="13" class="text-muted"></lucide-angular>
+                </button>
+                <div *ngIf="showTeamDropdown && !isPastView" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+                  <div *ngFor="let t of teamOptions" 
+                       (click)="selectTeamOption(t)" 
+                       class="filter-menu-item" 
+                       [class.selected]="dispatchMovingTeam === t">
+                    <span>{{ t }}</span>
+                    <lucide-angular *ngIf="dispatchMovingTeam === t" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Biển số xe tải -->
             <div class="form-field-group">
               <label class="form-field-label">
                 <lucide-angular [img]="icons.Truck" size="14"></lucide-angular>
-                <span>Biển số xe tải chuyên dụng:</span>
+                <span>Biển số xe tải:</span>
               </label>
-              <input type="text" class="admin-text-input" [(ngModel)]="dispatchVehiclePlate" placeholder="Biển số xe tải..." />
+              <input type="text" class="admin-text-input" [(ngModel)]="dispatchVehiclePlate" (ngModelChange)="saveDispatchDetails()" [disabled]="isPastView" placeholder="Biển số xe tải..." />
             </div>
 
             <!-- Khung giờ hẹn lấy hàng tận nhà khách -->
             <div class="form-field-group full-width">
               <label class="form-field-label">
                 <lucide-angular [img]="icons.Calendar" size="14"></lucide-angular>
-                <span>Khung giờ hẹn thu hồi tận nhà khách: <span class="required-star">*</span></span>
+                <span>Khung giờ hẹn thu hồi tận nhà khách: <span class="required-star" *ngIf="!isPastView">*</span></span>
               </label>
-              <select class="admin-select-input" [(ngModel)]="dispatchSchedule">
-                <option *ngFor="let s of scheduleOptions" [value]="s">{{ s }}</option>
-              </select>
+              <div class="filter-dropdown-wrapper schedule-dropdown-wrapper" [class.is-open]="showScheduleDropdown && !isPastView">
+                <button 
+                  type="button" 
+                  title="Chọn khung giờ hẹn thu hồi tận nhà khách" 
+                  class="filter-trigger-btn"
+                  [disabled]="isPastView"
+                  [class.disabled-trigger]="isPastView"
+                  [class.active]="!!dispatchSchedule"
+                  (click)="!isPastView && toggleDispatchDropdown('schedule', $event)"
+                >
+                  <div class="trigger-label">
+                    <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
+                    <span class="truncate-label" [class.text-muted-placeholder]="!dispatchSchedule">
+                      {{ dispatchSchedule || 'Chọn khung giờ hẹn thu hồi tận nhà...' }}
+                    </span>
+                  </div>
+                  <lucide-angular *ngIf="!isPastView" [img]="icons.ChevronDown" size="14" [style.transform]="showScheduleDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+                  <lucide-angular *ngIf="isPastView" [img]="icons.Lock" size="13" class="text-muted"></lucide-angular>
+                </button>
+                <div *ngIf="showScheduleDropdown && !isPastView" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+                  <div *ngFor="let s of scheduleOptions" 
+                       (click)="selectScheduleOption(s)" 
+                       class="filter-menu-item" 
+                       [class.selected]="dispatchSchedule === s">
+                    <span>{{ s }}</span>
+                    <lucide-angular *ngIf="dispatchSchedule === s" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Ghi chú chuẩn bị thiết bị đóng gói -->
@@ -403,46 +564,41 @@
                 <lucide-angular [img]="icons.Package" size="14"></lucide-angular>
                 <span>Ghi chú thiết bị đóng gói & Tháo dỡ:</span>
               </label>
-              <textarea class="admin-textarea" rows="2" [(ngModel)]="dispatchNote" placeholder="Ví dụ: Mang theo màng PE 3 lớp bọc chống xước, thùng carton bảo vệ, dụng cụ cờ lê tháo chân ghế..."></textarea>
+              <textarea class="admin-textarea" rows="2" [(ngModel)]="dispatchNote" (ngModelChange)="saveDispatchDetails()" [disabled]="isPastView" placeholder="Ví dụ: Mang theo màng PE 3 lớp bọc chống xước, thùng carton bảo vệ, dụng cụ cờ lê tháo chân ghế..."></textarea>
             </div>
           </div>
 
-          <!-- NÚT HÀNH ĐỘNG TRỰC TIẾP TẠI BƯỚC 2 (APPROVED) -->
-          <div class="card-action-bar" *ngIf="returnReq.status === 'APPROVED'">
-            <button type="button" class="btn-flow btn-primary btn-lg" (click)="confirmDispatchAndStartReturning()">
-              <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
-              <span>Xác nhận điều phối xe & Bắt đầu thu hồi (Chuyển sang Đang thu hồi)</span>
-            </button>
-          </div>
-
           <!-- Dạng hiển thị tóm tắt khi đã qua bước APPROVED (RETURNING / RECEIVED / ...) -->
-          <div class="dispatch-summary-view" *ngIf="returnReq.status !== 'APPROVED' && returnReq.pickupInfo">
+          <div class="dispatch-summary-view" *ngIf="activeViewingStep >= 2">
             <div class="dispatch-summary-grid">
               <div class="ds-item">
                 <span class="ds-lbl">Lái xe nhận hàng:</span>
-                <span class="ds-val font-bold">{{ returnReq.pickupInfo.driverName }}</span>
+                <span class="ds-val font-bold">{{ dispatchDriverName || returnReq.pickupInfo?.driverName || 'Chưa phân công' }}</span>
               </div>
               <div class="ds-item">
                 <span class="ds-lbl">Hotline tài xế:</span>
-                <a [href]="'tel:' + returnReq.pickupInfo.driverPhone" class="ds-val text-accent font-bold">
-                  {{ returnReq.pickupInfo.driverPhone }}
+                <a *ngIf="dispatchDriverPhone || returnReq.pickupInfo?.driverPhone" 
+                   [href]="'tel:' + (dispatchDriverPhone || returnReq.pickupInfo?.driverPhone)" 
+                   class="ds-val text-accent font-bold">
+                  {{ dispatchDriverPhone || returnReq.pickupInfo?.driverPhone }}
                 </a>
+                <span *ngIf="!dispatchDriverPhone && !returnReq.pickupInfo?.driverPhone" class="ds-val text-muted">Chưa cập nhật</span>
               </div>
               <div class="ds-item">
                 <span class="ds-lbl">Đội vận chuyển / Bốc xếp:</span>
-                <span class="ds-val">{{ returnReq.pickupInfo.movingTeam || 'Đội bốc xếp DCOR Express' }}</span>
+                <span class="ds-val">{{ dispatchMovingTeam || returnReq.pickupInfo?.movingTeam || 'Đội bốc xếp DCOR Express' }}</span>
               </div>
               <div class="ds-item">
                 <span class="ds-lbl">Biển số xe tải:</span>
-                <span class="ds-val font-mono">{{ returnReq.pickupInfo.vehiclePlate }}</span>
+                <span class="ds-val font-mono">{{ dispatchVehiclePlate || returnReq.pickupInfo?.vehiclePlate || 'Chưa gán xe' }}</span>
               </div>
               <div class="ds-item full-width">
                 <span class="ds-lbl">Khung giờ hẹn thu hồi:</span>
-                <span class="ds-val font-bold text-accent">{{ returnReq.pickupInfo.estimatedTime }}</span>
+                <span class="ds-val font-bold text-accent">{{ dispatchSchedule || returnReq.pickupInfo?.estimatedTime || 'Chưa đặt lịch hẹn' }}</span>
               </div>
-              <div class="ds-item full-width" *ngIf="returnReq.pickupInfo.dispatchNote">
+              <div class="ds-item full-width" *ngIf="dispatchNote || returnReq.pickupInfo?.dispatchNote">
                 <span class="ds-lbl">Ghi chú đóng gói:</span>
-                <span class="ds-val font-italic">{{ returnReq.pickupInfo.dispatchNote }}</span>
+                <span class="ds-val font-italic">{{ dispatchNote || returnReq.pickupInfo?.dispatchNote }}</span>
               </div>
             </div>
           </div>
@@ -453,13 +609,13 @@
       <!-- Theo dõi tiến trình lái xe đến nhà khách rồi vận chuyển về -->
       <div class="v2-card live-map-tracking-card" 
            id="step-block-2"
-           *ngIf="currentStepIndex >= 2 || activeViewingStep === 2"
+           *ngIf="activeViewingStep >= 2"
            [class.card-highlight-action]="activeViewingStep === 2">
         <div class="v2-card-header" style="align-items: flex-start;">
           <div class="card-title-group" style="align-items: flex-start;">
             <lucide-angular [img]="icons.MapPin" size="18" [class.text-accent]="returnReq.status === 'RETURNING'" [class.text-success]="returnReq.status !== 'RETURNING'" style="margin-top: 3px; flex-shrink: 0;"></lucide-angular>
             <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
-              <h3>3. Đang thu hồi (Tiến trình lái xe đến nhà khách & Vận chuyển về kho)</h3>
+              <h3>Tiến trình thu hồi</h3>
               
               <span class="live-pulse-badge" *ngIf="returnReq.status === 'RETURNING'">
                 <span class="pulse-beacon"></span>
@@ -467,7 +623,7 @@
               </span>
               <span class="live-pulse-badge badge-delivered" *ngIf="returnReq.status !== 'RETURNING'">
                 <lucide-angular [img]="icons.CheckCircle2" size="13"></lucide-angular>
-                <span>Đã thu hồi về kho thành công</span>
+                <span>Đã thu hồi về kho thành công • Đã khóa lộ trình</span>
               </span>
             </div>
           </div>
@@ -551,7 +707,7 @@
                   <div class="floating-header">
                     <span class="live-dot-mini" *ngIf="returnReq.status === 'RETURNING'"></span>
                     <lucide-angular *ngIf="returnReq.status !== 'RETURNING'" [img]="icons.CheckCircle2" size="13" class="text-success"></lucide-angular>
-                    <strong>{{ returnReq.pickupInfo?.driverName || 'Nguyễn Văn Cường' }} (Xe tải)</strong>
+                    <strong>{{ dispatchDriverName || returnReq.pickupInfo?.driverName || 'Nguyễn Văn Cường' }} (Xe tải)</strong>
                   </div>
                   <div class="floating-sub" *ngIf="returnReq.status === 'RETURNING'">
                     Cách nhà khách: <strong>2.8 km</strong> • ~20 phút nữa đến
@@ -608,7 +764,6 @@
                 <lucide-angular *ngIf="returnReq.status !== 'RETURNING'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
                 <span>{{ returnReq.status !== 'RETURNING' ? 'Đã về kho (0 km)' : 'Còn 2.8 km (khoảng 20 phút)' }}</span>
               </div>
-              <div class="tele-sub">Tài xế: {{ returnReq.pickupInfo?.driverName }} ({{ returnReq.pickupInfo?.driverPhone }})</div>
             </div>
           </div>
 
@@ -619,12 +774,13 @@
               <span>Tiến trình 4 chặng xe tải thu hồi hàng:</span>
             </div>
 
-            <div class="milestones-timeline-row">
+            <div class="milestones-timeline-row" [class.is-locked]="returnReq.status !== 'RETURNING'">
               <!-- Chặng 1 -->
               <div class="milestone-chip" 
                    [class.chip-done]="(returnReq.pickupInfo?.currentLeg || 1) >= 1" 
                    [class.chip-active]="(returnReq.pickupInfo?.currentLeg || 1) === 1"
-                   (click)="setTrackingLeg(1)">
+                   [class.chip-locked]="returnReq.status !== 'RETURNING'"
+                   (click)="returnReq.status === 'RETURNING' && setTrackingLeg(1)">
                 <div class="chip-number">1</div>
                 <div class="chip-meta">
                   <span class="m-title">Xe xuất phát</span>
@@ -636,7 +792,8 @@
               <div class="milestone-chip" 
                    [class.chip-done]="(returnReq.pickupInfo?.currentLeg || 1) >= 2" 
                    [class.chip-active]="(returnReq.pickupInfo?.currentLeg || 1) === 2"
-                   (click)="setTrackingLeg(2)">
+                   [class.chip-locked]="returnReq.status !== 'RETURNING'"
+                   (click)="returnReq.status === 'RETURNING' && setTrackingLeg(2)">
                 <div class="chip-number">2</div>
                 <div class="chip-meta">
                   <span class="m-title">Đến nhà khách</span>
@@ -648,7 +805,8 @@
               <div class="milestone-chip" 
                    [class.chip-done]="(returnReq.pickupInfo?.currentLeg || 1) >= 3" 
                    [class.chip-active]="(returnReq.pickupInfo?.currentLeg || 1) === 3"
-                   (click)="setTrackingLeg(3)">
+                   [class.chip-locked]="returnReq.status !== 'RETURNING'"
+                   (click)="returnReq.status === 'RETURNING' && setTrackingLeg(3)">
                 <div class="chip-number">3</div>
                 <div class="chip-meta">
                   <span class="m-title">Vận chuyển về</span>
@@ -660,7 +818,8 @@
               <div class="milestone-chip" 
                    [class.chip-done]="(returnReq.pickupInfo?.currentLeg || 1) >= 4 || returnReq.status !== 'RETURNING'" 
                    [class.chip-active]="(returnReq.pickupInfo?.currentLeg || 1) === 4"
-                   (click)="setTrackingLeg(4)">
+                   [class.chip-locked]="returnReq.status !== 'RETURNING'"
+                   (click)="returnReq.status === 'RETURNING' && setTrackingLeg(4)">
                 <div class="chip-number">4</div>
                 <div class="chip-meta">
                   <span class="m-title">Đã về kho</span>
@@ -669,26 +828,18 @@
               </div>
             </div>
           </div>
-
-          <!-- NÚT HÀNH ĐỘNG TRỰC TIẾP TẠI BƯỚC 3 (RETURNING) -->
-          <div class="card-action-bar" *ngIf="returnReq.status === 'RETURNING'">
-            <button type="button" class="btn-flow btn-primary btn-lg" (click)="confirmReceivedAtWarehouse()">
-              <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
-              <span>Xác nhận kiện hàng đã về kho (Chuyển sang Đã nhận hàng & QC)</span>
-            </button>
-          </div>
         </div>
       </div>
 
-      <!-- KHỐI 4 (Bước 4): ĐÃ NHẬN HÀNG TẠI KHO & BIÊN BẢN KIỂM ĐỊNH QC (RECEIVED) -->
+      <!-- KHỐI 4 (Bước 4): KIỂM TRA HÀNG & BIÊN BẢN KIỂM ĐỊNH QC (RECEIVED) -->
       <div class="v2-card qc-card" 
            id="step-block-3"
-           *ngIf="currentStepIndex >= 3 || activeViewingStep === 3"
+           *ngIf="activeViewingStep >= 3"
            [class.card-highlight-action]="activeViewingStep === 3">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.ShieldCheck" size="18" class="text-accent"></lucide-angular>
-            <h3>4. Đã nhận hàng tại kho (Biên bản Kiểm định Chất lượng QC)</h3>
+            <h3>Biên bản Kiểm định Chất lượng</h3>
           </div>
           <span class="card-header-badge" [class.badge-passed]="isQcAllPassed()">
             {{ isQcAllPassed() ? 'Đạt toàn bộ 4 tiêu chuẩn' : 'Chưa đạt đủ tiêu chuẩn' }}
@@ -701,32 +852,44 @@
           </p>
 
           <div class="qc-checklist-grid">
-            <div class="qc-check-item" (click)="toggleQcField('surfaceChecked')">
-              <input type="checkbox" class="admin-checkbox" [checked]="returnReq.qcReport.surfaceChecked" (click)="$event.stopPropagation(); toggleQcField('surfaceChecked')" />
+            <div class="qc-check-item" [class.is-checked]="returnReq.qcReport.surfaceChecked" [class.is-locked]="currentStepIndex > 3" (click)="toggleQcField('surfaceChecked')">
+              <div class="qc-check-icon">
+                <lucide-angular *ngIf="!returnReq.qcReport.surfaceChecked" [img]="icons.Square" size="16" class="chk-square"></lucide-angular>
+                <lucide-angular *ngIf="returnReq.qcReport.surfaceChecked" [img]="icons.CheckSquare" size="16" class="chk-square checked"></lucide-angular>
+              </div>
               <div class="qc-label-wrap">
                 <span class="qc-item-title">Ngoại quan bề mặt & Lớp sơn tĩnh điện</span>
                 <span class="qc-item-sub">Không bị trầy xước sơn, bong tróc vải hoặc rách da bề mặt</span>
               </div>
             </div>
 
-            <div class="qc-check-item" (click)="toggleQcField('structureChecked')">
-              <input type="checkbox" class="admin-checkbox" [checked]="returnReq.qcReport.structureChecked" (click)="$event.stopPropagation(); toggleQcField('structureChecked')" />
+            <div class="qc-check-item" [class.is-checked]="returnReq.qcReport.structureChecked" [class.is-locked]="currentStepIndex > 3" (click)="toggleQcField('structureChecked')">
+              <div class="qc-check-icon">
+                <lucide-angular *ngIf="!returnReq.qcReport.structureChecked" [img]="icons.Square" size="16" class="chk-square"></lucide-angular>
+                <lucide-angular *ngIf="returnReq.qcReport.structureChecked" [img]="icons.CheckSquare" size="16" class="chk-square checked"></lucide-angular>
+              </div>
               <div class="qc-label-wrap">
                 <span class="qc-item-title">Khung xương cơ khí & Mối hàn chịu lực</span>
                 <span class="qc-item-sub">Khung kết cấu vững chắc, không bị cong vênh hoặc lệch tâm</span>
               </div>
             </div>
 
-            <div class="qc-check-item" (click)="toggleQcField('cushionLeatherChecked')">
-              <input type="checkbox" class="admin-checkbox" [checked]="returnReq.qcReport.cushionLeatherChecked" (click)="$event.stopPropagation(); toggleQcField('cushionLeatherChecked')" />
+            <div class="qc-check-item" [class.is-checked]="returnReq.qcReport.cushionLeatherChecked" [class.is-locked]="currentStepIndex > 3" (click)="toggleQcField('cushionLeatherChecked')">
+              <div class="qc-check-icon">
+                <lucide-angular *ngIf="!returnReq.qcReport.cushionLeatherChecked" [img]="icons.Square" size="16" class="chk-square"></lucide-angular>
+                <lucide-angular *ngIf="returnReq.qcReport.cushionLeatherChecked" [img]="icons.CheckSquare" size="16" class="chk-square checked"></lucide-angular>
+              </div>
               <div class="qc-label-wrap">
                 <span class="qc-item-title">Độ đàn hồi mút nệm & Đệm ngồi</span>
                 <span class="qc-item-sub">Mút đúc nguyên khối đàn hồi chuẩn, không bị xẹp lún</span>
               </div>
             </div>
 
-            <div class="qc-check-item" (click)="toggleQcField('accessoriesChecked')">
-              <input type="checkbox" class="admin-checkbox" [checked]="returnReq.qcReport.accessoriesChecked" (click)="$event.stopPropagation(); toggleQcField('accessoriesChecked')" />
+            <div class="qc-check-item" [class.is-checked]="returnReq.qcReport.accessoriesChecked" [class.is-locked]="currentStepIndex > 3" (click)="toggleQcField('accessoriesChecked')">
+              <div class="qc-check-icon">
+                <lucide-angular *ngIf="!returnReq.qcReport.accessoriesChecked" [img]="icons.Square" size="16" class="chk-square"></lucide-angular>
+                <lucide-angular *ngIf="returnReq.qcReport.accessoriesChecked" [img]="icons.CheckSquare" size="16" class="chk-square checked"></lucide-angular>
+              </div>
               <div class="qc-label-wrap">
                 <span class="qc-item-title">Phụ kiện, ốc vít & Thùng hộp bảo vệ</span>
                 <span class="qc-item-sub">Còn nguyên bao bì bảo vệ ban đầu, đầy đủ ốc vít và cờ lê tháo lắp</span>
@@ -735,39 +898,60 @@
           </div>
 
           <div class="qc-assessment-details">
-            <div class="qc-field-row">
-              <span class="qc-field-label">Kết luận thẩm định:</span>
-              <span class="qc-field-val">{{ returnReq.qcReport.defectAssessment }}</span>
+            <div class="qc-field-row qc-field-input-row">
+              <label class="qc-field-label" for="qcDefectAssessment">Kết luận thẩm định:</label>
+              <input 
+                id="qcDefectAssessment"
+                type="text" 
+                class="admin-text-input qc-text-input" 
+                [(ngModel)]="returnReq.qcReport.defectAssessment" 
+                (ngModelChange)="saveQcAssessment()"
+                [disabled]="currentStepIndex > 3"
+                placeholder="Nhập kết luận thẩm định kỹ thuật..."
+              />
             </div>
-            <div class="qc-field-row">
-              <span class="qc-field-label">Phương án đề xuất tái nhập:</span>
-              <span class="qc-badge-restock">
-                {{ returnReq.qcReport.restockOption === 'RESTOCK_SALE' ? 'Tái nhập kho bán mới (Grade A)' : (returnReq.qcReport.restockOption === 'REFURBISH' ? 'Chuyển hàng Outlet / Trưng bày (Grade B)' : 'Trả về xưởng bảo hành / Tiêu hủy') }}
-              </span>
-            </div>
-            <div class="qc-field-row">
-              <span class="qc-field-label">Kỹ thuật viên kiểm định:</span>
-              <span class="qc-field-val font-bold">{{ returnReq.qcReport.inspector }}</span>
-            </div>
-          </div>
+            <div class="qc-field-row qc-field-dropdown-row">
+              <label class="qc-field-label">Phương án đề xuất tái nhập:</label>
+              <div class="filter-dropdown-wrapper restock-dropdown-wrapper" [class.is-open]="showRestockDropdown && currentStepIndex <= 3">
+                <button 
+                  type="button" 
+                  title="Chọn phương án đề xuất tái nhập" 
+                  class="filter-trigger-btn qc-restock-trigger"
+                  [disabled]="currentStepIndex > 3"
+                  [class.disabled-trigger]="currentStepIndex > 3"
+                  (click)="toggleRestockDropdown($event)"
+                >
+                  <div class="trigger-label">
+                    <span *ngIf="returnReq.qcReport.restockOption" 
+                          class="qc-badge-restock" 
+                          [class.badge-restock-b]="returnReq.qcReport.restockOption === 'REFURBISH'" 
+                          [class.badge-restock-scrap]="returnReq.qcReport.restockOption === 'SCRAP'">
+                      {{ getRestockOptionLabel() }}
+                    </span>
+                    <span *ngIf="!returnReq.qcReport.restockOption" class="qc-placeholder-text">
+                      Chọn phương án đề xuất
+                    </span>
+                  </div>
+                  <lucide-angular *ngIf="currentStepIndex <= 3" [img]="icons.ChevronDown" size="14" [style.transform]="showRestockDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+                  <lucide-angular *ngIf="currentStepIndex > 3" [img]="icons.Lock" size="13" class="text-muted"></lucide-angular>
+                </button>
 
-          <!-- NÚT HÀNH ĐỘNG TRỰC TIẾP TẠI BƯỚC 4 (RECEIVED) -->
-          <div class="card-action-bar" *ngIf="returnReq.status === 'RECEIVED'">
-            <button *ngIf="returnReq.type === 'EXCHANGE'" 
-                    type="button" 
-                    class="btn-flow btn-primary btn-lg" 
-                    (click)="confirmQcAndProceed()">
-              <lucide-angular [img]="icons.Sparkles" size="18"></lucide-angular>
-              <span>Xác nhận QC & Tự động kích hoạt đơn hàng mới</span>
-            </button>
-
-            <button *ngIf="returnReq.type === 'REFUND'" 
-                    type="button" 
-                    class="btn-flow btn-primary btn-lg" 
-                    (click)="confirmQcAndProceed()">
-              <lucide-angular [img]="icons.DollarSign" size="18"></lucide-angular>
-              <span>Xác nhận QC & Chuyển sang Hoàn tiền</span>
-            </button>
+                <!-- Dropdown Menu -->
+                <div *ngIf="showRestockDropdown && currentStepIndex <= 3" class="filter-menu-dropdown qc-restock-menu-dropdown" (click)="$event.stopPropagation()">
+                  <div *ngFor="let opt of restockOptions" 
+                       (click)="selectRestockOption(opt.value)" 
+                       class="filter-menu-item" 
+                       [class.selected]="returnReq.qcReport.restockOption === opt.value">
+                    <span class="qc-badge-restock" 
+                          [class.badge-restock-b]="opt.value === 'REFURBISH'" 
+                          [class.badge-restock-scrap]="opt.value === 'SCRAP'">
+                      {{ opt.label }}
+                    </span>
+                    <lucide-angular *ngIf="returnReq.qcReport.restockOption === opt.value" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -776,25 +960,53 @@
       <!-- Trường hợp ĐỔI HÀNG: Tự động kích hoạt 1 đơn hàng mới -->
       <div class="v2-card replacement-order-card" 
            id="step-block-4"
-           *ngIf="returnReq.type === 'EXCHANGE' && (currentStepIndex >= 4 || activeViewingStep === 4)"
-           [class.card-highlight-action]="activeViewingStep === 4">
+           *ngIf="returnReq.type === 'EXCHANGE' && activeViewingStep >= 4"
+           [class.card-highlight-action]="activeViewingStep === 4 && returnReq.status !== 'COMPLETED'">
         <div class="v2-card-header">
           <div class="card-title-group">
-            <lucide-angular [img]="icons.Sparkles" size="18" class="text-accent"></lucide-angular>
-            <h3>5. Đổi hàng mới (Đơn hàng thay thế đã được tự động kích hoạt)</h3>
+            <lucide-angular [img]="icons.ClipboardCheck" size="18" class="text-accent"></lucide-angular>
+            <span class="dop-title">{{ returnReq.status === 'COMPLETED' ? 'Đơn hàng thay thế chính thức:' : 'Cấu trúc đơn hàng thay thế dự kiến:' }}</span>
           </div>
-          <span class="card-header-badge badge-auto-activated">Tự động kích hoạt đơn mới</span>
+          <button type="button" 
+                  class="btn-edit-header" 
+                  *ngIf="returnReq.status === 'EXCHANGING'"
+                  (click)="openStockExportModal()"
+                  title="Chỉnh sửa thông tin phiếu xuất đổi hàng thay thế dự kiến">
+            <lucide-angular [img]="icons.Pencil" size="13"></lucide-angular>
+            <span>Chỉnh sửa</span>
+          </button>
         </div>
 
         <div class="v2-card-body">
-          <!-- Banner chúc mừng / thông báo đơn hàng mới kích hoạt -->
-          <div class="replacement-success-banner" *ngIf="returnReq.replacementOrder">
+          <!-- Trường hợp 1: Đang ở bước Đổi hàng mới (EXCHANGING) -> Lên sẵn cấu trúc đơn hàng dự kiến (Chưa tạo đơn) -->
+          <div class="draft-order-preview-box" *ngIf="returnReq.status === 'EXCHANGING' && returnReq.replacementOrder">
+            <div class="dop-grid">
+              <div class="dop-item">
+                <span class="dop-label">Sản phẩm xuất đổi:</span>
+                <span class="dop-val font-medium">{{ returnReq.replacementOrder.item.name }}</span>
+              </div>
+              <div class="dop-item">
+                <span class="dop-label">Biến thể & Số lượng:</span>
+                <span class="dop-val">{{ returnReq.replacementOrder.item.variant }} • <strong>x{{ returnReq.replacementOrder.item.quantity || 1 }}</strong></span>
+              </div>
+              <div class="dop-item full-width">
+                <span class="dop-label">Khách hàng nhận & Địa chỉ giao:</span>
+                <span class="dop-val">{{ returnReq.customer.name }} ({{ returnReq.customer.phone }}) — {{ returnReq.replacementOrder.deliveryAddress || returnReq.customer.address }}</span>
+              </div>
+              <div class="dop-item full-width" *ngIf="returnReq.replacementOrder.notes">
+                <span class="dop-label">Ghi chú giao hàng mới:</span>
+                <span class="dop-val font-italic">{{ returnReq.replacementOrder.notes }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trường hợp 2: Đã hoàn tất bước Đổi hàng mới (COMPLETED) -> Đơn hàng mới đã được kích hoạt tạo thành công -->
+          <div class="replacement-success-banner" *ngIf="returnReq.status === 'COMPLETED' && returnReq.replacementOrder">
             <div class="rsb-icon">
               <lucide-angular [img]="icons.CheckCircle2" size="24"></lucide-angular>
             </div>
             <div class="rsb-content">
-              <div class="rsb-title">Đơn hàng thay thế mới đã được hệ thống tự động kích hoạt thành công!</div>
-              <div class="rsb-desc">Mã đơn hàng: <strong>#{{ returnReq.replacementOrder.orderNumber }}</strong> • Tạo lúc: {{ returnReq.replacementOrder.createdAt }} • Trạng thái: Đang chuẩn bị xuất kho</div>
+              <div class="rsb-desc">Mã đơn hàng: <strong>#{{ returnReq.replacementOrder.orderNumber }}</strong> • Tạo lúc: {{ returnReq.replacementOrder.createdAt }} • Trạng thái: Đã tạo đơn thành công & Hoàn tất đổi trả</div>
             </div>
             <a class="btn-open-replacement-order" 
                [routerLink]="['/admin/orders', returnReq.replacementOrder.orderNumber]"
@@ -803,61 +1015,18 @@
               <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
             </a>
           </div>
-
-          <!-- Chi tiết sản phẩm mới xuất kho -->
-          <div class="replacement-prod-box" *ngIf="returnReq.replacementOrder">
-            <div class="rep-img-wrap">
-              <img [src]="returnReq.replacementOrder.item.imageUrl" [alt]="returnReq.replacementOrder.item.name" class="contained-product-img" />
-            </div>
-            <div class="rep-details">
-              <div class="rep-badge">Sản phẩm xuất kho mới cho khách</div>
-              <div class="rep-name">{{ returnReq.replacementOrder.item.name }}</div>
-              <div class="rep-tags">
-                <span class="r-tag">Mã SKU: <strong>{{ returnReq.replacementOrder.item.sku }}</strong></span>
-                <span class="r-tag">Biến thể: <strong>{{ returnReq.replacementOrder.item.variant }}</strong></span>
-                <span class="r-tag">Đơn giá: <strong>{{ formatVND(returnReq.replacementOrder.item.price) }}</strong></span>
-              </div>
-              <div class="rep-dest-row">
-                <lucide-angular [img]="icons.MapPin" size="13" class="text-accent"></lucide-angular>
-                <span>Địa chỉ giao nhận hàng mới: <strong>{{ returnReq.replacementOrder.deliveryAddress }}</strong></span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Khoản chênh lệch tài chính nếu có -->
-          <div class="financial-diff-summary" *ngIf="returnReq.exchangeItem">
-            <div class="diff-label-col">
-              <span class="d-title">Cân đối thanh toán:</span>
-              <span class="d-sub" *ngIf="returnReq.exchangeItem.priceDiff > 0">Khách hàng thanh toán thêm khoản chênh lệch khi nhận hàng mới.</span>
-              <span class="d-sub" *ngIf="returnReq.exchangeItem.priceDiff < 0">DCOR Studio chuyển khoản hoàn lại số tiền thừa cho khách.</span>
-              <span class="d-sub" *ngIf="returnReq.exchangeItem.priceDiff === 0">Đổi ngang giá trị đơn hàng — không phát sinh chi phí.</span>
-            </div>
-            <div class="diff-amount-tag">
-              <span *ngIf="returnReq.exchangeItem.priceDiff > 0">+{{ formatVND(returnReq.exchangeItem.priceDiff) }} (Khách bù)</span>
-              <span *ngIf="returnReq.exchangeItem.priceDiff < 0">-{{ formatVND(-returnReq.exchangeItem.priceDiff) }} (Shop hoàn)</span>
-              <span *ngIf="returnReq.exchangeItem.priceDiff === 0">0 đ (Đổi ngang)</span>
-            </div>
-          </div>
-
-          <!-- NÚT HÀNH ĐỘNG TRỰC TIẾP TẠI BƯỚC 5 (EXCHANGING) -->
-          <div class="card-action-bar" *ngIf="returnReq.status === 'EXCHANGING'">
-            <button type="button" class="btn-flow btn-success btn-lg" (click)="confirmExchangeDelivery()">
-              <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
-              <span>Xác nhận đã giao đơn hàng mới (Hoàn tất đổi trả)</span>
-            </button>
-          </div>
         </div>
       </div>
 
       <!-- KHỐI 5 (Bước 5): HOÀN TIỀN TÀI KHOẢN NGÂN HÀNG (Nếu là REFUND) -->
       <div class="v2-card refund-bank-card" 
            id="step-block-4"
-           *ngIf="returnReq.type === 'REFUND' && (currentStepIndex >= 4 || activeViewingStep === 4)"
+           *ngIf="returnReq.type === 'REFUND' && activeViewingStep >= 4"
            [class.card-highlight-action]="activeViewingStep === 4">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.DollarSign" size="18" class="text-accent"></lucide-angular>
-            <h3>5. Hoàn tiền Khách hàng (Ủy nhiệm chi Ngân hàng)</h3>
+            <h3>Thông tin Hoàn tiền Khách hàng</h3>
           </div>
           <span class="card-header-badge">Ủy nhiệm chi</span>
         </div>
@@ -886,50 +1055,21 @@
               <span class="b-val font-mono text-accent">{{ returnReq.refundInfo.txRef }}</span>
             </div>
           </div>
-
-          <!-- NÚT HÀNH ĐỘNG TRỰC TIẾP TẠI BƯỚC 5 (REFUNDING) -->
-          <div class="card-action-bar" *ngIf="returnReq.status === 'REFUNDING'">
-            <button type="button" class="btn-flow btn-success btn-lg" (click)="confirmRefundTransfer()">
-              <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
-              <span>Xác nhận đã chuyển khoản thành công (Hoàn tất đổi trả)</span>
-            </button>
-          </div>
         </div>
       </div>
 
-      <!-- KHỐI 6 (Bước 6): HOÀN TẤT ĐỔI TRẢ THÀNH CÔNG (COMPLETED) -->
-      <div class="v2-card completed-showcase-card" 
-           id="step-block-5"
-           *ngIf="returnReq.status === 'COMPLETED' || activeViewingStep === 5"
-           [class.card-highlight-action]="activeViewingStep === 5">
-        <div class="completed-banner-inner">
-          <div class="completed-icon-large">
-            <lucide-angular [img]="icons.CheckCircle2" size="44"></lucide-angular>
-          </div>
-          <div class="completed-info">
-            <h2>6. Hồ sơ đổi trả #{{ returnReq.id }} đã hoàn tất thành công!</h2>
-            <p>
-              {{ returnReq.type === 'EXCHANGE' ? 'Đã thu hồi sản phẩm lỗi và bàn giao hoàn tất đơn hàng thay thế mới cho khách hàng.' : 'Đã tiếp nhận sản phẩm về kho và chuyển khoản hoàn tiền 100% cho khách hàng.' }}
-            </p>
-          </div>
-          <button type="button" class="btn-print-archive" (click)="handlePrint()">
-            <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
-            <span>In biên bản lưu trữ hồ sơ</span>
-          </button>
-        </div>
-      </div>
+      
 
-      <!-- KHỐI 7: Lịch sử xử lý & Nhật ký hoạt động (Audit Trail) -->
+      <!-- GHI CHÚ NỘI BỘ -->
       <div class="v2-card">
         <div class="v2-card-header">
           <div class="card-title-group">
-            <lucide-angular [img]="icons.Clock" size="18" class="text-accent"></lucide-angular>
-            <h3>Lịch sử xử lý & Nhật ký hoạt động (Audit Trail)</h3>
+            <lucide-angular [img]="icons.MessageSquare" size="18" class="text-accent"></lucide-angular>
+            <h3>Ghi chú nội bộ</h3>
           </div>
         </div>
 
         <div class="v2-card-body">
-          <!-- Form thêm nhanh ghi chú nội bộ -->
           <div class="internal-note-input-box">
             <textarea 
               [(ngModel)]="newInternalNote" 
@@ -943,12 +1083,23 @@
                       [disabled]="!newInternalNote.trim()" 
                       (click)="submitInternalNote()">
                 <lucide-angular [img]="icons.Send" size="14"></lucide-angular>
-                <span>Gửi ghi chú</span>
+                <span>Lưu ghi chú</span>
               </button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Timeline dọc hiển thị từng bước -->
+      <!-- LỊCH SỬ XỬ LÝ -->
+      <div class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Clock" size="18" class="text-accent"></lucide-angular>
+            <h3>Lịch sử xử lý</h3>
+          </div>
+        </div>
+
+        <div class="v2-card-body">
           <div class="timeline-vertical">
             <div *ngFor="let ev of returnReq.timeline; let idx = index" class="timeline-v-item">
               <div class="timeline-v-marker">
@@ -970,165 +1121,92 @@
     </div>
 
     <!-- =========================================================================
-         RIGHT COLUMN: Workflow Action Controls, Nhân sự, Khách hàng, Đơn gốc
+         RIGHT COLUMN: Nhân sự, Khách hàng, Đơn gốc
          ========================================================================= -->
     <div class="v2-col-right">
 
-      <!-- CARD 1: Bảng Điều Khiển Tác Vụ Quy Trình (Action Workflow Control) -->
-      <div class="v2-card action-control-card">
-        <div class="v2-card-header">
-          <div class="card-title-group">
-            <lucide-angular [img]="icons.Zap" size="18" class="text-accent"></lucide-angular>
-            <h3>Tác vụ quy trình</h3>
-          </div>
-        </div>
-
-        <div class="v2-card-body action-panel-body">
-          <div class="current-status-display">
-            <span class="cs-label">Trạng thái hồ sơ:</span>
-            <span class="cs-badge"
-                  [style.background]="getStatusMeta().bg"
-                  [style.color]="getStatusMeta().color"
-                  [style.border-color]="getStatusMeta().border">
-              {{ getStatusMeta().labelAdmin }}
-            </span>
-          </div>
-
-          <div class="action-buttons-stack">
-            <!-- 1. PENDING -->
-            <ng-container *ngIf="returnReq.status === 'PENDING'">
-              <button type="button" class="btn-flow btn-primary" (click)="confirmApproval()">
-                <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
-                <span>Duyệt yêu cầu (Chuẩn bị thu hồi)</span>
-              </button>
-              <button type="button" class="btn-flow btn-secondary" (click)="advanceStatus('REVIEWING', 'CSKH tiếp nhận và bắt đầu liên hệ xác minh')">
-                <lucide-angular [img]="icons.Phone" size="16"></lucide-angular>
-                <span>Tiếp nhận & Gọi xác minh</span>
-              </button>
-              <button type="button" class="btn-flow btn-danger" (click)="openRejectModal()">
-                <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
-                <span>Từ chối yêu cầu</span>
-              </button>
-            </ng-container>
-
-            <!-- 2. REVIEWING -->
-            <ng-container *ngIf="returnReq.status === 'REVIEWING'">
-              <button type="button" class="btn-flow btn-primary" (click)="confirmApproval()">
-                <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
-                <span>Duyệt yêu cầu (Chuẩn bị thu hồi)</span>
-              </button>
-              <button type="button" class="btn-flow btn-danger" (click)="openRejectModal()">
-                <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
-                <span>Từ chối yêu cầu</span>
-              </button>
-            </ng-container>
-
-            <!-- 3. APPROVED (Chuẩn bị thu hồi) -->
-            <ng-container *ngIf="returnReq.status === 'APPROVED'">
-              <button type="button" class="btn-flow btn-primary" (click)="confirmDispatchAndStartReturning()">
-                <lucide-angular [img]="icons.Truck" size="16"></lucide-angular>
-                <span>Xác nhận điều phối xe & Thu hồi</span>
-              </button>
-            </ng-container>
-
-            <!-- 4. RETURNING (Đang thu hồi & Live Map) -->
-            <ng-container *ngIf="returnReq.status === 'RETURNING'">
-              <button type="button" class="btn-flow btn-primary" (click)="confirmReceivedAtWarehouse()">
-                <lucide-angular [img]="icons.Package" size="16"></lucide-angular>
-                <span>Xác nhận đã nhận hàng về kho</span>
-              </button>
-            </ng-container>
-
-            <!-- 5. RECEIVED (QC Kho) -->
-            <ng-container *ngIf="returnReq.status === 'RECEIVED'">
-              <button *ngIf="returnReq.type === 'REFUND'" type="button" class="btn-flow btn-primary" (click)="confirmQcAndProceed()">
-                <lucide-angular [img]="icons.DollarSign" size="16"></lucide-angular>
-                <span>Thực hiện lệnh hoàn tiền</span>
-              </button>
-              <button *ngIf="returnReq.type === 'EXCHANGE'" type="button" class="btn-flow btn-primary" (click)="confirmQcAndProceed()">
-                <lucide-angular [img]="icons.Sparkles" size="16"></lucide-angular>
-                <span>Kích hoạt đơn hàng đổi mới</span>
-              </button>
-            </ng-container>
-
-            <!-- 6. REFUNDING -->
-            <ng-container *ngIf="returnReq.status === 'REFUNDING'">
-              <button type="button" class="btn-flow btn-success" (click)="confirmRefundTransfer()">
-                <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
-                <span>Xác nhận đã chuyển khoản (Hoàn tất)</span>
-              </button>
-            </ng-container>
-
-            <!-- 7. EXCHANGING -->
-            <ng-container *ngIf="returnReq.status === 'EXCHANGING'">
-              <button type="button" class="btn-flow btn-success" (click)="confirmExchangeDelivery()">
-                <lucide-angular [img]="icons.Check" size="16"></lucide-angular>
-                <span>Xác nhận giao hàng mới (Hoàn tất)</span>
-              </button>
-            </ng-container>
-
-            <!-- 8 & 9. COMPLETED hoặc REJECTED -->
-            <ng-container *ngIf="returnReq.status === 'COMPLETED' || returnReq.status === 'REJECTED'">
-              <div class="closed-notice-box">
-                <lucide-angular *ngIf="returnReq.status === 'COMPLETED'" [img]="icons.CheckCircle2" size="20" class="text-success"></lucide-angular>
-                <lucide-angular *ngIf="returnReq.status === 'REJECTED'" [img]="icons.XCircle" size="20" class="text-danger"></lucide-angular>
-                <span>{{ returnReq.status === 'COMPLETED' ? 'Hồ sơ đã được xử lý hoàn tất thành công.' : 'Hồ sơ đã bị từ chối và kết thúc xử lý.' }}</span>
-              </div>
-              <button type="button" class="btn-flow btn-secondary" (click)="handlePrint()">
-                <lucide-angular [img]="icons.Printer" size="16"></lucide-angular>
-                <span>In phiếu lưu trữ</span>
-              </button>
-            </ng-container>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 2: NHÂN SỰ PHỤ TRÁCH HỒ SƠ -->
+      <!-- CARD 1: NHÂN SỰ PHỤ TRÁCH HỒ SƠ -->
       <div class="v2-card assignee-panel-card">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.UserCheck" size="18" class="text-accent"></lucide-angular>
             <h3>Người phụ trách hồ sơ</h3>
           </div>
-          <span class="card-header-badge">{{ currentStaff.dept }}</span>
         </div>
 
         <div class="v2-card-body">
-          <div class="assignee-active-showcase">
-            <div class="assignee-avatar-wrap">
-              {{ currentStaff.avatar }}
-            </div>
-            <div class="assignee-active-meta">
-              <span class="assignee-name-title">{{ currentStaff.name }}</span>
-              <span class="assignee-role-sub">{{ currentStaff.role }}</span>
-            </div>
-          </div>
-
           <div class="reassign-select-block">
             <label class="reassign-label">Phân công / Gán người phụ trách mới:</label>
-            <div class="assignee-dropdown-container">
-              <select class="admin-select-input assignee-select-control" 
-                      [ngModel]="returnReq.assignee" 
-                      (ngModelChange)="changeAssignee($event)">
-                <option *ngFor="let staff of staffList" [value]="staff.name">
-                  {{ staff.name }} — {{ staff.role }} ({{ staff.dept }})
-                </option>
-              </select>
+            <div class="assignee-action-row">
+              <div class="assignee-card-dropdown-wrapper">
+                <button 
+                  type="button" 
+                  class="filter-trigger-btn"
+                  [class.active]="showCardAssigneeDropdown || (!isAssigneeLocked && !!selectedCardAssignee) || (isAssigneeLocked && hasAssignedStaff)"
+                  [class.disabled-trigger]="isAssigneeLocked || currentStepIndex > 0"
+                  [class.locked-dropdown]="isAssigneeLocked || currentStepIndex > 0"
+                  [disabled]="isAssigneeLocked || currentStepIndex > 0"
+                  [title]="isAssigneeLocked ? ('Đã gán: ' + displayedAssigneeLabel + ' (Nhấn Chỉnh sửa để thay đổi)') : (displayedAssigneeLabel || 'Chọn người phụ trách')"
+                  (click)="toggleCardAssigneeDropdown($event)"
+                >
+                  <div class="trigger-label">
+                    <lucide-angular [img]="icons.User" size="15" class="trigger-icon"></lucide-angular>
+                    <span class="truncate-label" [class.text-muted-placeholder]="!hasAssignedStaff && !selectedCardAssignee">
+                      {{ displayedAssigneeLabel }}
+                    </span>
+                  </div>
+                  <lucide-angular *ngIf="!isAssigneeLocked && currentStepIndex === 0" [img]="icons.ChevronDown" size="14" [style.transform]="showCardAssigneeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+                  <lucide-angular *ngIf="isAssigneeLocked && currentStepIndex === 0" [img]="icons.Lock" size="13" class="text-muted lock-icon" title="Đã khóa phân công"></lucide-angular>
+                </button>
+
+                <!-- Dropdown Menu Danh sách Nhân sự -->
+                <div *ngIf="showCardAssigneeDropdown && currentStepIndex === 0" class="filter-menu-dropdown assignee-card-menu-dropdown" (click)="$event.stopPropagation()">
+                  <div *ngFor="let staff of staffList" 
+                       class="filter-menu-item" 
+                       [class.selected]="selectedCardAssignee === staff.name"
+                       (click)="selectCardAssignee(staff.name)">
+                    <div class="staff-item-left">
+                      <div class="staff-mini-avatar">{{ staff.avatar }}</div>
+                      <div class="staff-item-text">
+                        <span class="staff-name">{{ staff.name }}</span>
+                        <span class="staff-role">{{ staff.role }} ({{ staff.dept }})</span>
+                      </div>
+                    </div>
+                    <lucide-angular *ngIf="selectedCardAssignee === staff.name" [img]="icons.Check" size="14" class="text-success"></lucide-angular>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Nút [Gán] / [Chỉnh sửa] (Chỉ cho phép ở Bước 1) -->
+              <button 
+                *ngIf="currentStepIndex === 0"
+                type="button" 
+                class="btn-assignee-submit" 
+                [class.btn-edit-mode]="isAssigneeLocked" 
+                [disabled]="!isAssigneeLocked && (!selectedCardAssignee || selectedCardAssignee === 'Chưa phân công')" 
+                [title]="isAssigneeLocked ? 'Nhấn để mở dropdown và chọn lại người phụ trách' : (!selectedCardAssignee ? 'Vui lòng chọn nhân sự từ dropdown trước khi nhấn Gán' : 'Xác nhận gán nhân sự này cho hồ sơ')"
+                (click)="handleAssigneeAction()"
+              >
+                <ng-container *ngIf="!isAssigneeLocked">
+                  <lucide-angular [img]="icons.Check" size="14"></lucide-angular>
+                  <span>Gán</span>
+                </ng-container>
+                <ng-container *ngIf="isAssigneeLocked">
+                  <lucide-angular [img]="icons.Pencil" size="13"></lucide-angular>
+                  <span>Chỉnh sửa</span>
+                </ng-container>
+              </button>
             </div>
-            <p class="reassign-note">
-              <lucide-angular [img]="icons.Clock" size="12"></lucide-angular>
-              <span>Mỗi lượt gán hoặc thay đổi người phụ trách sẽ được tự động ghi vào Nhật ký hoạt động.</span>
-            </p>
           </div>
         </div>
       </div>
 
-      <!-- CARD 3: Thông tin Khách hàng & Địa chỉ thu hồi -->
+      <!-- CARD 2: Thông tin Khách hàng -->
       <div class="v2-card">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.User" size="18" class="text-accent"></lucide-angular>
-            <h3>Khách hàng & Thu hồi</h3>
+            <h3>Thông tin khách hàng</h3>
           </div>
         </div>
 
@@ -1138,12 +1216,17 @@
               {{ returnReq.customer.name.charAt(0) }}
             </div>
             <div class="customer-info-meta">
-              <span class="c-name">{{ returnReq.customer.name }}</span>
+              <span class="c-name" (click)="onOpenCustomerInfo()" style="cursor: pointer; text-decoration: underline; text-underline-offset: 2px;" title="Xem hồ sơ chi tiết khách hàng">{{ returnReq.customer.name }}</span>
               <a [href]="'tel:' + returnReq.customer.phone" class="c-phone">
                 <lucide-angular [img]="icons.Phone" size="13"></lucide-angular>
                 <span>{{ returnReq.customer.phone }}</span>
               </a>
             </div>
+            <button type="button" (click)="onOpenCustomerInfo()" title="Xem chi tiết khách hàng trong Quản lý khách hàng" style="margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); font-size: 12px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
+              <lucide-angular [img]="icons.User" size="12"></lucide-angular>
+              <span>Chi tiết khách hàng</span>
+              <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+            </button>
           </div>
 
           <div class="info-list-rows">
@@ -1152,7 +1235,7 @@
               <span class="info-val">{{ returnReq.customer.email }}</span>
             </div>
             <div class="info-row">
-              <span class="info-lbl">Địa chỉ thu hồi tận nhà:</span>
+              <span class="info-lbl">Địa chỉ thu hồi:</span>
               <div class="address-box">
                 <lucide-angular [img]="icons.MapPin" size="14" class="text-accent"></lucide-angular>
                 <span>{{ returnReq.customer.address }}</span>
@@ -1162,22 +1245,39 @@
         </div>
       </div>
 
-      <!-- CARD 4: Liên kết Đơn hàng gốc -->
-      <div class="v2-card">
+      <!-- CARD 3: THẺ ĐƠN HÀNG LIÊN KẾT -->
+      <div class="v2-card" style="margin-top: 16px;">
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.FileText" size="18" class="text-accent"></lucide-angular>
-            <h3>Đơn hàng gốc</h3>
+            <h3>Đơn hàng liên kết</h3>
           </div>
+          <a class="order-link-ref" 
+             [routerLink]="['/admin/orders', returnReq.orderNumber]" 
+             title="Xem chi tiết đơn hàng gốc">
+            #{{ returnReq.orderNumber }}
+            <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
+          </a>
         </div>
-
         <div class="v2-card-body">
-          <div class="original-order-summary">
-            <div class="order-id-highlight">#{{ returnReq.orderNumber }}</div>
-            <p class="order-sub-desc">Đơn hàng được giao hoàn tất thành công trong vòng 72 giờ trước khi phát sinh khiếu nại.</p>
-            <a [routerLink]="['/admin/orders', returnReq.orderNumber]" class="btn-view-orig-order">
-              <span>Xem toàn bộ chi tiết đơn gốc</span>
-              <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+          <div class="info-list-rows">
+            <div class="info-row">
+              <span class="info-lbl">Mã đơn gốc:</span>
+              <a [routerLink]="['/admin/orders', returnReq.orderNumber]" style="font-weight: 700; color: var(--accent-color, #c5a880); text-decoration: underline;" title="Mở chi tiết đơn hàng">#{{ returnReq.orderNumber }}</a>
+            </div>
+            <div class="info-row" *ngIf="returnReq.item">
+              <span class="info-lbl">Sản phẩm khiếu nại:</span>
+              <span class="info-val" style="font-weight: 600;">{{ returnReq.item.name }}</span>
+            </div>
+            <div class="info-row" *ngIf="returnReq.item">
+              <span class="info-lbl">Giá trị sản phẩm:</span>
+              <span class="info-val" style="color: var(--accent-color, #c5a880); font-weight: 700;">{{ formatVND(returnReq.item.price * returnReq.item.quantity) }}</span>
+            </div>
+          </div>
+          <div style="margin-top: 14px;">
+            <a [routerLink]="['/admin/orders', returnReq.orderNumber]" class="v2-btn-secondary" style="width: 100%; justify-content: center; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+              <lucide-angular [img]="icons.Eye" size="14"></lucide-angular>
+              <span>Xem chi tiết đơn hàng gốc</span>
             </a>
           </div>
         </div>
@@ -1185,6 +1285,114 @@
 
     </div>
 
+  </div>
+
+  <!-- =========================================================================
+       BOTTOM ACTION CARD (Cuối trang bên phải chuẩn như Order Detail)
+       ========================================================================= -->
+  <div class="v2-bottom-action-card" *ngIf="returnReq.status !== 'COMPLETED' && returnReq.status !== 'REJECTED'">
+    <div class="bottom-action-inner">
+      <!-- Khi đang xem lại bước cũ đã hoàn thành -->
+      <div class="viewing-past-step-banner" *ngIf="activeViewingStep < currentStepIndex">
+        <div class="past-step-info">
+          <lucide-angular [img]="icons.Eye" size="16" class="text-accent"></lucide-angular>
+          <span>Đang xem lại <strong>{{ getStepLabel(activeViewingStep) }}</strong> (Đã hoàn thành • Chế độ chỉ xem)</span>
+        </div>
+        <button type="button" class="btn-flow btn-secondary" (click)="returnToCurrentStep()">
+          <lucide-angular [img]="icons.ArrowRight" size="14"></lucide-angular>
+          <span>Quay lại {{ getStepLabel(currentStepIndex) }}</span>
+        </button>
+      </div>
+
+      <div class="card-action-bar bottom-action-bar-right" *ngIf="activeViewingStep >= currentStepIndex">
+        <!-- Bước 1: PENDING / REVIEWING (3 nút thao tác) -->
+        <ng-container *ngIf="currentStepIndex === 0">
+          <button type="button" class="btn-flow btn-danger" (click)="openRejectModal()">
+            <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
+            <span>Từ chối yêu cầu</span>
+          </button>
+          <button *ngIf="returnReq.status === 'PENDING'" type="button" class="btn-flow btn-secondary" (click)="advanceStatus('REVIEWING', 'CSKH tiếp nhận và bắt đầu liên hệ xác minh')">
+            <lucide-angular [img]="icons.Phone" size="16"></lucide-angular>
+            <span>Tiếp nhận & Gọi xác minh</span>
+          </button>
+          <button type="button" 
+                  class="btn-flow btn-primary btn-lg" 
+                  [disabled]="!canApproveReturn"
+                  [class.btn-disabled]="!canApproveReturn"
+                  [title]="getApproveDisabledReason()"
+                  (click)="confirmApproval()">
+            <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
+            <span>Duyệt yêu cầu</span>
+          </button>
+        </ng-container>
+
+        <!-- Bước 2: APPROVED -->
+        <ng-container *ngIf="returnReq.status === 'APPROVED'">
+          <button type="button" 
+                  class="btn-flow btn-primary btn-lg" 
+                  [disabled]="!dispatchDriverName || !dispatchSchedule || !dispatchMovingTeam"
+                  [class.btn-disabled]="!dispatchDriverName || !dispatchSchedule || !dispatchMovingTeam"
+                  [title]="(!dispatchDriverName || !dispatchSchedule || !dispatchMovingTeam) ? 'Vui lòng chọn lái xe, đội vận chuyển và khung giờ hẹn thu hồi' : 'Xác nhận điều phối xe & Bắt đầu thu hồi'"
+                  (click)="confirmDispatchAndStartReturning()">
+            <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
+            <span>Xác nhận điều phối xe & Bắt đầu thu hồi</span>
+          </button>
+        </ng-container>
+
+        <!-- Bước 3: RETURNING -->
+        <ng-container *ngIf="returnReq.status === 'RETURNING'">
+          <button type="button" 
+                  class="btn-flow btn-primary btn-lg" 
+                  [disabled]="(returnReq.pickupInfo?.currentLeg || 1) < 4"
+                  [class.btn-disabled]="(returnReq.pickupInfo?.currentLeg || 1) < 4"
+                  [title]="(returnReq.pickupInfo?.currentLeg || 1) < 4 ? 'Tiến trình phải ở chặng 4 (Đã về kho) mới có thể xác nhận' : 'Xác nhận kiện hàng đã về kho'"
+                  (click)="confirmReceivedAtWarehouse()">
+            <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+            <span>Xác nhận kiện hàng đã về kho</span>
+          </button>
+        </ng-container>
+
+        <!-- Bước 4: RECEIVED -->
+        <ng-container *ngIf="returnReq.status === 'RECEIVED'">
+          <button *ngIf="returnReq.type === 'EXCHANGE'" 
+                  type="button" 
+                  class="btn-flow btn-primary btn-lg" 
+                  [disabled]="!isQcAllPassed() || !returnReq.qcReport?.restockOption"
+                  [class.btn-disabled]="!isQcAllPassed() || !returnReq.qcReport?.restockOption"
+                  [title]="(!isQcAllPassed() || !returnReq.qcReport?.restockOption) ? 'Vui lòng kiểm tra đạt 4 tiêu chí và chọn phương án đề xuất' : ''"
+                  (click)="confirmQcAndProceed()">
+            <lucide-angular [img]="icons.Sparkles" size="18"></lucide-angular>
+            <span>Xác nhận đạt kiểm tra</span>
+          </button>
+
+          <button *ngIf="returnReq.type === 'REFUND'" 
+                  type="button" 
+                  class="btn-flow btn-primary btn-lg" 
+                  [disabled]="!isQcAllPassed() || !returnReq.qcReport?.restockOption"
+                  [class.btn-disabled]="!isQcAllPassed() || !returnReq.qcReport?.restockOption"
+                  [title]="(!isQcAllPassed() || !returnReq.qcReport?.restockOption) ? 'Vui lòng kiểm tra đạt 4 tiêu chí và chọn phương án đề xuất' : ''"
+                  (click)="confirmQcAndProceed()">
+            <lucide-angular [img]="icons.DollarSign" size="18"></lucide-angular>
+            <span>Xác nhận đạt kiểm tra & Chuyển sang Hoàn tiền</span>
+          </button>
+        </ng-container>
+
+        <!-- Bước 5: EXCHANGING / REFUNDING -->
+        <ng-container *ngIf="returnReq.status === 'EXCHANGING'">
+          <button type="button" class="btn-flow btn-success btn-lg" (click)="confirmExchangeDelivery()">
+            <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
+            <span>Tạo phiếu xuất đổi hàng</span>
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="returnReq.status === 'REFUNDING'">
+          <button type="button" class="btn-flow btn-success btn-lg" (click)="confirmRefundTransfer()">
+            <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
+            <span>Xác nhận Hoàn tiền</span>
+          </button>
+        </ng-container>
+      </div>
+    </div>
   </div>
 
   <!-- =========================================================================
@@ -1210,25 +1418,70 @@
         </p>
 
         <label class="modal-label">Lý do từ chối: <span class="required-star">*</span></label>
-        <select class="admin-select-input" [(ngModel)]="rejectReason">
-          <option *ngFor="let opt of rejectReasonOptions" [value]="opt">{{ opt }}</option>
-        </select>
+        <div class="reject-dropdown-wrapper">
+          <button 
+            type="button" 
+            class="filter-trigger-btn reject-trigger-btn"
+            [class.active]="showRejectDropdown"
+            [title]="rejectReason || 'Chọn lý do từ chối'"
+            (click)="toggleRejectDropdown($event)"
+          >
+            <div class="trigger-label">
+              <lucide-angular [img]="icons.AlertTriangle" size="15" class="trigger-icon text-danger"></lucide-angular>
+              <span class="truncate-label" [class.text-muted-placeholder]="!rejectReason">
+                {{ rejectReason || 'Chọn lý do từ chối' }}
+              </span>
+            </div>
+            <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showRejectDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+          </button>
 
-        <label class="modal-label" style="margin-top: 14px;">Ghi chú chi tiết gửi khách hàng (nếu có):</label>
+          <!-- Dropdown Menu Danh sách Lý do từ chối -->
+          <div *ngIf="showRejectDropdown" class="filter-menu-dropdown reject-menu-dropdown" (click)="$event.stopPropagation()">
+            <div *ngFor="let opt of rejectReasonOptions" 
+                 class="filter-menu-item reject-menu-item" 
+                 [class.selected]="rejectReason === opt"
+                 (click)="selectRejectReason(opt)">
+              <span class="opt-label">{{ opt }}</span>
+              <lucide-angular *ngIf="rejectReason === opt" [img]="icons.Check" size="14" class="text-success flex-shrink-0"></lucide-angular>
+            </div>
+          </div>
+        </div>
+
+        <label class="modal-label" style="margin-top: 14px;">
+          Lý do chi tiết gửi khách hàng: <span class="required-star">*</span>
+        </label>
         <textarea 
           class="admin-textarea" 
           rows="3" 
           [(ngModel)]="rejectNote" 
-          placeholder="Mô tả lý do hồ sơ vi phạm điều kiện chính sách hoặc hướng dẫn phương án hỗ trợ khác..."
+          placeholder="Nhập lý do chi tiết từ chối yêu cầu đổi trả (bắt buộc)..."
         ></textarea>
+        <p *ngIf="!rejectNote.trim()" class="modal-field-hint" style="font-size: 11.5px; color: #DC2626; margin: 4px 0 0;">
+          * Vui lòng nhập lý do chi tiết để mở khóa nút Xác nhận từ chối.
+        </p>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn-modal-cancel" (click)="closeRejectModal()">Hủy bỏ</button>
-        <button type="button" class="btn-modal-confirm-danger" (click)="confirmReject()">Xác nhận từ chối</button>
+        <button type="button" 
+                class="btn-modal-confirm-danger" 
+                [disabled]="!rejectReason || !rejectNote.trim()" 
+                (click)="confirmReject()">
+          Xác nhận từ chối
+        </button>
       </div>
     </div>
   </div>
+
+  <!-- MODAL XUẤT KHO CHO ĐƠN HÀNG THAY THẾ (BƯỚC 5) -->
+  <app-transaction-modal
+    [isOpen]="showStockExportModal"
+    type="export"
+    [draftOnly]="true"
+    modalTitle="Phiếu xuất đổi hàng thay thế dự kiến"
+    [prefillData]="stockExportPrefillData"
+    (onClose)="closeStockExportModal()"
+    (onSubmit)="handleStockExportSubmit($event)">
+  </app-transaction-modal>
 
   <!-- LIGHTBOX IMAGE VIEWER -->
   <div class="lightbox-backdrop" *ngIf="showLightbox" (click)="closeLightbox()">

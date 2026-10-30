@@ -356,6 +356,21 @@
   max-width: 90vw;
 }
 
+.action-menu-dropdown {
+  width: 220px;
+  max-width: 90vw;
+}
+
+.role-menu-dropdown {
+  width: 220px;
+  max-width: 90vw;
+}
+
+.severity-menu-dropdown {
+  width: 200px;
+  max-width: 90vw;
+}
+
 .cat-menu-body {
   overflow-y: auto;
   max-height: 280px;

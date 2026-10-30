@@ -17,6 +17,11 @@ router.get('/', requirePermission('customers', 'view'), async (req: Request, res
         include: {
           _count: {
             select: { orders: true }
+          },
+          orders: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true }
           }
         },
         orderBy: { createdAt: 'desc' }
@@ -33,6 +38,7 @@ router.get('/', requirePermission('customers', 'view'), async (req: Request, res
       totalSpent: c.totalSpent ? c.totalSpent.toString() : '0',
       rewardPoints: c.rewardPoints || 0,
       orderCount: c._count?.orders || 0,
+      lastPurchaseAt: c.orders?.[0]?.createdAt ? c.orders[0].createdAt.toISOString() : null,
       isLocked: !!c.lockedUntil && c.lockedUntil > new Date(),
       createdAt: c.createdAt.toISOString()
     }));

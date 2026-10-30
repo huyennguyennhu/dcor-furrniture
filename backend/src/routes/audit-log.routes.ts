@@ -10,6 +10,7 @@ router.use(authenticateJWT);
 router.use(requirePermission('settings', 'audit_log'));
 
 router.get('/', auditLogController.getAuditLogs);
+router.get('/modules', auditLogController.getModules);
 router.get('/:id', auditLogController.getAuditLogById);
 router.post('/', auditLogController.createAuditLog);
 

@@ -7,309 +7,569 @@
     </div>
     
     <div style="display: flex; align-items: center; gap: 16px;">
-      <!-- Search -->
-      <div class="admin-search-wrapper" style="display: flex; align-items: center; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 12px; height: 36px;">
-        <lucide-angular [img]="icons.Search" size="16" color="var(--text-muted)" style="margin-right: 8px;"></lucide-angular>
-        <input 
-          type="text" 
-          placeholder="Tìm tên, SĐT, Email, ID..."
-          [(ngModel)]="search"
-          (ngModelChange)="onSearchChange()"
-          style="border: none; background: transparent; outline: none; font-size: 14px; color: var(--text-primary); width: 200px;"
-        />
-      </div>
-
-      <button class="admin-btn admin-btn-primary" style="height: 36px; padding: 0 16px; display: flex; align-items: center; gap: 8px;">
+      <button (click)="exportData()" class="admin-btn admin-btn-primary" style="height: 36px; padding: 0 16px; display: flex; align-items: center; gap: 8px;">
         <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất dữ liệu
       </button>
     </div>
   </div>
 
-  <!-- KPI Cards -->
+  <!-- KPI Cards (Đồng bộ chuẩn từ Tổng quan kho) -->
   <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng khách hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">1,245</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">+12%</span> so với tháng trước
+    <!-- Stat 1: Tổng khách hàng -->
+    <div 
+      (click)="onCardFilter('ALL')"
+      [style.borderColor]="activeCardFilter === 'ALL' ? 'var(--accent)' : 'var(--border-color)'"
+      [style.boxShadow]="activeCardFilter === 'ALL' ? '0 0 0 2px rgba(118, 83, 55, 0.25)' : 'none'"
+      style="background: var(--bg-primary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để xem tất cả khách hàng"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.Users" size="20" color="var(--accent)"></lucide-angular>
       </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách hàng mới</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">128</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">+5%</span> so với tháng trước
-      </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách B2B</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">45</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Toàn hệ thống
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Tổng khách hàng</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ kpi.totalCustomers | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <span style="color: #2ecc71; font-weight: 600;">+12%</span> so với tháng trước
+        </div>
       </div>
     </div>
 
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách hàng VIP</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">150</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">+2%</span> so với tháng trước
+    <!-- Stat 2: Khách hàng mới -->
+    <div 
+      (click)="onCardFilter('NEW')"
+      [style.borderColor]="activeCardFilter === 'NEW' ? '#22c55e' : 'var(--border-color)'"
+      [style.boxShadow]="activeCardFilter === 'NEW' ? '0 0 0 2px rgba(34, 197, 94, 0.4)' : 'none'"
+      style="background: rgba(34, 197, 94, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để lọc khách hàng mới"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.UserPlus" size="20" color="rgb(34, 197, 94)"></lucide-angular>
+      </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Khách hàng mới</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ kpi.newCustomers | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <span style="color: #2ecc71; font-weight: 600;">+5%</span> so với tháng trước
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat 3: Khách B2B -->
+    <div 
+      (click)="onCardFilter('B2B')"
+      [style.borderColor]="activeCardFilter === 'B2B' ? '#3b82f6' : 'var(--border-color)'"
+      [style.boxShadow]="activeCardFilter === 'B2B' ? '0 0 0 2px rgba(59, 130, 246, 0.4)' : 'none'"
+      style="background: rgba(59, 130, 246, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để lọc đối tác B2B"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.Building2" size="20" color="rgb(59, 130, 246)"></lucide-angular>
+      </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Khách B2B</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ kpi.b2bCustomers | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          Toàn hệ thống
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat 4: Khách hàng VIP -->
+    <div 
+      (click)="onCardFilter('VIP')"
+      [style.borderColor]="activeCardFilter === 'VIP' ? '#eab308' : 'var(--border-color)'"
+      [style.boxShadow]="activeCardFilter === 'VIP' ? '0 0 0 2px rgba(234, 179, 8, 0.45)' : 'none'"
+      style="background: rgba(234, 179, 8, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease; user-select: none;"
+      onmouseover="this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.transform='translateY(0)'"
+      title="Bấm để lọc khách hàng VIP"
+    >
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;">
+        <lucide-angular [img]="icons.Star" size="20" color="rgb(234, 179, 8)"></lucide-angular>
+      </div>
+      <div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Khách hàng VIP</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">{{ kpi.vipCustomers | number }}</div>
+        <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <span style="color: #2ecc71; font-weight: 600;">+2%</span> so với tháng trước
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Filter Bar -->
-  <div #filterRef class="admin-filter-bar" style="display: flex; gap: 16px; flex-wrap: nowrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
-    
-    <!-- Sort Filter -->
-    <div style="display: flex; gap: 4px;">
-      <button 
-        (click)="toggleSortDirection()"
-        style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; color: var(--text-muted);"
-      >
-        <lucide-angular *ngIf="sortDirection === 'asc'" [img]="icons.ArrowUp" size="16"></lucide-angular>
-        <lucide-angular *ngIf="sortDirection === 'desc'" [img]="icons.ArrowDown" size="16"></lucide-angular>
+  <!-- Bộ lọc & Thanh tìm kiếm (Đồng bộ chuẩn 100% từ Tổng quan kho) -->
+  <div #filterRef class="inventory-filters-toolbar">
+    <!-- 1. Thanh tìm kiếm tức thời -->
+    <div class="filter-search-box">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        [(ngModel)]="search" 
+        (ngModelChange)="onSearchChange()" 
+        placeholder="Tìm theo tên, SĐT, Email, ID..." 
+        class="filter-search-input" 
+      />
+      <button *ngIf="search" (click)="clearSearch()" class="search-clear-btn" title="Xóa tìm kiếm">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
       </button>
-      <div style="position: relative;">
-        <div (click)="toggleDropdown('sort', $event)" style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 36px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-          <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ SORT_LABELS[activeSort] }}</span>
-          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-        </div>
-      <div [ngStyle]="{
-             'opacity': showSortDropdown ? 1 : 0, 
-             'visibility': showSortDropdown ? 'visible' : 'hidden', 
-             'transform': showSortDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showSortDropdown ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div *ngFor="let key of sortLabelKeys" 
-             (click)="setDropdownValue('sort', key)" 
-             [ngStyle]="{
-               'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-               'border-bottom': '1px solid var(--border-color)', 
-               'background': activeSort === key ? 'var(--bg-tertiary)' : 'transparent', 
-               'color': activeSort === key ? 'var(--accent)' : 'var(--text-primary)'
-             }">
-          {{ SORT_LABELS[key] }}
-        </div>
-      </div>
-      </div>
     </div>
 
-    <!-- Status Filter -->
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('status', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ statusFilter }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showStatusDropdown ? 1 : 0, 
-             'visibility': showStatusDropdown ? 'visible' : 'hidden', 
-             'transform': showStatusDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showStatusDropdown ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div *ngFor="let opt of statuses" 
-             (click)="setDropdownValue('status', opt)" 
-             [ngStyle]="{
-               'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-               'border-bottom': '1px solid var(--border-color)', 
-               'background': statusFilter === opt ? 'var(--bg-tertiary)' : 'transparent', 
-               'color': statusFilter === opt ? 'var(--accent)' : 'var(--text-primary)'
-             }">
-          {{ opt }}
+    <!-- 2. Dropdown Trạng thái -->
+    <div class="filter-dropdown-wrapper status-filter-wrapper">
+      <button 
+        type="button" 
+        (click)="toggleDropdown('status', $event)" 
+        class="filter-trigger-btn" 
+        [class.active]="statusFilter !== 'Tất cả trạng thái'" 
+        title="Chọn trạng thái hoạt động"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Activity" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ statusFilter }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showStatusDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+      </button>
+
+      <div *ngIf="showStatusDropdown" class="filter-menu-dropdown">
+        <div 
+          *ngFor="let opt of statuses" 
+          (click)="setDropdownValue('status', opt)" 
+          class="filter-menu-item" 
+          [class.selected]="statusFilter === opt"
+        >
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span *ngIf="opt === 'Hoạt động'" style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span>
+            <span *ngIf="opt === 'Khóa'" style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span>
+            <span>{{ opt }}</span>
+          </div>
+          <lucide-angular *ngIf="statusFilter === opt" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
         </div>
       </div>
     </div>
 
-    <!-- Membership Filter -->
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('membership', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ membershipFilter }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showMembershipDropdown ? 1 : 0, 
-             'visibility': showMembershipDropdown ? 'visible' : 'hidden', 
-             'transform': showMembershipDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showMembershipDropdown ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div *ngFor="let opt of memberships" 
-             (click)="setDropdownValue('membership', opt)" 
-             [ngStyle]="{
-               'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-               'border-bottom': '1px solid var(--border-color)', 
-               'background': membershipFilter === opt ? 'var(--bg-tertiary)' : 'transparent', 
-               'color': membershipFilter === opt ? 'var(--accent)' : 'var(--text-primary)'
-             }">
-          {{ opt }}
+    <!-- 4. Dropdown Hạng thành viên -->
+    <div class="filter-dropdown-wrapper membership-filter-wrapper">
+      <button 
+        type="button" 
+        (click)="toggleDropdown('membership', $event)" 
+        class="filter-trigger-btn" 
+        [class.active]="membershipFilter !== 'Tất cả hạng thành viên'" 
+        title="Chọn hạng thành viên"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Star" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ membershipFilter }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showMembershipDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+      </button>
+
+      <div *ngIf="showMembershipDropdown" class="filter-menu-dropdown">
+        <div 
+          *ngFor="let opt of memberships" 
+          (click)="setDropdownValue('membership', opt)" 
+          class="filter-menu-item" 
+          [class.selected]="membershipFilter === opt"
+        >
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span *ngIf="opt === 'Vàng'" style="width: 8px; height: 8px; border-radius: 50%; background: #eab308;"></span>
+            <span *ngIf="opt === 'Bạc'" style="width: 8px; height: 8px; border-radius: 50%; background: #94a3b8;"></span>
+            <span *ngIf="opt === 'Đồng'" style="width: 8px; height: 8px; border-radius: 50%; background: #d97706;"></span>
+            <span *ngIf="opt === 'B2B Partner'" style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span>
+            <span>{{ opt }}</span>
+          </div>
+          <lucide-angular *ngIf="membershipFilter === opt" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
         </div>
       </div>
     </div>
 
-    <!-- Spending Filter -->
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('spending', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ spendingFilter }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showSpendingDropdown ? 1 : 0, 
-             'visibility': showSpendingDropdown ? 'visible' : 'hidden', 
-             'transform': showSpendingDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showSpendingDropdown ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div *ngFor="let opt of spendings" 
-             (click)="setDropdownValue('spending', opt)" 
-             [ngStyle]="{
-               'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-               'border-bottom': '1px solid var(--border-color)', 
-               'background': spendingFilter === opt ? 'var(--bg-tertiary)' : 'transparent', 
-               'color': spendingFilter === opt ? 'var(--accent)' : 'var(--text-primary)'
-             }">
-          {{ opt }}
+    <!-- 5. Dropdown Chi tiêu -->
+    <div class="filter-dropdown-wrapper spending-filter-wrapper">
+      <button 
+        type="button" 
+        (click)="toggleDropdown('spending', $event)" 
+        class="filter-trigger-btn" 
+        [class.active]="spendingFilter !== 'Tổng chi tiêu'" 
+        title="Chọn mức chi tiêu"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.DollarSign" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ spendingFilter }}</span>
+        </div>
+        <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showSpendingDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
+      </button>
+
+      <div *ngIf="showSpendingDropdown" class="filter-menu-dropdown">
+        <div 
+          *ngFor="let opt of spendings" 
+          (click)="setDropdownValue('spending', opt)" 
+          class="filter-menu-item" 
+          [class.selected]="spendingFilter === opt"
+        >
+          <span>{{ opt }}</span>
+          <lucide-angular *ngIf="spendingFilter === opt" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
         </div>
       </div>
     </div>
 
-    <!-- Label Filter -->
-    <div style="position: relative; flex: 1;">
-      <div (click)="toggleDropdown('label', $event)" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; width: 100%;">
-        <span style="font-size: 12px; font-weight: 500; white-space: nowrap;">{{ labelFilter }}</span>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)"></lucide-angular>
-      </div>
-      <div [ngStyle]="{
-             'opacity': showLabelDropdown ? 1 : 0, 
-             'visibility': showLabelDropdown ? 'visible' : 'hidden', 
-             'transform': showLabelDropdown ? 'translateY(0)' : 'translateY(-10px)', 
-             'transition': 'all 0.2s ease', 'pointer-events': showLabelDropdown ? 'auto' : 'none', 
-             'position': 'absolute', 'top': '100%', 'left': 0, 'margin-top': '4px', 
-             'background': 'var(--bg-secondary)', 'border': '1px solid var(--border-color)', 
-             'border-radius': '8px', 'box-shadow': 'var(--card-shadow)', 'z-index': 10, 'width': '100%', 'overflow': 'hidden'
-           }">
-        <div *ngFor="let opt of labels" 
-             (click)="setDropdownValue('label', opt)" 
-             [ngStyle]="{
-               'padding': '10px 16px', 'font-size': '12px', 'cursor': 'pointer', 
-               'border-bottom': '1px solid var(--border-color)', 
-               'background': labelFilter === opt ? 'var(--bg-tertiary)' : 'transparent', 
-               'color': labelFilter === opt ? 'var(--accent)' : 'var(--text-primary)'
-             }">
-          {{ opt }}
-        </div>
-      </div>
-    </div>
-
+    <!-- 6. Nút Xóa bộ lọc -->
+    <button 
+      *ngIf="hasActiveFilters()" 
+      type="button" 
+      (click)="resetFilters()" 
+      class="reset-filters-btn" 
+      title="Đặt lại toàn bộ bộ lọc về mặc định"
+    >
+      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+      <span>Xóa bộ lọc</span>
+    </button>
   </div>
 
-  <!-- Data Table -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
-    <div style="width: 100%; overflow-x: auto;">
+  <!-- Data Table (Đồng bộ chuẩn 100% từ Tổng quan kho) -->
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
+    <div style="width: 100%; overflow: visible;">
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Khách hàng</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;">Liên hệ</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Ngày đăng ký</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;">Hạng</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;">Chi tiêu</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%; white-space: nowrap;">Mua gần đây</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;">Trạng thái</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;"></th>
+          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; border-top-left-radius: 11px; user-select: none;">
+              <div class="th-sort-wrapper">
+                <span class="th-title" (click)="toggleColumnSort('name')" title="Nhấn để đổi thứ tự A-Z / Z-A">
+                  <span>Khách hàng</span>
+                  <span *ngIf="sortColumn === 'name'" class="th-active-badge">
+                    <lucide-angular [img]="sortDirection === 'asc' ? icons.ArrowUp : icons.ArrowDown" size="11"></lucide-angular>
+                    <span>{{ sortDirection === 'asc' ? 'A-Z' : 'Z-A' }}</span>
+                  </span>
+                </span>
+                <button 
+                  type="button" 
+                  class="th-icon-btn" 
+                  [class.active]="sortColumn === 'name'"
+                  (click)="toggleColumnMenu('name', $event)"
+                  title="Tùy chọn sắp xếp khách hàng"
+                >
+                  <lucide-angular [img]="icons.ArrowUpDown" size="13"></lucide-angular>
+                </button>
+
+                <div *ngIf="openColumnMenu === 'name'" class="th-sort-dropdown" (click)="$event.stopPropagation()">
+                  <div 
+                    class="th-sort-item" 
+                    [class.selected]="sortColumn === 'name' && sortDirection === 'asc'"
+                    (click)="setColumnSort('name', 'asc')"
+                  >
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <lucide-angular [img]="icons.ArrowUp" size="13" class="item-icon"></lucide-angular>
+                      <span>A - Z (Từ A đến Z)</span>
+                    </div>
+                    <lucide-angular *ngIf="sortColumn === 'name' && sortDirection === 'asc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
+                  </div>
+                  <div 
+                    class="th-sort-item" 
+                    [class.selected]="sortColumn === 'name' && sortDirection === 'desc'"
+                    (click)="setColumnSort('name', 'desc')"
+                  >
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <lucide-angular [img]="icons.ArrowDown" size="13" class="item-icon"></lucide-angular>
+                      <span>Z - A (Từ Z đến A)</span>
+                    </div>
+                    <lucide-angular *ngIf="sortColumn === 'name' && sortDirection === 'desc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Liên hệ</th>
+            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
+              <div class="th-sort-wrapper">
+                <span class="th-title" (click)="toggleColumnSort('createdAt')" title="Nhấn để đổi thứ tự Giảm dần / Tăng dần">
+                  <span>Ngày đăng ký</span>
+                  <span *ngIf="sortColumn === 'createdAt'" class="th-active-badge">
+                    <lucide-angular [img]="sortDirection === 'desc' ? icons.ArrowDown : icons.ArrowUp" size="11"></lucide-angular>
+                    <span>{{ sortDirection === 'desc' ? 'Giảm dần' : 'Tăng dần' }}</span>
+                  </span>
+                </span>
+                <button 
+                  type="button" 
+                  class="th-icon-btn" 
+                  [class.active]="sortColumn === 'createdAt'"
+                  (click)="toggleColumnMenu('createdAt', $event)"
+                  title="Tùy chọn sắp xếp ngày đăng ký"
+                >
+                  <lucide-angular [img]="icons.ArrowUpDown" size="13"></lucide-angular>
+                </button>
+
+                <div *ngIf="openColumnMenu === 'createdAt'" class="th-sort-dropdown" (click)="$event.stopPropagation()">
+                  <div 
+                    class="th-sort-item" 
+                    [class.selected]="sortColumn === 'createdAt' && sortDirection === 'desc'"
+                    (click)="setColumnSort('createdAt', 'desc')"
+                  >
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <lucide-angular [img]="icons.ArrowDown" size="13" class="item-icon"></lucide-angular>
+                      <span>Giảm dần (Mới nhất)</span>
+                    </div>
+                    <lucide-angular *ngIf="sortColumn === 'createdAt' && sortDirection === 'desc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
+                  </div>
+                  <div 
+                    class="th-sort-item" 
+                    [class.selected]="sortColumn === 'createdAt' && sortDirection === 'asc'"
+                    (click)="setColumnSort('createdAt', 'asc')"
+                  >
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <lucide-angular [img]="icons.ArrowUp" size="13" class="item-icon"></lucide-angular>
+                      <span>Tăng dần (Cũ nhất)</span>
+                    </div>
+                    <lucide-angular *ngIf="sortColumn === 'createdAt' && sortDirection === 'asc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Hạng thành viên</th>
+            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
+              <div class="th-sort-wrapper">
+                <span class="th-title" (click)="toggleColumnSort('totalSpent')" title="Nhấn để đổi thứ tự Giảm dần / Tăng dần">
+                  <span>Tổng chi tiêu</span>
+                  <span *ngIf="sortColumn === 'totalSpent'" class="th-active-badge">
+                    <lucide-angular [img]="sortDirection === 'desc' ? icons.ArrowDown : icons.ArrowUp" size="11"></lucide-angular>
+                    <span>{{ sortDirection === 'desc' ? 'Giảm dần' : 'Tăng dần' }}</span>
+                  </span>
+                </span>
+                <button 
+                  type="button" 
+                  class="th-icon-btn" 
+                  [class.active]="sortColumn === 'totalSpent'"
+                  (click)="toggleColumnMenu('totalSpent', $event)"
+                  title="Tùy chọn sắp xếp tổng chi tiêu"
+                >
+                  <lucide-angular [img]="icons.ArrowUpDown" size="13"></lucide-angular>
+                </button>
+
+                <div *ngIf="openColumnMenu === 'totalSpent'" class="th-sort-dropdown" (click)="$event.stopPropagation()">
+                  <div 
+                    class="th-sort-item" 
+                    [class.selected]="sortColumn === 'totalSpent' && sortDirection === 'desc'"
+                    (click)="setColumnSort('totalSpent', 'desc')"
+                  >
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <lucide-angular [img]="icons.ArrowDown" size="13" class="item-icon"></lucide-angular>
+                      <span>Giảm dần (Cao đến thấp)</span>
+                    </div>
+                    <lucide-angular *ngIf="sortColumn === 'totalSpent' && sortDirection === 'desc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
+                  </div>
+                  <div 
+                    class="th-sort-item" 
+                    [class.selected]="sortColumn === 'totalSpent' && sortDirection === 'asc'"
+                    (click)="setColumnSort('totalSpent', 'asc')"
+                  >
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <lucide-angular [img]="icons.ArrowUp" size="13" class="item-icon"></lucide-angular>
+                      <span>Tăng dần (Thấp đến cao)</span>
+                    </div>
+                    <lucide-angular *ngIf="sortColumn === 'totalSpent' && sortDirection === 'asc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Mua gần đây</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; text-align: center; white-space: nowrap;">Trạng thái</th>
+            <th style="padding: 16px 8px; font-size: 13px; font-weight: 600; color: #5c402a; width: 48px; text-align: center; border-top-right-radius: 11px;"></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of sortedAndFiltered" 
+          <!-- Loading State -->
+          <tr *ngIf="isLoading">
+            <td colspan="8" style="padding: 48px 20px; text-align: center; color: var(--text-muted);">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <lucide-angular [img]="icons.Loader2" size="20" class="spinner-icon"></lucide-angular>
+                <span>Đang tải danh sách khách hàng từ hệ thống...</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Customer Rows -->
+          <ng-container *ngIf="!isLoading">
+          <tr *ngFor="let item of paginatedCustomers" 
               (click)="goToDetail(item.id)"
               style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
-              onmouseover="this.style.background='var(--bg-tertiary)'" 
+              onmouseover="this.style.background='#F3E5D3'" 
               onmouseout="this.style.background='transparent'">
             
+            <!-- Col 1: Khách hàng -->
             <td style="padding: 16px;">
               <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-weight: 600; border: 1px solid var(--border-color);">
+                <div style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 700; border: 1.5px solid rgba(118, 83, 55, 0.2); box-shadow: 0 1px 3px rgba(0,0,0,0.05); font-size: 14px; flex-shrink: 0;">
                   {{ item.name.charAt(0) }}
                 </div>
-                <div>
-                  <div style="font-weight: 600; color: var(--text-primary);">{{ item.name }}</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">{{ item.id }}</div>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-weight: 600; color: var(--text-primary); font-size: 13.5px;">{{ item.name }}</span>
+                  <span [title]="item.id" style="font-size: 11.5px; color: var(--text-muted); font-family: monospace;">{{ item.displayId }}</span>
                 </div>
               </div>
             </td>
 
+            <!-- Col 2: Liên hệ -->
             <td style="padding: 16px; white-space: nowrap;">
               <div style="font-size: 13px; color: var(--text-primary); font-weight: 500;">{{ item.phone }}</div>
               <div style="font-size: 12px; color: var(--text-muted);">{{ item.email }}</div>
             </td>
 
+            <!-- Col 3: Ngày đăng ký -->
             <td style="padding: 16px; white-space: nowrap;">
               <div style="font-size: 13px; color: var(--text-secondary);">{{ item.createdAt }}</div>
             </td>
 
+            <!-- Col 4: Hạng thành viên -->
             <td style="padding: 16px; white-space: nowrap;">
-              <div style="display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600;" [ngStyle]="{'color': getMembershipColor(item.membership)}">
+              <div style="display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600;" [ngStyle]="{'color': getMembershipColor(item.membership)}">
                 <lucide-angular [img]="icons.Star" size="14"></lucide-angular>
-                {{ item.membership }}
+                <span>{{ item.membership }}</span>
               </div>
               <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ item.points | number }} điểm</div>
             </td>
 
+            <!-- Col 5: Tổng chi tiêu -->
             <td style="padding: 16px; white-space: nowrap;">
-              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ (item.totalSpent / 1000000) | number:'1.0-0':'en-US' }}M ₫</div>
+              <div style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">{{ item.totalSpent === 0 ? '0 ₫' : ((item.totalSpent / 1000000) | number:'1.0-1':'en-US') + 'M ₫' }}</div>
               <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ item.ordersCount }} đơn hàng</div>
             </td>
 
+            <!-- Col 6: Mua gần đây -->
             <td style="padding: 16px; white-space: nowrap;">
               <div style="font-size: 13px; color: var(--text-secondary);">{{ item.lastPurchaseAt }}</div>
             </td>
 
-            <td style="padding: 16px; white-space: nowrap;">
+            <!-- Col 7: Trạng thái -->
+            <td style="padding: 16px 12px; text-align: center; white-space: nowrap;">
               <span [ngStyle]="{
                 'display': 'inline-flex',
                 'align-items': 'center',
                 'gap': '6px',
                 'font-size': '12px',
                 'font-weight': 600,
-                'padding': '4px 8px',
-                'border-radius': '24px',
-                'background': item.status === 'Hoạt động' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                'color': item.status === 'Hoạt động' ? '#10b981' : '#ef4444'
+                'padding': '4px 10px',
+                'border-radius': '20px',
+                'background': item.status === 'Hoạt động' ? '#ECFDF5' : '#FEF2F2',
+                'color': item.status === 'Hoạt động' ? '#059669' : '#DC2626',
+                'border': item.status === 'Hoạt động' ? '1px solid #A7F3D0' : '1px solid #FECACA'
               }">
+                <span [style.background]="item.status === 'Hoạt động' ? '#10b981' : '#ef4444'" style="width: 6px; height: 6px; border-radius: 50%;"></span>
                 {{ item.status }}
               </span>
             </td>
 
-            <td style="padding: 16px; position: relative;">
-              <button (click)="toggleActionMenu(item.id, $event)" class="action-menu-container" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='transparent'">
-                <app-icon name="MoreVertical" size="16"></app-icon>
+            <!-- Col 8: Nút 3 chấm thao tác -->
+            <td style="padding: 16px 8px; text-align: center; width: 48px; position: relative;" (click)="$event.stopPropagation()">
+              <button (click)="toggleActionMenu(item.id, $event)" class="action-menu-container" style="background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='transparent'">
+                <lucide-angular [img]="icons.MoreHorizontal" size="18"></lucide-angular>
               </button>
 
-              <div *ngIf="activeActionMenu === item.id" class="action-menu-container" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; position: absolute; right: 0; top: 40px; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); min-width: 160px; display: flex; flex-direction: column;">
-                <button (click)="goToDetail(item.id)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 14px; border-radius: 4px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Xem chi tiết</button>
-                <button (click)="handleAction('label', item.id, $event)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 14px; border-radius: 4px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">Gắn/Gỡ nhãn</button>
+              <div *ngIf="activeActionMenu === item.id" class="action-menu-container" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: absolute; right: 0; top: 40px; z-index: 50; display: flex; flex-direction: column; min-width: 150px;">
+                <div (click)="goToDetail(item.id)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                  <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular> Xem chi tiết
+                </div>
+                <div (click)="handleAction('label', item.id, $event)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                  <lucide-angular [img]="icons.Tag" size="14"></lucide-angular> Gắn/Gỡ nhãn
+                </div>
                 <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
-                <button (click)="handleAction('toggleStatus', item.id, $event)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 14px; border-radius: 4px; color: #ef4444;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">{{ item.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa' }}</button>
+                <button (click)="handleAction('toggleStatus', item.id, $event)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: #ef4444; white-space: nowrap; border-radius: 4px; width: 100%;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                  <lucide-angular [img]="icons.Lock" size="14"></lucide-angular> {{ item.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa' }}
+                </button>
               </div>
             </td>
 
+
           </tr>
-          <tr *ngIf="sortedAndFiltered.length === 0">
-            <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">Không tìm thấy khách hàng nào.</td>
+
+          </ng-container>
+
+          <!-- Empty State (Đồng bộ chuẩn 100% từ Tổng quan kho) -->
+          <tr *ngIf="!isLoading && sortedAndFiltered.length === 0">
+            <td colspan="8" style="padding: 64px 20px; text-align: center; color: var(--text-muted); font-size: 14px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+              <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <lucide-angular [img]="icons.Users" size="36" style="color: var(--text-muted); opacity: 0.45;"></lucide-angular>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">Không tìm thấy khách hàng nào phù hợp</span>
+                <span style="font-size: 12.5px; color: var(--text-muted);">Vui lòng thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn.</span>
+                <button *ngIf="hasActiveFilters()" type="button" class="reset-filters-btn" (click)="resetFilters()" style="margin-top: 6px;">
+                  <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+                  <span>Đặt lại bộ lọc</span>
+                </button>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Pagination Footer (Đồng bộ chuẩn 100% từ Tổng quan kho) -->
+    <div *ngIf="sortedAndFiltered.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+      <div style="font-size: 13px; color: var(--text-secondary);">
+        Hiển thị <span style="font-weight: 600; color: var(--text-primary);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary);">{{ sortedAndFiltered.length }}</span> khách hàng
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <!-- First Page -->
+        <button 
+          type="button"
+          (click)="goToPage(1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang đầu"
+        >
+          <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Previous Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage - 1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === 1"
+          title="Trang trước"
+        >
+          <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
+        </button>
+
+        <!-- Page numbers -->
+        <button 
+          type="button"
+          *ngFor="let p of getVisiblePages()"
+          (click)="goToPage(p)"
+          class="admin-pagination-btn"
+          [class.active]="p === currentPage"
+        >
+          {{ p }}
+        </button>
+
+        <!-- Next Page -->
+        <button 
+          type="button"
+          (click)="goToPage(currentPage + 1)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang sau"
+        >
+          <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+        </button>
+
+        <!-- Last Page -->
+        <button 
+          type="button"
+          (click)="goToPage(totalPages)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn"
+          [class.disabled]="currentPage === totalPages"
+          title="Trang cuối"
+        >
+          <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
+        </button>
+      </div>
     </div>
   </div>
 </div>

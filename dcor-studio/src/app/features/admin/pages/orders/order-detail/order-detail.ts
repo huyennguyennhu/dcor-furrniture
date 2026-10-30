@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -12,6 +12,7 @@ import {
   Square, CheckSquare, Navigation, Copy, Calendar, Zap
 } from 'lucide-angular';
 import { OrdersService } from '../services/orders.service';
+import { OrdersReturnsMockService } from '../orders-returns/services/orders-returns-mock.service';
 import { 
   Order, OrderV2, AdminOrderStatus, PaymentStatus, UserStatusView, 
   mapAdminStatusToUserView, ReturnQcReport 
@@ -33,6 +34,9 @@ export interface PaymentCheckStatus {
   styleUrls: ['./order-detail.css']
 })
 export class OrderDetailComponent implements OnInit, OnDestroy {
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+  private returnsService = inject(OrdersReturnsMockService);
   icons = {
     ArrowLeft, ArrowRight, CheckCircle2, XCircle, Clock, Truck, Package,
     AlertTriangle, ShieldCheck, DollarSign, CornerDownLeft, FileText,
@@ -138,10 +142,10 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
 
   // QC Checklist local edit state
   checklist = {
-    surfaceChecked: true,
-    structureChecked: true,
-    cushionLeatherChecked: true,
-    protectiveWrapDone: true
+    surfaceChecked: false,
+    structureChecked: false,
+    cushionLeatherChecked: false,
+    protectiveWrapDone: false
   };
 
   // Cancel Order Modal
@@ -183,6 +187,15 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   customRescheduleNote = '';
 
   showUserViewModal = false;
+  selectedProofImage: string | null = null;
+
+  openProofLightbox(url: string): void {
+    this.selectedProofImage = url;
+  }
+
+  closeProofLightbox(): void {
+    this.selectedProofImage = null;
+  }
 
   // Trạng thái đang xử lý hành động (chống spam click / double-submit)
   isSubmitting = false;
@@ -240,11 +253,15 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     if (!this.orderId) return;
     this.order = this.ordersService.getOrderById(this.orderId);
     if (this.order) {
+      const isNewlyInProcessing = this.order.status === 'PROCESSING' && 
+        !this.order.auditLogs?.some(l => l.action.includes('Hoàn tất đóng gói')) &&
+        (this.order.qcChecklist?.surfaceChecked && this.order.qcChecklist?.structureChecked && this.order.qcChecklist?.cushionLeatherChecked && this.order.qcChecklist?.protectiveWrapDone);
+      
       this.checklist = {
-        surfaceChecked: !!this.order.qcChecklist?.surfaceChecked,
-        structureChecked: !!this.order.qcChecklist?.structureChecked,
-        cushionLeatherChecked: !!this.order.qcChecklist?.cushionLeatherChecked,
-        protectiveWrapDone: !!this.order.qcChecklist?.protectiveWrapDone
+        surfaceChecked: isNewlyInProcessing ? false : !!this.order.qcChecklist?.surfaceChecked,
+        structureChecked: isNewlyInProcessing ? false : !!this.order.qcChecklist?.structureChecked,
+        cushionLeatherChecked: isNewlyInProcessing ? false : !!this.order.qcChecklist?.cushionLeatherChecked,
+        protectiveWrapDone: isNewlyInProcessing ? false : !!this.order.qcChecklist?.protectiveWrapDone
       };
       this.newTrackingCode = this.order.delivery.trackingCode || 'DCOR-SHIP-88992';
       this.viewingStepIndex = null;
@@ -256,8 +273,14 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     if (!dateStr) return null;
     const parts = dateStr.trim().split(' ');
     if (parts.length >= 2) {
-      const dateParts = parts[0].split('/').map(Number);
-      const timeParts = parts[1].split(':').map(Number);
+      let datePart = parts[0];
+      let timePart = parts[1];
+      if (parts[0].includes(':') && parts[1].includes('/')) {
+        timePart = parts[0];
+        datePart = parts[1];
+      }
+      const dateParts = datePart.split('/').map(Number);
+      const timeParts = timePart.split(':').map(Number);
       if (dateParts.length === 3) {
         const [d, m, y] = dateParts;
         const h = timeParts[0] || 0;
@@ -497,6 +520,12 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     this.withSubmittingLock(() => {
       const ok = this.ordersService.confirmOrder(this.order!.id, 'Admin Trần');
       if (ok) {
+        this.checklist = {
+          surfaceChecked: false,
+          structureChecked: false,
+          cushionLeatherChecked: false,
+          protectiveWrapDone: false
+        };
         this.triggerToast('Xác nhận đơn hàng thành công!', 'Đơn hàng đã được duyệt và chuyển vào kho để in Pick-list & kiểm tra QC.', 'success');
         this.scrollToTop();
       }
@@ -509,6 +538,12 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     this.withSubmittingLock(() => {
       const ok = this.ordersService.startProcessing(this.order!.id, 'Thủ kho Hoàng Sơn');
       if (ok) {
+        this.checklist = {
+          surfaceChecked: false,
+          structureChecked: false,
+          cushionLeatherChecked: false,
+          protectiveWrapDone: false
+        };
         this.triggerToast('Chuyển kho chuẩn bị thành công!', 'Đã in phiếu soạn hàng cho nhân viên kho.', 'success');
         this.scrollToTop();
       }
@@ -874,7 +909,13 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
 
   // View customer details (navigate to Customers module)
   onViewCustomerDetail() {
-    this.router.navigate(['/admin/customers']);
+    if (this.order?.customerId) {
+      this.router.navigate(['/admin/customers', this.order.customerId]);
+    } else {
+      this.router.navigate(['/admin/customers'], {
+        queryParams: { q: this.order?.phone || this.order?.customerName }
+      });
+    }
   }
 
   // --- HELPERS ---
@@ -912,16 +953,25 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
 
   formatDate(dateStr?: string): string {
     if (!dateStr) return '---';
-    // Support DD/MM/YYYY HH:mm or DD/MM/YYYY
-    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    // Support DD/MM/YYYY HH:mm or HH:mm DD/MM/YYYY or DD/MM/YYYY
+    const matchDmy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    const matchTimeFirst = dateStr.match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     let d: Date;
-    if (match) {
-      const day = parseInt(match[1], 10);
-      const month = parseInt(match[2], 10) - 1;
-      const year = parseInt(match[3], 10);
-      const hour = match[4] ? parseInt(match[4], 10) : 0;
-      const min = match[5] ? parseInt(match[5], 10) : 0;
-      const sec = match[6] ? parseInt(match[6], 10) : 0;
+    if (matchDmy) {
+      const day = parseInt(matchDmy[1], 10);
+      const month = parseInt(matchDmy[2], 10) - 1;
+      const year = parseInt(matchDmy[3], 10);
+      const hour = matchDmy[4] ? parseInt(matchDmy[4], 10) : 0;
+      const min = matchDmy[5] ? parseInt(matchDmy[5], 10) : 0;
+      const sec = matchDmy[6] ? parseInt(matchDmy[6], 10) : 0;
+      d = new Date(year, month, day, hour, min, sec);
+    } else if (matchTimeFirst) {
+      const hour = parseInt(matchTimeFirst[1], 10);
+      const min = parseInt(matchTimeFirst[2], 10);
+      const sec = matchTimeFirst[3] ? parseInt(matchTimeFirst[3], 10) : 0;
+      const day = parseInt(matchTimeFirst[4], 10);
+      const month = parseInt(matchTimeFirst[5], 10) - 1;
+      const year = parseInt(matchTimeFirst[6], 10);
       d = new Date(year, month, day, hour, min, sec);
     } else {
       d = new Date(dateStr);
@@ -956,6 +1006,18 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   get isReturnFlow(): boolean {
     if (!this.order) return false;
     return ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(this.order.status);
+  }
+
+  get hasReturnClaim(): boolean {
+    if (!this.order) return false;
+    if (this.isReturnFlow || this.order.returnInfo) return true;
+    const cleanNum = (this.order.orderNumber || '').replace(/#/g, '').trim();
+    const cleanId = (this.order.id || '').trim();
+    return this.returnsService.getAll().some((r: any) => 
+      (r.id && r.id.toLowerCase() === cleanNum.toLowerCase()) ||
+      (r.orderNumber && (r.orderNumber.toLowerCase() === this.order!.orderNumber.toLowerCase() || r.orderNumber.toLowerCase() === cleanNum.toLowerCase() || r.orderNumber.replace(/#/g, '').toLowerCase() === cleanNum.toLowerCase())) ||
+      (r.orderId && r.orderId.toLowerCase() === cleanId.toLowerCase())
+    );
   }
 
   // Admin Pipeline Stepper Helpers (Chuẩn hóa 6 bước: Gộp Pending & Confirmed thành bước 1: Xác nhận đơn)
@@ -1116,20 +1178,81 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     return mapAdminStatusToUserView(this.order.status);
   }
 
-  triggerToast(title: string, message: string, type: 'success' | 'error' | 'info' = 'success') {
-    if (this.toastTimer) clearTimeout(this.toastTimer);
+  goToReturnDetail(): void {
+    if (!this.order) return;
+
+    let retId = this.order.returnInfo?.returnRequestId;
+
+    if (!retId) {
+      const cleanNum = (this.order.orderNumber || '').replace(/#/g, '').trim();
+      const cleanId = (this.order.id || '').trim();
+
+      const found = this.returnsService.getAll().find((r: any) => 
+        (r.id && r.id.toLowerCase() === cleanNum.toLowerCase()) ||
+        (r.orderNumber && (r.orderNumber.toLowerCase() === this.order!.orderNumber.toLowerCase() || r.orderNumber.toLowerCase() === cleanNum.toLowerCase() || r.orderNumber.replace(/#/g, '').toLowerCase() === cleanNum.toLowerCase())) ||
+        (r.orderId && r.orderId.toLowerCase() === cleanId.toLowerCase())
+      );
+
+      if (found) {
+        retId = found.id;
+      } else {
+        const newRet = this.returnsService.syncFromOrder(this.order, {
+          reason: this.order.returnInfo?.reason || 'Yêu cầu đổi/trả sản phẩm',
+          customerNote: this.order.returnInfo?.customerNote,
+          type: (this.order.returnInfo?.type as any) || 'REFUND',
+          proofImages: this.order.returnInfo?.proofImages
+        });
+        retId = newRet?.id;
+      }
+    }
+
+    if (retId) {
+      if (this.order.returnInfo) {
+        this.order.returnInfo.returnRequestId = retId;
+      }
+      this.router.navigate(['/admin/orders/returns', retId]);
+    } else {
+      this.router.navigate(['/admin/orders/returns', this.order.orderNumber || this.order.id]);
+    }
+  }
+
+  triggerToast(title: string, message: string, type: 'success' | 'error' | 'info' = 'success', durationMs = 3500) {
+    this.pauseToastTimer();
     this.toastTitle = title;
     this.toastMessage = message;
     this.toastType = type;
     this.showToast = true;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
     this.toastTimer = setTimeout(() => {
-      this.showToast = false;
-    }, 4500);
+      this.ngZone.run(() => {
+        this.closeToast();
+      });
+    }, durationMs);
+  }
+
+  pauseToastTimer(): void {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+  }
+
+  resumeToastTimer(): void {
+    if (!this.showToast) return;
+    this.pauseToastTimer();
+    this.toastTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        this.closeToast();
+      });
+    }, 2000);
   }
 
   closeToast() {
+    this.pauseToastTimer();
     this.showToast = false;
-    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 }
 
