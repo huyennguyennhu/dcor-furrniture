@@ -13,7 +13,6 @@ import { BreadcrumbItem } from '../../models/support.model';
       [title]="pageTitle"
       [subtitle]="pageSubtitle"
       [badge]="pageBadge"
-      [lastUpdated]="lastUpdated"
       [currentHref]="currentHref"
       [breadcrumbs]="breadcrumbs"
       [sections]="sections"
@@ -24,7 +23,6 @@ export class ShoppingGuideComponent {
   readonly pageTitle = 'Hướng dẫn mua hàng & Đặt thiết kế DCor';
   readonly pageSubtitle = 'Cẩm nang chi tiết từ bước tìm kiếm, lựa chọn biến thể, thanh toán an toàn, xác thực OTP cho đến quy trình đặt hàng Custom độc bản.';
   readonly pageBadge = 'Hướng dẫn mua sắm';
-  readonly lastUpdated = '15/10/2026';
   readonly currentHref = '/huong-dan-mua-hang';
 
   readonly breadcrumbs: BreadcrumbItem[] = [

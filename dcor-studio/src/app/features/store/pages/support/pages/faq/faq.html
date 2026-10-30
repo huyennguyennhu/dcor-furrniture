@@ -14,8 +14,8 @@
   </div>
 
   <!-- Hero Header with Search -->
-  <header class="faq-hero">
-    <div class="container faq-hero-inner">
+  <section class="faq-hero" aria-label="Đầu trang câu hỏi thường gặp">
+    <div class="faq-hero-inner">
       <div class="faq-hero-badge">
         <app-icon name="Sparkles" size="14"></app-icon>
         <span>Trung tâm trợ giúp DCor</span>
@@ -53,7 +53,7 @@
         </p>
       </div>
     </div>
-  </header>
+  </section>
 
   <!-- Category Filter Tabs -->
   <div class="faq-categories-bar">
@@ -80,7 +80,7 @@
   </div>
 
   <!-- Main FAQ Content -->
-  <main class="container faq-main-container">
+  <main class="faq-main-container">
     <div class="faq-accordion-container" *ngIf="filteredFaqs().length > 0; else noResultsTemplate">
       <div
         *ngFor="let item of filteredFaqs(); let idx = index"

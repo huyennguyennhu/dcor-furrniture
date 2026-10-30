@@ -19,6 +19,9 @@ export const EMAIL = 'dcorfurniture406@gmail.com';
 export const ADDRESS = '669 QL1A, TP. Hồ Chí Minh';
 export const WORKING_HOURS = '8:00 - 22:00, Thứ 2 - Chủ nhật';
 
+// Ngày cập nhật chính sách áp dụng toàn hệ thống
+export const POLICY_LAST_UPDATED = '15/10/2026';
+
 /**
  * Hàm định dạng tiền tệ VND chuẩn hiển thị
  */

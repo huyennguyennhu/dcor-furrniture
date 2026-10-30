@@ -7,7 +7,8 @@ import {
   AUTO_COMPLETE_DAYS,
   CODE_LOCK_THRESHOLD,
   CODE_LOCK_THRESHOLD_FORMATTED,
-  DEPOSIT_PERCENT
+  DEPOSIT_PERCENT,
+  POLICY_LAST_UPDATED
 } from '../support-config';
 
 export interface PolicyDefinition {
@@ -25,7 +26,7 @@ export const POLICIES: Record<string, PolicyDefinition> = {
     title: 'Chính sách bảo hành sản phẩm',
     shortDesc: 'Cam kết chất lượng bền bỉ với thời hạn bảo hành minh bạch theo từng sản phẩm và dịch vụ hỗ trợ kỹ thuật tận nhà.',
     badge: 'Bảo hành chính hãng',
-    lastUpdated: '15/10/2026',
+    lastUpdated: POLICY_LAST_UPDATED,
     sections: [
       {
         id: 'thoi-han-bao-hanh',
@@ -168,7 +169,7 @@ export const POLICIES: Record<string, PolicyDefinition> = {
     title: 'Chính sách đổi trả & hoàn tiền',
     shortDesc: 'Quy định minh bạch về điều kiện đổi mới sản phẩm, thời hạn gửi yêu cầu và các bước xử lý thu hồi hoàn tiền.',
     badge: 'Đổi trả an tâm',
-    lastUpdated: '15/10/2026',
+    lastUpdated: POLICY_LAST_UPDATED,
     sections: [
       {
         id: 'thoi-han-yeu-cau-doi-tra',
@@ -283,7 +284,7 @@ export const POLICIES: Record<string, PolicyDefinition> = {
     title: 'Chính sách vận chuyển & giao nhận',
     shortDesc: 'Dịch vụ giao vận chuyên nghiệp, hỗ trợ bốc xếp tận phòng và lắp đặt hoàn thiện đồ gỗ nội thất lớn trên toàn quốc.',
     badge: 'Giao vận tận tâm',
-    lastUpdated: '15/10/2026',
+    lastUpdated: POLICY_LAST_UPDATED,
     sections: [
       {
         id: 'pham-vi-va-phi-van-chuyen',
@@ -390,7 +391,7 @@ export const POLICIES: Record<string, PolicyDefinition> = {
     title: 'Chính sách thanh toán & bảo mật',
     shortDesc: 'Phương thức thanh toán an toàn, quy định đặt cọc đơn hàng giá trị cao và quy trình xuất hóa đơn GTGT hợp lệ.',
     badge: 'Thanh toán bảo mật',
-    lastUpdated: '15/10/2026',
+    lastUpdated: POLICY_LAST_UPDATED,
     sections: [
       {
         id: 'phuong-thuc-thanh-toan',

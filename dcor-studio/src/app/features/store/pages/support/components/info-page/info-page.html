@@ -32,30 +32,30 @@
   </div>
 
   <!-- Header Section -->
-  <header class="support-hero">
-    <div class="container support-hero-content">
+  <section class="support-hero" aria-label="Tiêu đề trang thông tin">
+    <div class="support-hero-content">
       <div class="support-hero-badge">
         <app-icon name="Sparkles" size="14"></app-icon>
         <span>{{ badge }}</span>
       </div>
       <h1 class="support-hero-title">{{ title }}</h1>
       <p class="support-hero-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
-      <div class="support-hero-meta" *ngIf="lastUpdated">
+      <div class="support-hero-meta" *ngIf="showPolicyMeta && lastUpdated">
         <span class="support-meta-item">
           <app-icon name="Clock" size="14"></app-icon>
           <span>Cập nhật lần cuối: {{ lastUpdated }}</span>
         </span>
-        <span class="support-meta-dot">•</span>
+        <span class="support-meta-divider" aria-hidden="true"></span>
         <span class="support-meta-item">
           <app-icon name="ShieldCheck" size="14"></app-icon>
           <span>Chính sách áp dụng chính thức toàn hệ thống</span>
         </span>
       </div>
     </div>
-  </header>
+  </section>
 
   <!-- Mobile Collapsible TOC Box (< 1024px) -->
-  <div class="support-mobile-toc-container container lg:hidden">
+  <div class="support-mobile-toc-container">
     <div class="support-mobile-toc-box">
       <button
         type="button"
@@ -91,7 +91,6 @@
               class="support-mobile-toc-link"
               [class.is-active]="activeSectionId() === item.id"
             >
-              <span class="support-toc-bullet"></span>
               <span class="support-toc-text">{{ item.title }}</span>
             </a>
           </li>
@@ -101,7 +100,7 @@
   </div>
 
   <!-- Main Content Area: 2-column grid -->
-  <main class="container support-main-container">
+  <main class="support-main-container">
     <div class="support-content-layout">
       <!-- Article Column (Left/Center) -->
       <article class="support-article" aria-label="Nội dung chi tiết">
@@ -305,7 +304,7 @@
       </article>
 
       <!-- Sticky TOC Sidebar (Desktop >= 1024px) -->
-      <aside class="support-sidebar hidden lg:block" aria-label="Mục lục bài viết trên máy tính">
+      <aside class="support-sidebar" aria-label="Mục lục bài viết trên máy tính">
         <div class="support-sticky-toc">
           <div class="support-toc-header">
             <app-icon name="ClipboardList" size="18" color="var(--color-primary)"></app-icon>
@@ -322,7 +321,6 @@
                   [class.is-active]="activeSectionId() === item.id"
                   [attr.aria-current]="activeSectionId() === item.id ? 'true' : null"
                 >
-                  <span class="support-toc-indicator"></span>
                   <span class="support-toc-text">{{ item.title }}</span>
                 </a>
               </li>

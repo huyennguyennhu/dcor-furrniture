@@ -33,7 +33,8 @@ export class InfoPageComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input({ required: true }) title = '';
   @Input() subtitle = '';
   @Input() badge = 'Thông tin DCor';
-  @Input() lastUpdated = '15/10/2026';
+  @Input() lastUpdated = '';
+  @Input() showPolicyMeta = false;
   @Input() currentHref = '';
   @Input({ required: true }) sections: ContentSection[] = [];
   @Input() breadcrumbs: BreadcrumbItem[] = [];
