@@ -48,6 +48,7 @@ const INITIAL_FILTER_STATE: FilterState = {
     CustomSelect, 
     SidebarFilterComponent, 
     QuickViewDrawerComponent, 
+    ProductCompareModalComponent,
     LucideAngularModule
   ],
   templateUrl: './explore.html',
