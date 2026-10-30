@@ -103,6 +103,14 @@ import {
   Percent,
   TrendingUp,
   Upload,
+  Volume2,
+  VolumeX,
+  UserCheck,
+  CheckCheck,
+  Paperclip,
+  CornerDownLeft,
+  RotateCcw,
+  ShieldAlert,
 } from 'lucide-angular';
 
 const ICONS = {
@@ -208,6 +216,14 @@ const ICONS = {
   Percent,
   TrendingUp,
   Upload,
+  Volume2,
+  VolumeX,
+  UserCheck,
+  CheckCheck,
+  Paperclip,
+  CornerDownLeft,
+  RotateCcw,
+  ShieldAlert,
 } as const;
 
 export type IconName = keyof typeof ICONS;
