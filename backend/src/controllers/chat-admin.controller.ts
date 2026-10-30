@@ -11,7 +11,7 @@ function getParamId(param: string | string[] | undefined): string {
 
 export const chatAdminController = {
   /**
-   * GET /api/admin/chat/conversations
+   * GET /api/admin/chatbox/conversations
    * Lấy danh sách hội thoại có phân trang, bộ lọc và tìm kiếm
    * Ưu tiên needsHuman lên đầu
    */
@@ -40,7 +40,7 @@ export const chatAdminController = {
           whereClause.status = 'OPEN';
           break;
         case 'mine':
-          whereClause.assignedStaffId = req.user?.userId;
+          whereClause.assignedStaffId = req.user?.userId || req.user?.id;
           whereClause.status = 'OPEN';
           break;
         case 'closed':
@@ -111,7 +111,7 @@ export const chatAdminController = {
   },
 
   /**
-   * GET /api/admin/chat/conversations/:id
+   * GET /api/admin/chatbox/conversations/:id
    * Chi tiết cuộc trò chuyện + thông tin khách hàng + 3 đơn hàng gần nhất
    */
   getConversationDetail: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -197,7 +197,7 @@ export const chatAdminController = {
   },
 
   /**
-   * GET /api/admin/chat/conversations/:id/messages
+   * GET /api/admin/chatbox/conversations/:id/messages
    */
   getConversationMessages: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -235,15 +235,15 @@ export const chatAdminController = {
   },
 
   /**
-   * POST /api/admin/chat/conversations/:id/claim
+   * POST /api/admin/chatbox/conversations/:id/claim
    * Nhân sự tiếp nhận hội thoại
    */
   claimConversation: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const id = getParamId(req.params.id);
-      const staffId = req.user?.userId;
+      const staffId = req.user?.userId || req.user?.id;
 
-      if (!staffId) {
+      if (!staffId || req.user?.type === 'CUSTOMER') {
         res.status(401).json({ message: 'Không tìm thấy thông tin nhân sự đăng nhập.' });
         return;
       }
@@ -292,23 +292,36 @@ export const chatAdminController = {
   },
 
   /**
-   * POST /api/admin/chat/conversations/:id/transfer
+   * POST /api/admin/chatbox/conversations/:id/transfer
    * Chuyển hội thoại sang nhân viên khác
    */
   transferConversation: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const id = getParamId(req.params.id);
-      const { staffId } = req.body;
+      const currentStaffId = req.user?.userId || req.user?.id;
 
-      if (!staffId) {
+      if (!currentStaffId || req.user?.type === 'CUSTOMER') {
+        res.status(401).json({ message: 'Không tìm thấy thông tin nhân sự đăng nhập.' });
+        return;
+      }
+
+      const targetStaffId = req.body.staffId || req.body.targetStaffId;
+
+      if (!targetStaffId) {
         res.status(400).json({ message: 'Vui lòng chọn nhân sự cần chuyển giao.' });
         return;
       }
 
-      const targetStaff = await prisma.staffUser.findUnique({
-        where: { id: staffId },
-        select: { id: true, fullName: true, status: true },
-      });
+      const [currentStaff, targetStaff] = await Promise.all([
+        prisma.staffUser.findUnique({
+          where: { id: currentStaffId },
+          select: { id: true, fullName: true },
+        }),
+        prisma.staffUser.findUnique({
+          where: { id: targetStaffId },
+          select: { id: true, fullName: true, status: true },
+        }),
+      ]);
 
       if (!targetStaff || targetStaff.status !== 'ACTIVE') {
         res.status(400).json({ message: 'Nhân sự được chọn không tồn tại hoặc đã bị khóa.' });
@@ -318,18 +331,20 @@ export const chatAdminController = {
       const updated = await prisma.chatConversation.update({
         where: { id },
         data: {
-          assignedStaffId: staffId,
+          assignedStaffId: targetStaffId,
           mode: 'STAFF',
           needsHuman: false,
         },
       });
 
+      const senderName = currentStaff?.fullName || 'Chuyên viên tư vấn';
       const sysMsg = await prisma.chatMessage.create({
         data: {
           conversationId: id,
           senderType: 'SYSTEM',
+          senderId: currentStaffId,
           senderName: 'Hệ thống DCor',
-          content: `Cuộc trò chuyện đã được chuyển sang chuyên viên tư vấn ${targetStaff.fullName}.`,
+          content: `${senderName} đã chuyển cuộc trò chuyện sang chuyên viên tư vấn ${targetStaff.fullName}.`,
         },
       });
 
@@ -351,7 +366,7 @@ export const chatAdminController = {
   },
 
   /**
-   * POST /api/admin/chat/conversations/:id/return-to-bot
+   * POST /api/admin/chatbox/conversations/:id/return-to-bot
    * Trả hội thoại về cho bot
    */
   returnToBot: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -395,7 +410,7 @@ export const chatAdminController = {
   },
 
   /**
-   * POST /api/admin/chat/conversations/:id/close
+   * POST /api/admin/chatbox/conversations/:id/close
    * Đóng cuộc trò chuyện
    */
   closeConversation: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -437,7 +452,7 @@ export const chatAdminController = {
   },
 
   /**
-   * POST /api/admin/chat/conversations/:id/reopen
+   * POST /api/admin/chatbox/conversations/:id/reopen
    * Mở lại cuộc trò chuyện
    */
   reopenConversation: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -479,7 +494,7 @@ export const chatAdminController = {
   },
 
   /**
-   * PUT /api/admin/chat/conversations/:id/note
+   * PUT /api/admin/chatbox/conversations/:id/note
    * Cập nhật ghi chú nội bộ
    */
   updateInternalNote: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -505,7 +520,7 @@ export const chatAdminController = {
   },
 
   /**
-   * GET /api/admin/chat/staff
+   * GET /api/admin/chatbox/staff
    * Danh sách nhân sự có thể tiếp nhận hội thoại
    */
   getAvailableStaff: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -537,7 +552,7 @@ export const chatAdminController = {
   // ==========================================
 
   /**
-   * GET /api/admin/chat/scripts
+   * GET /api/admin/chatbox/scripts
    */
   getScripts: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -552,7 +567,7 @@ export const chatAdminController = {
   },
 
   /**
-   * POST /api/admin/chat/scripts
+   * POST /api/admin/chatbox/scripts
    */
   createScript: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -613,7 +628,7 @@ export const chatAdminController = {
   },
 
   /**
-   * PUT /api/admin/chat/scripts/:id
+   * PUT /api/admin/chatbox/scripts/:id
    */
   updateScript: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -659,7 +674,7 @@ export const chatAdminController = {
   },
 
   /**
-   * DELETE /api/admin/chat/scripts/:id
+   * DELETE /api/admin/chatbox/scripts/:id
    */
   deleteScript: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -675,7 +690,7 @@ export const chatAdminController = {
   },
 
   /**
-   * POST /api/admin/chat/scripts/test
+   * POST /api/admin/chatbox/scripts/test
    * Chạy bộ chấm điểm intent, KHÔNG tạo tin nhắn, không có tác dụng phụ
    */
   testScript: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -699,7 +714,7 @@ export const chatAdminController = {
   // ==========================================
 
   /**
-   * GET /api/admin/chat/settings
+   * GET /api/admin/chatbox/settings
    */
   getSettings: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -712,7 +727,7 @@ export const chatAdminController = {
   },
 
   /**
-   * PUT /api/admin/chat/settings
+   * PUT /api/admin/chatbox/settings
    */
   updateSettings: async (req: AuthRequest, res: Response): Promise<void> => {
     try {

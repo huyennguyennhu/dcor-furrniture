@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, from, switchMap } from 'rxjs';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { Observable, from, switchMap, catchError, throwError, MonoTypeOperatorFunction } from 'rxjs';
 import { environment } from '../../../../../../environments/environment';
 import {
   ChatConversation,
@@ -12,13 +12,52 @@ import {
   ConversationListResponse,
 } from '../models/chat-admin.model';
 
+/**
+ * Đường dẫn API gốc phân hệ quản trị Chatbox CSKH
+ */
+export const CHAT_ADMIN_API_BASE_URL = `${environment.apiUrl}/admin/chatbox`;
+
 @Injectable({
   providedIn: 'root',
 })
 export class ChatAdminService {
   private http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/admin/chat`;
+  public readonly baseUrl = CHAT_ADMIN_API_BASE_URL;
   private readonly uploadUrl = `${environment.apiUrl}/upload/image`;
+
+  /**
+   * Chuẩn hóa và xử lý lỗi từ HTTP API (đặc biệt 401 & 403)
+   */
+  public handleHttpError(error: any, fallbackMessage: string = 'Đã xảy ra lỗi khi thực hiện thao tác.'): string {
+    if (error instanceof HttpErrorResponse || (error && typeof error === 'object' && 'status' in error)) {
+      if (error.status === 401) {
+        return error.error?.message || 'Phiên làm việc hết hạn hoặc chưa đăng nhập. Vui lòng đăng nhập lại.';
+      }
+      if (error.status === 403) {
+        return error.error?.message || 'Bạn không đủ quyền thực hiện hành động này trên phân hệ quản trị chatbox (403 Forbidden).';
+      }
+      if (error.error?.message && typeof error.error.message === 'string') {
+        return error.error.message;
+      }
+    }
+    return fallbackMessage;
+  }
+
+  /**
+   * Pipe xử lý lỗi tự động cho Observable, bảo toàn kiểu dữ liệu T
+   */
+  private catchAuthErrors<T>(fallbackMessage: string): MonoTypeOperatorFunction<T> {
+    return catchError((err: any) => {
+      const formattedMessage = this.handleHttpError(err, fallbackMessage);
+      if (err && typeof err === 'object') {
+        err.formattedMessage = formattedMessage;
+        if (err.error && typeof err.error === 'object') {
+          err.error.message = err.error.message || formattedMessage;
+        }
+      }
+      return throwError(() => err);
+    });
+  }
 
   /**
    * Lấy danh sách hội thoại
@@ -38,14 +77,18 @@ export class ChatAdminService {
       params = params.set('q', q.trim());
     }
 
-    return this.http.get<ConversationListResponse>(`${this.baseUrl}/conversations`, { params });
+    return this.http
+      .get<ConversationListResponse>(`${this.baseUrl}/conversations`, { params })
+      .pipe(this.catchAuthErrors('Không thể lấy danh sách cuộc trò chuyện.'));
   }
 
   /**
    * Lấy chi tiết hội thoại + thông tin khách hàng + 3 đơn gần nhất
    */
   public getConversationDetail(id: string): Observable<ConversationDetailResponse> {
-    return this.http.get<ConversationDetailResponse>(`${this.baseUrl}/conversations/${id}`);
+    return this.http
+      .get<ConversationDetailResponse>(`${this.baseUrl}/conversations/${id}`)
+      .pipe(this.catchAuthErrors('Không thể lấy chi tiết cuộc trò chuyện.'));
   }
 
   /**
@@ -60,20 +103,24 @@ export class ChatAdminService {
     if (before) {
       params = params.set('before', before);
     }
-    return this.http.get<{ messages: ChatMessage[]; hasMore: boolean }>(
-      `${this.baseUrl}/conversations/${id}/messages`,
-      { params }
-    );
+    return this.http
+      .get<{ messages: ChatMessage[]; hasMore: boolean }>(
+        `${this.baseUrl}/conversations/${id}/messages`,
+        { params }
+      )
+      .pipe(this.catchAuthErrors('Không thể lấy tin nhắn cuộc trò chuyện.'));
   }
 
   /**
    * Tiếp nhận hội thoại (Claim)
    */
   public claimConversation(id: string): Observable<{ message: string; conversation: ChatConversation }> {
-    return this.http.post<{ message: string; conversation: ChatConversation }>(
-      `${this.baseUrl}/conversations/${id}/claim`,
-      {}
-    );
+    return this.http
+      .post<{ message: string; conversation: ChatConversation }>(
+        `${this.baseUrl}/conversations/${id}/claim`,
+        {}
+      )
+      .pipe(this.catchAuthErrors('Không thể tiếp nhận cuộc trò chuyện.'));
   }
 
   /**
@@ -83,40 +130,48 @@ export class ChatAdminService {
     id: string,
     staffId: string
   ): Observable<{ message: string; conversation: ChatConversation }> {
-    return this.http.post<{ message: string; conversation: ChatConversation }>(
-      `${this.baseUrl}/conversations/${id}/transfer`,
-      { staffId }
-    );
+    return this.http
+      .post<{ message: string; conversation: ChatConversation }>(
+        `${this.baseUrl}/conversations/${id}/transfer`,
+        { staffId }
+      )
+      .pipe(this.catchAuthErrors('Không thể chuyển giao cuộc trò chuyện.'));
   }
 
   /**
    * Trả hội thoại về cho bot (Return to Bot)
    */
   public returnToBot(id: string): Observable<{ message: string; conversation: ChatConversation }> {
-    return this.http.post<{ message: string; conversation: ChatConversation }>(
-      `${this.baseUrl}/conversations/${id}/return-to-bot`,
-      {}
-    );
+    return this.http
+      .post<{ message: string; conversation: ChatConversation }>(
+        `${this.baseUrl}/conversations/${id}/return-to-bot`,
+        {}
+      )
+      .pipe(this.catchAuthErrors('Không thể chuyển cuộc trò chuyện về cho Bot.'));
   }
 
   /**
    * Đóng cuộc trò chuyện (Close)
    */
   public closeConversation(id: string): Observable<{ message: string; conversation: ChatConversation }> {
-    return this.http.post<{ message: string; conversation: ChatConversation }>(
-      `${this.baseUrl}/conversations/${id}/close`,
-      {}
-    );
+    return this.http
+      .post<{ message: string; conversation: ChatConversation }>(
+        `${this.baseUrl}/conversations/${id}/close`,
+        {}
+      )
+      .pipe(this.catchAuthErrors('Không thể đóng cuộc trò chuyện.'));
   }
 
   /**
    * Mở lại cuộc trò chuyện (Reopen)
    */
   public reopenConversation(id: string): Observable<{ message: string; conversation: ChatConversation }> {
-    return this.http.post<{ message: string; conversation: ChatConversation }>(
-      `${this.baseUrl}/conversations/${id}/reopen`,
-      {}
-    );
+    return this.http
+      .post<{ message: string; conversation: ChatConversation }>(
+        `${this.baseUrl}/conversations/${id}/reopen`,
+        {}
+      )
+      .pipe(this.catchAuthErrors('Không thể mở lại cuộc trò chuyện.'));
   }
 
   /**
@@ -126,66 +181,84 @@ export class ChatAdminService {
     id: string,
     internalNote: string
   ): Observable<{ message: string; internalNote: string | null }> {
-    return this.http.put<{ message: string; internalNote: string | null }>(
-      `${this.baseUrl}/conversations/${id}/note`,
-      { internalNote }
-    );
+    return this.http
+      .put<{ message: string; internalNote: string | null }>(
+        `${this.baseUrl}/conversations/${id}/note`,
+        { internalNote }
+      )
+      .pipe(this.catchAuthErrors('Không thể cập nhật ghi chú nội bộ.'));
   }
 
   /**
    * Lấy danh sách nhân sự tiếp nhận hội thoại
    */
   public getAvailableStaff(): Observable<{ staff: StaffUser[] }> {
-    return this.http.get<{ staff: StaffUser[] }>(`${this.baseUrl}/staff`);
+    return this.http
+      .get<{ staff: StaffUser[] }>(`${this.baseUrl}/staff`)
+      .pipe(this.catchAuthErrors('Không thể lấy danh sách nhân sự.'));
   }
 
   /**
    * Lấy danh sách kịch bản Bot
    */
   public getScripts(): Observable<{ scripts: BotScript[] }> {
-    return this.http.get<{ scripts: BotScript[] }>(`${this.baseUrl}/scripts`);
+    return this.http
+      .get<{ scripts: BotScript[] }>(`${this.baseUrl}/scripts`)
+      .pipe(this.catchAuthErrors('Không thể lấy danh sách kịch bản bot.'));
   }
 
   /**
    * Tạo kịch bản Bot
    */
   public createScript(script: Partial<BotScript>): Observable<{ message: string; script: BotScript }> {
-    return this.http.post<{ message: string; script: BotScript }>(`${this.baseUrl}/scripts`, script);
+    return this.http
+      .post<{ message: string; script: BotScript }>(`${this.baseUrl}/scripts`, script)
+      .pipe(this.catchAuthErrors('Không thể tạo kịch bản bot.'));
   }
 
   /**
    * Cập nhật kịch bản Bot
    */
   public updateScript(id: string, script: Partial<BotScript>): Observable<{ message: string; script: BotScript }> {
-    return this.http.put<{ message: string; script: BotScript }>(`${this.baseUrl}/scripts/${id}`, script);
+    return this.http
+      .put<{ message: string; script: BotScript }>(`${this.baseUrl}/scripts/${id}`, script)
+      .pipe(this.catchAuthErrors('Không thể cập nhật kịch bản bot.'));
   }
 
   /**
    * Xóa kịch bản Bot
    */
   public deleteScript(id: string): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(`${this.baseUrl}/scripts/${id}`);
+    return this.http
+      .delete<{ message: string }>(`${this.baseUrl}/scripts/${id}`)
+      .pipe(this.catchAuthErrors('Không thể xóa kịch bản bot.'));
   }
 
   /**
    * Thử kịch bản (không tạo tin nhắn)
    */
   public testScript(text: string): Observable<ScriptTestResult> {
-    return this.http.post<ScriptTestResult>(`${this.baseUrl}/scripts/test`, { text });
+    return this.http
+      .post<ScriptTestResult>(`${this.baseUrl}/scripts/test`, { text })
+      .pipe(this.catchAuthErrors('Không thể kiểm tra kịch bản bot.'));
   }
 
   /**
    * Lấy cấu hình Chat & Bot
    */
   public getSettings(): Observable<{ settings: Record<string, any> }> {
-    return this.http.get<{ settings: Record<string, any> }>(`${this.baseUrl}/settings`);
+    return this.http
+      .get<{ settings: Record<string, any> }>(`${this.baseUrl}/settings`)
+      .pipe(this.catchAuthErrors('Không thể lấy cấu hình chat.'));
   }
 
   /**
    * Cập nhật cấu hình Chat & Bot
    */
   public updateSettings(payload: Record<string, any>): Observable<{ message: string; settings: Record<string, any> }> {
-    return this.http.put<{ message: string; settings: Record<string, any> }>(`${this.baseUrl}/settings`, payload);
+    return this.http
+      .put<{ message: string; settings: Record<string, any> }>(`${this.baseUrl}/settings`, payload)
+      .pipe(this.catchAuthErrors('Không thể cập nhật cấu hình chat.'));
   }
 
   /**
@@ -197,7 +270,8 @@ export class ChatAdminService {
         const formData = new FormData();
         formData.append('file', compressedFile);
         return this.http.post<{ url: string }>(this.uploadUrl, formData);
-      })
+      }),
+      this.catchAuthErrors('Không thể tải ảnh lên máy chủ.')
     );
   }
 
@@ -271,4 +345,3 @@ export class ChatAdminService {
     });
   }
 }
-

@@ -3,6 +3,8 @@ import { Server, Socket } from 'socket.io';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { iamService } from '../lib/iam.service';
+import { getStaffMetadata } from '../lib/staff-metadata';
 import { chatBotService } from './chat-bot.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
@@ -103,20 +105,46 @@ export function initChatSocket(httpServer: HttpServer): Server {
       const auth = socket.handshake.auth || {};
       const token = auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
 
-      // 1. Kiểm tra nếu là nhân sự (Staff token)
+      // 1. Kiểm tra nếu là nhân sự (Staff token hợp lệ và tài khoản ACTIVE)
       if (token) {
         try {
           const decoded: any = jwt.verify(token, JWT_SECRET);
-          if (decoded && decoded.email) {
+          // Token phải có email và tuyệt đối không phải là token khách hàng
+          if (decoded && decoded.type !== 'CUSTOMER' && decoded.email) {
             const staff = await prisma.staffUser.findUnique({
               where: { email: decoded.email.toLowerCase() },
               select: { id: true, fullName: true, role: true, status: true, deletedAt: true },
             });
 
             if (staff && staff.status === 'ACTIVE' && staff.deletedAt === null) {
+              // Cập nhật roles & role mới nhất từ Staff Metadata tương tự auth.middleware
+              const iamUser: any = {
+                ...decoded,
+                userId: staff.id,
+                id: staff.id,
+                email: decoded.email,
+                role: staff.role,
+                roles: decoded.roles || (staff.role ? [staff.role] : []),
+                type: 'STAFF',
+              };
+
+              const metadata = getStaffMetadata(decoded.email);
+              if (metadata && Array.isArray(metadata.roles) && metadata.roles.length > 0) {
+                iamUser.roles = metadata.roles;
+                iamUser.role = metadata.role || metadata.roles[0];
+              }
+
+              // Kiểm tra phân quyền IAM trên phân hệ chat: xem ('view') và chỉnh sửa ('edit')
+              const canChatView = iamService.hasPermission(iamUser, 'chat', 'view');
+              const canChatEdit = iamService.hasPermission(iamUser, 'chat', 'edit');
+
               socket.data.isStaff = true;
               socket.data.staffUser = staff;
+              socket.data.iamUser = iamUser;
               socket.data.userId = staff.id;
+              socket.data.canChatView = canChatView;
+              socket.data.canChatEdit = canChatEdit;
+
               return next();
             }
           }
@@ -133,6 +161,9 @@ export function initChatSocket(httpServer: HttpServer): Server {
           if (decoded && decoded.type === 'CUSTOMER' && decoded.userId) {
             socket.data.isCustomer = true;
             socket.data.customerId = decoded.userId;
+            socket.data.isStaff = false;
+            socket.data.canChatView = false;
+            socket.data.canChatEdit = false;
             return next();
           }
         } catch (_) {}
@@ -147,6 +178,9 @@ export function initChatSocket(httpServer: HttpServer): Server {
         if (conv) {
           socket.data.conversationId = conv.id;
           socket.data.isGuest = true;
+          socket.data.isStaff = false;
+          socket.data.canChatView = false;
+          socket.data.canChatEdit = false;
         }
       }
 
@@ -157,8 +191,9 @@ export function initChatSocket(httpServer: HttpServer): Server {
   });
 
   io.on('connection', async (socket: Socket) => {
-    // Nếu là nhân sự -> tự động vào room 'staff'
-    if (socket.data.isStaff) {
+    // Chỉ cho vào room 'staff' khi token là token nhân sự VÀ có quyền xem phân hệ chat (IAM chat view)
+    // Token khách hàng (CUSTOMER / GUEST) TUYỆT ĐỐI không bao giờ được vào room staff
+    if (socket.data.isStaff && socket.data.canChatView && !socket.data.isCustomer && !socket.data.isGuest) {
       socket.join('staff');
       const totalUnread = await getTotalUnreadStaffCount();
       socket.emit('staff:unread', { total: totalUnread });
@@ -526,27 +561,34 @@ export function initChatSocket(httpServer: HttpServer): Server {
     });
 
     // ========================================================
-    // SỰ KIỆN NHÂN SỰ -> SERVER
+    // SỰ KIỆN NHÂN SỰ -> SERVER (YÊU CẦU QUYỀN CHAT TƯƠNG ỨNG)
     // ========================================================
 
-    // 6. staff:send (Nhân sự gửi tin nhắn trả lời)
+    // 6. staff:send (Nhân sự gửi tin nhắn trả lời - Yêu cầu quyền chat edit)
     socket.on(
       'staff:send',
-      async (payload: {
-        conversationId: string;
-        content: string;
-        imageUrl?: string;
-        clientMessageId?: string;
-      }) => {
+      async (
+        payload: {
+          conversationId: string;
+          content: string;
+          imageUrl?: string;
+          clientMessageId?: string;
+        },
+        callback?: (res: any) => void
+      ) => {
         try {
-          if (!socket.data.isStaff || !socket.data.staffUser) {
-            socket.emit('chat:error', { message: 'Chỉ nhân sự được cấp quyền mới có thể gửi tin.' });
+          if (!socket.data.isStaff || !socket.data.staffUser || !socket.data.canChatEdit) {
+            const errMsg = 'Bạn không có quyền chỉnh sửa trên phân hệ chat (yêu cầu quyền chat edit).';
+            if (callback) callback({ error: errMsg });
+            else socket.emit('chat:error', { code: 'PERMISSION_DENIED', message: errMsg });
             return;
           }
 
           const { conversationId, content, imageUrl, clientMessageId } = payload || {};
           if (!conversationId || (!content && !imageUrl)) {
-            socket.emit('chat:error', { message: 'Nội dung tin nhắn không được để trống.' });
+            const errMsg = 'Nội dung tin nhắn không được để trống.';
+            if (callback) callback({ error: errMsg });
+            else socket.emit('chat:error', { message: errMsg });
             return;
           }
 
@@ -558,7 +600,9 @@ export function initChatSocket(httpServer: HttpServer): Server {
           });
 
           if (!conv) {
-            socket.emit('chat:error', { message: 'Không tìm thấy cuộc trò chuyện.' });
+            const errMsg = 'Không tìm thấy cuộc trò chuyện.';
+            if (callback) callback({ error: errMsg });
+            else socket.emit('chat:error', { message: errMsg });
             return;
           }
 
@@ -599,16 +643,191 @@ export function initChatSocket(httpServer: HttpServer): Server {
           }
 
           await broadcastConversationUpdate(conversationId);
+
+          if (callback) callback({ message: 'Gửi tin nhắn thành công.', messageData: staffMsg });
         } catch (error) {
           console.error('Lỗi staff:send:', error);
-          socket.emit('chat:error', { message: 'Không thể gửi tin nhắn nhân sự.' });
+          if (callback) callback({ error: 'Không thể gửi tin nhắn nhân sự.' });
+          else socket.emit('chat:error', { message: 'Không thể gửi tin nhắn nhân sự.' });
         }
       }
     );
 
-    // 7. staff:typing (Nhân viên đang gõ)
+    // 7. staff:claim (Nhân sự tiếp nhận hội thoại - Yêu cầu quyền chat edit)
+    socket.on('staff:claim', async (data: { conversationId: string }, callback?: (res: any) => void) => {
+      try {
+        if (!socket.data.isStaff || !socket.data.staffUser || !socket.data.canChatEdit) {
+          const errMsg = 'Bạn không có quyền chỉnh sửa trên phân hệ chat (yêu cầu quyền chat edit).';
+          if (callback) callback({ error: errMsg });
+          else socket.emit('chat:error', { code: 'PERMISSION_DENIED', message: errMsg });
+          return;
+        }
+
+        const conversationId = data?.conversationId;
+        if (!conversationId) {
+          const errMsg = 'Thiếu mã hội thoại (conversationId).';
+          if (callback) callback({ error: errMsg });
+          else socket.emit('chat:error', { message: errMsg });
+          return;
+        }
+
+        const staff = socket.data.staffUser;
+        const updated = await prisma.chatConversation.update({
+          where: { id: conversationId },
+          data: {
+            mode: 'STAFF',
+            assignedStaffId: staff.id,
+            needsHuman: false,
+          },
+        });
+
+        const sysMsg = await prisma.chatMessage.create({
+          data: {
+            conversationId,
+            senderType: 'SYSTEM',
+            senderId: staff.id,
+            senderName: 'Hệ thống DCor',
+            content: `Chuyên viên tư vấn ${staff.fullName} đã tiếp nhận hỗ trợ cuộc trò chuyện.`,
+          },
+        });
+
+        if (io) {
+          io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
+        }
+        await broadcastConversationUpdate(conversationId);
+
+        const resData = { message: 'Tiếp nhận cuộc trò chuyện thành công.', conversation: updated };
+        if (callback) callback(resData);
+        socket.emit('staff:claim:success', resData);
+      } catch (error) {
+        console.error('Lỗi staff:claim:', error);
+        if (callback) callback({ error: 'Không thể tiếp nhận cuộc trò chuyện.' });
+        else socket.emit('chat:error', { message: 'Không thể tiếp nhận cuộc trò chuyện.' });
+      }
+    });
+
+    // 8. staff:transfer (Nhân sự chuyển giao hội thoại - Yêu cầu quyền chat edit)
+    socket.on(
+      'staff:transfer',
+      async (data: { conversationId: string; staffId?: string; targetStaffId?: string }, callback?: (res: any) => void) => {
+        try {
+          if (!socket.data.isStaff || !socket.data.staffUser || !socket.data.canChatEdit) {
+            const errMsg = 'Bạn không có quyền chỉnh sửa trên phân hệ chat (yêu cầu quyền chat edit).';
+            if (callback) callback({ error: errMsg });
+            else socket.emit('chat:error', { code: 'PERMISSION_DENIED', message: errMsg });
+            return;
+          }
+
+          const conversationId = data?.conversationId;
+          const targetStaffId = data?.staffId || data?.targetStaffId;
+          if (!conversationId || !targetStaffId) {
+            const errMsg = 'Thiếu mã cuộc trò chuyện hoặc mã nhân sự chuyển giao.';
+            if (callback) callback({ error: errMsg });
+            else socket.emit('chat:error', { message: errMsg });
+            return;
+          }
+
+          const targetStaff = await prisma.staffUser.findUnique({
+            where: { id: targetStaffId },
+            select: { id: true, fullName: true, status: true },
+          });
+
+          if (!targetStaff || targetStaff.status !== 'ACTIVE') {
+            const errMsg = 'Nhân sự được chọn không tồn tại hoặc đã bị khóa.';
+            if (callback) callback({ error: errMsg });
+            else socket.emit('chat:error', { message: errMsg });
+            return;
+          }
+
+          const updated = await prisma.chatConversation.update({
+            where: { id: conversationId },
+            data: {
+              assignedStaffId: targetStaffId,
+              mode: 'STAFF',
+              needsHuman: false,
+            },
+          });
+
+          const currentStaff = socket.data.staffUser;
+          const sysMsg = await prisma.chatMessage.create({
+            data: {
+              conversationId,
+              senderType: 'SYSTEM',
+              senderId: currentStaff.id,
+              senderName: 'Hệ thống DCor',
+              content: `${currentStaff.fullName} đã chuyển cuộc trò chuyện sang chuyên viên tư vấn ${targetStaff.fullName}.`,
+            },
+          });
+
+          if (io) {
+            io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
+          }
+          await broadcastConversationUpdate(conversationId);
+
+          const resData = { message: 'Chuyển giao cuộc trò chuyện thành công.', conversation: updated };
+          if (callback) callback(resData);
+          socket.emit('staff:transfer:success', resData);
+        } catch (error) {
+          console.error('Lỗi staff:transfer:', error);
+          if (callback) callback({ error: 'Không thể chuyển giao cuộc trò chuyện.' });
+          else socket.emit('chat:error', { message: 'Không thể chuyển giao cuộc trò chuyện.' });
+        }
+      }
+    );
+
+    // 9. staff:close (Nhân sự đóng hội thoại - Yêu cầu quyền chat edit)
+    socket.on('staff:close', async (data: { conversationId: string }, callback?: (res: any) => void) => {
+      try {
+        if (!socket.data.isStaff || !socket.data.staffUser || !socket.data.canChatEdit) {
+          const errMsg = 'Bạn không có quyền chỉnh sửa trên phân hệ chat (yêu cầu quyền chat edit).';
+          if (callback) callback({ error: errMsg });
+          else socket.emit('chat:error', { code: 'PERMISSION_DENIED', message: errMsg });
+          return;
+        }
+
+        const conversationId = data?.conversationId;
+        if (!conversationId) {
+          const errMsg = 'Thiếu mã cuộc trò chuyện.';
+          if (callback) callback({ error: errMsg });
+          else socket.emit('chat:error', { message: errMsg });
+          return;
+        }
+
+        const updated = await prisma.chatConversation.update({
+          where: { id: conversationId },
+          data: {
+            status: 'CLOSED',
+            closedAt: new Date(),
+          },
+        });
+
+        const sysMsg = await prisma.chatMessage.create({
+          data: {
+            conversationId,
+            senderType: 'SYSTEM',
+            senderName: 'Hệ thống DCor',
+            content: 'Cuộc trò chuyện đã được kết thúc.',
+          },
+        });
+
+        if (io) {
+          io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
+        }
+        await broadcastConversationUpdate(conversationId);
+
+        const resData = { message: 'Đã đóng cuộc trò chuyện.', conversation: updated };
+        if (callback) callback(resData);
+        socket.emit('staff:close:success', resData);
+      } catch (error) {
+        console.error('Lỗi staff:close:', error);
+        if (callback) callback({ error: 'Không thể đóng cuộc trò chuyện.' });
+        else socket.emit('chat:error', { message: 'Không thể đóng cuộc trò chuyện.' });
+      }
+    });
+
+    // 10. staff:typing (Nhân viên đang gõ - Yêu cầu quyền xem chat)
     socket.on('staff:typing', (data: { conversationId: string; isTyping: boolean }) => {
-      if (socket.data.isStaff && data?.conversationId && io) {
+      if (socket.data.isStaff && socket.data.canChatView && data?.conversationId && io) {
         socket.to(`conv:${data.conversationId}`).emit('chat:typing', {
           conversationId: data.conversationId,
           isTyping: !!data.isTyping,
@@ -618,10 +837,10 @@ export function initChatSocket(httpServer: HttpServer): Server {
       }
     });
 
-    // 8. staff:read (Nhân viên đã đọc)
+    // 11. staff:read (Nhân viên đã đọc - Yêu cầu quyền xem chat)
     socket.on('staff:read', async (data: { conversationId: string }) => {
       try {
-        if (!socket.data.isStaff || !data?.conversationId) return;
+        if (!socket.data.isStaff || !socket.data.canChatView || !data?.conversationId) return;
 
         await prisma.chatConversation.update({
           where: { id: data.conversationId },

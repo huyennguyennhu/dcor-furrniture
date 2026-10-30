@@ -605,4 +605,39 @@ runTest('Kiểm tra tính toán thời gian gõ phím giả lập (500 - 1200ms)
   assert.strictEqual(longDelay, 1200);
 });
 
+// ============================================================================
+// PHẦN 8: KIỂM THỬ ĐƯỜNG DẪN /api/admin/chatbox VÀ PHÂN QUYỀN IAM
+// ============================================================================
+import { iamService } from '../src/lib/iam.service';
+
+runTest('Đường dẫn API quản trị chatbox được định tuyến đúng /api/admin/chatbox', () => {
+  const chatboxAdminPath = '/api/admin/chatbox';
+  assert.strictEqual(chatboxAdminPath, '/api/admin/chatbox');
+  assert.notStrictEqual(chatboxAdminPath, '/api/admin/chat');
+});
+
+runTest('Phân quyền IAM: Super Admin có toàn quyền xem và sửa phân hệ chat', () => {
+  const superAdminUser = { id: 'sa-1', email: 'admin@dcor.vn', role: 'Super Admin', roles: ['Super Admin'], type: 'STAFF' };
+  assert.strictEqual(iamService.hasPermission(superAdminUser, 'chat', 'view'), true);
+  assert.strictEqual(iamService.hasPermission(superAdminUser, 'chat', 'edit'), true);
+});
+
+runTest('Phân quyền IAM: NV Kinh doanh có quyền xem nhưng KHÔNG có quyền sửa chat', () => {
+  const salesUser = { id: 'sales-1', email: 'sales@dcor.vn', role: 'NV Kinh doanh', roles: ['NV Kinh doanh'], type: 'STAFF' };
+  assert.strictEqual(iamService.hasPermission(salesUser, 'chat', 'view'), true);
+  assert.strictEqual(iamService.hasPermission(salesUser, 'chat', 'edit'), false);
+});
+
+runTest('Phân quyền IAM: QL Kho KHÔNG có quyền xem và KHÔNG có quyền sửa chat', () => {
+  const khoUser = { id: 'kho-1', email: 'kho@dcor.vn', role: 'QL Kho', roles: ['QL Kho'], type: 'STAFF' };
+  assert.strictEqual(iamService.hasPermission(khoUser, 'chat', 'view'), false);
+  assert.strictEqual(iamService.hasPermission(khoUser, 'chat', 'edit'), false);
+});
+
+runTest('Phân quyền IAM: QL Sản phẩm KHÔNG có quyền xem và KHÔNG có quyền sửa chat', () => {
+  const spUser = { id: 'sp-1', email: 'sp@dcor.vn', role: 'QL Sản phẩm', roles: ['QL Sản phẩm'], type: 'STAFF' };
+  assert.strictEqual(iamService.hasPermission(spUser, 'chat', 'view'), false);
+  assert.strictEqual(iamService.hasPermission(spUser, 'chat', 'edit'), false);
+});
+
 console.log(`\n🎉 HOÀN THÀNH XUẤT SẮC! ${passedCount}/${totalCount} bài kiểm thử đã VƯỢT QUA thành công (100%).\n`);

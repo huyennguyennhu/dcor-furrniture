@@ -522,7 +522,7 @@ app.use('/api/store/community', communityLikeRoutes);
 
 // Gắn router Chat & Handoff CSKH
 app.use('/api/chat', chatRoutes);
-app.use('/api/admin/chat', chatAdminRoutes);
+app.use('/api/admin/chatbox', chatAdminRoutes);
 
 import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
 import { initAdministrativeDatabase } from './lib/init-administrative-db';
