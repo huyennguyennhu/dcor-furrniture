@@ -9,5 +9,7 @@ router.get('/conversations/me', chatController.getMeConversation);
 // 2. Lấy danh sách tin nhắn của hội thoại (phân trang)
 router.get('/conversations/:id/messages', chatController.getMessages);
 
-export default router;
+// 3. Khách hàng kết thúc cuộc trò chuyện
+router.post('/conversations/:id/close', chatController.closeConversation);
 
+export default router;

@@ -70,7 +70,7 @@
 
         <!-- Nhóm nút bên phải: Kết thúc & Đóng -->
         <div class="chat-header-actions">
-          @if (hasActiveSession()) {
+          @if (hasActiveSession() && !chatService.isConversationClosed()) {
             <button
               type="button"
               class="chat-header-btn chat-end-btn"
@@ -240,6 +240,35 @@
             <div class="chat-guest-security-note">
               <app-icon name="ShieldCheck" size="14" color="#00A30B"></app-icon>
               <span>Thông tin được bảo mật theo chính sách DCor</span>
+            </div>
+          </div>
+        } @else if (!hasActiveSession() && isAuthenticated()) {
+          <!-- TRƯỜNG HỢP B: KHÁCH ĐÃ ĐĂNG NHẬP NHƯNG CHƯA CÓ PHIÊN CHAT NÀO -->
+          <div class="chat-guest-form-container">
+            <div class="chat-guest-form-header">
+              <div class="chat-guest-icon-badge">
+                <app-icon name="Bot" size="26" color="#765337"></app-icon>
+              </div>
+              <h3 class="chat-guest-title">Xin chào {{ currentUser()?.fullName || 'bạn' }}!</h3>
+              <p class="chat-guest-desc">
+                Trợ lý ảo DCor luôn sẵn sàng hỗ trợ bạn tìm kiếm sản phẩm nội thất, tư vấn thiết kế và tra cứu đơn hàng 24/7.
+              </p>
+            </div>
+            <div style="padding: 0 20px 20px; display: flex; justify-content: center;">
+              <button
+                type="button"
+                class="chat-btn-submit-guest"
+                [disabled]="isSubmittingInit()"
+                (click)="startNewConversation()"
+              >
+                @if (isSubmittingInit()) {
+                  <app-icon name="LoaderCircle" size="18" class="chat-spin" color="#ffffff"></app-icon>
+                  <span>Đang kết nối...</span>
+                } @else {
+                  <app-icon name="Sparkles" size="16" color="#ffffff"></app-icon>
+                  <span>Bắt đầu cuộc trò chuyện</span>
+                }
+              </button>
             </div>
           </div>
         } @else {

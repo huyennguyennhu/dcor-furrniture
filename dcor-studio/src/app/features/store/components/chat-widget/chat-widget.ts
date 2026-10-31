@@ -285,30 +285,44 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
    * Bắt đầu cuộc trò chuyện mới sau khi đã kết thúc
    */
   public async startNewConversation() {
-    this.chatService.endConversation();
     this.showEndConfirm.set(false);
-    this.guestName.set('');
-    this.guestPhone.set('');
     this.guestFormError.set(null);
 
     if (this.authService.isAuthenticated()) {
       const user = this.authService.getCurrentUser();
-      if (user && user.phone) {
-        try {
-          await this.chatService.initGuestConversation(user.fullName, user.phone);
-        } catch {
-          // Hiện form nếu cần
-        }
+      const name = user?.fullName || 'Khách hàng';
+      const phone = user?.phone || '';
+      this.isSubmittingInit.set(true);
+      try {
+        await this.chatService.initGuestConversation(name, phone);
+        setTimeout(() => {
+          this.scrollToBottom('instant');
+          this.focusInput();
+        }, 150);
+      } catch (err: any) {
+        this.chatService.setError(err?.message || 'Không thể bắt đầu cuộc trò chuyện mới.');
+      } finally {
+        this.isSubmittingInit.set(false);
       }
+    } else {
+      const conv = this.chatService.currentConversation();
+      if (conv?.guestName) this.guestName.set(conv.guestName);
+      if (conv?.guestPhone) this.guestPhone.set(conv.guestPhone);
+      this.chatService.resetConversation();
     }
   }
 
   /**
    * Kết thúc cuộc trò chuyện
    */
-  public confirmEndConversation() {
-    this.chatService.endConversation();
+  public async confirmEndConversation() {
     this.showEndConfirm.set(false);
+    try {
+      await this.chatService.closeCurrentConversation();
+      setTimeout(() => this.scrollToBottom('smooth'), 100);
+    } catch (err: any) {
+      this.chatService.setError(err?.message || 'Không thể kết thúc cuộc trò chuyện.');
+    }
   }
 
   /**

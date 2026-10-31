@@ -92,6 +92,7 @@ export const routes: Routes = [
       { path: 'cart', redirectTo: '', pathMatch: 'full' },
       { path: 'checkout', loadComponent: () => import('./features/store/pages/checkout/checkout').then(m => m.CheckoutComponent) },
       { path: 'blog', loadComponent: () => import('./features/store/pages/blog/blog').then(m => m.BlogComponent) },
+      { path: 'blog/:slug', loadComponent: () => import('./features/store/pages/blog/blog-detail/blog-detail').then(m => m.BlogDetailComponent) },
       { path: 'custom-design', loadComponent: () => import('./features/store/pages/custom-design/custom-design').then(m => m.CustomDesignComponent) },
       { path: 'community', loadComponent: () => import('./features/store/pages/community/community').then(m => m.CommunityComponent) },
       { path: 'about', loadComponent: () => import('./features/store/pages/support/pages/about/about').then(m => m.AboutComponent) },

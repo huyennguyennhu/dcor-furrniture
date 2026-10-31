@@ -38,6 +38,9 @@ import { initChatSocket } from './services/chat.socket';
 import { initChatDatabase } from './lib/init-chat-db';
 import customerRoutes from './routes/customer.routes';
 import promotionRoutes from './routes/promotion.routes';
+import blogRoutes from './routes/blog.routes';
+import blogAdminRoutes from './routes/blog-admin.routes';
+import { initBlogDatabase } from './lib/init-blog-db';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -661,6 +664,10 @@ app.use('/api/store/community', communityLikeRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin/chatbox', chatAdminRoutes);
 
+// Gắn router Blog & Cẩm nang kiến thức nội thất
+app.use('/api/blog', blogRoutes);
+app.use('/api/admin/blog', blogAdminRoutes);
+
 import { initInventorySettingsDatabase } from './lib/init-inventory-settings-db';
 import { initAdministrativeDatabase } from './lib/init-administrative-db';
 import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
@@ -674,6 +681,7 @@ server.listen(port, () => {
   initPromotionsAndDesignsDatabase().catch(err => console.error('Failed to init promotions and designs DB:', err));
   initMyDesignsDatabase().catch(err => console.error('Failed to init my designs DB:', err));
   initChatDatabase().catch(err => console.error('Failed to init chat DB:', err));
+  initBlogDatabase().catch(err => console.error('Failed to init blog DB:', err));
 });
 
 

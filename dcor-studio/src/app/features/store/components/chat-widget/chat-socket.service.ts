@@ -719,14 +719,71 @@ export class ChatSocketService {
   }
 
   /**
-   * Kết thúc cuộc trò chuyện (Xóa phiên khách vãng lai)
+   * Khách hàng kết thúc cuộc trò chuyện hiện tại (chuyển sang trạng thái CLOSED)
    */
-  public endConversation(): void {
+  public async closeCurrentConversation(): Promise<void> {
+    const conv = this.currentConversation();
+    if (!conv) return;
+
+    // 1. Gửi qua socket nếu đang kết nối
+    if (this.socket && this.socket.connected) {
+      await new Promise<void>((resolve) => {
+        this.socket!.emit('chat:close', { conversationId: conv.id }, () => {
+          resolve();
+        });
+        setTimeout(resolve, 3000);
+      });
+    } else {
+      // Hoặc gọi REST fallback
+      try {
+        const headers = this.getAuthHeaders();
+        await firstValueFrom(
+          this.http
+            .post(`${environment.apiUrl}/chat/conversations/${conv.id}/close`, {}, { headers })
+            .pipe(timeout(5000))
+        );
+      } catch (_) {}
+    }
+
+    // 2. Cập nhật local state: Đánh dấu CLOSED (giữ lại hội thoại và tin nhắn cho khách xem lại)
+    this.currentConversation.update((c) =>
+      c ? { ...c, status: 'CLOSED', closedAt: new Date().toISOString() } : null
+    );
+
+    // 3. Thêm tin nhắn hệ thống nếu chưa có
+    const hasSysMsg = this.messages().some(
+      (m) => m.senderType === 'SYSTEM' && m.content.includes('kết thúc')
+    );
+    if (!hasSysMsg) {
+      const closeMsg: ChatMessage = {
+        id: `sys-${Date.now()}`,
+        conversationId: conv.id,
+        senderType: 'SYSTEM',
+        senderName: 'Hệ thống DCor',
+        content: 'Cuộc trò chuyện đã được kết thúc.',
+        createdAt: new Date().toISOString(),
+        deliveryStatus: 'SENT',
+      };
+      this.messages.update((list) => [...list, closeMsg]);
+    }
+  }
+
+  /**
+   * Đặt lại phiên trò chuyện để sẵn sàng cho phiên mới
+   */
+  public resetConversation(): void {
     this.clearGuestSession();
     this.currentConversation.set(null);
     this.messages.set([]);
     this.unreadCount.set(0);
     this.typingIndicator.set(null);
+  }
+
+  /**
+   * Kết thúc cuộc trò chuyện (Xóa phiên khách vãng lai)
+   */
+  public endConversation(): void {
+    this.resetConversation();
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;

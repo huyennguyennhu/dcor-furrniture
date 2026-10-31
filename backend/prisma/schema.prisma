@@ -956,3 +956,70 @@ model ChatSetting {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ============================================================================
+// 11. BLOG & CẨM NANG KIẾN THỨC NỘI THẤT
+// ============================================================================
+model BlogCategory {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  posts     BlogPost[]
+}
+
+model BlogPost {
+  id             String        @id @default(uuid())
+  slug           String        @unique
+  title          String
+  excerpt        String        @db.Text
+  blocks         Json
+  coverImageUrl  String?       @db.Text
+  categoryId     String
+  category       BlogCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  tags           String[]
+  seoDescription String?       @db.Text
+  authorName     String
+  status         String        @default("DRAFT") // 'DRAFT' | 'PUBLISHED' | 'HIDDEN'
+  publishedAt    DateTime?
+  productIds     String[]
+  likesCount     Int           @default(0)
+  viewsCount     Int           @default(0)
+  createdBy      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  comments       BlogComment[]
+  likes          BlogLike[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+}
+
+model BlogComment {
+  id         String   @id @default(uuid())
+  postId     String
+  post       BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  customerId String
+  authorName String
+  content    String   @db.Text
+  status     String   @default("VISIBLE") // 'VISIBLE' | 'HIDDEN'
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([postId, createdAt])
+}
+
+model BlogLike {
+  id         String   @id @default(uuid())
+  postId     String
+  post       BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  customerId String
+  createdAt  DateTime @default(now())
+
+  @@unique([postId, customerId])
+}

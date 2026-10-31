@@ -178,6 +178,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
         if (conv) {
           socket.data.conversationId = conv.id;
           socket.data.isGuest = true;
+          socket.data.guestTokenHash = hash;
           socket.data.isStaff = false;
           socket.data.canChatView = false;
           socket.data.canChatEdit = false;
@@ -212,8 +213,19 @@ export function initChatSocket(httpServer: HttpServer): Server {
     socket.on('chat:init', async (data: { name: string; phone: string }, callback?: (res: any) => void) => {
       try {
         const { name, phone } = data || {};
-        const trimmedName = (name || 'Khách hàng').trim();
-        const trimmedPhone = (phone || '').trim();
+        let trimmedName = (name || '').trim();
+        let trimmedPhone = (phone || '').trim();
+
+        if (socket.data.customerId) {
+          const customer = await prisma.customer.findUnique({
+            where: { id: socket.data.customerId },
+          });
+          if (customer) {
+            if (!trimmedPhone && customer.phone) trimmedPhone = customer.phone;
+            if (!trimmedName && customer.fullName) trimmedName = customer.fullName;
+          }
+        }
+        if (!trimmedName) trimmedName = 'Khách hàng';
 
         // Kiểm tra số điện thoại Việt Nam hợp lệ
         const phoneRegex = /(?:(?:\+84|84|0)[3|5|7|8|9])([0-9]{8})\b/;
@@ -554,6 +566,83 @@ export function initChatSocket(httpServer: HttpServer): Server {
         }
       } catch (e) {
         console.error('Lỗi chat:read:', e);
+      }
+    });
+
+    // 5b. chat:close (Khách hàng hoặc khách vãng lai kết thúc hội thoại)
+    socket.on('chat:close', async (data: { conversationId: string }, callback?: (res: any) => void) => {
+      try {
+        const conversationId = data?.conversationId || socket.data.conversationId;
+        if (!conversationId) {
+          const errMsg = 'Thiếu mã cuộc trò chuyện.';
+          if (callback) callback({ error: errMsg });
+          else socket.emit('chat:error', { message: errMsg });
+          return;
+        }
+
+        const conv = await prisma.chatConversation.findUnique({
+          where: { id: conversationId },
+        });
+
+        if (!conv) {
+          const errMsg = 'Không tìm thấy cuộc trò chuyện.';
+          if (callback) callback({ error: errMsg });
+          else socket.emit('chat:error', { message: errMsg });
+          return;
+        }
+
+        const isOwner =
+          (socket.data.customerId && conv.customerId === socket.data.customerId) ||
+          (socket.data.isGuest && conv.id === socket.data.conversationId) ||
+          (socket.data.guestTokenHash && conv.guestTokenHash === socket.data.guestTokenHash) ||
+          (socket.data.isStaff && socket.data.canChatEdit);
+
+        if (!isOwner) {
+          const errMsg = 'Bạn không có quyền kết thúc cuộc trò chuyện này.';
+          if (callback) callback({ error: errMsg });
+          else socket.emit('chat:error', { message: errMsg });
+          return;
+        }
+
+        if (conv.status === 'CLOSED') {
+          if (callback) callback({ success: true, conversation: conv });
+          return;
+        }
+
+        const updated = await prisma.chatConversation.update({
+          where: { id: conversationId },
+          data: {
+            status: 'CLOSED',
+            closedAt: new Date(),
+          },
+        });
+
+        const sysMsg = await prisma.chatMessage.create({
+          data: {
+            conversationId,
+            senderType: 'SYSTEM',
+            senderName: 'Hệ thống DCor',
+            content: 'Cuộc trò chuyện đã được kết thúc.',
+          },
+        });
+
+        if (io) {
+          io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
+          io.to(`conv:${conversationId}`).emit('chat:conversation', {
+            id: updated.id,
+            mode: updated.mode,
+            status: 'CLOSED',
+            closedAt: updated.closedAt,
+          });
+        }
+        await broadcastConversationUpdate(conversationId);
+
+        if (callback) callback({ success: true, conversation: updated });
+        socket.emit('chat:close:success', { conversation: updated });
+      } catch (error) {
+        console.error('Lỗi chat:close:', error);
+        if (callback) callback({ error: 'Không thể kết thúc cuộc trò chuyện.' });
+        else socket.emit('chat:error', { message: 'Không thể kết thúc cuộc trò chuyện.' });
       }
     });
 

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
-import { hashGuestToken } from '../services/chat.socket';
+import { hashGuestToken, getIO, broadcastConversationUpdate } from '../services/chat.socket';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 
@@ -79,6 +79,42 @@ export const chatController = {
       if (!conversation) {
         res.status(404).json({ message: 'Chưa tìm thấy cuộc trò chuyện nào của bạn.' });
         return;
+      }
+
+      // KIỂM TRA TỰ ĐỘNG ĐÓNG PHIÊN CŨ (INACTIVITY TIMEOUT)
+      // Nếu hội thoại còn OPEN nhưng tin nhắn cuối đã hơn 12 tiếng hoặc qua ngày hôm sau (>4h)
+      if (conversation.status === 'OPEN') {
+        const lastActivityTime = new Date(
+          conversation.lastMessageAt || conversation.updatedAt || conversation.createdAt
+        ).getTime();
+        const now = Date.now();
+        const diffHours = (now - lastActivityTime) / (1000 * 60 * 60);
+
+        const lastDate = new Date(lastActivityTime);
+        const nowDate = new Date(now);
+        const isDifferentDay =
+          lastDate.getDate() !== nowDate.getDate() ||
+          lastDate.getMonth() !== nowDate.getMonth() ||
+          lastDate.getFullYear() !== nowDate.getFullYear();
+
+        if (diffHours >= 12 || (isDifferentDay && diffHours >= 4)) {
+          conversation = await prisma.chatConversation.update({
+            where: { id: conversation.id },
+            data: {
+              status: 'CLOSED',
+              closedAt: new Date(),
+            },
+          });
+
+          await prisma.chatMessage.create({
+            data: {
+              conversationId: conversation.id,
+              senderType: 'SYSTEM',
+              senderName: 'Hệ thống DCor',
+              content: 'Cuộc trò chuyện đã tự động kết thúc do không có hoạt động mới.',
+            },
+          });
+        }
       }
 
       // Tuyệt đối không trả về guestTokenHash
@@ -185,6 +221,86 @@ export const chatController = {
     } catch (error) {
       console.error('Lỗi getMessages:', error);
       res.status(500).json({ message: 'Lỗi máy chủ khi lấy tin nhắn.' });
+    }
+  },
+
+  /**
+   * POST /api/chat/conversations/:id/close
+   * Khách hàng kết thúc cuộc trò chuyện
+   */
+  closeConversation: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const rawId = req.params.id;
+      const id = Array.isArray(rawId) ? rawId[0] : String(rawId || '');
+      const { customerId, guestTokenHash } = await identifyCustomer(req);
+
+      if (!id) {
+        res.status(400).json({ message: 'Thiếu mã hội thoại.' });
+        return;
+      }
+
+      const conversation = await prisma.chatConversation.findUnique({
+        where: { id },
+      });
+
+      if (!conversation) {
+        res.status(404).json({ message: 'Không tìm thấy cuộc trò chuyện.' });
+        return;
+      }
+
+      let isOwner = false;
+      if (customerId && conversation.customerId === customerId) {
+        isOwner = true;
+      } else if (guestTokenHash && conversation.guestTokenHash === guestTokenHash) {
+        isOwner = true;
+      }
+
+      if (!isOwner) {
+        res.status(403).json({ message: 'Bạn không có quyền kết thúc cuộc trò chuyện này.' });
+        return;
+      }
+
+      if (conversation.status === 'CLOSED') {
+        res.status(200).json({ message: 'Cuộc trò chuyện đã kết thúc.', conversation });
+        return;
+      }
+
+      const updated = await prisma.chatConversation.update({
+        where: { id },
+        data: {
+          status: 'CLOSED',
+          closedAt: new Date(),
+        },
+      });
+
+      const sysMsg = await prisma.chatMessage.create({
+        data: {
+          conversationId: id,
+          senderType: 'SYSTEM',
+          senderName: 'Hệ thống DCor',
+          content: 'Cuộc trò chuyện đã được kết thúc.',
+        },
+      });
+
+      try {
+        const io = getIO();
+        io.to(`conv:${id}`).emit('chat:message', sysMsg);
+        io.to(`conv:${id}`).emit('chat:conversation', {
+          id: updated.id,
+          mode: updated.mode,
+          status: 'CLOSED',
+          closedAt: updated.closedAt,
+        });
+        await broadcastConversationUpdate(id);
+      } catch (_) {}
+
+      res.status(200).json({
+        message: 'Đã kết thúc cuộc trò chuyện thành công.',
+        conversation: updated,
+      });
+    } catch (error) {
+      console.error('Lỗi closeConversation:', error);
+      res.status(500).json({ message: 'Lỗi máy chủ khi kết thúc cuộc trò chuyện.' });
     }
   },
 };
