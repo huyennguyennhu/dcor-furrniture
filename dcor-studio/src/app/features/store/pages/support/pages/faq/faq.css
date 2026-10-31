@@ -93,6 +93,7 @@ header.faq-hero .container,
   .faq-hero {
     padding: 42px 0 36px;
   }
+
   header.faq-hero .container,
   .faq-hero .container,
   .faq-hero-inner {
@@ -104,6 +105,7 @@ header.faq-hero .container,
   .faq-hero {
     padding: 48px 0 40px;
   }
+
   header.faq-hero .container,
   .faq-hero .container,
   .faq-hero-inner {
@@ -436,6 +438,7 @@ header.faq-hero .container,
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -475,7 +478,8 @@ header.faq-hero .container,
 
 /* Highlight search text */
 ::ng-deep .faq-highlight {
-  background-color: #fde68a !important; /* warm yellow */
+  background-color: #fde68a !important;
+  /* warm yellow */
   color: #1e1e1e !important;
   padding: 1px 4px;
   border-radius: 4px;
@@ -839,4 +843,3 @@ a.support-contact-item:hover {
   color: var(--color-accent, #bc5f13);
   margin-top: auto;
 }
-

@@ -50,15 +50,31 @@ export const chatController = {
         return;
       }
 
-      const conversation = await prisma.chatConversation.findFirst({
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId }] : []),
-            ...(guestTokenHash ? [{ guestTokenHash }] : []),
-          ],
-        },
-        orderBy: { updatedAt: 'desc' },
-      });
+      let conversation = null;
+      if (customerId && guestTokenHash) {
+        conversation = await prisma.chatConversation.findFirst({
+          where: {
+            OR: [{ customerId }, { guestTokenHash }],
+          },
+          orderBy: { updatedAt: 'desc' },
+        });
+        if (conversation && !conversation.customerId) {
+          await prisma.chatConversation.update({
+            where: { id: conversation.id },
+            data: { customerId },
+          });
+        }
+      } else if (customerId) {
+        conversation = await prisma.chatConversation.findFirst({
+          where: { customerId },
+          orderBy: { updatedAt: 'desc' },
+        });
+      } else if (guestTokenHash) {
+        conversation = await prisma.chatConversation.findFirst({
+          where: { guestTokenHash },
+          orderBy: { updatedAt: 'desc' },
+        });
+      }
 
       if (!conversation) {
         res.status(404).json({ message: 'Chưa tìm thấy cuộc trò chuyện nào của bạn.' });
@@ -117,9 +133,20 @@ export const chatController = {
       }
 
       // Kiểm tra quyền sở hữu
-      const isOwner =
-        (customerId && conversation.customerId === customerId) ||
-        (guestTokenHash && conversation.guestTokenHash === guestTokenHash);
+      let isOwner = false;
+      if (customerId && conversation.customerId === customerId) {
+        isOwner = true;
+      } else if (guestTokenHash && conversation.guestTokenHash === guestTokenHash) {
+        isOwner = true;
+        // Nếu khách hàng đã đăng nhập nhưng hội thoại này trước đó tạo bằng guestToken của chính họ,
+        // liên kết customerId vào cuộc trò chuyện để các lần gọi sau đồng bộ chuẩn xác
+        if (customerId && !conversation.customerId) {
+          await prisma.chatConversation.update({
+            where: { id },
+            data: { customerId },
+          });
+        }
+      }
 
       if (!isOwner) {
         res.status(403).json({ message: 'Bạn không có quyền truy cập vào cuộc trò chuyện này.' });

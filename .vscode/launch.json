@@ -1,0 +1,61 @@
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "🚀 Full Stack (Backend + Frontend)",
+      "configurations": [
+        "🖥️ Backend (Express API)",
+        "🌐 Frontend (Angular App)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "🚀 Full Stack + Browser (All in One)",
+      "configurations": [
+        "🖥️ Backend (Express API)",
+        "🌐 Frontend (Angular App)",
+        "🌍 Launch Chrome (localhost:4200)"
+      ],
+      "stopAll": true
+    }
+  ],
+  "configurations": [
+    {
+      "name": "🖥️ Backend (Express API)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}/backend"
+    },
+    {
+      "name": "🌐 Frontend (Angular App)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm start",
+      "cwd": "${workspaceFolder}/dcor-studio"
+    },
+    {
+      "name": "🐛 Backend (Direct Node Debugger)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "ts-node-dev",
+        "--respawn",
+        "--transpile-only",
+        "src/server.ts"
+      ],
+      "console": "integratedTerminal",
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "🌍 Launch Chrome (localhost:4200)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}/dcor-studio"
+    }
+  ]
+}

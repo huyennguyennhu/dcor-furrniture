@@ -4,187 +4,210 @@ import {
   EMAIL,
   ADDRESS,
   WORKING_HOURS,
-  DEPOSIT_PERCENT,
-  AUTO_COMPLETE_DAYS,
-  CODE_LOCK_THRESHOLD_FORMATTED
+  HIGH_VALUE_ORDER_THRESHOLD,
+  HIGH_VALUE_DEPOSIT_PERCENT,
+  RETURN_INSPECTION_THRESHOLD,
+  ONLINE_RETURN_REVIEW_HOURS,
+  MAX_RETURN_DAYS,
+  MAX_WARRANTY_MEDIA_SIZE_MB,
+  CUSTOM_QUOTE_RESPONSE_HOURS,
+  CUSTOM_DEPOSIT_RANGE,
+  MAX_COMPARE_PRODUCTS,
+  formatVND
 } from '../support-config';
 
 export const SHOPPING_GUIDE_SECTIONS: ContentSection[] = [
   {
     id: 'tim-kiem-va-loc-san-pham',
-    title: '1. Tìm kiếm và lọc sản phẩm nội thất phù hợp',
+    title: '1. Tìm kiếm, lọc và so sánh sản phẩm nội thất',
     paragraphs: [
-      'Tại DCor, chúng tôi thiết kế công cụ tìm kiếm và bộ lọc trực quan giúp quý khách dễ dàng định vị món đồ nội thất phù hợp với mặt bằng kiến trúc và phong cách sống của gia đình mình.',
-      'Quý khách có thể nhập từ khóa trực tiếp vào thanh tìm kiếm nổi bật ở đầu trang (ví dụ: "sofa góc chữ L", "bàn ăn gỗ sồi 6 ghế", "kệ tivi tối giản") hoặc duyệt nhanh qua cây danh mục phân tầng tại mục "Sản Phẩm".'
+      'Tại DCor, quý khách có thể dễ dàng khám phá hàng loạt sản phẩm nội thất tinh tế thông qua trang danh mục Sản phẩm (/explore).',
+      'Thanh tìm kiếm ở đầu trang cho phép tìm kiếm nhanh theo tên sản phẩm hoặc từ khóa mong muốn.'
     ],
     listItems: [
-      'Lọc theo phân loại không gian: Phòng khách, Phòng ăn, Phòng ngủ, Phòng làm việc, Đồ trang trí.',
-      'Lọc theo chất liệu chủ đạo: Gỗ sồi tự nhiên Bắc Mỹ, Gỗ óc chó, Nệm mút D40 bọc nỉ/da cao cấp, Kim loại sơn tĩnh điện chống xước.',
-      'Lọc theo khoảng giá ngân sách: Dễ dàng kéo chọn mức giá phù hợp với kế hoạch tài chính.',
-      'Sắp xếp linh hoạt: Theo độ phổ biến, mới nhất, giá tăng dần hoặc giảm dần.'
+      'Lọc theo Danh mục sản phẩm: Sofa, Bàn, Ghế, Tủ kệ, Giường ngủ và Đồ trang trí.',
+      'Lọc theo Khoảng giá: Kéo chọn khoảng ngân sách đầu tư phù hợp.',
+      'Lọc theo Không gian: Phòng khách, Phòng ăn, Phòng ngủ, Phòng làm việc...',
+      'Lọc theo Phong cách thiết kế: Hiện đại, Tối giản, Bắc Âu / Scandinavian, Cổ điển...',
+      'Lọc theo Đánh giá: Chọn mức xếp hạng sao tối thiểu theo phản hồi từ người dùng thực tế.',
+      'Lọc theo Màu sắc và Chất liệu: Lọc nhanh các mẫu phù hợp với bảng màu không gian nhà bạn.',
+      'Sắp xếp linh hoạt: Theo Bán chạy nhất (featured), Mới nhất (newest), Giá: Thấp đến Cao (price-asc), Giá: Cao đến Thấp (price-desc) hoặc Đang khuyến mãi (sale).'
     ],
     callout: {
       type: 'tip',
-      title: 'Mẹo tìm nhanh',
-      text: 'Mỗi sản phẩm đều hiển thị nhãn tình trạng kho "Còn hàng" hoặc "Đặt trước". Quý khách có thể xem nhanh kích thước cơ bản phủ bì (Dài x Rộng x Cao) ngay trên thẻ tóm tắt sản phẩm.'
+      title: 'Tính năng Xem nhanh và So sánh sản phẩm',
+      text: `Quý khách có thể bấm nút "Xem nhanh" để xem ảnh, thông số kỹ thuật và chọn biến thể ngay tại trang danh mục. Đặc biệt, tính năng So sánh cho phép quý khách chọn tối đa ${MAX_COMPARE_PRODUCTS} sản phẩm trong cùng một danh mục để đối chiếu trực tiếp về kiểu dáng, kích thước và mức giá.`
     }
   },
   {
-    id: 'chon-bien-the-va-so-luong',
-    title: '2. Lựa chọn biến thể kích thước, màu sắc & số lượng',
+    id: 'chon-bien-the-va-gio-hang',
+    title: '2. Lựa chọn biến thể và quản lý giỏ hàng',
     paragraphs: [
-      'Đặc thù của đồ nội thất là tính vừa vặn với không gian thực tế. Trang chi tiết sản phẩm của DCor cung cấp đầy đủ các tùy chọn biến thể để quý khách cá nhân hóa trước khi đặt hàng:',
-      'Trước khi thêm vào giỏ, hãy xem kỹ bản vẽ thông số kỹ thuật và hình ảnh chụp thực tế dưới các điều kiện ánh sáng tự nhiên.'
+      'Tại trang chi tiết sản phẩm (/products/:id), quý khách dễ dàng lựa chọn biến thể phù hợp với không gian thực tế:',
+      'Mỗi biến thể có hình ảnh, giá bán và số lượng tồn kho riêng biệt. Nếu biến thể tạm thời hết hàng, hệ thống sẽ tự động thông báo để quý khách chọn lựa chọn khác.'
     ],
     listItems: [
-      'Kích thước quy chuẩn: Lựa chọn kích thước phủ bì phù hợp với diện tích phòng (ví dụ: Sofa 2m2, 2m4 hoặc 2m8; Bàn ăn 4 ghế, 6 ghế hoặc 8 ghế).',
-      'Màu sắc và chất liệu bọc: Chọn màu nệm vải nỉ nhung, da PU chống thấm hoặc màu vân gỗ (Tone màu gỗ sồi tự nhiên sáng hoặc Tone nâu trầm óc chó cổ điển).',
-      'Điều chỉnh số lượng: Sử dụng nút tăng/giảm số lượng theo nhu cầu sử dụng thực tế của gia đình.'
-    ],
-    callout: {
-      type: 'note',
-      title: 'Lưu ý đo đạc cửa và thang máy',
-      text: 'Với các sản phẩm nội thất kích thước lớn nguyên khối, quý khách vui lòng kiểm tra chiều rộng cửa ra vào, hành lang và kích thước cabin thang máy của tòa nhà để đảm bảo việc bốc xếp diễn ra thuận lợi.'
-    }
-  },
-  {
-    id: 'quan-ly-gio-hang',
-    title: '3. Kiểm tra và quản lý giỏ hàng thông minh',
-    paragraphs: [
-      'Sau khi bấm "Thêm vào giỏ hàng", một ngăn trượt (Drawer Giỏ hàng) sẽ mở ra tức thì ở cạnh phải màn hình, cho phép quý khách xem nhanh danh mục sản phẩm đã chọn mà không làm gián đoạn trải nghiệm duyệt trang.',
-      'Trong giỏ hàng, quý khách có thể:'
-    ],
-    listItems: [
-      'Thay đổi số lượng hoặc xóa sản phẩm nếu thay đổi kế hoạch bài trí.',
-      'Nhập mã giảm giá khuyến mãi (Voucher DCor) để nhận ưu đãi chiết khấu trực tiếp.',
-      'Xem chi tiết bảng tạm tính bao gồm: Tiền hàng, Giảm giá khuyến mãi và ghi chú giao nhận.',
-      'Bấm nút "Tiến hành thanh toán" để chuyển sang màn hình hoàn tất đơn hàng.'
+      'Chọn biến thể màu sắc, kích thước và chất liệu mong muốn.',
+      'Điều chỉnh số lượng trong giới hạn tồn kho khả dụng.',
+      'Xem thông số kỹ thuật, mô tả chi tiết và thời hạn bảo hành điện tử niêm yết theo từng sản phẩm.',
+      'Bấm "Thêm vào giỏ hàng" để lưu sản phẩm vào ngăn trượt giỏ hàng (Cart Drawer) ở cạnh phải màn hình; tại đây quý khách có thể chọn món thanh toán, chỉnh số lượng hoặc xóa sản phẩm.'
     ]
   },
   {
-    id: 'quy-trinh-thanh-toan',
-    title: '4. Thanh toán đơn hàng và thông tin xuất hóa đơn',
+    id: 'quy-trinh-dat-hang-va-thanh-toan',
+    title: '3. Quy trình đặt hàng & Thanh toán (Checkout)',
     paragraphs: [
-      'Màn hình Thanh toán (Checkout) của DCor được tối ưu hóa theo quy trình 1 trang (One-page Checkout) liền mạch và rõ ràng:',
-      'Các trường thông tin bắt buộc gồm có Họ tên người nhận, Số điện thoại và Địa chỉ giao hàng chi tiết (Tỉnh/Thành phố, Quận/Huyện, Phường/Xã, Số nhà và tên đường).'
+      'Trang Thanh toán (/checkout) của DCor được thiết kế tinh giản, an toàn và hỗ trợ đầy đủ các tiện ích đặt hàng hiện đại theo 5 bước:'
     ],
     steps: [
       {
         number: 1,
-        title: 'Xác nhận thông tin giao nhận',
-        description: 'Điền chính xác địa chỉ và số điện thoại người nhận hàng để nhân viên giao vận liên hệ hẹn giờ giao chính xác.'
+        title: 'Nhập thông tin người nhận & Địa chỉ giao hàng',
+        description: 'Nhập họ tên, số điện thoại và email. Chọn địa chỉ từ sổ địa chỉ đã lưu hoặc nhập mới gồm Tỉnh/Thành, Quận/Huyện, Phường/Xã từ dữ liệu hành chính chuẩn. Nếu số điện thoại chưa được xác minh, hệ thống sẽ kích hoạt bước xác thực mã OTP 6 số.'
       },
       {
         number: 2,
-        title: 'Áp dụng mã ưu đãi',
-        description: 'Kiểm tra và kích hoạt voucher giảm giá hoặc mã khách hàng thân thiết nếu có.'
+        title: 'Áp dụng mã giảm giá & Tùy chọn quà tặng',
+        description: 'Nhập mã ưu đãi; hệ thống tự động kiểm tra điều kiện và báo rõ lý do nếu voucher không hợp lệ hoặc đơn hàng chưa đạt giá trị tối thiểu. Quý khách có thể tích chọn Tùy chọn quà tặng để nhập lời nhắn thiệp và ẩn giá trên phiếu giao hàng.'
       },
       {
         number: 3,
+        title: 'Xem lại đơn hàng & Phí vận chuyển',
+        description: 'Bảng xem lại đơn hàng hiển thị minh bạch tiền hàng, phí vận chuyển tính theo khu vực nội thành hoặc liên tỉnh, và số tiền giảm giá.'
+      },
+      {
+        number: 4,
         title: 'Lựa chọn phương thức thanh toán',
-        description: 'Chọn giữa Thanh toán khi nhận hàng (COD), Quét mã QR chuyển khoản tự động, Thẻ ATM/Visa hoặc Ví điện tử.'
-      },
-      {
-        number: 4,
-        title: 'Yêu cầu xuất hóa đơn GTGT (VAT)',
-        description: 'Tích chọn vào ô "Yêu cầu hóa đơn VAT" nếu cần xuất hóa đơn công ty và nhập Mã số thuế, Tên doanh nghiệp, Địa chỉ trụ sở.'
-      }
-    ]
-  },
-  {
-    id: 'khach-vang-lai-otp',
-    title: '5. Mua hàng nhanh cho khách vãng lai và xác thực OTP',
-    paragraphs: [
-      'DCor hiểu rằng sự nhanh chóng và thuận tiện là ưu tiên hàng đầu. Quý khách hoàn toàn có thể mua hàng mà không cần phải trải qua các bước đăng ký tài khoản rườm rà trước đó.',
-      'Khi đặt hàng dưới tư cách khách vãng lai, hệ thống sẽ thực hiện cơ chế xác thực số điện thoại bằng mã OTP (One-Time Password):'
-    ],
-    listItems: [
-      'Quý khách nhập số điện thoại nhận hàng tại màn hình thanh toán.',
-      'Hệ thống DCor gửi ngay một mã OTP gồm 6 chữ số qua tin nhắn SMS tới số điện thoại vừa cung cấp.',
-      'Quý khách nhập mã OTP vào ô xác thực để hoàn tất gửi đơn hàng an toàn.',
-      'Cơ chế này giúp bảo vệ quyền lợi của khách hàng, ngăn chặn việc tạo đơn giả mạo và tự động lưu trữ lịch sử đơn hàng để liên kết vào tài khoản khi quý khách kích hoạt sau này.'
-    ]
-  },
-  {
-    id: 'theo-doi-don-hang',
-    title: '6. Theo dõi tiến trình trong mục "Đơn hàng của tôi"',
-    paragraphs: [
-      'Sau khi đặt hàng thành công, quý khách có thể chủ động theo dõi toàn bộ hành trình của kiện hàng tại trang "Tài khoản > Đơn hàng của tôi".',
-      'Đơn hàng sẽ trải qua các mốc trạng thái cụ thể và minh bạch:'
-    ],
-    listItems: [
-      'Chờ xác nhận: Đơn hàng mới khởi tạo, tổng đài viên DCor đang kiểm tra tính khả dụng của sản phẩm.',
-      'Đã xác nhận & Đang chuẩn bị: Bộ phận kho tiến hành kiểm định chất lượng (QC), đóng bọc màng bảo vệ 5 lớp và xuất phiếu xuất kho.',
-      'Đang giao hàng: Kiện hàng đã được giao cho tài xế DCor hoặc đối tác vận chuyển chuyên trách. Quý khách có thể xem thông tin tài xế và lộ trình di chuyển.',
-      'Đã giao hàng: Sản phẩm đã được bàn giao và lắp đặt hoàn tất tại địa chỉ của quý khách.',
-      `Hoàn tất: Đơn hàng hoàn tất chính thức (khi quý khách bấm "Đã nhận hàng" hoặc sau ${AUTO_COMPLETE_DAYS} ngày kể từ thời điểm giao hàng thành công).`
-    ]
-  },
-  {
-    id: 'dat-lich-tu-van',
-    title: '7. Đặt lịch tư vấn Showroom và trải nghiệm thực tế',
-    paragraphs: [
-      `Nếu quý khách muốn trực tiếp cảm nhận chất lượng gỗ tự nhiên, độ đàn hồi của nệm mút hay cần chuyên viên phân tích phương án bài trí cho căn hộ của mình, hãy sử dụng tính năng "Đặt lịch tư vấn Showroom":`,
-      `Showroom DCor tọa lạc tại địa chỉ ${ADDRESS}, mở cửa phục vụ từ ${WORKING_HOURS}.`
-    ],
-    listItems: [
-      'Truy cập mục "Đặt lịch tư vấn" trên thanh điều hướng hoặc gọi Hotline ' + HOTLINE + '.',
-      'Chọn ngày và khung giờ hẹn mong muốn đến tham quan.',
-      'Ghi chú sơ lược về loại căn hộ (chung cư, nhà phố, biệt thự) và nhu cầu nội thất chính.',
-      'Kiến trúc sư của DCor sẽ chuẩn bị sẵn các mẫu vật liệu, catalogue mẫu và bản vẽ gợi ý để tiếp đón quý khách chu đáo nhất.'
-    ]
-  },
-  {
-    id: 'yeu-cau-custom',
-    title: '8. Quy trình đặt thiết kế đồ gỗ theo yêu cầu (Custom Furniture)',
-    paragraphs: [
-      'Đối với những không gian đặc thù đòi hỏi kích thước phi tiêu chuẩn hoặc gia chủ có phong cách bài trí độc bản, dịch vụ Custom Furniture của DCor mang đến giải pháp toàn diện theo quy trình 5 bước nghiêm ngặt:'
-    ],
-    steps: [
-      {
-        number: 1,
-        title: 'Gửi yêu cầu thiết kế ban đầu',
-        description: 'Quý khách truy cập trang "/custom-design", tải lên hình ảnh ý tưởng, bản vẽ phác thảo mặt bằng hoặc kích thước mong muốn.'
-      },
-      {
-        number: 2,
-        title: 'Khảo sát, báo giá và ký hợp đồng',
-        description: 'Kiến trúc sư DCor liên hệ tư vấn vật liệu, dựng phối cảnh 3D chi tiết và gửi bảng dự toán kinh phí kèm bản hợp đồng kinh tế rõ ràng.'
-      },
-      {
-        number: 3,
-        title: `Đặt cọc sản xuất (${DEPOSIT_PERCENT}%)`,
-        description: `Khách hàng tiến hành đặt cọc ${DEPOSIT_PERCENT}% giá trị hợp đồng để xưởng DCor tiến hành nhập khẩu vật tư gỗ đạt chuẩn và đưa vào quy trình gia công.`
-      },
-      {
-        number: 4,
-        title: 'Chế tác thủ công và cập nhật tiến độ',
-        description: 'Đội ngũ thợ mộc lành nghề chế tác từng chi tiết mộng gỗ, hoàn thiện bề mặt sơn lót và sơn phủ cao cấp. DCor cập nhật hình ảnh xưởng định kỳ cho khách hàng.'
+        description: `Chọn 1 trong 2 hình thức: Thanh toán khi nhận hàng (COD) hoặc Chuyển khoản ngân hàng quét mã VietQR. Đơn hàng từ giá trị cao (trên ${formatVND(HIGH_VALUE_ORDER_THRESHOLD)}) sẽ tự động khóa COD và bắt buộc đặt cọc ${HIGH_VALUE_DEPOSIT_PERCENT}% bằng chuyển khoản; phần còn lại thanh toán khi nhận hàng.`
       },
       {
         number: 5,
-        title: 'Giao hàng, nghiệm thu và tất toán',
-        description: 'Đội ngũ kỹ thuật vận chuyển tận nhà, lắp đặt chính xác từng milimet. Quý khách ký biên bản nghiệm thu trước khi thanh toán phần còn lại.'
+        title: 'Yêu cầu hóa đơn VAT điện tử & Đặt hàng',
+        description: 'Nếu có nhu cầu, tích chọn "Yêu cầu hóa đơn VAT điện tử" và nhập Tên doanh nghiệp, Mã số thuế, Địa chỉ công ty, Email nhận hóa đơn. Hệ thống có cơ chế chống bấm đúp bảo đảm không tạo trùng đơn. Nếu có sản phẩm hết hàng bất ngờ, hệ thống sẽ thông báo ngay để quý khách cập nhật giỏ hàng.'
       }
     ],
     callout: {
-      type: 'info',
-      title: 'Hợp đồng bảo đảm chất lượng',
-      text: 'Mọi sản phẩm Custom đều có cam kết vật liệu chuẩn 100% theo mẫu duyệt, bảo hành kết cấu khung tương đương sản phẩm tiêu chuẩn niêm yết.'
+      type: 'note',
+      title: 'Màn hình thành công & Khách vãng lai tạo nhanh tài khoản',
+      text: 'Sau khi thanh toán hoàn tất, màn hình thông báo đặt hàng thành công sẽ hiển thị thời gian giao hàng dự kiến. Khách vãng lai có thể tạo nhanh tài khoản bằng cách nhập mật khẩu ngay trên màn hình này; hệ thống sẽ tự động liên kết đơn hàng vừa đặt vào tài khoản mới.'
     }
   },
   {
-    id: 'thiet-ke-khong-gian-cong-dong',
-    title: '9. Thiết kế không gian 3D và chia sẻ cùng Cộng đồng DCor',
+    id: 'quan-ly-va-tra-cuu-don-hang',
+    title: '4. Quản lý đơn hàng, bộ lọc & Tra cứu khách vãng lai',
     paragraphs: [
-      'DCor không chỉ là nơi mua sắm nội thất, mà còn là một không gian cảm hứng kết nối những người yêu thích tổ ấm tinh tế:',
-      'Thông qua công cụ phối cảnh không gian và chuyên mục "Cộng đồng" (/community), quý khách có thể thỏa sức sáng tạo:'
+      'Quý khách có thể theo dõi chặt chẽ tiến trình đơn hàng tại trang "Đơn hàng của tôi" (/account/orders):',
+      'Hệ thống cung cấp thanh bộ lọc đa năng gồm 5 trạng thái: Tất cả, Đang xử lý, Đang giao, Đã hoàn thành, Đã hủy.'
     ],
     listItems: [
-      'Tự do sắp xếp thử các mẫu nội thất DCor vào mô hình căn hộ để hình dung độ tương quan màu sắc trước khi quyết định mua.',
-      'Đăng tải hình ảnh góc không gian sống thực tế đã hoàn thiện của nhà mình để truyền cảm hứng cho cộng đồng.',
-      'Khám phá các ý tưởng decor độc đáo từ các thành viên khác và bấm xem ngay danh sách sản phẩm xuất hiện trong bức ảnh.'
+      'Chi tiết đơn hàng hiển thị đầy đủ: thông tin người nhận, địa chỉ giao nhận, danh sách từng món đồ kèm ảnh chụp/kích thước/màu sắc/đơn giá, chi tiết thanh toán, mã bảo hành điện tử (khi đơn Hoàn thành) và lịch trình giao hàng cập nhật liên tục.',
+      'Khách vãng lai tra cứu đơn hàng: Quý khách chưa có tài khoản có thể dễ dàng tra cứu đơn hàng bằng Số điện thoại đặt hàng + Mã xác thực OTP 6 số (giao diện có đếm ngược thời gian hiệu lực và giới hạn số lần gửi lại mã để bảo mật).'
+    ],
+    subsections: [
+      {
+        id: 'quy-dinh-huy-don',
+        title: 'Quy định hủy đơn hàng và hoàn trả tồn kho',
+        paragraphs: [
+          'Khách hàng có thể chủ động bấm Hủy đơn trực tiếp trên hệ thống khi đơn hàng đang ở trạng thái: Chờ đặt cọc, Chờ xác nhận hoặc Đang xử lý ban đầu (khi đơn chưa xuất kho giao cho đơn vị vận chuyển).',
+          'Khi hủy đơn, quý khách chọn lý do cụ thể (như: thay đổi ý định, muốn đổi mẫu/màu, đặt nhầm số lượng, thời gian giao quá lâu...) và nhập ghi chú; hệ thống sẽ tự động ghi nhận và hoàn trả lại số lượng tồn kho.',
+          'Trường hợp đơn hàng đã xuất kho hoặc đang trên đường giao hàng: hệ thống khóa chức năng hủy đơn trực tiếp; quý khách vui lòng liên hệ bộ phận Chăm sóc khách hàng hoặc tiến hành thủ tục đổi trả sau khi nhận hàng.'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'bang-trang-thai-vong-doi-don-hang',
+    title: '5. Bảng trạng thái vòng đời đơn hàng',
+    paragraphs: [
+      'Mỗi đơn hàng tại DCor được gắn nhãn và vận hành tuần tự qua các trạng thái chuẩn xác sau:'
+    ],
+    table: {
+      headers: ['Nhãn trạng thái đơn', 'Bộ lọc tương ứng', 'Ý nghĩa và tiến trình xử lý'],
+      rows: [
+        ['Chờ đặt cọc', 'Đang xử lý', `Đơn hàng giá trị cao (trên ${formatVND(HIGH_VALUE_ORDER_THRESHOLD)}) đang chờ khách hàng chuyển khoản thanh toán cọc ${HIGH_VALUE_DEPOSIT_PERCENT}%.`],
+        ['Chờ xác nhận', 'Đang xử lý', 'Đơn hàng mới được tạo thành công, đang chờ nhân viên kiểm tra thông tin và xác nhận đơn.'],
+        ['Đang xử lý', 'Đang xử lý', 'Đơn hàng đã được duyệt, bộ phận kho đang đóng gói và chuẩn bị bàn giao cho đội ngũ vận chuyển.'],
+        ['Đang giao hàng', 'Đang giao', 'Đơn hàng đang trên đường vận chuyển và lắp đặt đến địa chỉ của quý khách theo lịch trình.'],
+        ['Hoàn thành', 'Đã hoàn thành', 'Đơn hàng đã giao và lắp đặt thành công; hệ thống tự động kích hoạt mã bảo hành điện tử cho từng sản phẩm.'],
+        ['Đã hủy', 'Đã hủy', 'Đơn hàng đã được hủy bởi khách hàng hoặc quản trị viên; hệ thống tự động hoàn trả tồn kho khả dụng.']
+      ]
+    }
+  },
+  {
+    id: 'quy-trinh-doi-tra-va-bao-hanh-dien-tu',
+    title: '6. Quy trình Đổi trả & Bảo hành điện tử',
+    paragraphs: [
+      'Sau khi nhận hàng thành công, quý khách an tâm sử dụng sản phẩm với chính sách hậu mãi rõ ràng:'
+    ],
+    listItems: [
+      `Quy trình Đổi trả: Gửi yêu cầu từ mục tài khoản khi đơn hàng "Đã giao hàng thành công" và còn trong thời hạn tối đa ${MAX_RETURN_DAYS} ngày kể từ khi nhận hàng. Sản phẩm phải còn nguyên tem mác, không hư hại do người dùng. Chọn đổi mới hoặc trả hàng hoàn tiền kèm ảnh chụp rõ tem mác. Đơn dưới ${formatVND(RETURN_INSPECTION_THRESHOLD)} duyệt hồ sơ trực tuyến trong vòng ${ONLINE_RETURN_REVIEW_HOURS} giờ; đơn từ ${formatVND(RETURN_INSPECTION_THRESHOLD)} trở lên có kỹ thuật viên đến tận nhà giám định. Hủy yêu cầu chưa hoàn tất cần xác thực mã OTP.`,
+      `Quy trình Bảo hành điện tử: Mã bảo hành điện tử tạo tự động gắn từng sản phẩm sau khi đơn hoàn thành (không cần phiếu giấy). Thời hạn bảo hành theo từng sản phẩm cụ thể. Quý khách chọn sản phẩm còn hạn, chọn nhóm lỗi, mô tả sự cố, gửi ảnh/video (tối đa ${MAX_WARRANTY_MEDIA_SIZE_MB}MB) và chọn kiểm tra tại nhà hoặc gửi về trung tâm. Theo dõi tiến trình qua tab "Lịch sử bảo hành" (Tiếp nhận -> Đã xếp lịch kỹ thuật viên -> Đang xử lý -> Đã hoàn tất bảo trì). Quá hạn bảo hành sẽ chuyển sang dịch vụ sửa chữa tính phí.`
+    ]
+  },
+  {
+    id: 'dat-hang-custom-thiet-ke-rieng',
+    title: '7. Đặt hàng thiết kế riêng (Custom Furniture)',
+    paragraphs: [
+      'Đối với nhu cầu gia công may đo nội thất theo phong cách hoặc kích thước công trình riêng, dịch vụ Custom của DCor mang đến trải nghiệm minh bạch và chuyên nghiệp:'
+    ],
+    steps: [
+      {
+        number: 1,
+        title: 'Gửi yêu cầu thiết kế riêng',
+        description: 'Quý khách chọn thuộc tính muốn chỉnh, nhập mô tả chi tiết, khoảng giá dự kiến, ảnh minh họa cùng thông tin liên hệ và địa chỉ công trình.'
+      },
+      {
+        number: 2,
+        title: `Nhận phản hồi báo giá trong vòng ${CUSTOM_QUOTE_RESPONSE_HOURS} giờ`,
+        description: 'Chuyên viên kỹ thuật và thiết kế DCor gửi bảng chi phí chi tiết (giá gia công, vật liệu phát sinh, thời gian sản xuất, tiền cọc) kèm dự thảo hợp đồng điện tử (quy định bảo hành, tiến độ bàn giao, trách nhiệm hai bên và chính sách hoàn/hủy cọc).'
+      },
+      {
+        number: 3,
+        title: 'Yêu cầu thay đổi hoặc Ký hợp đồng điện tử',
+        description: 'Quý khách có thể gửi yêu cầu điều chỉnh báo giá hoặc đồng ý ký hợp đồng điện tử bằng mã OTP an toàn.'
+      },
+      {
+        number: 4,
+        title: `Thanh toán cọc (${CUSTOM_DEPOSIT_RANGE})`,
+        description: 'Thanh toán tiền đặt cọc qua quét mã QR hoặc thẻ ngân hàng; trạng thái yêu cầu chuyển sang "Đã cọc / Đang gia công". Quý khách theo dõi toàn bộ tiến độ tại mục "Quản lý yêu cầu tùy chỉnh" (/account/custom-requests).'
+      }
+    ]
+  },
+  {
+    id: 'dat-lich-tu-van-showroom',
+    title: '8. Đặt lịch tư vấn Showroom',
+    paragraphs: [
+      `Quý khách muốn trải nghiệm chất liệu thực tế có thể sử dụng chức năng Đặt lịch tư vấn tại Showroom DCor (${ADDRESS}, mở cửa ${WORKING_HOURS}):`
+    ],
+    steps: [
+      {
+        number: 1,
+        title: 'Chọn showroom, ngày và khung giờ',
+        description: 'Lựa chọn địa điểm showroom, ngày và khung giờ còn trống phù hợp với thời gian biểu của quý khách.'
+      },
+      {
+        number: 2,
+        title: 'Nhập nội dung tư vấn & Gửi yêu cầu',
+        description: 'Điền thông tin liên hệ và nội dung cần tư vấn. Hệ thống khởi tạo phiếu hẹn ở trạng thái "Chờ xác nhận".'
+      },
+      {
+        number: 3,
+        title: 'Quản trị duyệt và xác nhận lịch hẹn',
+        description: 'Ban quản trị kiểm tra, phân công chuyên viên tư vấn phụ trách và chuyển lịch hẹn sang trạng thái "Xác nhận". Khi cần đổi lịch hoặc hủy lịch hẹn, quý khách cần xác thực bằng mã OTP gửi về số điện thoại.'
+      }
+    ]
+  },
+  {
+    id: 'thiet-ke-khong-gian-va-cong-dong',
+    title: '9. Thiết kế không gian 3D, Blog Cảm hứng & Cộng đồng',
+    paragraphs: [
+      'DCor mang đến hệ sinh thái sáng tạo không gian và kết nối cộng đồng yêu nội thất:'
+    ],
+    listItems: [
+      'Blog & Cảm hứng (/blog): Cập nhật bài viết cẩm nang bài trí, xu hướng thiết kế nội thất mới nhất; sản phẩm DCor được gắn thẻ trực tiếp trong bài viết để xem nhanh; độc giả có thể tham gia bình luận và thả tim.',
+      'Chia sẻ góc nhà: Khách hàng có thể đăng tải hình ảnh góc nhà thực tế của mình; bài viết của khách hàng sẽ được đội ngũ kiểm duyệt kỹ lưỡng trước khi hiển thị công khai trên hệ thống.',
+      'Thiết kế không gian (/custom-design): Chọn bản mẫu hoặc tải lên ảnh mặt bằng thật, tự do kéo thả các sản phẩm nội thất DCor vào không gian phòng, xoay đổi góc nhìn và xuất file ảnh thiết kế định dạng PNG về máy.',
+      'Cộng đồng (/community): Đăng tải bản thiết kế không gian lên chuyên trang Cộng đồng (yêu cầu đăng nhập tài khoản), gắn thẻ các sản phẩm DCor có trong thiết kế để giao lưu và truyền cảm hứng cho người dùng khác.'
     ]
   }
 ];
-

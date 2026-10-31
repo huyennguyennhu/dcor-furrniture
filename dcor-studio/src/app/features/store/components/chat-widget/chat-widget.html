@@ -151,7 +151,7 @@
           <button
             type="button"
             class="chat-banner-dismiss"
-            (click)="chatService.socketError.set(null)"
+            (click)="chatService.setError(null)"
             aria-label="Đóng thông báo lỗi"
           >
             ✕
@@ -629,3 +629,4 @@
     </div>
   </div>
 }
+

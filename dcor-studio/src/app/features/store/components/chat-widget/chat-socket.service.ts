@@ -107,6 +107,29 @@ export class ChatSocketService {
   /**
    * Tạo HttpHeaders chứa token đăng nhập hoặc X-Guest-Token
    */
+  private errorTimeoutTimer: any = null;
+
+  /**
+   * Đặt thông báo lỗi với cơ chế tự ẩn sau 5.5 giây
+   */
+  public setError(msg: string | null): void {
+    if (this.errorTimeoutTimer) {
+      clearTimeout(this.errorTimeoutTimer);
+      this.errorTimeoutTimer = null;
+    }
+    this.socketError.set(msg);
+    if (msg) {
+      this.errorTimeoutTimer = setTimeout(() => {
+        this.socketError.set(null);
+        this.errorTimeoutTimer = null;
+      }, 5500);
+    }
+  }
+
+  /**
+   * Tạo HttpHeaders chứa token đăng nhập hoặc X-Guest-Token
+   * Đảm bảo MỌI lời gọi REST chat tự gắn đúng định danh duy nhất (Authorization hoặc X-Guest-Token)
+   */
   private getAuthHeaders(): HttpHeaders {
     let headers = new HttpHeaders();
     if (this.authService.isAuthenticated()) {
@@ -490,8 +513,11 @@ export class ChatSocketService {
       }
       return null;
     } catch (err: any) {
-      if (err instanceof HttpErrorResponse && err.status === 404) {
-        // Chưa có cuộc trò chuyện nào
+      if (err instanceof HttpErrorResponse && (err.status === 404 || err.status === 403)) {
+        // Gặp 403 hoặc 404 trên phiên cũ (đổi tài khoản, token hết hạn, phiên cũ không khớp):
+        // tự xóa phiên lưu cũ dcor_chat_guest và khởi tạo lại phiên mới thay vì hiện lỗi
+        this.clearGuestSession();
+        this.currentConversation.set(null);
         return null;
       }
       this.handleHttpError(err);
@@ -540,7 +566,14 @@ export class ChatSocketService {
       }
 
       return incomingList;
-    } catch (err) {
+    } catch (err: any) {
+      if (err instanceof HttpErrorResponse && (err.status === 403 || err.status === 404)) {
+        // Gặp 403 hoặc 404 khi tải tin: tự xóa phiên lưu cũ
+        this.clearGuestSession();
+        this.currentConversation.set(null);
+        this.hasMoreHistory.set(false);
+        return [];
+      }
       this.handleHttpError(err);
       return [];
     } finally {
@@ -712,7 +745,7 @@ export class ChatSocketService {
       return 'Phiên xác thực đã hết hạn. Vui lòng thử lại.';
     }
     if (err.status === 403) {
-      return 'Bạn không có quyền truy cập vào cuộc trò chuyện này.';
+      return 'Không thể truy cập cuộc trò chuyện. Đang làm mới phiên kết nối...';
     }
     if (err.status === 404) {
       return 'Không tìm thấy cuộc trò chuyện.';
@@ -731,7 +764,7 @@ export class ChatSocketService {
 
   private handleHttpError(err: any): void {
     const msg = this.formatErrorMessage(err);
-    this.socketError.set(msg);
+    this.setError(msg);
   }
 
   /**

@@ -1,281 +1,447 @@
-<div class="store-blog-page">
+<div class="blog-page">
   <div class="blog-container">
 
-    <!-- ===================================================================== -->
-    <!-- VIEW A: ARTICLE DETAIL READER (WITH RELATED PRODUCTS AT BOTTOM)       -->
-    <!-- ===================================================================== -->
-    <article *ngIf="activeArticle" class="article-reader-view">
-      <!-- Breadcrumb & Back Button -->
-      <nav class="reader-nav-bar">
-        <button class="btn-back-to-list" (click)="backToList()">
-          <app-icon name="ArrowLeft" [size]="16"></app-icon>
-          Quay lại danh sách bài viết
-        </button>
-        <div class="reader-breadcrumbs">
-          <a routerLink="/">Trang chủ</a>
-          <span>/</span>
-          <span style="cursor: pointer;" (click)="backToList()">Blog</span>
-          <span>/</span>
-          <span class="active-crumb">{{ activeArticle.categoryName }}</span>
-        </div>
-      </nav>
+    <!-- 1. BREADCRUMB (Nằm dưới header, không dính, không chồng) -->
+    <nav aria-label="Breadcrumb" class="blog-breadcrumb">
+      <a routerLink="/" class="blog-breadcrumb-link">
+        <app-icon name="House" size="14"></app-icon>
+        <span>Trang chủ</span>
+      </a>
+      <span class="blog-breadcrumb-sep">/</span>
+      <span class="blog-breadcrumb-current">Blog và Cảm hứng</span>
+    </nav>
 
-      <!-- Article Header -->
-      <header class="reader-header">
-        <div class="reader-category-pill">{{ activeArticle.categoryName }}</div>
-        <h1 class="reader-title">{{ activeArticle.title }}</h1>
-        
-        <div class="reader-meta-row">
-          <div class="reader-author">
-            <img
-              [src]="activeArticle.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'"
-              [alt]="activeArticle.author"
-              class="reader-author-avatar"
-            />
-            <div>
-              <span class="reader-author-name">{{ activeArticle.author }}</span>
-              <span class="reader-date">Đăng ngày {{ formatDate(activeArticle.publishedAt || activeArticle.createdAt) }}</span>
-            </div>
-          </div>
-
-          <div class="reader-stats">
-            <span class="reader-views-count">
-              <app-icon name="Eye" [size]="14"></app-icon>
-              {{ activeArticle.views | number }} lượt đọc
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Cover Image -->
-      <div class="reader-cover-wrap">
-        <img [src]="activeArticle.coverImage" [alt]="activeArticle.title" class="reader-cover-image" />
+    <!-- 2. HERO: NHÃN VIÊN THUỐC, TIÊU ĐỀ, MÔ TẢ -->
+    <header class="blog-hero">
+      <div class="blog-hero-badge">
+        <app-icon name="Sparkles" size="13" color="var(--color-accent)"></app-icon>
+        <span>DCor Magazine &amp; Stories</span>
       </div>
+      <h1 class="blog-hero-title">Blog và Cảm hứng</h1>
+      <p class="blog-hero-desc">
+        Nơi hội tụ những ý tưởng thiết kế nội thất đương đại, bí quyết bài trí không gian sống sang trọng và những câu chuyện kiến trúc đầy cảm hứng.
+      </p>
+    </header>
 
-      <!-- Sapo / Excerpt -->
-      <div *ngIf="activeArticle.excerpt" class="reader-excerpt-box">
-        <p class="reader-excerpt-text">{{ activeArticle.excerpt }}</p>
-      </div>
+    <!-- 3. THANH LỌC & TÌM KIẾM (MỘT HÀNG TRONG KHUNG VIỀN BO TRÒN) -->
+    <section class="blog-filter-bar">
+      <div class="blog-filter-row">
 
-      <!-- Article Body HTML -->
-      <div class="reader-body-content" [innerHTML]="activeArticle.content"></div>
-
-      <!-- Tags & Social Share -->
-      <div class="reader-footer-tags" *ngIf="activeArticle.tags && activeArticle.tags.length > 0">
-        <span class="tags-label">Chủ đề liên quan:</span>
-        <div class="tags-list">
-          <span *ngFor="let t of activeArticle.tags" class="store-tag-chip">
-            #{{ t }}
-          </span>
-        </div>
-      </div>
-
-      <!-- =================================================================== -->
-      <!-- CUSTOMER-FACING RELATED PRODUCTS SECTION (FR8-A-02)                 -->
-      <!-- =================================================================== -->
-      <section
-        *ngIf="getRelatedProducts(activeArticle.relatedProductIds).length > 0"
-        class="related-products-section"
-      >
-        <div class="related-section-header">
-          <div class="related-header-badge">
-            <app-icon name="Sparkles" [size]="16" color="#BC5F13"></app-icon>
-            Gợi ý mua sắm
-          </div>
-          <h2 class="related-section-title">Sản Phẩm Trong Bài Viết Này</h2>
-          <p class="related-section-subtitle">
-            Các sản phẩm nội thất cao cấp được chuyên gia và kiến trúc sư lựa chọn trong không gian trên:
-          </p>
-        </div>
-
-        <div class="related-products-grid">
-          <div
-            *ngFor="let prod of getRelatedProducts(activeArticle.relatedProductIds)"
-            class="store-related-product-card"
-          >
-            <div class="prod-img-box">
-              <img [src]="prod.imageUrl" [alt]="prod.name" class="prod-img" />
-              <span *ngIf="prod.sku" class="prod-sku-badge">{{ prod.sku }}</span>
-            </div>
-            <div class="prod-card-body">
-              <span class="prod-card-cat">{{ prod.categoryName || 'Nội thất DCor' }}</span>
-              <h3 class="prod-card-title">{{ prod.name }}</h3>
-              <div class="prod-card-pricing">
-                <span class="prod-price-current">{{ formatCurrency(prod.price) }}</span>
-                <span *ngIf="prod.originalPrice && prod.originalPrice > prod.price" class="prod-price-old">
-                  {{ formatCurrency(prod.originalPrice) }}
-                </span>
-              </div>
-              <a [routerLink]="['/products', prod.id]" class="btn-view-product">
-                <app-icon name="Eye" [size]="14"></app-icon>
-                Xem chi tiết sản phẩm
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Back To Blog Button at Bottom -->
-      <div class="reader-bottom-nav">
-        <button class="btn-back-pill" (click)="backToList()">
-          <app-icon name="ArrowLeft" [size]="16"></app-icon>
-          Khám phá thêm các bài viết khác
-        </button>
-      </div>
-    </article>
-
-    <!-- ===================================================================== -->
-    <!-- VIEW B: BLOG ARTICLES LIST & SIDEBAR                                  -->
-    <!-- ===================================================================== -->
-    <div *ngIf="!activeArticle" class="blog-list-view">
-      <!-- Hero Banner -->
-      <section class="blog-hero-section">
-        <span class="hero-subhead">DCor Inspiration & Journal</span>
-        <h1 class="hero-main-title">Kiến Trúc & Không Gian Sống Thượng Lưu</h1>
-        <p class="hero-description">
-          Khám phá xu hướng thiết kế nội thất hiện đại, cẩm nang lựa chọn chất liệu da bò Ý và bí quyết bài trí không gian sống sang trọng cùng các kiến trúc sư DCor.
-        </p>
-      </section>
-
-      <!-- Category Filter Pills Bar -->
-      <div class="blog-filter-bar">
-        <div class="categories-scroll">
-          <button
-            class="cat-pill-btn"
-            [class.active]="selectedCategory === 'ALL'"
-            (click)="filterByCategory('ALL')"
-          >
-            Tất cả bài viết
-          </button>
-          <button
-            *ngFor="let cat of categories"
-            class="cat-pill-btn"
-            [class.active]="selectedCategory === cat.id"
-            (click)="filterByCategory(cat.id)"
-          >
-            {{ cat.name }} ({{ cat.articleCount }})
-          </button>
-        </div>
-
-        <!-- Search Input -->
+        <!-- Ô Tìm kiếm (Icon + Input, flex 1) -->
         <div class="blog-search-box">
-          <app-icon name="Search" [size]="16" class="blog-search-icon"></app-icon>
+          <span class="blog-search-icon">
+            <app-icon name="Search" size="18"></app-icon>
+          </span>
           <input
             type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchInput($event)"
+            placeholder="Tìm kiếm bài viết, xu hướng, phong cách..."
             class="blog-search-input"
-            placeholder="Tìm bài viết, chất liệu..."
-            [(ngModel)]="searchQuery"
+            aria-label="Tìm kiếm bài viết"
           />
+          @if (searchQuery()) {
+            <button
+              type="button"
+              (click)="clearSearch()"
+              class="blog-search-clear"
+              aria-label="Xóa nội dung tìm kiếm"
+            >
+              <app-icon name="X" size="16"></app-icon>
+            </button>
+          }
         </div>
+
+        <!-- Dropdown danh mục (Rộng khoảng 220px, có mũi tên) -->
+        <div class="blog-category-dropdown">
+          <button
+            type="button"
+            (click)="toggleDropdown()"
+            class="blog-dropdown-trigger"
+            aria-haspopup="listbox"
+            [attr.aria-expanded]="isDropdownOpen()"
+            aria-label="Lọc theo danh mục bài viết"
+          >
+            <div class="blog-dropdown-label">
+              <app-icon name="Layers" size="16" color="var(--color-primary)"></app-icon>
+              <span>{{ selectedCategoryName() }}</span>
+            </div>
+            <app-icon [name]="isDropdownOpen() ? 'ChevronUp' : 'ChevronDown'" size="16"></app-icon>
+          </button>
+
+          <!-- Danh sách thả xuống không bị cắt -->
+          @if (isDropdownOpen()) {
+            <div class="blog-dropdown-menu" role="listbox">
+              <button
+                type="button"
+                (click)="selectCategory('')"
+                class="blog-dropdown-item"
+                [class.is-active]="selectedCategorySlug() === ''"
+              >
+                <span>Tất cả danh mục</span>
+                <span class="blog-count-badge">{{ totalPostsCount() }}</span>
+              </button>
+
+              @for (cat of categories(); track cat.id) {
+                <button
+                  type="button"
+                  (click)="selectCategory(cat.slug)"
+                  class="blog-dropdown-item"
+                  [class.is-active]="selectedCategorySlug() === cat.slug"
+                >
+                  <span>{{ cat.name }}</span>
+                  <span class="blog-count-badge">{{ cat.postCount }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
       </div>
 
-      <!-- Layout 2 Columns: Main Articles List + Sidebar -->
-      <div class="blog-layout-grid">
-        <!-- Main Column: Articles Cards -->
-        <main class="articles-main-col">
-          <!-- Empty State -->
-          <div *ngIf="displayedArticles.length === 0" class="blog-empty-state">
-            <app-icon name="FileText" [size]="48" style="color: #cbd5e1; margin-bottom: 12px;"></app-icon>
-            <h3>Không tìm thấy bài viết nào</h3>
-            <p>Vui lòng thử tìm kiếm với từ khóa khác hoặc chọn chuyên mục khác.</p>
-          </div>
+      <!-- Hàng chip đang lọc -->
+      @if (selectedTag() || selectedCategorySlug() || searchQuery()) {
+        <div class="blog-active-filters">
+          <span class="blog-filter-label">Đang lọc:</span>
 
-          <!-- Articles Grid -->
-          <div class="articles-cards-grid">
-            <article
-              *ngFor="let art of displayedArticles"
-              class="blog-card"
-              (click)="selectArticle(art)"
-            >
-              <div class="card-cover-wrap">
-                <img [src]="art.coverImage" [alt]="art.title" class="card-cover-img" />
-                <span class="card-cat-badge">{{ art.categoryName }}</span>
-                <span *ngIf="art.relatedProductIds && art.relatedProductIds.length > 0" class="card-prods-badge" title="Bài viết có đính kèm sản phẩm gợi ý">
-                  <app-icon name="ShoppingCart" [size]="12"></app-icon>
-                  {{ art.relatedProductIds.length }} SP
-                </span>
-              </div>
+          @if (selectedCategorySlug()) {
+            <span class="blog-filter-chip">
+              <span>Danh mục: {{ selectedCategoryName() }}</span>
+              <button type="button" (click)="selectCategory('')" aria-label="Xóa lọc danh mục" class="blog-chip-remove">
+                <app-icon name="X" size="13"></app-icon>
+              </button>
+            </span>
+          }
 
-              <div class="card-body">
-                <div class="card-meta">
-                  <span>{{ formatDate(art.publishedAt || art.createdAt) }}</span>
-                  <span>&bull;</span>
-                  <span>{{ art.author }}</span>
-                </div>
+          @if (selectedTag()) {
+            <span class="blog-filter-chip">
+              <span>Thẻ: #{{ selectedTag() }}</span>
+              <button type="button" (click)="clearTag()" aria-label="Xóa lọc thẻ" class="blog-chip-remove">
+                <app-icon name="X" size="13"></app-icon>
+              </button>
+            </span>
+          }
 
-                <h3 class="card-title">{{ art.title }}</h3>
-                <p class="card-excerpt">{{ art.excerpt }}</p>
+          @if (searchQuery()) {
+            <span class="blog-filter-chip">
+              <span>Từ khóa: "{{ searchQuery() }}"</span>
+              <button type="button" (click)="clearSearch()" aria-label="Xóa tìm kiếm" class="blog-chip-remove">
+                <app-icon name="X" size="13"></app-icon>
+              </button>
+            </span>
+          }
 
-                <!-- Mini Assigned Products Preview -->
-                <div class="card-related-preview" *ngIf="getRelatedProducts(art.relatedProductIds).length > 0">
-                  <span class="preview-label">
-                    <app-icon name="ShoppingCart" [size]="12" color="#BC5F13"></app-icon>
-                    Sản phẩm trong bài:
-                  </span>
-                  <div class="preview-thumbs">
-                    <div *ngFor="let p of getRelatedProducts(art.relatedProductIds).slice(0, 3)" class="preview-thumb-item" [title]="p.name + ' - ' + formatCurrency(p.price)">
-                      <img [src]="p.imageUrl" [alt]="p.name" />
-                    </div>
-                    <span *ngIf="getRelatedProducts(art.relatedProductIds).length > 3" class="preview-more-badge">
-                      +{{ getRelatedProducts(art.relatedProductIds).length - 3 }}
-                    </span>
+          <button
+            type="button"
+            (click)="clearAllFilters()"
+            class="blog-clear-all-btn"
+          >
+            Xóa tất cả bộ lọc
+          </button>
+        </div>
+      }
+    </section>
+
+    <!-- 4. TRẠNG THÁI TẢI (SKELETON) -->
+    @if (isLoading()) {
+      <div class="blog-skeleton-hero"></div>
+      <div class="blog-grid">
+        @for (n of [1, 2, 3, 4, 5, 6]; track n) {
+          <div class="blog-skeleton-card"></div>
+        }
+      </div>
+    }
+
+    <!-- 5. TRẠNG THÁI LỖI -->
+    @if (!isLoading() && errorMessage()) {
+      <div class="blog-state-box is-error">
+        <div class="blog-state-icon">
+          <app-icon name="AlertTriangle" size="28"></app-icon>
+        </div>
+        <h2 class="blog-state-title">Không thể tải bài viết</h2>
+        <p class="blog-state-desc">{{ errorMessage() }}</p>
+        <button
+          type="button"
+          (click)="fetchPosts(true)"
+          class="blog-btn-action"
+        >
+          <app-icon name="RefreshCw" size="16"></app-icon>
+          <span>Thử lại</span>
+        </button>
+      </div>
+    }
+
+    <!-- 6. TRẠNG THÁI RỖNG -->
+    @if (!isLoading() && !errorMessage() && posts().length === 0) {
+      <div class="blog-state-box">
+        <div class="blog-state-icon">
+          <app-icon name="Search" size="28"></app-icon>
+        </div>
+        <h3 class="blog-state-title">Không tìm thấy bài viết nào</h3>
+        <p class="blog-state-desc">
+          Rất tiếc, không có bài viết nào phù hợp với bộ lọc hiện tại của bạn. Thử tìm với từ khóa khác hoặc quay lại danh mục đầy đủ.
+        </p>
+        <button
+          type="button"
+          (click)="clearAllFilters()"
+          class="blog-btn-action"
+        >
+          <span>Xem tất cả bài viết</span>
+        </button>
+      </div>
+    }
+
+    <!-- 7. DANH SÁCH BÀI VIẾT THỰC TẾ -->
+    @if (!isLoading() && !errorMessage() && posts().length > 0) {
+
+      <!-- BÀI NỔI BẬT: THẺ NGANG (ẢNH TRÁI ~55%, NỘI DUNG PHẢI) -->
+      @if (featuredPost(); as hero) {
+        <article class="blog-featured-card">
+          <div class="blog-featured-grid">
+            
+            <!-- Ảnh trái 55%, aspect 16/10, cover, bo góc, không tràn khung -->
+            <div class="blog-featured-media">
+              <a [routerLink]="['/blog', hero.slug]" class="blog-featured-img-wrap">
+                @if (hero.coverImageUrl) {
+                  <img
+                    [src]="hero.coverImageUrl"
+                    [alt]="hero.title"
+                    class="blog-featured-img"
+                  />
+                } @else {
+                  <div class="blog-featured-placeholder">
+                    <app-icon name="Newspaper" size="56"></app-icon>
                   </div>
-                </div>
-
-                <div class="card-footer">
-                  <div class="card-tags">
-                    <span *ngFor="let t of art.tags.slice(0, 2)" class="card-tag">#{{ t }}</span>
-                  </div>
-                  <span class="read-more-link">
-                    Đọc tiếp &rarr;
-                  </span>
-                </div>
-              </div>
-            </article>
-          </div>
-        </main>
-
-        <!-- Sidebar Column -->
-        <aside class="blog-sidebar-col">
-          <!-- Marketing Banners -->
-          <div *ngIf="sidebarBanners.length > 0" class="sidebar-widget banner-widget">
-            <h4 class="widget-title">Ưu Đãi Đặc Biệt</h4>
-            <div *ngFor="let b of sidebarBanners" class="sidebar-banner-item">
-              <a [href]="b.linkUrl" target="_blank">
-                <img [src]="b.imageUrl" [alt]="b.title" class="sidebar-banner-img" />
+                }
               </a>
-              <p class="sidebar-banner-text">{{ b.title }}</p>
+              <div class="blog-featured-badges">
+                <span class="blog-badge-highlight">Nổi bật</span>
+                <span class="blog-badge-cat">{{ hero.category.name }}</span>
+              </div>
             </div>
+
+            <!-- Nội dung phải -->
+            <div class="blog-featured-content">
+              <div>
+                <div class="blog-meta-row">
+                  <span class="blog-meta-item">
+                    <app-icon name="Calendar" size="14"></app-icon>
+                    <span>{{ formatDate(hero.publishedAt) }}</span>
+                  </span>
+                  <span class="blog-meta-dot">•</span>
+                  <span class="blog-meta-item">
+                    <app-icon name="Clock" size="14"></app-icon>
+                    <span>{{ hero.readingMinutes }} phút đọc</span>
+                  </span>
+                </div>
+
+                <h2 class="blog-featured-title">
+                  <a [routerLink]="['/blog', hero.slug]">{{ hero.title }}</a>
+                </h2>
+
+                <p class="blog-featured-excerpt">
+                  {{ hero.excerpt }}
+                </p>
+
+                <!-- Tags -->
+                @if (hero.tags && hero.tags.length > 0) {
+                  <div class="blog-tags-list">
+                    @for (t of hero.tags.slice(0, 3); track t) {
+                      <button
+                        type="button"
+                        (click)="selectTag(t)"
+                        class="blog-tag-btn"
+                      >
+                        #{{ t }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="blog-featured-footer">
+                <span class="blog-author-info">Bởi {{ hero.authorName }}</span>
+                <a
+                  [routerLink]="['/blog', hero.slug]"
+                  class="blog-read-btn"
+                >
+                  <span>Đọc bài viết</span>
+                  <app-icon name="ArrowRight" size="15"></app-icon>
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </article>
+      }
+
+      <!-- LƯỚI THẺ BÀI VIẾT (3 CỘT >=1100PX, 2 CỘT >=640PX, 1 CỘT MOBILE) -->
+      @if (gridPosts().length > 0) {
+        <section>
+          <div class="blog-section-header">
+            <h2 class="blog-section-title">
+              <app-icon name="Sparkles" size="18" color="var(--color-accent)"></app-icon>
+              <span>Các bài viết mới nhất</span>
+            </h2>
+            <span class="blog-section-count">Tổng cộng {{ total() }} bài viết</span>
           </div>
 
-          <!-- Featured Topics / Categories -->
-          <div class="sidebar-widget">
-            <h4 class="widget-title">Chuyên Mục Quan Tâm</h4>
-            <ul class="sidebar-cat-list">
-              <li
-                *ngFor="let cat of categories"
-                (click)="filterByCategory(cat.id)"
-                [class.active]="selectedCategory === cat.id"
-              >
-                <span>{{ cat.name }}</span>
-                <span class="cat-count-pill">{{ cat.articleCount }}</span>
-              </li>
-            </ul>
-          </div>
+          <div class="blog-grid">
+            @for (post of gridPosts(); track post.id) {
+              <article class="blog-card">
+                
+                <div>
+                  <!-- Ảnh aspect 4/3, cover -->
+                  <div class="blog-card-media">
+                    <a [routerLink]="['/blog', post.slug]" class="blog-card-img-link">
+                      @if (post.coverImageUrl) {
+                        <img
+                          [src]="post.coverImageUrl"
+                          [alt]="post.title"
+                          class="blog-card-img"
+                        />
+                      } @else {
+                        <div class="blog-featured-placeholder">
+                          <app-icon name="Newspaper" size="40"></app-icon>
+                        </div>
+                      }
+                    </a>
+                    <span class="blog-card-cat-badge">{{ post.category.name }}</span>
+                  </div>
 
-          <!-- Consultation Box -->
-          <div class="sidebar-widget consultation-widget">
-            <h4 class="widget-title" style="color: #ffffff;">Tư Vấn Thiết Kế 3D</h4>
-            <p style="font-size: 13px; color: #f4ebe2; line-height: 1.5; margin-bottom: 14px;">
-              Đội ngũ kiến trúc sư DCor sẵn sàng tư vấn giải pháp nội thất và phối màu sofa trực tiếp tại căn hộ của bạn.
+                  <!-- Thân thẻ -->
+                  <div class="blog-card-body">
+                    <div class="blog-meta-row">
+                      <span class="blog-meta-item">
+                        <app-icon name="Calendar" size="13"></app-icon>
+                        <span>{{ formatDate(post.publishedAt) }}</span>
+                      </span>
+                      <span class="blog-meta-dot">•</span>
+                      <span class="blog-meta-item">
+                        <app-icon name="Clock" size="13"></app-icon>
+                        <span>{{ post.readingMinutes }} phút</span>
+                      </span>
+                    </div>
+
+                    <!-- Tiêu đề tối đa 2 dòng -->
+                    <h3 class="blog-card-title">
+                      <a [routerLink]="['/blog', post.slug]">{{ post.title }}</a>
+                    </h3>
+
+                    <!-- Tóm tắt tối đa 3 dòng -->
+                    <p class="blog-card-excerpt">
+                      {{ post.excerpt }}
+                    </p>
+
+                    <!-- Tags -->
+                    @if (post.tags && post.tags.length > 0) {
+                      <div class="blog-tags-list">
+                        @for (tag of post.tags.slice(0, 3); track tag) {
+                          <button
+                            type="button"
+                            (click)="selectTag(tag)"
+                            class="blog-tag-btn"
+                          >
+                            #{{ tag }}
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Footer thẻ -->
+                <div class="blog-card-footer">
+                  <span class="blog-card-author">{{ post.authorName }}</span>
+                  <a
+                    [routerLink]="['/blog', post.slug]"
+                    class="blog-card-more-link"
+                  >
+                    <span>Chi tiết</span>
+                    <app-icon name="ArrowRight" size="13"></app-icon>
+                  </a>
+                </div>
+
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- 8. NÚT 'XEM THÊM' GIỮA TRANG -->
+      @if (hasMore()) {
+        <div class="blog-load-more-wrap">
+          <p class="blog-load-more-counter">
+            Đang hiển thị {{ posts().length }} trên tổng số {{ total() }} bài viết
+          </p>
+          <button
+            type="button"
+            (click)="loadMore()"
+            [disabled]="isLoadingMore()"
+            class="blog-load-more-btn"
+          >
+            @if (isLoadingMore()) {
+              <app-icon name="RefreshCw" size="16" class="spin-icon"></app-icon>
+              <span>Đang tải thêm...</span>
+            } @else {
+              <span>Xem thêm bài viết</span>
+              <app-icon name="ChevronDown" size="16"></app-icon>
+            }
+          </button>
+        </div>
+      }
+
+    }
+
+    <!-- 9. LỐI VÀO: 'CHIA SẺ GÓC NHÀ' VÀ 'THỬ THIẾT KẾ' -->
+    <section class="blog-cta-section">
+      <div class="blog-cta-header">
+        <span class="blog-cta-tag">Đồng hành cùng DCor</span>
+        <h2 class="blog-cta-title">Biến ý tưởng thành hiện thực</h2>
+      </div>
+
+      <div class="blog-cta-grid">
+        
+        <!-- CARD 1: CHIA SẺ GÓC NHÀ CỦA BẠN -> /community -->
+        <div class="blog-cta-card">
+          <div>
+            <div class="blog-cta-icon-box">
+              <app-icon name="Heart" size="24" color="var(--color-accent)"></app-icon>
+            </div>
+            <h3 class="blog-cta-card-title">Chia sẻ góc nhà của bạn</h3>
+            <p class="blog-cta-desc">
+              Bạn vừa hoàn thiện góc đọc sách xinh xắn hay phòng khách ưng ý? Hãy chia sẻ hình ảnh và truyền cảm hứng tới cộng đồng yêu nhà đẹp DCor.
             </p>
-            <a routerLink="/account/appointments" class="btn-consultation">
-              Đặt Lịch Tư Vấn Miễn Phí
+          </div>
+          <div>
+            <a routerLink="/community" class="blog-cta-btn-primary">
+              <span>Tham gia cộng đồng</span>
+              <app-icon name="ArrowRight" size="15"></app-icon>
             </a>
           </div>
-        </aside>
+        </div>
+
+        <!-- CARD 2: THỬ THIẾT KẾ -> /custom-design -->
+        <div class="blog-cta-card">
+          <div>
+            <div class="blog-cta-icon-box">
+              <app-icon name="Sparkles" size="24" color="var(--color-primary)"></app-icon>
+            </div>
+            <h3 class="blog-cta-card-title">Thử thiết kế không gian</h3>
+            <p class="blog-cta-desc">
+              Trải nghiệm công cụ phối cảnh 2D/3D trực quan, tùy chỉnh kích thước phòng và thử sắp đặt các món đồ nội thất thực tế trước khi bài trí.
+            </p>
+          </div>
+          <div>
+            <a routerLink="/custom-design" class="blog-cta-btn-accent">
+              <span>Bắt đầu thiết kế ngay</span>
+              <app-icon name="ArrowRight" size="15"></app-icon>
+            </a>
+          </div>
+        </div>
+
       </div>
-    </div>
+    </section>
 
   </div>
 </div>

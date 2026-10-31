@@ -323,7 +323,7 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     if (!content && !imageFile) return;
 
     if (content.length > 1000) {
-      this.chatService.socketError.set('Tin nhắn không được vượt quá 1000 ký tự.');
+      this.chatService.setError('Tin nhắn không được vượt quá 1000 ký tự.');
       return;
     }
 
@@ -350,7 +350,7 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
       this.chatService.sendTyping(false);
       this.scrollToBottom('smooth');
     } catch (err: any) {
-      this.chatService.socketError.set(err?.message || 'Không thể gửi tin nhắn.');
+      this.chatService.setError(err?.message || 'Không thể gửi tin nhắn.');
     } finally {
       this.isSending.set(false);
       this.isUploadingImage.set(false);
@@ -399,7 +399,7 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     const file = files[0];
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      this.chatService.socketError.set('Chỉ chấp nhận tệp ảnh định dạng JPG, PNG hoặc WebP.');
+      this.chatService.setError('Chỉ chấp nhận tệp ảnh định dạng JPG, PNG hoặc WebP.');
       return;
     }
 
@@ -460,8 +460,9 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
       this.showNewMessagesButton.set(false);
     }
 
-    // Khi cuộn lên đầu (scrollTop <= 30), tải thêm tin cũ
-    if (el.scrollTop <= 30 && this.chatService.hasMoreHistory() && !this.chatService.isLoadingHistory()) {
+    // Khi cuộn lên đầu (scrollTop <= 30), chỉ tải thêm tin cũ khi danh sách đã đủ dài để cuộn
+    const isScrollable = el.scrollHeight > el.clientHeight + 20;
+    if (isScrollable && el.scrollTop <= 30 && this.chatService.hasMoreHistory() && !this.chatService.isLoadingHistory()) {
       const convId = this.chatService.currentConversation()?.id;
       const msgs = this.chatService.messages();
       if (convId && msgs.length > 0) {

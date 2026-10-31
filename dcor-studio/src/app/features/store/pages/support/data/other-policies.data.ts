@@ -3,49 +3,49 @@ import { OtherPolicyLink } from '../models/support.model';
 export const ALL_SUPPORT_LINKS: OtherPolicyLink[] = [
   {
     label: 'Hướng dẫn mua hàng',
-    description: 'Chi tiết các bước tìm kiếm, đặt mua nội thất và theo dõi đơn hàng',
+    description: 'Chi tiết các bước tìm kiếm, chọn biến thể, đặt mua và theo dõi đơn hàng',
     href: '/huong-dan-mua-hang',
     iconName: 'ShoppingBag',
     badge: 'Cẩm nang'
   },
   {
     label: 'Chính sách bảo hành',
-    description: 'Quy định bảo hành dài hạn 12 - 36 tháng và quy trình tiếp nhận kỹ thuật',
+    description: 'Mã bảo hành điện tử tự động, thời hạn theo từng sản phẩm và theo dõi lịch sử bảo trì',
     href: '/chinh-sach/bao-hanh',
     iconName: 'ShieldCheck',
-    badge: 'Tiêu chuẩn'
+    badge: 'Chính hãng'
   },
   {
     label: 'Chính sách đổi trả',
-    description: 'Quy trình đổi mới và hoàn tiền trong thời gian quy định minh bạch',
+    description: 'Quy trình đổi trả tối đa 7 ngày, thẩm định trực tuyến hoặc giám định tại nhà',
     href: '/chinh-sach/doi-tra',
     iconName: 'RefreshCw',
     badge: 'Minh bạch'
   },
   {
     label: 'Chính sách vận chuyển',
-    description: 'Phạm vi giao hàng toàn quốc, biểu phí và dịch vụ lắp ráp tận nhà',
+    description: 'Phí vận chuyển nội thành/liên tỉnh, thời gian giao dự kiến và dịch vụ lắp đặt tận nơi',
     href: '/chinh-sach/van-chuyen',
     iconName: 'Truck',
     badge: 'Tận tâm'
   },
   {
     label: 'Chính sách thanh toán',
-    description: 'Đa dạng hình thức COD, QR, thẻ và chính sách bảo mật giao dịch',
+    description: 'Thanh toán COD và VietQR động, quy định đặt cọc 30% cho đơn giá trị cao',
     href: '/chinh-sach/thanh-toan',
     iconName: 'CreditCard',
     badge: 'An toàn'
   },
   {
     label: 'Câu hỏi thường gặp',
-    description: 'Giải đáp nhanh hơn 20 thắc mắc phổ biến về sản phẩm và dịch vụ',
+    description: 'Giải đáp các thắc mắc phổ biến về sản phẩm, quy trình đơn hàng và hỗ trợ khách hàng',
     href: '/faq',
     iconName: 'Info',
-    badge: 'Hỗ trợ 24/7'
+    badge: 'Trợ giúp'
   },
   {
-    label: 'Về DCor Furniture',
-    description: 'Câu chuyện thương hiệu, giá trị cốt lõi và hệ thống xưởng chế tác',
+    label: 'Về DCor',
+    description: 'Design Your Core - Nền tảng thương mại điện tử nội thất kết hợp tư vấn thiết kế theo yêu cầu',
     href: '/about',
     iconName: 'House',
     badge: 'Thương hiệu'
@@ -55,4 +55,3 @@ export const ALL_SUPPORT_LINKS: OtherPolicyLink[] = [
 export function getOtherPolicies(currentHref: string): OtherPolicyLink[] {
   return ALL_SUPPORT_LINKS.filter(link => link.href !== currentHref);
 }
-

@@ -20,9 +20,9 @@ import { BreadcrumbItem } from '../../models/support.model';
   `
 })
 export class AboutComponent {
-  readonly pageTitle = 'Về DCor Furniture - Design Your Core';
-  readonly pageSubtitle = 'Hành trình kiến tạo không gian sống đậm chất nghệ thuật, kết hợp kỹ nghệ mộc mộng truyền thống tinh xảo và phong cách thiết kế tối giản hiện đại.';
-  readonly pageBadge = 'Câu chuyện thương hiệu';
+  readonly pageTitle = 'Về DCor - Design Your Core';
+  readonly pageSubtitle = 'Nền tảng thương mại điện tử chuyên kinh doanh sản phẩm nội thất kết hợp dịch vụ tư vấn và kết nối thiết kế theo yêu cầu.';
+  readonly pageBadge = 'Thương hiệu DCor';
   readonly currentHref = '/about';
 
   readonly breadcrumbs: BreadcrumbItem[] = [
@@ -31,4 +31,3 @@ export class AboutComponent {
 
   readonly sections = ABOUT_SECTIONS;
 }
-

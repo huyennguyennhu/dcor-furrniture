@@ -231,6 +231,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
         // Tạo hội thoại trong Database
         const conversation = await prisma.chatConversation.create({
           data: {
+            customerId: socket.data.customerId || null,
             guestName: trimmedName,
             guestPhone: trimmedPhone,
             guestTokenHash,
@@ -340,6 +341,13 @@ export function initChatSocket(httpServer: HttpServer): Server {
         const conv = await prisma.chatConversation.findUnique({
           where: { id: conversationId },
         });
+
+        if (conv && socket.data.customerId && !conv.customerId) {
+          await prisma.chatConversation.update({
+            where: { id: conversationId },
+            data: { customerId: socket.data.customerId },
+          });
+        }
 
         if (!conv) {
           socket.emit('chat:error', { message: 'Không tìm thấy cuộc trò chuyện này.' });
