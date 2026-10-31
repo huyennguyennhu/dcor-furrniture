@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { memoryCache, CACHE_KEYS } from '../lib/cache';
 
-let isTableInitialized = false;
+let isTableInitialized = process.env.INIT_DB !== 'true';
 let initPromise: Promise<void> | null = null;
 
 // Cấu hình ca tư vấn chuẩn

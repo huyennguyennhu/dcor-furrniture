@@ -306,19 +306,19 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
 ];
 
 const STYLE_COLLECTIONS = [
-  { id: 'scandinavian', name: 'Scandinavian', name_vi: 'Bắc Âu Hiện Đại', description_vi: 'Đơn giản, tinh tế, ưu tiên ánh sáng tự nhiên và công năng.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/scandi.jpg', accentColor: '#D1D5DB' },
-  { id: 'japandi', name: 'Japandi', name_vi: 'Japandi Tối Giản', description_vi: 'Sự pha trộn giữa sự mộc mạc của Nhật Bản và nét thanh lịch của Bắc Âu.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/japandi.jpg', accentColor: '#E5E7EB' },
-  { id: 'midcentury', name: 'Mid-Century', name_vi: 'Retro Cổ Điển', description_vi: 'Đường nét mạnh mẽ, vật liệu tự nhiên mang hơi thở của những năm 50s.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/mid.jpg', accentColor: '#F3F4F6' }
+  { id: 'scandinavian', name: 'Scandinavian', name_vi: 'Bắc Âu Hiện Đại', description_vi: 'Đơn giản, tinh tế, ưu tiên ánh sáng tự nhiên và công năng.', coverImage: '/assets/img/scandinavian.jpg', accentColor: '#D1D5DB' },
+  { id: 'japandi', name: 'Japandi', name_vi: 'Japandi Tối Giản', description_vi: 'Sự pha trộn giữa sự mộc mạc của Nhật Bản và nét thanh lịch của Bắc Âu.', coverImage: '/assets/img/japandi.jpg', accentColor: '#E5E7EB' },
+  { id: 'midcentury', name: 'Mid-Century', name_vi: 'Retro Cổ Điển', description_vi: 'Đường nét mạnh mẽ, vật liệu tự nhiên mang hơi thở của những năm 50s.', coverImage: '/assets/img/modern_luxury.jpg', accentColor: '#F3F4F6' }
 ];
 
 const ROOM_INSPIRATIONS = [
-  { id: 'living-1', name_vi: 'Phòng khách Metropolitan', tag: 'Phòng khách', area: '25m²', description_vi: 'Góc nhìn đô thị hiện đại với tông màu trung tính và nhấn nhá bằng kim loại.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/living1.jpg', productIds: ['prod-1', 'prod-2'] },
-  { id: 'dining-1', name_vi: 'Phòng ăn Ấm cúng', tag: 'Phòng ăn', area: '15m²', description_vi: 'Nơi sum vầy hoàn hảo với bàn ăn gỗ tự nhiên mở rộng được.', coverImage: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/rooms/dining.jpg', productIds: ['prod-3'] }
+  { id: 'living-1', name_vi: 'Phòng khách Metropolitan', tag: 'Phòng khách', area: '25m²', description_vi: 'Góc nhìn đô thị hiện đại với tông màu trung tính và nhấn nhá bằng kim loại.', coverImage: '/assets/room_img/phong_khach.png', productIds: ['prod-1', 'prod-2'] },
+  { id: 'dining-1', name_vi: 'Phòng ăn Ấm cúng', tag: 'Phòng ăn', area: '15m²', description_vi: 'Nơi sum vầy hoàn hảo với bàn ăn gỗ tự nhiên mở rộng được.', coverImage: '/assets/room_img/phong_an.png', productIds: ['prod-3'] }
 ];
 
 const HERO_HOTSPOTS = [
-  { id: 'spot-1', x: 18, y: 72, name_vi: 'Ghế Bành Da Cao Cấp', price: 'Từ 18.500.000đ', image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/indivi.jpg', productId: 'sofa-indivi' },
-  { id: 'spot-2', x: 84, y: 68, name_vi: 'Sofa Góc L Đương Đại', price: 'Từ 48.900.000đ', image: 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/indivi.jpg', productId: 'sofa-indivi' }
+  { id: 'spot-1', x: 18, y: 72, name_vi: 'Ghế Bành Da Cao Cấp', price: 'Từ 18.500.000đ', image: '/assets/img/furniture-placeholder.svg', productId: 'sofa-indivi' },
+  { id: 'spot-2', x: 84, y: 68, name_vi: 'Sofa Góc L Đương Đại', price: 'Từ 48.900.000đ', image: '/assets/img/furniture-placeholder.svg', productId: 'sofa-indivi' }
 ];
 
 const TRUST_ITEMS = [
@@ -605,7 +605,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       value: cat,
       emoji: '',
       desc: `${counts[cat]} mẫu`,
-      img: firstImages[cat] || 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/41252001_2733503_PNG-Web2072dpi.png'
+      img: firstImages[cat] || '/assets/img/furniture-placeholder.svg'
     })).sort((a, b) => {
       const idxA = order.indexOf(a.value);
       const idxB = order.indexOf(b.value);

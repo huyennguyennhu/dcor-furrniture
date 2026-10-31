@@ -224,7 +224,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     if (imgs.length === 0) {
-      imgs.push('https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/41252001_2733503_PNG-Web2072dpi.png');
+      imgs.push('/assets/img/furniture-placeholder.svg');
     }
 
     return imgs;
@@ -332,7 +332,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
 
   onImageError(index: number) {
     if (this.cardImages[index]) {
-      this.cardImages[index] = 'https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/41252001_2733503_PNG-Web2072dpi.png';
+      this.cardImages[index] = '/assets/img/furniture-placeholder.svg';
       this.cdr.markForCheck();
     }
   }

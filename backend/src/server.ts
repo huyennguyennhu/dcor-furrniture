@@ -674,14 +674,18 @@ import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
-  ensureConsultationTable().catch(err => console.error('Failed to init consultation DB:', err));
-  initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
-  initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
-  initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
-  initPromotionsAndDesignsDatabase().catch(err => console.error('Failed to init promotions and designs DB:', err));
-  initMyDesignsDatabase().catch(err => console.error('Failed to init my designs DB:', err));
-  initChatDatabase().catch(err => console.error('Failed to init chat DB:', err));
-  initBlogDatabase().catch(err => console.error('Failed to init blog DB:', err));
+  // Chỉ chạy DDL kiểm tra tạo bảng khi có cờ INIT_DB=true
+  // Mặc định tắt để tránh lock database và quá tải CPU Supabase khi dev hot-reload
+  if (process.env.INIT_DB === 'true') {
+    ensureConsultationTable().catch(err => console.error('Failed to init consultation DB:', err));
+    initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
+    initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
+    initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
+    initPromotionsAndDesignsDatabase().catch(err => console.error('Failed to init promotions and designs DB:', err));
+    initMyDesignsDatabase().catch(err => console.error('Failed to init my designs DB:', err));
+    initChatDatabase().catch(err => console.error('Failed to init chat DB:', err));
+    initBlogDatabase().catch(err => console.error('Failed to init blog DB:', err));
+  }
 });
 
 

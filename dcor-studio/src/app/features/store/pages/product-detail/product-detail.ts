@@ -762,7 +762,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       if (!list.includes(img)) list.push(img);
     });
 
-    return list.length > 0 ? list : ['https://ckkvyltbeinzqogjsfli.supabase.co/storage/v1/object/public/dcor/sofas/41252001_2733503_PNG-Web2072dpi.png'];
+    return list.length > 0 ? list : ['/assets/img/furniture-placeholder.svg'];
   }
 
   // Nhận diện loại nhóm thuộc tính để hiển thị phù hợp

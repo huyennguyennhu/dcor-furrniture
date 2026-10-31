@@ -188,12 +188,8 @@
                 </span>
               </div>
 
-              <!-- Top-right Action Buttons: Xem nhanh + So sánh + Yêu thích -->
+              <!-- Top-right Action Buttons: So sánh + Yêu thích -->
               <div class="card-corner-actions">
-                <button type="button" class="round-action-btn quickview-btn" title="Xem nhanh"
-                  (click)="openQuickView($event, prod)">
-                  <app-icon name="Eye" size="16" color="#4b5563"></app-icon>
-                </button>
                 <button type="button" class="round-action-btn compare-btn" [class.active]="isInCompare(prod.productId)"
                   [class.disabled-compare]="isCompareDisabledForProduct(prod)"
                   [disabled]="isCompareDisabledForProduct(prod)" [title]="getCompareButtonTooltip(prod)"
@@ -202,7 +198,7 @@
                     [color]="isInCompare(prod.productId) ? '#b45309' : (isCompareDisabledForProduct(prod) ? '#9ca3af' : '#4b5563')"></app-icon>
                 </button>
                 <button type="button" class="round-action-btn wishlist-btn"
-                  [class.active]="wishlist.includes(prod.productId)" 
+                  [class.active]="wishlist.includes(prod.productId)"
                   [title]="wishlist.includes(prod.productId) ? 'Bỏ yêu thích' : 'Yêu thích'"
                   (click)="toggleWishlist($event, prod.productId)">
                   <app-icon name="Heart" size="16" [color]="wishlist.includes(prod.productId) ? '#C42326' : '#4b5563'"
