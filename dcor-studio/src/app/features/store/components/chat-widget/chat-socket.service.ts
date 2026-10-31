@@ -477,20 +477,11 @@ export class ChatSocketService {
   }
 
   /**
-   * Chọn câu trả lời gợi ý nhanh
+   * Chọn câu trả lời gợi ý nhanh (Gửi như một tin nhắn khách hàng với Optimistic UI)
    */
   public selectQuickReply(payload: string): void {
-    const conv = this.currentConversation();
-    if (!conv) return;
-
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('quickReply:select', {
-        conversationId: conv.id,
-        payload,
-      });
-    } else {
-      this.sendMessage(payload);
-    }
+    if (!payload || !payload.trim()) return;
+    this.sendMessage(payload.trim());
   }
 
   /**

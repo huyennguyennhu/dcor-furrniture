@@ -425,9 +425,9 @@ export function initChatSocket(httpServer: HttpServer): Server {
             }
             await broadcastConversationUpdate(conversationId);
 
-            // G. Xử lý phản hồi tự động nếu mode là BOT hoặc WAITING_STAFF
-            // Nếu mode là STAFF: Bot TUYỆT ĐỐI KHÔNG trả lời!
-            if (conv.mode === 'STAFF') {
+            // G. Xử lý phản hồi tự động nếu mode là BOT
+            // Nếu mode là STAFF hoặc WAITING_STAFF: Bot TUYỆT ĐỐI KHÔNG trả lời tự động!
+            if (conv.mode === 'STAFF' || conv.mode === 'WAITING_STAFF') {
               return;
             }
 
@@ -646,10 +646,11 @@ export function initChatSocket(httpServer: HttpServer): Server {
       }
     });
 
-    // 5. quickReply:select (Khách bấm chọn quick reply)
+    // 5. quickReply:select (Dự phòng cho client cũ nếu gửi event này)
     socket.on('quickReply:select', (data: { conversationId: string; payload: string }) => {
       if (data?.conversationId && data?.payload) {
-        socket.emit('chat:send', {
+        // Tự kích hoạt hàm xử lý chat:send nội bộ trên cùng socket instance
+        socket.emit('_internal:chat:send', {
           conversationId: data.conversationId,
           content: data.payload,
           clientMessageId: `qr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,

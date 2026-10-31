@@ -253,6 +253,10 @@ export class ChatBotService {
         ? this.replaceVariables(complaintScript.answer, settings)
         : 'DCor vô cùng xin lỗi về trải nghiệm chưa được hài lòng của bạn! Hệ thống đang ưu tiên chuyển tiếp cuộc trò chuyện tới Trưởng bộ phận CSKH để hỗ trợ bạn ngay lập tức.';
 
+      delete botState.step;
+      delete botState.pendingOrderNumber;
+      delete botState.pendingPhone;
+
       return {
         reply: answer,
         needsHandoff: true,
@@ -263,9 +267,77 @@ export class ChatBotService {
       };
     }
 
-    // 3. Xử lý luồng nhiều bước đang chờ (botState)
+    // 2.1. Kiểm tra từ khóa Gặp nhân viên / Handoff trực tiếp -> ƯU TIÊN CAO HƠN MỌI TRẠNG THÁI CHỜ
+    const handoffKeywords = [
+      'gap nhan vien',
+      'gap cskh',
+      'gap tu van vien',
+      'noi chuyen voi nguoi that',
+      'ho tro truc tiep',
+      'nhan vien dau roi',
+      'tu van truc tiep',
+      'gap nhan vien tu van',
+    ];
+    const normalizedInputForHandoff = normalizeChatText(userContent);
+    const wantsHandoff = handoffKeywords.some((kw) => normalizedInputForHandoff.includes(kw));
+
+    if (wantsHandoff) {
+      delete botState.step;
+      delete botState.pendingOrderNumber;
+      delete botState.pendingPhone;
+
+      const handoffScript = scripts.find((s) => s.intent === 'HUMAN_HANDOFF');
+      const answer = handoffScript
+        ? this.replaceVariables(handoffScript.answer, settings)
+        : this.replaceVariables('{{handoffMessage}}', settings);
+
+      const business = this.isBusinessOpen(settings['workingHours']);
+      const sysMsg = business.isOpen
+        ? 'Hiện đang trong giờ làm việc. Chuyên viên tư vấn DCor sẽ phản hồi bạn trong giây lát. Vui lòng giữ kết nối nhé!'
+        : 'Hiện đang ngoài giờ làm việc (08:00 - 22:00). Nhân viên DCor sẽ liên hệ hỗ trợ bạn sớm nhất vào ca làm tiếp theo lúc 08:00 sáng mai. Trong lúc chờ, bot vẫn sẵn sàng giải đáp các câu hỏi thường gặp của bạn.';
+
+      return {
+        reply: answer,
+        needsHandoff: true,
+        systemMessage: sysMsg,
+        newFallbackCount: 0,
+        updatedBotState: botState,
+        quickReplies: handoffScript?.quickReplies || [
+          { label: '📞 Gọi Hotline khẩn', payload: 'hotline' },
+          { label: '⏰ Xem giờ làm việc', payload: 'giờ làm việc' },
+        ],
+      };
+    }
+
+    // 2.2. Kiểm tra từ khóa HỦY/THOÁT luồng tra cứu đơn hàng
+    const cancelKeywords = ['huy', 'huy tra cuu', 'khong tra cuu nua', 'quay lai', 'bo qua', 'thoat'];
+    if (botState.step && cancelKeywords.includes(normalizedInputForHandoff)) {
+      delete botState.step;
+      delete botState.pendingOrderNumber;
+      delete botState.pendingPhone;
+
+      return {
+        reply: 'Đã hủy yêu cầu tra cứu đơn hàng. DCor có thể hỗ trợ gì khác cho bạn hôm nay?',
+        quickReplies: [
+          { label: '🛋️ Tìm sản phẩm', payload: 'tìm sản phẩm' },
+          { label: '📦 Tra cứu đơn', payload: 'tra cứu đơn hàng' },
+          { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+        ],
+        newFallbackCount: 0,
+        updatedBotState: botState,
+      };
+    }
+
+    // 3. Xử lý luồng nhiều bước đang chờ (botState) - Chỉ tiếp tục khi khách không chuyển sang intent khác
     if (botState.step === 'AWAITING_ORDER_NUMBER' || botState.step === 'AWAITING_PHONE') {
-      return await this.handleOrderStatusMultiStep(userContent, conversation, botState, settings);
+      const { bestMatch: stepMatch } = this.scoreIntents(userContent, scripts);
+      if (stepMatch && stepMatch.score >= 0.7 && stepMatch.script.intent !== 'ORDER_STATUS') {
+        delete botState.step;
+        delete botState.pendingOrderNumber;
+        delete botState.pendingPhone;
+      } else {
+        return await this.handleOrderStatusMultiStep(userContent, conversation, botState, settings);
+      }
     }
 
     // 4. Kiểm tra tin nhắn quá ngắn / chỉ có emoji
@@ -445,22 +517,8 @@ export class ChatBotService {
     // 2. Tìm mã đơn hàng từ nội dung tin nhắn hoặc trong botState
     const extractedOrderCode = extractOrderNumber(userContent) || state.pendingOrderNumber;
 
-    // 3. Tìm số điện thoại: từ tin nhắn, hoặc SĐT khách vãng lai, hoặc SĐT khách đăng ký
+    // 3. Tìm số điện thoại: Ưu tiên SĐT do khách nhập trực tiếp trong tin nhắn hoặc pendingPhone
     let phone = extractPhoneNumber(userContent) || state.pendingPhone;
-
-    if (!phone) {
-      if (conversation.guestPhone) {
-        phone = conversation.guestPhone;
-      } else if (conversation.customerId) {
-        const cust = await prisma.customer.findUnique({
-          where: { id: conversation.customerId },
-          select: { phone: true },
-        });
-        if (cust?.phone) {
-          phone = cust.phone;
-        }
-      }
-    }
 
     // Nếu chưa có mã đơn hàng
     if (!extractedOrderCode) {
@@ -470,6 +528,7 @@ export class ChatBotService {
         quickReplies: [
           { label: '📦 Ví dụ: DC-123456', payload: 'DC-123456' },
           { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+          { label: '❌ Hủy', payload: 'hủy' },
         ],
         updatedBotState: state,
         newFallbackCount: 0,
@@ -479,11 +538,28 @@ export class ChatBotService {
     // Đã có mã đơn hàng, lưu lại vào state
     state.pendingOrderNumber = extractedOrderCode;
 
-    // Nếu chưa có số điện thoại đối chiếu
+    // Nếu khách chưa nhập số điện thoại trực tiếp trong tin nhắn:
+    // Kiểm tra xem khách có tài khoản đã đăng nhập không
+    if (!phone && conversation.customerId) {
+      const cust = await prisma.customer.findUnique({
+        where: { id: conversation.customerId },
+        select: { phone: true },
+      });
+      if (cust?.phone) {
+        phone = cust.phone;
+      }
+    }
+
+    // Nếu vẫn chưa có số điện thoại (khách vãng lai chưa nhập SĐT tra cứu):
+    // Yêu cầu nhập SĐT để xác thực rõ ràng, KHÔNG tự động lấy SĐT vãng lai chưa được đối chiếu
     if (!phone) {
       state.step = 'AWAITING_PHONE';
       return {
-        reply: `Để bảo mật thông tin đơn hàng **${extractedOrderCode}**, bạn vui lòng nhập số điện thoại đã dùng khi đặt hàng để DCor xác nhận nhé!`,
+        reply: `DCor đã nhận mã đơn **${extractedOrderCode}**. Để bảo mật thông tin, bạn vui lòng nhập số điện thoại đặt hàng để DCor đối chiếu nhé!`,
+        quickReplies: [
+          { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+          { label: '❌ Hủy tra cứu', payload: 'hủy' },
+        ],
         updatedBotState: state,
         newFallbackCount: 0,
       };
@@ -512,6 +588,7 @@ export class ChatBotService {
         quickReplies: [
           { label: '🔄 Thử lại', payload: 'tra cứu đơn hàng' },
           { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+          { label: '❌ Hủy', payload: 'hủy' },
         ],
         updatedBotState: state,
         newFallbackCount: 0,
