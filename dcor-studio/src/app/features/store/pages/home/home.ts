@@ -27,7 +27,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Ghế',
     subtitle: 'Ghế ngồi thanh lịch và êm ái.',
     subtitleVi: 'Ghế ngồi thanh lịch và êm ái.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525312/dcor/products/xvsrjkyvqfgxcqkv8bns.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/d028c878-9227-4aac-9ba6-ad43013ccaef/1354515_PNG-Web%2072dpi.png',
     query: 'chairs'
   },
   {
@@ -36,7 +36,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Bàn',
     subtitle: 'Bàn tối giản, chất liệu vượt thời gian.',
     subtitleVi: 'Bàn tối giản, chất liệu vượt thời gian.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525448/dcor/products/cdtmikumspz1yplcar4r.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/87507d0b-ad67-47a7-8089-ad4300b2ee2e/1106983_PNG-Web%2072dpi.png',
     query: 'tables'
   },
   {
@@ -45,7 +45,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Giường',
     subtitle: 'Không gian thư thái, trọn vẹn giấc ngủ.',
     subtitleVi: 'Không gian thư thái, trọn vẹn giấc ngủ.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525291/dcor/products/pxuipzghnx3owtpkpdxq.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/e4417f8b-6dfc-4b7e-baea-b2fb0104f233/2864658_PNG-Web%2072dpi.png',
     query: 'beds'
   },
   {
@@ -54,7 +54,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Tủ Kệ',
     subtitle: 'Giải pháp lưu trữ thông minh, tối giản.',
     subtitleVi: 'Giải pháp lưu trữ thông minh, tối giản.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525353/dcor/products/ei9ph1gwfnkrsxlopji5.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/a4af61b0-c597-4662-96f8-b2e6009c3566/2815962_PNG-Web%2072dpi.png',
     query: 'storage'
   },
   {
@@ -63,7 +63,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Sofa',
     subtitle: 'Sofa module cao cấp, thư giãn tối đa.',
     subtitleVi: 'Sofa module cao cấp, thư giãn tối đa.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/1dae6253-c39d-47c7-830f-b2e800071a4a/2868108_PNG-Web%2072dpi.png',
     query: 'sofas'
   },
   {
@@ -72,7 +72,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Đèn',
     subtitle: 'Ánh sáng tinh tế cho từng không gian.',
     subtitleVi: 'Ánh sáng tinh tế cho từng không gian.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525467/dcor/products/znopadlsb0shawt3tskw.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/edbaee1f-6f6a-4897-8d2d-ad4300b2f353/1106997_PNG-Web%2072dpi.png',
     query: 'lamps'
   },
   {
@@ -81,7 +81,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Thảm',
     subtitle: 'Thảm dệt thủ công ấm áp và sang trọng.',
     subtitleVi: 'Thảm dệt thủ công ấm áp và sang trọng.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525392/dcor/products/lkza50ko3wdvycegmwwr.webp',
+    image: 'https://assets.boconcept.com/4ef91e1e-f3a3-41ff-96bf-b20c00d4597d/2768244_PNG-Web%2072dpi.png',
     query: 'rugs'
   },
   {
@@ -90,7 +90,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Phụ kiện',
     subtitle: 'Điểm nhấn nghệ thuật cho mọi căn phòng.',
     subtitleVi: 'Điểm nhấn nghệ thuật cho mọi căn phòng.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525489/dcor/products/lywgfmb8td69di4mal23.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/38db6aa3-5207-4cbb-9b84-b2b400afd754/2802682_PNG-Web%2072dpi.png',
     query: 'accessories'
   },
   {
@@ -99,7 +99,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Ngoài trời',
     subtitle: 'Nội thất ngoài trời bền bỉ, tiện nghi.',
     subtitleVi: 'Nội thất ngoài trời bền bỉ, tiện nghi.',
-    image: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525353/dcor/products/q0sbcxikosk3u4dyw7va.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/0c0585f3-002e-480f-9ba1-b0c200d96a2a/2113766_PNG-Web%2072dpi.png',
     query: 'outdoors'
   }
 ];
