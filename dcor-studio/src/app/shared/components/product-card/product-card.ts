@@ -213,6 +213,19 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     this.activeImageIndex = 0;
   }
 
+  optimizeCardUrl(url: string, width = 500): string {
+    if (!url || typeof url !== 'string' || !url.startsWith('http')) return url;
+    if (url.includes('cloudinary.com')) {
+      if (url.includes('/image/fetch/') && !url.includes('w_')) {
+        return url.replace('/image/fetch/', `/image/fetch/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+      if (url.includes('/image/upload/') && !url.includes('w_')) {
+        return url.replace('/image/upload/', `/image/upload/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+    }
+    return url;
+  }
+
   private extractFallbackImages(p: any): string[] {
     const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('dsasf753c');
     const imgs: string[] = [];

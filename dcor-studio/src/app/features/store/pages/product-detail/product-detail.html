@@ -60,6 +60,10 @@
 
           <!-- Ảnh lớn chính -->
           <img [src]="galleryImages[activeImageIndex]" [alt]="product.name" class="pdp-hero-img"
+            [class.is-loading]="isHeroImageLoading"
+            fetchpriority="high" decoding="async"
+            (load)="onHeroImageLoad()"
+            (error)="onHeroImageError()"
             (click)="openLightbox(activeImageIndex)" />
 
           <!-- Vòng vuông kính lúp Magnifier Lens theo chuột -->
@@ -94,7 +98,7 @@
         <div class="pdp-thumbnail-strip" *ngIf="galleryImages.length > 1">
           <button *ngFor="let img of galleryImages; let idx = index" type="button" class="pdp-thumb-item"
             [class.active]="idx === activeImageIndex" (click)="selectGalleryImage(idx)">
-            <img [src]="img" [alt]="product.name + ' góc ' + (idx + 1)" />
+            <img [src]="getThumbUrl(img)" [alt]="product.name + ' góc ' + (idx + 1)" loading="lazy" decoding="async" />
           </button>
         </div>
 

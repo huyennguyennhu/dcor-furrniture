@@ -46,7 +46,8 @@
     <!-- Ảnh sản phẩm đa góc nhìn (Stack) -->
     <div class="card-img-stack">
       <img *ngFor="let img of cardImages; let idx = index"
-        [src]="img"
+        [src]="optimizeCardUrl(img)"
+        decoding="async"
         [alt]="displayName + ' - Góc ' + (idx + 1)"
         class="product-main-img"
         [class.active-img]="activeImageIndex === idx"

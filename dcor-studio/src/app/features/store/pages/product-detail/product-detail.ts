@@ -123,6 +123,16 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   lensImgY = 0;
   containerWidth = 0;
   containerHeight = 0;
+  isHeroImageLoading = false;
+  private preloadedUrls = new Set<string>();
+
+  onHeroImageLoad() {
+    this.isHeroImageLoading = false;
+  }
+
+  onHeroImageError() {
+    this.isHeroImageLoading = false;
+  }
 
   // Variants & Attributes
   attributeGroups: ProductAttributeGroup[] = [];
@@ -297,6 +307,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   private resetState() {
     this.activeImageIndex = 0;
+    this.isHeroImageLoading = true;
     this.galleryImages = [];
     this.attributeGroups = [];
     this.selectedAttributes = {};
@@ -528,6 +539,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
 
     this.updateVariantData();
+    this.preloadVariantImages();
   }
 
   isVariantMatchOption(v: any, group: ProductAttributeGroup, opt: AttributeOption): boolean {
@@ -666,6 +678,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     this.matchedVariant = bestMatch;
     this.updateVariantData();
+    this.preloadVariantImages();
   }
 
   private updateVariantData() {
@@ -716,6 +729,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     // Images
     this.galleryImages = this.extractImages(prod, v);
     this.activeImageIndex = 0;
+    this.isHeroImageLoading = true;
 
     // Technical Specs
     const attrs = v?.attributes || v?.optionValues?.attributes || {};
@@ -745,6 +759,30 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  optimizeImageUrl(url: string, width = 800): string {
+    if (!url || typeof url !== 'string' || !url.startsWith('http')) return url;
+    if (url.includes('cloudinary.com')) {
+      if (url.includes('/image/fetch/') && !url.includes('w_')) {
+        return url.replace('/image/fetch/', `/image/fetch/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+      if (url.includes('/image/upload/') && !url.includes('w_')) {
+        return url.replace('/image/upload/', `/image/upload/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+    }
+    return url;
+  }
+
+  getThumbUrl(url: string): string {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('/image/fetch/')) {
+      return url.replace(/\/image\/fetch\/([^/]+\/)?/, '/image/fetch/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    if (url.includes('/image/upload/')) {
+      return url.replace(/\/image\/upload\/([^/]+\/)?/, '/image/upload/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    return url;
+  }
+
   private extractImages(prod: any, variant: any): string[] {
     const list: string[] = [];
     const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('dsasf753c');
@@ -753,14 +791,16 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     const vImgs = variant?.images || variant?.optionValues?.images || [];
     if (Array.isArray(vImgs)) {
       vImgs.filter(isClean).forEach(img => {
-        if (!list.includes(img)) list.push(img);
+        const opt = this.optimizeImageUrl(img, 800);
+        if (!list.includes(opt)) list.push(opt);
       });
     }
 
     // 2. Ảnh từ product
     const pImgs = Array.isArray(prod?.images) ? prod.images : [];
     pImgs.filter(isClean).forEach((img: string) => {
-      if (!list.includes(img)) list.push(img);
+      const opt = this.optimizeImageUrl(img, 800);
+      if (!list.includes(opt)) list.push(opt);
     });
 
     return list.length > 0 ? list : ['/assets/img/furniture-placeholder.svg'];
@@ -832,10 +872,53 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return str;
   }
 
+  preloadVariantImages() {
+    const rawVariants: any[] = Array.isArray(this.product?.variants) ? this.product.variants : [];
+    if (rawVariants.length === 0) return;
+
+    const runPreload = () => {
+      rawVariants.forEach((v: any) => {
+        const imgs = v?.images || v?.optionValues?.images || [];
+        if (Array.isArray(imgs) && imgs.length > 0) {
+          const firstImg = this.optimizeImageUrl(imgs[0], 800);
+          if (firstImg && typeof firstImg === 'string' && !this.preloadedUrls.has(firstImg)) {
+            this.preloadedUrls.add(firstImg);
+            const img = new Image();
+            img.src = firstImg;
+          }
+        }
+      });
+    };
+
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(runPreload, { timeout: 1500 });
+      } else {
+        setTimeout(runPreload, 200);
+      }
+    }
+  }
+
   hoveredOption: Record<string, string | null> = {};
 
   onOptionMouseEnter(groupId: string, name: string) {
     this.hoveredOption[groupId] = name;
+    const group = this.attributeGroups.find(g => g.groupId === groupId);
+    if (group && this.product?.variants) {
+      const opt = group.options.find(o => o.name === name);
+      if (opt) {
+        const matched = this.product.variants.find((v: any) => this.isVariantMatchOption(v, group, opt));
+        const imgs = matched?.images || matched?.optionValues?.images || [];
+        if (Array.isArray(imgs) && imgs[0]) {
+          const url = this.optimizeImageUrl(imgs[0], 800);
+          if (!this.preloadedUrls.has(url)) {
+            this.preloadedUrls.add(url);
+            const img = new Image();
+            img.src = url;
+          }
+        }
+      }
+    }
   }
 
   onOptionMouseLeave(groupId: string) {

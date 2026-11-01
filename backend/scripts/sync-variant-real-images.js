@@ -13,7 +13,7 @@ const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'yqbkibfq';
 // Helper tạo URL Cloudinary Fetch chuẩn WebP
 function getCloudinaryVariantUrl(origUrl) {
   if (!origUrl || typeof origUrl !== 'string') return null;
-  return `https://res.cloudinary.com/${CLOUD_NAME}/image/fetch/f_webp,q_auto:good/${origUrl.trim()}`;
+  return `https://res.cloudinary.com/${CLOUD_NAME}/image/fetch/w_800,c_limit,f_auto,q_auto:good/${origUrl.trim()}`;
 }
 
 function getCloudinarySwatchUrl(origUrl) {

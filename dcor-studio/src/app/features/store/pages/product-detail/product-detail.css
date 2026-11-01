@@ -197,7 +197,12 @@
   object-fit: contain;
   padding: 24px;
   cursor: zoom-in;
-  transition: transform 0.35s ease;
+  transition: transform 0.35s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+
+.pdp-hero-img.is-loading {
+  opacity: 0.7;
+  filter: blur(3px);
 }
 
 .pdp-hero-img:hover {
