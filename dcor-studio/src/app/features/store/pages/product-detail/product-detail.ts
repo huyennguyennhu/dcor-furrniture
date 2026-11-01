@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
@@ -87,7 +87,10 @@ const GROUP_LABEL_MAP: Record<string, string> = {
   templateUrl: './product-detail.html',
   styleUrls: ['./product-detail.css']
 })
-export class ProductDetailComponent implements OnInit, OnDestroy {
+export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('thumbStrip') thumbStripRef?: ElementRef<HTMLDivElement>;
+  canScrollThumbLeft = false;
+  canScrollThumbRight = false;
   // Product state
   product: any = null;
   productId = '';
@@ -730,6 +733,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.galleryImages = this.extractImages(prod, v);
     this.activeImageIndex = 0;
     this.isHeroImageLoading = true;
+    setTimeout(() => this.updateThumbScrollState(), 100);
 
     // Technical Specs
     const attrs = v?.attributes || v?.optionValues?.attributes || {};
@@ -1011,22 +1015,76 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return null;
   }
 
+  @HostListener('window:resize')
+  onResize() {
+    this.updateThumbScrollState();
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => this.updateThumbScrollState(), 300);
+  }
+
   // --- GALLERY INTERACTIONS & LIGHTBOX ---
   selectGalleryImage(idx: number) {
-    this.activeImageIndex = idx;
-    this.isMagnifierActive = false;
+    if (this.activeImageIndex !== idx) {
+      this.isHeroImageLoading = true;
+      this.activeImageIndex = idx;
+      this.isMagnifierActive = false;
+      this.scrollActiveThumbIntoView();
+    }
   }
 
   prevGalleryImage() {
     if (this.galleryImages.length <= 1) return;
+    this.isHeroImageLoading = true;
     this.activeImageIndex = (this.activeImageIndex - 1 + this.galleryImages.length) % this.galleryImages.length;
     this.isMagnifierActive = false;
+    this.scrollActiveThumbIntoView();
   }
 
   nextGalleryImage() {
     if (this.galleryImages.length <= 1) return;
+    this.isHeroImageLoading = true;
     this.activeImageIndex = (this.activeImageIndex + 1) % this.galleryImages.length;
     this.isMagnifierActive = false;
+    this.scrollActiveThumbIntoView();
+  }
+
+  scrollThumbs(direction: 'left' | 'right') {
+    const el = this.thumbStripRef?.nativeElement;
+    if (!el) return;
+    const scrollAmount = 240;
+    el.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+    setTimeout(() => this.updateThumbScrollState(), 320);
+  }
+
+  onThumbScroll() {
+    this.updateThumbScrollState();
+  }
+
+  updateThumbScrollState() {
+    const el = this.thumbStripRef?.nativeElement;
+    if (!el) {
+      this.canScrollThumbLeft = false;
+      this.canScrollThumbRight = false;
+      return;
+    }
+    this.canScrollThumbLeft = el.scrollLeft > 4;
+    this.canScrollThumbRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 6;
+    this.cdr.detectChanges();
+  }
+
+  scrollActiveThumbIntoView() {
+    const el = this.thumbStripRef?.nativeElement;
+    if (!el) return;
+    const activeItem = el.children[this.activeImageIndex] as HTMLElement;
+    if (activeItem) {
+      activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+    setTimeout(() => this.updateThumbScrollState(), 320);
   }
 
   // --- KÍNH LÚP SOI CHI TIẾT (MAGNIFIER LENS) ---

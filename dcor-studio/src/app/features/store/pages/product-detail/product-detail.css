@@ -446,13 +446,65 @@
   background: #9A461E;
 }
 
-/* Dải ảnh nhỏ nhiều góc độ */
+/* Dải ảnh nhỏ nhiều góc độ - Carousel Wrapper */
+.pdp-thumbnails-carousel-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.thumb-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e7e5e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #44403c;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2;
+  outline: none;
+}
+
+.thumb-nav-btn:hover {
+  background: #9A461E;
+  color: #ffffff;
+  border-color: #9A461E;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(154, 70, 30, 0.25);
+}
+
+.thumb-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.thumb-nav-btn.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .pdp-thumbnail-strip {
   display: flex;
   gap: 12px;
   overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  padding: 4px 2px;
+  flex: 1;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+.pdp-thumbnail-strip::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .pdp-thumb-item {
