@@ -263,7 +263,8 @@ app.get('/api/products', async (req, res) => {
           productId: true,
           name: true,
           price: true,
-          stock: true
+          stock: true,
+          optionValues: true
         }
       }))
     ]);
@@ -276,7 +277,12 @@ app.get('/api/products', async (req, res) => {
       if (!varMap.has(v.productId)) {
         varMap.set(v.productId, []);
       }
-      varMap.get(v.productId)!.push(v);
+      const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+      varMap.get(v.productId)!.push({
+        ...v,
+        images: opt.images || [],
+        optionValues: opt
+      });
     }
 
     const enrichedProducts = products.map(p => {
