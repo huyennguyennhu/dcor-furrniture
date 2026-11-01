@@ -1,6 +1,14 @@
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
-const prisma = new PrismaClient();
+require('dotenv').config();
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: (process.env.DATABASE_URL || '') + '&connection_limit=1'
+    }
+  }
+});
 
 function detectColor(text) {
   const lower = (text || '').toLowerCase();
@@ -93,3 +101,4 @@ async function main() {
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
+

@@ -37,14 +37,16 @@ export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3):
         errStr.includes("Can't reach database server");
 
       if (isPoolTimeout && attempt <= maxRetries) {
-        const delay = 500 * attempt;
+        const jitter = Math.floor(Math.random() * 200);
+        const delay = 500 * attempt + jitter;
         console.warn(`[Prisma] Pool timeout (P2024), đang chờ giải phóng kết nối và thử lại sau ${delay}ms (lần ${attempt}/${maxRetries})...`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
 
       if (isConnectionError && attempt <= maxRetries) {
-        const delay = 300 * Math.pow(2, attempt - 1); // Exponential backoff: 300ms, 600ms, 1200ms
+        const jitter = Math.floor(Math.random() * 150);
+        const delay = 300 * Math.pow(2, attempt - 1) + jitter; // Exponential backoff + jitter
         console.warn(`[Prisma] Kết nối DB tạm gián đoạn (${error?.code || 'P1017'}), đang thử lại sau ${delay}ms (lần ${attempt}/${maxRetries})...`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
