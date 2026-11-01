@@ -153,7 +153,7 @@
    ========================================================================== */
 .pdp-hero-grid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   gap: 48px;
   align-items: start;
   margin-bottom: 64px;
@@ -166,12 +166,16 @@
   gap: 16px;
   position: sticky;
   top: 96px;
+  width: 100%;
 }
 
 .pdp-main-image-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 0.95;
+  height: 520px;
+  min-height: 520px;
+  max-height: 520px;
+  flex-shrink: 0;
   background-color: #f4f3ef;
   border: 1px solid #e7e5e0;
   border-radius: 20px;
@@ -197,6 +201,9 @@
   object-fit: contain;
   padding: 24px;
   cursor: zoom-in;
+  max-width: 100%;
+  max-height: 100%;
+  flex-shrink: 0;
   transition: transform 0.35s ease, opacity 0.2s ease, filter 0.2s ease;
 }
 
@@ -1974,6 +1981,9 @@
   object-fit: cover;
   border: 1px solid #e7e5e0;
   cursor: zoom-in;
+  max-width: 100%;
+  max-height: 100%;
+  flex-shrink: 0;
   transition: transform 0.2s;
 }
 
@@ -2719,6 +2729,12 @@
     position: static;
   }
 
+  .pdp-main-image-wrap {
+    height: 440px;
+    min-height: 440px;
+    max-height: 440px;
+  }
+
   .desc-grid {
     grid-template-columns: 1fr;
   }
@@ -2744,6 +2760,12 @@
 @media (max-width: 768px) {
   .pdp-container {
     padding-bottom: 100px;
+  }
+
+  .pdp-main-image-wrap {
+    height: 360px;
+    min-height: 360px;
+    max-height: 360px;
   }
 
   .pdp-title {
