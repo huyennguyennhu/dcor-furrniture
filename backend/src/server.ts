@@ -41,6 +41,7 @@ import promotionRoutes from './routes/promotion.routes';
 import blogRoutes from './routes/blog.routes';
 import blogAdminRoutes from './routes/blog-admin.routes';
 import { initBlogDatabase } from './lib/init-blog-db';
+import { databaseCleanupService } from './services/cleanup.service';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -737,6 +738,9 @@ import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+
+  // Tự động dọn dẹp dữ liệu rác định kỳ mỗi 12 giờ bảo vệ dung lượng 500MB (chống Read-Only)
+  databaseCleanupService.startScheduledCleanup(12);
   // Chỉ chạy DDL kiểm tra tạo bảng khi có cờ INIT_DB=true
   // Mặc định tắt để bảo vệ database khỏi connection storm và table lock.
   // Khi cần chạy, thực thi tuần tự từng bảng để không bao giờ vượt quá connection pool.

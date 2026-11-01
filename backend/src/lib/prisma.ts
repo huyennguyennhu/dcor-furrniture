@@ -18,11 +18,21 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
  * Lưu ý: Để Prisma Client tự quản lý Connection Pool, không gọi $disconnect() / $connect()
  * nhằm tránh làm đứt gãy các request đồng thời khác.
  */
-export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3): Promise<T> {
+export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3, timeoutMs = 20000): Promise<T> {
   let attempt = 0;
   while (true) {
+    let timer: NodeJS.Timeout | null = null;
     try {
-      return await queryFn();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const err: any = new Error(`Truy vấn Database vượt quá thời gian chờ cho phép (${timeoutMs}ms)`);
+          err.code = 'QUERY_TIMEOUT';
+          reject(err);
+        }, timeoutMs);
+        if (typeof timer.unref === 'function') timer.unref();
+      });
+
+      return await Promise.race([queryFn(), timeoutPromise]);
     } catch (error: any) {
       attempt++;
       const errStr = String(error?.message || '') + ' ' + String(error?.cause || '');
@@ -52,6 +62,8 @@ export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3):
         continue;
       }
       throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 }
