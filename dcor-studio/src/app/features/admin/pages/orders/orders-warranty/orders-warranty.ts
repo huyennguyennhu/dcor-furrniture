@@ -510,7 +510,7 @@ export class OrdersWarrantyComponent implements OnInit {
           variant: product.variant || 'Tiêu chuẩn',
           category,
           categoryLabel,
-          image: product.imageUrl || 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp',
+          image: product.imageUrl || '/assets/img/furniture-placeholder.svg',
           price: product.price || 0,
           purchaseDate,
           activationDate,

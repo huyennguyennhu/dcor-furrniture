@@ -162,7 +162,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     if (!p) return;
 
     const isCleanUrl = (u: any): boolean =>
-      typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com');
+      typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com') && !u.includes('dsasf753c');
 
     // 1. Direct colorSwatches if present (e.g. from ExploreComponent)
     if (Array.isArray(p.colorSwatches) && p.colorSwatches.length > 0) {
@@ -214,7 +214,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private extractFallbackImages(p: any): string[] {
-    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com');
+    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com') && !u.includes('dsasf753c');
     const imgs: string[] = [];
 
     if (Array.isArray(p.images)) {

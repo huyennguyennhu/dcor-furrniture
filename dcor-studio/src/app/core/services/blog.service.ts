@@ -595,7 +595,7 @@ export class BlogService {
         name: 'Sofa Da Bò Ý Carmo 3 Chỗ Phong Cách Bắc Âu',
         price: 2000000,
         originalPrice: 3500000,
-        imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1793245709/dcor/products/jme2vacbbplrhkg5lxh8.webp',
+        imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp',
         sku: 'SF-CARMO-01',
         categoryName: 'Sofa Phòng Khách'
       },
@@ -604,7 +604,7 @@ export class BlogService {
         name: 'Sofa Góc L Bergamo Hiện Đại',
         price: 15000000,
         originalPrice: 18000000,
-        imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792640248/dcor/products/bbkg3g5hylqm2wyt430e.webp',
+        imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525266/dcor/products/b4fbf8o366bjquflg8kx.webp',
         sku: 'SF-BERGAMO-02',
         categoryName: 'Sofa Góc L'
       },

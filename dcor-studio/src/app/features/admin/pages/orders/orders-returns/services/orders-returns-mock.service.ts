@@ -125,18 +125,18 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Tiêu chuẩn / Vải nỉ xám xi măng',
       quantity: 1,
       price: 32500000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400898/dcor/products/dcor_products_64b4f3319263ff6db7c03d740f513353.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'EXCHANGE',
     reason: 'Sai màu sắc so với ảnh 3D phòng khách',
     customerNote: 'Sofa nhận thực tế màu xám sáng hơn so với phối cảnh 3D nội thất, muốn đổi sang phiên bản Vải nỉ nâu trầm cao cấp.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400898/dcor/products/dcor_products_64b4f3319263ff6db7c03d740f513353.webp',
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_0f4553531b740523e10faee5876615b3.webp',
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400900/dcor/products/dcor_products_feff2d6409600a72c1c69c5e53308d74.webp',
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp',
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_c6c4c9b9101662fb16a18274719bb807.webp',
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400903/dcor/products/dcor_products_67a216eefd2089b2518eec4ff5be3c09.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp',
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp',
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp',
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp',
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp',
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'PENDING',
     stage: 1,
@@ -147,7 +147,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Nâu trầm Walnut Luxury',
       price: 35000000,
       priceDiff: 2500000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_0f4553531b740523e10faee5876615b3.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     timeline: [
       { time: '21/10/2026 08:30', status: 'PENDING', actor: 'Khách hàng', desc: 'Gửi yêu cầu đổi hàng qua App DCOR Studio kèm 2 hình ảnh chụp sofa tại phòng khách.' }
@@ -170,13 +170,13 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Chân thép xoay mạ Chrome',
       quantity: 1,
       price: 18900000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400900/dcor/products/dcor_products_feff2d6409600a72c1c69c5e53308d74.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'REFUND',
     reason: 'Trầy xước da mặt sau khi bốc xếp lên chung cư',
     customerNote: 'Tài xế giao hàng va quẹt cửa thang máy làm rách 1 đường nhỏ mặt sau lưng ghế.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400900/dcor/products/dcor_products_feff2d6409600a72c1c69c5e53308d74.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'REVIEWING',
     stage: 1,
@@ -209,13 +209,13 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Gỗ sồi Bắc Âu sấy mộc',
       quantity: 1,
       price: 24500000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'EXCHANGE',
     reason: 'Không vừa kích thước phòng ăn gia đình',
     customerNote: 'Bàn mở rộng 2m4 khi mở ra bị cấn lối đi ban công, xin đổi sang mẫu bàn tròn Roma đường kính 1m35.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'APPROVED',
     stage: 2,
@@ -226,7 +226,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Đá trắng Volakas / Chân gỗ Ash',
       price: 22000000,
       priceDiff: -2500000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_c6c4c9b9101662fb16a18274719bb807.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     pickupInfo: {
       provider: 'DCOR Express Đội xe chuyên dụng',
@@ -263,13 +263,13 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Kính mờ xám khói / Dài 2m2',
       quantity: 1,
       price: 16200000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_c6c4c9b9101662fb16a18274719bb807.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'REFUND',
     reason: 'Lỗi kỹ thuật bản lề cánh mở bị kẹt',
     customerNote: 'Bản lề thủy lực bên trái không đóng kín được, gây cấn cửa kính.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_c6c4c9b9101662fb16a18274719bb807.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'RETURNING',
     stage: 2,
@@ -316,13 +316,13 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: '1m8 x 2m / Da Nappa Kem Vanilla',
       quantity: 1,
       price: 28900000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400903/dcor/products/dcor_products_67a216eefd2089b2518eec4ff5be3c09.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'REFUND',
     reason: 'Lỗi đường may và da bị chùng nếp đầu giường',
     customerNote: 'Gia đình kiểm tra thấy đường may mép trái bị lệch 1.5cm và da đầu giường không căng đều.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400903/dcor/products/dcor_products_67a216eefd2089b2518eec4ff5be3c09.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'RECEIVED',
     stage: 2,
@@ -380,13 +380,13 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Đá Marble Calacatta / Chao thủy tinh Opal',
       quantity: 1,
       price: 8500000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_334547c1ebef399ef7fa480b0c25a075.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'REFUND',
     reason: 'Lỗi công tắc cảm ứng và biến tần chập chờn',
     customerNote: 'Đèn chạm bật nhưng 5 phút là tự tắt, ánh sáng bị chớp giật.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_334547c1ebef399ef7fa480b0c25a075.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'REFUNDING',
     stage: 3,
@@ -433,13 +433,13 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Nỉ xám Anthracite / Chân sồi sáng',
       quantity: 2,
       price: 11200000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_8121be1958f9c2a43001ec855f1f26d6.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'EXCHANGE',
     reason: 'Đổi sang chân kim loại sơn tĩnh điện đen',
     customerNote: 'Muốn đổi từ chân gỗ sang chân thép tĩnh điện màu đen cho đồng bộ với bàn trà.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_8121be1958f9c2a43001ec855f1f26d6.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'EXCHANGING',
     stage: 3,
@@ -450,7 +450,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Nỉ xám Anthracite / Chân thép Matt Black',
       price: 11200000,
       priceDiff: 0,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_8121be1958f9c2a43001ec855f1f26d6.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     replacementOrder: {
       orderNumber: 'DCOR-ORD-2026-EX07',
@@ -462,7 +462,7 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
         variant: 'Nỉ xám Anthracite / Chân thép Matt Black',
         quantity: 2,
         price: 11200000,
-        imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_8121be1958f9c2a43001ec855f1f26d6.webp'
+        imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
       },
       priceDiff: 0,
       deliveryAddress: 'Số 88 Trần Não, Phường An Khánh, TP. Thủ Đức, TP.HCM'
@@ -491,13 +491,13 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
       variant: 'Gỗ tần bì Walnut / Mặt ngồi đệm da',
       quantity: 4,
       price: 3800000,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_8121be1958f9c2a43001ec855f1f26d6.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     },
     type: 'REFUND',
     reason: 'Quá thời hạn 72h hỗ trợ đổi trả theo chính sách',
     customerNote: 'Đã nhận hàng 10 ngày trước, nay đổi ý muốn trả lại do muốn đổi sang màu khác.',
     proofImages: [
-      'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_8121be1958f9c2a43001ec855f1f26d6.webp'
+      'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     ],
     status: 'REJECTED',
     stage: 1,
@@ -580,7 +580,7 @@ export class OrdersReturnsMockService {
       variant: 'Tiêu chuẩn',
       quantity: 1,
       price: order.totalAmount || 0,
-      imageUrl: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400901/dcor/products/dcor_products_5f190e22709e30a514d0f62299a9a3b6.webp'
+      imageUrl: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp'
     };
 
     const retType: ReturnType = returnData?.type || order.returnInfo?.type || 'REFUND';
