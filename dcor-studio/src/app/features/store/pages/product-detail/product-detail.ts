@@ -410,7 +410,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         const rawOpts: AttributeOption[] = (attr.options || []).map((o: any) => {
           // Chỉ lấy hình ảnh khi bản thân option có ảnh swatch/texture thực sự từ DB
           // Tuyệt đối không lấy ảnh sản phẩm biến thể (v.images) gán vào option
-          const optImg = o.image || o.imageUrl || null;
+          const isCleanImg = (url: any) => typeof url === 'string' && url.startsWith('http') && !url.includes('dsasf753c');
+          const optImg = isCleanImg(o.image) ? o.image : (isCleanImg(o.imageUrl) ? o.imageUrl : null);
           return {
             id: String(o.id),
             name: o.name,
@@ -746,7 +747,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   private extractImages(prod: any, variant: any): string[] {
     const list: string[] = [];
-    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com') && !u.includes('dsasf753c');
+    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('dsasf753c');
 
     // 1. Ảnh từ variant hiện tại
     const vImgs = variant?.images || variant?.optionValues?.images || [];
