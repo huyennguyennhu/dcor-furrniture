@@ -199,21 +199,28 @@ export const adminOrderController = {
       const orders = await prisma.order.findMany({
         include: {
           items: {
-            include: {
-              variant: {
-                include: {
-                  product: true
-                }
-              }
+            select: {
+              id: true,
+              orderId: true,
+              variantId: true,
+              productName: true,
+              sku: true,
+              price: true,
+              quantity: true,
+              lineTotal: true,
+              imageUrl: true,
+              variantDescription: true,
+              selectedOptions: true
             }
           },
-          statusHistory: {
-            orderBy: { createdAt: 'desc' }
-          },
-          payments: {
-            orderBy: { createdAt: 'desc' }
-          },
-          customer: true
+          customer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true
+            }
+          }
         },
         orderBy: {
           createdAt: 'desc'

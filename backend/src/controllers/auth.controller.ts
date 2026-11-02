@@ -104,7 +104,7 @@ export const authController = {
           type: 'STAFF' 
         },
         JWT_SECRET,
-        { expiresIn: '4h' } // Token hết hạn sau 4 tiếng (Quy định phiên làm việc)
+        { expiresIn: '7d' } // Token sống 7 ngày (idle timeout 4 tiếng không thao tác sẽ do hệ thống kiểm soát)
       );
 
       const permissions = iamService.getEffectivePermissions(exactRoles);
@@ -203,7 +203,7 @@ export const authController = {
           type: 'STAFF' 
         },
         JWT_SECRET,
-        { expiresIn: '4h' }
+        { expiresIn: '7d' }
       );
 
       res.status(200).json({ 
@@ -734,8 +734,15 @@ export const authController = {
       const exactRole = metadata?.role || exactRoles[0];
       const permissions = iamService.getEffectivePermissions(exactRoles);
 
+      const refreshedToken = jwt.sign(
+        { userId: staff.id, email: staff.email, role: exactRole, roles: exactRoles, branchId: metadata?.branchId || 'ALL', type: 'STAFF' },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
       res.status(200).json({
         active: true,
+        token: refreshedToken,
         permissions,
         user: {
           id: staff.id,

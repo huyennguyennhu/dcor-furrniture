@@ -407,6 +407,10 @@ export class AdminAuthService {
 
   private heartbeatTimer: any = null;
 
+  // Cơ chế Idle Timeout: 4 tiếng nếu người dùng không thao tác chuột/phím sẽ hết hạn phiên
+  private readonly IDLE_TIMEOUT_MS = 4 * 60 * 60 * 1000;
+  private lastActivityTime = Date.now();
+
   constructor(
     private http: HttpClient,
     private router: Router
@@ -414,6 +418,35 @@ export class AdminAuthService {
     this.initRolesList();
     this.loadStateFromStorage();
     this.initVisibilityListeners();
+    this.initUserActivityTracker();
+  }
+
+  private initUserActivityTracker(): void {
+    if (typeof window === 'undefined') return;
+
+    // Lắng nghe các tương tác của người dùng để gia hạn thời gian hoạt động (Sliding Expiry)
+    const updateActivity = () => {
+      this.touchSession();
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(evt => {
+      window.addEventListener(evt, updateActivity, { passive: true });
+    });
+  }
+
+  /**
+   * Cập nhật thời điểm thao tác gần nhất và trượt hạn phiên thêm 4 tiếng nếu đang hoạt động
+   */
+  public touchSession(): void {
+    const now = Date.now();
+    // Giảm tần suất ghi storage: chỉ cập nhật nếu đã trôi qua ít nhất 30 giây kể từ lần ghi trước
+    if (now - this.lastActivityTime > 30000 && this.isLoggedIn()) {
+      this.lastActivityTime = now;
+      const newExpiresAt = now + this.IDLE_TIMEOUT_MS;
+      sessionStorage.setItem(this.SESSION_EXPIRY_KEY, newExpiresAt.toString());
+      localStorage.setItem(this.SESSION_EXPIRY_KEY, newExpiresAt.toString());
+    }
   }
 
   private initVisibilityListeners(): void {
@@ -436,13 +469,14 @@ export class AdminAuthService {
   startSessionHeartbeat(): void {
     this.stopSessionHeartbeat();
     // Tự động kiểm tra định kỳ mỗi 3.5s với cơ sở dữ liệu để thu hồi phiên ngay lập tức nếu bị khóa
+    // Toi uu DB Connection Pool: Kiem tra dinh ky 5 phut (thay vi polling 3.5s)
     this.heartbeatTimer = setInterval(() => {
       if (this.isLoggedIn()) {
         this.verifySession().subscribe();
       } else {
         this.stopSessionHeartbeat();
       }
-    }, 3500);
+    }, 5 * 60 * 1000);
   }
 
   stopSessionHeartbeat(): void {
@@ -956,7 +990,7 @@ export class AdminAuthService {
   private handleAuthSuccess(token: string, user: AdminUser, serverPermissions?: RolePermissions): LoginResponse {
     const rolePermissions = serverPermissions || this.calculateEffectivePermissions(user.roles || [user.role]);
     const isAdmin = user.role === 'Super Admin' || (user.roles && user.roles.includes('Super Admin'));
-    const duration = isAdmin ? this.ADMIN_SESSION_DURATION_MS : this.STAFF_SESSION_DURATION_MS;
+    const duration = this.IDLE_TIMEOUT_MS; // 4 tiếng không thao tác mới thu hồi phiên
     const expiresAt = Date.now() + duration;
 
     // Lưu vào sessionStorage
@@ -1041,10 +1075,15 @@ export class AdminAuthService {
           this.handleAccountLocked('Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ Super Admin.');
           return false;
         }
+        if (res.token) {
+          sessionStorage.setItem(this.TOKEN_KEY, res.token);
+          localStorage.setItem(this.TOKEN_KEY, res.token);
+        }
         if (res.permissions) {
           this.permissions$.next(res.permissions);
           localStorage.setItem(this.PERMISSIONS_KEY, JSON.stringify(res.permissions));
         }
+        this.touchSession();
         return true;
       }),
       catchError(err => {

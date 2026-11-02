@@ -28,9 +28,8 @@ export class OrdersService {
     this.fetchOrders();
 
     // 1. Tự động đồng bộ đơn hàng mới từ Database mỗi 4 giây (Real-time polling)
-    this.pollingInterval = setInterval(() => {
-      this.fetchOrders();
-    }, 4000);
+    // Polling 4s da duoc go bo de triet tieu Egress va tranh lam nghen DB pool.
+    // He thong cap nhat khi mo trang, khi focus lai tab, hoac khi bam nut Tai lai / thao tac don hang.
 
     // 2. Tự động cập nhật ngay lập tức khi người dùng quay lại tab trình duyệt
     if (typeof window !== 'undefined') {
@@ -43,9 +42,8 @@ export class OrdersService {
     }
 
     // Tự động kiểm tra định kỳ mỗi 1 giây để chốt đơn DELIVERED khi hết hạn 72h
-    this.autoCheckInterval = setInterval(() => {
-      this.checkAndAutoCompleteDeliveredOrders();
-    }, 1000);
+    // AutoCheck 1s da duoc thay the bang co che Server-side cron (backend 5 phut/lan)
+    // va chi kiem tra 1 lan khi component mount.
   }
 
   // Tải danh sách đơn hàng thực tế từ cơ sở dữ liệu PostgreSQL

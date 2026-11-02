@@ -268,11 +268,12 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.loadScripts();
 
     // Polling nhẹ dự phòng mỗi 5s để đồng bộ danh sách hội thoại
+    // Polling backup da duoc tang tu 5s len 30s de giam Egress/DB vi he thong da co WebSocket socket.io realtime
     this.pollIntervalTimer = setInterval(() => {
-      if (this.currentView() === 'conversations') {
+      if (this.currentView() === 'conversations' && !this.isConnected()) {
         this.refreshActiveConversationSilently();
       }
-    }, 5000);
+    }, 30000);
   }
 
   ngOnDestroy(): void {

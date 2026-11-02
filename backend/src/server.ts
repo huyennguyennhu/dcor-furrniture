@@ -141,7 +141,7 @@ app.use('/api/upload', uploadRoutes);
 // API danh mục sản phẩm từ database thực
 app.get('/api/categories', async (req, res) => {
   try {
-    const cached = memoryCache.get<any[]>(CACHE_KEYS.CATEGORIES_LIST, 5 * 60 * 1000);
+    const cached = memoryCache.get<any[]>(CACHE_KEYS.CATEGORIES_LIST, 30 * 60 * 1000);
     if (cached) {
       return res.json(cached);
     }
@@ -181,7 +181,7 @@ let inFlightCategoryPromise: Promise<Map<string, any>> | null = null;
 
 async function getCategoryMap(): Promise<Map<string, any>> {
   const now = Date.now();
-  if (cachedCategoryMap && (now - lastCategoryCacheTime < 300000)) {
+  if (cachedCategoryMap && (now - lastCategoryCacheTime < 1800000)) {
     return cachedCategoryMap;
   }
   if (inFlightCategoryPromise) {
@@ -228,7 +228,7 @@ app.get('/api/products', async (req, res) => {
       ? `products_cat_${categoryId}`
       : (categorySlug ? `products_slug_${categorySlug}` : CACHE_KEYS.PRODUCTS_CATALOG);
 
-    const cached = memoryCache.get<any[]>(cacheKey, 5 * 60 * 1000);
+    const cached = memoryCache.get<any[]>(cacheKey, 30 * 60 * 1000);
     if (cached) {
       return res.json(cached);
     }
@@ -236,7 +236,7 @@ app.get('/api/products', async (req, res) => {
     const isFullCatalog = !categoryId && !categorySlug;
 
     // Phục vụ ngay từ bộ nhớ đệm nếu là request toàn bộ danh mục sản phẩm (< 60s)
-    if (isFullCatalog && cachedProductsList && (Date.now() - lastProductsCacheTime < 60000)) {
+    if (isFullCatalog && cachedProductsList && (Date.now() - lastProductsCacheTime < 300000)) {
       return res.json(cachedProductsList);
     }
 
