@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { authController } from '../controllers/auth.controller';
+import { otpRateLimiter } from '../middleware/rate-limit.middleware';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get('/admin/verify-session', authController.verifyAdminSession);
 // ----------------------------------------
 // CUSTOMER AUTH (KHÁCH HÀNG)
 // ----------------------------------------
-router.post('/customer/otp/send', authController.customerSendOtp);
+router.post('/customer/otp/send', otpRateLimiter, authController.customerSendOtp);
 router.post('/customer/register', authController.customerRegister);
 router.post('/customer/login', authController.customerLogin);
 router.post('/customer/forgot-password/verify-otp', authController.customerVerifyForgotOtp);
@@ -29,7 +30,7 @@ router.post('/customer/google', authController.customerGoogleLogin);
 // ----------------------------------------
 // OTP XÁC THỰC SỐ ĐIỆN THOẠI (CỐ ĐỊNH 111111)
 // ----------------------------------------
-router.post('/send-otp', (req, res) => {
+router.post('/send-otp', otpRateLimiter, (req, res) => {
   res.json({ success: true, message: 'Mã xác thực OTP đã được gửi.', otp: '111111' });
 });
 

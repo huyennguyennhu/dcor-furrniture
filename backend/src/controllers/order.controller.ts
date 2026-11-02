@@ -32,33 +32,40 @@ export const autoCancelExpiredOrders = async (): Promise<void> => {
           { paymentMethod: 'BANK_TRANSFER' } // Đơn chuyển khoản ngân hàng
         ]
       },
-      select: { id: true, orderNumber: true }
+      select: { id: true, orderNumber: true },
+      take: 50 // Giới hạn batch size để tránh chiếm dụng DB connection
     });
 
     if (expiredOrders.length > 0) {
       const cancelReason = 'Hệ thống tự động hủy do quá hạn đặt cọc / chuyển khoản trong vòng 24 giờ.';
-      for (const order of expiredOrders) {
-        await prisma.order.update({
-          where: { id: order.id },
-          data: {
-            status: 'CANCELLED',
-            cancelledAt: new Date(),
-            cancelReason,
-            statusHistory: {
-              create: {
-                status: 'CANCELLED',
-                actorType: 'SYSTEM',
-                notes: 'Hệ thống tự động hủy do quá hạn 24 giờ kể từ khi đặt hàng nhưng chưa nhận được tiền đặt cọc hoặc thanh toán chuyển khoản.'
-              }
-            }
-          }
-        }).catch(err => console.error(`Lỗi tự động hủy đơn ${order.orderNumber}:`, err));
-      }
+      const expiredIds = expiredOrders.map(o => o.id);
+
+      // Cập nhật hàng loạt (Bulk update) trong 1 câu query duy nhất thay vì lặp từng câu
+      await prisma.order.updateMany({
+        where: { id: { in: expiredIds } },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelReason
+        }
+      });
+
+      // Ghi nhận lịch sử trạng thái hàng loạt
+      await prisma.orderStatusHistory.createMany({
+        data: expiredIds.map(orderId => ({
+          orderId,
+          status: 'CANCELLED',
+          fromStatus: 'PENDING',
+          actorType: 'SYSTEM',
+          notes: 'Hệ thống tự động hủy do quá hạn 24 giờ kể từ khi đặt hàng nhưng chưa nhận được tiền đặt cọc hoặc thanh toán chuyển khoản.'
+        }))
+      }).catch(() => {});
     }
   } catch (err) {
     console.warn('Lỗi khi kiểm tra autoCancelExpiredOrders:', err);
   }
 };
+
 /**
  * Ràng buộc hệ thống: Tự động chuyển các đơn hàng DELIVERED sang COMPLETED sau 5 phút
  * nếu khách hàng không chủ động bấm nút "Đã nhận hàng".
@@ -71,23 +78,27 @@ export const autoCompleteExpiredDeliveredOrders = async (): Promise<void> => {
         status: 'DELIVERED',
         deliveredAt: { lt: fiveMinutesAgo }
       },
-      select: { id: true, orderNumber: true }
+      select: { id: true, orderNumber: true },
+      take: 50 // Giới hạn batch size
     });
 
-    for (const order of expiredDelivered) {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { status: 'COMPLETED' }
-      }).catch(() => {});
+    if (expiredDelivered.length > 0) {
+      const deliveredIds = expiredDelivered.map(o => o.id);
 
-      await prisma.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
+      // Cập nhật hàng loạt trong 1 câu query duy nhất
+      await prisma.order.updateMany({
+        where: { id: { in: deliveredIds } },
+        data: { status: 'COMPLETED' }
+      });
+
+      await prisma.orderStatusHistory.createMany({
+        data: deliveredIds.map(orderId => ({
+          orderId,
           status: 'COMPLETED',
           fromStatus: 'DELIVERED',
           actorType: 'SYSTEM',
           notes: 'Hệ thống tự động chuyển sang Hoàn tất sau 5 phút kể từ khi shipper báo giao hàng.'
-        }
+        }))
       }).catch(() => {});
     }
   } catch (err) {
@@ -96,10 +107,20 @@ export const autoCompleteExpiredDeliveredOrders = async (): Promise<void> => {
 };
 
 // Quét định kỳ kiểm tra tự động hủy đơn quá hạn 24h và tự động hoàn tất đơn sau 5 phút
-setInterval(() => {
-  autoCancelExpiredOrders();
-  autoCompleteExpiredDeliveredOrders();
-}, 30 * 1000);
+// Chạy mỗi 5 phút một lần kèm cờ chống trùng lặp (running lock) để bảo vệ connection pool
+let isOrderCleanupInProgress = false;
+setInterval(async () => {
+  if (isOrderCleanupInProgress) return;
+  isOrderCleanupInProgress = true;
+  try {
+    await autoCancelExpiredOrders();
+    await autoCompleteExpiredDeliveredOrders();
+  } catch (err) {
+    console.warn('[Order Cron] Lỗi quét dọn đơn hàng định kỳ:', err);
+  } finally {
+    isOrderCleanupInProgress = false;
+  }
+}, 5 * 60 * 1000);
 
 export const orderController = {
   // Tạo đơn hàng mới từ Store Checkout
@@ -157,15 +178,32 @@ export const orderController = {
         } catch (_) {}
       }
 
-      // Tìm fallback product nếu variant không tìm thấy trong DB
-      const defaultProduct = await prisma.product.findFirst({
-        include: { variants: true }
-      }).catch(() => null);
-
       let subTotal = BigInt(0);
       const itemsList = Array.isArray(items) ? items : [];
       const orderItemsCreate: any[] = [];
       const purchasedVariantIds: string[] = [];
+
+      // Tối ưu N+1: Gom toàn bộ variantId để truy vấn trong 1 câu lệnh duy nhất (O(1) database round-trip)
+      const incomingVariantIds = itemsList.map((i: any) => i.variantId).filter(Boolean);
+      const variantMap = new Map<string, any>();
+      if (incomingVariantIds.length > 0) {
+        const dbVariants = await prisma.productVariant.findMany({
+          where: { id: { in: incomingVariantIds } },
+          include: { product: true }
+        }).catch(() => []);
+        for (const v of dbVariants) {
+          variantMap.set(v.id, v);
+        }
+      }
+
+      // Chỉ truy vấn defaultProduct fallback nếu thực sự có sản phẩm không tìm thấy variant trong DB
+      let defaultProduct: any = null;
+      const needsFallback = itemsList.some((i: any) => !i.variantId || !variantMap.has(i.variantId));
+      if (needsFallback) {
+        defaultProduct = await prisma.product.findFirst({
+          include: { variants: true }
+        }).catch(() => null);
+      }
 
       for (const item of itemsList) {
         const qty = Number(item.quantity) || 1;
@@ -173,13 +211,9 @@ export const orderController = {
         const lineTotal = BigInt(qty * price);
         subTotal += lineTotal;
 
-        let variant: any = null;
+        const variant = item.variantId ? (variantMap.get(item.variantId) || null) : null;
         if (item.variantId) {
           purchasedVariantIds.push(item.variantId);
-          variant = await prisma.productVariant.findUnique({
-            where: { id: item.variantId },
-            include: { product: true }
-          }).catch(() => null);
         }
 
         const productId = variant?.productId || defaultProduct?.id || '';
@@ -351,10 +385,7 @@ export const orderController = {
   // Lấy danh sách đơn hàng của khách (hỗ trợ lọc tab & tìm kiếm)
   getMyOrders: async (req: Request, res: Response): Promise<void> => {
     try {
-      // Tự động kiểm tra và hủy các đơn hàng quá hạn 24 giờ
-      await autoCancelExpiredOrders();
-      // Tự động chuyển các đơn DELIVERED quá 5 phút sang COMPLETED
-      await autoCompleteExpiredDeliveredOrders();
+      // Đã chuyển dọn dẹp sang background worker 5 phút, không bắt request của khách hàng phải gánh
 
       let customerId: string | null = null;
       let customerPhone: string | null = null;
@@ -415,6 +446,10 @@ export const orderController = {
         }
       }
 
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+      const skip = (page - 1) * limit;
+
       const orders = await prisma.order.findMany({
         where: whereClause,
         include: {
@@ -422,7 +457,9 @@ export const orderController = {
         },
         orderBy: {
           createdAt: 'desc'
-        }
+        },
+        take: limit,
+        skip: skip
       });
 
       // Filter by search keyword if provided
@@ -540,8 +577,6 @@ export const orderController = {
   // Lấy chi tiết một đơn hàng
   getOrderDetail: async (req: Request, res: Response): Promise<void> => {
     try {
-      // Tự động kiểm tra và hủy các đơn hàng quá hạn 24 giờ
-      await autoCancelExpiredOrders();
 
       const orderNumber = String(req.params.orderNumber);
 

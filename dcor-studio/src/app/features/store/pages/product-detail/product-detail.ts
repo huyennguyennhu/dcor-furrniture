@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
@@ -87,7 +87,10 @@ const GROUP_LABEL_MAP: Record<string, string> = {
   templateUrl: './product-detail.html',
   styleUrls: ['./product-detail.css']
 })
-export class ProductDetailComponent implements OnInit, OnDestroy {
+export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('thumbStrip') thumbStripRef?: ElementRef<HTMLDivElement>;
+  canScrollThumbLeft = false;
+  canScrollThumbRight = false;
   // Product state
   product: any = null;
   productId = '';
@@ -123,6 +126,16 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   lensImgY = 0;
   containerWidth = 0;
   containerHeight = 0;
+  isHeroImageLoading = false;
+  private preloadedUrls = new Set<string>();
+
+  onHeroImageLoad() {
+    this.isHeroImageLoading = false;
+  }
+
+  onHeroImageError() {
+    this.isHeroImageLoading = false;
+  }
 
   // Variants & Attributes
   attributeGroups: ProductAttributeGroup[] = [];
@@ -297,6 +310,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   private resetState() {
     this.activeImageIndex = 0;
+    this.isHeroImageLoading = true;
     this.galleryImages = [];
     this.attributeGroups = [];
     this.selectedAttributes = {};
@@ -410,7 +424,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         const rawOpts: AttributeOption[] = (attr.options || []).map((o: any) => {
           // Chỉ lấy hình ảnh khi bản thân option có ảnh swatch/texture thực sự từ DB
           // Tuyệt đối không lấy ảnh sản phẩm biến thể (v.images) gán vào option
-          const optImg = o.image || o.imageUrl || null;
+          const isCleanImg = (url: any) => typeof url === 'string' && url.startsWith('http') && !url.includes('dsasf753c');
+          const optImg = isCleanImg(o.image) ? o.image : (isCleanImg(o.imageUrl) ? o.imageUrl : null);
           return {
             id: String(o.id),
             name: o.name,
@@ -527,6 +542,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
 
     this.updateVariantData();
+    this.preloadVariantImages();
   }
 
   isVariantMatchOption(v: any, group: ProductAttributeGroup, opt: AttributeOption): boolean {
@@ -665,6 +681,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     this.matchedVariant = bestMatch;
     this.updateVariantData();
+    this.preloadVariantImages();
   }
 
   private updateVariantData() {
@@ -715,6 +732,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     // Images
     this.galleryImages = this.extractImages(prod, v);
     this.activeImageIndex = 0;
+    this.isHeroImageLoading = true;
+    setTimeout(() => this.updateThumbScrollState(), 100);
 
     // Technical Specs
     const attrs = v?.attributes || v?.optionValues?.attributes || {};
@@ -744,22 +763,48 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  optimizeImageUrl(url: string, width = 800): string {
+    if (!url || typeof url !== 'string' || !url.startsWith('http')) return url;
+    if (url.includes('cloudinary.com')) {
+      if (url.includes('/image/fetch/') && !url.includes('w_')) {
+        return url.replace('/image/fetch/', `/image/fetch/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+      if (url.includes('/image/upload/') && !url.includes('w_')) {
+        return url.replace('/image/upload/', `/image/upload/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+    }
+    return url;
+  }
+
+  getThumbUrl(url: string): string {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('/image/fetch/')) {
+      return url.replace(/\/image\/fetch\/([^/]+\/)?/, '/image/fetch/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    if (url.includes('/image/upload/')) {
+      return url.replace(/\/image\/upload\/([^/]+\/)?/, '/image/upload/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    return url;
+  }
+
   private extractImages(prod: any, variant: any): string[] {
     const list: string[] = [];
-    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com');
+    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('dsasf753c');
 
     // 1. Ảnh từ variant hiện tại
     const vImgs = variant?.images || variant?.optionValues?.images || [];
     if (Array.isArray(vImgs)) {
       vImgs.filter(isClean).forEach(img => {
-        if (!list.includes(img)) list.push(img);
+        const opt = this.optimizeImageUrl(img, 800);
+        if (!list.includes(opt)) list.push(opt);
       });
     }
 
     // 2. Ảnh từ product
     const pImgs = Array.isArray(prod?.images) ? prod.images : [];
     pImgs.filter(isClean).forEach((img: string) => {
-      if (!list.includes(img)) list.push(img);
+      const opt = this.optimizeImageUrl(img, 800);
+      if (!list.includes(opt)) list.push(opt);
     });
 
     return list.length > 0 ? list : ['/assets/img/furniture-placeholder.svg'];
@@ -831,10 +876,53 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return str;
   }
 
+  preloadVariantImages() {
+    const rawVariants: any[] = Array.isArray(this.product?.variants) ? this.product.variants : [];
+    if (rawVariants.length === 0) return;
+
+    const runPreload = () => {
+      rawVariants.forEach((v: any) => {
+        const imgs = v?.images || v?.optionValues?.images || [];
+        if (Array.isArray(imgs) && imgs.length > 0) {
+          const firstImg = this.optimizeImageUrl(imgs[0], 800);
+          if (firstImg && typeof firstImg === 'string' && !this.preloadedUrls.has(firstImg)) {
+            this.preloadedUrls.add(firstImg);
+            const img = new Image();
+            img.src = firstImg;
+          }
+        }
+      });
+    };
+
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(runPreload, { timeout: 1500 });
+      } else {
+        setTimeout(runPreload, 200);
+      }
+    }
+  }
+
   hoveredOption: Record<string, string | null> = {};
 
   onOptionMouseEnter(groupId: string, name: string) {
     this.hoveredOption[groupId] = name;
+    const group = this.attributeGroups.find(g => g.groupId === groupId);
+    if (group && this.product?.variants) {
+      const opt = group.options.find(o => o.name === name);
+      if (opt) {
+        const matched = this.product.variants.find((v: any) => this.isVariantMatchOption(v, group, opt));
+        const imgs = matched?.images || matched?.optionValues?.images || [];
+        if (Array.isArray(imgs) && imgs[0]) {
+          const url = this.optimizeImageUrl(imgs[0], 800);
+          if (!this.preloadedUrls.has(url)) {
+            this.preloadedUrls.add(url);
+            const img = new Image();
+            img.src = url;
+          }
+        }
+      }
+    }
   }
 
   onOptionMouseLeave(groupId: string) {
@@ -927,22 +1015,76 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return null;
   }
 
+  @HostListener('window:resize')
+  onResize() {
+    this.updateThumbScrollState();
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => this.updateThumbScrollState(), 300);
+  }
+
   // --- GALLERY INTERACTIONS & LIGHTBOX ---
   selectGalleryImage(idx: number) {
-    this.activeImageIndex = idx;
-    this.isMagnifierActive = false;
+    if (this.activeImageIndex !== idx) {
+      this.isHeroImageLoading = true;
+      this.activeImageIndex = idx;
+      this.isMagnifierActive = false;
+      this.scrollActiveThumbIntoView();
+    }
   }
 
   prevGalleryImage() {
     if (this.galleryImages.length <= 1) return;
+    this.isHeroImageLoading = true;
     this.activeImageIndex = (this.activeImageIndex - 1 + this.galleryImages.length) % this.galleryImages.length;
     this.isMagnifierActive = false;
+    this.scrollActiveThumbIntoView();
   }
 
   nextGalleryImage() {
     if (this.galleryImages.length <= 1) return;
+    this.isHeroImageLoading = true;
     this.activeImageIndex = (this.activeImageIndex + 1) % this.galleryImages.length;
     this.isMagnifierActive = false;
+    this.scrollActiveThumbIntoView();
+  }
+
+  scrollThumbs(direction: 'left' | 'right') {
+    const el = this.thumbStripRef?.nativeElement;
+    if (!el) return;
+    const scrollAmount = 240;
+    el.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+    setTimeout(() => this.updateThumbScrollState(), 320);
+  }
+
+  onThumbScroll() {
+    this.updateThumbScrollState();
+  }
+
+  updateThumbScrollState() {
+    const el = this.thumbStripRef?.nativeElement;
+    if (!el) {
+      this.canScrollThumbLeft = false;
+      this.canScrollThumbRight = false;
+      return;
+    }
+    this.canScrollThumbLeft = el.scrollLeft > 4;
+    this.canScrollThumbRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 6;
+    this.cdr.detectChanges();
+  }
+
+  scrollActiveThumbIntoView() {
+    const el = this.thumbStripRef?.nativeElement;
+    if (!el) return;
+    const activeItem = el.children[this.activeImageIndex] as HTMLElement;
+    if (activeItem) {
+      activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+    setTimeout(() => this.updateThumbScrollState(), 320);
   }
 
   // --- KÍNH LÚP SOI CHI TIẾT (MAGNIFIER LENS) ---

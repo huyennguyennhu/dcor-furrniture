@@ -44,7 +44,7 @@ const mapPrismaOrderToFrontend = (o: any): any => {
   }
 
   // Chuẩn hóa danh sách sản phẩm
-  const defaultFurnitureImage = 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400890/dcor/products/dcor_products_d19a6dcdd9edef86900855cf030c65c5.webp';
+  const defaultFurnitureImage = 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525289/dcor/products/zlzfwaill5zyvwhp78bh.webp';
 
   const items = Array.isArray(o.items) && o.items.length > 0 ? o.items.map((item: any) => {
     let finalImageUrl = item.imageUrl;

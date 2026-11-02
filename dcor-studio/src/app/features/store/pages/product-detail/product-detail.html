@@ -60,6 +60,10 @@
 
           <!-- Ảnh lớn chính -->
           <img [src]="galleryImages[activeImageIndex]" [alt]="product.name" class="pdp-hero-img"
+            [class.is-loading]="isHeroImageLoading"
+            fetchpriority="high" decoding="async"
+            (load)="onHeroImageLoad()"
+            (error)="onHeroImageError()"
             (click)="openLightbox(activeImageIndex)" />
 
           <!-- Vòng vuông kính lúp Magnifier Lens theo chuột -->
@@ -90,11 +94,21 @@
           </div>
         </div>
 
-        <!-- Dải ảnh nhỏ nhiều góc độ (Thumbnail Strip) -->
-        <div class="pdp-thumbnail-strip" *ngIf="galleryImages.length > 1">
-          <button *ngFor="let img of galleryImages; let idx = index" type="button" class="pdp-thumb-item"
-            [class.active]="idx === activeImageIndex" (click)="selectGalleryImage(idx)">
-            <img [src]="img" [alt]="product.name + ' góc ' + (idx + 1)" />
+        <!-- Dải ảnh nhỏ nhiều góc độ (Thumbnail Strip Carousel) -->
+        <div class="pdp-thumbnails-carousel-wrap" *ngIf="galleryImages.length > 1">
+          <button type="button" class="thumb-nav-btn thumb-prev" (click)="scrollThumbs('left')"
+            [class.is-hidden]="!canScrollThumbLeft" title="Ảnh trước" aria-label="Xem ảnh góc trước">
+            <app-icon name="ChevronLeft" size="18"></app-icon>
+          </button>
+          <div class="pdp-thumbnail-strip" #thumbStrip (scroll)="onThumbScroll()">
+            <button *ngFor="let img of galleryImages; let idx = index" type="button" class="pdp-thumb-item"
+              [class.active]="idx === activeImageIndex" (click)="selectGalleryImage(idx)">
+              <img [src]="getThumbUrl(img)" [alt]="product.name + ' góc ' + (idx + 1)" loading="lazy" decoding="async" />
+            </button>
+          </div>
+          <button type="button" class="thumb-nav-btn thumb-next" (click)="scrollThumbs('right')"
+            [class.is-hidden]="!canScrollThumbRight" title="Ảnh tiếp theo" aria-label="Xem ảnh góc tiếp theo">
+            <app-icon name="ChevronRight" size="18"></app-icon>
           </button>
         </div>
 
@@ -171,6 +185,7 @@
           <div class="variant-group-card" *ngFor="let group of attributeGroups">
             <div class="group-header">
               <span class="group-title">{{ group.label }}:</span>
+              <span class="group-selected-val">{{ getHoveredOrSelectedName(group) }}</span>
             </div>
 
             <!-- Trường hợp 1: Nhóm Màu sắc / Chất liệu có hình ảnh hoặc swatch (Hiển thị ô swatch không kèm chữ) -->

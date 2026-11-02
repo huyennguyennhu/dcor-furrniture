@@ -27,7 +27,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Ghế',
     subtitle: 'Ghế ngồi thanh lịch và êm ái.',
     subtitleVi: 'Ghế ngồi thanh lịch và êm ái.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401063/dcor/variants/dcor_variants_974084349e566ad5f1f9f7fd29681a6a.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/d028c878-9227-4aac-9ba6-ad43013ccaef/1354515_PNG-Web%2072dpi.png',
     query: 'chairs'
   },
   {
@@ -36,7 +36,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Bàn',
     subtitle: 'Bàn tối giản, chất liệu vượt thời gian.',
     subtitleVi: 'Bàn tối giản, chất liệu vượt thời gian.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401027/dcor/variants/dcor_variants_ba33ce64917773cec8d3cf653ae87963.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/87507d0b-ad67-47a7-8089-ad4300b2ee2e/1106983_PNG-Web%2072dpi.png',
     query: 'tables'
   },
   {
@@ -45,7 +45,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Giường',
     subtitle: 'Không gian thư thái, trọn vẹn giấc ngủ.',
     subtitleVi: 'Không gian thư thái, trọn vẹn giấc ngủ.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400981/dcor/variants/dcor_variants_0bdda1d9e4b775c095cf56f47c815a40.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/e4417f8b-6dfc-4b7e-baea-b2fb0104f233/2864658_PNG-Web%2072dpi.png',
     query: 'beds'
   },
   {
@@ -54,7 +54,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Tủ Kệ',
     subtitle: 'Giải pháp lưu trữ thông minh, tối giản.',
     subtitleVi: 'Giải pháp lưu trữ thông minh, tối giản.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401092/dcor/variants/dcor_variants_44b6a5555bdd23b190ceb51346177fa4.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/a4af61b0-c597-4662-96f8-b2e6009c3566/2815962_PNG-Web%2072dpi.png',
     query: 'storage'
   },
   {
@@ -63,7 +63,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Sofa',
     subtitle: 'Sofa module cao cấp, thư giãn tối đa.',
     subtitleVi: 'Sofa module cao cấp, thư giãn tối đa.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401137/dcor/variants/dcor_variants_61f15dbc9cfe1edbd15927874b9c2d58.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/1dae6253-c39d-47c7-830f-b2e800071a4a/2868108_PNG-Web%2072dpi.png',
     query: 'sofas'
   },
   {
@@ -72,7 +72,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Đèn',
     subtitle: 'Ánh sáng tinh tế cho từng không gian.',
     subtitleVi: 'Ánh sáng tinh tế cho từng không gian.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401094/dcor/variants/dcor_variants_ec2dc93bd7fff63e2c07418d3c478874.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/edbaee1f-6f6a-4897-8d2d-ad4300b2f353/1106997_PNG-Web%2072dpi.png',
     query: 'lamps'
   },
   {
@@ -90,7 +90,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Phụ kiện',
     subtitle: 'Điểm nhấn nghệ thuật cho mọi căn phòng.',
     subtitleVi: 'Điểm nhấn nghệ thuật cho mọi căn phòng.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792401005/dcor/variants/dcor_variants_5d99b2b46d559221269e9c092ffc2f49.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/38db6aa3-5207-4cbb-9b84-b2b400afd754/2802682_PNG-Web%2072dpi.png',
     query: 'accessories'
   },
   {
@@ -99,7 +99,7 @@ const HOME_CATEGORIES: HomeCategoryItem[] = [
     titleVi: 'Ngoài trời',
     subtitle: 'Nội thất ngoài trời bền bỉ, tiện nghi.',
     subtitleVi: 'Nội thất ngoài trời bền bỉ, tiện nghi.',
-    image: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400998/dcor/variants/dcor_variants_c7d2acfd58253f37da66a344cf38ef25.webp',
+    image: 'https://res.cloudinary.com/yqbkibfq/image/fetch/w_800,c_limit,f_auto,q_auto:good/https://assets.boconcept.com/0c0585f3-002e-480f-9ba1-b0c200d96a2a/2113766_PNG-Web%2072dpi.png',
     query: 'outdoors'
   }
 ];
@@ -200,7 +200,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 26,
         nameFallback: 'Como bookcase',
         priceFallback: '10.490.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400900/dcor/products/dcor_products_6734c605eb8af663370305ccd98368f4.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525353/dcor/products/ei9ph1gwfnkrsxlopji5.webp'
       },
       {
         id: 'spot-dawn',
@@ -210,7 +210,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 48,
         nameFallback: 'Dawn table lamp',
         priceFallback: '15.790.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_318afede83ece3445e8bbec1c3e6542d.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525471/dcor/products/wwoidff9ijbcwqqgqvkd.webp'
       },
       {
         id: 'spot-nawabari',
@@ -220,7 +220,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 67,
         nameFallback: 'Nawabari 3 seater sofa, wooden leg',
         priceFallback: '68.490.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_d0a5600206c59ef1e6d4f03aec74cf58.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525428/dcor/products/bjsudbhkuizbdnaeu7kr.webp'
       },
       {
         id: 'spot-bermuda',
@@ -230,7 +230,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 76,
         nameFallback: 'Bermuda footstool',
         priceFallback: '11.290.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_291d399b741e99a50227c96175bffbe1.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525297/dcor/products/pnlhpdvow5hjjf8qogic.webp'
       },
       {
         id: 'spot-madrid',
@@ -240,7 +240,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 80,
         nameFallback: 'Madrid coffee table',
         priceFallback: '21.290.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400902/dcor/products/dcor_products_747ef1fb06df15c8cbe04ee8b69dcb69.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525436/dcor/products/xodpteb6f54aehscr7ow.webp'
       }
     ]
   },
@@ -259,7 +259,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 20,
         nameFallback: 'Calgary storage with drawer',
         priceFallback: '44.990.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400894/dcor/products/dcor_products_6b12bc3f2794da638fabf8ba0a8ec933.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525467/dcor/products/ylifh03ghatydyp6ptel.webp'
       },
       {
         id: 'spot-702075',
@@ -269,7 +269,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 60,
         nameFallback: 'Element dresser with 4 drawers',
         priceFallback: '47.490.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400897/dcor/products/dcor_products_d1e5d55345991edf4f36869f1d4bdf95.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525360/dcor/products/iyfwxdaq3ugrp8z1ssjh.webp'
       },
       {
         id: 'spot-GHf252',
@@ -279,7 +279,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 55,
         nameFallback: 'Cupertino desk',
         priceFallback: '51.390.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400899/dcor/products/dcor_products_0f25a79e1e07de08296ae348ff8f76fe.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525442/dcor/products/apn9qzunnbpxtzvdwnxo.webp'
       },
       {
         id: 'spot-992252',
@@ -289,7 +289,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 60,
         nameFallback: 'Hamilton office chair',
         priceFallback: '15.690.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400895/dcor/products/dcor_products_1db85f998325efe5fc888bf6bb3372d2.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525339/dcor/products/cplllbxn6tfxwxar7trr.webp'
       },
       {
         id: 'spot-012330',
@@ -299,7 +299,7 @@ const SHOPPABLE_ROOMS: ShoppableRoom[] = [
         y: 90,
         nameFallback: 'Tide rug',
         priceFallback: '32.490.000 ₫',
-        imageFallback: 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400904/dcor/products/dcor_products_92c9079ce72cd76e2e409ff23b9a642a.webp'
+        imageFallback: 'https://res.cloudinary.com/yqbkibfq/image/upload/v1793525499/dcor/products/gzvdantitwi3ckggh7b1.webp'
       }
     ]
   }

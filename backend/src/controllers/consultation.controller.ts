@@ -453,6 +453,14 @@ export const consultationController = {
         return;
       }
 
+      // In-memory cache 45 giây để chống dồn dập COUNT(*) khi khách click chuyển ngày liên tục
+      const slotCacheKey = `showroom_slots_${showroomId}_${dateStr}`;
+      const cachedAvailability = memoryCache.get<any>(slotCacheKey, 45 * 1000);
+      if (cachedAvailability) {
+        res.json(cachedAvailability);
+        return;
+      }
+
       // Kiểm tra ngày trong quá khứ
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -550,13 +558,15 @@ export const consultationController = {
         };
       });
 
-      res.json({
+      const availabilityResponse = {
         date: dateStr,
         showroomId: String(showroomId),
         isClosed: false,
         closureReason: null,
         slots
-      });
+      };
+      memoryCache.set(slotCacheKey, availabilityResponse);
+      res.json(availabilityResponse);
     } catch (error) {
       console.error('[Consultation] Lỗi query availability:', error);
       res.status(500).json({ error: 'Không thể kiểm tra dung lượng slot showroom.' });
@@ -673,6 +683,8 @@ export const consultationController = {
       );
 
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidate(`showroom_slots_${showroomId}_${dateStr}`);
+      memoryCache.invalidatePrefix('showroom_slots_');
 
       res.status(201).json({
         success: true,
@@ -714,7 +726,8 @@ export const consultationController = {
         SELECT *
         FROM "ShowroomConsultations"
         WHERE customer_phone = $1
-        ORDER BY created_at DESC;
+        ORDER BY created_at DESC
+        LIMIT 30;
       `, String(phone).trim());
 
       res.json(records);

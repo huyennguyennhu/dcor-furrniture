@@ -301,7 +301,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
 
           // Hàm kiểm tra URL hình ảnh hợp lệ (loại bỏ URL trả về 403 từ assets.boconcept.com)
           const isCleanUrl = (u: any): boolean => {
-            return typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com');
+            return typeof u === 'string' && u.startsWith('http') && !u.includes('dsasf753c');
           };
 
           const pMain = (Array.isArray(p.images) && p.images[0] && isCleanUrl(p.images[0])) ? p.images[0] : null;

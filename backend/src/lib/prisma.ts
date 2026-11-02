@@ -18,11 +18,21 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
  * Lưu ý: Để Prisma Client tự quản lý Connection Pool, không gọi $disconnect() / $connect()
  * nhằm tránh làm đứt gãy các request đồng thời khác.
  */
-export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3): Promise<T> {
+export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3, timeoutMs = 20000): Promise<T> {
   let attempt = 0;
   while (true) {
+    let timer: NodeJS.Timeout | null = null;
     try {
-      return await queryFn();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const err: any = new Error(`Truy vấn Database vượt quá thời gian chờ cho phép (${timeoutMs}ms)`);
+          err.code = 'QUERY_TIMEOUT';
+          reject(err);
+        }, timeoutMs);
+        if (typeof timer.unref === 'function') timer.unref();
+      });
+
+      return await Promise.race([queryFn(), timeoutPromise]);
     } catch (error: any) {
       attempt++;
       const errStr = String(error?.message || '') + ' ' + String(error?.cause || '');
@@ -37,19 +47,23 @@ export async function withDbRetry<T>(queryFn: () => Promise<T>, maxRetries = 3):
         errStr.includes("Can't reach database server");
 
       if (isPoolTimeout && attempt <= maxRetries) {
-        const delay = 500 * attempt;
+        const jitter = Math.floor(Math.random() * 200);
+        const delay = 500 * attempt + jitter;
         console.warn(`[Prisma] Pool timeout (P2024), đang chờ giải phóng kết nối và thử lại sau ${delay}ms (lần ${attempt}/${maxRetries})...`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
 
       if (isConnectionError && attempt <= maxRetries) {
-        const delay = 300 * Math.pow(2, attempt - 1); // Exponential backoff: 300ms, 600ms, 1200ms
+        const jitter = Math.floor(Math.random() * 150);
+        const delay = 300 * Math.pow(2, attempt - 1) + jitter; // Exponential backoff + jitter
         console.warn(`[Prisma] Kết nối DB tạm gián đoạn (${error?.code || 'P1017'}), đang thử lại sau ${delay}ms (lần ${attempt}/${maxRetries})...`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
       throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 }

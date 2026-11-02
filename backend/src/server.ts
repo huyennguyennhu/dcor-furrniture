@@ -41,6 +41,7 @@ import promotionRoutes from './routes/promotion.routes';
 import blogRoutes from './routes/blog.routes';
 import blogAdminRoutes from './routes/blog-admin.routes';
 import { initBlogDatabase } from './lib/init-blog-db';
+import { databaseCleanupService } from './services/cleanup.service';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -176,29 +177,47 @@ app.get('/api/categories', async (req, res) => {
 let cachedCategoryMap: Map<string, any> | null = null;
 let lastCategoryCacheTime = 0;
 
+let inFlightCategoryPromise: Promise<Map<string, any>> | null = null;
+
 async function getCategoryMap(): Promise<Map<string, any>> {
   const now = Date.now();
   if (cachedCategoryMap && (now - lastCategoryCacheTime < 300000)) {
     return cachedCategoryMap;
   }
-  const categories = await withDbRetry(() => prisma.category.findMany({
-    where: { isActive: true },
-    include: { parent: true }
-  }));
-  cachedCategoryMap = new Map(categories.map(c => [c.id, c]));
-  lastCategoryCacheTime = now;
-  return cachedCategoryMap;
+  if (inFlightCategoryPromise) {
+    return inFlightCategoryPromise;
+  }
+  inFlightCategoryPromise = (async () => {
+    try {
+      const categories = await withDbRetry(() => prisma.category.findMany({
+        where: { isActive: true },
+        include: { parent: true }
+      }));
+      cachedCategoryMap = new Map(categories.map(c => [c.id, c]));
+      lastCategoryCacheTime = Date.now();
+      return cachedCategoryMap;
+    } finally {
+      inFlightCategoryPromise = null;
+    }
+  })();
+  return inFlightCategoryPromise;
 }
 
 // In-memory cache for full products catalog (60 seconds TTL)
 let cachedProductsList: any[] | null = null;
 let lastProductsCacheTime = 0;
 
+// Single-Flight deduplication maps để chống Cache Stampede / Thundering Herd khi cache hết hạn
+const inFlightProductsQueryMap = new Map<string, Promise<any[]>>();
+const inFlightProductDetailMap = new Map<string, Promise<any>>();
+
 export function invalidateProductCache() {
   cachedProductsList = null;
   lastProductsCacheTime = 0;
   cachedCategoryMap = null;
   lastCategoryCacheTime = 0;
+  inFlightProductsQueryMap.clear();
+  inFlightProductDetailMap.clear();
 }
 
 // API danh sách sản phẩm (Hiệu năng cao: In-memory join & cache)
@@ -221,106 +240,128 @@ app.get('/api/products', async (req, res) => {
       return res.json(cachedProductsList);
     }
 
-    const catMap = await getCategoryMap();
-    const whereClause: any = {
-      isActive: true,
-      deletedAt: null
-    };
-
-    if (categoryId) {
-      whereClause.categoryId = String(categoryId);
-    } else if (categorySlug) {
-      const slugStr = String(categorySlug).toLowerCase();
-      const matchedCat = Array.from(catMap.values()).find(c => (c.slug || '').toLowerCase() === slugStr);
-      if (matchedCat) {
-        // Hỗ trợ cả danh mục cha: lấy tất cả sản phẩm của danh mục cha và các danh mục con
-        const childIds = Array.from(catMap.values())
-          .filter(c => c.parentId === matchedCat.id)
-          .map(c => c.id);
-        if (childIds.length > 0) {
-          whereClause.categoryId = { in: [matchedCat.id, ...childIds] };
-        } else {
-          whereClause.categoryId = matchedCat.id;
-        }
-      } else {
-        whereClause.category = { slug: slugStr };
-      }
+    // Single-Flight: Nếu đã có một request cùng cacheKey đang truy vấn DB, tái sử dụng Promise đó
+    if (inFlightProductsQueryMap.has(cacheKey)) {
+      const dedupedResult = await inFlightProductsQueryMap.get(cacheKey)!;
+      return res.json(dedupedResult);
     }
 
-    console.log('[API] /api/products fetching from DB...');
-    console.time('[API] products query');
-    
-    // Tải song song: Products và Variants được tối ưu trường dữ liệu
-    const [products, variants] = await Promise.all([
-      withDbRetry(() => prisma.product.findMany({
-        where: whereClause,
-        orderBy: { createdAt: 'desc' }
-      })),
-      withDbRetry(() => prisma.productVariant.findMany({
-        where: { isActive: true },
-        select: {
-          id: true,
-          productId: true,
-          name: true,
-          price: true,
-          stock: true
-        }
-      }))
-    ]);
-
-    console.timeEnd('[API] products query');
-
-    // Gom biến thể theo productId bằng Map O(1)
-    const varMap = new Map<string, any[]>();
-    for (const v of variants) {
-      if (!varMap.has(v.productId)) {
-        varMap.set(v.productId, []);
-      }
-      varMap.get(v.productId)!.push(v);
-    }
-
-    const enrichedProducts = products.map(p => {
-      let rating = 4.9;
-      let reviewCount = 128;
-
-      const hash = p.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      if (p.isBestSeller) {
-        rating = 5.0;
-        reviewCount = 120 + (hash % 180);
-      } else {
-        const ratingTier = hash % 10;
-        if (ratingTier >= 5) {
-          rating = 5.0;
-          reviewCount = 45 + (hash % 85);
-        } else if (ratingTier >= 2) {
-          rating = 4.8;
-          reviewCount = 20 + (hash % 40);
-        } else if (ratingTier === 1) {
-          rating = 4.0;
-          reviewCount = 10 + (hash % 20);
-        } else {
-          rating = 3.5;
-          reviewCount = 5 + (hash % 10);
-        }
-      }
-
-      return {
-        ...p,
-        category: catMap.get(p.categoryId) || null,
-        variants: varMap.get(p.id) || [],
-        rating,
-        reviewCount
+    const fetchProductsPromise = (async () => {
+      const catMap = await getCategoryMap();
+      const whereClause: any = {
+        isActive: true,
+        deletedAt: null
       };
-    });
 
-    memoryCache.set(cacheKey, enrichedProducts);
-    if (isFullCatalog) {
-      cachedProductsList = enrichedProducts;
-      lastProductsCacheTime = Date.now();
+      if (categoryId) {
+        whereClause.categoryId = String(categoryId);
+      } else if (categorySlug) {
+        const slugStr = String(categorySlug).toLowerCase();
+        const matchedCat = Array.from(catMap.values()).find(c => (c.slug || '').toLowerCase() === slugStr);
+        if (matchedCat) {
+          // Hỗ trợ cả danh mục cha: lấy tất cả sản phẩm của danh mục cha và các danh mục con
+          const childIds = Array.from(catMap.values())
+            .filter(c => c.parentId === matchedCat.id)
+            .map(c => c.id);
+          if (childIds.length > 0) {
+            whereClause.categoryId = { in: [matchedCat.id, ...childIds] };
+          } else {
+            whereClause.categoryId = matchedCat.id;
+          }
+        } else {
+          whereClause.category = { slug: slugStr };
+        }
+      }
+
+      console.log('[API] /api/products fetching from DB...');
+      console.time('[API] products query');
+      
+      // Tải song song: Products và Variants được tối ưu trường dữ liệu
+      const [products, variants] = await Promise.all([
+        withDbRetry(() => prisma.product.findMany({
+          where: whereClause,
+          orderBy: { createdAt: 'desc' }
+        })),
+        withDbRetry(() => prisma.productVariant.findMany({
+          where: { isActive: true },
+          select: {
+            id: true,
+            productId: true,
+            name: true,
+            price: true,
+            stock: true,
+            optionValues: true
+          }
+        }))
+      ]);
+
+      console.timeEnd('[API] products query');
+
+      // Gom biến thể theo productId bằng Map O(1)
+      const varMap = new Map<string, any[]>();
+      for (const v of variants) {
+        if (!varMap.has(v.productId)) {
+          varMap.set(v.productId, []);
+        }
+        const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+        varMap.get(v.productId)!.push({
+          ...v,
+          images: opt.images || [],
+          optionValues: opt
+        });
+      }
+
+      const enrichedProducts = products.map(p => {
+        let rating = 4.9;
+        let reviewCount = 128;
+
+        const hash = p.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        if (p.isBestSeller) {
+          rating = 5.0;
+          reviewCount = 120 + (hash % 180);
+        } else {
+          const ratingTier = hash % 10;
+          if (ratingTier >= 5) {
+            rating = 5.0;
+            reviewCount = 45 + (hash % 85);
+          } else if (ratingTier >= 2) {
+            rating = 4.8;
+            reviewCount = 20 + (hash % 40);
+          } else if (ratingTier === 1) {
+            rating = 4.0;
+            reviewCount = 10 + (hash % 20);
+          } else {
+            rating = 3.5;
+            reviewCount = 5 + (hash % 10);
+          }
+        }
+
+        return {
+          ...p,
+          category: catMap.get(p.categoryId) || null,
+          variants: varMap.get(p.id) || [],
+          rating,
+          reviewCount
+        };
+      });
+
+      memoryCache.set(cacheKey, enrichedProducts);
+      if (isFullCatalog) {
+        cachedProductsList = enrichedProducts;
+        lastProductsCacheTime = Date.now();
+      }
+
+      return enrichedProducts;
+    })();
+
+    inFlightProductsQueryMap.set(cacheKey, fetchProductsPromise);
+    try {
+      const enrichedProducts = await fetchProductsPromise;
+      console.log(`[API] Trả về ${enrichedProducts.length} sản phẩm thành công.`);
+      res.json(enrichedProducts);
+    } finally {
+      inFlightProductsQueryMap.delete(cacheKey);
     }
-
-    console.log(`[API] Trả về ${enrichedProducts.length} sản phẩm thành công.`);
-    res.json(enrichedProducts);
   } catch (error) {
     console.error('Lỗi lấy danh sách sản phẩm:', error);
     res.status(503).json({ message: 'Không thể lấy sản phẩm từ cơ sở dữ liệu.' });
@@ -335,31 +376,29 @@ app.get('/api/products/:id', async (req, res) => {
       return res.json(cached);
     }
 
-    const variantInclude = {
-      include: {
-        warehouseStocks: {
-          select: {
-            safetyThreshold: true
+    // Single-Flight: Tái sử dụng request chi tiết sản phẩm nếu đang có query cùng ID chạy dở
+    if (inFlightProductDetailMap.has(cacheKey)) {
+      const dedupedDetail = await inFlightProductDetailMap.get(cacheKey)!;
+      if (dedupedDetail) {
+        return res.json(dedupedDetail);
+      } else {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+    }
+
+    const fetchDetailPromise = (async () => {
+      const variantInclude = {
+        include: {
+          warehouseStocks: {
+            select: {
+              safetyThreshold: true
+            }
           }
         }
-      }
-    };
+      };
 
-    let product = await withDbRetry(() => prisma.product.findUnique({
-      where: { id: req.params.id },
-      include: {
-        category: {
-          include: {
-            parent: true
-          }
-        },
-        variants: variantInclude
-      }
-    }));
-
-    if (!product) {
-      product = await withDbRetry(() => prisma.product.findUnique({
-        where: { slug: req.params.id },
+      let product = await withDbRetry(() => prisma.product.findUnique({
+        where: { id: req.params.id },
         include: {
           category: {
             include: {
@@ -369,8 +408,23 @@ app.get('/api/products/:id', async (req, res) => {
           variants: variantInclude
         }
       }));
-    }
-    if (product) {
+
+      if (!product) {
+        product = await withDbRetry(() => prisma.product.findUnique({
+          where: { slug: req.params.id },
+          include: {
+            category: {
+              include: {
+                parent: true
+              }
+            },
+            variants: variantInclude
+          }
+        }));
+      }
+
+      if (!product) return null;
+
       const variantsWithDimensions = product.variants.map((v: any) => {
         const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
         const attrs = opt.attributes || {};
@@ -436,9 +490,19 @@ app.get('/api/products/:id', async (req, res) => {
       };
 
       memoryCache.set(cacheKey, responseData);
-      res.json(responseData);
-    } else {
-      res.status(404).json({ error: 'Product not found' });
+      return responseData;
+    })();
+
+    inFlightProductDetailMap.set(cacheKey, fetchDetailPromise);
+    try {
+      const responseData = await fetchDetailPromise;
+      if (responseData) {
+        res.json(responseData);
+      } else {
+        res.status(404).json({ error: 'Product not found' });
+      }
+    } finally {
+      inFlightProductDetailMap.delete(cacheKey);
     }
   } catch (error) {
     console.error('Lỗi lấy thông tin sản phẩm:', error);
@@ -674,17 +738,29 @@ import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+
+  // Tự động dọn dẹp dữ liệu rác định kỳ mỗi 12 giờ bảo vệ dung lượng 500MB (chống Read-Only)
+  databaseCleanupService.startScheduledCleanup(12);
   // Chỉ chạy DDL kiểm tra tạo bảng khi có cờ INIT_DB=true
-  // Mặc định tắt để tránh lock database và quá tải CPU Supabase khi dev hot-reload
+  // Mặc định tắt để bảo vệ database khỏi connection storm và table lock.
+  // Khi cần chạy, thực thi tuần tự từng bảng để không bao giờ vượt quá connection pool.
   if (process.env.INIT_DB === 'true') {
-    ensureConsultationTable().catch(err => console.error('Failed to init consultation DB:', err));
-    initInventorySettingsDatabase().catch(err => console.error('Failed to init inventory settings DB:', err));
-    initAdministrativeDatabase().catch(err => console.error('Failed to init administrative DB:', err));
-    initAuditLogsDatabase().catch(err => console.error('Failed to init audit logs DB:', err));
-    initPromotionsAndDesignsDatabase().catch(err => console.error('Failed to init promotions and designs DB:', err));
-    initMyDesignsDatabase().catch(err => console.error('Failed to init my designs DB:', err));
-    initChatDatabase().catch(err => console.error('Failed to init chat DB:', err));
-    initBlogDatabase().catch(err => console.error('Failed to init blog DB:', err));
+    (async () => {
+      console.log('[DB-Init] Đang khởi tạo các bảng tuần tự để bảo vệ connection pool...');
+      try {
+        await ensureConsultationTable();
+        await initInventorySettingsDatabase();
+        await initAdministrativeDatabase();
+        await initAuditLogsDatabase();
+        await initPromotionsAndDesignsDatabase();
+        await initMyDesignsDatabase();
+        await initChatDatabase();
+        await initBlogDatabase();
+        console.log('[DB-Init] Khởi tạo các bảng thành công.');
+      } catch (err) {
+        console.error('[DB-Init] Lỗi khởi tạo bảng:', err);
+      }
+    })();
   }
 });
 

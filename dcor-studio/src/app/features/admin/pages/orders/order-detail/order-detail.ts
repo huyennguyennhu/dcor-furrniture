@@ -46,7 +46,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   };
 
   // Hình ảnh sản phẩm mặc định sang trọng khi gặp lỗi mạng/ảnh không tồn tại
-  readonly defaultItemImage = 'https://res.cloudinary.com/dsasf753c/image/upload/v1792400890/dcor/products/dcor_products_d19a6dcdd9edef86900855cf030c65c5.webp';
+  readonly defaultItemImage = '/assets/img/furniture-placeholder.svg';
 
   handleImageError(event: Event): void {
     const target = event.target as HTMLImageElement;
