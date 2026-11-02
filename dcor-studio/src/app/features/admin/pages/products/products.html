@@ -5,26 +5,11 @@
        ========================================================================= -->
   <div class="products-header">
     <div>
-      <div class="breadcrumb-trail">
-        <span>Quản trị</span>
-        <span class="sep">/</span>
-        <span class="current">Sản phẩm</span>
-      </div>
       <h1 class="page-title">Quản lý Sản phẩm</h1>
-      <p class="page-subtitle">Quản lý danh mục sản phẩm DCor, bảng giá phân tầng, tồn kho đa chi nhánh và biến thể.</p>
+      
     </div>
 
     <div class="header-actions">
-      <!-- Nút Làm mới -->
-      <button 
-        type="button" 
-        class="admin-btn admin-btn-secondary" 
-        (click)="loadProducts()"
-        title="Tải lại danh sách">
-        <lucide-angular [img]="icons.RefreshCw" size="16"></lucide-angular>
-        <span>Làm mới</span>
-      </button>
-
       <!-- Nút Nhập Excel -->
       <button 
         type="button" 
@@ -99,19 +84,6 @@
         <span class="tab-badge">{{ totalHiddenCount }}</span>
       </button>
     </nav>
-
-    <!-- Công cụ mở / thu gọn toàn bộ biến thể -->
-    <div class="quick-accordion-tools" *ngIf="filteredProducts.length > 0">
-      <button type="button" class="tool-btn" (click)="expandAll()" title="Mở rộng tất cả dòng biến thể">
-        <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
-        <span>Mở tất cả</span>
-      </button>
-      <span class="tool-sep">|</span>
-      <button type="button" class="tool-btn" (click)="collapseAll()" title="Thu gọn tất cả dòng biến thể">
-        <lucide-angular [img]="icons.ChevronRight" size="14"></lucide-angular>
-        <span>Thu gọn tất cả</span>
-      </button>
-    </div>
   </div>
 
   <!-- =========================================================================
@@ -210,6 +182,38 @@
         </div>
       </div>
 
+      <!-- Dropdown Lọc Kho hàng / Showroom (BUG-9) -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedBranchFilter !== 'ALL'"
+          (click)="toggleBranchDropdown($event)">
+          <lucide-angular [img]="icons.Tag" size="14"></lucide-angular>
+          <span class="dropdown-label">{{ selectedBranchLabel }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+        </button>
+        <div class="dropdown-menu" *ngIf="isBranchDropdownOpen">
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="selectedBranchFilter === 'ALL'"
+            (click)="selectBranchFilter('ALL')">
+            <span>Tất cả kho/showroom</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedBranchFilter === 'ALL'"></lucide-angular>
+          </button>
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            *ngFor="let b of branchOptions"
+            [class.selected]="selectedBranchFilter === b.id"
+            (click)="selectBranchFilter(b.id)">
+            <span>{{ b.name }}</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedBranchFilter === b.id"></lucide-angular>
+          </button>
+        </div>
+      </div>
+
       <!-- Dropdown Sắp xếp -->
       <div class="custom-dropdown">
         <button 
@@ -259,7 +263,16 @@
       <table class="products-master-table">
         <thead>
           <tr>
-            <th class="col-expand"></th>
+            <th class="col-expand">
+              <button 
+                type="button" 
+                class="accordion-toggle-btn header-toggle-all-btn" 
+                [class.expanded]="isAllExpanded"
+                (click)="toggleExpandAll()"
+                [title]="isAllExpanded ? 'Thu gọn tất cả biến thể' : 'Mở rộng tất cả biến thể'">
+                <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
+              </button>
+            </th>
             <th class="col-checkbox">
               <input 
                 type="checkbox" 
@@ -270,7 +283,7 @@
                 title="Chọn tất cả"
               />
             </th>
-            <th class="col-image">Ảnh</th>
+            <th class="col-image"></th>
             <th class="col-name">Tên sản phẩm & Mã SKU</th>
             <th class="col-category">Danh mục</th>
             <th class="col-price">Khoảng giá</th>
@@ -278,7 +291,7 @@
             <th class="col-stock">Tồn khả dụng</th>
             <th class="col-status">Trạng thái</th>
             <th class="col-date">Ngày tạo</th>
-            <th class="col-actions">Thao tác</th>
+            <th class="col-actions"></th>
           </tr>
         </thead>
 
@@ -561,6 +574,17 @@
         trên tổng số <strong>{{ filteredProducts.length }}</strong> sản phẩm
       </div>
       <div class="pagination-controls">
+        <!-- Nút Về đầu trang (BUG-12) -->
+        <button 
+          type="button" 
+          class="page-btn page-arrow" 
+          [disabled]="currentPage === 1" 
+          (click)="goToFirstPage()" 
+          title="Về trang đầu">
+          <lucide-angular [img]="icons.ChevronsLeft" size="16"></lucide-angular>
+        </button>
+
+        <!-- Nút Trang trước -->
         <button 
           type="button" 
           class="page-btn page-arrow" 
@@ -569,6 +593,7 @@
           title="Trang trước">
           <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
         </button>
+
         <button 
           type="button" 
           class="page-btn" 
@@ -577,6 +602,8 @@
           (click)="goToPage(p)">
           {{ p }}
         </button>
+
+        <!-- Nút Trang sau -->
         <button 
           type="button" 
           class="page-btn page-arrow" 
@@ -585,6 +612,31 @@
           title="Trang sau">
           <lucide-angular [img]="icons.ChevronRight" size="16"></lucide-angular>
         </button>
+
+        <!-- Nút Về trang cuối (BUG-12) -->
+        <button 
+          type="button" 
+          class="page-btn page-arrow" 
+          [disabled]="currentPage === totalPages" 
+          (click)="goToLastPage()" 
+          title="Về trang cuối">
+          <lucide-angular [img]="icons.ChevronsRight" size="16"></lucide-angular>
+        </button>
+
+        <!-- Ô nhập trang cụ thể muốn tới (BUG-12) -->
+        <div class="jump-page-box">
+          <span>Đến trang</span>
+          <input 
+            type="number" 
+            class="jump-page-input" 
+            min="1" 
+            [max]="totalPages"
+            placeholder="{{ currentPage }}"
+            [(ngModel)]="jumpPageInput"
+            (keyup.enter)="onJumpPageSubmit()"
+          />
+          <button type="button" class="jump-page-btn" (click)="onJumpPageSubmit()">Đi</button>
+        </div>
       </div>
     </div>
   </section>
@@ -664,7 +716,7 @@
           <div class="form-group" style="margin-top: 14px;">
             <input 
               type="text" 
-              class="form-control text-center font-bold" 
+              class="form-control delete-confirm-input" 
               placeholder="Nhập chữ YES để xác nhận" 
               [(ngModel)]="deleteConfirmText"
               autocomplete="off"

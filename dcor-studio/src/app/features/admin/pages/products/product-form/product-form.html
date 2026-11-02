@@ -1,36 +1,30 @@
-<div class="product-form-container">
+﻿<div class="product-form-container">
   
   <!-- =========================================================================
        1. TOP HEADER & BREADCRUMB
        ========================================================================= -->
-  <header class="form-header">
-    <div class="header-left">
-      <button type="button" class="back-circle-btn" (click)="cancel()" title="Quay lại danh sách sản phẩm">
-        <lucide-angular [img]="icons.ArrowLeft" size="18"></lucide-angular>
+  <header class="form-header v2-form-header">
+    <div class="v2-header-nav">
+      <button type="button" class="v2-btn-back" (click)="cancel()" title="Quay lại danh sách sản phẩm">
+        <lucide-angular [img]="icons.ArrowLeft" size="15"></lucide-angular>
+        <span>Trở về danh sách sản phẩm</span>
       </button>
-
-      <div>
-        <div class="breadcrumb-trail">
-          <a [routerLink]="['/admin/products']">Quản lý Sản phẩm</a>
-          <span class="sep">/</span>
-          <span class="current">{{ isEditMode ? 'Chỉnh sửa' : 'Thêm mới' }}</span>
-        </div>
-        <div class="title-with-badge">
-          <h1 class="page-title">
-            {{ isEditMode ? ('Chỉnh sửa: ' + (formData.basic.name || 'Sản phẩm')) : 'Thêm Sản phẩm Mới' }}
-          </h1>
-          <span 
-            class="status-pill"
-            [class.pill-active]="formData.publication.status === 'Đang bán'"
-            [class.pill-draft]="formData.publication.status === 'Nháp'"
-            [class.pill-hidden]="formData.publication.status === 'Đã ẩn'">
-            {{ formData.publication.status }}
-          </span>
-        </div>
-      </div>
     </div>
 
-    <div class="header-right">
+    <div class="v2-header-main">
+      <div class="title-with-badge">
+        <h1 class="page-title">
+          {{ isEditMode ? ('Chỉnh sửa: ' + (formData.basic.name || 'Sản phẩm')) : 'Thêm Sản phẩm Mới' }}
+        </h1>
+        <span 
+          class="status-pill"
+          [class.pill-active]="formData.publication.status === 'Đang bán'"
+          [class.pill-draft]="formData.publication.status === 'Nháp'"
+          [class.pill-hidden]="formData.publication.status === 'Đã ẩn'">
+          {{ formData.publication.status }}
+        </span>
+      </div>
+
       <div class="sku-info-box">
         <span class="sku-label">MÃ SKU TỔNG:</span>
         <span class="sku-value">{{ formData.basic.baseSku }}</span>
@@ -179,11 +173,12 @@
             />
             <button 
               type="button" 
-              class="admin-btn admin-btn-secondary upload-btn-sm" 
+              class="admin-btn admin-btn-secondary upload-btn-sm"
+              *ngIf="formData.basic.images.length > 0" 
               (click)="fileInput.click()" 
               [disabled]="isUploadingImage">
               <lucide-angular [img]="icons.Upload" size="14"></lucide-angular>
-              <span *ngIf="!isUploadingImage">+ Tải ảnh lên</span>
+              <span *ngIf="!isUploadingImage">Tải ảnh lên</span>
               <span *ngIf="isUploadingImage">Đang tải...</span>
             </button>
           </div>
@@ -338,29 +333,25 @@
             <button 
               type="button" 
               class="tag-checkbox-pill"
-              *ngFor="let r of rooms"
-              [class.checked]="isRoomSelected(r.id)"
-              (click)="toggleRoom(r.id)">
-              <lucide-angular [img]="icons.Check" size="13" *ngIf="isRoomSelected(r.id)"></lucide-angular>
-              <span>{{ r.name }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 5. Chất liệu chính (Multi-select pills) -->
-        <div class="form-group span-2">
-          <label class="form-label">
-            Chất liệu chính (Chọn nhiều để phục vụ bộ lọc tìm kiếm)
-          </label>
-          <div class="tag-selector-group">
-            <button 
-              type="button" 
-              class="tag-checkbox-pill"
               *ngFor="let mat of materials"
               [class.checked]="isMaterialSelected(mat.id)"
               (click)="toggleMaterial(mat.id)">
               <lucide-angular [img]="icons.Check" size="13" *ngIf="isMaterialSelected(mat.id)"></lucide-angular>
               <span>{{ mat.name }}</span>
+            </button>
+          </div>
+          <!-- Bổ sung thêm chất liệu nhanh (BUG-20) -->
+          <div class="add-quick-material-box">
+            <input 
+              type="text" 
+              class="form-control quick-add-input" 
+              placeholder="Nhập tên chất liệu mới cần bổ sung..." 
+              [(ngModel)]="newMaterialName"
+              (keyup.enter)="addQuickMaterial()"
+            />
+            <button type="button" class="admin-btn admin-btn-secondary" (click)="addQuickMaterial()">
+              <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
+              <span>Thêm chất liệu</span>
             </button>
           </div>
         </div>
@@ -425,19 +416,20 @@
                   [(ngModel)]="group.name"
                   placeholder="Nhập tên thuộc tính (vd: Màu sắc, Kích thước...)"
                   (ngModelChange)="generateVariantsFromAttributes()"
-                  [attr.list]="'attr-suggestions-' + gIdx"
-                  maxlength="30"
+                  
+                  [attr.list]="'attr-suggestions-' + gIdx" maxlength="30"
                 />
                 <datalist [id]="'attr-suggestions-' + gIdx">
                   <option *ngFor="let s of commonAttributeSuggestions" [value]="s"></option>
                 </datalist>
+                
                 <span class="attr-tip-text" *ngIf="!group.name.trim()">← Nhập tên thuộc tính để mở khóa nhập giá trị</span>
               </div>
 
               <button 
                 type="button" 
                 class="btn-delete-group" 
-                (click)="removeAttributeGroup(gIdx)"
+                (click)="promptDeleteAttributeGroup(gIdx)"
                 title="Xóa nhóm thuộc tính này">
                 <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
               </button>
@@ -494,7 +486,7 @@
           <div class="bulk-toolbar-title">
             <lucide-angular [img]="icons.SlidersHorizontal" size="17" class="bulk-icon-main"></lucide-angular>
             <div>
-              <span class="bulk-title-main">Chỉnh sửa hàng loạt (Bulk Edit)</span>
+              <span class="bulk-title-main">Áp dụng giá hàng loạt cho biến thể (Bulk Price)</span>
               <span class="bulk-title-sub">Nhấn Enter hoặc nút Áp dụng để cập nhật nhanh cho tất cả biến thể</span>
             </div>
           </div>
@@ -662,7 +654,7 @@
 
                 <!-- Xóa biến thể -->
                 <td style="text-align: center;">
-                  <button type="button" class="del-row-btn" (click)="removeVariant(vIdx)" title="Xóa biến thể">
+                  <button type="button" class="del-row-btn" (click)="promptDeleteVariant(vIdx)" title="Xóa biến thể">
                     <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
                   </button>
                 </td>
@@ -691,7 +683,7 @@
             <div class="dim-item">
               <span class="dim-label">Chiều Dài (L)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.length" placeholder="2800" min="0" max="50000" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.length" placeholder="Nhập chiều dài" min="0" max="50000" />
                 <span class="unit">mm</span>
               </div>
             </div>
@@ -699,7 +691,7 @@
             <div class="dim-item">
               <span class="dim-label">Chiều Rộng (W)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.width" placeholder="1650" min="0" max="50000" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.width" placeholder="Nhập chiều rộng" min="0" max="50000" />
                 <span class="unit">mm</span>
               </div>
             </div>
@@ -707,7 +699,7 @@
             <div class="dim-item">
               <span class="dim-label">Chiều Cao (H)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.height" placeholder="820" min="0" max="50000" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.height" placeholder="Nhập chiều cao" min="0" max="50000" />
                 <span class="unit">mm</span>
               </div>
             </div>
@@ -715,7 +707,7 @@
             <div class="dim-item">
               <span class="dim-label">Trọng lượng (Weight)</span>
               <div class="dim-input-wrap">
-                <input type="number" class="form-control" [(ngModel)]="formData.specs.weight" placeholder="95" min="0" max="10000" />
+                <input type="number" class="form-control" [(ngModel)]="formData.specs.weight" placeholder="Nhập trọng lượng" min="0" max="10000" />
                 <span class="unit">kg</span>
               </div>
             </div>
@@ -745,7 +737,7 @@
         <!-- Thiết lập trạng thái xuất bản -->
         <div class="form-group">
           <label class="form-label" for="pub-status">
-            Trạng thái hiển thị sản phẩm
+            Trạng thái hiển thị sản phẩm <span class="required-star">*</span>
           </label>
           <select 
             id="pub-status"
@@ -780,18 +772,7 @@
        4. BOTTOM STICKY ACTION FOOTER BAR
        ========================================================================= -->
   <footer class="bottom-sticky-footer">
-    <div class="footer-left">
-      <button type="button" class="admin-btn admin-btn-secondary" (click)="cancel()">
-        <lucide-angular [img]="icons.ArrowLeft" size="15"></lucide-angular>
-        <span>Hủy / Quay lại</span>
-      </button>
-
-      <div class="current-state-indicator">
-        <span class="state-dot" [class.dot-green]="formData.publication.status === 'Đang bán'"></span>
-        <span>Trạng thái: <strong>{{ formData.publication.status }}</strong></span>
-      </div>
-    </div>
-
+    <div class="footer-left"></div>
     <div class="footer-right">
       <!-- Điều hướng tab trước/sau -->
       <button type="button" class="admin-btn admin-btn-secondary" (click)="prevTab()" [disabled]="activeTab === 'basic'">
@@ -806,9 +787,16 @@
 
 
       <!-- Nút Xuất bản sản phẩm -->
-      <button type="button" class="admin-btn admin-btn-primary btn-publish" (click)="publishProduct()">
-        <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
-        <span>Xuất bản sản phẩm</span>
+      <button 
+        type="button" 
+        class="admin-btn admin-btn-primary btn-publish" 
+        *ngIf="isEditMode || activeTab === 'specs'"
+        [disabled]="isSubmitting || isLoading" 
+        [class.btn-loading]="isSubmitting || isLoading"
+        (click)="publishProduct()">
+        <span class="btn-spinner" *ngIf="isSubmitting || isLoading"></span>
+        <lucide-angular [img]="icons.CheckCircle2" size="16" *ngIf="!isSubmitting && !isLoading"></lucide-angular>
+        <span>{{ (isSubmitting || isLoading) ? 'Đang xuất bản...' : 'Xuất bản sản phẩm' }}</span>
       </button>
     </div>
   </footer>
@@ -936,3 +924,30 @@
 
 </div>
 
+
+
+  <!-- =========================================================================
+       8. MODAL XÁC NHẬN XÓA BIẾN THỂ / THUỘC TÍNH (BUG-26)
+       ========================================================================= -->
+  <div class="confirm-modal-backdrop" *ngIf="isConfirmDeleteModalOpen" (click)="cancelDelete()"></div>
+  <div class="confirm-modal-dialog" *ngIf="isConfirmDeleteModalOpen" role="dialog" aria-modal="true">
+    <div class="confirm-modal-header">
+      <div class="confirm-icon-box">
+        <lucide-angular [img]="icons.AlertTriangle" size="20"></lucide-angular>
+      </div>
+      <div>
+        <h3 class="confirm-modal-title">{{ deleteConfirmTarget?.title }}</h3>
+        <p class="confirm-modal-desc">{{ deleteConfirmTarget?.description }}</p>
+      </div>
+    </div>
+
+    <div class="confirm-modal-footer">
+      <button type="button" class="admin-btn admin-btn-secondary" (click)="cancelDelete()">
+        Hủy bỏ
+      </button>
+      <button type="button" class="admin-btn admin-btn-danger" (click)="executeConfirmDelete()">
+        <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+        <span>Xác nhận xóa</span>
+      </button>
+    </div>
+  </div>

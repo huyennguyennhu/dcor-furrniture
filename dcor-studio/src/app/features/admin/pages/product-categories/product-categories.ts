@@ -571,6 +571,10 @@ export class ProductCategoriesComponent implements OnInit {
   // Search & Filter
   searchQuery = '';
   statusFilter = 'ALL';
+  isStatusDropdownOpen = false;
+  deleteConfirmInput = '';
+  isDeleting = false;
+  isSaving = false;
 
   // Modal Thêm / Chỉnh sửa
   isModalOpen = false;
@@ -657,7 +661,7 @@ export class ProductCategoriesComponent implements OnInit {
               id: parent.id,
               name: parent.name,
               slug: parent.slug,
-              description: `Danh mục chính ${parent.name} trong hệ thống DCor.`,
+              description: '',
               image: '',
               type: 'main',
               parentId: null,
@@ -675,7 +679,7 @@ export class ProductCategoriesComponent implements OnInit {
                   id: child.id,
                   name: child.name,
                   slug: child.slug,
-                  description: `Danh mục con thuộc ${parent.name}.`,
+                  description: '',
                   image: '',
                   type: 'main',
                   parentId: parent.id,
@@ -825,6 +829,38 @@ export class ProductCategoriesComponent implements OnInit {
   }
 
   // Áp dụng bộ lọc
+  
+  toggleStatusDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.isStatusDropdownOpen = !this.isStatusDropdownOpen;
+  }
+
+  selectStatusFilter(val: string) {
+    this.statusFilter = val;
+    this.isStatusDropdownOpen = false;
+    this.applyFilters();
+  }
+
+  get selectedStatusLabel(): string {
+    if (this.statusFilter === 'Hiển thị') return 'Chỉ mục Hiển thị';
+    if (this.statusFilter === 'Đã ẩn') return 'Chỉ mục Đã ẩn';
+    return 'Tất cả trạng thái';
+  }
+
+  get isAllExpanded(): boolean {
+    const list = this.paginatedCategories.filter(c => this.getSubcategories(c.id).length > 0);
+    return list.length > 0 && list.every(c => this.expandedIds.has(c.id));
+  }
+
+  toggleExpandAll() {
+    const list = this.paginatedCategories.filter(c => this.getSubcategories(c.id).length > 0);
+    if (this.isAllExpanded) {
+      list.forEach(c => this.expandedIds.delete(c.id));
+    } else {
+      list.forEach(c => this.expandedIds.add(c.id));
+    }
+  }
+
   applyFilters() {
     this.currentPage = 1;
     const currentType = this.topLevelTab === 'main' ? 'main' : 'sub';
@@ -1110,6 +1146,8 @@ export class ProductCategoriesComponent implements OnInit {
   }
 
   closeConfirmDeleteModal() {
+    this.deleteConfirmInput = "";
+    this.isDeleting = false;
     this.isConfirmDeleteModalOpen = false;
     this.categoryTarget = null;
   }

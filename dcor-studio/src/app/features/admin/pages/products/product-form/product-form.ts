@@ -9,7 +9,7 @@ import {
   Package, Settings, Warehouse, Eye, Info, X, ChevronRight, Tag, 
   CheckCircle2, Sparkles, RotateCcw, FileText, SlidersHorizontal, 
   DollarSign, Image as ImageIcon, HelpCircle, Search, ChevronDown,
-  Copy, Sliders, CheckSquare, Square, Images
+  Copy, Sliders, CheckSquare, Square, Images, AlertTriangle
 } from 'lucide-angular';
 
 import { environment } from '../../../../../../environments/environment';
@@ -70,7 +70,7 @@ export class ProductFormComponent implements OnInit {
     Package, Settings, Warehouse, Eye, Info, X, ChevronRight, Tag, 
     CheckCircle2, Sparkles, RotateCcw, FileText, SlidersHorizontal, 
     DollarSign, ImageIcon, HelpCircle, Search, ChevronDown,
-    Copy, Sliders, CheckSquare, Square, Images
+    Copy, Sliders, CheckSquare, Square, Images, AlertTriangle
   };
 
   // State chế độ Form & Tab
@@ -78,6 +78,7 @@ export class ProductFormComponent implements OnInit {
   productId = '';
   activeTab: ProductFormTab = 'basic';
   isLoading = false;
+  isSubmitting = false;
 
   // Tab definitions: 4 Tabs (đã loại bỏ phần tồn kho & giá vốn)
   tabs: Array<{ id: ProductFormTab; label: string; step: number; icon: any; count?: number }> = [
@@ -367,7 +368,7 @@ export class ProductFormComponent implements OnInit {
     this.http.get<any>(`${environment.apiUrl}/admin/products/${id}`).subscribe({
       next: (product) => {
         this.fillFormData(product, id);
-        this.isLoading = false;
+        this.isLoading = false; this.isSubmitting = false;
         this.cdr.detectChanges();
       },
       error: () => {
@@ -375,11 +376,11 @@ export class ProductFormComponent implements OnInit {
         this.http.get<any>(`${environment.apiUrl}/products/${id}`).subscribe({
           next: (product) => {
             this.fillFormData(product, id);
-            this.isLoading = false;
+            this.isLoading = false; this.isSubmitting = false;
             this.cdr.detectChanges();
           },
           error: () => {
-            this.isLoading = false;
+            this.isLoading = false; this.isSubmitting = false;
             this.showToast('Không thể tải thông tin sản phẩm từ cơ sở dữ liệu.', 'error');
             this.cdr.detectChanges();
           }
@@ -715,8 +716,78 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
+  newMaterialName = '';
+
+  addQuickMaterial() {
+    const name = this.newMaterialName.trim();
+    if (!name) return;
+    const newId = 'mat-custom-' + Date.now();
+    this.materials.push({ id: newId, name: name });
+    this.formData.classification.materialIds.push(newId);
+    this.newMaterialName = '';
+    this.showToast('Đã thêm chất liệu: ' + name, 'success');
+  }
+
   isMaterialSelected(matId: string): boolean {
     return this.formData.classification.materialIds.includes(matId);
+  }
+
+  
+  // Confirm Delete Modal State (BUG-26: Xác nhận xóa thuộc tính / biến thể)
+  isConfirmDeleteModalOpen = false;
+  deleteConfirmTarget: {
+    type: 'attribute' | 'variant';
+    index: number;
+    title: string;
+    description: string;
+  } | null = null;
+
+  promptDeleteAttributeGroup(index: number) {
+    const group = this.attributeGroups[index];
+    const name = group?.name ? `"${group.name}"` : `#${index + 1}`;
+    this.deleteConfirmTarget = {
+      type: 'attribute',
+      index: index,
+      title: 'Xóa nhóm thuộc tính',
+      description: `Bạn có chắc chắn muốn xóa nhóm thuộc tính ${name}? Thao tác này sẽ cập nhật lại ma trận biến thể của sản phẩm.`
+    };
+    this.isConfirmDeleteModalOpen = true;
+  }
+
+  promptDeleteVariant(index: number) {
+    const variant = this.formData.variants[index];
+    const name = variant?.name || variant?.sku || `Biến thể #${index + 1}`;
+    this.deleteConfirmTarget = {
+      type: 'variant',
+      index: index,
+      title: 'Xóa biến thể sản phẩm',
+      description: `Bạn có chắc chắn muốn xóa biến thể "${name}"? Thao tác này không thể hoàn tác.`
+    };
+    this.isConfirmDeleteModalOpen = true;
+  }
+
+  cancelDelete() {
+    this.isConfirmDeleteModalOpen = false;
+    this.deleteConfirmTarget = null;
+  }
+
+  executeConfirmDelete() {
+    if (!this.deleteConfirmTarget) return;
+
+    if (this.deleteConfirmTarget.type === 'attribute') {
+      const idx = this.deleteConfirmTarget.index;
+      const groupName = this.attributeGroups[idx]?.name || `Thuộc tính #${idx + 1}`;
+      this.attributeGroups.splice(idx, 1);
+      this.generateVariantsFromAttributes();
+      this.showToast(`Đã xóa nhóm thuộc tính ${groupName}`, 'info');
+    } else if (this.deleteConfirmTarget.type === 'variant') {
+      const idx = this.deleteConfirmTarget.index;
+      const varSku = this.formData.variants[idx]?.sku || '';
+      this.formData.variants.splice(idx, 1);
+      this.showToast(`Đã xóa biến thể ${varSku}`, 'info');
+    }
+
+    this.cancelDelete();
   }
 
   // --- TAB 3: DYNAMIC ATTRIBUTES & CARTESIAN PRODUCT MATRIX ---
@@ -1199,21 +1270,25 @@ export class ProductFormComponent implements OnInit {
       : this.http.post<any>(`${environment.apiUrl}/admin/products`, payload);
 
     request$.subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.showToast(this.isEditMode ? 'Cập nhật sản phẩm thành công!' : 'Tạo sản phẩm mới vào cơ sở dữ liệu thành công!', 'success');
-        setTimeout(() => {
-          this.router.navigate(['/admin/products']);
-        }, 1200);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        console.error('Lỗi lưu sản phẩm vào database:', err);
-        const errorMsg = err?.error?.message || err?.error?.error || 'Không thể lưu sản phẩm vào cơ sở dữ liệu.';
-        this.showToast(errorMsg, 'error');
-        this.cdr.detectChanges();
-      }
-    });
+        next: () => {
+          this.isLoading = false; this.isSubmitting = false;
+          const successMsg = this.isEditMode 
+            ? 'Cập nhật sản phẩm thành công!' 
+            : 'Tạo và xuất bản sản phẩm mới thành công!';
+          this.showToast(successMsg, 'success');
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            this.router.navigate(['/admin/products']);
+          }, 1000);
+        },
+        error: (err) => {
+          this.isLoading = false; this.isSubmitting = false;
+          console.error('Lỗi lưu sản phẩm vào database:', err);
+          const errorMsg = err?.error?.message || err?.error?.error || 'Không thể lưu sản phẩm vào cơ sở dữ liệu.';
+          this.showToast(errorMsg, 'error');
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   cancel() {

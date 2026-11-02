@@ -6,7 +6,7 @@ import { Router, RouterModule } from '@angular/router';
 import { 
   LucideAngularModule, 
   Package, Tag, AlertCircle, TrendingUp, Search, Download, Upload, Plus, 
-  ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
+  ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
   RotateCcw, CheckCircle2, X, Filter, FileSpreadsheet, Info, Check, RefreshCw,
   AlertTriangle
 } from 'lucide-angular';
@@ -576,7 +576,7 @@ export class ProductsComponent implements OnInit {
 
   icons = { 
     Package, Tag, AlertCircle, TrendingUp, Search, Download, Upload, Plus, 
-    ChevronDown, ChevronRight, ChevronLeft, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
+    ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
     RotateCcw, CheckCircle2, X, Filter, FileSpreadsheet, Info, Check, RefreshCw,
     AlertTriangle
   };
@@ -589,6 +589,22 @@ export class ProductsComponent implements OnInit {
   // Phân trang 10 sản phẩm mỗi trang
   pageSize = 10;
   currentPage = 1;
+  jumpPageInput: number | null = null;
+
+  goToFirstPage() {
+    this.goToPage(1);
+  }
+
+  goToLastPage() {
+    this.goToPage(this.totalPages);
+  }
+
+  onJumpPageSubmit() {
+    if (this.jumpPageInput && this.jumpPageInput >= 1 && this.jumpPageInput <= this.totalPages) {
+      this.goToPage(this.jumpPageInput);
+      this.jumpPageInput = null;
+    }
+  }
 
   get totalPages(): number {
     return Math.ceil(this.filteredProducts.length / this.pageSize) || 1;
@@ -621,6 +637,14 @@ export class ProductsComponent implements OnInit {
 
   selectedCategory = 'ALL';
   selectedStockFilter: StockFilter = 'ALL';
+  selectedBranchFilter = 'ALL';
+  isBranchDropdownOpen = false;
+  branchOptions = [
+    { id: 'wh-main', name: 'Kho Tổng' },
+    { id: 'sr-q1', name: 'Showroom Q1' },
+    { id: 'sr-td', name: 'Showroom Thủ Đức' },
+    { id: 'sr-hn', name: 'Showroom Cầu Giấy HN' }
+  ];
   sortBy: SortOption = 'newest';
 
   // Dropdown UI states
@@ -898,6 +922,16 @@ export class ProductsComponent implements OnInit {
       } else if (this.selectedStockFilter === 'OUT_OF_STOCK') {
         result = result.filter(p => p.totalAvailableStock === 0);
       }
+    }
+
+    // Lọc theo Kho hàng / Showroom (BUG-9)
+    if (this.selectedBranchFilter !== 'ALL') {
+      result = result.filter(p => {
+        return p.variants.some(v => {
+          const bs = v.branchStocks.find(b => b.branchId === this.selectedBranchFilter);
+          return bs && bs.stock > 0;
+        });
+      });
     }
 
     // 5. Sắp xếp
@@ -1627,6 +1661,41 @@ export class ProductsComponent implements OnInit {
     this.applyFilters();
   }
 
+  get selectedBranchLabel(): string {
+    if (this.selectedBranchFilter === 'ALL') return 'Tất cả kho/showroom';
+    const found = this.branchOptions.find(b => b.id === this.selectedBranchFilter);
+    return found ? found.name : 'Kho/Showroom';
+  }
+
+  toggleBranchDropdown(event: Event) {
+    event.stopPropagation();
+    this.isBranchDropdownOpen = !this.isBranchDropdownOpen;
+    this.isCategoryDropdownOpen = false;
+    this.isStockDropdownOpen = false;
+    this.isSortDropdownOpen = false;
+  }
+
+  selectBranchFilter(branchId: string) {
+    this.selectedBranchFilter = branchId;
+    this.isBranchDropdownOpen = false;
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  get isAllExpanded(): boolean {
+    return this.filteredProducts.length > 0 && this.filteredProducts.every(p => p.isExpanded);
+  }
+
+  toggleExpandAll() {
+    const nextState = !this.isAllExpanded;
+    this.filteredProducts.forEach(p => p.isExpanded = nextState);
+  }
+
+  getVariantTotalStock(variant: ProductVariantItem): number {
+    if (!variant || !Array.isArray(variant.branchStocks)) return 0;
+    return variant.branchStocks.reduce((sum, b) => sum + (b.stock || 0), 0);
+  }
+
   get selectedStockLabel(): string {
     switch (this.selectedStockFilter) {
       case 'IN_STOCK': return 'Còn hàng (> 10)';
@@ -1666,6 +1735,7 @@ export class ProductsComponent implements OnInit {
     if (this.filterContainerRef && !this.filterContainerRef.nativeElement.contains(event.target)) {
       this.isCategoryDropdownOpen = false;
       this.isStockDropdownOpen = false;
+      this.isBranchDropdownOpen = false;
       this.isSortDropdownOpen = false;
     }
   }

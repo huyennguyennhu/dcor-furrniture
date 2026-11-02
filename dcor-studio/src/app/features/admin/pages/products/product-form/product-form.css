@@ -834,23 +834,24 @@
 
 /* Bulk Edit Toolbar - Thiết kế lớn, nổi bật */
 .bulk-edit-toolbar {
-  background: linear-gradient(135deg, #FAF7F2 0%, #F5EFEB 100%);
-  border: 1.5px solid #E0D3C5;
+  background: #FAF8F5;
+  border: 1px solid #E8E2DA;
   border-radius: 8px;
-  padding: 12px 16px;
+  min-height: 42px;
+  padding: 4px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 8px;
-  box-shadow: 0 2px 8px rgba(118, 83, 55, 0.05);
+  box-sizing: border-box;
 }
 
 .bulk-toolbar-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .bulk-icon-main {
@@ -859,17 +860,13 @@
 }
 
 .bulk-title-main {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #2B2621;
-  display: block;
 }
 
 .bulk-title-sub {
-  font-size: 11.5px;
-  color: #765337;
-  font-weight: 500;
-  display: block;
+  display: none; /* Ẩn dòng sub để khung lớn không bị phình to gấp đôi chiều cao nút */
 }
 
 .bulk-inputs-flex {
@@ -899,23 +896,25 @@
 }
 
 .bulk-input {
-  height: 32px;
+  height: 34px !important;
   width: 140px;
-  font-size: 12px;
+  font-size: 12.5px;
   padding: 0 8px;
   border-radius: 6px;
   border: 1px solid #D6CEC5;
   background: #FFFFFF;
   font-weight: 600;
+  box-sizing: border-box;
 }
 
 .bulk-input:focus {
   border-color: #765337;
   box-shadow: 0 0 0 2px rgba(118, 83, 55, 0.15);
+  outline: none;
 }
 
 .bulk-btn {
-  height: 32px;
+  height: 34px !important;
   padding: 0 12px;
   font-size: 12px;
   border-radius: 6px;
@@ -924,6 +923,10 @@
   color: #FFFFFF;
   border: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .bulk-btn:hover {
@@ -1359,6 +1362,7 @@
   font-weight: 500;
 }
 
+/* BUG-27: Khắc phục nút mũi tên tăng giảm số đè lên đơn vị tính */
 .dim-input-wrap {
   position: relative;
   display: flex;
@@ -1366,17 +1370,29 @@
 }
 
 .dim-input-wrap .form-control {
-  height: 30px;
-  font-size: 12px;
+  height: 34px !important;
+  font-size: 13px !important;
+  padding-right: 48px !important; /* Dành khoảng trống bên phải cho đơn vị tính */
+  -moz-appearance: textfield; /* Firefox */
+}
+
+/* Ẩn spinner mũi tên tăng giảm của Chrome, Safari, Edge, Opera */
+.dim-input-wrap .form-control::-webkit-outer-spin-button,
+.dim-input-wrap .form-control::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .dim-input-wrap .unit {
   position: absolute;
-  right: 8px;
-  font-size: 11px;
-  color: #9C9289;
+  right: 10px;
+  font-size: 12px;
+  color: #765337;
   font-weight: 600;
   pointer-events: none;
+  background-color: #FAF8F5;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 /* Switch Toggle Component */
@@ -1879,3 +1895,220 @@
   justify-content: center;
 }
 
+
+/* BUG-18: Standard Dropdowns in Product Form */
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23765337' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+/* BUG-19: Tab Phân loại spacing */
+.tab-panel .form-grid-2 {
+  gap: 16px 20px;
+  margin-top: 14px;
+}
+.tag-selector-group {
+  gap: 8px;
+  margin-top: 4px;
+}
+.tag-checkbox-pill {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+/* BUG-17: v2-form-header styling */
+.v2-form-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+.v2-header-nav {
+  display: flex;
+  align-items: center;
+}
+.v2-btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6E655F;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.v2-btn-back:hover {
+  color: #765337;
+  transform: translateX(-3px);
+}
+.v2-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* BUG-20: Quick Add Material Box */
+.add-quick-material-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.quick-add-input {
+  max-width: 320px;
+}
+
+/* BUG-21 & BUG-22: Flat tag inputs */
+.tag-input-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 260px;
+}
+.tag-inline-input {
+  height: 34px !important;
+  font-size: 12.5px !important;
+  padding: 0 10px !important;
+  border: 1px solid #E4DACF !important;
+  border-radius: 6px !important;
+  background: #FFFFFF !important;
+}
+.btn-add-tag-sm {
+  height: 34px !important;
+  padding: 0 14px !important;
+  font-size: 12.5px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.attr-name-input {
+  height: 34px !important;
+  font-size: 13px !important;
+  max-width: 300px !important;
+}
+
+/* BUG-26: Confirm Delete Popup Modal */
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.confirm-modal-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 440px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: scaleIn 0.18s ease;
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.confirm-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #FEE2E2;
+  color: #DC2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0 0 6px 0;
+}
+
+.confirm-modal-desc {
+  font-size: 13px;
+  color: #6B7280;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.confirm-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #F3F4F6;
+  padding-top: 14px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Button Loading Spinner */
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Nút đang tải và bị khóa */
+.btn-publish:disabled,
+.btn-publish.btn-loading {
+  opacity: 0.75 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  background-color: #8C6D53 !important;
+  border-color: #8C6D53 !important;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
