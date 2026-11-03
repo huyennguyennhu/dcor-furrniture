@@ -1,268 +1,357 @@
 <div class="reports-container">
       
-  <!-- Page Header & Toolbar -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+  <!-- 1. Header -->
+  <div class="overview-header-row">
     <div>
-      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Báo cáo doanh thu</h1>
-      <p style="color: var(--text-secondary); font-size: 14px;">Phân tích hiệu quả tài chính và doanh số theo thời gian.</p>
+      <h1 class="overview-page-title">Báo cáo Doanh thu & Dòng tiền</h1>
+      <p class="overview-page-subtitle">Kiểm soát dòng tiền thực thu, cơ cấu thanh toán và rủi ro công nợ tiền cọc toàn chuỗi DCOR.</p>
     </div>
     
-    <button class="admin-btn admin-btn-primary" style="display: flex; align-items: center; gap: 8px;">
-      <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất báo cáo
-    </button>
+    <div class="header-action-group">
+      <button 
+        type="button" 
+        (click)="exportReport()" 
+        class="admin-btn admin-btn-primary export-btn"
+      >
+        <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
+        <span>Xuất báo cáo</span>
+      </button>
+    </div>
   </div>
     
-  <!-- Filter Bar -->
-  <div #filterRef style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
+  <!-- 2. Filter Toolbar (Bộ lọc chuẩn phong cách DCOR) -->
+  <div #filterRef class="overview-toolbar-box">
     
-    <!-- 1. So sánh kỳ trước -->
+    <!-- (A) Toggle So sánh kỳ trước -->
     <button 
       type="button"
       (click)="toggleCompare()" 
-      class="revenue-compare-btn"
+      class="compare-toggle-btn"
       [class.active]="compare"
     >
-      <lucide-angular *ngIf="compare" [img]="icons.CheckSquare" size="16"></lucide-angular>
-      <lucide-angular *ngIf="!compare" [img]="icons.Square" size="16"></lucide-angular>
+      <lucide-angular *ngIf="compare" [img]="icons.CheckSquare" size="16" class="check-icon"></lucide-angular>
+      <lucide-angular *ngIf="!compare" [img]="icons.Square" size="16" class="check-icon"></lucide-angular>
       <span>So sánh kỳ trước</span>
     </button>
     
-    <!-- 2. Thời gian -->
-    <div style="display: flex; align-items: center;">
-      <div style="position: relative; min-width: 160px;">
-        <button 
-          type="button"
-          (click)="toggleDropdown('time', $event)" 
-          class="revenue-filter-btn"
-          [class.active]="showTimeDropdown"
-          [style.border-radius]="timeRange === 'custom' ? '8px 0 0 8px' : '8px'"
-          [style.border-right]="timeRange === 'custom' ? 'none' : '1px solid var(--border-color)'"
-        >
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <lucide-angular [img]="icons.Calendar" size="14" color="var(--text-muted)"></lucide-angular>
-            <span>{{ TIME_LABELS[timeRange] }}</span>
-          </div>
-          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showTimeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-        </button>
-        
-        <div *ngIf="showTimeDropdown" class="revenue-dropdown-menu">
-          <div *ngFor="let key of timeLabelKeys" 
-               (click)="setDropdownValue('time', key)" 
-               class="revenue-dropdown-item"
-               [class.selected]="timeRange === key"
-          >
-            {{ TIME_LABELS[key] }}
-          </div>
+    <!-- (B) Dropdown Showroom & Kênh Bán Hàng -->
+    <div class="filter-dropdown-wrapper showroom-filter-wrapper">
+      <button 
+        type="button" 
+        title="Chọn showroom / chi nhánh" 
+        class="filter-trigger-btn"
+        [class.active]="showroom !== 'all'"
+        (click)="toggleDropdown('showroom', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.MapPin" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ SHOWROOM_LABELS[showroom] }}</span>
         </div>
-      </div>
-      
-      <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0; height: 41px; box-sizing: border-box;">
-        <input type="date" [(ngModel)]="startDate" (change)="loadReportData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
-        <span style="font-size: 13px; color: var(--text-muted);">-</span>
-        <input type="date" [(ngModel)]="endDate" (change)="loadReportData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
+        <app-icon name="ChevronDown" size="14" [style.transform]="showShowroomDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showShowroomDropdown" class="filter-menu-dropdown" style="right: 0; left: auto;" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let key of showroomKeys" 
+             (click)="setDropdownValue('showroom', key)" 
+             class="filter-menu-item" 
+             [class.selected]="showroom === key">
+          <span>{{ SHOWROOM_LABELS[key] }}</span>
+          <lucide-angular *ngIf="showroom === key" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
       </div>
     </div>
     
-    <!-- 3. Danh mục -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
+    <!-- (C) Dropdown Thời gian -->
+    <div class="filter-dropdown-wrapper time-filter-wrapper">
       <button 
-        type="button"
-        (click)="toggleDropdown('category', $event)" 
-        class="revenue-filter-btn"
-        [class.active]="showCategoryDropdown"
+        type="button" 
+        title="Chọn khoảng thời gian" 
+        class="filter-trigger-btn"
+        [class.active]="timeRange !== '7_days'"
+        (click)="toggleDropdown('time', $event)"
       >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.Tag" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ category }}</span>
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ TIME_LABELS[timeRange] }}</span>
         </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showCategoryDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showTimeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
       </button>
-      
-      <div *ngIf="showCategoryDropdown" class="revenue-dropdown-menu">
+      <div *ngIf="showTimeDropdown" class="filter-menu-dropdown" style="right: 0; left: auto;" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let key of timeLabelKeys" 
+             (click)="setDropdownValue('time', key)" 
+             class="filter-menu-item" 
+             [class.selected]="timeRange === key">
+          <span>{{ TIME_LABELS[key] }}</span>
+          <lucide-angular *ngIf="timeRange === key" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Date Inputs (Nếu chọn tùy chỉnh) -->
+    <div *ngIf="timeRange === 'custom'" class="custom-date-inputs">
+      <input type="date" [(ngModel)]="startDate" (change)="loadReportData()" />
+      <span class="date-sep">-</span>
+      <input type="date" [(ngModel)]="endDate" (change)="loadReportData()" />
+    </div>
+
+    <!-- (D) Dropdown Danh mục sản phẩm -->
+    <div class="filter-dropdown-wrapper category-filter-wrapper">
+      <button 
+        type="button" 
+        title="Lọc theo danh mục" 
+        class="filter-trigger-btn"
+        [class.active]="category !== 'Tất cả danh mục'"
+        (click)="toggleDropdown('category', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Tag" size="14" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ category }}</span>
+        </div>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showCategoryDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showCategoryDropdown" class="filter-menu-dropdown" style="right: 0; left: auto;" (mousedown)="$event.stopPropagation()">
         <div *ngFor="let opt of categories" 
              (click)="setDropdownValue('category', opt)" 
-             class="revenue-dropdown-item"
-             [class.selected]="category === opt"
-        >
-          {{ opt }}
+             class="filter-menu-item" 
+             [class.selected]="category === opt">
+          <span>{{ opt }}</span>
+          <lucide-angular *ngIf="category === opt" [img]="icons.Check" size="14"></lucide-angular>
         </div>
       </div>
     </div>
 
-    <!-- 4. Thương hiệu -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
-      <button 
-        type="button"
-        (click)="toggleDropdown('brand', $event)" 
-        class="revenue-filter-btn"
-        [class.active]="showBrandDropdown"
-      >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.Filter" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ brand }}</span>
-        </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showBrandDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-      </button>
-      
-      <div *ngIf="showBrandDropdown" class="revenue-dropdown-menu">
-        <div *ngFor="let opt of brands" 
-             (click)="setDropdownValue('brand', opt)" 
-             class="revenue-dropdown-item"
-             [class.selected]="brand === opt"
-        >
-          {{ opt }}
-        </div>
-      </div>
-    </div>
-
-    <!-- 5. Bộ sưu tập -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
-      <button 
-        type="button"
-        (click)="toggleDropdown('collection', $event)" 
-        class="revenue-filter-btn"
-        [class.active]="showCollectionDropdown"
-      >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.Layers" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ collection }}</span>
-        </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showCollectionDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-      </button>
-      
-      <div *ngIf="showCollectionDropdown" class="revenue-dropdown-menu">
-        <div *ngFor="let opt of collections" 
-             (click)="setDropdownValue('collection', opt)" 
-             class="revenue-dropdown-item"
-             [class.selected]="collection === opt"
-        >
-          {{ opt }}
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Loading State (Animated Spinner) -->
   <div *ngIf="isLoading" class="loading-state-container">
     <div class="spinning-loader"></div>
-    <p class="loading-text">Đang tải dữ liệu doanh thu...</p>
+    <p class="loading-text">Đang tổng hợp dữ liệu doanh thu & dòng tiền ...</p>
   </div>
 
   <ng-container *ngIf="!isLoading">
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng doanh thu</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.totalRevenue) }}</div>
-      <div style="font-size: 12px; color: #2ecc71; display: flex; align-items: center; gap: 4px;">
-        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> {{ kpi.growthRate >= 0 ? '+' : '' }}{{ kpi.growthRate }}% so với kỳ trước
-      </div>
-    </div>
     
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Doanh thu thuần</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.netRevenue) }}</div>
-      <div style="font-size: 12px; color: #2ecc71; display: flex; align-items: center; gap: 4px;">
-        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> {{ kpi.growthRate >= 0 ? '+' : '' }}{{ kpi.growthRate }}% so với kỳ trước
+    <!-- 3. KHỐI 5 THẺ KPI TÀI CHÍNH (FINANCIAL & CASHFLOW METRICS) -->
+    <div class="financial-kpi-grid">
+      
+      <!-- KPI 1: Doanh thu gộp -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Doanh thu gộp</span>
+        </div>
+        <div class="kpi-value">{{ formatCurrency(kpi.grossSales) }}</div>
       </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Trung bình/ngày</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.dailyAverage) }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Theo thời gian lọc
-      </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Giá trị ĐH TB (AOV)</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ formatCurrency(kpi.aov) }}</div>
-      <div style="font-size: 12px; color: #2ecc71; display: flex; align-items: center; gap: 4px;">
-        <lucide-angular [img]="icons.RefreshCw" size="12"></lucide-angular> Doanh thu / số đơn
-      </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tăng trưởng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.growthRate }}%</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        So với kỳ trước
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Charts Row 1 -->
-  <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
-    <div class="report-card" style="overflow: visible;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Doanh thu theo thời gian</h3>
-        
-        <!-- (1) Dropdown Chu kỳ thời gian -->
-        <div class="filter-dropdown-wrapper interval-filter-wrapper" style="min-width: 125px;">
-          <button 
-            type="button" 
-            title="Chọn chu kỳ hiển thị" 
-            class="filter-trigger-btn" 
-            style="padding: 6px 12px; font-size: 12px;"
-            (click)="toggleDropdown('interval', $event)"
-          >
-            <div class="trigger-label">
-              <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
-              <span class="truncate-label">Theo {{ interval | lowercase }}</span>
-            </div>
-            <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
-          </button>
-          <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 125px;">
-            <div *ngFor="let opt of intervals" 
-                 (click)="setDropdownValue('interval', opt)" 
-                 class="filter-menu-item" 
-                 [class.selected]="interval === opt">
-              <span>{{ opt }}</span>
-              <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
-            </div>
+      
+      <!-- KPI 2: Giảm trừ Voucher / Khuyến mãi -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Chiết khấu Voucher</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-amber">{{ formatCurrency(kpi.discountAmount) }}</div>
+          <div class="kpi-badge negative">
+            <lucide-angular [img]="icons.Percent" size="12"></lucide-angular>
+            <span>-{{ kpi.discountRate }}%</span>
           </div>
         </div>
       </div>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
+      
+      <!-- KPI 3: Doanh thu thuần -->
+      <div class="report-card kpi-card primary-highlight">
+        <div class="kpi-header">
+          <span class="kpi-label highlight">Doanh thu thuần</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-accent">{{ formatCurrency(kpi.netRevenue) }}</div>
+          <div class="kpi-badge positive">
+            <lucide-angular *ngIf="kpi.growthRate >= 0" [img]="icons.TrendingUp" size="12"></lucide-angular>
+            <lucide-angular *ngIf="kpi.growthRate < 0" [img]="icons.TrendingDown" size="12"></lucide-angular>
+            <span>{{ kpi.growthRate >= 0 ? '+' : '' }}{{ kpi.growthRate }}%</span>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
+      
+      <!-- KPI 4: Giá trị đơn trung bình -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Giá trị đơn trung bình</span>
+        </div>
+        <div class="kpi-value">{{ formatCurrency(kpi.aov) }}</div>
+      </div>
+      
+      <!-- KPI 5: Công nợ / Chờ thu -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Công nợ / Chờ thu</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-blue">{{ formatCurrency(kpi.pendingReceivables) }}</div>
+        </div>
+      </div>
 
-  <!-- Main Charts Row 2 -->
-  <div class="chart-grid-1">
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Cơ cấu theo danh mục</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="pieChartData" [options]="pieChartOptions" [type]="'pie'"></canvas>
+    </div>
+
+    <!-- 4. BIỂU ĐỒ COMBO: DOANH THU THUẦN & TỶ LỆ CHIẾT KHẤU THEO THỜI GIAN -->
+    <div class="chart-row-single">
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Doanh thu thuần & Tỷ lệ Chiết khấu</h3>
+            <p class="card-subtitle">Đối chiếu doanh thu thực nhận (Cột) và mức độ suy hao biên lợi nhuận do khuyến mãi (Đường %)</p>
+          </div>
+          
+          <!-- Dropdown Chu kỳ thời gian (Local Loading) -->
+          <div class="filter-dropdown-wrapper interval-filter-wrapper">
+            <button 
+              type="button" 
+              title="Chọn chu kỳ hiển thị" 
+              class="filter-trigger-btn small-btn" 
+              (click)="toggleDropdown('interval', $event)"
+            >
+              <div class="trigger-label">
+                <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
+                <span class="truncate-label">Theo {{ interval | lowercase }}</span>
+              </div>
+              <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+            </button>
+            <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 130px;" (mousedown)="$event.stopPropagation()">
+              <div *ngFor="let opt of intervals" 
+                   (click)="setDropdownValue('interval', opt)" 
+                   class="filter-menu-item" 
+                   [class.selected]="interval === opt">
+                <span>{{ opt }}</span>
+                <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="chart-container-wrapper combo-chart-height">
+          <!-- Spinner mờ chỉ chạy trên biểu đồ khi đổi chu kỳ -->
+          <div *ngIf="isChartLoading" class="chart-local-loading">
+            <div class="spinning-loader-small"></div>
+          </div>
+          <canvas baseChart [data]="comboChartData" [options]="comboChartOptions" [plugins]="comboChartPlugins" [type]="'bar'"></canvas>
+        </div>
       </div>
     </div>
 
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Doanh thu theo danh mục</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
-      </div>
-    </div>
-  </div>
+    <!-- 5. HÀNG BIỂU ĐỒ 2: CƠ CẤU PHƯƠNG THỨC THANH TOÁN & DOANH THU THEO DANH MỤC -->
+    <div class="chart-grid-2">
+      
+      <!-- Chart A: Cơ cấu Phương thức thanh toán -->
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Cơ cấu Phương thức Thanh toán</h3>
+            <p class="card-subtitle">Theo dõi dòng tiền trực tiếp qua cổng điện tử vs COD chờ đối soát</p>
+          </div>
+        </div>
+        
+        <div class="chart-container-wrapper doughnut-container">
+          <canvas baseChart [data]="paymentChartData" [options]="paymentChartOptions" [type]="'doughnut'"></canvas>
+        </div>
 
-  <!-- Main Charts Row 3 -->
-  <div class="chart-grid-2">
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Top 10 sản phẩm (Doanh thu)</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="topProductsData" [options]="topProductsOptions" [type]="'bar'"></canvas>
+        <!-- Legend breakdown -->
+        <div class="status-legend-list">
+          <div class="legend-item" *ngFor="let p of paymentBreakdown">
+            <div class="legend-indicator" [style.background-color]="p.color"></div>
+            <span class="legend-name">{{ p.name }}</span>
+            <span class="legend-val">{{ formatCurrency(p.amount) }} ({{ p.percent }}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart B: Doanh thu theo Danh mục cấp 1 -->
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Doanh thu theo Danh mục cấp 1</h3>
+            <p class="card-subtitle">Xếp hạng dòng sản phẩm mang lại doanh thu lớn nhất</p>
+          </div>
+        </div>
+        
+        <div class="chart-container-wrapper">
+          <canvas baseChart [data]="categoryChartData" [options]="categoryChartOptions" [type]="'bar'"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 6. PHÂN BỔ DOANH THU THEO TỈNH THÀNH & KHU VỰC (HÀNG RIÊNG) -->
+    <div class="report-card chart-card">
+      <div class="card-header-flex">
+        <div>
+          <h3 class="card-title">Doanh thu theo Khu vực / Tỉnh thành</h3>
+          <p class="card-subtitle">Đánh giá mức độ phủ sóng thị trường ngoài các showroom</p>
+        </div>
+      </div>
+      
+      <div class="chart-container-wrapper">
+        <canvas baseChart [data]="regionalChartData" [options]="regionalChartOptions" [type]="'bar'"></canvas>
       </div>
     </div>
 
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Doanh thu theo Showroom</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="showroomChartData" [options]="showroomChartOptions" [type]="'bar'"></canvas>
+    <!-- 7. BẢNG TOP ĐƠN HÀNG DOANH THU CAO NHẤT (XUỐNG CUỐI CÙNG) -->
+    <div class="report-card table-card">
+      <div class="card-header-flex">
+        <div>
+          <h3 class="card-title">Top đơn hàng doanh thu cao nhất</h3>
+          <p class="card-subtitle">Các đơn hàng nội thất đóng góp tỷ trọng lớn vào dòng tiền</p>
+        </div>
+        <a routerLink="/admin/orders" [queryParams]="getOrderQueryParams()" class="view-all-link" title="Xem danh sách chi tiết đơn hàng theo bộ lọc">
+          <span>Chi tiết đơn hàng</span>
+          <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+        </a>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="report-data-table">
+          <thead>
+            <tr>
+              <th>Mã đơn</th>
+              <th>Khách hàng</th>
+              <th>Kênh / Showroom</th>
+              <th>Phương thức TT</th>
+              <th style="text-align: right;">Doanh thu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let o of topOrders">
+              <td>
+                <a [routerLink]="['/admin/orders', o.id]" class="order-code-link" [title]="'Xem chi tiết đơn hàng ' + o.orderCode">
+                  {{ o.orderCode }}
+                </a>
+                <div class="item-secondary-info">{{ o.createdAt }}</div>
+              </td>
+              <td>
+                <a [routerLink]="o.customerId ? ['/admin/customers', o.customerId] : ['/admin/customers']" 
+                   [queryParams]="o.customerId ? null : { q: o.phone || o.customerName }" 
+                   class="item-primary-name customer-link" 
+                   [title]="'Xem chi tiết khách hàng ' + o.customerName">
+                  {{ o.customerName }}
+                </a>
+                <div class="item-secondary-info">{{ o.phone }}</div>
+              </td>
+              <td>
+                <span class="showroom-tag">{{ o.showroom }}</span>
+              </td>
+              <td>
+                <span class="pay-method-pill">{{ o.paymentMethod }}</span>
+                <div class="pay-status-text" [class.paid]="o.paymentStatus === 'Đã thanh toán'">
+                  {{ o.paymentStatus }}
+                </div>
+              </td>
+              <td style="text-align: right;">
+                <div class="order-amount-text">{{ formatCurrency(o.totalAmount) }}</div>
+                <div *ngIf="o.discountAmount > 0" class="discount-sub-text">
+                  Giảm {{ formatCurrency(o.discountAmount) }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
+
   </ng-container>
 
 </div>

@@ -1,10 +1,122 @@
+/* ==========================================================================
+   REPORTS & DASHBOARD OVERVIEW STYLING - DCOR LUXURY DESIGN SYSTEM
+   ========================================================================== */
+
 .reports-container {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* Animated Loading Spinner */
+/* 1. Header & Toolbar */
+.overview-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.overview-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.overview-page-subtitle {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.overview-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Compare Toggle Button (Giữ nguyên Checkbox theo bài) */
+.compare-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.compare-toggle-btn:hover {
+  background: var(--bg-secondary);
+  border-color: #765337;
+}
+
+.compare-toggle-btn.active {
+  border-color: #765337;
+  color: #765337;
+  background: rgba(118, 83, 55, 0.08);
+}
+
+.check-icon {
+  flex-shrink: 0;
+}
+
+.custom-date-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.custom-date-inputs input[type="date"] {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.date-sep {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #765337;
+  color: #FCF8F3;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.export-btn:hover {
+  background: #5c402a;
+}
+
+/* 2. Loading State */
 .loading-state-container {
   display: flex;
   flex-direction: column;
@@ -16,18 +128,16 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .spinning-loader {
-  width: 44px;
-  height: 44px;
-  border: 4px solid rgba(188, 95, 19, 0.15);
-  border-top: 4px solid #bc5f13;
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(118, 83, 55, 0.15);
+  border-top: 4px solid #765337;
   border-radius: 50%;
   animation: reportsSpin 0.85s linear infinite;
-  box-sizing: border-box;
 }
 
 @keyframes reportsSpin {
@@ -40,70 +150,591 @@
   font-weight: 500;
   color: var(--text-secondary);
   margin: 0;
-  letter-spacing: -0.01em;
 }
 
-.kpi-grid {
+/* 3. KHỐI TÁC NGHIỆP KHẨN CẤP (URGENT CARDS) */
+.urgent-action-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
+.urgent-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.urgent-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.urgent-card.urgent-amber {
+  border-left: 4px solid #f39c12;
+}
+
+.urgent-card.urgent-blue {
+  border-left: 4px solid #3498db;
+}
+
+.urgent-card.urgent-red {
+  border-left: 4px solid #e74c3c;
+}
+
+.urgent-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.urgent-icon-wrapper.amber {
+  background: rgba(243, 156, 18, 0.12);
+  color: #f39c12;
+}
+
+.urgent-icon-wrapper.blue {
+  background: rgba(52, 152, 219, 0.12);
+  color: #3498db;
+}
+
+.urgent-icon-wrapper.red {
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+}
+
+.urgent-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.urgent-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.urgent-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.urgent-tag.amber { color: #d68910; }
+.urgent-tag.blue { color: #2980b9; }
+.urgent-tag.red { color: #c0392b; }
+
+.urgent-count {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.urgent-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 2px 0 6px 0;
+  line-height: 1.4;
+}
+
+.urgent-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.urgent-link:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+.urgent-link.amber-link { color: #d68910; }
+.urgent-link.blue-link { color: #2980b9; }
+.urgent-link.red-link { color: #c0392b; }
+
+/* 4. KHỐI KPI ĐIỀU HÀNH CHÍNH (EXECUTIVE METRICS) */
+.executive-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.report-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  padding: 22px;
+  min-width: 0;
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.kpi-badge.positive {
+  background: rgba(46, 204, 113, 0.12);
+  color: #27ae60;
+}
+
+.kpi-badge.negative {
+  background: rgba(231, 76, 60, 0.12);
+  color: #c0392b;
+}
+
+.kpi-tag-neutral {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.kpi-value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.kpi-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.kpi-subtext {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.text-success {
+  color: #27ae60;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+/* 5. KHỐI BIỂU ĐỒ (CHARTS) */
 .chart-grid-1 {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 24px;
+  gap: 20px;
 }
 
 .chart-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 20px;
 }
 
+.chart-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.chart-container-wrapper {
+  width: 100%;
+  height: 290px;
+  position: relative;
+}
+
+.chart-local-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(252, 248, 243, 0.65);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 8px;
+}
+
+.spinning-loader-small {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(118, 83, 55, 0.18);
+  border-top: 3px solid #765337;
+  border-radius: 50%;
+  animation: reportsSpin 0.75s linear infinite;
+}
+
+.doughnut-container {
+  height: 200px;
+}
+
+.status-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.legend-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  color: var(--text-secondary);
+  flex-grow: 1;
+}
+
+.legend-val {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Funnel Styling */
+.funnel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.funnel-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.funnel-label-col {
+  width: 170px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.funnel-step-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.funnel-step-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.funnel-track-col {
+  flex-grow: 1;
+  background: var(--bg-secondary);
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+}
+
+.funnel-progress-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.funnel-percent-col {
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.funnel-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #765337;
+}
+
+/* 6. KHỐI BẢNG BIỂU (TABLES) */
 .table-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 24px;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 20px;
 }
 
-.report-card {
+.table-card {
+  overflow: hidden;
+}
+
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #765337;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.report-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.report-data-table thead tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.report-data-table th {
+  padding: 10px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.report-data-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s ease;
+}
+
+.report-data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.report-data-table tbody tr:hover {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  padding: 24px;
-  min-width: 0; /* Crucial for preventing flex/grid overflow */
 }
 
-.kpi-card {
-  padding: 20px;
+.report-data-table td {
+  padding: 12px 8px;
+  vertical-align: middle;
 }
 
-@media (max-width: 1400px) {
-  .kpi-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
-@media (max-width: 1200px) {
-  .chart-grid-1, .table-grid {
-    grid-template-columns: 1fr;
-  }
+.rank-badge.rank-1 {
+  background: #f1c40f;
+  color: #7d6608;
 }
 
-@media (max-width: 900px) {
-  .chart-grid-2 {
-    grid-template-columns: 1fr;
-  }
+.rank-badge.rank-2 {
+  background: #bdc3c7;
+  color: #2c3e50;
+}
+
+.rank-badge.rank-3 {
+  background: #e67e22;
+  color: #ffffff;
+}
+
+.item-primary-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.item-secondary-info {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.sales-count-badge {
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.stock-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.stock-badge.stock-high {
+  background: rgba(46, 204, 113, 0.12);
+  color: #27ae60;
+}
+
+.stock-badge.stock-low {
+  background: rgba(243, 156, 18, 0.12);
+  color: #d68910;
+}
+
+.stock-badge.stock-out {
+  background: rgba(231, 76, 60, 0.12);
+  color: #c0392b;
+}
+
+.customer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tier-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.tier-pill.badge-diamond {
+  background: rgba(52, 152, 219, 0.15);
+  color: #2980b9;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.tier-pill.badge-gold {
+  background: rgba(241, 196, 15, 0.18);
+  color: #b7950b;
+  border: 1px solid rgba(241, 196, 15, 0.35);
+}
+
+.tier-pill.badge-silver {
+  background: rgba(149, 165, 166, 0.15);
+  color: #7f8c8d;
+}
+
+.tier-pill.badge-member {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.orders-count-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.customer-spent-amount {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 13.5px;
 }
 
 /* ==========================================================================
-   DROPDOWN FORMAT TIÊU CHUẨN TỔNG QUAN KHO
+   DROPDOWN FORMAT TIÊU CHUẨN (CUSTOM DROPDOWN)
    ========================================================================== */
 .filter-dropdown-wrapper {
   position: relative;
-  min-width: 150px;
+  min-width: 155px;
   flex-shrink: 0;
 }
 
@@ -126,15 +757,20 @@
 }
 
 .filter-trigger-btn:hover {
-  border-color: var(--accent);
+  border-color: #765337;
   background: var(--bg-secondary);
 }
 
 .filter-trigger-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(245, 128, 37, 0.05);
+  border-color: #765337;
+  color: #765337;
+  background: rgba(118, 83, 55, 0.08);
   font-weight: 500;
+}
+
+.filter-trigger-btn.small-btn {
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .trigger-label {
@@ -152,7 +788,7 @@
 }
 
 .filter-trigger-btn.active .trigger-icon {
-  color: var(--accent);
+  color: #765337;
 }
 
 .truncate-label {
@@ -181,6 +817,17 @@
   animation: fadeInDown 0.15s ease;
 }
 
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .filter-menu-item {
   padding: 7px 10px;
   border-radius: 6px;
@@ -197,12 +844,71 @@
 
 .filter-menu-item:hover {
   background: var(--bg-secondary);
-  color: var(--accent);
+  color: #765337;
 }
 
 .filter-menu-item.selected {
-  background: rgba(245, 128, 37, 0.1);
-  color: var(--accent);
+  background: rgba(118, 83, 55, 0.1);
+  color: #765337;
   font-weight: 600;
 }
 
+/* Responsive Media Queries */
+@media (max-width: 1280px) {
+  .urgent-action-grid {
+    grid-template-columns: 1fr;
+  }
+  .executive-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .chart-grid-1, .chart-grid-2, .table-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .executive-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .overview-header-row {
+    flex-direction: column;
+  }
+  .overview-toolbar {
+    width: 100%;
+  }
+  .filter-dropdown-wrapper {
+    flex-grow: 1;
+  }
+}
+
+
+/* Navigation Link Enhancements */
+.customer-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.customer-link:hover {
+  color: #765337 !important;
+  text-decoration: underline !important;
+}
+.orders-count-pill-link {
+  text-decoration: none;
+  display: inline-block;
+}
+.orders-count-pill-link:hover .orders-count-pill {
+  background: rgba(118, 83, 55, 0.22);
+  color: #5c402a;
+}
+.legend-item.clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -2px -4px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.legend-item.clickable:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}

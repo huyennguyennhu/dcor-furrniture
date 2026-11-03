@@ -1,10 +1,127 @@
+/* ==========================================================================
+   REVENUE & CASHFLOW REPORT STYLING - DCOR LUXURY DESIGN SYSTEM
+   ========================================================================== */
+
 .reports-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 22px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* Animated Loading Spinner */
+/* 1. Header & Navigation Tabs */
+.overview-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.overview-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.overview-page-subtitle {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #765337;
+  color: #FCF8F3;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.export-btn:hover {
+  background: #5c402a;
+}
+
+/* 2. Filter Toolbar Box */
+.overview-toolbar-box {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.compare-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.compare-toggle-btn:hover {
+  background: var(--bg-secondary);
+  border-color: #765337;
+}
+
+.compare-toggle-btn.active {
+  border-color: #765337;
+  color: #765337;
+  background: rgba(118, 83, 55, 0.08);
+}
+
+.check-icon {
+  flex-shrink: 0;
+}
+
+.custom-date-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.custom-date-inputs input[type="date"] {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.date-sep {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 3. Loading State */
 .loading-state-container {
   display: flex;
   flex-direction: column;
@@ -16,18 +133,16 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .spinning-loader {
-  width: 44px;
-  height: 44px;
-  border: 4px solid rgba(188, 95, 19, 0.15);
-  border-top: 4px solid #bc5f13;
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(118, 83, 55, 0.15);
+  border-top: 4px solid #765337;
   border-radius: 50%;
   animation: reportsSpin 0.85s linear infinite;
-  box-sizing: border-box;
 }
 
 @keyframes reportsSpin {
@@ -40,163 +155,378 @@
   font-weight: 500;
   color: var(--text-secondary);
   margin: 0;
-  letter-spacing: -0.01em;
 }
 
-.kpi-grid {
+/* 4. KHỐI 5 THẺ KPI TÀI CHÍNH */
+.financial-kpi-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
-.chart-grid-1 {
+.report-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  padding: 20px;
+  min-width: 0;
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kpi-card.primary-highlight {
+  border-color: rgba(118, 83, 55, 0.35);
+  background: linear-gradient(135deg, rgba(118, 83, 55, 0.04) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+.kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kpi-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.kpi-label.highlight {
+  color: #765337;
+  font-weight: 700;
+}
+
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.kpi-badge.positive {
+  background: rgba(46, 204, 113, 0.12);
+  color: #27ae60;
+}
+
+.kpi-badge.negative {
+  background: rgba(230, 126, 34, 0.15);
+  color: #d35400;
+}
+
+.kpi-badge.warning {
+  background: rgba(52, 152, 219, 0.15);
+  color: #2980b9;
+}
+
+.kpi-tag-neutral {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.kpi-value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.kpi-value.text-accent {
+  color: #765337;
+}
+
+.kpi-value.text-amber {
+  color: #d35400;
+}
+
+.kpi-value.text-blue {
+  color: #2980b9;
+}
+
+.kpi-subtext {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.kpi-subtext.highlight {
+  color: #5c402a;
+}
+
+/* 5. KHỐI BIỂU ĐỒ */
+.chart-row-single {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 20px;
 }
 
 .chart-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 20px;
 }
 
 .table-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 24px;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 20px;
 }
 
-.report-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  padding: 24px;
-  min-width: 0; /* Crucial for preventing flex/grid overflow */
-}
-
-.kpi-card {
-  padding: 20px;
-}
-
-@media (max-width: 1400px) {
-  .kpi-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-}
-
-@media (max-width: 1200px) {
-  .chart-grid-1, .table-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .chart-grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ==========================================================================
-   DROPDOWN & BỘ LỌC DOANH THU
-   ========================================================================== */
-.revenue-filter-btn {
+.chart-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+}
+
+.card-header-flex {
+  display: flex;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
-  cursor: pointer;
-  font-size: 13px;
-  min-width: 160px;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+  min-height: auto;
+  line-height: 1.35;
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.chart-container-wrapper {
   width: 100%;
-  transition: all 0.15s ease;
-  user-select: none;
-  white-space: nowrap;
+  height: 290px;
+  position: relative;
 }
 
-.revenue-filter-btn:hover {
-  border-color: var(--accent);
-  background: var(--bg-secondary);
+.combo-chart-height {
+  height: 310px;
 }
 
-.revenue-filter-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 500;
+.doughnut-container {
+  height: 200px;
 }
 
-.revenue-compare-btn {
+.status-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.legend-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: all 0.15s ease;
+  font-size: 12.5px;
 }
 
-.revenue-compare-btn:hover {
-  border-color: var(--accent);
-  background: var(--bg-secondary);
+.legend-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
-.revenue-compare-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
+.legend-name {
+  color: var(--text-secondary);
+  flex-grow: 1;
+}
+
+.legend-val {
   font-weight: 600;
+  color: var(--text-primary);
 }
 
-.revenue-dropdown-menu {
+/* Local Chart Loading Overlay */
+.chart-local-loading {
   position: absolute;
-  top: calc(100% + 4px);
+  top: 0;
   left: 0;
   right: 0;
-  min-width: 100%;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  bottom: 0;
+  background: rgba(252, 248, 243, 0.65);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 50;
-  padding: 4px;
 }
 
-.revenue-dropdown-item {
-  padding: 8px 12px;
-  border-radius: 4px;
+.spinning-loader-small {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(118, 83, 55, 0.18);
+  border-top: 3px solid #765337;
+  border-radius: 50%;
+  animation: reportsSpin 0.75s linear infinite;
+}
+
+/* 6. BẢNG TOP ĐƠN HÀNG */
+.table-card {
+  overflow: hidden;
+}
+
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #765337;
+  text-decoration: none;
   cursor: pointer;
-  font-size: 13px;
-  background: transparent;
-  color: var(--text-primary);
-  transition: background 0.12s ease;
 }
 
-.revenue-dropdown-item:hover {
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.report-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.report-data-table thead tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.report-data-table th {
+  padding: 12px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.report-data-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s ease;
+}
+
+.report-data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.report-data-table tbody tr:hover {
   background: var(--bg-secondary);
 }
 
-.revenue-dropdown-item.selected {
-  color: var(--accent);
+.report-data-table td {
+  padding: 14px 14px;
+  vertical-align: middle;
+}
+
+.order-code-link {
+  font-weight: 700;
+  color: #765337;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.order-code-link:hover {
+  text-decoration: underline;
+}
+
+.item-primary-name {
   font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.item-secondary-info {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.showroom-tag {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.pay-method-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2980b9;
+  background: rgba(52, 152, 219, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pay-status-text {
+  font-size: 10.5px;
+  color: #d68910;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.pay-status-text.paid {
+  color: #27ae60;
+}
+
+.order-amount-text {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 13.5px;
+}
+
+.discount-sub-text {
+  font-size: 11px;
+  color: #e67e22;
+  margin-top: 1px;
 }
 
 /* ==========================================================================
-   DROPDOWN FORMAT TIÊU CHUẨN TỔNG QUAN KHO
+   DROPDOWN FORMAT TIÊU CHUẨN (CUSTOM DROPDOWN)
    ========================================================================== */
 .filter-dropdown-wrapper {
   position: relative;
-  min-width: 150px;
+  min-width: 155px;
   flex-shrink: 0;
 }
 
@@ -219,15 +549,20 @@
 }
 
 .filter-trigger-btn:hover {
-  border-color: var(--accent);
+  border-color: #765337;
   background: var(--bg-secondary);
 }
 
 .filter-trigger-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(245, 128, 37, 0.05);
+  border-color: #765337;
+  color: #765337;
+  background: rgba(118, 83, 55, 0.08);
   font-weight: 500;
+}
+
+.filter-trigger-btn.small-btn {
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .trigger-label {
@@ -245,7 +580,7 @@
 }
 
 .filter-trigger-btn.active .trigger-icon {
-  color: var(--accent);
+  color: #765337;
 }
 
 .truncate-label {
@@ -274,6 +609,17 @@
   animation: fadeInDown 0.15s ease;
 }
 
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .filter-menu-item {
   padding: 7px 10px;
   border-radius: 6px;
@@ -290,12 +636,54 @@
 
 .filter-menu-item:hover {
   background: var(--bg-secondary);
-  color: var(--accent);
+  color: #765337;
 }
 
 .filter-menu-item.selected {
-  background: rgba(245, 128, 37, 0.1);
-  color: var(--accent);
+  background: rgba(118, 83, 55, 0.1);
+  color: #765337;
   font-weight: 600;
 }
 
+/* Responsive Media Queries */
+@media (max-width: 1400px) {
+  .financial-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .financial-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .chart-grid-2, .table-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .financial-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .overview-header-row {
+    flex-direction: column;
+  }
+  .overview-toolbar-box {
+    width: 100%;
+  }
+  .filter-dropdown-wrapper {
+    flex-grow: 1;
+  }
+}
+
+
+.customer-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.customer-link:hover {
+  color: #765337 !important;
+  text-decoration: underline !important;
+}

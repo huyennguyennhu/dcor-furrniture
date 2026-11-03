@@ -264,13 +264,69 @@
     <table class="v2-table">
       <thead>
         <tr>
-          <th style="width: 175px;">Mã yêu cầu</th>
-          <th style="width: 140px;">Thời gian gửi</th>
-          <th style="width: 180px;">Khách hàng</th>
-          <th style="width: 240px;">Sản phẩm</th>
-          <th style="width: 180px;">Trạng thái xử lý</th>
-          <th style="width: 140px;">Người phụ trách</th>
-          <th style="width: 160px;">Đơn hàng gốc</th>
+          <th style="width: 175px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('code')" title="Sắp xếp theo Mã yêu cầu">
+              <span>Mã yêu cầu</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'code' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'code' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'code' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'code' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 140px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('date')" title="Sắp xếp theo Thời gian gửi">
+              <span>Thời gian gửi</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'date' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'date' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'date' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'date' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 180px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('customer')" title="Sắp xếp theo Khách hàng">
+              <span>Khách hàng</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'customer' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'customer' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'customer' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'customer' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 240px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('product')" title="Sắp xếp theo Sản phẩm">
+              <span>Sản phẩm</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'product' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'product' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'product' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'product' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 180px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái">
+              <span>Trạng thái xử lý</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 140px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('assignee')" title="Sắp xếp theo Người phụ trách">
+              <span>Người phụ trách</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'assignee' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'assignee' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'assignee' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'assignee' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 160px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('order')" title="Sắp xếp theo Đơn hàng gốc">
+              <span>Đơn hàng gốc</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'order' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'order' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'order' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'order' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
         </tr>
       </thead>
       <tbody>

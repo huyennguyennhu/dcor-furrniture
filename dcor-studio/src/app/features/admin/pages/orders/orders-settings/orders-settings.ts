@@ -162,6 +162,31 @@ export class OrdersSettingsComponent implements OnInit {
     defaultRefundMethod: 'BANK_TRANSFER'
   };
 
+  reasonSortColumn: string = '';
+  reasonSortDirection: 'asc' | 'desc' = 'asc';
+
+  toggleReasonSort(column: string): void {
+    if (this.reasonSortColumn === column) {
+      this.reasonSortDirection = this.reasonSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.reasonSortColumn = column;
+      this.reasonSortDirection = 'asc';
+    }
+    this.returnReasons.sort((a, b) => {
+      let diff = 0;
+      if (this.reasonSortColumn === 'code') {
+        diff = a.code.localeCompare(b.code, 'vi');
+      } else if (this.reasonSortColumn === 'name') {
+        diff = a.name.localeCompare(b.name, 'vi');
+      } else if (this.reasonSortColumn === 'feeBearer') {
+        diff = a.feeBearer.localeCompare(b.feeBearer, 'vi');
+      } else if (this.reasonSortColumn === 'status') {
+        diff = (a.isActive ? 1 : 0) - (b.isActive ? 1 : 0);
+      }
+      return this.reasonSortDirection === 'asc' ? diff : -diff;
+    });
+  }
+
   returnReasons: ReturnReasonItem[] = [
     {
       id: 'RR-01',

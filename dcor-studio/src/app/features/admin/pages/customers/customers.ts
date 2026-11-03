@@ -107,8 +107,40 @@ export class CustomersComponent implements OnInit {
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
-      if (params['q'] !== undefined) {
-        this.search = params['q'] || '';
+      if (params['sortBy'] === 'totalSpent' || params['sort'] === 'totalSpent' || params['sortBy'] === 'spending-desc') {
+        this.sortColumn = 'totalSpent';
+        this.sortDirection = 'desc';
+      }
+      if (params['filter']) {
+        const f = params['filter'].toUpperCase();
+        if (['ALL', 'NEW', 'B2B', 'VIP'].includes(f)) {
+          this.activeCardFilter = f as any;
+          if (f === 'NEW') {
+            this.sortColumn = 'createdAt';
+            this.sortDirection = 'desc';
+          } else if (f === 'VIP') {
+            this.labelFilter = 'VIP';
+          } else if (f === 'B2B') {
+            this.membershipFilter = 'B2B Partner';
+          }
+        }
+      }
+      if (params['spending']) {
+        if (params['spending'] === 'high' || params['spending'] === '> 50 Triệu') {
+          this.spendingFilter = '> 50 Triệu';
+        } else if (params['spending'] === 'medium' || params['spending'] === '10 - 50 Triệu') {
+          this.spendingFilter = '10 - 50 Triệu';
+        } else if (params['spending'] === 'low' || params['spending'] === '< 10 Triệu') {
+          this.spendingFilter = '< 10 Triệu';
+        } else {
+          this.spendingFilter = params['spending'];
+        }
+      }
+      if (params['membership'] || params['tier']) {
+        this.membershipFilter = params['membership'] || params['tier'];
+      }
+      if (params['q'] !== undefined || params['search'] !== undefined || params['id'] !== undefined) {
+        this.search = params['q'] || params['search'] || params['id'] || '';
         this.applyFilters();
         this.cdr.markForCheck();
       }
@@ -284,7 +316,7 @@ export class CustomersComponent implements OnInit {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortColumn = column;
-      this.sortDirection = column === 'name' ? 'asc' : 'desc';
+      this.sortDirection = 'asc';
     }
     this.openColumnMenu = null;
     this.applyFilters();

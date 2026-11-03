@@ -5,54 +5,113 @@ import { environment } from '../../../environments/environment';
 
 export interface RevenueReportData {
   kpi: {
-    totalRevenue: number;
+    grossSales: number;
+    discountAmount: number;
+    discountRate: number;
     netRevenue: number;
-    dailyAverage: number;
     aov: number;
+    pendingReceivables: number;
+    dailyAverage: number;
     growthRate: number;
-    prevTotalRevenue: number;
+    totalOrders?: number;
+    totalRevenue?: number;
+    prevTotalRevenue?: number;
   };
   chart: {
     labels: string[];
+    revenue?: number[];
+    discountRate?: number[];
+    previousRevenue?: number[];
     current: number[];
     previous: number[];
   };
+  paymentBreakdown?: {
+    name: string;
+    amount: number;
+    count: number;
+    percent: number;
+    color: string;
+  }[];
   byCategory: { name: string; value: number }[];
-  byShowroom: { name: string; value: number }[];
-  topProducts: { name: string; value: number }[];
+  regionalSales?: { name: string; value: number }[];
+  topOrders?: {
+    id: string;
+    orderCode: string;
+    customerName: string;
+    phone: string;
+    showroom: string;
+    paymentMethod: string;
+    paymentStatus: string;
+    isDepositRequired: boolean;
+    grossAmount: number;
+    discountAmount: number;
+    totalAmount: number;
+    createdAt: string;
+  }[];
+  byShowroom?: { name: string; value: number }[];
+  topProducts?: { name: string; value: number }[];
   categoriesFilter?: string[];
 }
 
 export interface OrdersReportData {
   kpi: {
     totalOrders: number;
-    completedOrders: number;
-    completedRate: number;
-    processingOrders: number;
+    ordersGrowth: number;
+    otifRate: number;
+    avgLeadTimeHours: number;
     cancelledOrders: number;
     cancelRate: number;
-    avgProcessingHours: number;
+    returnsAndWarranty: number;
   };
+  lifecycle: {
+    key: string;
+    name: string;
+    count: number;
+    percent: number;
+    color: string;
+  }[];
   chart: {
     labels: string[];
-    total: number[];
+    created: number[];
     completed: number[];
+    prevCreated: number[];
   };
-  byStatus: { name: string; value: number }[];
-  byPaymentMethod: { name: string; value: number }[];
-  byShippingMethod: { name: string; value: number }[];
-  byLocation: { name: string; value: number }[];
-  topOrders: {
+  cancellationReasons: {
+    reason: string;
+    count: number;
+    percent: number;
+    color: string;
+  }[];
+  carrierPerformance: {
+    name: string;
+    orders: number;
+    onTimeRate: number;
+    color: string;
+  }[];
+  ordersList: {
     id: string;
-    customer: string;
-    items: number;
-    total: string;
+    orderCode: string;
+    customerName: string;
+    phone: string;
+    showroom: string;
+    shippingProvider: string;
     status: string;
-    date: string;
+    statusText: string;
+    isCustomDesign: boolean;
+    isHighValue: boolean;
+    totalAmount: number;
+    createdAt: string;
   }[];
 }
 
 export interface ProductsReportData {
+  categoryList?: string[];
+  categoryBreakdown?: {
+    main: { name: string; value: number }[];
+    sub: { name: string; value: number }[];
+    room: { name: string; value: number }[];
+    style: { name: string; value: number }[];
+  };
   kpi: {
     totalProducts: number;
     activeProducts: number;
@@ -80,26 +139,39 @@ export interface CustomersReportData {
     newCustomers: number;
     activeCustomers: number;
     repeatPurchaseRate: number;
+    vipRevenuePercent?: number;
+    vipCustomerCount?: number;
+    growthRate?: number;
   };
   chart: {
     labels: string[];
     values: number[];
+    prevValues?: number[];
   };
   byMembership: { name: string; value: number }[];
   byLocation: { name: string; value: number }[];
+  byShowroom?: { name: string; value: number }[];
   topSpenders: {
     id: string;
+    customerId?: string;
     name: string;
+    phone?: string;
+    email?: string;
     tier: string;
     orders: number;
     spent: string;
+    rawSpent?: number;
   }[];
   topOrderFreq: {
     id: string;
+    customerId?: string;
     name: string;
+    phone?: string;
+    email?: string;
     tier: string;
     orders: number;
     spent: string;
+    rawSpent?: number;
   }[];
 }
 
@@ -112,6 +184,7 @@ export class ReportService {
 
   getRevenueReport(params: {
     timeRange?: string;
+    showroom?: string;
     category?: string;
     brand?: string;
     collection?: string;
@@ -129,8 +202,9 @@ export class ReportService {
   getOrdersReport(params: {
     timeRange?: string;
     status?: string;
-    payment?: string;
-    shipping?: string;
+    showroom?: string;
+    orderType?: string;
+    carrier?: string;
     interval?: string;
     startDate?: string;
     endDate?: string;
@@ -144,9 +218,12 @@ export class ReportService {
 
   getProductsReport(params: {
     timeRange?: string;
+    startDate?: string;
+    endDate?: string;
     category?: string;
     brand?: string;
     status?: string;
+    compare?: boolean;
   }): Observable<ProductsReportData> {
     let httpParams = new HttpParams();
     Object.entries(params).forEach(([key, val]) => {
@@ -157,13 +234,17 @@ export class ReportService {
 
   getCustomersReport(params: {
     timeRange?: string;
+    startDate?: string;
+    endDate?: string;
     tier?: string;
     location?: string;
+    type?: string;
     interval?: string;
+    compare?: boolean;
   }): Observable<CustomersReportData> {
     let httpParams = new HttpParams();
     Object.entries(params).forEach(([key, val]) => {
-      if (val) httpParams = httpParams.set(key, val);
+      if (val !== undefined && val !== null && val !== '') httpParams = httpParams.set(key, val.toString());
     });
     return this.http.get<CustomersReportData>(`${this.baseUrl}/customers`, { params: httpParams });
   }
@@ -171,6 +252,7 @@ export class ReportService {
   getOverviewReport(params: {
     timeRange?: string;
     showroom?: string;
+    interval?: string;
     startDate?: string;
     endDate?: string;
   }): Observable<OverviewReportData> {
@@ -184,40 +266,58 @@ export class ReportService {
 
 export interface OverviewReportData {
   kpi: {
-    totalRevenue: number;
+    // Executive KPIs
+    netRevenue?: number;
+    totalRevenue?: number;
     revenueGrowth: number;
     totalOrders: number;
     ordersGrowth: number;
+    fulfillmentRate?: number;
+    aov?: number;
+    // Operational Urgent KPIs
+    pendingDepositOrders?: number;
+    criticalLowStockSKUs?: number;
+    todayAppointments?: number;
+    // Directory counts
     totalCustomers: number;
     newCustomers: number;
+    diamondCustomers?: number;
     totalProducts: number;
-    lowStockProducts: number;
-    totalAppointments: number;
-    upcomingAppointments: number;
+    lowStockProducts?: number;
+    totalAppointments?: number;
+    upcomingAppointments?: number;
   };
   revenueChart: {
     labels: string[];
     current: number[];
     previous: number[];
   };
-  orderStatusData: { name: string; value: number }[];
-  categoryRevenueData: { name: string; value: number }[];
-  funnelData: { value: number; name: string; fill: string }[];
+  orderStatusData: { name: string; value: number; color?: string; code?: string }[];
+  showroomSalesData?: { name: string; revenue: number; orders: number; delivered: number }[];
+  categoryRevenueData?: { name: string; value: number }[];
+  funnelData: { stage?: string; count?: number; percent?: number; value?: number; name?: string; fill?: string }[];
   topProducts: {
+    rank?: number;
     id: number | string;
     name: string;
     sku: string;
+    category?: string;
     sales: number;
-    revenue: string;
+    revenue: number | string;
     stock: number;
   }[];
   topCustomers: {
     id: string;
     name: string;
     phone: string;
-    orders: number;
-    totalSpent: string;
-    rank: string;
+    email?: string;
+    tier?: string;
+    badgeClass?: string;
+    orders?: number;
+    ordersCount?: number;
+    totalSpent: number | string;
+    rank?: string;
+    lastOrderDate?: string;
   }[];
 }
 

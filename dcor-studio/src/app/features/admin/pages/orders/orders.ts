@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { 
   LucideAngularModule, 
@@ -66,6 +66,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
   selectedPayment = 'ALL';
   selectedStatus = 'ALL';
   sortBy: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc' = 'date-desc';
+  sortColumn: string = 'date';
+  sortDirection: 'asc' | 'desc' = 'desc';
 
   // Dropdowns UI State
   showShowroomDropdown = false;
@@ -123,8 +125,27 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.showPaymentDropdown = false;
   }
 
+  toggleColumnSort(column: string): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    if (this.sortColumn === 'date') {
+      this.sortBy = this.sortDirection === 'desc' ? 'date-desc' : 'date-asc';
+    } else if (this.sortColumn === 'total') {
+      this.sortBy = this.sortDirection === 'desc' ? 'total-desc' : 'total-asc';
+    }
+    this.currentPage = 1;
+  }
+
   setSort(val: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc') {
     this.sortBy = val;
+    if (val === 'date-desc') { this.sortColumn = 'date'; this.sortDirection = 'desc'; }
+    if (val === 'date-asc') { this.sortColumn = 'date'; this.sortDirection = 'asc'; }
+    if (val === 'total-desc') { this.sortColumn = 'total'; this.sortDirection = 'desc'; }
+    if (val === 'total-asc') { this.sortColumn = 'total'; this.sortDirection = 'asc'; }
     this.currentPage = 1;
     this.showSortDropdown = false;
   }
@@ -170,13 +191,40 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   constructor(
     private ordersService: OrdersService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
     this.ordersService.fetchOrders();
     this.sub = this.ordersService.orders$.subscribe(orders => {
       this.orders = orders;
+    });
+
+    this.route.queryParams.subscribe(params => {
+      if (params['sortBy'] && ['date-desc', 'date-asc', 'total-desc', 'total-asc'].includes(params['sortBy'])) {
+        this.sortBy = params['sortBy'];
+        if (this.sortBy === 'date-desc') { this.sortColumn = 'date'; this.sortDirection = 'desc'; }
+        if (this.sortBy === 'date-asc') { this.sortColumn = 'date'; this.sortDirection = 'asc'; }
+        if (this.sortBy === 'total-desc') { this.sortColumn = 'total'; this.sortDirection = 'desc'; }
+        if (this.sortBy === 'total-asc') { this.sortColumn = 'total'; this.sortDirection = 'asc'; }
+      }
+      if (params['tab']) {
+        this.activeTab = params['tab'] as KpiTab;
+      }
+      if (params['status']) {
+        this.selectedStatus = params['status'];
+      }
+      if (params['showroom']) {
+        this.selectedShowroom = params['showroom'];
+      }
+      if (params['payment']) {
+        this.selectedPayment = params['payment'];
+      }
+      if (params['q'] !== undefined || params['search'] !== undefined || params['customer'] !== undefined || params['phone'] !== undefined) {
+        this.searchQuery = params['q'] || params['search'] || params['customer'] || params['phone'] || '';
+      }
+      this.currentPage = 1;
     });
   }
 
@@ -278,16 +326,21 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
     // Sort
     list.sort((a, b) => {
-      if (this.sortBy === 'date-desc') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      } else if (this.sortBy === 'date-asc') {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      } else if (this.sortBy === 'total-desc') {
-        return b.totalAmount - a.totalAmount;
-      } else if (this.sortBy === 'total-asc') {
-        return a.totalAmount - b.totalAmount;
+      let diff = 0;
+      if (this.sortColumn === 'code') {
+        diff = a.orderNumber.localeCompare(b.orderNumber, 'vi');
+      } else if (this.sortColumn === 'date') {
+        diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (this.sortColumn === 'customer') {
+        diff = a.customerName.localeCompare(b.customerName, 'vi');
+      } else if (this.sortColumn === 'total') {
+        diff = a.totalAmount - b.totalAmount;
+      } else if (this.sortColumn === 'payment') {
+        diff = (a.paymentStatus || '').localeCompare(b.paymentStatus || '', 'vi');
+      } else if (this.sortColumn === 'status') {
+        diff = (a.status || '').localeCompare(b.status || '', 'vi');
       }
-      return 0;
+      return this.sortDirection === 'asc' ? diff : -diff;
     });
 
     return list;

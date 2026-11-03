@@ -99,6 +99,8 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   selectedStatusFilter = 'Tất cả trạng thái';
   showWarehouseFilterDropdown = false;
   showStatusFilterDropdown = false;
+  sortColumn: string = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
   statusFilterOptions = ['Tất cả trạng thái', 'Đã kiểm kê', 'Đang kiểm kê', 'Lên kế hoạch', 'Nháp', 'Đã hủy'];
 
   // Pagination (10 rows per page)
@@ -754,8 +756,44 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
 
       return matchQuery && matchWarehouse && matchStatus;
     });
+    this.applyLocalSort();
     this.currentPage = 1;
     this.cdr.markForCheck();
+  }
+
+  toggleColumnSort(column: string): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    this.filterData();
+  }
+
+  applyLocalSort(): void {
+    if (!this.sortColumn || !this.data || this.data.length === 0) return;
+    this.data.sort((a, b) => {
+      let diff = 0;
+      if (this.sortColumn === 'code') {
+        diff = (a.auditCode || a.id || '').localeCompare(b.auditCode || b.id || '', 'vi');
+      } else if (this.sortColumn === 'date') {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        diff = timeA - timeB;
+      } else if (this.sortColumn === 'location') {
+        diff = (a.location || '').localeCompare(b.location || '', 'vi');
+      } else if (this.sortColumn === 'creator') {
+        diff = (a.creator || '').localeCompare(b.creator || '', 'vi');
+      } else if (this.sortColumn === 'totalItems') {
+        diff = (a.totalItems || 0) - (b.totalItems || 0);
+      } else if (this.sortColumn === 'discrepancy') {
+        diff = (a.discrepancyItems || 0) - (b.discrepancyItems || 0);
+      } else if (this.sortColumn === 'status') {
+        diff = (a.status || '').localeCompare(b.status || '', 'vi');
+      }
+      return this.sortDirection === 'asc' ? diff : -diff;
+    });
   }
 
   hasActiveFilters(): boolean {

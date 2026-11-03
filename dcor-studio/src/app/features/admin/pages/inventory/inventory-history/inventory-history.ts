@@ -67,6 +67,8 @@ export class InventoryHistoryComponent implements OnInit {
   selectedWarehouse = '';
   selectedType = '';
   isLoading = true;
+  sortColumn: string = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   showViewByDropdown = false;
   showWarehouseDropdown = false;
@@ -366,6 +368,47 @@ export class InventoryHistoryComponent implements OnInit {
         item.type.toLowerCase().includes(this.selectedType.toLowerCase());
 
       return matchQuery && matchWarehouse && matchType;
+    });
+    this.applyLocalSort();
+  }
+
+  toggleColumnSort(column: string): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    this.filterData();
+    this.cdr.markForCheck();
+  }
+
+  applyLocalSort(): void {
+    if (!this.sortColumn || !this.data || this.data.length === 0) return;
+    this.data.sort((a, b) => {
+      let diff = 0;
+      if (this.sortColumn === 'code') {
+        diff = (a.id || '').localeCompare(b.id || '', 'vi');
+      } else if (this.sortColumn === 'date') {
+        diff = (a.date || '').localeCompare(b.date || '', 'vi');
+      } else if (this.sortColumn === 'product') {
+        const nameA = this.viewBy === 'variant' ? `${a.productName} - ${a.variant}` : a.productName;
+        const nameB = this.viewBy === 'variant' ? `${b.productName} - ${b.variant}` : b.productName;
+        diff = nameA.localeCompare(nameB, 'vi', { sensitivity: 'base' });
+      } else if (this.sortColumn === 'location') {
+        diff = (a.location || '').localeCompare(b.location || '', 'vi');
+      } else if (this.sortColumn === 'orderType') {
+        diff = (a.orderTypeLabel || '').localeCompare(b.orderTypeLabel || '', 'vi');
+      } else if (this.sortColumn === 'status') {
+        diff = (a.statusLabel || a.status || '').localeCompare(b.statusLabel || b.status || '', 'vi');
+      } else if (this.sortColumn === 'quantity') {
+        diff = (a.quantityChange || 0) - (b.quantityChange || 0);
+      } else if (this.sortColumn === 'reference') {
+        diff = (a.reference || '').localeCompare(b.reference || '', 'vi');
+      } else if (this.sortColumn === 'creator') {
+        diff = (a.creator || '').localeCompare(b.creator || '', 'vi');
+      }
+      return this.sortDirection === 'asc' ? diff : -diff;
     });
   }
 

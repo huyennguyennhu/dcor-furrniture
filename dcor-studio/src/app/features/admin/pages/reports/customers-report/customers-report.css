@@ -1,10 +1,271 @@
+/* ==========================================================================
+   CUSTOMERS & SHOWROOM REPORT STYLING - DCOR LUXURY DESIGN SYSTEM
+   ========================================================================== */
+
 .reports-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* Animated Loading Spinner */
+/* ==========================================================================
+   1. PAGE HEADER
+   ========================================================================== */
+.overview-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.overview-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.overview-page-subtitle {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  background: #765337;
+  color: #FCF8F3;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.export-btn:hover {
+  background: #5c402a;
+}
+
+/* ==========================================================================
+   2. FILTER TOOLBAR BOX (CHUẨN DCOR LUXURY)
+   ========================================================================== */
+.overview-toolbar-box {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.compare-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 12.5px;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.compare-toggle-btn:hover {
+  background: var(--bg-secondary);
+  border-color: #765337;
+}
+
+.compare-toggle-btn.active {
+  border-color: #765337;
+  color: #765337;
+  background: rgba(118, 83, 55, 0.08);
+}
+
+.check-icon {
+  flex-shrink: 0;
+}
+
+.custom-date-inputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  height: 36px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.custom-date-inputs input[type="date"] {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 11.5px;
+  color: var(--text-primary);
+  width: 105px;
+  padding: 0;
+}
+
+.date-sep {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Dropdown Filters */
+.filter-dropdown-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.filter-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.filter-trigger-btn:hover {
+  border-color: #765337;
+  background: var(--bg-secondary);
+}
+
+.filter-trigger-btn.active {
+  border-color: #765337;
+  color: #765337;
+  background: rgba(118, 83, 55, 0.06);
+  font-weight: 500;
+}
+
+.filter-trigger-btn.small-btn {
+  height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.trigger-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trigger-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.filter-trigger-btn.active .trigger-icon {
+  color: #765337;
+}
+
+.truncate-label {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dropdown mở sang phải, không đè sidebar */
+.filter-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: auto;
+  min-width: 100%;
+  width: max-content;
+  max-width: 280px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 50;
+  padding: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: fadeInDown 0.15s ease;
+}
+
+.filter-menu-dropdown.dropdown-menu-end {
+  left: auto;
+  right: 0;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-menu-item {
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+
+.filter-menu-item:hover {
+  background: var(--bg-secondary);
+  color: #765337;
+}
+
+.filter-menu-item.selected {
+  background: rgba(118, 83, 55, 0.08);
+  color: #765337;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   3. LOADING STATE
+   ========================================================================== */
 .loading-state-container {
   display: flex;
   flex-direction: column;
@@ -16,18 +277,22 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .spinning-loader {
-  width: 44px;
-  height: 44px;
-  border: 4px solid rgba(188, 95, 19, 0.15);
-  border-top: 4px solid #bc5f13;
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(118, 83, 55, 0.15);
+  border-top: 4px solid #765337;
   border-radius: 50%;
   animation: reportsSpin 0.85s linear infinite;
-  box-sizing: border-box;
+}
+
+.spinning-loader.small-spinner {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
 }
 
 @keyframes reportsSpin {
@@ -40,235 +305,420 @@
   font-weight: 500;
   color: var(--text-secondary);
   margin: 0;
-  letter-spacing: -0.01em;
 }
 
-.kpi-grid {
+/* ==========================================================================
+   4. KHỐI 5 THẺ KPI KHÁCH HÀNG
+   ========================================================================== */
+.customers-kpi-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 20px;
-}
-
-.chart-grid-1 {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
-}
-
-.chart-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.table-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 24px;
+  gap: 14px;
 }
 
 .report-card {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  padding: 24px;
-  min-width: 0; /* Crucial for preventing flex/grid overflow */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  padding: 18px 20px;
+  min-width: 0;
 }
 
 .kpi-card {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 96px;
 }
 
-@media (max-width: 1400px) {
-  .kpi-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
+.kpi-card.primary-highlight {
+  border-color: rgba(118, 83, 55, 0.3);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(118, 83, 55, 0.04) 100%);
 }
 
-@media (max-width: 1200px) {
-  .chart-grid-1, .table-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .chart-grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ==========================================================================
-   DROPDOWN & BỘ LỌC BÁO CÁO KHÁCH HÀNG
-   ========================================================================== */
-.customers-filter-btn {
+.kpi-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-label.highlight {
+  color: #765337;
+}
+
+.kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
+}
+
+.kpi-value {
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text-primary);
-  cursor: pointer;
-  font-size: 13px;
-  min-width: 160px;
-  width: 100%;
-  transition: all 0.15s ease;
-  user-select: none;
-  white-space: nowrap;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.customers-filter-btn:hover {
-  border-color: var(--accent);
-  background: var(--bg-secondary);
-}
-
-.customers-filter-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
+.kpi-unit {
+  font-size: 14px;
   font-weight: 500;
+  color: var(--text-muted);
 }
 
-.customers-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  min-width: 100%;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 50;
-  padding: 4px;
+.text-accent {
+  color: #765337 !important;
 }
 
-.customers-dropdown-item {
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  background: transparent;
-  color: var(--text-primary);
-  transition: background 0.12s ease;
+.text-amber {
+  color: #c06c34 !important;
 }
 
-.customers-dropdown-item:hover {
-  background: var(--bg-secondary);
+.text-blue {
+  color: #2c3e50 !important;
 }
 
-.customers-dropdown-item.selected {
-  color: var(--accent);
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 
-/* ==========================================================================
-   DROPDOWN FORMAT TIÊU CHUẨN TỔNG QUAN KHO
-   ========================================================================== */
-.filter-dropdown-wrapper {
-  position: relative;
-  min-width: 150px;
-  flex-shrink: 0;
+.kpi-badge.positive {
+  background: rgba(39, 174, 96, 0.1);
+  color: #27ae60;
 }
 
-.filter-trigger-btn {
+.kpi-badge.negative {
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+}
+
+/* ==========================================================================
+   5. BIỂU ĐỒ & CONTAINERS
+   ========================================================================== */
+.chart-row-single {
   width: 100%;
+}
+
+.chart-card {
+  padding: 20px 22px;
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  line-height: 1.35 !important;
+  min-height: auto !important;
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+}
+
+.card-subtitle {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.chart-container-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.combo-chart-height {
+  height: 290px;
+}
+
+.chart-local-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.75);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 14px;
+  justify-content: center;
+  z-index: 10;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  cursor: pointer;
+  backdrop-filter: blur(1px);
+}
+
+.chart-grid-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ==========================================================================
+   6. BẢNG TOP KHÁCH HÀNG & MA TRẬN NHIỆT (HEATMAP & TOP LISTS)
+   ========================================================================== */
+.matrix-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.matrix-cell {
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-align: center;
   font-size: 13px;
   transition: all 0.15s ease;
   user-select: none;
+}
+
+.matrix-sticky-col {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  padding: 10px 14px;
+}
+
+.slot-period-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  display: block;
+}
+
+.table-grid-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.table-card {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #765337;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(118, 83, 55, 0.06);
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
-.filter-trigger-btn:hover {
-  border-color: var(--accent);
+.table-action-link:hover {
+  background: rgba(118, 83, 55, 0.12);
+  color: #5c402a;
+}
+
+.table-responsive-box {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.report-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 480px;
+}
+
+.report-data-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
 }
 
-.filter-trigger-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(245, 128, 37, 0.05);
-  font-weight: 500;
+.report-data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  vertical-align: middle;
 }
 
-.trigger-label {
+.report-data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.report-data-table tr:hover td {
+  background: rgba(118, 83, 55, 0.02);
+}
+
+.customer-info-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 10px;
 }
 
-.trigger-icon {
+.customer-avatar-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(118, 83, 55, 0.1);
+  color: #765337;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  border: 1px solid rgba(118, 83, 55, 0.2);
+}
+
+.customer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.customer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.customer-fullname {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.customer-code {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.customer-contact {
+  font-size: 11.5px;
   color: var(--text-secondary);
 }
 
-.filter-trigger-btn.active .trigger-icon {
-  color: var(--accent);
-}
-
-.truncate-label {
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.tier-pill-badge {
   display: inline-block;
-}
-
-.filter-menu-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 100%;
-  width: max-content;
-  max-width: 280px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  z-index: 50;
-  padding: 4px;
-  max-height: 320px;
-  overflow-y: auto;
-  animation: fadeInDown 0.15s ease;
-}
-
-.filter-menu-item {
-  padding: 7px 10px;
+  padding: 3px 8px;
   border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  transition: all 0.12s ease;
-  user-select: none;
-}
-
-.filter-menu-item:hover {
-  background: var(--bg-secondary);
-  color: var(--accent);
-}
-
-.filter-menu-item.selected {
-  background: rgba(245, 128, 37, 0.1);
-  color: var(--accent);
+  font-size: 11.5px;
   font-weight: 600;
 }
 
+.tier-diamond {
+  background: rgba(118, 83, 55, 0.12);
+  color: #765337;
+  border: 1px solid rgba(118, 83, 55, 0.25);
+}
+
+.tier-gold {
+  background: rgba(188, 95, 19, 0.12);
+  color: #BC5F13;
+  border: 1px solid rgba(188, 95, 19, 0.25);
+}
+
+.tier-silver {
+  background: rgba(140, 125, 112, 0.12);
+  color: #8c7d70;
+  border: 1px solid rgba(140, 125, 112, 0.25);
+}
+
+.tier-member {
+  background: rgba(44, 62, 80, 0.08);
+  color: #2c3e50;
+  border: 1px solid rgba(44, 62, 80, 0.2);
+}
+
+/* ==========================================================================
+   7. RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 1280px) {
+  .customers-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .chart-grid-dual, .table-grid-dual {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .customers-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .overview-header-row {
+    flex-direction: column;
+  }
+}
+
+
+.kpi-card-link {
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpi-card-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+.customer-fullname.customer-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.customer-fullname.customer-link:hover {
+  color: #765337 !important;
+  text-decoration: underline !important;
+}
+.order-freq-link {
+  display: inline-block;
+  padding: 3px 9px;
+  background: rgba(118, 83, 55, 0.08);
+  border-radius: 999px;
+  color: #765337;
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.order-freq-link:hover {
+  background: rgba(118, 83, 55, 0.2);
+  color: #5c402a;
+}

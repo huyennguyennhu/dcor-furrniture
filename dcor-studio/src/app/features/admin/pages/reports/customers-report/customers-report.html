@@ -1,303 +1,463 @@
 <div class="reports-container">
       
-  <!-- Page Header & Toolbar -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+  <!-- 1. Header & Actions -->
+  <div class="overview-header-row">
     <div>
-      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Báo cáo khách hàng</h1>
-      <p style="color: var(--text-secondary); font-size: 14px;">Theo dõi hành vi, phân khúc và giá trị của khách hàng.</p>
+      <h1 class="overview-page-title">Báo cáo khách hàng</h1>
+      <p class="overview-page-subtitle">Phân tích quy mô khách hàng, cơ cấu hạng thành viên VIP và đóng góp doanh số toàn chuỗi DCOR.</p>
     </div>
     
-    <button class="admin-btn admin-btn-primary" style="display: flex; align-items: center; gap: 8px;">
-      <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất báo cáo
-    </button>
+    <div class="header-action-group">
+      <button 
+        type="button" 
+        (click)="exportReport()" 
+        class="admin-btn admin-btn-primary export-btn"
+      >
+        <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
+        <span>Xuất báo cáo</span>
+      </button>
+    </div>
   </div>
     
-  <!-- Filter Bar -->
-  <div #filterRef style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
+  <!-- 2. Filter Toolbar (Bộ lọc chuẩn phong cách DCOR Luxury) -->
+  <div #filterRef class="overview-toolbar-box">
     
-    <!-- 1. Thời gian -->
-    <div style="display: flex; align-items: center;">
-      <div style="position: relative; min-width: 160px;">
-        <button 
-          type="button"
-          (click)="toggleDropdown('time', $event)" 
-          class="customers-filter-btn"
-          [class.active]="showTimeDropdown"
-          [style.border-radius]="timeRange === 'custom' ? '8px 0 0 8px' : '8px'"
-          [style.border-right]="timeRange === 'custom' ? 'none' : '1px solid var(--border-color)'"
-        >
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <lucide-angular [img]="icons.Calendar" size="14" color="var(--text-muted)"></lucide-angular>
-            <span>{{ TIME_LABELS[timeRange] }}</span>
-          </div>
-          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showTimeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-        </button>
-        
-        <div *ngIf="showTimeDropdown" class="customers-dropdown-menu">
-          <div *ngFor="let key of timeLabelKeys" 
-               (click)="setDropdownValue('time', key)" 
-               class="customers-dropdown-item"
-               [class.selected]="timeRange === key"
-          >
-            {{ TIME_LABELS[key] }}
-          </div>
+    <!-- (B) Dropdown Hạng thành viên -->
+    <div class="filter-dropdown-wrapper">
+      <button 
+        type="button" 
+        title="Chọn hạng thành viên" 
+        class="filter-trigger-btn"
+        [class.active]="tier !== 'Tất cả hạng thành viên'"
+        (click)="toggleDropdown('tier', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Award" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ tier }}</span>
         </div>
-      </div>
-      
-      <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0; height: 41px; box-sizing: border-box;">
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-01" />
-        <span style="font-size: 13px; color: var(--text-muted);">-</span>
-        <input type="date" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" value="2026-08-07" />
+        <app-icon name="ChevronDown" size="14" [style.transform]="showTierDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showTierDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let opt of tiers" 
+             (click)="setDropdownValue('tier', opt)" 
+             class="filter-menu-item" 
+             [class.selected]="tier === opt">
+          <span>{{ opt }}</span>
+          <lucide-angular *ngIf="tier === opt" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
       </div>
     </div>
     
-    <!-- 2. Hạng thành viên -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
+    <!-- (C) Dropdown Thời gian -->
+    <div class="filter-dropdown-wrapper">
       <button 
-        type="button"
-        (click)="toggleDropdown('tier', $event)" 
-        class="customers-filter-btn"
-        [class.active]="showTierDropdown"
+        type="button" 
+        title="Chọn khoảng thời gian" 
+        class="filter-trigger-btn"
+        [class.active]="timeRange !== '7_days'"
+        (click)="toggleDropdown('time', $event)"
       >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.Award" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ tier }}</span>
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ TIME_LABELS[timeRange] || '7 ngày qua' }}</span>
         </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showTierDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showTimeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
       </button>
-      
-      <div *ngIf="showTierDropdown" class="customers-dropdown-menu">
-        <div *ngFor="let opt of tiers" 
-             (click)="setDropdownValue('tier', opt)" 
-             class="customers-dropdown-item"
-             [class.selected]="tier === opt"
-        >
-          {{ opt }}
+      <div *ngIf="showTimeDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let key of timeLabelKeys" 
+             (click)="setDropdownValue('time', key)" 
+             class="filter-menu-item" 
+             [class.selected]="timeRange === key">
+          <span>{{ TIME_LABELS[key] }}</span>
+          <lucide-angular *ngIf="timeRange === key" [img]="icons.Check" size="14"></lucide-angular>
         </div>
       </div>
     </div>
 
-    <!-- 3. Khu vực -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
+    <!-- Custom Date Inputs (Nếu chọn tùy chỉnh) -->
+    <div *ngIf="timeRange === 'custom'" class="custom-date-inputs">
+      <input type="date" [(ngModel)]="startDate" (change)="loadCustomersData()" />
+      <span class="date-sep">-</span>
+      <input type="date" [(ngModel)]="endDate" (change)="loadCustomersData()" />
+    </div>
+
+    <!-- (D) Dropdown Khu vực / Tỉnh thành -->
+    <div class="filter-dropdown-wrapper">
       <button 
-        type="button"
-        (click)="toggleDropdown('location', $event)" 
-        class="customers-filter-btn"
-        [class.active]="showLocationDropdown"
+        type="button" 
+        title="Lọc theo khu vực" 
+        class="filter-trigger-btn"
+        [class.active]="location !== 'Tất cả khu vực'"
+        (click)="toggleDropdown('location', $event)"
       >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.MapPin" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ location }}</span>
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.MapPin" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ location }}</span>
         </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showLocationDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showLocationDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
       </button>
-      
-      <div *ngIf="showLocationDropdown" class="customers-dropdown-menu">
+      <div *ngIf="showLocationDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
         <div *ngFor="let opt of locations" 
              (click)="setDropdownValue('location', opt)" 
-             class="customers-dropdown-item"
-             [class.selected]="location === opt"
-        >
-          {{ opt }}
+             class="filter-menu-item" 
+             [class.selected]="location === opt">
+          <span>{{ opt }}</span>
+          <lucide-angular *ngIf="location === opt" [img]="icons.Check" size="14"></lucide-angular>
         </div>
       </div>
     </div>
+
+    <!-- (E) Dropdown Loại khách hàng -->
+    <div class="filter-dropdown-wrapper">
+      <button 
+        type="button" 
+        title="Lọc loại khách hàng" 
+        class="filter-trigger-btn"
+        [class.active]="customerType !== 'Tất cả loại khách'"
+        (click)="toggleDropdown('type', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Users" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ customerType }}</span>
+        </div>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showTypeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showTypeDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let opt of customerTypes" 
+             (click)="setDropdownValue('type', opt)" 
+             class="filter-menu-item" 
+             [class.selected]="customerType === opt">
+          <span>{{ opt }}</span>
+          <lucide-angular *ngIf="customerType === opt" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Loading State (Animated Spinner) -->
   <div *ngIf="isLoading" class="loading-state-container">
     <div class="spinning-loader"></div>
-    <p class="loading-text">Đang tải dữ liệu khách hàng...</p>
+    <p class="loading-text">Đang tổng hợp dữ liệu báo cáo khách hàng...</p>
   </div>
 
   <ng-container *ngIf="!isLoading">
-    <!-- KPI Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
     
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng khách hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.totalCustomers }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">Toàn hệ thống</span>
+    <!-- 3. KHỐI 5 THẺ KPI KHÁCH HÀNG (TINH GỌN THEO CHUẨN DCOR LUXURY) -->
+    <div class="customers-kpi-grid">
+      
+      <!-- KPI 1: Tổng khách hàng -->
+      <a [routerLink]="['/admin/customers']" [queryParams]="{ filter: 'ALL' }" class="report-card kpi-card kpi-card-link" title="Xem toàn bộ danh sách khách hàng">
+        <div class="kpi-header">
+          <span class="kpi-label">Tổng khách hàng</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value">{{ kpi.totalCustomers }} <span class="kpi-unit">KH</span></div>
+        </div>
+      </a>
+      
+      <!-- KPI 2: Khách hàng mới trong kỳ -->
+      <a [routerLink]="['/admin/customers']" [queryParams]="{ filter: 'NEW' }" class="report-card kpi-card primary-highlight kpi-card-link" title="Xem danh sách khách hàng mới">
+        <div class="kpi-header">
+          <span class="kpi-label highlight">Khách hàng mới</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-accent">{{ kpi.newCustomers }} <span class="kpi-unit">KH</span></div>
+          <div *ngIf="kpi.growthRate !== undefined" class="kpi-badge positive">
+            <lucide-angular [img]="icons.TrendingUp" size="12"></lucide-angular>
+            <span>+{{ kpi.growthRate }}%</span>
+          </div>
+        </div>
+      </a>
+      
+      <!-- KPI 3: Khách có phát sinh đơn -->
+      <a [routerLink]="['/admin/orders']" [queryParams]="{ sortBy: 'date-desc' }" class="report-card kpi-card kpi-card-link" title="Xem đơn hàng phát sinh">
+        <div class="kpi-header">
+          <span class="kpi-label">Đang phát sinh đơn</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-blue">{{ kpi.activeCustomers }} <span class="kpi-unit">KH</span></div>
+        </div>
+      </a>
+      
+      <!-- KPI 4: Tỷ lệ mua lặp lại -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Tỷ lệ mua lặp lại</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-amber">{{ kpi.repeatPurchaseRate }}%</div>
+        </div>
       </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách hàng mới</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.newCustomers }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Trong kỳ báo cáo
-      </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Khách đang hoạt động</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.activeCustomers }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #3498db; font-weight: 600;">Đã có phát sinh đơn</span>
-      </div>
+      
+      <!-- KPI 5: Doanh số nhóm VIP -->
+      <a [routerLink]="['/admin/customers']" [queryParams]="{ filter: 'VIP' }" class="report-card kpi-card kpi-card-link" title="Xem danh sách khách hàng VIP">
+        <div class="kpi-header">
+          <span class="kpi-label">Doanh thu nhóm VIP</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-accent">{{ kpi.vipRevenuePercent }}%</div>
+          <div class="kpi-badge positive">
+            <lucide-angular [img]="icons.Award" size="12"></lucide-angular>
+            <span>{{ kpi.vipCustomerCount }} VIP</span>
+          </div>
+        </div>
+      </a>
+
     </div>
 
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tỷ lệ quay lại</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.repeatPurchaseRate }}%</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">Tái mua hàng</span>
-      </div>
-    </div>
-  </div>
+    <!-- 4. BIỂU ĐỒ ĐƯỜNG: TĂNG TRƯỞNG KHÁCH HÀNG MỚI THEO THỜI GIAN -->
+    <div class="chart-row-single">
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Tốc độ tăng trưởng khách hàng mới theo thời gian</h3>
+            <p class="card-subtitle">Theo dõi lưu lượng tạo tài khoản và tốc độ thu hút khách hàng mới của chuỗi</p>
+          </div>
 
-  <!-- Main Charts Row 1 -->
-  <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
-    <div class="report-card" style="overflow: visible;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Khách hàng mới theo thời gian</h3>
-        
-        <!-- (1) Dropdown Chu kỳ thời gian -->
-        <div class="filter-dropdown-wrapper interval-filter-wrapper" style="min-width: 125px;">
-          <button 
-            type="button" 
-            title="Chọn chu kỳ hiển thị" 
-            class="filter-trigger-btn" 
-            style="padding: 6px 12px; font-size: 12px;"
-            (click)="toggleDropdown('interval', $event)"
-          >
-            <div class="trigger-label">
-              <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
-              <span class="truncate-label">Theo {{ interval | lowercase }}</span>
-            </div>
-            <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
-          </button>
-          <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 125px;">
-            <div *ngFor="let opt of intervals" 
-                 (click)="setDropdownValue('interval', opt)" 
-                 class="filter-menu-item" 
-                 [class.selected]="interval === opt">
-              <span>{{ opt }}</span>
-              <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
+          <!-- Dropdown Chu kỳ hiển thị -->
+          <div class="filter-dropdown-wrapper interval-filter-wrapper" style="min-width: 125px;">
+            <button 
+              type="button" 
+              title="Chọn chu kỳ hiển thị" 
+              class="filter-trigger-btn small-btn" 
+              (click)="toggleDropdown('interval', $event)"
+            >
+              <div class="trigger-label">
+                <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
+                <span class="truncate-label">Theo {{ interval | lowercase }}</span>
+              </div>
+              <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+            </button>
+            <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown dropdown-menu-end" (mousedown)="$event.stopPropagation()">
+              <div *ngFor="let opt of intervals" 
+                   (click)="setDropdownValue('interval', opt)" 
+                   class="filter-menu-item" 
+                   [class.selected]="interval === opt">
+                <span>{{ opt }}</span>
+                <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
-      </div>
-    </div>
-  </div>
 
-  <!-- Main Charts Row 2 -->
-  <div class="chart-grid-1">
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Phân bố hạng thành viên</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="pieChartData" [options]="pieChartOptions" [type]="'pie'"></canvas>
+        <div class="chart-container-wrapper combo-chart-height">
+          <div *ngIf="isGrowthLoading" class="chart-local-loading">
+            <div class="spinning-loader small-spinner"></div>
+          </div>
+          <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [plugins]="lineChartPlugins" [type]="'line'"></canvas>
+        </div>
       </div>
     </div>
 
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Phân bố khu vực</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="locationChartData" [options]="locationChartOptions" [type]="'bar'"></canvas>
+    <!-- 5. BIỂU ĐỒ ĐÔI: CƠ CẤU HẠNG THÀNH VIÊN VÀ PHÂN BỐ KHU VỰC -->
+    <div class="chart-grid-dual">
+      
+      <!-- Cột 1: Cơ cấu Hạng thành viên (Donut Chart) -->
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Cơ cấu hạng thành viên</h3>
+            <p class="card-subtitle">Tỷ lệ phân tầng khách hàng VIP (Kim cương, Vàng, Bạc, Thành viên)</p>
+          </div>
+        </div>
+        <div class="chart-container-wrapper" style="height: 290px;">
+          <canvas baseChart [data]="pieChartData" [options]="pieChartOptions" [type]="'pie'"></canvas>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Main Charts Row 3 -->
-  <div class="chart-grid-2">
-    <div class="report-card" style="display: flex; flex-direction: column;">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Top khách hàng chi tiêu</h3>
-      <div style="flex: 1; overflow-x: auto;">
-        <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 14px;">
-          <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
-              <th style="padding: 12px 16px; font-weight: 500;">Khách hàng</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Hạng</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Số ĐH</th>
-              <th style="padding: 12px 16px; font-weight: 500; text-align: right;">Tổng chi tiêu</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let cust of topSpenders" style="border-bottom: 1px solid var(--border-color);">
-              <td style="padding: 12px 16px; color: var(--text-primary);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <div style="width: 32px; height: 32px; border-radius: 16px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
-                    <lucide-angular [img]="icons.Users" size="14" color="var(--accent)"></lucide-angular>
+      <!-- Cột 2: Phân bố khu vực (Horizontal Bar Chart) -->
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Phân bố khách hàng theo khu vực</h3>
+            <p class="card-subtitle">Số lượng khách hàng phát sinh theo từng tỉnh thành trọng điểm</p>
+          </div>
+        </div>
+        <div class="chart-container-wrapper" style="height: 290px;">
+          <canvas baseChart [data]="locationChartData" [options]="locationChartOptions" [type]="'bar'"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 6. MA TRẬN NHIỆT: LỊCH TƯ VẤN SHOWROOM THEO KHUNG GIỜ TRONG TUẦN (THEO SPEC 5) -->
+    <div class="chart-row-single">
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Mật độ lịch hẹn tư vấn Showroom theo khung giờ trong tuần</h3>
+            <p class="card-subtitle">Ma trận phân tích lượt khách đặt lịch trải nghiệm thực tế tại Showroom theo từng ca giờ</p>
+          </div>
+          <a routerLink="/admin/appointments" class="table-action-link">
+            <span>Quản lý lịch hẹn</span>
+            <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+          </a>
+        </div>
+
+        <div class="matrix-table-container">
+          <table class="report-data-table matrix-table">
+            <thead>
+              <tr>
+                <th class="matrix-sticky-col">Ca tư vấn</th>
+                <th *ngFor="let col of heatmapCols" style="text-align: center;">{{ col }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of heatmapRows">
+                <td class="matrix-sticky-col">
+                  <div>{{ row.slot }}</div>
+                  <span class="slot-period-tag">{{ row.period }}</span>
+                </td>
+                <td *ngFor="let col of heatmapCols" style="padding: 4px; text-align: center;">
+                  <div class="matrix-cell" [ngStyle]="{
+                    'background': (row.values[col] || 0) > 0 ? 'rgba(118, 83, 55, ' + (0.12 + ((row.values[col] || 0) / 10) * 0.78) + ')' : 'transparent',
+                    'color': (row.values[col] || 0) >= 6 ? '#ffffff' : ((row.values[col] || 0) > 0 ? '#5c402a' : 'var(--text-muted)'),
+                    'font-weight': (row.values[col] || 0) > 0 ? 600 : 400
+                  }">
+                    {{ (row.values[col] || 0) > 0 ? (row.values[col] + ' lượt') : '-' }}
                   </div>
-                  <div>
-                    <div style="font-weight: 500;">{{ cust.name }}</div>
-                    <div style="font-size: 12px; color: var(--text-muted);">{{ cust.id }}</div>
-                  </div>
-                </div>
-              </td>
-              <td style="padding: 12px 16px;">
-                <span [ngStyle]="{
-                  'padding': '4px 8px', 
-                  'border-radius': '4px', 
-                  'font-size': '12px', 
-                  'font-weight': 500,
-                  'background-color': cust.tier === 'Kim cương' ? 'rgba(155, 89, 182, 0.1)' : 
-                                   cust.tier === 'Vàng' ? 'rgba(241, 196, 15, 0.1)' : 'rgba(149, 165, 166, 0.1)',
-                  'color': cust.tier === 'Kim cương' ? '#9b59b6' : 
-                         cust.tier === 'Vàng' ? '#f39c12' : '#7f8c8d'
-                }">
-                  {{ cust.tier }}
-                </span>
-              </td>
-              <td style="padding: 12px 16px; color: var(--text-primary);">{{ cust.orders }}</td>
-              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600; text-align: right;">{{ cust.spent }}</td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-    
-    <div class="report-card" style="display: flex; flex-direction: column;">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Top khách hàng mua nhiều đơn</h3>
-      <div style="flex: 1; overflow-x: auto;">
-        <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 14px;">
-          <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left;">
-              <th style="padding: 12px 16px; font-weight: 500;">Khách hàng</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Hạng</th>
-              <th style="padding: 12px 16px; font-weight: 500;">Số ĐH</th>
-              <th style="padding: 12px 16px; font-weight: 500; text-align: right;">Tổng chi tiêu</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let cust of topOrderFreq" style="border-bottom: 1px solid var(--border-color);">
-              <td style="padding: 12px 16px; color: var(--text-primary);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <div style="width: 32px; height: 32px; border-radius: 16px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
-                    <lucide-angular [img]="icons.Users" size="14" color="var(--accent)"></lucide-angular>
+
+    <!-- 7. KHỐI 2 BẢNG TOP KHÁCH HÀNG (CHI TIÊU CAO NHẤT & MUA NHIỀU ĐƠN NHẤT) -->
+    <div class="table-grid-dual">
+      
+      <!-- Bảng 1: Top khách hàng chi tiêu (Lifetime Value) -->
+      <div class="report-card table-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Top khách hàng chi tiêu cao nhất</h3>
+            <p class="card-subtitle">Những khách hàng có giá trị tích lũy (CLV) cao nhất hệ thống</p>
+          </div>
+          <a [routerLink]="['/admin/customers']" [queryParams]="{ spending: '> 50 Triệu', sortBy: 'spending-desc' }" class="table-action-link" title="Xem danh sách khách hàng chi tiêu cao">
+            <span>Chi tiết khách hàng</span>
+            <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+          </a>
+        </div>
+
+        <div class="table-responsive-box">
+          <table class="report-data-table">
+            <thead>
+              <tr>
+                <th>Khách hàng</th>
+                <th>Hạng VIP</th>
+                <th style="text-align: center;">Số đơn</th>
+                <th style="text-align: right;">Tổng chi tiêu</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cust of topSpenders">
+                <td>
+                  <div class="customer-info-cell">
+                    <div class="customer-avatar-badge">{{ getInitials(cust.name) }}</div>
+                    <div class="customer-meta">
+                      <div class="customer-name-row">
+                        <a [routerLink]="cust.id ? ['/admin/customers', cust.id] : ['/admin/customers']" 
+                           [queryParams]="cust.id ? null : { q: cust.phone || cust.name }" 
+                           class="customer-fullname customer-link" 
+                           [title]="'Xem chi tiết khách hàng ' + cust.name">
+                          {{ cust.name }}
+                        </a>
+                        <span class="customer-code">{{ cust.id }}</span>
+                      </div>
+                      <div class="customer-contact">{{ cust.phone }}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style="font-weight: 500;">{{ cust.name }}</div>
-                    <div style="font-size: 12px; color: var(--text-muted);">{{ cust.id }}</div>
-                  </div>
-                </div>
-              </td>
-              <td style="padding: 12px 16px;">
-                <span [ngStyle]="{
-                  'padding': '4px 8px', 
-                  'border-radius': '4px', 
-                  'font-size': '12px', 
-                  'font-weight': 500,
-                  'background-color': cust.tier === 'Kim cương' ? 'rgba(155, 89, 182, 0.1)' : 
-                                   cust.tier === 'Vàng' ? 'rgba(241, 196, 15, 0.1)' : 'rgba(149, 165, 166, 0.1)',
-                  'color': cust.tier === 'Kim cương' ? '#9b59b6' : 
-                         cust.tier === 'Vàng' ? '#f39c12' : '#7f8c8d'
-                }">
-                  {{ cust.tier }}
-                </span>
-              </td>
-              <td style="padding: 12px 16px; color: var(--text-primary);">{{ cust.orders }}</td>
-              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600; text-align: right;">{{ cust.spent }}</td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <td>
+                  <span class="tier-pill-badge" [ngClass]="getTierClass(cust.tier)">
+                    {{ cust.tier }}
+                  </span>
+                </td>
+                <td style="text-align: center; font-weight: 600; color: var(--text-primary);">
+                  <a [routerLink]="['/admin/orders']" 
+                     [queryParams]="{ q: cust.phone || cust.name, sortBy: 'date-desc' }" 
+                     class="order-freq-link" 
+                     [title]="'Xem chi tiết các đơn hàng của ' + cust.name">
+                    {{ cust.orders }} đơn
+                  </a>
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #765337;">
+                  {{ cust.spent }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- Bảng 2: Top khách hàng mua nhiều đơn nhất -->
+      <div class="report-card table-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Top khách hàng mua nhiều đơn nhất</h3>
+            <p class="card-subtitle">Khách hàng có tần suất đặt hàng và trung thành cao nhất</p>
+          </div>
+          <a [routerLink]="['/admin/orders']" [queryParams]="{ sortBy: 'date-desc' }" class="table-action-link" title="Xem danh sách chi tiết đơn hàng">
+            <span>Chi tiết đơn hàng</span>
+            <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+          </a>
+        </div>
+
+        <div class="table-responsive-box">
+          <table class="report-data-table">
+            <thead>
+              <tr>
+                <th>Khách hàng</th>
+                <th>Hạng VIP</th>
+                <th style="text-align: center;">Số đơn</th>
+                <th style="text-align: right;">Tổng chi tiêu</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cust of topOrderFreq">
+                <td>
+                  <div class="customer-info-cell">
+                    <div class="customer-avatar-badge">{{ getInitials(cust.name) }}</div>
+                    <div class="customer-meta">
+                      <div class="customer-name-row">
+                        <a [routerLink]="cust.id ? ['/admin/customers', cust.id] : ['/admin/customers']" 
+                           [queryParams]="cust.id ? null : { q: cust.phone || cust.name }" 
+                           class="customer-fullname customer-link" 
+                           [title]="'Xem chi tiết khách hàng ' + cust.name">
+                          {{ cust.name }}
+                        </a>
+                        <span class="customer-code">{{ cust.id }}</span>
+                      </div>
+                      <div class="customer-contact">{{ cust.phone }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="tier-pill-badge" [ngClass]="getTierClass(cust.tier)">
+                    {{ cust.tier }}
+                  </span>
+                </td>
+                <td style="text-align: center; font-weight: 600; color: var(--text-primary);">
+                  <a [routerLink]="['/admin/orders']" 
+                     [queryParams]="{ q: cust.phone || cust.name, sortBy: 'date-desc' }" 
+                     class="order-freq-link" 
+                     [title]="'Xem chi tiết các đơn hàng của ' + cust.name">
+                    {{ cust.orders }} đơn
+                  </a>
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #765337;">
+                  {{ cust.spent }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
-  </div>
+
   </ng-container>
 
 </div>

@@ -238,140 +238,62 @@
         <thead>
           <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
             <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; border-top-left-radius: 11px; user-select: none;">
-              <div class="th-sort-wrapper">
-                <span class="th-title" (click)="toggleColumnSort('name')" title="Nhấn để đổi thứ tự A-Z / Z-A">
-                  <span>Khách hàng</span>
-                  <span *ngIf="sortColumn === 'name'" class="th-active-badge">
-                    <lucide-angular [img]="sortDirection === 'asc' ? icons.ArrowUp : icons.ArrowDown" size="11"></lucide-angular>
-                    <span>{{ sortDirection === 'asc' ? 'A-Z' : 'Z-A' }}</span>
-                  </span>
+              <div class="th-sort-wrapper" (click)="toggleColumnSort('name')" title="Sắp xếp theo Khách hàng (A-Z / Z-A)">
+                <span>Khách hàng</span>
+                <span class="sort-arrows-inline">
+                  <svg *ngIf="sortColumn !== 'name' || sortDirection === 'asc'" 
+                       class="sort-triangle up" 
+                       [class.active]="sortColumn === 'name' && sortDirection === 'asc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 5L4 19h16z"/>
+                  </svg>
+                  <svg *ngIf="sortColumn !== 'name' || sortDirection === 'desc'" 
+                       class="sort-triangle down" 
+                       [class.active]="sortColumn === 'name' && sortDirection === 'desc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 19L4 5h16z"/>
+                  </svg>
                 </span>
-                <button 
-                  type="button" 
-                  class="th-icon-btn" 
-                  [class.active]="sortColumn === 'name'"
-                  (click)="toggleColumnMenu('name', $event)"
-                  title="Tùy chọn sắp xếp khách hàng"
-                >
-                  <lucide-angular [img]="icons.ArrowUpDown" size="13"></lucide-angular>
-                </button>
-
-                <div *ngIf="openColumnMenu === 'name'" class="th-sort-dropdown" (click)="$event.stopPropagation()">
-                  <div 
-                    class="th-sort-item" 
-                    [class.selected]="sortColumn === 'name' && sortDirection === 'asc'"
-                    (click)="setColumnSort('name', 'asc')"
-                  >
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <lucide-angular [img]="icons.ArrowUp" size="13" class="item-icon"></lucide-angular>
-                      <span>A - Z (Từ A đến Z)</span>
-                    </div>
-                    <lucide-angular *ngIf="sortColumn === 'name' && sortDirection === 'asc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
-                  </div>
-                  <div 
-                    class="th-sort-item" 
-                    [class.selected]="sortColumn === 'name' && sortDirection === 'desc'"
-                    (click)="setColumnSort('name', 'desc')"
-                  >
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <lucide-angular [img]="icons.ArrowDown" size="13" class="item-icon"></lucide-angular>
-                      <span>Z - A (Từ Z đến A)</span>
-                    </div>
-                    <lucide-angular *ngIf="sortColumn === 'name' && sortDirection === 'desc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
-                  </div>
-                </div>
               </div>
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Liên hệ</th>
             <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
-              <div class="th-sort-wrapper">
-                <span class="th-title" (click)="toggleColumnSort('createdAt')" title="Nhấn để đổi thứ tự Giảm dần / Tăng dần">
-                  <span>Ngày đăng ký</span>
-                  <span *ngIf="sortColumn === 'createdAt'" class="th-active-badge">
-                    <lucide-angular [img]="sortDirection === 'desc' ? icons.ArrowDown : icons.ArrowUp" size="11"></lucide-angular>
-                    <span>{{ sortDirection === 'desc' ? 'Giảm dần' : 'Tăng dần' }}</span>
-                  </span>
+              <div class="th-sort-wrapper" (click)="toggleColumnSort('createdAt')" title="Sắp xếp theo Ngày đăng ký (Mới / Cũ)">
+                <span>Ngày đăng ký</span>
+                <span class="sort-arrows-inline">
+                  <svg *ngIf="sortColumn !== 'createdAt' || sortDirection === 'asc'" 
+                       class="sort-triangle up" 
+                       [class.active]="sortColumn === 'createdAt' && sortDirection === 'asc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 5L4 19h16z"/>
+                  </svg>
+                  <svg *ngIf="sortColumn !== 'createdAt' || sortDirection === 'desc'" 
+                       class="sort-triangle down" 
+                       [class.active]="sortColumn === 'createdAt' && sortDirection === 'desc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 19L4 5h16z"/>
+                  </svg>
                 </span>
-                <button 
-                  type="button" 
-                  class="th-icon-btn" 
-                  [class.active]="sortColumn === 'createdAt'"
-                  (click)="toggleColumnMenu('createdAt', $event)"
-                  title="Tùy chọn sắp xếp ngày đăng ký"
-                >
-                  <lucide-angular [img]="icons.ArrowUpDown" size="13"></lucide-angular>
-                </button>
-
-                <div *ngIf="openColumnMenu === 'createdAt'" class="th-sort-dropdown" (click)="$event.stopPropagation()">
-                  <div 
-                    class="th-sort-item" 
-                    [class.selected]="sortColumn === 'createdAt' && sortDirection === 'desc'"
-                    (click)="setColumnSort('createdAt', 'desc')"
-                  >
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <lucide-angular [img]="icons.ArrowDown" size="13" class="item-icon"></lucide-angular>
-                      <span>Giảm dần (Mới nhất)</span>
-                    </div>
-                    <lucide-angular *ngIf="sortColumn === 'createdAt' && sortDirection === 'desc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
-                  </div>
-                  <div 
-                    class="th-sort-item" 
-                    [class.selected]="sortColumn === 'createdAt' && sortDirection === 'asc'"
-                    (click)="setColumnSort('createdAt', 'asc')"
-                  >
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <lucide-angular [img]="icons.ArrowUp" size="13" class="item-icon"></lucide-angular>
-                      <span>Tăng dần (Cũ nhất)</span>
-                    </div>
-                    <lucide-angular *ngIf="sortColumn === 'createdAt' && sortDirection === 'asc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
-                  </div>
-                </div>
               </div>
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Hạng thành viên</th>
             <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
-              <div class="th-sort-wrapper">
-                <span class="th-title" (click)="toggleColumnSort('totalSpent')" title="Nhấn để đổi thứ tự Giảm dần / Tăng dần">
-                  <span>Tổng chi tiêu</span>
-                  <span *ngIf="sortColumn === 'totalSpent'" class="th-active-badge">
-                    <lucide-angular [img]="sortDirection === 'desc' ? icons.ArrowDown : icons.ArrowUp" size="11"></lucide-angular>
-                    <span>{{ sortDirection === 'desc' ? 'Giảm dần' : 'Tăng dần' }}</span>
-                  </span>
+              <div class="th-sort-wrapper" (click)="toggleColumnSort('totalSpent')" title="Sắp xếp theo Tổng chi tiêu (Nhỏ - Lớn / Lớn - Nhỏ)">
+                <span>Tổng chi tiêu</span>
+                <span class="sort-arrows-inline">
+                  <svg *ngIf="sortColumn !== 'totalSpent' || sortDirection === 'asc'" 
+                       class="sort-triangle up" 
+                       [class.active]="sortColumn === 'totalSpent' && sortDirection === 'asc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 5L4 19h16z"/>
+                  </svg>
+                  <svg *ngIf="sortColumn !== 'totalSpent' || sortDirection === 'desc'" 
+                       class="sort-triangle down" 
+                       [class.active]="sortColumn === 'totalSpent' && sortDirection === 'desc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 19L4 5h16z"/>
+                  </svg>
                 </span>
-                <button 
-                  type="button" 
-                  class="th-icon-btn" 
-                  [class.active]="sortColumn === 'totalSpent'"
-                  (click)="toggleColumnMenu('totalSpent', $event)"
-                  title="Tùy chọn sắp xếp tổng chi tiêu"
-                >
-                  <lucide-angular [img]="icons.ArrowUpDown" size="13"></lucide-angular>
-                </button>
-
-                <div *ngIf="openColumnMenu === 'totalSpent'" class="th-sort-dropdown" (click)="$event.stopPropagation()">
-                  <div 
-                    class="th-sort-item" 
-                    [class.selected]="sortColumn === 'totalSpent' && sortDirection === 'desc'"
-                    (click)="setColumnSort('totalSpent', 'desc')"
-                  >
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <lucide-angular [img]="icons.ArrowDown" size="13" class="item-icon"></lucide-angular>
-                      <span>Giảm dần (Cao đến thấp)</span>
-                    </div>
-                    <lucide-angular *ngIf="sortColumn === 'totalSpent' && sortDirection === 'desc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
-                  </div>
-                  <div 
-                    class="th-sort-item" 
-                    [class.selected]="sortColumn === 'totalSpent' && sortDirection === 'asc'"
-                    (click)="setColumnSort('totalSpent', 'asc')"
-                  >
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <lucide-angular [img]="icons.ArrowUp" size="13" class="item-icon"></lucide-angular>
-                      <span>Tăng dần (Thấp đến cao)</span>
-                    </div>
-                    <lucide-angular *ngIf="sortColumn === 'totalSpent' && sortDirection === 'asc'" [img]="icons.Check" size="13" class="check-icon"></lucide-angular>
-                  </div>
-                </div>
               </div>
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Mua gần đây</th>

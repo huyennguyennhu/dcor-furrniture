@@ -117,6 +117,8 @@ export class InventoryTransactionsComponent implements OnInit {
   isLoading = true;
   data: StockOrder[] = [];
   selectedIds = new Set<string>();
+  sortColumn: string = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   // Pagination (10 dòng / trang)
   currentPage = 1;
@@ -449,7 +451,7 @@ export class InventoryTransactionsComponent implements OnInit {
 
   // Filtered dataset
   get filteredOrders(): StockOrder[] {
-    return this.data.filter(order => {
+    const result = this.data.filter(order => {
       // Type match
       if (this.typeFilter !== 'all' && order.type !== this.typeFilter) {
         return false;
@@ -494,9 +496,42 @@ export class InventoryTransactionsComponent implements OnInit {
       }
       return true;
     });
+
+    if (!this.sortColumn) return result;
+    return result.sort((a, b) => {
+      let diff = 0;
+      if (this.sortColumn === 'code') {
+        diff = a.id.localeCompare(b.id, 'vi');
+      } else if (this.sortColumn === 'type') {
+        diff = (a.typeLabel || a.type).localeCompare(b.typeLabel || b.type, 'vi');
+      } else if (this.sortColumn === 'date') {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        diff = timeA - timeB;
+      } else if (this.sortColumn === 'reason') {
+        diff = (a.reason || '').localeCompare(b.reason || '', 'vi');
+      } else if (this.sortColumn === 'quantity') {
+        diff = (a.totalQuantity || 0) - (b.totalQuantity || 0);
+      } else if (this.sortColumn === 'totalValue') {
+        diff = (a.totalAmount || 0) - (b.totalAmount || 0);
+      } else if (this.sortColumn === 'status') {
+        diff = (a.status || '').localeCompare(b.status || '', 'vi');
+      }
+      return this.sortDirection === 'asc' ? diff : -diff;
+    });
   }
 
-  // Pagination Getters & Handlers (10 dòng/trang)
+  toggleColumnSort(column: string): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    this.currentPage = 1;
+    this.cdr.markForCheck();
+  }
+
   get totalPages(): number {
     return Math.ceil(this.filteredOrders.length / this.pageSize) || 1;
   }

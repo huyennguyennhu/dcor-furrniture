@@ -814,3 +814,52 @@ body.admin-body {
   }
 
 }
+
+/* =========================================================
+   GLOBAL TABLE HEADER SORT CONTROLS
+   ========================================================= */
+.th-sort-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.th-sort-wrapper:hover {
+  color: #B85B35;
+}
+
+.sort-arrows-inline {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  vertical-align: middle;
+  min-height: 18px;
+  line-height: 1;
+}
+
+.sort-triangle {
+  width: 7.5px;
+  height: 7.5px;
+  color: #B2A59B;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  display: block;
+}
+
+.th-sort-wrapper:hover .sort-triangle:not(.active) {
+  color: #765337;
+  opacity: 0.9;
+}
+
+.sort-triangle.active {
+  color: #B85B35;
+  fill: #B85B35;
+  width: 8px;
+  height: 8px;
+}

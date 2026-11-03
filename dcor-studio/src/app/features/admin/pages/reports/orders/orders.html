@@ -1,315 +1,434 @@
 <div class="reports-container">
       
-  <!-- Page Header & Toolbar -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+  <!-- 1. Header -->
+  <div class="overview-header-row">
     <div>
-      <h1 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Báo cáo đơn hàng</h1>
-      <p style="color: var(--text-secondary); font-size: 14px;">Theo dõi tình trạng đơn hàng và hiệu suất giao nhận.</p>
+      <h1 class="overview-page-title">Báo cáo đơn hàng</h1>
+      <p class="overview-page-subtitle">Kiểm soát điểm nghẽn xử lý đơn, tỷ lệ giao đúng hạn đủ hàng (OTIF) và hiệu suất vận chuyển toàn chuỗi.</p>
     </div>
     
-    <button class="admin-btn admin-btn-primary" style="display: flex; align-items: center; gap: 8px;">
-      <lucide-angular [img]="icons.Download" size="16"></lucide-angular> Xuất báo cáo
-    </button>
+    <div class="header-action-group">
+      <button 
+        type="button" 
+        (click)="exportReport()" 
+        class="admin-btn admin-btn-primary export-btn"
+      >
+        <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
+        <span>Xuất báo cáo</span>
+      </button>
+    </div>
   </div>
     
-  <!-- Filter Bar -->
-  <div #filterRef style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow);">
+  <!-- 2. Filter Toolbar (Bộ lọc chuẩn phong cách DCOR) -->
+  <div #filterRef class="overview-toolbar-box">
     
-    <!-- 1. Thời gian -->
-    <div style="display: flex; align-items: center;">
-      <div style="position: relative; min-width: 160px;">
-        <button 
-          type="button"
-          (click)="toggleDropdown('time', $event)" 
-          class="orders-filter-btn"
-          [class.active]="showTimeDropdown"
-          [style.border-radius]="timeRange === 'custom' ? '8px 0 0 8px' : '8px'"
-          [style.border-right]="timeRange === 'custom' ? 'none' : '1px solid var(--border-color)'"
-        >
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <lucide-angular [img]="icons.Calendar" size="14" color="var(--text-muted)"></lucide-angular>
-            <span>{{ TIME_LABELS[timeRange] }}</span>
-          </div>
-          <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showTimeDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
-        </button>
-        
-        <div *ngIf="showTimeDropdown" class="orders-dropdown-menu">
-          <div *ngFor="let key of timeLabelKeys" 
-               (click)="setDropdownValue('time', key)" 
-               class="orders-dropdown-item"
-               [class.selected]="timeRange === key"
-          >
-            {{ TIME_LABELS[key] }}
-          </div>
-        </div>
-      </div>
-      
-      <div *ngIf="timeRange === 'custom'" style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0 8px 8px 0; height: 41px; box-sizing: border-box;">
-        <input type="date" [(ngModel)]="startDate" (change)="loadOrdersData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
-        <span style="font-size: 13px; color: var(--text-muted);">-</span>
-        <input type="date" [(ngModel)]="endDate" (change)="loadOrdersData()" style="border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-primary);" />
-      </div>
-    </div>
-    
-    <!-- 2. Trạng thái -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
+    <!-- (B) Dropdown Showroom & Kênh Bán Hàng -->
+    <div class="filter-dropdown-wrapper">
       <button 
-        type="button"
-        (click)="toggleDropdown('status', $event)" 
-        class="orders-filter-btn"
-        [class.active]="showStatusDropdown"
+        type="button" 
+        title="Chọn showroom / chi nhánh" 
+        class="filter-trigger-btn" 
+        [class.active]="showroom !== 'all'"
+        (click)="toggleDropdown('showroom', $event)"
       >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.Activity" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ status }}</span>
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.MapPin" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ SHOWROOM_LABELS[showroom] || 'Tất cả Showroom & Kênh' }}</span>
         </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showStatusDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showShowroomDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
       </button>
-      
-      <div *ngIf="showStatusDropdown" class="orders-dropdown-menu">
-        <div *ngFor="let opt of statuses" 
-             (click)="setDropdownValue('status', opt)" 
-             class="orders-dropdown-item"
-             [class.selected]="status === opt"
-        >
-          {{ opt }}
+      <div *ngIf="showShowroomDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let key of showroomKeys" 
+             (click)="setDropdownValue('showroom', key)" 
+             class="filter-menu-item" 
+             [class.selected]="showroom === key">
+          <span>{{ SHOWROOM_LABELS[key] }}</span>
+          <lucide-angular *ngIf="showroom === key" [img]="icons.Check" size="14"></lucide-angular>
         </div>
       </div>
     </div>
 
-    <!-- 3. Thanh toán -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
+    <!-- (C) Dropdown Thời gian -->
+    <div class="filter-dropdown-wrapper">
       <button 
-        type="button"
-        (click)="toggleDropdown('payment', $event)" 
-        class="orders-filter-btn"
-        [class.active]="showPaymentDropdown"
+        type="button" 
+        title="Chọn khoảng thời gian" 
+        class="filter-trigger-btn" 
+        [class.active]="timeRange !== '7_days'"
+        (click)="toggleDropdown('time', $event)"
       >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.CreditCard" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ payment }}</span>
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ TIME_LABELS[timeRange] || '7 ngày qua' }}</span>
         </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showPaymentDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showTimeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
       </button>
-      
-      <div *ngIf="showPaymentDropdown" class="orders-dropdown-menu">
-        <div *ngFor="let opt of payments" 
-             (click)="setDropdownValue('payment', opt)" 
-             class="orders-dropdown-item"
-             [class.selected]="payment === opt"
-        >
-          {{ opt }}
+      <div *ngIf="showTimeDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let key of timeLabelKeys" 
+             (click)="setDropdownValue('time', key)" 
+             class="filter-menu-item" 
+             [class.selected]="timeRange === key">
+          <span>{{ TIME_LABELS[key] }}</span>
+          <lucide-angular *ngIf="timeRange === key" [img]="icons.Check" size="14"></lucide-angular>
         </div>
       </div>
     </div>
 
-    <!-- 4. Vận chuyển -->
-    <div style="position: relative; flex: 1; min-width: 160px;">
+    <!-- Custom Date Range Inputs nếu chọn 'custom' -->
+    <div *ngIf="timeRange === 'custom'" class="custom-date-inputs">
+      <input type="date" [(ngModel)]="startDate" (change)="loadOrdersData()" />
+      <span class="date-sep">-</span>
+      <input type="date" [(ngModel)]="endDate" (change)="loadOrdersData()" />
+    </div>
+
+    <!-- (D) Dropdown Trạng thái đơn -->
+    <div class="filter-dropdown-wrapper">
       <button 
-        type="button"
-        (click)="toggleDropdown('shipping', $event)" 
-        class="orders-filter-btn"
-        [class.active]="showShippingDropdown"
+        type="button" 
+        title="Chọn trạng thái đơn hàng" 
+        class="filter-trigger-btn" 
+        [class.active]="status !== 'Tất cả trạng thái'"
+        (click)="toggleDropdown('status', $event)"
       >
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <lucide-angular [img]="icons.Truck" size="14" color="var(--text-muted)"></lucide-angular>
-          <span>{{ shipping }}</span>
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Package" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ status }}</span>
         </div>
-        <lucide-angular [img]="icons.ChevronDown" size="14" color="var(--text-muted)" [ngStyle]="{'transform': showShippingDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showStatusDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
       </button>
-      
-      <div *ngIf="showShippingDropdown" class="orders-dropdown-menu">
-        <div *ngFor="let opt of shippings" 
-             (click)="setDropdownValue('shipping', opt)" 
-             class="orders-dropdown-item"
-             [class.selected]="shipping === opt"
-        >
-          {{ opt }}
+      <div *ngIf="showStatusDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let st of statuses" 
+             (click)="setDropdownValue('status', st)" 
+             class="filter-menu-item" 
+             [class.selected]="status === st">
+          <span>{{ st }}</span>
+          <lucide-angular *ngIf="status === st" [img]="icons.Check" size="14"></lucide-angular>
         </div>
       </div>
     </div>
+
+    <!-- (E) Dropdown Đơn vị vận chuyển -->
+    <div class="filter-dropdown-wrapper">
+      <button 
+        type="button" 
+        title="Chọn đơn vị vận chuyển" 
+        class="filter-trigger-btn" 
+        [class.active]="carrier !== 'Tất cả đơn vị'"
+        (click)="toggleDropdown('carrier', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Truck" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ carrier }}</span>
+        </div>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showCarrierDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showCarrierDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let c of carriers" 
+             (click)="setDropdownValue('carrier', c)" 
+             class="filter-menu-item" 
+             [class.selected]="carrier === c">
+          <span>{{ c }}</span>
+          <lucide-angular *ngIf="carrier === c" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
+    </div>
+
+    <!-- (F) Dropdown Loại đơn hàng -->
+    <div class="filter-dropdown-wrapper">
+      <button 
+        type="button" 
+        title="Chọn loại đơn hàng" 
+        class="filter-trigger-btn" 
+        [class.active]="orderType !== 'Tất cả loại đơn'"
+        (click)="toggleDropdown('orderType', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ orderType }}</span>
+        </div>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showOrderTypeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showOrderTypeDropdown" class="filter-menu-dropdown" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let ot of orderTypes" 
+             (click)="setDropdownValue('orderType', ot)" 
+             class="filter-menu-item" 
+             [class.selected]="orderType === ot">
+          <span>{{ ot }}</span>
+          <lucide-angular *ngIf="orderType === ot" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Loading State (Animated Spinner) -->
-  <div *ngIf="isLoading" class="loading-state-container">
+  <div *ngIf="isLoading" class="loading-state-box">
     <div class="spinning-loader"></div>
-    <p class="loading-text">Đang tải dữ liệu đơn hàng...</p>
+    <p>Đang tổng hợp dữ liệu báo cáo ...</p>
   </div>
 
   <ng-container *ngIf="!isLoading">
-    <!-- KPI Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
     
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tổng đơn hàng</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.totalOrders }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        <span style="color: #2ecc71; font-weight: 600;">Toàn bộ kỳ</span>
+    <!-- 3. KHỐI 5 THẺ KPI VẬN HÀNH (OPERATIONAL KPIS) -->
+    <div class="operational-kpi-grid">
+      
+      <!-- KPI 1: Tổng đơn tiếp nhận -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Tổng đơn tiếp nhận</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value">{{ kpi.totalOrders }} <span class="kpi-unit">đơn</span></div>
+          <div class="kpi-badge" [class.positive]="kpi.ordersGrowth >= 0" [class.negative]="kpi.ordersGrowth < 0">
+            <lucide-angular *ngIf="kpi.ordersGrowth >= 0" [img]="icons.TrendingUp" size="12"></lucide-angular>
+            <lucide-angular *ngIf="kpi.ordersGrowth < 0" [img]="icons.TrendingDown" size="12"></lucide-angular>
+            <span>{{ kpi.ordersGrowth >= 0 ? '+' : '' }}{{ kpi.ordersGrowth }}%</span>
+          </div>
+        </div>
       </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Hoàn thành</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.completedOrders }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        {{ kpi.completedRate }}% tổng đơn
+      
+      <!-- KPI 2: Tỷ lệ hoàn tất OTIF -->
+      <div class="report-card kpi-card primary-highlight">
+        <div class="kpi-header">
+          <span class="kpi-label highlight">Tỷ lệ hoàn tất OTIF</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-accent">{{ kpi.otifRate }}%</div>
+        </div>
       </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Đang xử lý</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.processingOrders }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Đang giao & xử lý
+      
+      <!-- KPI 3: Thời gian xử lý trung bình -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Thời gian xử lý TB</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-blue">{{ kpi.avgLeadTimeHours }} <span class="kpi-unit">giờ</span></div>
+        </div>
       </div>
+      
+      <!-- KPI 4: Tỷ lệ hủy đơn -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Tỷ lệ hủy đơn</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value text-amber">{{ kpi.cancelRate }}%</div>
+          <div class="kpi-badge negative">
+            <lucide-angular [img]="icons.AlertTriangle" size="12"></lucide-angular>
+            <span>{{ kpi.cancelledOrders }} đơn</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- KPI 5: Đổi trả & Giao lại -->
+      <div class="report-card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Đổi trả & Giao lại</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" [class.text-danger]="kpi.returnsAndWarranty > 0">{{ kpi.returnsAndWarranty }} <span class="kpi-unit">ca</span></div>
+        </div>
+      </div>
+
     </div>
 
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Đã hủy</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.cancelledOrders }}</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Đơn hủy
+    <!-- 4. TIẾN TRÌNH VÒNG ĐỜI ĐƠN HÀNG (ORDER LIFECYCLE FUNNEL) -->
+    <div class="report-card lifecycle-card">
+      <div class="card-header-flex">
+        <div>
+          <h3 class="card-title">Thác nước trạng thái vòng đời đơn hàng</h3>
+          <p class="card-subtitle">Giám sát tốc độ luân chuyển đơn và định vị điểm nghẽn trong quy trình xử lý</p>
+        </div>
       </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Tỷ lệ hủy</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.cancelRate }}%</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Theo tổng đơn
-      </div>
-    </div>
-    
-    <div class="report-card kpi-card">
-      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">TG Xử lý TB</div>
-      <div style="font-size: 24px; font-weight: 700; margin: 8px 0; color: var(--text-primary);">{{ kpi.avgProcessingHours }} giờ</div>
-      <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-        Từ lúc đặt đến lúc giao
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Charts Row 1 -->
-  <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
-    <div class="report-card" style="overflow: visible;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0;">Đơn hàng theo thời gian</h3>
-        
-        <!-- (1) Dropdown Chu kỳ thời gian -->
-        <div class="filter-dropdown-wrapper interval-filter-wrapper" style="min-width: 125px;">
-          <button 
-            type="button" 
-            title="Chọn chu kỳ hiển thị" 
-            class="filter-trigger-btn" 
-            style="padding: 6px 12px; font-size: 12px;"
-            (click)="toggleDropdown('interval', $event)"
-          >
-            <div class="trigger-label">
-              <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
-              <span class="truncate-label">Theo {{ interval | lowercase }}</span>
+      
+      <div class="lifecycle-steps-grid">
+        <div *ngFor="let step of lifecycle; let i = index; let last = last" class="lifecycle-step-item">
+          <a [routerLink]="['/admin/orders']" 
+             [queryParams]="{ tab: getTabForLifecycle(step.name) }" 
+             class="step-card step-card-link" 
+             [style.border-top-color]="step.color"
+             [title]="'Xem danh sách đơn ' + step.name">
+            <div class="step-header">
+              <span class="step-badge" [style.background-color]="step.color + '22'" [style.color]="step.color">
+                Bước {{ i + 1 }}
+              </span>
+              <span class="step-percent">{{ step.percent }}%</span>
             </div>
-            <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
-          </button>
-          <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 125px;">
-            <div *ngFor="let opt of intervals" 
-                 (click)="setDropdownValue('interval', opt)" 
-                 class="filter-menu-item" 
-                 [class.selected]="interval === opt">
-              <span>{{ opt }}</span>
-              <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
+            <div class="step-name">{{ step.name }}</div>
+            <div class="step-count">{{ step.count }} <span class="unit">đơn</span></div>
+          </a>
+          <div *ngIf="!last" class="step-arrow">
+            <lucide-angular [img]="icons.ArrowRight" size="18" color="#8c7d70"></lucide-angular>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. BIỂU ĐỒ CỘT NHÓM: ĐƠN MỚI PHÁT SINH VS ĐƠN HOÀN TẤT THEO THỜI GIAN -->
+    <div class="chart-row-single">
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Đơn mới tạo vs Đơn hoàn tất giao thành công</h3>
+            <p class="card-subtitle">Đối chiếu năng lực xử lý giao hàng của kho vận so với tốc độ bán hàng</p>
+          </div>
+          
+          <!-- Dropdown Chu kỳ thời gian (Local Loading) -->
+          <div class="filter-dropdown-wrapper interval-filter-wrapper">
+            <button 
+              type="button" 
+              title="Chọn chu kỳ hiển thị" 
+              class="filter-trigger-btn small-btn" 
+              (click)="toggleDropdown('interval', $event)"
+            >
+              <div class="trigger-label">
+                <lucide-angular [img]="icons.Clock" size="13" class="trigger-icon"></lucide-angular>
+                <span class="truncate-label">Theo {{ interval | lowercase }}</span>
+              </div>
+              <app-icon name="ChevronDown" size="13" [style.transform]="showIntervalDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+            </button>
+            <div *ngIf="showIntervalDropdown" class="filter-menu-dropdown" style="right: 0; left: auto; min-width: 130px;" (mousedown)="$event.stopPropagation()">
+              <div *ngFor="let opt of intervals" 
+                   (click)="setDropdownValue('interval', opt)" 
+                   class="filter-menu-item" 
+                   [class.selected]="interval === opt">
+                <span>{{ opt }}</span>
+                <lucide-angular *ngIf="interval === opt" [img]="icons.Check" size="13"></lucide-angular>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="chart-container-wrapper combo-chart-height">
+          <!-- Spinner mờ chỉ chạy trên biểu đồ khi đổi chu kỳ -->
+          <div *ngIf="isChartLoading" class="chart-local-loading">
+            <div class="spinning-loader-small"></div>
+          </div>
+          <canvas baseChart [data]="groupedBarChartData" [options]="groupedBarChartOptions" [plugins]="groupedBarChartPlugins" [type]="'bar'"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. HÀNG BIỂU ĐỒ 2: NGUYÊN NHÂN HỦY ĐƠN & HIỆU SUẤT VẬN CHUYỂN -->
+    <div class="chart-grid-2">
+      
+      <!-- Chart A: Nguyên nhân hủy đơn -->
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Cơ cấu nguyên nhân hủy đơn</h3>
+            <p class="card-subtitle">Thống kê cơ sở hủy đơn giúp tối ưu khâu tư vấn và sản xuất</p>
+          </div>
+        </div>
+        
+        <div class="chart-container-wrapper doughnut-container">
+          <canvas baseChart [data]="cancelChartData" [options]="cancelChartOptions" [type]="'doughnut'"></canvas>
+        </div>
+
+        <!-- Legend breakdown -->
+        <div class="status-legend-list">
+          <div class="legend-item" *ngFor="let r of cancellationReasons">
+            <div class="legend-indicator" [style.background-color]="r.color"></div>
+            <span class="legend-name">{{ r.reason }}</span>
+            <span class="legend-val">{{ r.count }} đơn ({{ r.percent }}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart B: Hiệu suất đơn vị vận chuyển -->
+      <div class="report-card chart-card">
+        <div class="card-header-flex">
+          <div>
+            <h3 class="card-title">Hiệu suất đơn vị vận chuyển</h3>
+            <p class="card-subtitle">So sánh sản lượng đơn và mức độ đảm bảo giao đúng hạn giữa các hãng</p>
+          </div>
+        </div>
+        
+        <div class="chart-container-wrapper">
+          <canvas baseChart [data]="carrierChartData" [options]="carrierChartOptions" [type]="'bar'"></canvas>
+        </div>
+
+        <!-- Performance Summary Pills -->
+        <div class="carrier-summary-list">
+          <div class="carrier-summary-item" *ngFor="let c of carrierPerformance">
+            <div class="carrier-info">
+              <span class="carrier-dot" [style.background-color]="c.color"></span>
+              <span class="carrier-title">{{ c.name }}</span>
+            </div>
+            <div class="carrier-stats">
+              <span class="carrier-orders-badge">{{ c.orders }} đơn</span>
+              <span class="carrier-otif-badge">OTIF: {{ c.onTimeRate }}%</span>
             </div>
           </div>
         </div>
       </div>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
-      </div>
-    </div>
-  </div>
 
-  <!-- Main Charts Row 2 -->
-  <div class="chart-grid-1">
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Trạng thái đơn hàng</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="pieChartData" [options]="pieChartOptions" [type]="'pie'"></canvas>
-      </div>
     </div>
 
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Phương thức thanh toán</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="paymentChartData" [options]="paymentChartOptions" [type]="'bar'"></canvas>
+    <!-- 7. BẢNG DANH SÁCH VẬN HÀNH ĐƠN HÀNG GẦN ĐÂY (HÀNG RIÊNG 100% CHIỀU RỘNG) -->
+    <div class="report-card table-card">
+      <div class="card-header-flex">
+        <div>
+          <h3 class="card-title">Danh sách điều phối đơn hàng gần đây</h3>
+          <p class="card-subtitle">Theo dõi trạng thái xuất xưởng, lộ trình xe giao và giá trị đơn hàng</p>
+        </div>
+        <a routerLink="/admin/orders" [queryParams]="getOrderManagementQueryParams()" class="view-all-link" title="Xem chi tiết danh sách đơn hàng theo bộ lọc">
+          <span>Chi tiết đơn hàng</span>
+          <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+        </a>
       </div>
-    </div>
-  </div>
-
-  <!-- Main Charts Row 3 -->
-  <div class="chart-grid-1">
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Đơn vị vận chuyển</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="shippingChartData" [options]="shippingChartOptions" [type]="'bar'"></canvas>
-      </div>
-    </div>
-
-    <div class="report-card">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Tỉnh thành giao hàng</h3>
-      <div style="width: 100%; height: 300px; position: relative;">
-        <canvas baseChart [data]="locationChartData" [options]="locationChartOptions" [type]="'bar'"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Top Orders Table -->
-  <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
-    <div class="report-card" style="display: flex; flex-direction: column;">
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); margin-top: 0;">Top đơn hàng giá trị cao</h3>
-      <div style="flex: 1; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); box-shadow: var(--card-shadow);">
-        <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 13px; text-align: left;">
+      
+      <div class="table-responsive">
+        <table class="report-data-table">
           <thead>
-            <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-top-left-radius: 11px;">Mã ĐH</th>
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Khách hàng</th>
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; width: 90px;">Số SP</th>
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: right;">Tổng tiền</th>
-              <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-top-right-radius: 11px; text-align: center; width: 130px;">Trạng thái</th>
+            <tr>
+              <th>Mã đơn</th>
+              <th>Khách hàng</th>
+              <th>Kênh / Showroom</th>
+              <th>Đơn vị vận chuyển</th>
+              <th>Trạng thái vận hành</th>
+              <th style="text-align: right;">Tổng giá trị</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let order of topOrders" style="border-bottom: 1px solid var(--border-color); cursor: default; transition: background 0.15s ease;"
-                onmouseover="this.style.background='#F3E5D3'" 
-                onmouseout="this.style.background='transparent'">
-              <td style="padding: 16px; color: var(--accent); font-weight: 600; font-family: monospace; font-size: 13px;">{{ order.id }}</td>
-              <td style="padding: 16px; color: var(--text-primary);">
-                <div style="font-weight: 600; font-size: 13.5px;">{{ order.customer }}</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ order.date }}</div>
+            <tr *ngFor="let o of ordersList">
+              <td>
+                <a [routerLink]="['/admin/orders', o.id]" class="order-code-link" [title]="'Xem chi tiết đơn hàng ' + o.orderCode">
+                  {{ o.orderCode }}
+                </a>
+                <div class="item-secondary-info">{{ o.createdAt }}</div>
               </td>
-              <td style="padding: 16px; color: var(--text-primary); text-align: center; font-weight: 600;">{{ order.items }}</td>
-              <td style="padding: 16px; color: var(--accent); font-weight: 600; text-align: right; font-size: 13.5px;">{{ order.total }}</td>
-              <td style="padding: 16px; text-align: center;">
-                <span [ngStyle]="{
-                  'padding': '4px 10px', 
-                  'border-radius': '6px', 
-                  'font-size': '12px', 
-                  'font-weight': '600',
-                  'display': 'inline-block',
-                  'background-color': order.status === 'Hoàn thành' ? 'rgba(16, 185, 129, 0.12)' : 
-                                   order.status === 'Đang xử lý' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                  'color': order.status === 'Hoàn thành' ? '#059669' : 
-                         order.status === 'Đang xử lý' ? '#2563eb' : '#dc2626',
-                  'border': order.status === 'Hoàn thành' ? '1px solid rgba(16, 185, 129, 0.2)' : 
-                         order.status === 'Đang xử lý' ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
-                }">
-                  {{ order.status }}
+              <td>
+                <a [routerLink]="o.customerId ? ['/admin/customers', o.customerId] : ['/admin/customers']" 
+                   [queryParams]="o.customerId ? null : { q: o.phone || o.customerName }" 
+                   class="item-primary-name customer-link" 
+                   [title]="'Xem chi tiết khách hàng ' + o.customerName">
+                  {{ o.customerName }}
+                </a>
+                <div class="item-secondary-info">{{ o.phone }}</div>
+              </td>
+              <td>
+                <span class="showroom-tag">{{ o.showroom }}</span>
+              </td>
+              <td>
+                <span class="carrier-pill">{{ o.shippingProvider }}</span>
+              </td>
+              <td>
+                <span class="order-status-badge" [attr.data-status]="o.status">
+                  {{ o.statusText }}
                 </span>
+                <span *ngIf="o.isCustomDesign" class="custom-design-badge">May đo</span>
+              </td>
+              <td style="text-align: right;">
+                <div class="order-amount-text">{{ formatCurrency(o.totalAmount) }}</div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
+
   </ng-container>
 
 </div>

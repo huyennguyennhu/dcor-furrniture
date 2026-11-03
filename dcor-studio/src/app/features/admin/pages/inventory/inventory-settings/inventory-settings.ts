@@ -134,6 +134,8 @@ export class InventorySettingsComponent implements OnInit {
   whCurrentPage = 1;
   reasonCurrentPage = 1;
   vatCurrentPage = 1;
+  whSortColumn: string = '';
+  whSortDirection: 'asc' | 'desc' = 'asc';
 
   // Data
   warehouses: WarehouseItem[] = [];
@@ -569,16 +571,48 @@ export class InventorySettingsComponent implements OnInit {
     });
   }
 
+  toggleWhSort(column: string): void {
+    if (this.whSortColumn === column) {
+      this.whSortDirection = this.whSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.whSortColumn = column;
+      this.whSortDirection = 'asc';
+    }
+    this.whCurrentPage = 1;
+    this.cdr.markForCheck();
+  }
+
   getFilteredWarehouses(): WarehouseItem[] {
-    if (!this.searchTerm.trim()) return this.warehouses;
-    const term = this.searchTerm.toLowerCase().trim();
-    return this.warehouses.filter(w =>
-      w.name.toLowerCase().includes(term) ||
-      w.code.toLowerCase().includes(term) ||
-      (w.address && w.address.toLowerCase().includes(term)) ||
-      (w.managerName && w.managerName.toLowerCase().includes(term)) ||
-      (w.phone && w.phone.includes(term))
-    );
+    let list = this.warehouses;
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase().trim();
+      list = this.warehouses.filter(w =>
+        w.name.toLowerCase().includes(term) ||
+        w.code.toLowerCase().includes(term) ||
+        (w.address && w.address.toLowerCase().includes(term)) ||
+        (w.managerName && w.managerName.toLowerCase().includes(term)) ||
+        (w.phone && w.phone.includes(term))
+      );
+    }
+    if (!this.whSortColumn) return list;
+    return [...list].sort((a, b) => {
+      let diff = 0;
+      if (this.whSortColumn === 'code') {
+        diff = a.code.localeCompare(b.code, 'vi');
+      } else if (this.whSortColumn === 'name') {
+        diff = a.name.localeCompare(b.name, 'vi');
+      } else if (this.whSortColumn === 'type') {
+        diff = a.type.localeCompare(b.type, 'vi');
+      } else if (this.whSortColumn === 'address') {
+        diff = (a.address || '').localeCompare(b.address || '', 'vi');
+      } else if (this.whSortColumn === 'manager') {
+        diff = (a.managerName || '').localeCompare(b.managerName || '', 'vi');
+      } else if (this.whSortColumn === 'status') {
+        diff = (a.isActive ? 1 : 0) - (b.isActive ? 1 : 0);
+      }
+      return this.whSortDirection === 'asc' ? diff : -diff;
+    });
+
   }
 
   // Phân trang Kho (Tab 1)

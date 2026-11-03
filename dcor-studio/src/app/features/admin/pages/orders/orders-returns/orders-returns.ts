@@ -59,6 +59,18 @@ export class OrdersReturnsComponent implements OnInit {
   selectedReason = 'ALL';
   selectedAssignee = 'ALL';
   selectedSort = 'date-desc';
+  sortColumn: string = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
+
+  toggleColumnSort(column: string): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    this.currentPage = 1;
+  }
 
   // Dropdown open states
   showTypeDropdown = false;

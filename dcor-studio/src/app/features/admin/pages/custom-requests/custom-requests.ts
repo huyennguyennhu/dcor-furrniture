@@ -102,8 +102,20 @@ export class AdminCustomRequestsComponent implements OnInit {
     });
   }
 
+  sortColumn: string = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
+
+  toggleColumnSort(column: string): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+  }
+
   get filteredRequests(): CustomRequest[] {
-    return this.requests.filter(req => {
+    const list = this.requests.filter(req => {
       // Tab filter
       if (this.selectedTab !== 'ALL' && req.status !== this.selectedTab) {
         return false;
@@ -119,6 +131,31 @@ export class AdminCustomRequestsComponent implements OnInit {
         return matchCode || matchProduct || matchCustomer || matchPhone || matchColor;
       }
       return true;
+    });
+
+    if (!this.sortColumn) return list;
+    return list.sort((a, b) => {
+      let diff = 0;
+      if (this.sortColumn === 'code') {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        diff = timeA !== timeB ? timeA - timeB : a.code.localeCompare(b.code, 'vi');
+      } else if (this.sortColumn === 'customer') {
+        diff = a.customerName.localeCompare(b.customerName, 'vi');
+      } else if (this.sortColumn === 'product') {
+        diff = a.productName.localeCompare(b.productName, 'vi');
+      } else if (this.sortColumn === 'material') {
+        const matA = (a.material || '') + ' ' + (a.colorName || '');
+        const matB = (b.material || '') + ' ' + (b.colorName || '');
+        diff = matA.localeCompare(matB, 'vi');
+      } else if (this.sortColumn === 'price') {
+        const pA = a.quotedPrice || 0;
+        const pB = b.quotedPrice || 0;
+        diff = pA - pB;
+      } else if (this.sortColumn === 'status') {
+        diff = a.status.localeCompare(b.status, 'vi');
+      }
+      return this.sortDirection === 'asc' ? diff : -diff;
     });
   }
 

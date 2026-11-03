@@ -99,6 +99,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   };
 
   showColumnDropdown = false;
+  sortColumn: string = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   // Phân trang 10 sản phẩm / trang
   currentPage = 1;
@@ -287,12 +289,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
             this.totalItems = res.items.length;
             this.totalPages = Math.ceil(this.totalItems / this.pageSize) || 1;
           }
+          this.applyLocalSort();
           this.syncToStateService();
         } else {
           this.rawItems = [];
           this.data = [];
           this.totalItems = 0;
           this.totalPages = 1;
+          this.applyLocalSort();
           this.syncToStateService();
         }
         this.isLoading = false;
@@ -303,6 +307,42 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.cdr.markForCheck();
       }
+    });
+  }
+
+  toggleColumnSort(column: string): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    this.applyLocalSort();
+    this.cdr.markForCheck();
+  }
+
+  applyLocalSort(): void {
+    if (!this.sortColumn || !this.data || this.data.length === 0) return;
+    this.data = [...this.data].sort((a, b) => {
+      let diff = 0;
+      if (this.sortColumn === 'product') {
+        const nameA = this.getDisplayProductName(a) || '';
+        const nameB = this.getDisplayProductName(b) || '';
+        diff = nameA.localeCompare(nameB, 'vi', { sensitivity: 'base' });
+      } else if (this.sortColumn === 'physicalStock') {
+        diff = (a.physicalStock || 0) - (b.physicalStock || 0);
+      } else if (this.sortColumn === 'reservedStock') {
+        diff = (a.reservedStock || 0) - (b.reservedStock || 0);
+      } else if (this.sortColumn === 'availableStock') {
+        diff = (a.availableStock || 0) - (b.availableStock || 0);
+      } else if (this.sortColumn === 'threshold') {
+        const threshA = (a as any).lowStockThreshold != null ? (a as any).lowStockThreshold : ((a as any).threshold || 0);
+        const threshB = (b as any).lowStockThreshold != null ? (b as any).lowStockThreshold : ((b as any).threshold || 0);
+        diff = threshA - threshB;
+      } else if (this.sortColumn === 'status') {
+        diff = (a.status || '').localeCompare(b.status || '', 'vi');
+      }
+      return this.sortDirection === 'asc' ? diff : -diff;
     });
   }
 

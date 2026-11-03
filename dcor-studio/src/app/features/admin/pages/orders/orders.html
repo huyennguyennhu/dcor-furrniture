@@ -283,12 +283,60 @@
     <table class="v2-table">
       <thead>
         <tr>
-          <th style="width: 130px;">Mã đơn</th>
-          <th style="width: 150px;">Thời gian đặt</th>
-          <th style="width: 190px;">Khách hàng</th>
-          <th style="width: 180px;">Giá trị đơn</th>
-          <th style="width: 170px;">Thanh toán</th>
-          <th style="width: 170px;">Trạng thái</th>
+          <th style="width: 130px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('code')" title="Sắp xếp theo Mã đơn">
+              <span>Mã đơn</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'code' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'code' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'code' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'code' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 150px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('date')" title="Sắp xếp theo Thời gian đặt">
+              <span>Thời gian đặt</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'date' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'date' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'date' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'date' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 190px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('customer')" title="Sắp xếp theo Khách hàng">
+              <span>Khách hàng</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'customer' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'customer' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'customer' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'customer' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 180px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('total')" title="Sắp xếp theo Giá trị đơn">
+              <span>Giá trị đơn</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'total' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'total' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'total' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'total' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 170px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('payment')" title="Sắp xếp theo Thanh toán">
+              <span>Thanh toán</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'payment' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'payment' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'payment' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'payment' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
+          <th style="width: 170px;">
+            <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái">
+              <span>Trạng thái</span>
+              <span class="sort-arrows-inline">
+                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
+                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
+              </span>
+            </div>
+          </th>
         </tr>
       </thead>
       <tbody>
