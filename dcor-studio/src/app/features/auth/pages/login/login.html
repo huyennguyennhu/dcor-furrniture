@@ -85,9 +85,6 @@
                 autocomplete="tel"
                 [disabled]="isLocked"
               />
-              <button *ngIf="phone && !isLocked" type="button" class="input-clear-btn" (click)="clearPhone()" aria-label="Xóa">
-                <app-icon name="X" size="16"></app-icon>
-              </button>
             </div>
             <span *ngIf="shouldShowPhoneError" class="field-error-hint">
               Số điện thoại phải gồm 10 chữ số (đầu số 03, 05, 07, 08, 09)
@@ -115,15 +112,10 @@
                 autocomplete="current-password"
                 [disabled]="isLocked"
               />
-              <div class="input-actions-group">
-                <button type="button" class="input-action-btn" (click)="showPassword = !showPassword" aria-label="Hiện/ẩn mật khẩu">
-                  <app-icon name="EyeOff" size="18" *ngIf="showPassword"></app-icon>
-                  <app-icon name="Eye" size="18" *ngIf="!showPassword"></app-icon>
-                </button>
-                <button *ngIf="password && !isLocked" type="button" class="input-clear-btn" (click)="clearPassword()" aria-label="Xóa">
-                  <app-icon name="X" size="16"></app-icon>
-                </button>
-              </div>
+              <button type="button" class="input-action-btn" (click)="showPassword = !showPassword" aria-label="Hiện/ẩn mật khẩu">
+                <app-icon name="EyeOff" size="18" *ngIf="showPassword"></app-icon>
+                <app-icon name="Eye" size="18" *ngIf="!showPassword"></app-icon>
+              </button>
             </div>
             <span *ngIf="shouldShowPasswordEmptyError" class="field-error-hint">
               Vui lòng nhập mật khẩu
@@ -215,9 +207,6 @@
                 placeholder="VD: 0912345678" 
                 autocomplete="tel"
               />
-              <button *ngIf="forgotPhone" type="button" class="input-clear-btn" (click)="forgotPhone = ''" aria-label="Xóa">
-                <app-icon name="X" size="16"></app-icon>
-              </button>
             </div>
             <span *ngIf="forgotPhone && !isForgotPhoneValid" class="field-error-hint">
               Số điện thoại phải gồm 10 chữ số (đầu số 03, 05, 07, 08, 09)
@@ -274,16 +263,9 @@
               </button>
             </div>
 
-            <!-- Password Strength Indicator -->
-            <div *ngIf="newPassword" class="password-strength-box">
-              <div class="strength-bar-track">
-                <div class="strength-bar-fill" 
-                     [ngClass]="newPasswordStrength.barClass" 
-                     [style.width.%]="newPasswordStrength.percent"></div>
-              </div>
-              <div class="strength-info">
-                <span class="strength-text">Độ mạnh: <strong [ngClass]="newPasswordStrength.textClass">{{ newPasswordStrength.label }}</strong></span>
-              </div>
+            <!-- Password Hint Line -->
+            <div *ngIf="newPassword" class="password-hint" [ngClass]="isNewPasswordFormatValid ? 'is-valid' : 'is-invalid'">
+              Tối thiểu 8 ký tự, gồm chữ và số
             </div>
           </div>
 

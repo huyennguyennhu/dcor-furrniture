@@ -22,15 +22,18 @@
 .required-star{color:var(--color-danger,#c42326)}
 .input-wrapper{position:relative;display:flex;align-items:center}
 .auth-input{width:100%;height:46px;border-radius:var(--radius-control,8px);padding:10px 14px;font-size:14px;border:1px solid var(--color-border,#e0e0e0);background:var(--color-surface,#fff);color:var(--color-text,#0a0a0a);outline:none;transition:border-color .2s,box-shadow .2s}
+.auth-input::-ms-clear,
+.auth-input::-ms-reveal{display:none;width:0;height:0}
+.auth-input::-webkit-search-cancel-button,
+.auth-input::-webkit-search-decoration{display:none;-webkit-appearance:none}
 .auth-input:focus{border-color:var(--color-focus,#bc5f13);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-focus,#bc5f13) 15%,transparent)}
-.input-clear-btn,.input-action-btn{position:absolute;right:10px;background:none;border:none;color:var(--color-text-muted,#757575);cursor:pointer;display:flex;align-items:center;padding:4px}
-.input-clear-btn:hover,.input-action-btn:hover{color:var(--color-text,#0a0a0a)}
+.input-action-btn{position:absolute;right:10px;background:none;border:none;color:var(--color-text-muted,#757575);cursor:pointer;display:flex;align-items:center;padding:4px}
+.input-action-btn:hover{color:var(--color-text,#0a0a0a)}
 .field-error-hint{font-size:12px;color:var(--color-danger,#c42326)}
 .field-success-hint{font-size:12px;color:var(--color-success,#00a30b);display:flex;align-items:center;gap:4px}
-.password-strength-box{margin-top:6px;display:flex;flex-direction:column;gap:4px}
-.strength-bar-track{width:100%;height:4px;background:var(--color-surface-muted,#ededed);border-radius:999px;overflow:hidden}
-.strength-bar-fill{height:100%;border-radius:999px;transition:width .3s ease}
-.strength-info{font-size:12px;color:var(--color-text-secondary,#616161)}
+.password-hint{margin-top:6px;font-size:12px;line-height:1.4;transition:color .2s}
+.password-hint.is-valid{color:var(--color-success,#00a30b)}
+.password-hint.is-invalid{color:var(--color-danger,#c42326)}
 .custom-checkbox-label{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--color-text-secondary,#616161);cursor:pointer}
 .custom-checkbox{width:16px;height:16px;margin-top:2px;accent-color:var(--color-primary,#765337);flex-shrink:0}
 .terms-link{color:var(--color-primary,#765337);font-weight:500;text-decoration:underline}

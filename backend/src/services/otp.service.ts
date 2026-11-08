@@ -50,6 +50,8 @@ export const generateOtp = (): string => {
 };
 
 export class OtpService {
+  private static hasLoggedDevOtpWarning = false;
+
   /**
    * Xử lý gửi OTP cho số điện thoại theo mục đích REGISTER hoặc RESET_PASSWORD
    */
@@ -73,6 +75,14 @@ export class OtpService {
         status: 400,
         message: 'Số điện thoại đã được đăng ký.'
       };
+    }
+
+    const exposeDevOtp = process.env.EXPOSE_DEV_OTP === 'true';
+
+    // Cảnh báo ở môi trường dev nếu chưa bật EXPOSE_DEV_OTP (chỉ log đúng 1 lần ở lần gửi OTP đầu tiên)
+    if (!exposeDevOtp && process.env.NODE_ENV !== 'production' && !OtpService.hasLoggedDevOtpWarning) {
+      OtpService.hasLoggedDevOtpWarning = true;
+      console.warn('[OTP Warning] EXPOSE_DEV_OTP chưa được bật ("true"). Phản hồi API sẽ không trả devOtp và giao diện sẽ không hiển thị mã OTP demo.');
     }
 
     // Nếu RESET_PASSWORD mà tài khoản không tồn tại, trả 200 chung chung để tránh lộ thông tin
@@ -118,13 +128,8 @@ export class OtpService {
       }
     });
 
-    const exposeDevOtp = process.env.EXPOSE_DEV_OTP === 'true';
-
     // Chỉ log OTP ra console khi process.env.EXPOSE_DEV_OTP === 'true'
     if (exposeDevOtp) {
-      if (process.env.NODE_ENV === 'production') {
-        console.log(`[SMS Dev - ${phone}] Mã OTP xác thực DCor của bạn là: ${otp}. Mã có hiệu lực trong 90 giây.`);
-      }
       await smsService.sendOtp(phone, otp);
     } else if (process.env.SMS_PROVIDER && process.env.SMS_PROVIDER.toUpperCase() !== 'CONSOLE') {
       await smsService.sendOtp(phone, otp);

@@ -8,14 +8,6 @@ import { SocialAuthService, GoogleSigninButtonModule } from '@abacritt/angularx-
 import { Subscription, finalize } from 'rxjs';
 import { AuthService, formatAuthError } from '../../../../core/services/auth.service';
 
-export interface PasswordStrength {
-  score: number; // 0, 1, 2, 3
-  label: string; // '', 'Yếu', 'Trung bình', 'Mạnh'
-  percent: number; // 0, 33, 66, 100
-  barClass: string;
-  textClass: string;
-}
-
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -129,47 +121,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
 
   get isConfirmPasswordValid(): boolean {
     return this.confirmPassword.length > 0 && this.confirmPassword === this.password;
-  }
-
-  get passwordStrength(): PasswordStrength {
-    if (!this.password) {
-      return { score: 0, label: '', percent: 0, barClass: '', textClass: '' };
-    }
-
-    const hasLetter = /[a-zA-Z]/.test(this.password);
-    const hasNumber = /\d/.test(this.password);
-    const hasUpper = /[A-Z]/.test(this.password);
-    const hasSpecial = /[^A-Za-z0-9]/.test(this.password);
-    const isLongEnough = this.password.length >= 8;
-
-    if (!isLongEnough || !hasLetter || !hasNumber) {
-      return {
-        score: 1,
-        label: 'Yếu (Cần tối thiểu 8 ký tự, cả chữ và số)',
-        percent: 33,
-        barClass: 'bg-red-500',
-        textClass: 'text-red-500'
-      };
-    }
-
-    // Đã đạt chuẩn tối thiểu (score >= 2)
-    if (this.password.length >= 10 && hasUpper && (hasSpecial || this.password.length >= 12)) {
-      return {
-        score: 3,
-        label: 'Mạnh',
-        percent: 100,
-        barClass: 'bg-emerald-600',
-        textClass: 'text-emerald-600'
-      };
-    }
-
-    return {
-      score: 2,
-      label: 'Trung bình',
-      percent: 66,
-      barClass: 'bg-amber-500',
-      textClass: 'text-amber-500'
-    };
   }
 
   get isFormValid(): boolean {

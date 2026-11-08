@@ -105,6 +105,11 @@
         <app-icon name="AlertCircle" size="16"></app-icon>
         <span>{{ displayError }}</span>
       </div>
+
+      <!-- Gợi ý chế độ dev khi chưa bật EXPOSE_DEV_OTP -->
+      <div *ngIf="isDevModeWithoutOtp" class="dev-otp-notice">
+        Chế độ demo: máy chủ chưa bật EXPOSE_DEV_OTP nên không hiển thị mã
+      </div>
     </div>
 
     <div class="modal-footer">
