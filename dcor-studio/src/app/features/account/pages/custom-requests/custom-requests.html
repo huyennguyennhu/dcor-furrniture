@@ -62,6 +62,59 @@
 
         <!-- Nội dung chính: Không dùng tab trạng thái, hiển thị trực quan theo dạng thẻ đơn hàng của tôi -->
         <ng-container *ngIf="canViewContent">
+          <!-- Filter Tabs (Đồng bộ chuẩn DCor UI Style Guide như Đơn hàng của tôi) -->
+          <div class="order-tabs-bar">
+            <button 
+              type="button" 
+              class="tab-btn" 
+              [class.active]="activeTab === 'ALL'" 
+              (click)="switchTab('ALL')">
+              <span>Tất cả</span>
+              <span class="tab-badge" [class.active-badge]="activeTab === 'ALL'">
+                {{ getTabCount('ALL') }}
+              </span>
+            </button>
+            <button 
+              type="button" 
+              class="tab-btn" 
+              [class.active]="activeTab === 'CONSULTING'" 
+              (click)="switchTab('CONSULTING')">
+              <span>Tiếp nhận & Khảo sát</span>
+              <span class="tab-badge" [class.active-badge]="activeTab === 'CONSULTING'">
+                {{ getTabCount('CONSULTING') }}
+              </span>
+            </button>
+            <button 
+              type="button" 
+              class="tab-btn" 
+              [class.active]="activeTab === 'QUOTED'" 
+              (click)="switchTab('QUOTED')">
+              <span>Báo giá & Bản vẽ 3D</span>
+              <span class="tab-badge" [class.active-badge]="activeTab === 'QUOTED'">
+                {{ getTabCount('QUOTED') }}
+              </span>
+            </button>
+            <button 
+              type="button" 
+              class="tab-btn" 
+              [class.active]="activeTab === 'PROCESSING'" 
+              (click)="switchTab('PROCESSING')">
+              <span>Đang sản xuất</span>
+              <span class="tab-badge" [class.active-badge]="activeTab === 'PROCESSING'">
+                {{ getTabCount('PROCESSING') }}
+              </span>
+            </button>
+            <button 
+              type="button" 
+              class="tab-btn" 
+              [class.active]="activeTab === 'CANCELLED'" 
+              (click)="switchTab('CANCELLED')">
+              <span>Đã hủy</span>
+              <span class="tab-badge" [class.active-badge]="activeTab === 'CANCELLED'">
+                {{ getTabCount('CANCELLED') }}
+              </span>
+            </button>
+          </div>
           <!-- Empty State khi không có yêu cầu nào -->
           <div class="empty-state-box" *ngIf="filteredRequests.length === 0">
             <div class="empty-icon-box">
@@ -109,13 +162,7 @@
                 </div>
               </div>
 
-              <!-- Notice: Đã có báo giá & bản vẽ 3D -->
-              <div *ngIf="req.status === 'QUOTED'" class="quoted-alert-banner">
-                <lucide-angular [img]="icons.Sparkles" size="16" class="alert-icon"></lucide-angular>
-                <div class="alert-text">
-                  <strong>Đã có báo giá & bản vẽ 3D:</strong> Chuyên viên KTS đã gửi báo giá <strong>{{ req.quotedPrice | number }} đ</strong>. Bấm <em>Xem chi tiết</em> để duyệt bản vẽ.
-                </div>
-              </div>
+              
 
               <!-- Notice: Đơn đã bị hủy -->
               <div *ngIf="req.status === 'CANCELLED'" class="cancelled-alert-banner">
@@ -166,10 +213,7 @@
                   </div>
                 </div>
 
-                <div class="notes-preview-row" *ngIf="req.notes">
-                  <span class="notes-tag">Ghi chú riêng:</span>
-                  <span class="notes-content">"{{ req.notes }}"</span>
-                </div>
+                
               </div>
 
               <!-- 3. Order Card Footer -->
@@ -505,7 +549,7 @@
       <div class="drawer-header">
         <div class="drawer-header-info">
           <div class="drawer-title-row">
-            <h2 class="drawer-title">Chi tiết đơn may đo #{{ selectedRequest.code }}</h2>
+            <h2 class="drawer-title">Chi tiết đơn may đo {{ selectedRequest.code }}</h2>
             <span class="order-status-pill" [ngClass]="'status-' + getOrderStatusClass(selectedRequest.status)">
               <span class="status-dot"></span>
               {{ getStatusMeta(selectedRequest.status).customerLabel }}
@@ -613,83 +657,82 @@
           </div>
         </section>
 
-        <!-- 2. Lịch sử trạng thái đơn hàng (Timeline) -->
-        <section class="drawer-section">
-          <h3 class="section-heading">Lịch sử trạng thái đơn hàng</h3>
-          <div *ngIf="selectedRequest.timeline && selectedRequest.timeline.length > 0; else noCustomHistory" class="timeline-list">
-            <div *ngFor="let step of selectedRequest.timeline; let first = first" class="timeline-item" [class.is-current]="first">
-              <div class="timeline-dot"></div>
-              <div class="timeline-info">
-                <div class="timeline-header-step">
-                  <span class="timeline-notes">{{ step.title }}</span>
-                  <span class="timeline-time">{{ step.timestamp | date:'HH:mm - dd/MM/yyyy' }}</span>
-                </div>
-                <div class="timeline-sub-notes" *ngIf="step.description">{{ step.description }}</div>
-                <div class="timeline-actor">Ghi nhận bởi: <strong>{{ step.performedBy || 'Hệ thống DCOR' }}</strong></div>
-              </div>
-            </div>
-          </div>
-          <ng-template #noCustomHistory>
-            <p class="empty-note">Yêu cầu may đo vừa được khởi tạo, đang chờ KTS tiếp nhận.</p>
-          </ng-template>
-        </section>
-
-        <!-- 3. Thông tin nhận hàng & Công trình (grid-2 chuẩn my-orders) -->
-        <section class="drawer-section grid-2">
-          <div class="info-block">
-            <div class="block-header">
-              <h4 class="block-title">Thông tin khách hàng & Công trình</h4>
-            </div>
-            <p class="info-name"><strong>{{ selectedRequest.customerName }}</strong></p>
-            <p class="info-line">SĐT: <strong>{{ selectedRequest.customerPhone }}</strong></p>
-            <p *ngIf="selectedRequest.customerEmail" class="info-line">Email: {{ selectedRequest.customerEmail }}</p>
-            <p class="info-line">Địa chỉ bàn giao: {{ selectedRequest.customerAddress || 'Theo thỏa thuận khi đo đạc thực tế' }}</p>
-          </div>
-
-          <div class="info-block">
-            <div class="block-header">
-              <h4 class="block-title">Thông số Kỹ thuật & Khảo sát</h4>
-            </div>
-            <p class="info-line">Phân loại: <strong>{{ selectedRequest.categoryName || 'Sofa May Đo Cao Cấp' }}</strong></p>
-            <p class="info-line">Chuyên viên phụ trách: <strong>{{ selectedRequest.assignedStaff || 'KTS. DCOR Studio' }}</strong></p>
-            <p class="info-line">
-              Trạng thái hiện tại:
-              <span class="badge-status" [ngClass]="getOrderStatusClass(selectedRequest.status)">
-                {{ getStatusMeta(selectedRequest.status).customerLabel }}
-              </span>
-            </p>
-            <p *ngIf="selectedRequest.notes" class="info-line notes">Ghi chú riêng: {{ selectedRequest.notes }}</p>
-          </div>
-        </section>
-
-        <!-- 4. Chi tiết quy cách sản phẩm may đo (Ảnh + Thông số + Bảng quy cách) -->
-        <section class="drawer-section">
+        <!-- 4. Chi tiết quy cách sản phẩm may đo (Bố cục tối ưu theo DCor UI Style Guide) -->
+        <section class="drawer-section custom-product-card-section">
           <h3 class="section-heading">Quy cách sản phẩm may đo</h3>
-          <div class="order-items-table">
-            <div class="table-row-item custom-item-row">
-              <div class="item-col-img">
+          <div class="custom-product-card">
+            <!-- Phần trên: Ảnh sản phẩm + Tên sản phẩm + 4 ô thông số -->
+            <div class="custom-card-top">
+              <div class="product-visual">
                 <img [src]="selectedRequest.productImage || 'assets/placeholder.png'" [alt]="selectedRequest.productName" />
+                <span *ngIf="selectedRequest.productSku" class="product-sku-tag">
+                  Mã: {{ selectedRequest.productSku }}
+                </span>
               </div>
-              <div class="item-col-main">
-                <h5 class="table-item-name">{{ selectedRequest.productName }}</h5>
-                <div class="custom-specs-list">
-                  <span class="spec-pill"><strong>Kích thước:</strong> {{ selectedRequest.length || 0 }} x {{ selectedRequest.width || 0 }} x {{ selectedRequest.height || 0 }} cm</span>
-                  <span class="spec-pill color-pill">
-                    <strong>Màu sắc:</strong>
-                    <span class="swatch-mini" [style.background]="selectedRequest.colorHex || '#8B4513'"></span>
-                    {{ selectedRequest.colorName || 'Tùy chọn' }}
-                  </span>
-                  <span class="spec-pill"><strong>Chất liệu:</strong> {{ selectedRequest.material || 'Da bò Ý / Vải Bỉ' }}</span>
-                  <span class="spec-pill" *ngIf="selectedRequest.legMaterial"><strong>Chân đế:</strong> {{ selectedRequest.legMaterial }}</span>
+
+              <div class="product-main-content">
+                <div class="product-header-line">
+                  <h4 class="product-headline">{{ selectedRequest.productName }}</h4>
+                  <span class="product-quantity-tag">Số lượng: 1 bộ</span>
                 </div>
-                <span *ngIf="selectedRequest.productSku" class="table-item-sku">Mã thiết kế: {{ selectedRequest.productSku }}</span>
+
+                <!-- 4 ô thuộc tính sắp xếp lưới 2x2 đẹp mắt, màu nhẹ nhàng chuẩn DCor -->
+                <div class="custom-specs-grid">
+                  <!-- 1. Kích thước -->
+                  <div class="spec-cell">
+                    <span class="spec-cell-label">Kích thước (D x R x C)</span>
+                    <span class="spec-cell-value">
+                      <strong>{{ selectedRequest.length || 0 }} x {{ selectedRequest.width || 0 }} x {{ selectedRequest.height || 0 }}</strong> cm
+                    </span>
+                  </div>
+
+                  <!-- 2. Màu sắc -->
+                  <div class="spec-cell">
+                    <span class="spec-cell-label">Màu sắc chủ đạo</span>
+                    <span class="spec-cell-value color-spec">
+                      <span class="swatch-circle" [style.background]="selectedRequest.colorHex || '#8B4513'"></span>
+                      <strong>{{ selectedRequest.colorName || 'Tùy chọn' }}</strong>
+                    </span>
+                  </div>
+
+                  <!-- 3. Chất liệu -->
+                  <div class="spec-cell">
+                    <span class="spec-cell-label">Chất liệu bề mặt</span>
+                    <span class="spec-cell-value truncate-val" [title]="selectedRequest.material || 'Da bò Ý / Vải Bỉ'">
+                      {{ selectedRequest.material || 'Da bò Ý / Vải Bỉ' }}
+                    </span>
+                  </div>
+
+                  <!-- 4. Chân đế -->
+                  <div class="spec-cell">
+                    <span class="spec-cell-label">Chân đế / Khung đỡ</span>
+                    <span class="spec-cell-value truncate-val" [title]="selectedRequest.legMaterial || 'Theo thiết kế chuẩn'">
+                      {{ selectedRequest.legMaterial || 'Theo thiết kế chuẩn' }}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div class="item-col-price">
-                <span class="unit-price">{{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Đang báo giá' }}</span>
-                <span class="qty">SL: 1 bộ</span>
+            </div>
+
+            <!-- Thanh đáy: Trạng thái báo giá & Chi phí dự toán -->
+            <div class="custom-card-bottom">
+              <div class="quote-info-left">
+                <span class="quote-status-title">Trạng thái báo giá:</span>
+                <span *ngIf="!selectedRequest.quotedPrice" class="quote-badge-pending">
+                  <span class="pulse-dot-amber"></span>
+                  Đang khảo sát & tính toán vật liệu
+                </span>
+                <span *ngIf="selectedRequest.quotedPrice" class="quote-badge-ready">
+                  <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular>
+                  Đã có báo giá chính thức
+                </span>
               </div>
-              <div class="item-col-total">
-                {{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Liên hệ' }}
+
+              <div class="quote-info-right">
+                <span class="quote-price-label">Dự toán may đo:</span>
+                <span class="quote-price-val" [class.has-price]="!!selectedRequest.quotedPrice">
+                  {{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Liên hệ tư vấn' }}
+                </span>
               </div>
             </div>
           </div>
@@ -712,6 +755,7 @@
 
         <!-- 5. Chi tiết tài chính (finance-summary chuẩn my-orders) -->
         <section class="drawer-section finance-summary">
+          <h3 class="section-heading">Dự toán kinh phí & Ưu đãi may đo</h3>
           <div class="finance-row">
             <span>Dự toán may đo:</span>
             <span>{{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Đang khảo sát & tính toán' }}</span>
@@ -747,6 +791,55 @@
               <span class="remaining-text">{{ (selectedRequest.quotedPrice - (selectedRequest.quotedDeposit || (selectedRequest.quotedPrice * 0.3))) | number }} đ</span>
             </div>
           </div>
+        </section>
+
+        <!-- 3. Thông tin nhận hàng & Công trình (grid-2 chuẩn my-orders) -->
+        <section class="drawer-section grid-2">
+          <div class="info-block">
+            <div class="block-header">
+              <h4 class="block-title">Thông tin khách hàng & Công trình</h4>
+            </div>
+            <p class="info-name"><strong>{{ selectedRequest.customerName }}</strong></p>
+            <p class="info-line">SĐT: <strong>{{ selectedRequest.customerPhone }}</strong></p>
+            <p *ngIf="selectedRequest.customerEmail" class="info-line">Email: {{ selectedRequest.customerEmail }}</p>
+            <p class="info-line">Địa chỉ bàn giao: {{ selectedRequest.customerAddress || 'Theo thỏa thuận khi đo đạc thực tế' }}</p>
+          </div>
+
+          <div class="info-block">
+            <div class="block-header">
+              <h4 class="block-title">Thông số Kỹ thuật & Khảo sát</h4>
+            </div>
+            <p class="info-line">Phân loại: <strong>{{ selectedRequest.categoryName || 'Sofa May Đo Cao Cấp' }}</strong></p>
+            <p class="info-line">Chuyên viên phụ trách: <strong>{{ selectedRequest.assignedStaff || 'KTS. DCOR Studio' }}</strong></p>
+            <p class="info-line">
+              Trạng thái hiện tại:
+              <span class="badge-status" [ngClass]="getOrderStatusClass(selectedRequest.status)">
+                {{ getStatusMeta(selectedRequest.status).customerLabel }}
+              </span>
+            </p>
+            
+          </div>
+        </section>
+
+        <!-- 2. Lịch sử trạng thái đơn hàng (Timeline) -->
+        <section class="drawer-section">
+          <h3 class="section-heading">Lịch sử trạng thái đơn hàng</h3>
+          <div *ngIf="selectedRequest.timeline && selectedRequest.timeline.length > 0; else noCustomHistory" class="timeline-list">
+            <div *ngFor="let step of selectedRequest.timeline; let first = first" class="timeline-item" [class.is-current]="first">
+              <div class="timeline-dot"></div>
+              <div class="timeline-info">
+                <div class="timeline-header-step">
+                  <span class="timeline-notes">{{ step.title }}</span>
+                  <span class="timeline-time">{{ step.timestamp | date:'HH:mm - dd/MM/yyyy' }}</span>
+                </div>
+                <div class="timeline-sub-notes" *ngIf="step.description">{{ step.description }}</div>
+                <div class="timeline-actor">Ghi nhận bởi: <strong>{{ step.performedBy || 'Hệ thống DCOR' }}</strong></div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noCustomHistory>
+            <p class="empty-note">Yêu cầu may đo vừa được khởi tạo, đang chờ KTS tiếp nhận.</p>
+          </ng-template>
         </section>
       </div>
 

@@ -43,6 +43,7 @@ interface StoreCategory {
 export class Header implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('shopNavItem') shopNavItem!: ElementRef<HTMLElement>;
+  @ViewChild('guestDropdownWrapper') guestDropdownWrapper?: ElementRef<HTMLElement>;
 
   theme = 'light';
   isLoggedIn = false;
@@ -307,8 +308,12 @@ export class Header implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (this.shopMenuOpen && !this.shopNavItem?.nativeElement?.contains(event.target as Node)) {
+    const target = event.target as Node;
+    if (this.shopMenuOpen && !this.shopNavItem?.nativeElement?.contains(target)) {
       this.closeShopMenu();
+    }
+    if (this.isGuestMenuClicked && !this.guestDropdownWrapper?.nativeElement?.contains(target)) {
+      this.closeGuestUserMenu();
     }
   }
 

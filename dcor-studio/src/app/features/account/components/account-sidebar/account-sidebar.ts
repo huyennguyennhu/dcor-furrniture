@@ -17,6 +17,7 @@ import {
 } from 'lucide-angular';
 import { CustomerService, CustomerProfile } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ReviewService } from '../../../../core/services/review.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -43,6 +44,7 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
 
   profile: CustomerProfile | null = null;
   unreadNotificationCount = 0;
+  unreviewedCount = 0;
   isLoading = true;
   isLoggedIn = false;
   guestPhone = '';
@@ -51,6 +53,7 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
   constructor(
     private customerService: CustomerService,
     private authService: AuthService,
+    private reviewService: ReviewService,
     private router: Router
   ) {}
 
@@ -58,42 +61,72 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
     this.isLoggedIn = this.authService.isAuthenticated();
     this.guestPhone = this.authService.getGuestPhone() || '';
 
-    if (this.isLoggedIn) {
+    // Khởi tạo và nạp profile cho cả thành viên đăng nhập lẫn khách vãng lai
+    if (this.isLoggedIn || this.guestPhone) {
       this.loadProfile();
-
-      this.sub.add(
-        this.customerService.unreadCount$.subscribe(count => {
-          this.unreadNotificationCount = count;
-        })
-      );
-
-      // Lắng nghe cập nhật avatar và hồ sơ tức thì từ authService
-      this.sub.add(
-        this.authService.user$.subscribe((user) => {
-          this.isLoggedIn = !!user;
-          if (user && this.profile) {
-            this.profile.fullName = user.fullName || this.profile.fullName;
-            this.profile.avatarUrl = user.avatarUrl ?? user.avatar ?? this.profile.avatarUrl;
-            if (user.email) this.profile.email = user.email;
-          }
-        })
-      );
     } else {
       this.isLoading = false;
     }
+
+    this.sub.add(
+      this.customerService.unreadCount$.subscribe(count => {
+        this.unreadNotificationCount = count;
+      })
+    );
+
+    // Lắng nghe cập nhật avatar và hồ sơ tức thì từ authService
+    this.sub.add(
+      this.authService.user$.subscribe((user) => {
+        this.isLoggedIn = !!user;
+        if (user) {
+          if (!this.profile) {
+            this.loadProfile();
+          } else {
+            this.profile.fullName = user.fullName || this.profile.fullName;
+            const updatedAvatar = user.avatarUrl ?? user.avatar ?? this.profile.avatarUrl;
+            if (updatedAvatar) {
+              this.profile.avatarUrl = updatedAvatar;
+            }
+            if (user.email) this.profile.email = user.email;
+          }
+        }
+        this.loadUnreviewedCount();
+      })
+    );
 
     // Lắng nghe thay đổi SĐT xác thực của khách vãng lai
     this.sub.add(
       this.authService.guestPhone$.subscribe((phone) => {
         this.guestPhone = phone || '';
+        if (phone && !this.isLoggedIn) {
+          this.loadProfile();
+        }
+        this.loadUnreviewedCount();
       })
     );
+
+    this.loadUnreviewedCount();
+  }
+
+  loadUnreviewedCount(): void {
+    if (this.isLoggedIn || this.guestPhone) {
+      this.reviewService.getMyReviews().subscribe({
+        next: (res) => {
+          this.unreviewedCount = res?.unreviewed?.length || 0;
+        },
+        error: () => {
+          this.unreviewedCount = 0;
+        }
+      });
+    } else {
+      this.unreviewedCount = 0;
+    }
   }
 
   loadProfile(): void {
     let cachedUser: any = null;
     try {
-      const stored = localStorage.getItem('dcor_customer_user') || localStorage.getItem('dcor_customer') || localStorage.getItem('dcor_user');
+      const stored = localStorage.getItem('dcor_customer_user') || localStorage.getItem('dcor_customer');
       if (stored) {
         cachedUser = JSON.parse(stored);
       }
@@ -103,11 +136,10 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
     }
 
     if (cachedUser) {
-      // Set initial state from cached user immediately to avoid flicker (0ms latency)
       this.profile = {
         id: cachedUser.id,
         fullName: cachedUser.fullName || cachedUser.name || 'Khách hàng',
-        phone: (cachedUser.phone && !cachedUser.phone.startsWith('GOOG_')) ? cachedUser.phone : '',
+        phone: (cachedUser.phone && !cachedUser.phone.startsWith('GOOG_')) ? cachedUser.phone : (this.guestPhone || ''),
         email: cachedUser.email || '',
         avatarUrl: cachedUser.avatarUrl || cachedUser.avatar || null,
         rewardPoints: cachedUser.rewardPoints || 0,
@@ -125,10 +157,23 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.customerService.getProfile().subscribe({
         next: (data) => {
-          this.profile = data;
+          // Giữ nguyên avatarUrl từ cachedUser hoặc currentUser nếu server trả về null
+          const currentUser = this.authService.getCurrentUser();
+          const avatarUrl = data.avatarUrl || currentUser?.avatarUrl || currentUser?.avatar || cachedUser?.avatarUrl || cachedUser?.avatar || this.profile?.avatarUrl || null;
+
+          this.profile = {
+            ...data,
+            avatarUrl
+          };
           this.isLoading = false;
           try {
-            localStorage.setItem('dcor_customer_user', JSON.stringify(data));
+            localStorage.setItem('dcor_customer_user', JSON.stringify(this.profile));
+            if (this.isLoggedIn && currentUser) {
+              currentUser.avatarUrl = avatarUrl;
+              currentUser.avatar = avatarUrl;
+              currentUser.fullName = data.fullName || currentUser.fullName;
+              localStorage.setItem('dcor_customer', JSON.stringify(currentUser));
+            }
           } catch (e) {}
         },
         error: () => {

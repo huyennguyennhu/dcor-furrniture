@@ -221,32 +221,34 @@
   background: #FFFFFF;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 18px;
-  padding: 36px 40px;
-  margin-bottom: 28px;
+  padding: 22px 36px;
+  margin-bottom: 20px;
   box-shadow: 0 4px 20px rgba(118, 83, 55, 0.04);
 }
 
 .card-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
-  padding-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #F0ECE6;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 
 .card-title {
   font-size: 18px;
   font-weight: 700;
   color: var(--color-text, #0A0A0A);
-  margin: 0 0 4px;
+  margin: 0;
+  line-height: 1.25;
 }
 
 .card-subtitle {
   font-size: 13px;
   color: var(--color-text-secondary, #616161);
   margin: 0;
+  line-height: 1.4;
 }
 
 /* Nút Chế độ Chỉnh sửa */
@@ -335,10 +337,10 @@
 .avatar-upload-section {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding-bottom: 24px;
+  gap: 20px;
+  padding-bottom: 16px;
   border-bottom: 1px dashed var(--color-border, #E0E0E0);
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .avatar-wrapper {
@@ -1731,3 +1733,88 @@
 
 
 
+
+
+/* Inline Member Tier Chip & Gọn gàng tiêu đề / phụ đề */
+.card-title-group {
+  flex: 1;
+  min-width: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text, #0A0A0A);
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.card-subtitle {
+  font-size: 13px !important;
+  color: var(--color-text-secondary, #616161) !important;
+  margin: 0 !important;
+  line-height: 1.35 !important;
+}
+
+.security-card .form-grid-3,
+.security-card .form-grid-2 {
+  margin-top: 0 !important;
+}
+
+.security-card .card-header-row {
+  padding-bottom: 12px !important;
+  margin-bottom: 14px !important;
+}
+
+.title-with-tier {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: nowrap !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+.title-with-tier .card-title {
+  margin: 0 !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--color-text, #0A0A0A) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.title-with-tier .title-tier-divider {
+  display: inline-block !important;
+  width: 1.5px !important;
+  height: 13px !important;
+  background-color: #D1C7BD !important;
+  border-radius: 1px !important;
+  flex-shrink: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  color: transparent !important;
+  user-select: none !important;
+}
+
+.title-with-tier .inline-member-tier-text {
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: var(--color-primary, #765337) !important;
+  cursor: default !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  gap: 4px !important;
+  line-height: 1.25 !important;
+}
+
+.title-with-tier .inline-member-tier-text .tier-points-num {
+  font-weight: 700 !important;
+  color: var(--color-accent, #BC5F13) !important;
+}

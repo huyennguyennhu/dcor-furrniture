@@ -131,17 +131,65 @@
 }
 
 .empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: #FFFFFF;
   border: 1px dashed rgba(118, 83, 55, 0.22);
   border-radius: 18px;
   padding: 64px 24px;
   text-align: center;
   box-shadow: 0 4px 18px rgba(118, 83, 55, 0.03);
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.empty-icon-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #FFF1F0;
+  border: 1.5px solid #FFA39E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  box-shadow: 0 4px 14px rgba(255, 77, 79, 0.12);
 }
 
 .empty-icon {
-  color: #fca5a5;
-  margin-bottom: 14px;
+  color: #FF4D4F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.loading-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  gap: 16px;
+  color: #71717a;
+  font-size: 14px;
+  width: 100%;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(188, 95, 19, 0.15);
+  border-top-color: var(--color-accent, #BC5F13);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .empty-state-box h3 {
@@ -181,7 +229,8 @@
 /* Wishlist Grid */
 .wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  width: 100%;
   gap: 24px;
 }
 

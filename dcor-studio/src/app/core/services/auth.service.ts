@@ -221,7 +221,7 @@ export class AuthService {
    */
   getCurrentUser(): CustomerUser | null {
     try {
-      const data = localStorage.getItem(this.USER_KEY) || localStorage.getItem('dcor_customer_user');
+      const data = localStorage.getItem('dcor_customer_user') || localStorage.getItem(this.USER_KEY);
       return data ? JSON.parse(data) : null;
     } catch {
       return null;

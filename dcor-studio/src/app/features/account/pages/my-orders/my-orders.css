@@ -443,7 +443,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state-box {
@@ -612,18 +614,23 @@
   background: #EBF5FF;
   border-bottom: 1px solid #BFDBFE;
 }
+
 .order-card-topbar.status-pending .status-indicator-dot {
   background: #2563EB;
 }
+
 .order-card-topbar.status-pending .topbar-status-text {
   color: #1D4ED8;
 }
+
 .order-card-topbar.status-pending .topbar-meta {
   color: #1E40AF;
 }
+
 .order-card-topbar.status-pending .meta-divider {
   color: #93C5FD;
 }
+
 .order-card-topbar.status-pending .meta-order-id {
   color: #1E3A8A;
 }
@@ -634,22 +641,27 @@
   background: #FFF7ED;
   border-bottom: 1px solid #FED7AA;
 }
+
 .order-card-topbar.status-waiting-payment .status-indicator-dot,
 .order-card-topbar.status-waiting-deposit .status-indicator-dot {
   background: #EA580C;
 }
+
 .order-card-topbar.status-waiting-payment .topbar-status-text,
 .order-card-topbar.status-waiting-deposit .topbar-status-text {
   color: #C2410C;
 }
+
 .order-card-topbar.status-waiting-payment .topbar-meta,
 .order-card-topbar.status-waiting-deposit .topbar-meta {
   color: #9A3412;
 }
+
 .order-card-topbar.status-waiting-payment .meta-divider,
 .order-card-topbar.status-waiting-deposit .meta-divider {
   color: #FDBA74;
 }
+
 .order-card-topbar.status-waiting-payment .meta-order-id,
 .order-card-topbar.status-waiting-deposit .meta-order-id {
   color: #7C2D12;
@@ -660,18 +672,23 @@
   background: #EEF2FF;
   border-bottom: 1px solid #C7D2FE;
 }
+
 .order-card-topbar.status-confirmed .status-indicator-dot {
   background: #4F46E5;
 }
+
 .order-card-topbar.status-confirmed .topbar-status-text {
   color: #4338CA;
 }
+
 .order-card-topbar.status-confirmed .topbar-meta {
   color: #3730A3;
 }
+
 .order-card-topbar.status-confirmed .meta-divider {
   color: #A5B4FC;
 }
+
 .order-card-topbar.status-confirmed .meta-order-id {
   color: #312E81;
 }
@@ -681,18 +698,23 @@
   background: #F5F3FF;
   border-bottom: 1px solid #DDD6FE;
 }
+
 .order-card-topbar.status-processing .status-indicator-dot {
   background: #7C3AED;
 }
+
 .order-card-topbar.status-processing .topbar-status-text {
   color: #6D28D9;
 }
+
 .order-card-topbar.status-processing .topbar-meta {
   color: #5B21B6;
 }
+
 .order-card-topbar.status-processing .meta-divider {
   color: #C4B5FD;
 }
+
 .order-card-topbar.status-processing .meta-order-id {
   color: #4C1D95;
 }
@@ -702,18 +724,23 @@
   background: #F0F9FF;
   border-bottom: 1px solid #BAE6FD;
 }
+
 .order-card-topbar.status-shipped .status-indicator-dot {
   background: #0284C7;
 }
+
 .order-card-topbar.status-shipped .topbar-status-text {
   color: #0369A1;
 }
+
 .order-card-topbar.status-shipped .topbar-meta {
   color: #075985;
 }
+
 .order-card-topbar.status-shipped .meta-divider {
   color: #7DD3FC;
 }
+
 .order-card-topbar.status-shipped .meta-order-id {
   color: #0C4A6E;
 }
@@ -723,18 +750,23 @@
   background: #ECFDF5;
   border-bottom: 1px solid #A7F3D0;
 }
+
 .order-card-topbar.status-delivered .status-indicator-dot {
   background: #059669;
 }
+
 .order-card-topbar.status-delivered .topbar-status-text {
   color: #047857;
 }
+
 .order-card-topbar.status-delivered .topbar-meta {
   color: #065F46;
 }
+
 .order-card-topbar.status-delivered .meta-divider {
   color: #6EE7B7;
 }
+
 .order-card-topbar.status-delivered .meta-order-id {
   color: #064E3B;
 }
@@ -744,18 +776,23 @@
   background: #FEF2F2;
   border-bottom: 1px solid #FECACA;
 }
+
 .order-card-topbar.status-cancelled .status-indicator-dot {
   background: #DC2626;
 }
+
 .order-card-topbar.status-cancelled .topbar-status-text {
   color: #B91C1C;
 }
+
 .order-card-topbar.status-cancelled .topbar-meta {
   color: #991B1B;
 }
+
 .order-card-topbar.status-cancelled .meta-divider {
   color: #FCA5A5;
 }
+
 .order-card-topbar.status-cancelled .meta-order-id {
   color: #7F1D1D;
 }
@@ -765,18 +802,23 @@
   background: #FFF1F2;
   border-bottom: 1px solid #FECDD3;
 }
+
 .order-card-topbar.status-returned .status-indicator-dot {
   background: #E11D48;
 }
+
 .order-card-topbar.status-returned .topbar-status-text {
   color: #BE123C;
 }
+
 .order-card-topbar.status-returned .topbar-meta {
   color: #9F1239;
 }
+
 .order-card-topbar.status-returned .meta-divider {
   color: #FDA4AF;
 }
+
 .order-card-topbar.status-returned .meta-order-id {
   color: #881337;
 }
@@ -785,37 +827,72 @@
 .high-value-alert {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 8px;
-  padding: 8px 14px;
-  margin: 10px 20px 0;
-  font-size: 12.5px;
-  color: #92400e;
+  gap: 10px;
+  background: var(--color-warning-bg, #FFF8E5);
+  border: 1px solid #FDE68A;
+  border-left: 4px solid var(--color-warning, #F2BF3D);
+  border-radius: var(--radius-control, 8px);
+  padding: 10px 16px;
+  margin: 12px 20px 0;
+  font-size: 13px;
+  color: #78350F;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .waiting-payment-alert {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: var(--color-sub-bg, #FFF3E3);
   border: 1px solid rgba(188, 95, 19, 0.25);
-  border-radius: 8px;
-  padding: 8px 14px;
-  margin: 10px 20px 0;
-  font-size: 12.5px;
+  border-left: 4px solid var(--color-accent, #BC5F13);
+  border-radius: var(--radius-control, 8px);
+  padding: 10px 16px;
+  margin: 12px 20px 0;
+  font-size: 13px;
   color: var(--color-primary, #765337);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.alert-badge-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-right: 6px;
+}
+
+.high-value-alert .alert-badge-tag {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.waiting-payment-alert .alert-badge-tag {
+  background: rgba(188, 95, 19, 0.12);
+  color: var(--color-accent, #BC5F13);
+  border: 1px solid rgba(188, 95, 19, 0.28);
 }
 
 .alert-icon {
   flex-shrink: 0;
-  color: #d97706;
+  color: #D97706;
 }
 
 .waiting-payment-alert .alert-icon {
   flex-shrink: 0;
   color: var(--color-accent, #BC5F13);
+}
+
+.alert-text {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1.45;
 }
 
 /* 3. Order Body (Product Row) */
@@ -1069,9 +1146,17 @@
 }
 
 @keyframes pulseGreen {
-  0% { box-shadow: 0 0 0 0 rgba(0, 163, 11, 0.4); }
-  70% { box-shadow: 0 0 0 8px rgba(0, 163, 11, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 163, 11, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 163, 11, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 8px rgba(0, 163, 11, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 163, 11, 0);
+  }
 }
 
 .btn-secondary {
@@ -1120,7 +1205,7 @@
 .drawer-content {
   background: #ffffff;
   width: 100%;
-  max-width: 680px;
+  max-width: 520px;
   height: 100vh;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -1129,21 +1214,29 @@
 }
 
 @keyframes slideLeft {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 .drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 24px 28px;
-  border-bottom: 1px solid var(--color-border, #E0E0E0);
-  background: var(--color-surface, #FFFFFF);
+  padding: 22px 28px;
+  background: var(--color-primary, #765337);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  color: #FFFFFF;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .drawer-header-info {
   flex: 1;
+  min-width: 0;
 }
 
 .drawer-title-row {
@@ -1158,40 +1251,144 @@
   font-family: var(--font-heading, "Poppins", sans-serif);
   font-size: 20px;
   font-weight: 600;
-  color: var(--color-text, #0A0A0A);
+  color: #FFFFFF !important;
   margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
 .drawer-subtitle {
   font-size: 13px;
-  color: var(--color-text-secondary, #616161);
+  color: rgba(255, 255, 255, 0.85);
   margin: 0;
   line-height: 1.5;
 }
 
 .drawer-subtitle strong {
-  color: var(--color-text, #0A0A0A);
+  color: #FFFFFF;
+  font-weight: 600;
 }
 
 .drawer-close {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.14);
   border: none;
-  font-size: 28px;
-  color: var(--color-text-secondary, #616161);
+  font-size: 24px;
+  color: #FFFFFF;
   cursor: pointer;
   line-height: 1;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-control, 8px);
-  transition: all 0.2s;
+  border-radius: var(--radius-pill, 999px);
+  transition: all 0.2s ease;
+  margin-left: 16px;
+  flex-shrink: 0;
 }
 
 .drawer-close:hover {
-  background: var(--color-surface-subtle, #F5F5F5);
-  color: var(--color-text, #0A0A0A);
+  background: rgba(255, 255, 255, 0.28);
+  color: #FFFFFF;
+  transform: rotate(90deg);
+}
+
+/* ========================================================= */
+/* ORDER STATUS PILL IN DRAWER HEADER (CHUẨN DCor PALETTE)   */
+/* ========================================================= */
+.order-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.3;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.order-status-pill .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* 1. Chờ xác nhận (PENDING) - Xanh dương */
+.order-status-pill.pending,
+.order-status-pill.status-pending {
+  background: #EBF5FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+/* 2. Chờ thanh toán / Chờ đặt cọc (WAITING_PAYMENT / WAITING_DEPOSIT) - Cam hổ phách */
+.order-status-pill.waiting-payment,
+.order-status-pill.waiting-deposit,
+.order-status-pill.status-waiting-payment,
+.order-status-pill.status-waiting-deposit {
+  background: #FFF7ED;
+  color: #C2410C;
+  border: 1px solid #FED7AA;
+}
+
+/* 3. Đã xác nhận (CONFIRMED) - Indigo */
+.order-status-pill.confirmed,
+.order-status-pill.status-confirmed {
+  background: #EEF2FF;
+  color: #4338CA;
+  border: 1px solid #C7D2FE;
+}
+
+/* 4. Đang chuẩn bị (PROCESSING) - Tím */
+.order-status-pill.processing,
+.order-status-pill.status-processing {
+  background: #F5F3FF;
+  color: #6D28D9;
+  border: 1px solid #DDD6FE;
+}
+
+/* 5. Đang giao hàng (SHIPPED) - Cyan / Xanh ngọc */
+.order-status-pill.shipped,
+.order-status-pill.status-shipped {
+  background: #ECFEFF;
+  color: #0E7490;
+  border: 1px solid #A5F3FC;
+}
+
+/* 6. Hoàn tất / Đã giao (DELIVERED / COMPLETED) - Xanh lá */
+.order-status-pill.delivered,
+.order-status-pill.status-delivered {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+/* 7. Đã hủy (CANCELLED) - Đỏ */
+.order-status-pill.cancelled,
+.order-status-pill.status-cancelled {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+/* 8. Đổi trả (RETURNED) - Hồng đỏ */
+.order-status-pill.returned,
+.order-status-pill.status-returned {
+  background: #FFF1F2;
+  color: #9F1239;
+  border: 1px solid #FECDD3;
+}
+
+/* Default fallback */
+.order-status-pill.default {
+  background: #F4F4F5;
+  color: #52525B;
+  border: 1px solid #E4E4E7;
 }
 
 .drawer-body {
@@ -1215,6 +1412,10 @@
   background: var(--color-sub-bg, #FFF3E3);
   border: 1px solid #F5D3A6;
   border-left: 4px solid var(--color-accent, #BC5F13);
+  border-radius: var(--radius-card, 12px);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(118, 83, 55, 0.06);
 }
 
 .alert-24h-header {
@@ -1231,25 +1432,32 @@
   gap: 12px;
   align-items: flex-start;
   flex: 1;
+  min-width: 250px;
 }
 
-.pulse-clock-icon {
-  font-size: 24px;
-  line-height: 1;
-  animation: pulseIcon 1.5s infinite ease-in-out;
+.alert-icon-wrap {
+  width: 36px;
+  height: 36px;
+  background: rgba(188, 95, 19, 0.12);
+  color: var(--color-accent, #BC5F13);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-@keyframes pulseIcon {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+.alert-icon-wrap.urgent-icon {
+  background: rgba(196, 35, 38, 0.12);
+  color: var(--color-danger, #C42326);
 }
 
 .alert-heading {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--color-accent, #BC5F13);
   margin: 0 0 4px 0;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .alert-desc {
@@ -1278,7 +1486,7 @@
 }
 
 .countdown-value {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-accent, #BC5F13);
   font-variant-numeric: tabular-nums;
@@ -1289,32 +1497,46 @@
   color: var(--color-danger, #C42326);
 }
 
-/* Khung Chuyển Khoản Nhanh */
+/* Khung Chuyển Khoản Nhanh Hiện Đại Chuẩn DCor */
 .bank-transfer-box {
   background: #FFFFFF;
-  border: 1px solid rgba(188, 95, 19, 0.2);
-  border-radius: var(--radius-control, 8px);
-  padding: 16px;
+  border: 1px solid rgba(118, 83, 55, 0.18);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
 .bank-info-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px dashed var(--color-border, #E0E0E0);
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+}
+
+.bank-tag-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid rgba(118, 83, 55, 0.2);
 }
 
 .bank-tag {
   font-size: 12px;
-  font-weight: 700;
-  color: var(--color-primary, #765337);
-  background: var(--color-sub-bg, #FFF3E3);
-  padding: 3px 10px;
-  border-radius: var(--radius-pill, 999px);
+  font-weight: 600;
+}
+
+.bank-amount-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .bank-amount-label {
@@ -1324,7 +1546,7 @@
 
 .highlight-amount {
   color: var(--color-accent, #BC5F13);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
 }
 
@@ -1332,7 +1554,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 @media (max-width: 600px) {
@@ -1346,60 +1568,81 @@
   flex-direction: column;
   gap: 3px;
   font-size: 13px;
+  background: #FAF8F5;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #EFEAE3;
 }
 
 .bank-field.copyable {
-  position: relative;
-  background: var(--color-page, #FCF8F3);
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--color-border-subtle, #EDEDED);
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background: #FFFDF9;
+  border-color: rgba(188, 95, 19, 0.22);
+}
+
+.field-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .field-label {
-  font-size: 11px;
-  color: var(--color-text-muted, #757575);
+  font-size: 10.5px;
+  color: var(--color-text-secondary, #616161);
   text-transform: uppercase;
   font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .field-val {
-  color: var(--color-text, #0A0A0A);
+  color: var(--color-text-heading, #0A0A0A);
+  font-size: 13px;
 }
 
 .strong-val {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--color-primary, #765337);
+  letter-spacing: 0.3px;
 }
 
 .copy-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
   background: var(--color-primary, #765337);
   color: #FFFFFF;
   border: none;
-  border-radius: 4px;
-  padding: 4px 10px;
-  font-size: 11px;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
 }
 
 .copy-btn:hover {
   background: var(--color-primary-hover, #BC5F13);
+  transform: translateY(-1px);
 }
 
 .bank-note {
   font-size: 12px;
   color: var(--color-text-secondary, #616161);
   display: flex;
-  gap: 6px;
-  align-items: flex-start;
+  gap: 8px;
+  align-items: center;
   line-height: 1.45;
+  background: #FAF8F5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #EFEAE3;
+}
+
+.bank-note .note-icon {
+  color: var(--color-accent, #BC5F13);
+  flex-shrink: 0;
 }
 
 /* Banner Đơn Đã Hủy */
@@ -1768,9 +2011,25 @@
 }
 
 .deposit-breakdown {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--color-border-subtle, #EDEDED);
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: #FAF8F5;
+  border: 1px solid #EFEAE3;
+  border-radius: 8px;
+}
+
+.deposit-breakdown .finance-row {
+  margin-bottom: 6px;
+}
+
+.deposit-breakdown .finance-row:last-child {
+  margin-bottom: 0;
+}
+
+.deposit-target {
+  font-weight: 700;
+  color: var(--color-accent, #BC5F13);
+  font-size: 14px;
 }
 
 .success-text {
@@ -1779,7 +2038,7 @@
 }
 
 .warning-text {
-  color: #b45309;
+  color: #B45309;
   font-weight: 600;
 }
 
@@ -1788,10 +2047,21 @@
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
-  padding: 16px 28px;
+  padding: 16px 24px;
   border-top: 1px solid var(--color-border, #E0E0E0);
   background: var(--color-surface, #FFFFFF);
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.drawer-footer .btn-primary,
+.drawer-footer .btn-review-drawer {
+  flex: 1;
+  justify-content: center;
+  height: 42px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--radius-control, 8px);
+  box-sizing: border-box;
 }
 
 .btn-primary {
@@ -1898,8 +2168,15 @@
 }
 
 @keyframes modalIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .modal-header {
@@ -2143,18 +2420,1518 @@
   .account-layout {
     flex-direction: column;
   }
+
   .sidebar-column {
     width: 100%;
     position: static;
   }
+
   .orders-header-wrap {
     flex-direction: column;
     align-items: stretch;
   }
+
   .search-box {
     width: 100%;
   }
+
   .drawer-section.grid-2 {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* Nút Đánh giá sản phẩm */
+.btn-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius-control, 8px);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-review lucide-angular {
+  color: #f59e0b;
+  fill: #f59e0b;
+  transition: transform 0.2s ease;
+}
+
+.btn-review:hover {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #d97706;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-review:hover lucide-angular {
+  color: #ffffff;
+  fill: #ffffff;
+  transform: scale(1.15);
+}
+
+/* ======================================================== */
+/* CẢNH BÁO KHẨN CẤP TRƯỚC 30 PHÚT (AUTO-CANCEL WARNING)   */
+/* ======================================================== */
+.expiring-soon-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #FFF1F0;
+  border: 1.5px solid #FFA39E;
+  border-left: 5px solid #FF4D4F;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin: 10px 20px 0;
+  animation: pulse-border-subtle 2s infinite ease-in-out;
+}
+
+@keyframes pulse-border-subtle {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.35);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 77, 79, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0);
+  }
+}
+
+.expiring-alert-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.expiring-pulse-icon {
+  font-size: 20px;
+  animation: bounce-subtle 1.5s infinite;
+}
+
+@keyframes bounce-subtle {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.expiring-alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.expiring-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #CF1322;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.expiring-desc {
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.4;
+}
+
+.expiring-countdown-text {
+  color: #CF1322;
+  font-weight: 700;
+  background: #FFE8E6;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.btn-fast-pay {
+  flex-shrink: 0;
+  background: #CF1322;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-fast-pay:hover {
+  background: #A8071A;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(207, 19, 34, 0.3);
+}
+
+/* Urgent banner in detail drawer */
+.drawer-alert-banner.alert-warning-24h.urgent-alert-expiring {
+  background: #FFF2F0 !important;
+  border-color: #FFA39E !important;
+  border-left: 5px solid #FF4D4F !important;
+}
+
+.urgent-heading {
+  color: #CF1322 !important;
+  font-weight: 800 !important;
+}
+
+/* Nút Tra cứu bảo hành điện tử chính hãng */
+.btn-warranty-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  border: 1px solid rgba(118, 83, 55, 0.25);
+  border-radius: var(--radius-control, 8px);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-warranty-shortcut:hover {
+  background-color: var(--color-primary, #765337);
+  color: #FFFFFF;
+  border-color: var(--color-primary, #765337);
+  box-shadow: 0 2px 8px rgba(118, 83, 55, 0.18);
+}
+
+.item-warranty-badge-wrap {
+  margin-top: 6px;
+}
+
+.item-warranty-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #FFFFFF;
+  color: var(--color-primary, #765337);
+  border: 1px solid rgba(118, 83, 55, 0.35);
+  border-radius: var(--radius-pill, 999px);
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.item-warranty-tag:hover {
+  background-color: var(--color-primary, #765337);
+  color: #FFFFFF;
+  border-color: var(--color-primary, #765337);
+  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.18);
+}
+
+
+/* Nút Bảo hành trên thanh Topbar góc trên bên phải thay thế cho mã hàng */
+.topbar-warranty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  border: 1px solid rgba(118, 83, 55, 0.35);
+  border-radius: var(--radius-control, 6px);
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(118, 83, 55, 0.1);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.topbar-warranty-btn:hover {
+  background-color: var(--color-primary, #765337);
+  color: #FFFFFF;
+  border-color: var(--color-primary, #765337);
+  box-shadow: 0 2px 8px rgba(118, 83, 55, 0.25);
+  transform: translateY(-1px);
+}
+
+
+/* ========================================================= */
+/* LUXURY COLLAPSIBLE ACCORDION: ĐỊA CHỈ & THANH TOÁN      */
+/* ========================================================= */
+.drawer-collapsible-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-card, 12px);
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card, 0 1px 2px 0 rgb(0 0 0 / 5%));
+  transition: all 0.25s ease;
+}
+
+.drawer-collapsible-card:hover {
+  border-color: rgba(118, 83, 55, 0.3);
+}
+
+.collapsible-trigger-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+}
+
+.collapsible-trigger-btn:hover {
+  background: #FAF8F5;
+}
+
+.collapsible-trigger-btn.is-open {
+  background: #FAF8F5;
+  border-bottom: 1px solid var(--color-border-subtle, #EDEDED);
+}
+
+.trigger-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.trigger-icon-pill {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  border: 1px solid rgba(118, 83, 55, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trigger-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trigger-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-text-heading, #0A0A0A);
+  letter-spacing: -0.01em;
+}
+
+.trigger-summary {
+  font-size: 12.5px;
+  color: var(--color-text-secondary, #616161);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.summary-dot {
+  color: #D4D4D8;
+}
+
+.trigger-summary-open {
+  font-size: 12px;
+  color: var(--color-primary, #765337);
+  font-weight: 500;
+}
+
+.trigger-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F4F4F5;
+  color: var(--color-text-secondary, #616161);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.collapsible-trigger-btn:hover .trigger-arrow {
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+}
+
+.trigger-arrow.rotated {
+  transform: rotate(180deg);
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+}
+
+.collapsible-expand-area {
+  padding: 18px 20px 20px;
+  background: #FFFFFF;
+  animation: slideExpand 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.expand-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 620px) {
+  .expand-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-block.luxury-block {
+  background: #FAF8F5;
+  border: 1px solid #ECE7E1;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: none;
+}
+
+.block-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #EAE4DC;
+}
+
+.block-header-icon {
+  color: var(--color-primary, #765337);
+}
+
+.block-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+.info-details-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.info-details-box .info-line {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  line-height: 1.5;
+  color: var(--color-text, #0A0A0A);
+}
+
+.info-label {
+  color: var(--color-text-secondary, #616161);
+  min-width: 95px;
+  font-size: 12.5px;
+}
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle, #EDEDED);
+}
+
+.section-header-row .section-heading {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.items-count-badge,
+.timeline-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+  background: var(--color-sub-bg, #FFF3E3);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid rgba(118, 83, 55, 0.18);
+}
+
+
+/* ========================================================= */
+/* LUXURY STATE-DRIVEN STATUS CARDS IN ORDER DETAIL DRAWER   */
+/* ========================================================= */
+.drawer-status-card {
+  border-radius: var(--radius-card, 12px);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+}
+
+.status-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.status-card-title-group {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 240px;
+}
+
+.status-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 3px 0;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.status-card-subtitle {
+  font-size: 13px;
+  color: var(--color-text-secondary, #616161);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.status-card-detail-box {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* 1. Trạng thái HỦY (CANCELLED) */
+.status-card-cancelled {
+  background: #FFF5F5;
+  border: 1px solid #FED7D7;
+  border-left: 4px solid var(--color-danger, #C42326);
+}
+
+.status-icon-wrap.icon-cancelled {
+  background: #FEE2E2;
+  color: var(--color-danger, #C42326);
+}
+
+.status-card-cancelled .status-card-title {
+  color: #991B1B;
+}
+
+.reason-box {
+  background: #FFFFFF;
+  border: 1px solid #FEE2E2;
+}
+
+.reason-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.reason-label {
+  font-weight: 600;
+  color: #991B1B;
+  white-space: nowrap;
+}
+
+.reason-content {
+  color: var(--color-text, #0A0A0A);
+}
+
+.reason-help-text {
+  font-size: 12px;
+  color: var(--color-text-secondary, #616161);
+  line-height: 1.45;
+  padding-top: 6px;
+  border-top: 1px dashed #FEE2E2;
+}
+
+.btn-reorder-compact {
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-reorder-compact:hover {
+  background: var(--color-primary-hover, #BC5F13);
+  transform: translateY(-1px);
+}
+
+/* 2. Trạng thái CHỜ THANH TOÁN / CHỜ CỌC */
+.status-card-waiting {
+  background: var(--color-sub-bg, #FFF3E3);
+  border: 1px solid #F5D3A6;
+  border-left: 4px solid var(--color-accent, #BC5F13);
+}
+
+.status-card-waiting .status-icon-wrap {
+  background: rgba(188, 95, 19, 0.12);
+  color: var(--color-accent, #BC5F13);
+}
+
+.status-card-waiting .status-card-title {
+  color: var(--color-accent, #BC5F13);
+}
+
+/* Timer Countdown Chip: Vuông vức, Màu nâu sang trọng chuẩn Luxury */
+.status-timer-chip,
+.status-timer-chip.luxury-timer-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(135deg, #765337 0%, #5E412A 100%);
+  border: 1px solid #4A3320;
+  border-radius: 4px;
+  /* Vuông vức dứt khoát */
+  padding: 8px 16px;
+  box-shadow: 0 4px 12px rgba(118, 83, 55, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.timer-chip-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.timer-chip-header .timer-icon {
+  color: #F2BF3D;
+  /* Vàng kim luxury */
+}
+
+.timer-chip-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #F2BF3D;
+  /* Vàng kim luxury */
+}
+
+.timer-chip-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.status-timer-chip.is-expiring {
+  background: linear-gradient(135deg, #8B1E1E 0%, #5C1212 100%);
+  border-color: #450B0B;
+  box-shadow: 0 4px 12px rgba(196, 35, 38, 0.28);
+}
+
+.status-timer-chip.is-expiring .timer-chip-label,
+.status-timer-chip.is-expiring .timer-chip-header .timer-icon {
+  color: #FFB4B4;
+}
+
+.status-timer-chip.is-expiring .timer-chip-value {
+  color: #FFFFFF;
+  animation: pulseExpiring 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseExpiring {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* 3. Trạng thái ĐÃ GIAO / HOÀN TẤT (DELIVERED) */
+.status-card-delivered {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-left: 4px solid var(--color-success, #00A30B);
+}
+
+.status-icon-wrap.icon-delivered {
+  background: #DCFCE7;
+  color: var(--color-success, #00A30B);
+}
+
+.status-card-delivered .status-card-title {
+  color: #166534;
+}
+
+.btn-warranty-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #FFFFFF;
+  color: var(--color-primary, #765337);
+  border: 1px solid rgba(118, 83, 55, 0.25);
+  border-radius: var(--radius-pill, 999px);
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-warranty-pill:hover {
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+}
+
+.delivered-confirm-notice {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #FFFFFF;
+  border: 1px solid #DCFCE7;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.confirm-notice-text {
+  font-size: 12.5px;
+  color: #166534;
+  font-weight: 500;
+}
+
+.btn-confirm-received-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-success, #00A30B);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-confirm-received-compact:hover {
+  background: #008709;
+}
+
+/* 4. Trạng thái ĐANG GIAO (SHIPPED) */
+.status-card-shipped {
+  background: #F0FDFA;
+  border: 1px solid #99F6E4;
+  border-left: 4px solid #0D9488;
+}
+
+.status-icon-wrap.icon-shipped {
+  background: #CCFBF1;
+  color: #0D9488;
+}
+
+.status-card-shipped .status-card-title {
+  color: #115E59;
+}
+
+.shipping-box {
+  background: #FFFFFF;
+  border: 1px solid #CCFBF1;
+}
+
+.shipping-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--color-text, #0A0A0A);
+}
+
+.tracking-span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 5. Trạng thái ĐANG CHUẨN BỊ (PROCESSING) */
+.status-card-processing {
+  background: #FAF5FF;
+  border: 1px solid #E9D5FF;
+  border-left: 4px solid #7C3AED;
+}
+
+.status-icon-wrap.icon-processing {
+  background: #F3E8FF;
+  color: #7C3AED;
+}
+
+.status-card-processing .status-card-title {
+  color: #5B21B6;
+}
+
+/* 6. Trạng thái CHỜ XÁC NHẬN (PENDING) */
+.status-card-pending {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-left: 4px solid #2563EB;
+}
+
+.status-icon-wrap.icon-pending {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+
+.status-card-pending .status-card-title {
+  color: #1E40AF;
+}
+
+
+/* ======================================================== */
+/* KHUNG THANH TOÁN CHUẨN ẢNH MẪU DCOR STUDIO               */
+/* ======================================================== */
+.status-card-waiting {
+  background: #FFFDF9;
+  border: 1.5px solid rgba(188, 95, 19, 0.32);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 10px rgba(118, 83, 55, 0.06);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* 1. Header trên cùng */
+.payment-card-top-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F0ECE6;
+}
+
+.top-header-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.top-header-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1A1A1A;
+  margin: 0;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+}
+
+.top-header-subtitle {
+  font-size: 12px;
+  color: #7A7A7A;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.top-header-countdown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1A1A1A;
+  background: #FFFFFF;
+  border: 1px solid #EAE3DB;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.top-header-countdown-badge .countdown-clock-icon {
+  color: #BC5F13;
+}
+
+.top-header-countdown-badge.countdown-danger {
+  color: #DC2626;
+  background: #FEE2E2;
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.top-header-countdown-badge.countdown-danger .countdown-clock-icon {
+  color: #DC2626;
+}
+
+/* 3. Hàng Số tiền cần thanh toán (Xếp ngang sang) */
+.payment-amount-horizontal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FAF8F5;
+  border: 1px solid #EAE3DB;
+  border-left: 4px solid #765337;
+  border-radius: 8px;
+  padding: 10px 14px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.amount-left-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.amount-left-meta .amount-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #765337;
+  letter-spacing: 0.3px;
+  line-height: 1.25;
+}
+
+.amount-left-meta .amount-sub-order-total {
+  font-size: 11.5px;
+  color: #8C827A;
+  line-height: 1.2;
+}
+
+.amount-right-value {
+  flex-shrink: 0;
+}
+
+.amount-right-value .amount-highlight-num {
+  font-size: 19px;
+  font-weight: 800;
+  color: #765337;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* 4. Khung trắng chia 2 cột: Quét mã QR & Thông tin nhận tiền */
+.payment-qr-info-card {
+  background: #FFFFFF;
+  border: 1px solid #EAE3DB;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 145px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+.col-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0 0 10px 0;
+}
+
+/* Cột trái: QR */
+.qr-preview-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-right: 14px;
+  border-right: 1px solid #F0ECE6;
+  box-sizing: border-box;
+}
+
+.qr-sample-box {
+  width: 105px;
+  height: 105px;
+  background: #FFFFFF;
+  border: 1px solid #EAE3DB;
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  margin-bottom: 8px;
+}
+
+.qr-sample-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.qr-scan-guide {
+  font-size: 10.5px;
+  color: #7A7A7A;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Cột phải: Thông tin ngân hàng */
+.bank-details-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bank-info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.info-field-label {
+  font-size: 10.5px;
+  color: #8C827A;
+  line-height: 1.2;
+}
+
+.info-field-val {
+  font-size: 12.5px;
+  color: #1A1A1A;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.acc-number-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.acc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.acc-number-field .highlight-acc {
+  font-size: 14px;
+  font-weight: 800;
+  color: #765337;
+  letter-spacing: 0.5px;
+}
+
+.btn-copy-acc {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFFFFF;
+  color: #765337;
+  border: 1px solid #765337;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-copy-acc:hover {
+  background: #765337;
+  color: #FFFFFF;
+}
+
+.bank-info-footer-hint {
+  font-size: 10px;
+  color: #8C827A;
+  margin-top: 2px;
+}
+
+/* 5. Khung: Nội dung chuyển khoản bắt buộc */
+.payment-memo-card {
+  background: #FFFFFF;
+  border: 1.5px solid rgba(188, 95, 19, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.memo-card-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+.memo-code-banner {
+  background: #FAF8F5;
+  border: 1px dashed rgba(188, 95, 19, 0.4);
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.memo-code-text {
+  font-size: 17px;
+  font-weight: 800;
+  color: #765337;
+  letter-spacing: 0.8px;
+}
+
+.btn-memo-copy-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #765337;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.btn-memo-copy-cta:hover {
+  background: #BC5F13;
+}
+
+.memo-auto-hint {
+  font-size: 10.5px;
+  color: #8C827A;
+  margin: 0;
+}
+
+/* 6. Khung: Lưu ý khi thanh toán */
+.payment-notes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.notes-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #4A4A4A;
+  line-height: 1.4;
+}
+
+.note-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.note-icon-success {
+  color: #00A30B;
+}
+
+.note-icon-primary {
+  color: #765337;
+}
+
+.note-icon-clock {
+  color: #BC5F13;
+}
+
+.inst-icon.success-icon {
+  color: #00A30B;
+}
+
+.inst-icon.primary-icon {
+  color: #765337;
+}
+
+.inst-icon.warn-icon {
+  color: #BC5F13;
+}
+
+@media (max-width: 640px) {
+  .payment-two-col-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-qr-col {
+    width: 100%;
+  }
+}
+
+
+/* Nút Đánh giá sản phẩm trên Order Card & Drawer */
+.btn-review-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  border: 1.5px solid rgba(118, 83, 55, 0.3);
+  border-radius: var(--radius-control, 8px);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-review-card:hover {
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+  border-color: var(--color-primary, #765337);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.2);
+}
+
+.btn-review-card lucide-angular {
+  color: var(--color-warning, #F2BF3D);
+  fill: var(--color-warning, #F2BF3D);
+}
+
+.btn-review-card:hover lucide-angular {
+  color: #FFFFFF;
+  fill: #FFFFFF;
+}
+
+.btn-review-drawer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  border: 1.5px solid rgba(118, 83, 55, 0.3);
+  border-radius: var(--radius-control, 8px);
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-review-drawer:hover {
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+  border-color: var(--color-primary, #765337);
+  transform: translateY(-1px);
+}
+
+.btn-review-drawer lucide-angular {
+  color: var(--color-warning, #F2BF3D);
+  fill: var(--color-warning, #F2BF3D);
+}
+
+.btn-review-drawer:hover lucide-angular {
+  color: #FFFFFF;
+  fill: #FFFFFF;
+}
+
+
+.topbar-payment-prompt {
+  color: var(--color-danger, #C42326);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-left: 2px;
+}
+
+@media (max-width: 768px) {
+  .topbar-status {
+    flex-wrap: wrap;
+  }
+
+  .topbar-payment-prompt {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 2px;
+  }
+}
+
+/* ========================================================================== */
+/* ORDER DETAIL DRAWER — BÀI TRÍ THEO CHUẨN CART DRAWER & DCOR STYLE GUIDE  */
+/* ========================================================================== */
+.drawer-content {
+  max-width: 520px !important;
+}
+
+.drawer-header {
+  padding: 12px 18px !important;
+  background: var(--color-surface, #FFFFFF) !important;
+  border-bottom: 1px solid var(--color-border, #E0E0E0) !important;
+  box-shadow: none !important;
+  color: var(--color-text, #0A0A0A) !important;
+}
+
+.drawer-title-row {
+  margin-bottom: 4px !important;
+  gap: 8px !important;
+}
+
+.drawer-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: var(--color-text, #0A0A0A) !important;
+  letter-spacing: -0.2px !important;
+}
+
+.drawer-subtitle {
+  font-size: 12px !important;
+  color: var(--color-text-secondary, #616161) !important;
+}
+
+.drawer-subtitle strong {
+  color: var(--color-text, #0A0A0A) !important;
+}
+
+.drawer-close {
+  background: none !important;
+  border: none !important;
+  font-size: 20px !important;
+  color: var(--color-text-muted, #757575) !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+}
+
+.drawer-close:hover {
+  background: var(--color-surface-subtle, #F5F5F5) !important;
+  color: var(--color-text, #0A0A0A) !important;
+  transform: none !important;
+}
+
+.drawer-body {
+  padding: 14px 18px !important;
+}
+
+.drawer-section {
+  padding: 14px 16px !important;
+  margin-bottom: 12px !important;
+  border-radius: var(--radius-card, 12px) !important;
+}
+
+.section-heading {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  margin: 0 0 10px 0 !important;
+  padding-bottom: 6px !important;
+}
+
+.order-items-table {
+  border: 1px solid var(--color-border, #E0E0E0) !important;
+  border-radius: 8px !important;
+}
+
+.table-row-item {
+  padding: 10px 12px !important;
+  gap: 12px !important;
+}
+
+.item-col-img {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 6px !important;
+}
+
+.table-item-name {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  margin: 0 0 2px 0 !important;
+}
+
+.table-item-variant {
+  font-size: 11.5px !important;
+  margin: 0 0 2px 0 !important;
+}
+
+.table-item-sku {
+  font-size: 11px !important;
+}
+
+.item-col-price .unit-price {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--color-primary, #765337) !important;
+}
+
+.item-col-total {
+  width: 90px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+}
+
+.finance-summary {
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.finance-row {
+  font-size: 12.5px !important;
+  margin-bottom: 6px !important;
+}
+
+.finance-row.grand-total {
+  font-size: 14.5px !important;
+  padding-top: 8px !important;
+  margin-top: 8px !important;
+}
+
+.finance-row.grand-total .highlight {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+.info-block {
+  padding: 12px 16px !important;
+  font-size: 12.5px !important;
+  border-radius: var(--radius-card, 12px) !important;
+}
+
+.drawer-status-card {
+  padding: 12px 16px !important;
+  margin-bottom: 12px !important;
+  border-radius: var(--radius-card, 12px) !important;
+}
+
+.status-card-title {
+  font-size: 14px !important;
+}
+
+.status-card-subtitle {
+  font-size: 12px !important;
+}
+
+/* ==========================================================================
+   Pending Confirmed Payment Status Card
+   ========================================================================== */
+.status-card-pending-confirmed {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 16px !important;
+  background: #F0FDF4 !important;
+  border: 1px solid #BBF7D0 !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  margin-bottom: 20px !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.08) !important;
+}
+
+.pending-confirmed-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #DCFCE7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pending-confirmed-body {
+  flex: 1;
+}
+
+.pending-confirmed-title {
+  margin: 0 0 4px 0 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #166534 !important;
+}
+
+.pending-confirmed-desc {
+  margin: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: #15803D !important;
 }

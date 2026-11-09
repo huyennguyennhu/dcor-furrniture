@@ -111,26 +111,17 @@
 
 
         <div *ngIf="!isLoading && isLoggedIn" class="profile-main-content">
-          <!-- Member Tier Card -->
-          <div class="member-tier-card" [ngClass]="profile?.memberBadge?.toLowerCase() || 'bronze'">
-            <div class="tier-card-left">
-              <span class="tier-card-label">HẠNG THÀNH VIÊN DCOR</span>
-              <h3 class="tier-card-name">{{ profile?.memberTier || 'Đồng' }}</h3>
-              <p class="tier-card-desc">Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor.</p>
-            </div>
-            <div class="tier-card-right">
-              <div class="points-circle">
-                <span class="points-val">{{ (profile?.rewardPoints || 0) | number }}</span>
-                <span class="points-label">Điểm Dcor</span>
-              </div>
-            </div>
-          </div>
-
           <!-- KHỐI 1: THÔNG TIN CÁ NHÂN (CHI TIẾT TÀI KHOẢN) -->
           <div class="form-card">
             <div class="card-header-row">
               <div class="card-title-group">
-                <h3 class="card-title">Chi tiết tài khoản</h3>
+                <div class="title-with-tier">
+                  <h3 class="card-title">Chi tiết tài khoản</h3>
+                  <span class="title-tier-divider">|</span>
+                  <span class="inline-member-tier-text" [title]="'Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor'">
+                    Hạng {{ profile?.memberTier || 'Kim Cương' }}: <strong class="tier-points-num">{{ (profile?.rewardPoints || 0) | number }} điểm</strong>
+                  </span>
+                </div>
                 <p class="card-subtitle">Thông tin định danh và liên hệ chính của bạn.</p>
               </div>
 
@@ -375,7 +366,7 @@
                 <p class="card-subtitle">
                   {{ hasPassword 
                     ? 'Để tăng cường bảo mật, mật khẩu mới cần có tối thiểu 8 ký tự bao gồm cả chữ cái và chữ số.' 
-                    : 'Tài khoản chưa có mật khẩu truyền thống. Thiết lập mật khẩu để có thể đăng nhập bằng số điện thoại hoặc email.' 
+                    : 'Tài khoản chưa có mật khẩu truyền thống. Thiết lập mật khẩu để có thể đăng nhập bằng số điện thoại.' 
                   }}
                 </p>
               </div>
@@ -413,22 +404,7 @@
               </div>
             </div>
 
-            <!-- Trạng thái khi chưa bấm Chỉnh sửa mật khẩu -->
-            <div *ngIf="!isPasswordEditMode" class="security-status-box">
-              <div class="status-icon-wrap">
-                <lucide-angular [img]="icons.LockKeyhole" size="20" color="#765337"></lucide-angular>
-              </div>
-              <div class="status-text-wrap">
-                <div class="status-headline">
-                  <strong>{{ hasPassword ? 'Mật khẩu tài khoản đã được thiết lập & bảo vệ an toàn' : 'Tài khoản chưa có mật khẩu đăng nhập' }}</strong>
-                </div>
-                <p class="status-sub">
-                  {{ hasPassword 
-                    ? 'Vui lòng nhấn nút "Chỉnh sửa" ở góc trên bên phải để thay đổi mật khẩu đăng nhập của bạn.' 
-                    : 'Vui lòng nhấn nút "Thiết lập mật khẩu" ở góc trên bên phải để tạo mật khẩu đăng nhập.' }}
-                </p>
-              </div>
-            </div>
+
 
             <form (submit)="changePassword(); $event.preventDefault()" class="password-form">
               <div [ngClass]="hasPassword ? 'form-grid-3' : 'form-grid-2'">

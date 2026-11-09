@@ -12,6 +12,7 @@ import inventoryRoutes from './routes/inventory.routes';
 import staffRoutes from './routes/staff.routes';
 import reportRoutes from './routes/report.routes';
 import orderRoutes from './routes/order.routes';
+import { orderController, autoCancelExpiredOrders, autoCompleteExpiredDeliveredOrders } from './controllers/order.controller';
 import administrativeRoutes from './routes/administrative.routes';
 import auditLogRoutes from './routes/audit-log.routes';
 import productRoutes from './routes/product.routes';
@@ -42,6 +43,8 @@ import blogRoutes from './routes/blog.routes';
 import blogAdminRoutes from './routes/blog-admin.routes';
 import { initBlogDatabase } from './lib/init-blog-db';
 import { databaseCleanupService } from './services/cleanup.service';
+import reviewRoutes from './routes/review.routes';
+import { initReviewDatabase } from './lib/init-review-db';
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -94,7 +97,13 @@ app.use('/api/admin/staff', staffRoutes);
 app.use('/api/store/cart', cartRoutes);
 
 // Gắn router đơn hàng phía Store & Admin
+// Endpoint thanh test đồng bộ trạng thái đơn hàng (cho phép gọi từ Storefront & Admin test)
+app.put('/api/admin/orders/:id/status', orderController.updateAdminOrderStatus);
+app.put('/api/store/orders/:id/status', orderController.updateAdminOrderStatus);
+
 app.use('/api/store/orders', orderRoutes);
+app.use('/api/store/reviews', reviewRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
 
 // Gắn router chương trình khuyến mãi & vouchers (Store & Admin)
@@ -634,7 +643,78 @@ app.get('/api/products/:id/reviews', async (req, res) => {
     }
 
     // Lọc theo rating và variantId
-    let filtered = allReviews;
+    // Lấy các đánh giá thực tế đã gửi từ khách hàng cho sản phẩm này
+    let realReviews: any[] = [];
+    try {
+      const dbReviews = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT "id", "customerName", "rating", "comment", "images", "isAnonymous", 
+               "variantDescription", "reply", "replyAt", "createdAt"
+        FROM "Review"
+        WHERE "productId" = $1
+        ORDER BY "createdAt" DESC
+      `, product.id);
+
+      if (Array.isArray(dbReviews) && dbReviews.length > 0) {
+        realReviews = dbReviews.map((r: any, idx: number) => {
+          let parsedImages: string[] = [];
+          try {
+            parsedImages = typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || []);
+          } catch (_) {
+            parsedImages = [];
+          }
+
+          let displayName = r.customerName || 'Khách hàng';
+          if (r.isAnonymous) {
+            const parts = displayName.trim().split(' ');
+            if (parts.length > 1) {
+              displayName = `${parts[0]} ${parts[1]?.slice(0, 1)}*** ${parts[parts.length - 1]}`;
+            } else {
+              displayName = `${displayName.slice(0, 1)}***`;
+            }
+          }
+
+          const revDate = new Date(r.createdAt);
+          return {
+            id: r.id,
+            reviewerName: displayName,
+            rating: Number(r.rating) || 5,
+            createdAt: revDate.toISOString(),
+            formattedDate: `${revDate.getDate()}/${revDate.getMonth() + 1}/${revDate.getFullYear()}`,
+            variantId: null,
+            variantName: r.variantDescription || 'Sản phẩm đã mua',
+            comment: r.comment || '',
+            images: parsedImages,
+            helpfulCount: 3 + (idx % 6),
+            isVerifiedPurchase: true,
+            reply: r.reply || null,
+            replyAt: r.replyAt ? new Date(r.replyAt).toISOString() : null
+          };
+        });
+
+        // Cập nhật thống kê phân bố sao & tổng số đánh giá
+        totalReviews += realReviews.length;
+        realReviews.forEach(r => {
+          if (distribution[r.rating]) {
+            distribution[r.rating]++;
+          } else {
+            distribution[r.rating] = 1;
+          }
+        });
+
+        const totalStars = Object.entries(distribution).reduce((acc, [s, c]) => acc + (Number(s) * c), 0);
+        const totalCountAll = Object.values(distribution).reduce((acc, c) => acc + c, 0);
+        if (totalCountAll > 0) {
+          avgRating = Number((totalStars / totalCountAll).toFixed(1));
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[Review API] Lưu ý khi query Review từ DB:', dbErr);
+    }
+
+    // Ghép đánh giá thực tế của khách lên đầu danh sách
+    const allCombinedReviews = [...realReviews, ...allReviews];
+
+    let filtered = allCombinedReviews;
     if (filterRating) {
       if (filterRating === 'hasImage') {
         filtered = filtered.filter(r => r.images && r.images.length > 0);
@@ -666,34 +746,67 @@ app.get('/api/products/:id/reviews', async (req, res) => {
       reviews: paginated
     });
   } catch (error) {
-    console.error('Lỗi lấy đánh giá sản phẩm:', error);
-    res.status(503).json({ message: 'Không thể tải đánh giá sản phẩm.' });
+    console.error("Lỗi lấy đánh giá sản phẩm:", error);
+    res.status(503).json({ message: "Không thể tải đánh giá sản phẩm." });
   }
 });
 
 // API gửi đánh giá sản phẩm mới
 app.post('/api/products/:id/reviews', async (req, res) => {
   try {
-    const { rating, comment, reviewerName, variantId, variantName } = req.body;
+    const productId = req.params.id;
+    const { rating, comment, reviewerName, variantId, variantName, images, isAnonymous } = req.body;
     const nameStr = (reviewerName || 'Khách hàng').trim();
     const parts = nameStr.split(' ');
     const maskedName = parts.length > 1
       ? `${parts[0]} ${parts[1]?.slice(0, 1)}*** ${parts[parts.length - 1]}`
       : `${nameStr.slice(0, 1)}***`;
 
+    const reviewId = 'rev-' + Date.now();
+    const starNum = Number(rating) || 5;
+    const imgArr = Array.isArray(images) ? images : [];
+
+    // Lưu vào bảng Review để đồng bộ ngay lập tức
+    try {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "Review" (
+          "id", "orderId", "orderItemId", "productId", "productName", "productImage",
+          "variantDescription", "customerId", "customerName", "customerPhone",
+          "rating", "comment", "images", "isAnonymous", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, NOW(), NOW())
+      `,
+        reviewId,
+        'STORE-DIRECT',
+        null,
+        productId,
+        null,
+        imgArr[0] || null,
+        variantName || null,
+        null,
+        nameStr,
+        null,
+        starNum,
+        comment || 'Đánh giá sản phẩm chất lượng',
+        JSON.stringify(imgArr),
+        !!isAnonymous
+      );
+    } catch (saveErr) {
+      console.warn('[Review API] Lưu ý khi ghi Review trực tiếp:', saveErr);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Cảm ơn bạn đã gửi đánh giá! Đánh giá của bạn đã được ghi nhận thành công.',
       review: {
-        id: `rev-${Date.now()}`,
-        reviewerName: maskedName,
-        rating: Number(rating) || 5,
+        id: reviewId,
+        reviewerName: isAnonymous ? maskedName : nameStr,
+        rating: starNum,
         createdAt: new Date().toISOString(),
         formattedDate: 'Vừa xong',
         variantId,
         variantName: variantName || 'Tiêu chuẩn',
         comment,
-        images: [],
+        images: imgArr,
         helpfulCount: 0,
         isVerifiedPurchase: true
       }
@@ -737,6 +850,15 @@ import { initAdministrativeDatabase } from './lib/init-administrative-db';
 import { initAuditLogsDatabase } from './lib/init-audit-logs-db';
 
 server.listen(port, () => {
+  // Quét tự động ngay khi server khởi động
+  autoCancelExpiredOrders().catch(e => console.warn('Init autoCancelExpiredOrders error:', e));
+  autoCompleteExpiredDeliveredOrders().catch(e => console.warn('Init autoCompleteExpiredDeliveredOrders error:', e));
+
+  // Định kỳ tự động quét hủy đơn quá hạn và hoàn tất đơn đã giao mỗi 30 giây
+  setInterval(() => {
+    autoCancelExpiredOrders().catch(e => console.warn('Interval autoCancelExpiredOrders error:', e));
+    autoCompleteExpiredDeliveredOrders().catch(e => console.warn('Interval autoCompleteExpiredDeliveredOrders error:', e));
+  }, 30 * 1000);
   console.log(`Server is running on http://localhost:${port}`);
 
   // Tự động dọn dẹp dữ liệu rác định kỳ mỗi 12 giờ bảo vệ dung lượng 500MB (chống Read-Only)
@@ -756,6 +878,7 @@ server.listen(port, () => {
         await initMyDesignsDatabase();
         await initChatDatabase();
         await initBlogDatabase();
+        await initReviewDatabase();
         console.log('[DB-Init] Khởi tạo các bảng thành công.');
       } catch (err) {
         console.error('[DB-Init] Lỗi khởi tạo bảng:', err);

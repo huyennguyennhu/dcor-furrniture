@@ -23,79 +23,40 @@
             <h1 class="page-title">Sản phẩm yêu thích</h1>
             <p class="page-subtitle">Danh sách các món đồ nội thất bạn đã lưu lại để cân nhắc và mua sắm.</p>
           </div>
-          <span *ngIf="wishlistItems.length > 0" class="items-count-badge">
-            {{ wishlistItems.length }} sản phẩm
+          <span *ngIf="!isLoading && wishlistProducts.length > 0" class="items-count-badge">
+            {{ wishlistProducts.length }} sản phẩm
           </span>
         </div>
 
-        <!-- Toast notification -->
-        <div *ngIf="toastMessage" class="toast-banner">
-          <lucide-angular [img]="icons.Check" size="18"></lucide-angular>
-          <span>{{ toastMessage }}</span>
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="loading-state-box">
+          <div class="spinner"></div>
+          <p>Đang tải danh sách sản phẩm yêu thích...</p>
         </div>
 
-        <!-- Empty State -->
-        <div *ngIf="wishlistItems.length === 0" class="empty-state-box">
-          <lucide-angular [img]="icons.Heart" size="56" class="empty-icon"></lucide-angular>
-          <h3>Danh sách yêu thích trống</h3>
-          <p>Bạn chưa lưu sản phẩm nào. Hãy khám phá các thiết kế sofa, bàn ăn, giường ngủ cao cấp tại Dcor!</p>
-          <a routerLink="/explore" class="cta-btn shop-btn">Khám phá sản phẩm ngay</a>
-        </div>
-
-        <!-- Wishlist Grid -->
-        <div *ngIf="wishlistItems.length > 0" class="wishlist-grid">
-          <div *ngFor="let item of wishlistItems" class="wishlist-card">
-            <!-- Image & Link -->
-            <div class="card-img-wrap">
-              <a [routerLink]="['/products', item.productId]" class="img-link">
-                <img [src]="item.image || 'assets/placeholder.png'" [alt]="item.name" class="product-img" />
-              </a>
-
-              <!-- Remove heart button -->
-              <button 
-                type="button" 
-                class="remove-heart-btn" 
-                title="Bỏ yêu thích"
-                (click)="removeFromWishlist(item, $event)">
-                <lucide-angular [img]="icons.Heart" size="18" style="fill: #C42326; stroke: #C42326;"></lucide-angular>
-              </button>
-
-              <!-- Stock Tag if available -->
-              <span *ngIf="item.inStock !== false" class="stock-tag in-stock">Còn hàng</span>
-              <span *ngIf="item.inStock === false" class="stock-tag out-of-stock">Tạm hết</span>
-            </div>
-
-            <!-- Content -->
-            <div class="card-body">
-              <span class="card-category">{{ item.categoryName || 'Nội thất DCor' }}</span>
-              <h4 class="card-name">
-                <a [routerLink]="['/products', item.productId]">{{ item.name }}</a>
-              </h4>
-
-              <div class="price-wrap">
-                <span class="price-current">{{ formatCurrency(item.price) }}</span>
-                <span *ngIf="item.originalPrice && item.originalPrice > item.price" class="price-original">
-                  {{ formatCurrency(item.originalPrice) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Card Actions -->
-            <div class="card-footer">
-              <button 
-                type="button" 
-                class="btn-add-cart" 
-                [disabled]="item.inStock === false"
-                (click)="addToCart(item, $event)">
-                <lucide-angular [img]="icons.ShoppingCart" size="16"></lucide-angular>
-                <span>Thêm vào giỏ hàng</span>
-              </button>
-            </div>
+        <!-- Empty State: Icon căn giữa chuẩn xác, không bị lệch -->
+        <div *ngIf="!isLoading && wishlistProducts.length === 0" class="empty-state-box">
+          <div class="empty-icon-circle">
+            <lucide-angular [img]="icons.Heart" size="42" class="empty-icon"></lucide-angular>
           </div>
+          <h3 class="empty-title">Danh sách yêu thích trống</h3>
+          <p class="empty-desc">Bạn chưa lưu sản phẩm nào. Hãy khám phá các thiết kế sofa, bàn ăn, giường ngủ cao cấp tại Dcor!</p>
+          <a routerLink="/products" class="cta-btn shop-btn">Khám phá sản phẩm ngay</a>
+        </div>
+
+        <!-- Wishlist Grid: Sử dụng trực tiếp app-product-card chuẩn như bên ngoài, với icon tim được tô đậm -->
+        <div *ngIf="!isLoading && wishlistProducts.length > 0" class="wishlist-grid">
+          <app-product-card
+            *ngFor="let prod of wishlistProducts; trackBy: trackByProductId"
+            [product]="prod"
+            [showWishlist]="true"
+            [showCompare]="true"
+            [showQuickView]="true"
+            [showBuyButton]="true">
+          </app-product-card>
         </div>
 
       </main>
     </div>
-
   </div>
 </div>

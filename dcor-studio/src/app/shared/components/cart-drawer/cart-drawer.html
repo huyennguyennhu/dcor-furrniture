@@ -1,6 +1,6 @@
 <div class="cart-drawer-overlay" [class.active]="isOpen" (click)="closeDrawer()">
 
-  <!-- Sidebar Chỉnh sửa biến thể (nằm cạnh giỏ hàng bên trái như hình minh họa) -->
+  <!-- Sidebar Chỉnh sửa biến thể (Mở song song bên cạnh giỏ hàng bên trái theo chuẩn Xem Nhanh) -->
   <aside
     *ngIf="isVariantDrawerOpen"
     class="drawer-variant-sidebar"
@@ -18,7 +18,7 @@
       </button>
     </div>
 
-    <!-- Body Sidebar (Thiết kế như trang xem nhanh sản phẩm) -->
+    <!-- Body Sidebar (Thiết kế dropdown chuẩn phong cách tab Xem Nhanh) -->
     <div class="drawer-variant-body">
       <!-- 1. Khung xem trước hình ảnh sản phẩm (Gallery preview) -->
       <div class="variant-gallery-container">
@@ -66,6 +66,14 @@
           <span class="variant-price-val">{{ formatCurrency(selectedVariantDetails?.price || editingCartItem?.price || 0) }}</span>
           <span class="variant-price-unit">/ 1 sản phẩm</span>
         </div>
+        <div class="variant-stock-hint" *ngIf="selectedVariantDetails">
+          <span *ngIf="getVariantAvailableStock(selectedVariantDetails) > 0" class="stock-available">
+            Còn {{ getVariantAvailableStock(selectedVariantDetails) }} sản phẩm khả dụng
+          </span>
+          <span *ngIf="getVariantAvailableStock(selectedVariantDetails) <= 0" class="stock-out">
+            Tạm hết hàng
+          </span>
+        </div>
       </div>
 
       <!-- 3. Trạng thái tải / thông báo lỗi -->
@@ -74,40 +82,119 @@
         <div class="variant-skeleton-box" style="height: 48px; border-radius: 8px;"></div>
       </div>
 
-      <div *ngIf="variantErrorMessage" class="drawer-toast error" style="margin: 0;">
+      <div *ngIf="variantErrorMessage" class="drawer-toast error" style="margin: 0 0 12px 0;">
         <lucide-angular [img]="icons.AlertCircle" size="15"></lucide-angular>
         <span>{{ variantErrorMessage }}</span>
       </div>
 
-      <!-- 4. Danh sách các phiên bản / biến thể để chọn -->
-      <div *ngIf="!isLoadingProductVariants && availableVariantsForEdit.length > 0" class="drawer-variant-options-group">
-        <div class="variant-group-title">Chọn phiên bản / màu sắc / chất liệu:</div>
+      <!-- 4. KHỐI DROPDOWN BIẾN THỂ PHONG CÁCH CHUẨN TAB XEM NHANH -->
+      <div *ngIf="!isLoadingProductVariants && availableVariantsForEdit.length > 0" class="variant-dropdowns-section">
+        
+        <!-- Trường hợp 1: Có các nhóm thuộc tính (Kích thước, Màu sắc, Chất liệu...) -->
+        <ng-container *ngIf="variantAttributeGroups.length > 0">
+          <div class="field-group" *ngFor="let group of variantAttributeGroups">
+            <div class="field-label">
+              <span>{{ group.label }}</span>
+              <span class="variant-count-pill">{{ group.options.length }} lựa chọn</span>
+            </div>
 
-        <div class="variant-selection-cards">
-          <div
-            *ngFor="let v of availableVariantsForEdit"
-            class="variant-select-card"
-            [class.selected]="v.id === selectedVariantId"
-            [class.disabled]="v.isActive === false || (v.stock - (v.reservedStock || 0)) <= 0"
-            (click)="selectVariant(v)">
+            <div class="custom-select-box" [class.is-open]="openVariantDropdownGroupId === group.groupId">
+              <!-- Nút kích hoạt dropdown hiển thị option đang chọn -->
+              <div class="custom-select-trigger" (click)="toggleVariantDropdownGroup(group.groupId, $event)">
+                <!-- Swatch ảnh nếu có -->
+                <div class="trigger-thumb" *ngIf="getSelectedVariantOption(group)?.image">
+                  <img [src]="getSelectedVariantOption(group)?.image" [alt]="getSelectedVariantOption(group)?.name || ''" />
+                </div>
+                <!-- Swatch màu nếu có -->
+                <div class="trigger-color-swatch" *ngIf="!getSelectedVariantOption(group)?.image && getSelectedVariantOption(group)?.hexColor"
+                     [style.background-color]="getSelectedVariantOption(group)?.hexColor"></div>
 
-            <div class="vcard-left">
-              <span class="vcard-radio">
-                <span class="radio-dot" *ngIf="v.id === selectedVariantId"></span>
-              </span>
-              <div class="vcard-text">
-                <span class="vcard-name">{{ v.name }}</span>
-                <span class="vcard-stock">
-                  Tồn kho: {{ (v.stock - (v.reservedStock || 0)) > 0 ? (v.stock - (v.reservedStock || 0)) : 'Hết hàng' }}
-                </span>
+                <div class="trigger-content">
+                  <span class="trigger-name">{{ formatOptionDisplayName(getSelectedVariantOption(group)?.name, group) }}</span>
+                </div>
+                <lucide-angular [img]="icons.ChevronDown" size="16" class="trigger-chevron"></lucide-angular>
+              </div>
+
+              <!-- Menu thả xuống của nhóm thuộc tính này -->
+              <div class="custom-dropdown-menu" *ngIf="openVariantDropdownGroupId === group.groupId">
+                <div *ngFor="let opt of group.options" 
+                     class="dropdown-item" 
+                     [class.selected]="selectedVariantAttributes[group.groupId] === opt.id"
+                     (click)="selectVariantAttributeOption(group.groupId, opt.id, $event)">
+                  <!-- Swatch ảnh hoặc màu -->
+                  <div class="item-thumb" *ngIf="opt.image">
+                    <img [src]="opt.image" [alt]="opt.name" />
+                  </div>
+                  <div class="item-color-swatch" *ngIf="!opt.image && opt.hexColor"
+                       [style.background-color]="opt.hexColor"></div>
+
+                  <div class="item-info">
+                    <span class="item-title">{{ formatOptionDisplayName(opt.name, group) }}</span>
+                    <span class="item-subtitle" *ngIf="opt.groupName">{{ opt.groupName }}</span>
+                  </div>
+                  <lucide-angular *ngIf="selectedVariantAttributes[group.groupId] === opt.id" [img]="icons.Check" size="16" class="item-check-icon"></lucide-angular>
+                </div>
               </div>
             </div>
+          </div>
+        </ng-container>
 
-            <div class="vcard-right">
-              <span class="vcard-price">{{ formatCurrency(v.price) }}</span>
+        <!-- Trường hợp 2: Dropdown chọn Phiên bản / Biến thể trực tiếp -->
+        <ng-container *ngIf="variantAttributeGroups.length === 0">
+          <div class="field-group">
+            <div class="field-label">
+              <span>Chọn phiên bản / màu sắc</span>
+              <span class="variant-count-pill">{{ availableVariantsForEdit.length }} lựa chọn</span>
+            </div>
+
+            <div class="custom-select-box" [class.is-open]="isSingleVariantDropdownOpen">
+              <!-- Nút kích hoạt dropdown -->
+              <div class="custom-select-trigger" (click)="toggleSingleVariantDropdown($event)">
+                <div class="trigger-thumb" *ngIf="selectedVariantDetails?.image || editingCartItem?.image">
+                  <img [src]="selectedVariantDetails?.image || editingCartItem?.image" [alt]="selectedVariantDetails?.name || ''" />
+                </div>
+                <div class="trigger-content">
+                  <span class="trigger-name">{{ selectedVariantDetails?.name || 'Chọn phiên bản' }}</span>
+                  <span class="trigger-sub">{{ formatCurrency(selectedVariantDetails?.price || 0) }}</span>
+                </div>
+                <lucide-angular [img]="icons.ChevronDown" size="16" class="trigger-chevron"></lucide-angular>
+              </div>
+
+              <!-- Menu thả xuống -->
+              <div class="custom-dropdown-menu" *ngIf="isSingleVariantDropdownOpen">
+                <div
+                  *ngFor="let v of availableVariantsForEdit"
+                  class="dropdown-item"
+                  [class.selected]="v.id === selectedVariantId"
+                  [class.disabled]="v.isActive === false || getVariantAvailableStock(v) <= 0"
+                  (click)="selectVariantFromDropdown(v, $event)">
+
+                  <div class="item-thumb">
+                    <img [src]="v.image || editingCartItem?.image" [alt]="v.name" />
+                  </div>
+
+                  <div class="item-info">
+                    <span class="item-title">{{ v.name || 'Mặc định' }}</span>
+                    <div class="item-meta-row">
+                      <span class="item-price">{{ formatCurrency(v.price) }}</span>
+                      <span class="item-stock" [class.out-of-stock]="getVariantAvailableStock(v) <= 0">
+                        {{ getVariantAvailableStock(v) <= 0 ? 'Hết hàng' : ('Còn ' + getVariantAvailableStock(v)) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <lucide-angular
+                    *ngIf="v.id === selectedVariantId"
+                    [img]="icons.Check"
+                    size="16"
+                    class="item-check-icon">
+                  </lucide-angular>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </ng-container>
+
       </div>
 
       <div *ngIf="!isLoadingProductVariants && availableVariantsForEdit.length === 0" class="drawer-variant-empty">
@@ -122,11 +209,13 @@
         type="button"
         class="btn-confirm-variant"
         (click)="saveVariantChange()"
-        [disabled]="isLoadingProductVariants || !selectedVariantId">
+        [disabled]="isLoadingProductVariants || !selectedVariantId || (selectedVariantDetails && getVariantAvailableStock(selectedVariantDetails) <= 0)">
         Xác nhận thay đổi
       </button>
     </div>
   </aside>
+
+
 
   <!-- Sidebar Khuyến Mãi & Voucher (Mở song song bên cạnh giỏ hàng như Variant Sidebar) -->
   <aside
@@ -350,8 +439,8 @@
           class="custom-checkbox"
           [checked]="isAllSelected"
           (change)="toggleSelectAll()"
-          [disabled]="selectableItems.length === 0"
-          title="Chọn tất cả sản phẩm khả dụng" />
+          [disabled]="cartItems.length === 0"
+          title="Chọn tất cả sản phẩm" />
         <h2 class="cart-drawer-heading">Giỏ hàng của bạn</h2>
         <span *ngIf="totalItemsCount > 0" class="item-count-badge">{{ totalItemsCount }}</span>
       </div>
@@ -399,7 +488,8 @@
         <div
           *ngFor="let item of cartItems"
           class="cart-drawer-item-card"
-          [class.is-disabled]="item.isActive === false || (item.availableStock !== undefined && item.availableStock <= 0)">
+          
+          [class.is-disabled]="isItemOutOfStock(item)" [class.is-out-of-stock]="isItemOutOfStock(item)">
 
           <!-- Hàng tiêu đề thẻ: Checkbox + Icon + Tên sản phẩm + Xóa -->
           <div class="item-card-header">
@@ -409,13 +499,19 @@
                 class="custom-checkbox"
                 [checked]="isItemSelected(item)"
                 (change)="toggleSelectItem(item)"
-                [disabled]="item.isActive === false || (item.availableStock !== undefined && item.availableStock <= 0)"
-                [title]="item.unavailableReason ? item.unavailableReason : 'Chọn sản phẩm này để thanh toán'" />
+                title="Chọn sản phẩm này" />
               <lucide-angular [img]="icons.Building2" size="15" class="item-brand-icon"></lucide-angular>
               <a class="item-card-name" [routerLink]="['/products', item.productId]" (click)="closeDrawer()" [title]="item.name">
                 {{ item.name }}
               </a>
             </label>
+            <button
+              type="button"
+              class="item-remove-btn"
+              (click)="promptRemove(item)"
+              title="Xóa sản phẩm này khỏi giỏ hàng">
+              <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+            </button>
           </div>
 
           <!-- Khối thân sản phẩm: Ảnh bên trái + Nội dung (Đúng 2 hàng so với ảnh) bên phải -->
@@ -430,25 +526,27 @@
 
             <!-- Cột nội dung (Chỉ có 2 hàng) -->
             <div class="item-two-rows-col">
-              <!-- Hàng 1: Nút Biến Thể -->
-              <button
-                type="button"
-                class="variant-badge-btn"
-                (click)="openVariantDrawer(item)"
-                [disabled]="item.isProductActive === false"
-                title="Nhấn để chỉnh sửa biến thể">
-                <span class="variant-text">
-                  <ng-container *ngIf="item.variantTags && item.variantTags.length > 0">
-                    <ng-container *ngFor="let tag of item.variantTags; let isLast = last">
-                      {{ tag.value }}{{ !isLast ? ' | ' : '' }}
+              <!-- Hàng 1: Nút Mở Sidebar Biến Thể Bên Cạnh -->
+              <div class="cart-variant-select-box">
+                <button
+                  type="button"
+                  class="variant-badge-btn"
+                  (click)="openVariantDrawer(item, $event)"
+                  [disabled]="item.isProductActive === false"
+                  title="Nhấn để xem và đổi biến thể ở sidebar bên cạnh">
+                  <span class="variant-text">
+                    <ng-container *ngIf="item.variantTags && item.variantTags.length > 0">
+                      <ng-container *ngFor="let tag of item.variantTags; let isLast = last">
+                        {{ tag.value }}{{ !isLast ? ' | ' : '' }}
+                      </ng-container>
                     </ng-container>
-                  </ng-container>
-                  <ng-container *ngIf="(!item.variantTags || item.variantTags.length === 0)">
-                    {{ item.variantName || 'Tùy chọn mặc định' }}
-                  </ng-container>
-                </span>
-                <lucide-angular [img]="icons.ChevronDown" size="13"></lucide-angular>
-              </button>
+                    <ng-container *ngIf="(!item.variantTags || item.variantTags.length === 0)">
+                      {{ item.variantName || 'Tùy chọn mặc định' }}
+                    </ng-container>
+                  </span>
+                  <lucide-angular [img]="icons.ChevronDown" size="13" class="variant-chevron"></lucide-angular>
+                </button>
+              </div>
 
               <!-- Hàng 2: Giá 1 sản phẩm (không đổi dù tăng số lượng) & Bộ tăng giảm số lượng -->
               <div class="item-price-qty-row">
@@ -474,9 +572,9 @@
           </div>
 
           <!-- Cảnh báo nếu hết hàng hoặc ngừng kinh doanh -->
-          <div *ngIf="item.unavailableReason" class="unavailable-badge">
+          <div *ngIf="isItemOutOfStock(item)" class="unavailable-badge">
             <lucide-angular [img]="icons.AlertCircle" size="12"></lucide-angular>
-            <span>{{ item.unavailableReason }}</span>
+            <span>{{ item.unavailableReason || (item.availableStock !== undefined && item.availableStock <= 0 ? "Sản phẩm này tạm thời hết hàng" : "Sản phẩm tạm thời không khả dụng") }}</span>
           </div>
         </div>
       </ng-container>
@@ -598,6 +696,32 @@
         <div class="confirm-actions">
           <button class="btn-cancel" (click)="cancelDeleteSelected()">Hủy</button>
           <button class="btn-danger" (click)="confirmDeleteSelected()">Xóa tất cả</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Out of Stock Warning Modal -->
+    <div *ngIf="isOutOfStockModalOpen" class="confirm-modal-overlay" (click)="$event.stopPropagation()">
+      <div class="confirm-modal-box out-of-stock-modal-box">
+        <div class="confirm-danger-icon">
+          <lucide-angular [img]="icons.AlertTriangle" size="24" color="#C42326"></lucide-angular>
+        </div>
+        <h4>Sản phẩm tạm hết hàng</h4>
+        <p>Trong các sản phẩm bạn chọn, có <strong>sản phẩm đã hết tồn kho</strong>:</p>
+
+        <div class="out-of-stock-items-list">
+          <div *ngFor="let it of outOfStockItems" class="out-item-row">
+            <span class="out-item-name">• {{ it.name }}</span>
+            <span class="out-item-stock-tag">{{ it.unavailableReason || 'Hết hàng trong kho (0 cái)' }}</span>
+          </div>
+        </div>
+
+        <p class="out-of-stock-hint">Vui lòng bỏ chọn hoặc xóa sản phẩm này khỏi giỏ hàng trước khi tiếp tục đặt hàng & thanh toán.</p>
+
+        <div class="confirm-actions out-of-stock-actions">
+          <button type="button" class="btn-cancel" (click)="closeOutOfStockModal()">Đóng</button>
+          <button type="button" class="btn-unselect" (click)="unselectOutOfStockItems()">Bỏ chọn sản phẩm</button>
+          <button type="button" class="btn-danger" (click)="removeOutOfStockItems()">Xóa khỏi giỏ</button>
         </div>
       </div>
     </div>

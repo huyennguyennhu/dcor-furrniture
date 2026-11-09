@@ -322,8 +322,8 @@
           <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
         </button>
 
-        <!-- Icon tài khoản cá nhân cho khách vãng lai (Hover chỉ hiện Hồ sơ và Đơn hàng, Click hiện đầy đủ) -->
-        <div class="user-dropdown-wrapper guest-dropdown-wrapper"
+        <!-- Icon tài khoản cá nhân cho khách vãng lai (Chỉ hiện 2 mục: Hồ sơ cá nhân & Đơn hàng của tôi cả khi click và hover) -->
+        <div #guestDropdownWrapper class="user-dropdown-wrapper guest-dropdown-wrapper"
           (mouseenter)="onGuestMouseEnter()"
           (mouseleave)="onGuestMouseLeave()">
           <button class="icon-btn header-user-btn" (click)="toggleGuestUserMenu()" title="Tài khoản cá nhân">
@@ -339,42 +339,8 @@
               </span>
             </div>
             <ul>
-              <!-- 2 mục thiết yếu hiển thị cả khi hover và click -->
               <li><a routerLink="/account/profile" class="user-menu-item" (click)="closeGuestUserMenu()">Hồ sơ cá nhân</a></li>
               <li><a routerLink="/account/orders" class="user-menu-item" (click)="closeGuestUserMenu()">Đơn hàng của tôi</a></li>
-
-              <!-- Các mục còn lại CHỈ HIỆN KHI ẤN VÀO ICON -->
-              <ng-container *ngIf="isGuestMenuClicked">
-                <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="closeGuestUserMenu()">Sản phẩm yêu thích</a></li>
-                <li><a routerLink="/account/returns" class="user-menu-item" (click)="closeGuestUserMenu()">Yêu cầu đổi trả</a></li>
-                <li><a routerLink="/account/warranty" class="user-menu-item" (click)="closeGuestUserMenu()">Bảo hành sản phẩm</a></li>
-                <li><a routerLink="/account/appointments" class="user-menu-item" (click)="closeGuestUserMenu()">Lịch hẹn tư vấn</a></li>
-                <li><a routerLink="/account/custom-requests" class="user-menu-item" (click)="closeGuestUserMenu()">Đơn may đo & Custom</a></li>
-                <li>
-                  <button class="user-menu-item" (click)="toggleTheme(); closeGuestUserMenu()"
-                    style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 14px; color: var(--text-secondary);">
-                    <span>{{ theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối' }}</span>
-                    <app-icon name="Sun" size="15" *ngIf="theme === 'dark'"></app-icon>
-                    <app-icon name="Moon" size="15" *ngIf="theme === 'light'"></app-icon>
-                  </button>
-                </li>
-                <li>
-                  <button class="user-menu-item" (click)="openLoginModal(); closeGuestUserMenu()"
-                    style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--color-accent, #BC5F13); font-weight: 600; padding: 10px 16px; font-size: 14px; border-top: 1px solid var(--border-color); margin-top: 4px;">
-                    <app-icon name="UserRound" size="16"></app-icon>
-                    Đăng nhập / Đăng ký
-                  </button>
-                </li>
-              </ng-container>
-
-              <!-- Khi chỉ đang hover: Gợi ý bấm icon để xem đầy đủ -->
-              <li *ngIf="isGuestHovering && !isGuestMenuClicked" style="border-top: 1px solid var(--border-color); margin-top: 4px;">
-                <button type="button" class="user-menu-item" (click)="toggleGuestUserMenu()"
-                  style="width: 100%; background: none; border: none; cursor: pointer; font-size: 12px; color: var(--color-accent, #BC5F13); padding: 8px 16px; font-style: italic; display: flex; align-items: center; justify-content: space-between;">
-                  <span>Bấm vào icon để xem tất cả</span>
-                  <app-icon name="ChevronRight" size="12"></app-icon>
-                </button>
-              </li>
             </ul>
           </div>
         </div>

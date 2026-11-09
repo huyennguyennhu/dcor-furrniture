@@ -1,0 +1,273 @@
+<div class="account-page-container">
+  <div class="account-shell">
+    <div class="account-layout">
+      <!-- Sidebar Left Column -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
+
+      <!-- Main Content Column -->
+      <main class="content-column">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
+          <span class="breadcrumb-separator">/</span>
+          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Đánh giá đơn hàng</span>
+        </nav>
+
+        <!-- Header & Search Bar (Sắp xếp chuẩn như Đơn hàng của tôi) -->
+        <div class="orders-header-wrap">
+          <div class="header-text">
+            <h1 class="page-title">Đánh giá đơn hàng</h1>
+            <p class="page-subtitle">Chia sẻ trải nghiệm sử dụng thực tế của bạn để giúp cộng đồng DCor và nhận thêm điểm tích lũy thành viên.</p>
+          </div>
+
+          <!-- Search Box -->
+          <div *ngIf="canViewContent" class="search-box">
+            <lucide-angular [img]="icons.Search" size="18" class="search-icon"></lucide-angular>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Tìm theo mã đơn hoặc tên sản phẩm..."
+              [(ngModel)]="searchQuery" 
+              (input)="onSearchChange()" />
+            <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; onSearchChange()">×</button>
+          </div>
+        </div>
+
+        <!-- Banner xác thực số điện thoại cho khách vãng lai -->
+        <app-guest-phone-banner 
+          customTitle="Tra cứu đánh giá sản phẩm qua số điện thoại"
+          customDesc="Nhập và xác thực số điện thoại để xem danh sách sản phẩm chờ đánh giá và các nhận xét đã gửi của bạn."
+          (verified)="onGuestPhoneVerified($event)" 
+          (reset)="onGuestPhoneReset()">
+        </app-guest-phone-banner>
+
+        <!-- Chỉ hiển thị nội dung khi đã đăng nhập hoặc đã xác thực SĐT -->
+        <ng-container *ngIf="canViewContent">
+          <!-- Filter Tabs (Sắp xếp như các tab trong Đơn hàng của tôi) -->
+          <div class="order-tabs-bar">
+            <button 
+              type="button" 
+              class="tab-btn" 
+              [class.active]="activeTab === 'unreviewed'"
+              (click)="switchTab('unreviewed')">
+              <span>Chưa đánh giá</span>
+              <span class="tab-badge" [class.active-badge]="activeTab === 'unreviewed'">
+                {{ unreviewedList.length }}
+              </span>
+            </button>
+
+            <button 
+              type="button" 
+              class="tab-btn" 
+              [class.active]="activeTab === 'reviewed'"
+              (click)="switchTab('reviewed')">
+              <span>Đã đánh giá</span>
+              <span class="tab-badge" [class.active-badge]="activeTab === 'reviewed'">
+                {{ reviewedList.length }}
+              </span>
+            </button>
+          </div>
+
+          <!-- LOADING STATE -->
+          <div *ngIf="isLoading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Đang tải danh sách đánh giá...</p>
+          </div>
+
+          <!-- TAB 1: CHƯA ĐÁNH GIÁ -->
+          <div *ngIf="!isLoading && activeTab === 'unreviewed'" class="tab-content-area">
+            
+            <!-- EMPTY STATE -->
+            <div *ngIf="filteredUnreviewed.length === 0" class="empty-state-card">
+              <div class="empty-icon-circle">
+                <lucide-angular [img]="icons.Sparkles" size="36" class="sparkle-icon"></lucide-angular>
+              </div>
+              <h3 class="empty-title">Tuyệt vời! Bạn không có sản phẩm nào chờ đánh giá</h3>
+              <p class="empty-desc">
+                {{ searchQuery ? 'Không tìm thấy sản phẩm phù hợp với từ khóa.' : 'Tất cả các sản phẩm trong các đơn hàng đã nhận đều đã được bạn đánh giá. Mua sắm thêm để tiếp tục trải nghiệm sản phẩm Dcor nhé!' }}
+              </p>
+              <a routerLink="/explore" class="btn btn-primary" *ngIf="!searchQuery">
+                <lucide-angular [img]="icons.ShoppingBag" size="16"></lucide-angular>
+                <span>Khám phá sản phẩm DCor</span>
+              </a>
+            </div>
+
+            <!-- DANH SÁCH CHƯA ĐÁNH GIÁ -->
+            <div class="items-list-grid" *ngIf="filteredUnreviewed.length > 0">
+              <div class="pending-card" *ngFor="let item of filteredUnreviewed">
+                
+                <div class="pending-card-topbar">
+                  <div class="topbar-status">
+                    <span class="status-indicator-dot"></span>
+                    <span class="topbar-status-text">Chờ đánh giá</span>
+                  </div>
+                  <div class="topbar-meta">
+                    <span class="meta-date">Hoàn tất: {{ (item.orderCompletedAt || item.orderDate) | date:'dd/MM/yyyy' }}</span>
+                    <span class="meta-divider">|</span>
+                    <span class="meta-code">Đơn #{{ item.orderNumber }}</span>
+                  </div>
+                </div>
+
+                <div class="pending-card-body">
+                  <div class="item-thumb">
+                    <img *ngIf="item.productImage; else noImg" [src]="item.productImage" [alt]="item.productName" />
+                    <ng-template #noImg>
+                      <div class="no-img-box"><lucide-angular [img]="icons.ImageIcon" size="24"></lucide-angular></div>
+                    </ng-template>
+                  </div>
+                  <div class="item-details">
+                    <h4 class="item-title">{{ item.productName }}</h4>
+                    <p class="item-variant" *ngIf="item.variantDescription">
+                      Phân loại: <span>{{ item.variantDescription }}</span>
+                    </p>
+                    <div class="item-price-row">
+                      <span class="item-price">{{ item.price | number }}₫</span>
+                      <span class="item-qty">x{{ item.quantity }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pending-card-footer">
+                  <div class="reward-hint">
+                    <lucide-angular [img]="icons.Sparkles" size="14" class="hint-icon"></lucide-angular>
+                    <span>Nhận ngay +50 điểm tích lũy sau khi gửi đánh giá</span>
+                  </div>
+                  <div class="footer-actions">
+                    <a [routerLink]="['/account/orders']" [queryParams]="{ orderNumber: item.orderNumber }" class="btn-view-order" title="Xem chi tiết đơn hàng #{{ item.orderNumber }}">
+                      <lucide-angular [img]="icons.Package" size="15"></lucide-angular>
+                      <span>Xem đơn hàng</span>
+                    </a>
+                    <button type="button" class="btn-review-now" (click)="openReviewForProduct(item)">
+                      <lucide-angular [img]="icons.Star" size="16"></lucide-angular>
+                      <span>Đánh giá ngay</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 2: ĐÃ ĐÁNH GIÁ -->
+          <div *ngIf="!isLoading && activeTab === 'reviewed'" class="tab-content-area">
+            
+            <!-- EMPTY STATE -->
+            <div *ngIf="filteredReviewed.length === 0" class="empty-state-card">
+              <div class="empty-icon-circle">
+                <lucide-angular [img]="icons.Star" size="36" class="star-icon-empty"></lucide-angular>
+              </div>
+              <h3 class="empty-title">Bạn chưa có đánh giá nào</h3>
+              <p class="empty-desc">
+                {{ searchQuery ? 'Không tìm thấy đánh giá phù hợp với từ khóa.' : 'Các đánh giá bạn đã viết sẽ xuất hiện tại đây sau khi hoàn tất gửi đánh giá.' }}
+              </p>
+            </div>
+
+            <!-- DANH SÁCH ĐÃ ĐÁNH GIÁ -->
+            <div class="reviewed-list-grid" *ngIf="filteredReviewed.length > 0">
+              <div class="reviewed-card" *ngFor="let rev of filteredReviewed">
+                
+                <div class="reviewed-card-topbar">
+                  <div class="topbar-status">
+                    <span class="status-indicator-dot"></span>
+                    <span class="topbar-status-text">Đã đánh giá</span>
+                  </div>
+                  <div class="topbar-meta">
+                    <span class="meta-date">Đánh giá ngày: {{ rev.createdAt | date:'dd/MM/yyyy' }}</span>
+                    <span class="meta-divider">|</span>
+                    <span class="meta-code">Đơn #{{ rev.orderNumber }}</span>
+                  </div>
+                </div>
+
+                <div class="reviewed-card-body">
+                  <!-- THÔNG TIN SẢN PHẨM -->
+                  <div class="product-snippet">
+                  <div class="snippet-thumb">
+                    <img *ngIf="rev.productImage; else noImgSnippet" [src]="rev.productImage" [alt]="rev.productName" />
+                    <ng-template #noImgSnippet>
+                      <div class="no-img-box"><lucide-angular [img]="icons.ImageIcon" size="20"></lucide-angular></div>
+                    </ng-template>
+                  </div>
+                  <div class="snippet-meta">
+                    <h4 class="snippet-name">{{ rev.productName || 'Sản phẩm DCor' }}</h4>
+                    <p class="snippet-variant" *ngIf="rev.variantDescription">
+                      Phân loại: <span>{{ rev.variantDescription }}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- NỘI DUNG ĐÁNH GIÁ (SAO + COMMENT + ẢNH) -->
+                <div class="review-content-box">
+                  <div class="rating-stars-row">
+                    <div class="stars">
+                      <lucide-angular 
+                        *ngFor="let s of [1,2,3,4,5]" 
+                        [img]="icons.Star" 
+                        size="18" 
+                        class="star-display"
+                        [class.filled]="s <= rev.rating">
+                      </lucide-angular>
+                    </div>
+                    <span class="rating-score">{{ rev.rating }}/5 sao</span>
+                    <span class="anonymous-tag" *ngIf="rev.isAnonymous">Ẩn danh</span>
+                  </div>
+
+                  <p class="review-comment-text">{{ rev.comment }}</p>
+
+                  <!-- ATTACHED IMAGES GALLERY -->
+                  <div class="review-images-gallery" *ngIf="rev.images && rev.images.length > 0">
+                    <div 
+                      class="gallery-thumb" 
+                      *ngFor="let imgUrl of rev.images"
+                      (click)="openImagePreview(imgUrl)"
+                      title="Nhấn để xem ảnh kích thước lớn">
+                      <img [src]="imgUrl" alt="Ảnh thực tế sản phẩm" />
+                    </div>
+                  </div>
+
+                  <!-- PHẢN HỒI CỦA SHOP (NẾU CÓ) -->
+                  <div class="shop-reply-box" *ngIf="rev.reply">
+                    <div class="reply-header">
+                      <strong>Phản hồi từ DCor Furniture</strong>
+                      <span class="reply-date" *ngIf="rev.replyAt">{{ rev.replyAt | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                    <p class="reply-text">{{ rev.reply }}</p>
+                  </div>
+
+                </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </ng-container>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ĐÁNH GIÁ SẢN PHẨM -->
+<app-order-review-modal
+  [isOpen]="isReviewModalOpen"
+  [orderNumber]="reviewModalOrderNumber"
+  [items]="reviewModalItems"
+  (close)="closeReviewModal()"
+  (submitted)="onReviewSubmitted()">
+</app-order-review-modal>
+
+<!-- LIGHTBOX XEM ẢNH PHÓNG TO -->
+<div *ngIf="previewImageUrl" class="image-lightbox-backdrop" (click)="closeImagePreview()">
+  <div class="lightbox-content" (click)="$event.stopPropagation()">
+    <button type="button" class="btn-lightbox-close" (click)="closeImagePreview()">
+      <lucide-angular [img]="icons.X" size="24"></lucide-angular>
+    </button>
+    <img [src]="previewImageUrl" alt="Hình ảnh đánh giá phóng to" class="lightbox-img" />
+  </div>
+</div>
+

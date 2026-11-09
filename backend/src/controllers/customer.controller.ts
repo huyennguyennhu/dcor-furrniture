@@ -796,11 +796,11 @@ export const customerController = {
       if (customerId) orConditions.push({ customerId });
       if (customerPhone) orConditions.push({ phone: customerPhone.trim() });
 
-      // Lấy tất cả các đơn hàng đã giao hoặc hoàn tất
+      // Lấy tất cả các đơn hàng đã giao thành công hoặc hoàn tất (DELIVERED hoặc COMPLETED)
       const orders = await prisma.order.findMany({
         where: {
           OR: orConditions,
-          status: { in: ['DELIVERED'] }
+          status: { in: ['DELIVERED', 'COMPLETED'] }
         },
         include: {
           items: true
@@ -819,23 +819,51 @@ export const customerController = {
 
         const isExpired = now > expiryDate;
         const daysLeft = Math.max(0, Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        const totalDurationMs = expiryDate.getTime() - new Date(startDate).getTime();
+        const elapsedMs = Math.max(0, now.getTime() - new Date(startDate).getTime());
+        const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedMs / totalDurationMs) * 100)));
+
+        const cleanOrderDigits = (order.orderNumber || '').replace(/[^0-9]/g, '');
+        const defaultWarrantyCode = 'BH-' + (cleanOrderDigits.slice(-6) || '883921');
+        const warrantyCode = (order as any).warrantyCode || defaultWarrantyCode;
+
+        const customerAddress = [
+          order.detailAddress,
+          order.ward,
+          order.district,
+          order.province
+        ].filter(Boolean).join(', ');
 
         order.items.forEach(item => {
           warrantyItems.push({
             id: `WAR-${item.id}`,
             orderNumber: order.orderNumber,
+            warrantyCode,
+            productId: (item as any).productId || '',
             productName: item.productName,
-            sku: item.sku,
+            sku: item.sku || 'DCOR-' + (item.id || '').slice(0, 6).toUpperCase(),
             imageUrl: item.imageUrl,
             variantDescription: item.variantDescription,
+            price: Number(item.price) || 0,
+            quantity: item.quantity || 1,
             purchaseDate: order.createdAt,
             deliveredDate: startDate,
             warrantyPeriodMonths: 24,
             expiryDate: expiryDate.toISOString(),
             isExpired,
             daysLeft,
+            progressPercent,
             status: isExpired ? 'EXPIRED' : 'ACTIVE',
-            statusLabel: isExpired ? 'Hết hạn bảo hành' : 'Còn hiệu lực bảo hành'
+            statusLabel: isExpired ? 'Hết hạn bảo hành' : 'Còn hiệu lực bảo hành',
+            customerName: order.receiverName || 'Khách hàng',
+            customerPhone: order.phone,
+            customerAddress: customerAddress || 'Hồ Chí Minh, Việt Nam',
+            coverageTerms: [
+              'Bảo hành 24 - 36 tháng đối với khung xương gỗ tự nhiên và cấu trúc kim loại chịu lực.',
+              'Bảo hành 24 tháng đối với đệm mút và hệ thống lò xo đàn hồi chống lún sụt.',
+              'Bảo hành 12 - 24 tháng đối với bề mặt da cao cấp, vải nỉ và phụ kiện cơ học (ray trượt, bản lề giảm chấn).',
+              'Bảo dưỡng định kỳ miễn phí và hỗ trợ kỹ thuật tại nhà trọn đời.'
+            ]
           });
         });
       });
@@ -920,14 +948,29 @@ export const customerController = {
       if (date) {
         queryList = queryList.filter(a => a.date === date);
       }
-      if (appointmentType) {
-        queryList = queryList.filter(a => a.appointmentType === appointmentType);
-      }
-      if (appointmentType === 'SHOWROOM' && showroomAddress) {
-        queryList = queryList.filter(a => a.showroomAddress === showroomAddress);
-      }
 
+      // Khóa tất cả các khung giờ đã có khách hàng đặt trong ngày (dù là showroom hay online)
       const bookedSlots = Array.from(new Set(queryList.map(a => a.timeSlot)));
+
+      // RÀNG BUỘC THỜI GIAN THỰC: Nếu ngày tra cứu là hôm nay hoặc quá khứ, tự động khóa các khung giờ đã trôi qua
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (date && date <= todayStr) {
+        const masterSlots = ['09:00 - 10:30', '10:30 - 12:00', '14:00 - 15:30', '16:00 - 17:30', '19:00 - 20:30'];
+        const currentH = now.getHours();
+        const currentM = now.getMinutes();
+        for (const slot of masterSlots) {
+          if (date < todayStr) {
+            if (!bookedSlots.includes(slot)) bookedSlots.push(slot);
+          } else {
+            const [startPart] = slot.split(' - ');
+            const [h, m] = startPart.split(':').map(Number);
+            if (h < currentH || (h === currentH && m <= currentM)) {
+              if (!bookedSlots.includes(slot)) bookedSlots.push(slot);
+            }
+          }
+        }
+      }
 
       const allActiveBookings = inMemoryAppointments
         .filter(a => a.status !== 'CANCELLED')
@@ -962,6 +1005,28 @@ export const customerController = {
       const cleanPhone = normalizePhone(phone);
       const isShowroom = appointmentType !== 'ONLINE_3D';
       const selectedShowroom = isShowroom ? (showroomAddress || 'Showroom Dcor Quận 1 - 120 Hai Bà Trưng, P. Đa Kao, Q.1, TP.HCM') : undefined;
+
+      // RÀNG BUỘC THỜI GIAN THỰC: Không cho phép đặt lịch vào ngày hoặc khung giờ đã trôi qua
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (date < todayStr) {
+        res.status(400).json({ message: 'Không thể đặt lịch hẹn vào ngày trong quá khứ.' });
+        return;
+      }
+      if (date === todayStr) {
+        const [startPart] = timeSlot.split(' - ');
+        if (startPart) {
+          const [h, m] = startPart.split(':').map(Number);
+          const currentH = now.getHours();
+          const currentM = now.getMinutes();
+          if (h < currentH || (h === currentH && m <= currentM)) {
+            res.status(400).json({
+              message: `Khung giờ ${timeSlot} hôm nay đã trôi qua so với thời gian hiện tại. Vui lòng chọn khung giờ khác hoặc ngày tiếp theo.`
+            });
+            return;
+          }
+        }
+      }
 
       // RÀNG BUỘC 1: Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày
       const customerAlreadyBooked = inMemoryAppointments.some(a => 
@@ -1081,6 +1146,28 @@ export const customerController = {
           message: 'Lịch hẹn đã được duyệt hoặc không ở trạng thái Chờ xác nhận. Quý khách vui lòng liên hệ Hotline 1900 8888 nếu cần đổi thời gian.' 
         });
         return;
+      }
+
+      // RÀNG BUỘC THỜI GIAN THỰC: Không cho phép đổi sang ngày hoặc khung giờ đã trôi qua
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (date < todayStr) {
+        res.status(400).json({ message: 'Không thể dời lịch hẹn về ngày trong quá khứ.' });
+        return;
+      }
+      if (date === todayStr) {
+        const [startPart] = timeSlot.split(' - ');
+        if (startPart) {
+          const [h, m] = startPart.split(':').map(Number);
+          const currentH = now.getHours();
+          const currentM = now.getMinutes();
+          if (h < currentH || (h === currentH && m <= currentM)) {
+            res.status(400).json({
+              message: `Khung giờ ${timeSlot} hôm nay đã trôi qua so với thời gian hiện tại. Vui lòng chọn khung giờ khác hoặc ngày tiếp theo.`
+            });
+            return;
+          }
+        }
       }
 
       // Kiểm tra xem khách đã có lịch hẹn khác vào ngày mới này chưa

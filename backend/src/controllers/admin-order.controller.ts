@@ -629,11 +629,11 @@ export const adminOrderController = {
     }
   },
 
-  // 11. Ghi nhận đặt cọc
+  // 11. Ghi nhận đặt cọc & Xác nhận chuyển khoản
   recordDeposit: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id as string;
-      const { amount, staffName = 'Kế toán DCOR' } = req.body;
+      const { amount, staffName = 'Kế toán DCOR', type } = req.body;
 
       const existing = await prisma.order.findFirst({
         where: { OR: [{ id }, { orderNumber: id }] }
@@ -644,25 +644,28 @@ export const adminOrderController = {
         return;
       }
 
-      const depositNum = Number(amount) || Number(existing.depositRequired) || 0;
-      const newDepositPaid = Number(existing.depositPaid || 0) + depositNum;
       const totalNum = Number(existing.totalAmount || 0);
-      const isFullyPaid = newDepositPaid >= totalNum;
+      const isFull = type === 'FULL' || Number(amount) >= totalNum;
+      const depositNum = isFull ? totalNum : (Number(amount) || Number(existing.depositRequired) || Math.round(totalNum * 0.3));
+      const newDepositPaid = isFull ? totalNum : Math.max(Number(existing.depositPaid || 0), depositNum);
+      const isFullyPaid = isFull || newDepositPaid >= totalNum;
 
       const updated = await prisma.order.update({
         where: { id: existing.id },
         data: {
           depositPaid: BigInt(newDepositPaid),
           remainingAmount: BigInt(Math.max(0, totalNum - newDepositPaid)),
-          paymentStatus: isFullyPaid ? 'PAID' : (newDepositPaid > 0 ? 'PARTIAL' : 'UNPAID'),
+          paymentStatus: isFullyPaid ? 'PAID' : 'PARTIAL',
           paymentHoldReason: 'NONE',
           statusHistory: {
             create: {
               status: existing.status,
               actorType: 'STAFF',
               actorName: staffName,
-              action: 'Ghi nhận thanh toán cọc',
-              notes: `Đã thu số tiền cọc: ${depositNum.toLocaleString('vi-VN')}đ. Trạng thái thanh toán: ${isFullyPaid ? 'Đã thanh toán đủ' : 'Đã cọc một phần'}`
+              action: isFullyPaid ? 'Xác nhận thanh toán trực tuyến' : 'Ghi nhận thanh toán cọc',
+              notes: isFullyPaid
+                ? `Kế toán đã đối soát nhận đủ ${totalNum.toLocaleString('vi-VN')}đ. Đơn đủ điều kiện duyệt.`
+                : `Đã thu số tiền cọc: ${depositNum.toLocaleString('vi-VN')}đ (30%). Đơn đủ điều kiện duyệt.`
             }
           }
         },

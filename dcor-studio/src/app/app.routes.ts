@@ -111,6 +111,7 @@ export const routes: Routes = [
           { path: 'addresses', canActivate: [customerGuard], loadComponent: () => import('./features/account/pages/addresses/addresses').then(m => m.AccountAddressesComponent) },
           { path: 'orders', loadComponent: () => import('./features/account/pages/my-orders/my-orders').then(m => m.MyOrdersComponent) },
           { path: 'my-orders', redirectTo: 'orders', pathMatch: 'full' },
+          { path: 'reviews', loadComponent: () => import('./features/account/pages/reviews/reviews').then(m => m.AccountReviewsComponent) },
           { path: 'returns', loadComponent: () => import('./features/account/pages/returns/returns').then(m => m.AccountReturnsComponent) },
           { path: 'warranty', loadComponent: () => import('./features/account/pages/warranty/warranty').then(m => m.AccountWarrantyComponent) },
           { path: 'wishlist', loadComponent: () => import('./features/account/pages/wishlist/wishlist').then(m => m.WishlistComponent) },

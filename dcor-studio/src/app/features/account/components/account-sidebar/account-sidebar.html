@@ -15,11 +15,15 @@
       </p>
     </div>
 
-    <!-- Member Tier Badge (Chỉ hiện khi đã đăng nhập) -->
-    <div *ngIf="isLoggedIn" class="tier-badge" [ngClass]="profile?.memberBadge?.toLowerCase() || 'bronze'">
+    <!-- Member Tier Badge (Hover hiển thị dòng tích lũy điểm) -->
+    <div *ngIf="isLoggedIn" 
+         class="tier-badge has-tooltip" 
+         [ngClass]="profile?.memberBadge?.toLowerCase() || 'bronze'"
+         title="Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor">
       <span class="tier-icon">★</span>
       <span class="tier-text">Hạng {{ profile?.memberTier || 'Đồng' }}</span>
       <span class="tier-points">{{ (profile?.rewardPoints || 0) | number }} điểm</span>
+      <span class="tier-hover-tooltip">Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor</span>
     </div>
 
     <!-- Nút Đăng nhập cho Khách vãng lai -->
@@ -62,7 +66,18 @@
       <span class="nav-label">Đơn hàng của tôi</span>
     </a>
 
-    <!-- 4. Yêu cầu đổi trả -->
+    <!-- 4. Đánh giá đơn hàng -->
+    <a 
+      routerLink="/account/reviews" 
+      routerLinkActive="active" 
+      [routerLinkActiveOptions]="{ exact: false }"
+      class="nav-item">
+      <lucide-angular [img]="icons.Star" size="18" class="nav-icon"></lucide-angular>
+      <span class="nav-label">Đánh giá đơn hàng</span>
+      <span *ngIf="unreviewedCount > 0" class="order-badge unreviewed-badge">{{ unreviewedCount }}</span>
+    </a>
+
+    <!-- 5. Yêu cầu đổi trả -->
     <a 
       routerLink="/account/returns" 
       routerLinkActive="active" 
@@ -72,7 +87,7 @@
       <span class="nav-label">Yêu cầu đổi trả</span>
     </a>
 
-    <!-- 5. Bảo hành sản phẩm -->
+    <!-- 6. Bảo hành sản phẩm -->
     <a 
       routerLink="/account/warranty" 
       routerLinkActive="active" 
@@ -82,7 +97,7 @@
       <span class="nav-label">Bảo hành sản phẩm</span>
     </a>
 
-    <!-- 6. Sản phẩm yêu thích -->
+    <!-- 7. Sản phẩm yêu thích -->
     <a 
       routerLink="/account/wishlist" 
       routerLinkActive="active" 
@@ -92,7 +107,7 @@
       <span class="nav-label">Sản phẩm yêu thích</span>
     </a>
 
-    <!-- 7. Lịch hẹn tư vấn -->
+    <!-- 8. Lịch hẹn tư vấn -->
     <a 
       routerLink="/account/appointments" 
       routerLinkActive="active" 
@@ -102,7 +117,7 @@
       <span class="nav-label">Lịch hẹn tư vấn</span>
     </a>
 
-    <!-- 8. Đơn may đo & Custom -->
+    <!-- 9. Đơn may đo & Custom -->
     <a 
       routerLink="/account/custom-requests" 
       routerLinkActive="active" 
@@ -112,7 +127,7 @@
       <span class="nav-label">Đơn may đo & Custom</span>
     </a>
 
-    <!-- 9. Thông báo (Chỉ hiện cho tài khoản đăng nhập) -->
+    <!-- 10. Thông báo (Chỉ hiện cho tài khoản đăng nhập) -->
     <a *ngIf="isLoggedIn"
       routerLink="/account/notifications" 
       routerLinkActive="active" 

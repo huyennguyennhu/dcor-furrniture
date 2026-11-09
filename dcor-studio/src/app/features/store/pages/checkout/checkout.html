@@ -118,37 +118,20 @@
                 class="custom-textarea"></textarea>
             </div>
 
-              <!-- TẶNG QUÀ CHO NGƯỜI THÂN & ẨN GIÁ ĐƠN HÀNG -->
+              <!-- TÙY CHỌN: CÓ HIỂN THỊ GIÁ TIỀN TRÊN KIỆN HÀNG HAY KHÔNG -->
               <div class="gift-order-wrapper full-width">
                 <div class="gift-switch-card">
                   <div class="gift-switch-info">
                     <div class="gift-icon-badge">
-                      <lucide-angular [img]="icons.Gift" size="20" color="#765337"></lucide-angular>
+                      <lucide-angular [img]="icons.FileText" size="20" color="#765337"></lucide-angular>
                     </div>
                     <div class="gift-switch-texts">
-                      <span class="gift-title">Tặng quà cho người thân</span>
-                      <p class="gift-desc">Đơn hàng sẽ được đóng gói theo quy chuẩn quà tặng cao cấp của DCor.</p>
+                      <span class="gift-title">Hiển thị giá tiền trên kiện hàng</span>
+                      <p class="gift-desc">Bật để in chi tiết số tiền lên phiếu giao hàng; tắt nếu bạn muốn bảo mật giá trị đơn hàng với người nhận.</p>
                     </div>
                   </div>
                   <label class="toggle-switch">
-                    <input type="checkbox" [(ngModel)]="isGift" name="isGift" (change)="onGiftToggleChange()" />
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <!-- Khi nút Tặng quà bật -> Mở nút: Không hiện giá tiền trên đơn vận chuyển -->
-                <div *ngIf="isGift" class="hide-price-switch-card">
-                  <div class="gift-switch-info">
-                    <div class="gift-icon-badge">
-                      <lucide-angular [img]="icons.FileText" size="18" color="#765337"></lucide-angular>
-                    </div>
-                    <div class="gift-switch-texts">
-                      <span class="gift-sub-title">Không hiện giá tiền trên đơn vận chuyển</span>
-                      <p class="gift-desc">Bảo mật thông tin giá tiền với người nhận; hóa đơn kèm theo sẽ không hiển thị đơn giá.</p>
-                    </div>
-                  </div>
-                  <label class="toggle-switch">
-                    <input type="checkbox" [(ngModel)]="hideInvoicePrice" name="hideInvoicePrice" />
+                    <input type="checkbox" [(ngModel)]="showPriceOnInvoice" name="showPriceOnInvoice" (change)="onPriceVisibilityToggle()" />
                     <span class="toggle-slider"></span>
                   </label>
                 </div>
@@ -182,12 +165,9 @@
                 [class.active]="paymentMethod === 'BANK_TRANSFER'"
                 (click)="selectPaymentMethod('BANK_TRANSFER')">
                 <div class="opt-radio-col">
-                  <input 
-                    type="radio" 
-                    name="paymentMethod" 
-                    value="BANK_TRANSFER" 
-                    [checked]="paymentMethod === 'BANK_TRANSFER'"
-                    (click)="$event.stopPropagation(); selectPaymentMethod('BANK_TRANSFER')" />
+                  <div class="custom-radio-circle" [class.selected]="paymentMethod === 'BANK_TRANSFER'">
+                    <div class="radio-inner-dot" *ngIf="paymentMethod === 'BANK_TRANSFER'"></div>
+                  </div>
                 </div>
                 <div class="opt-content-col">
                   <div class="opt-top">
@@ -231,13 +211,9 @@
                 [class.disabled]="isHighValueOrder"
                 (click)="selectPaymentMethod('COD')">
                 <div class="opt-radio-col">
-                  <input 
-                    type="radio" 
-                    name="paymentMethod" 
-                    value="COD" 
-                    [checked]="paymentMethod === 'COD'"
-                    [disabled]="isHighValueOrder"
-                    (click)="$event.stopPropagation(); selectPaymentMethod('COD')" />
+                  <div class="custom-radio-circle" [class.selected]="paymentMethod === 'COD'" [class.disabled]="isHighValueOrder">
+                    <div class="radio-inner-dot" *ngIf="paymentMethod === 'COD'"></div>
+                  </div>
                 </div>
                 <div class="opt-content-col">
                   <div class="opt-top">
@@ -1157,14 +1133,14 @@
      POPUP 2: BẠN ĐÃ ĐẶT HÀNG THÀNH CÔNG, XEM ĐƠN HÀNG CỦA BẠN
      ============================================================ -->
 <div *ngIf="showSuccessModal" class="modal-backdrop-overlay" (click)="closeSuccessModal()">
-  <div class="success-popup-box" (click)="$event.stopPropagation()">
+  <div class="success-popup-box" [class.has-bank-transfer]="createdOrder?.paymentMethod === 'BANK_TRANSFER' || isHighValueOrder" (click)="$event.stopPropagation()">
     <button type="button" class="modal-close-btn success-close-btn" (click)="closeSuccessModal()" title="Đóng">
       <lucide-angular [img]="icons.X" size="18"></lucide-angular>
     </button>
 
     <div class="success-popup-body">
       <div class="success-icon-badge">
-        <lucide-angular [img]="icons.CheckCircle2" size="48" color="#059669"></lucide-angular>
+        <lucide-angular [img]="icons.CheckCircle2" size="32" color="#059669"></lucide-angular>
       </div>
 
       <h3 class="success-popup-title">Bạn đã đặt hàng thành công</h3>
@@ -1173,13 +1149,104 @@
         Cảm ơn quý khách <b>{{ createdOrder?.receiverName }}</b> đã tin tưởng DCor Furniture. Mã đơn hàng của quý khách là <b class="order-id-tag">#{{ createdOrder?.orderNumber }}</b>.
       </p>
 
+      <!-- KHỐI THANH TOÁN CHUYỂN KHOẢN (HIỂN THỊ KHI ĐƠN CẦN CHUYỂN KHOẢN HOẶC ĐẶT CỌC) -->
+      <div *ngIf="createdOrder?.paymentMethod === 'BANK_TRANSFER' || isHighValueOrder" class="checkout-success-payment-container">
+        <div class="payment-two-col-layout">
+          <!-- Cột 1 (Khung trái): Mã QR lớn hơn + Ngân hàng, Tên, Số TK -->
+          <div class="payment-qr-col">
+            <div class="qr-card">
+              <div class="qr-card-badge">
+                <span class="qr-badge-dot"></span>
+                <span>QUÉT MÃ THANH TOÁN</span>
+              </div>
+
+              <div class="qr-image-wrapper">
+                <img src="assets/img/qr-payment-sample.svg" 
+                     alt="Mã QR thanh toán giả lập" 
+                     class="qr-code-img" />
+              </div>
+              <span class="qr-guide-text">Mở App Ngân hàng quét mã</span>
+
+              <!-- Thông tin tài khoản đặt ngay dưới mã QR -->
+              <div class="qr-sub-bank-info">
+                <div class="qr-sub-item">
+                  <span class="qr-sub-label">Ngân hàng</span>
+                  <strong class="qr-sub-val">MB Bank (Quân Đội)</strong>
+                </div>
+
+                <div class="qr-sub-item">
+                  <span class="qr-sub-label">Chủ tài khoản</span>
+                  <strong class="qr-sub-val">CÔNG TY TNHH NỘI THẤT DCOR VIỆT NAM</strong>
+                </div>
+
+                <div class="qr-sub-item copyable-sub-item">
+                  <div class="qr-sub-meta">
+                    <span class="qr-sub-label">Số tài khoản</span>
+                    <strong class="qr-sub-val highlight-acc">0988 888 888</strong>
+                  </div>
+                  <button type="button" class="luxury-copy-btn" (click)="copyToClipboard('0988888888', 'Số tài khoản')">
+                    <span>{{ copiedFields['Số tài khoản'] ? 'Đã chép' : 'Sao chép' }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột 2 (Khung phải): Số tiền cần thanh toán + Nội dung chuyển khoản + Lưu ý gọn gàng -->
+          <div class="payment-info-col">
+            <!-- Hộp Số tiền cần chuyển (dạng xếp dọc) -->
+            <div class="payment-amount-box-vertical">
+              <div class="pay-amount-meta">
+                <span class="pay-amount-label">Số tiền cần {{ isHighValueOrder ? 'đặt cọc (30%)' : 'thanh toán' }}</span>
+                <span class="pay-amount-sub">
+                  {{ isHighValueOrder ? '(Tổng đơn: ' + formatCurrency(createdOrder?.totalAmount || 0) + ')' : '(Thanh toán 100% đơn hàng)' }}
+                </span>
+              </div>
+              <div class="pay-amount-value-wrap">
+                <strong class="pay-amount-value">
+                  {{ formatCurrency(isHighValueOrder ? (createdOrder?.depositAmount || depositAmount) : (createdOrder?.totalAmount || totalAmount)) }}
+                </strong>
+              </div>
+            </div>
+
+            <!-- Hộp Nội dung chuyển khoản bắt buộc -->
+            <div class="memo-highlight-card-vertical">
+              <div class="memo-header">
+                <span class="memo-label">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</span>
+                <span class="memo-badge">Tự động đối soát</span>
+              </div>
+              <div class="memo-code-display">
+                <span class="memo-code">DCOR {{ createdOrder?.orderNumber }}</span>
+              </div>
+              <button type="button" class="luxury-copy-btn primary-copy-btn memo-copy-btn-block" (click)="copyToClipboard('DCOR ' + createdOrder?.orderNumber, 'Nội dung chuyển khoản')">
+                <lucide-angular [img]="icons.Copy" size="14"></lucide-angular>
+                <span>{{ copiedFields['Nội dung chuyển khoản'] ? 'Đã sao chép nội dung!' : 'Sao chép nội dung chuyển khoản' }}</span>
+              </button>
+            </div>
+
+            <!-- Khung Hướng dẫn & Lưu ý thanh toán (đặt gọn trong cột phải để không bị cuộn trang) -->
+            <div class="bank-instructions-box bank-instructions-compact">
+              <div class="instruction-row">
+                <lucide-angular [img]="icons.Check" size="13" class="inst-icon success-icon"></lucide-angular>
+                <span>Vui lòng nhập <strong>chính xác nội dung chuyển khoản</strong> để hệ thống tự động xác nhận đơn.</span>
+              </div>
+              <div class="instruction-row">
+                <lucide-angular [img]="icons.Sparkles" size="13" class="inst-icon primary-icon"></lucide-angular>
+                <span>Quý khách có thể quét mã QR giả lập hoặc chuyển khoản thủ công theo Số TK bên cạnh.</span>
+              </div>
+              <div class="instruction-row">
+                <lucide-angular [img]="icons.Clock" size="13" class="inst-icon warn-icon"></lucide-angular>
+                <span>Sau khi nhận tiền, DCor sẽ chuyển trạng thái <strong>Đang gia công & chuẩn bị</strong> trong 1 - 3 phút.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="success-popup-actions">
         <button type="button" class="btn-view-orders-action" (click)="viewMyOrders()">
           <span>Xem đơn hàng của bạn</span>
-          <lucide-angular [img]="icons.ArrowRight" size="16"></lucide-angular>
-        </button>
-        <button type="button" class="btn-stay-page" (click)="closeSuccessModal()">
-          <span>Đóng</span>
+          <lucide-angular [img]="icons.ArrowRight" size="15"></lucide-angular>
         </button>
       </div>
     </div>
