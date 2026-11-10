@@ -105,7 +105,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
       module: 'promotions',
       subItems: [
         { title: 'Mã giảm giá', href: '/admin/vouchers' },
-        { title: 'Giảm giá sản phẩm', href: '/admin/campaigns' },
+        { title: 'Chương trình giảm giá', href: '/admin/campaigns' },
       ]
     },
     {

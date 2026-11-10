@@ -1,28 +1,27 @@
-﻿<div class="product-form-container">
+<div class="product-form-container">
   
   <!-- =========================================================================
        1. TOP HEADER & BREADCRUMB
        ========================================================================= -->
   <header class="form-header v2-form-header">
-    <div class="v2-header-nav">
-      <button type="button" class="v2-btn-back" (click)="cancel()" title="Quay lại danh sách sản phẩm">
-        <lucide-angular [img]="icons.ArrowLeft" size="15"></lucide-angular>
-        <span>Trở về danh sách sản phẩm</span>
-      </button>
-    </div>
-
     <div class="v2-header-main">
-      <div class="title-with-badge">
-        <h1 class="page-title">
-          {{ isEditMode ? ('Chỉnh sửa: ' + (formData.basic.name || 'Sản phẩm')) : 'Thêm Sản phẩm Mới' }}
-        </h1>
-        <span 
-          class="status-pill"
-          [class.pill-active]="formData.publication.status === 'Đang bán'"
-          [class.pill-draft]="formData.publication.status === 'Nháp'"
-          [class.pill-hidden]="formData.publication.status === 'Đã ẩn'">
-          {{ formData.publication.status }}
-        </span>
+      <div class="header-title-group">
+        <button type="button" class="back-circle-btn" (click)="cancel()" title="Quay lại danh sách sản phẩm" aria-label="Quay lại danh sách sản phẩm">
+          <lucide-angular [img]="icons.ArrowLeft" size="18"></lucide-angular>
+        </button>
+
+        <div class="title-with-badge">
+          <h1 class="page-title">
+            {{ isEditMode ? ('Chỉnh sửa: ' + (formData.basic.name || 'Sản phẩm')) : 'Thêm Sản phẩm Mới' }}
+          </h1>
+          <span 
+            class="status-pill"
+            [class.pill-active]="formData.publication.status === 'Đang bán'"
+            [class.pill-draft]="formData.publication.status === 'Nháp'"
+            [class.pill-hidden]="formData.publication.status === 'Đã ẩn'">
+            {{ formData.publication.status }}
+          </span>
+        </div>
       </div>
 
       <div class="sku-info-box">
@@ -255,38 +254,73 @@
       <div class="form-grid-2">
         <!-- 1. Danh mục chính (Cha) -->
         <div class="form-group">
-          <label class="form-label" for="parent-cat-select">
+          <label class="form-label">
             Danh mục chính (Cha) <span class="required-star">*</span>
           </label>
-          <select 
-            id="parent-cat-select" 
-            class="form-control" 
-            [(ngModel)]="selectedParentCategoryId" 
-            (ngModelChange)="onParentCategoryChange()">
-            <option value="">-- Chọn danh mục cha --</option>
-            <option *ngFor="let cat of parentCategories" [value]="cat.id">
-              {{ cat.name }}
-            </option>
-          </select>
+          <div class="custom-dropdown form-custom-dropdown">
+            <button 
+              type="button" 
+              class="dropdown-trigger-btn form-dropdown-trigger" 
+              (click)="toggleParentCatDropdown($event)">
+              <span class="dropdown-label">{{ selectedParentCatLabel }}</span>
+              <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+            </button>
+            <div class="dropdown-menu form-dropdown-menu" *ngIf="isParentCatDropdownOpen">
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                [class.selected]="!selectedParentCategoryId" 
+                (click)="selectParentCat('')">
+                <span>-- Chọn danh mục cha --</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="!selectedParentCategoryId"></lucide-angular>
+              </button>
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                *ngFor="let cat of parentCategories"
+                [class.selected]="selectedParentCategoryId === cat.id"
+                (click)="selectParentCat(cat.id)">
+                <span>{{ cat.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedParentCategoryId === cat.id"></lucide-angular>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 2. Danh mục con -->
         <div class="form-group">
-          <label class="form-label" for="child-cat-select">
+          <label class="form-label">
             Danh mục con
           </label>
-          <select 
-            id="child-cat-select" 
-            class="form-control" 
-            [(ngModel)]="formData.classification.primaryCategoryId"
-            (ngModelChange)="clearError('category')">
-            <option [value]="selectedParentCategoryId" *ngIf="selectedParentCategoryId">
-              -- Mặc định (nhóm chính) --
-            </option>
-            <option *ngFor="let sub of childCategories" [value]="sub.id">
-              {{ sub.name }}
-            </option>
-          </select>
+          <div class="custom-dropdown form-custom-dropdown">
+            <button 
+              type="button" 
+              class="dropdown-trigger-btn form-dropdown-trigger" 
+              (click)="toggleChildCatDropdown($event)">
+              <span class="dropdown-label">{{ selectedChildCatLabel }}</span>
+              <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+            </button>
+            <div class="dropdown-menu form-dropdown-menu" *ngIf="isChildCatDropdownOpen">
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                *ngIf="selectedParentCategoryId"
+                [class.selected]="formData.classification.primaryCategoryId === selectedParentCategoryId"
+                (click)="selectChildCat(selectedParentCategoryId)">
+                <span>-- Mặc định (nhóm chính) --</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="formData.classification.primaryCategoryId === selectedParentCategoryId"></lucide-angular>
+              </button>
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                *ngFor="let sub of childCategories"
+                [class.selected]="formData.classification.primaryCategoryId === sub.id"
+                (click)="selectChildCat(sub.id)">
+                <span>{{ sub.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="formData.classification.primaryCategoryId === sub.id"></lucide-angular>
+              </button>
+            </div>
+          </div>
           <span class="field-error" *ngIf="validationErrors['category']">
             {{ validationErrors['category'] }}
           </span>
@@ -294,34 +328,72 @@
 
         <!-- 2. Bộ sưu tập -->
         <div class="form-group">
-          <label class="form-label" for="collection-sel">
+          <label class="form-label">
             Bộ sưu tập (Collection)
           </label>
-          <select 
-            id="collection-sel"
-            class="form-control" 
-            [(ngModel)]="formData.classification.collectionId">
-            <option value="">-- Không thuộc bộ sưu tập nào --</option>
-            <option *ngFor="let col of collections" [value]="col.id">
-              {{ col.name }}
-            </option>
-          </select>
+          <div class="custom-dropdown form-custom-dropdown">
+            <button 
+              type="button" 
+              class="dropdown-trigger-btn form-dropdown-trigger" 
+              (click)="toggleCollectionDropdown($event)">
+              <span class="dropdown-label">{{ selectedCollectionLabel }}</span>
+              <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+            </button>
+            <div class="dropdown-menu form-dropdown-menu" *ngIf="isCollectionDropdownOpen">
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                [class.selected]="!formData.classification.collectionId"
+                (click)="selectCollection('')">
+                <span>-- Không thuộc bộ sưu tập nào --</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="!formData.classification.collectionId"></lucide-angular>
+              </button>
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                *ngFor="let col of collections"
+                [class.selected]="formData.classification.collectionId === col.id"
+                (click)="selectCollection(col.id)">
+                <span>{{ col.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="formData.classification.collectionId === col.id"></lucide-angular>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 3. Phong cách thiết kế -->
         <div class="form-group">
-          <label class="form-label" for="style-sel">
+          <label class="form-label">
             Phong cách thiết kế
           </label>
-          <select 
-            id="style-sel"
-            class="form-control" 
-            [(ngModel)]="formData.classification.styleId">
-            <option value="">-- Chọn phong cách thiết kế --</option>
-            <option *ngFor="let st of styles" [value]="st.id">
-              {{ st.name }}
-            </option>
-          </select>
+          <div class="custom-dropdown form-custom-dropdown">
+            <button 
+              type="button" 
+              class="dropdown-trigger-btn form-dropdown-trigger" 
+              (click)="toggleStyleDropdown($event)">
+              <span class="dropdown-label">{{ selectedStyleLabel }}</span>
+              <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+            </button>
+            <div class="dropdown-menu form-dropdown-menu" *ngIf="isStyleDropdownOpen">
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                [class.selected]="!formData.classification.styleId"
+                (click)="selectStyle('')">
+                <span>-- Chọn phong cách thiết kế --</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="!formData.classification.styleId"></lucide-angular>
+              </button>
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                *ngFor="let st of styles"
+                [class.selected]="formData.classification.styleId === st.id"
+                (click)="selectStyle(st.id)">
+                <span>{{ st.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="formData.classification.styleId === st.id"></lucide-angular>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 4. Không gian / Phòng ứng dụng (Multi-select pills) -->
@@ -736,17 +808,44 @@
 
         <!-- Thiết lập trạng thái xuất bản -->
         <div class="form-group">
-          <label class="form-label" for="pub-status">
+          <label class="form-label">
             Trạng thái hiển thị sản phẩm <span class="required-star">*</span>
           </label>
-          <select 
-            id="pub-status"
-            class="form-control font-semibold"
-            [(ngModel)]="formData.publication.status">
-            <option value="Đang bán">Đang bán (Hiển thị trực tuyến trên Store)</option>
-            <option value="Nháp">Bản nháp (Lưu tạm trong hệ thống quản trị)</option>
-            <option value="Đã ẩn">Đã ẩn (Tạm khóa không bán cho khách hàng)</option>
-          </select>
+          <div class="custom-dropdown form-custom-dropdown">
+            <button 
+              type="button" 
+              class="dropdown-trigger-btn form-dropdown-trigger font-semibold" 
+              (click)="toggleStatusDropdown($event)">
+              <span class="dropdown-label">{{ selectedStatusLabel }}</span>
+              <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+            </button>
+            <div class="dropdown-menu form-dropdown-menu" *ngIf="isStatusDropdownOpen">
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                [class.selected]="formData.publication.status === 'Đang bán'"
+                (click)="selectStatus('Đang bán')">
+                <span>Đang bán (Hiển thị trực tuyến trên Store)</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="formData.publication.status === 'Đang bán'"></lucide-angular>
+              </button>
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                [class.selected]="formData.publication.status === 'Nháp'"
+                (click)="selectStatus('Nháp')">
+                <span>Bản nháp (Lưu tạm trong hệ thống quản trị)</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="formData.publication.status === 'Nháp'"></lucide-angular>
+              </button>
+              <button 
+                type="button" 
+                class="dropdown-item" 
+                [class.selected]="formData.publication.status === 'Đã ẩn'"
+                (click)="selectStatus('Đã ẩn')">
+                <span>Đã ẩn (Tạm khóa không bán cho khách hàng)</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="formData.publication.status === 'Đã ẩn'"></lucide-angular>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Hướng dẫn chăm sóc & bảo quản -->

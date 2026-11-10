@@ -11,7 +11,7 @@
   <!-- Page Header -->
   <header class="admin-page-heading">
     <div class="heading-title-group">
-      <h1 class="page-title">Chương trình Giảm giá Sản phẩm</h1>
+      <h1 class="page-title">Chương trình giảm giá</h1>
       
     </div>
     <div class="admin-page-actions">
@@ -87,20 +87,69 @@
     </div>
 
     <div class="filter-controls-group">
-      <select class="admin-select" [(ngModel)]="selectedStatus" aria-label="Lọc theo trạng thái">
-        <option value="ALL">Tất cả trạng thái</option>
-        <option value="Ongoing">Ongoing</option>
-        <option value="Upcoming">Upcoming</option>
-        <option value="Ended">Ended</option>
-        <option value="Paused">Paused</option>
-      </select>
+      <!-- Dropdown Lọc Trạng thái -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedStatus !== 'ALL'"
+          (click)="toggleStatusDropdown($event)">
+          <span class="dropdown-label">{{ selectedStatusLabel }}</span>
+          <app-icon name="ChevronDown" size="14"></app-icon>
+        </button>
+        <div class="dropdown-menu" *ngIf="isStatusDropdownOpen">
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'ALL'" (click)="selectStatusFilter('ALL')">
+            <span>Tất cả trạng thái</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'ALL'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Ongoing'" (click)="selectStatusFilter('Ongoing')">
+            <span>Ongoing</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Ongoing'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Upcoming'" (click)="selectStatusFilter('Upcoming')">
+            <span>Upcoming</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Upcoming'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Ended'" (click)="selectStatusFilter('Ended')">
+            <span>Ended</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Ended'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Paused'" (click)="selectStatusFilter('Paused')">
+            <span>Paused</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Paused'"></app-icon>
+          </button>
+        </div>
+      </div>
 
-      <select class="admin-select" [(ngModel)]="selectedChannel" aria-label="Lọc theo kênh">
-        <option value="ALL">Tất cả kênh áp dụng</option>
-        <option value="TOÀN HỆ THỐNG">Toàn hệ thống</option>
-        <option value="ONLINE">Online website</option>
-        <option value="TẠI SHOWROOM">Tại showroom</option>
-      </select>
+      <!-- Dropdown Lọc Kênh áp dụng -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedChannel !== 'ALL'"
+          (click)="toggleChannelDropdown($event)">
+          <span class="dropdown-label">{{ selectedChannelLabel }}</span>
+          <app-icon name="ChevronDown" size="14"></app-icon>
+        </button>
+        <div class="dropdown-menu" *ngIf="isChannelDropdownOpen">
+          <button type="button" class="dropdown-item" [class.selected]="selectedChannel === 'ALL'" (click)="selectChannelFilter('ALL')">
+            <span>Tất cả kênh áp dụng</span>
+            <app-icon name="Check" size="14" *ngIf="selectedChannel === 'ALL'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedChannel === 'TOÀN HỆ THỐNG'" (click)="selectChannelFilter('TOÀN HỆ THỐNG')">
+            <span>Toàn hệ thống</span>
+            <app-icon name="Check" size="14" *ngIf="selectedChannel === 'TOÀN HỆ THỐNG'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedChannel === 'ONLINE'" (click)="selectChannelFilter('ONLINE')">
+            <span>Online website</span>
+            <app-icon name="Check" size="14" *ngIf="selectedChannel === 'ONLINE'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedChannel === 'TẠI SHOWROOM'" (click)="selectChannelFilter('TẠI SHOWROOM')">
+            <span>Tại showroom</span>
+            <app-icon name="Check" size="14" *ngIf="selectedChannel === 'TẠI SHOWROOM'"></app-icon>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -116,7 +165,7 @@
             <th class="col-time">Thời hạn áp dụng</th>
             <th class="col-products">Sản phẩm</th>
             <th class="col-status">Trạng thái</th>
-            <th class="col-actions">Thao tác</th>
+            <th class="col-actions"></th>
           </tr>
         </thead>
         <tbody>
@@ -168,7 +217,7 @@
                 <!-- Showroom danh sách nếu chọn tại showroom -->
                 <div class="showroom-chips" *ngIf="camp.channel === 'TẠI SHOWROOM' && camp.showroomTargets.length">
                   <span class="sr-badge" *ngFor="let sr of camp.showroomTargets" [title]="sr">
-                    🏢 {{ sr.split(' ')[1] || sr }}
+                    {{ sr.split(' ')[1] || sr }}
                   </span>
                 </div>
               </div>
@@ -255,7 +304,6 @@
           </div>
           <div>
             <h2 class="modal-title">{{ isEditing ? 'Chỉnh sửa Đợt Giảm Giá' : 'Cấu hình Giảm Giá Hàng Loạt' }}</h2>
-            <p class="modal-subtitle">Thiết lập tỷ lệ chiết khấu và danh sách sản phẩm tham gia.</p>
           </div>
         </div>
         <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Đóng cửa sổ">
@@ -269,26 +317,26 @@
           <!-- Tên chương trình & Mô tả ngắn -->
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label required">Tên chương trình (Ngắn gọn)</label>
+              <label class="form-label required">Tên chương trình</label>
               <input
                 type="text"
                 class="admin-input"
                 name="campName"
                 [(ngModel)]="formData.name"
                 maxlength="60"
-                placeholder="Ví dụ: Đại Tiệc Mùa Hè, Tri Ân Khách Hàng..."
+                placeholder=""
                 required />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Mô tả phụ / Phạm vi ưu đãi</label>
+              <label class="form-label">Mô tả phụ</label>
               <input
                 type="text"
                 class="admin-input"
                 name="campDesc"
                 [(ngModel)]="formData.description"
                 maxlength="100"
-                placeholder="Ví dụ: Giảm 30% toàn bộ Sofa & Bàn trà..." />
+                placeholder="" />
             </div>
           </div>
 
@@ -296,11 +344,29 @@
           <div class="form-grid-3">
             <div class="form-group">
               <label class="form-label required">Kênh áp dụng</label>
-              <select class="admin-select full-width" name="campChannel" [(ngModel)]="formData.channel">
-                <option value="TOÀN HỆ THỐNG">Toàn hệ thống</option>
-                <option value="ONLINE">Chỉ Online website</option>
-                <option value="TẠI SHOWROOM">Tại Showroom</option>
-              </select>
+              <div class="custom-dropdown modal-custom-dropdown">
+                <button 
+                  type="button" 
+                  class="dropdown-trigger-btn modal-dropdown-trigger" 
+                  (click)="toggleModalChannelDropdown($event)">
+                  <span class="dropdown-label">{{ modalChannelLabel }}</span>
+                  <app-icon name="ChevronDown" size="14"></app-icon>
+                </button>
+                <div class="dropdown-menu modal-dropdown-menu" *ngIf="isModalChannelDropdownOpen">
+                  <button type="button" class="dropdown-item" [class.selected]="formData.channel === 'TOÀN HỆ THỐNG'" (click)="selectModalChannel('TOÀN HỆ THỐNG')">
+                    <span>Toàn hệ thống</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.channel === 'TOÀN HỆ THỐNG'"></app-icon>
+                  </button>
+                  <button type="button" class="dropdown-item" [class.selected]="formData.channel === 'ONLINE'" (click)="selectModalChannel('ONLINE')">
+                    <span>Chỉ Online website</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.channel === 'ONLINE'"></app-icon>
+                  </button>
+                  <button type="button" class="dropdown-item" [class.selected]="formData.channel === 'TẠI SHOWROOM'" (click)="selectModalChannel('TẠI SHOWROOM')">
+                    <span>Tại Showroom</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.channel === 'TẠI SHOWROOM'"></app-icon>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -328,9 +394,15 @@
             </div>
           </div>
 
-          <!-- ĐA CHỌN SHOWROOM (Nhiều showroom áp dụng) -->
-          <div class="form-group showroom-select-group" *ngIf="formData.channel === 'TẠI SHOWROOM'">
-            <label class="form-label required">Chọn các showroom áp dụng (Chọn một hoặc nhiều)</label>
+          <!-- ĐA CHỌN CHI NHÁNH / SHOWROOM ÁP DỤNG -->
+          <div class="form-group showroom-select-group">
+            <div class="showroom-select-header">
+              <label class="form-label">
+                <span>Chi nhánh / Showroom áp dụng</span>
+                <span class="optional-badge" *ngIf="formData.channel === 'TOÀN HỆ THỐNG'">(Tùy chọn: Mặc định tất cả chi nhánh)</span>
+                <span class="required-star" *ngIf="formData.channel === 'TẠI SHOWROOM'">*</span>
+              </label>
+            </div>
             <div class="showroom-checkbox-grid">
               <label
                 class="showroom-checkbox-item"
@@ -377,7 +449,7 @@
                 class="admin-input bulk-val-input"
                 name="bulkDiscountVal"
                 [(ngModel)]="formData.bulkDiscountValue"
-                [placeholder]="formData.bulkDiscountType === 'PERCENT' ? 'Ví dụ: 30' : 'Ví dụ: 2000000'"
+                placeholder=""
                 min="1"
                 [max]="formData.bulkDiscountType === 'PERCENT' ? 99 : 1000000000" />
               <span class="bulk-unit-text">{{ formData.bulkDiscountType === 'PERCENT' ? '%' : '₫' }}</span>
@@ -388,7 +460,7 @@
               class="admin-btn admin-btn-primary btn-sm btn-apply-compact"
               (click)="applyBulkDiscountToAll()">
               <app-icon name="Check" size="13"></app-icon>
-              <span>Áp dụng toàn bộ</span>
+              <span>Áp dụng</span>
             </button>
           </div>
 
@@ -401,118 +473,66 @@
 
               <!-- 2 NÚT THAO TÁC RÕ RÀNG: THEO SẢN PHẨM HOẶC THEO DANH MỤC -->
               <div class="product-add-actions">
+                <!-- Nút Mở Modal Chọn Sản Phẩm chuyên nghiệp (chuẩn Shopee / Shopify) -->
                 <button
                   type="button"
                   class="admin-btn admin-btn-secondary btn-sm"
-                  (click)="addProductRow()"
-                  title="Thêm 1 dòng sản phẩm riêng lẻ">
-                  <app-icon name="Plus" size="13"></app-icon>
-                  <span>+ Thêm theo sản phẩm</span>
+                  (click)="openProductPickerModal()"
+                  title="Mở bảng chọn sản phẩm">
+                  <app-icon name="Package" size="13"></app-icon>
+                  <span>Thêm sản phẩm</span>
                 </button>
 
-                <div class="category-picker-wrapper">
-                  <button
-                    type="button"
-                    class="admin-btn admin-btn-secondary btn-sm"
-                    (click)="isCategoryPickerOpen = !isCategoryPickerOpen"
-                    title="Nạp nhanh toàn bộ sản phẩm theo danh mục">
-                    <app-icon name="Layers" size="13"></app-icon>
-                    <span>+ Thêm theo danh mục</span>
-                  </button>
-
-                  <!-- Popover chọn danh mục -->
-                  <div class="category-popover" *ngIf="isCategoryPickerOpen">
-                    <div class="popover-title">Chọn danh mục cần giảm giá:</div>
-                    <button
-                      type="button"
-                      class="popover-cat-item"
-                      *ngFor="let cat of categoriesCatalog"
-                      (click)="addProductsByCategory(cat.category)">
-                      <span>📁 {{ cat.category }}</span>
-                      <span class="cat-count">({{ cat.products.length }} SP)</span>
-                    </button>
-                  </div>
-                </div>
+                <!-- Nút Mở Modal Chọn Danh Mục Chính -->
+                <button
+                  type="button"
+                  class="admin-btn admin-btn-secondary btn-sm"
+                  (click)="openCategoryPickerModal()"
+                  title="Mở danh sách danh mục chính">
+                  <app-icon name="Layers" size="13"></app-icon>
+                  <span>Thêm danh mục</span>
+                </button>
               </div>
             </div>
 
-            <!-- Bảng sản phẩm gọn, padding tối ưu để không phải cuộn nhiều -->
+            <!-- Bảng sản phẩm hiển thị cố định gọn gàng: cấu hình giá theo phần giảm giá đồng loạt -->
             <div class="compact-table-container" *ngIf="formData.items.length > 0">
               <table class="compact-items-table">
                 <thead>
                   <tr>
-                    <th style="width: 38%;">Sản phẩm / Quy cách</th>
-                    <th style="width: 22%;" class="text-right">Giá gốc (₫)</th>
-                    <th style="width: 15%;" class="text-center">% Giảm</th>
-                    <th style="width: 21%;" class="text-right">Giá sau giảm (₫)</th>
+                    <th style="width: 42%;">Sản phẩm / Quy cách</th>
+                    <th style="width: 20%;" class="text-right">Giá gốc (₫)</th>
+                    <th style="width: 14%;" class="text-center">% Giảm</th>
+                    <th style="width: 20%;" class="text-right">Giá sau giảm (₫)</th>
                     <th style="width: 4%;"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of formData.items; let i = index">
-                    <!-- Tên SP & Quy cách -->
+                    <!-- Tên SP & Quy cách (Hiển thị cố định dạng text đọc, không nhập riêng lẻ) -->
                     <td>
-                      <div class="compact-item-inputs">
-                        <input
-                          type="text"
-                          class="admin-input input-compact input-title"
-                          [(ngModel)]="item.productName"
-                          [name]="'pName_' + i"
-                          maxlength="100"
-                          placeholder="Tên sản phẩm..."
-                          required />
-                        <input
-                          type="text"
-                          class="admin-input input-compact input-sub"
-                          [(ngModel)]="item.variantName"
-                          [name]="'pVar_' + i"
-                          maxlength="60"
-                          placeholder="Quy cách / chất liệu..." />
+                      <div class="item-text-display">
+                        <span class="prod-display-name">{{ item.productName }}</span>
+                        <span class="prod-display-sub" *ngIf="item.variantName">{{ item.variantName }}</span>
                       </div>
                     </td>
 
                     <!-- Giá gốc -->
-                    <td class="text-right">
-                      <input
-                        type="number"
-                        class="admin-input input-compact text-right"
-                        [(ngModel)]="item.originalPrice"
-                        [name]="'pOrig_' + i"
-                        (input)="onOriginalOrSaleChange(item, 'sale')"
-                        placeholder="0"
-                        min="1000"
-                        max="1000000000"
-                        required />
+                    <td class="text-right font-medium text-muted">
+                      {{ formatCurrency(item.originalPrice) }}
                     </td>
 
-                    <!-- % Giảm -->
+                    <!-- % Giảm đồng loạt chung -->
                     <td class="text-center">
-                      <input
-                        type="number"
-                        class="admin-input input-compact text-center highlight-pct"
-                        [(ngModel)]="item.discountPercent"
-                        [name]="'pPct_' + i"
-                        (input)="onOriginalOrSaleChange(item, 'percent')"
-                        placeholder="30"
-                        min="1"
-                        max="99" />
+                      <span class="badge-pct-clean">{{ item.discountPercent }}%</span>
                     </td>
 
                     <!-- Giá sau giảm -->
-                    <td class="text-right">
-                      <input
-                        type="number"
-                        class="admin-input input-compact text-right highlight-price"
-                        [(ngModel)]="item.salePrice"
-                        [name]="'pSale_' + i"
-                        (input)="onOriginalOrSaleChange(item, 'sale')"
-                        placeholder="0"
-                        min="1000"
-                        max="1000000000"
-                        required />
+                    <td class="text-right font-bold text-sale-price">
+                      {{ formatCurrency(item.salePrice) }}
                     </td>
 
-                    <!-- Nút Xóa -->
+                    <!-- Nút Xóa khỏi danh sách đợt giảm giá -->
                     <td class="text-center">
                       <button
                         type="button"
@@ -529,7 +549,7 @@
 
             <!-- Empty State nếu chưa có SP -->
             <div class="compact-empty-state" *ngIf="formData.items.length === 0">
-              <span class="empty-hint">Chưa có sản phẩm nào. Chọn nút <strong>"+ Thêm theo sản phẩm"</strong> hoặc <strong>"+ Thêm theo danh mục"</strong> ở trên để nạp nhanh sản phẩm.</span>
+              <span class="empty-hint">Chưa có sản phẩm nào. Chọn nút <strong>"Thêm sản phẩm"</strong> hoặc <strong>"Thêm danh mục"</strong> ở trên để nạp sản phẩm.</span>
             </div>
           </div>
         </form>
@@ -585,12 +605,12 @@
           <div class="detail-summary-card">
             <span class="ds-label">Mức giảm tổng thể</span>
             <span class="ds-val font-bold text-success">
-              🔥 {{ selectedCampaignDetail.discountType === 'PERCENT' ? 'Giảm ' + selectedCampaignDetail.discountValue + '%' : 'Giảm ' + formatCurrency(selectedCampaignDetail.discountValue) }}
+              {{ selectedCampaignDetail.discountType === 'PERCENT' ? 'Giảm ' + selectedCampaignDetail.discountValue + '%' : 'Giảm ' + formatCurrency(selectedCampaignDetail.discountValue) }}
             </span>
           </div>
           <div class="detail-summary-card">
             <span class="ds-label">Thời gian áp dụng</span>
-            <span class="ds-val">📅 {{ formatDate(selectedCampaignDetail.startDateTime) }} - {{ formatDate(selectedCampaignDetail.endDateTime) }}</span>
+            <span class="ds-val">{{ formatDate(selectedCampaignDetail.startDateTime) }} - {{ formatDate(selectedCampaignDetail.endDateTime) }}</span>
           </div>
           <div class="detail-summary-card">
             <span class="ds-label">Quy mô sản phẩm</span>
@@ -703,6 +723,261 @@
           <app-icon name="Trash2" size="15"></app-icon>
           <span>Xác nhận xóa</span>
         </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL CHỌN SẢN PHẨM HÀNG LOẠT (CHUẨN SHOPEE / SHOPIFY UI)
+       ========================================================================= -->
+  <div class="modal-backdrop modal-picker-backdrop" *ngIf="isProductModalOpen" (click)="closeProductPickerModal()">
+    <div class="modal-card modal-product-picker" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Package" size="18"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">Chọn sản phẩm áp dụng giảm giá</h2>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeProductPickerModal()" aria-label="Đóng">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <!-- Filter Bar -->
+      <div class="picker-filter-bar">
+        <div class="picker-search-wrap">
+          <app-icon name="Search" size="14" class="picker-search-icon"></app-icon>
+          <input
+            type="text"
+            class="admin-input picker-search-input"
+            [(ngModel)]="productModalSearch"
+            placeholder="Tìm theo tên sản phẩm, quy cách..." />
+        </div>
+
+        <div class="picker-cat-filter">
+          <select class="admin-select picker-select" [(ngModel)]="productModalCategoryFilter">
+            <option value="ALL">Tất cả danh mục</option>
+            <option *ngFor="let cat of categoriesHierarchyList" [value]="cat.name">{{ cat.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Products Table in Modal -->
+      <div class="picker-table-wrapper">
+        <table class="picker-table">
+          <thead>
+            <tr>
+              <th style="width: 44px; text-align: center;">
+                <input
+                  type="checkbox"
+                  class="picker-checkbox"
+                  [checked]="isAllVisibleProductsSelected()"
+                  (change)="toggleSelectAllVisibleProducts()" />
+              </th>
+              <th>Sản phẩm / Quy cách</th>
+              <th style="width: 180px;">Danh mục</th>
+              <th style="width: 140px; text-align: right;">Giá gốc (₫)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let p of filteredModalProducts"
+              (click)="toggleSelectProductKey(p.name + '::' + p.variant)"
+              [class.row-selected]="isProductKeySelected(p.name + '::' + p.variant)">
+              <td style="text-align: center;" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  class="picker-checkbox"
+                  [checked]="isProductKeySelected(p.name + '::' + p.variant)"
+                  (change)="toggleSelectProductKey(p.name + '::' + p.variant)" />
+              </td>
+              <td>
+                <div class="picker-prod-cell">
+                  <span class="picker-prod-name">{{ p.name }}</span>
+                  <span class="picker-prod-var">{{ p.variant }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="picker-cat-badge">{{ p.categoryName }}</span>
+              </td>
+              <td style="text-align: right; font-weight: 600; color: #1A1A1A;">
+                {{ formatCurrency(p.price) }}
+              </td>
+            </tr>
+            <tr *ngIf="filteredModalProducts.length === 0">
+              <td colspan="4" class="picker-empty-cell">
+                Không tìm thấy sản phẩm nào phù hợp với bộ lọc
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <footer class="modal-footer picker-footer">
+        <div class="picker-selection-count">
+          Đã chọn <strong>{{ selectedProductKeys.size }}</strong> sản phẩm
+        </div>
+        <div class="picker-footer-btns">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeProductPickerModal()">Hủy bỏ</button>
+          <button type="button" class="admin-btn admin-btn-primary" (click)="confirmProductPickerSelection()">
+            <app-icon name="Check" size="14"></app-icon>
+            <span>Xác nhận</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL CHỌN DANH MỤC CHÍNH (CHUẨN SHOPEE / SHOPIFY UI)
+       ========================================================================= -->
+  <div class="modal-backdrop modal-picker-backdrop" *ngIf="isCategoryModalOpen" (click)="closeCategoryPickerModal()">
+    <div class="modal-card modal-cat-picker" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <div class="modal-header-info">
+          <div class="modal-header-icon">
+            <app-icon name="Layers" size="18"></app-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">Chọn danh mục chính áp dụng</h2>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeCategoryPickerModal()" aria-label="Đóng">
+          <app-icon name="X" size="18"></app-icon>
+        </button>
+      </header>
+
+      <!-- Search -->
+      <div class="picker-filter-bar">
+        <div class="picker-search-wrap" style="width: 100%;">
+          <app-icon name="Search" size="14" class="picker-search-icon"></app-icon>
+          <input
+            type="text"
+            class="admin-input picker-search-input"
+            [(ngModel)]="categoryModalSearch"
+            placeholder="Tìm kiếm danh mục chính..." />
+        </div>
+      </div>
+
+      <!-- Category Tree List (Đồng bộ chuẩn giao diện Trang Danh Mục) -->
+      <div class="picker-cat-tree-list">
+        <table class="picker-cat-table">
+          <tbody>
+            <ng-container *ngFor="let parent of filteredModalCategories">
+              <!-- Hàng Danh mục cha (Root row) -->
+              <tr 
+                class="cat-table-row parent-row"
+                [class.selected]="isCategorySelected(parent.name)">
+                
+                <!-- Nút Mở rộng / Thu gọn dạng chevron xoay như trang danh mục -->
+                <td class="col-cat-expand">
+                  <button
+                    type="button"
+                    class="cat-accordion-btn"
+                    *ngIf="parent.children && parent.children.length > 0"
+                    [class.expanded]="isParentCategoryExpanded(parent.id)"
+                    (click)="toggleExpandParentCategory(parent.id, $event)"
+                    [title]="isParentCategoryExpanded(parent.id) ? 'Thu gọn danh mục con' : 'Xem danh mục con'">
+                    <app-icon name="ChevronRight" size="15"></app-icon>
+                  </button>
+                  <span class="cat-expand-spacer" *ngIf="!parent.children || parent.children.length === 0"></span>
+                </td>
+
+                <!-- Checkbox chọn -->
+                <td class="col-cat-check" (click)="toggleSelectParentAndChildren(parent)">
+                  <input
+                    type="checkbox"
+                    class="picker-checkbox"
+                    [checked]="isParentChecked(parent)"
+                    (click)="$event.stopPropagation()"
+                    (change)="toggleSelectParentAndChildren(parent)" />
+                </td>
+
+                <!-- Tên danh mục cha -->
+                <td class="col-cat-name" (click)="toggleExpandParentCategory(parent.id, $event)">
+                  <div class="cat-name-cell">
+                    <span class="cat-parent-name-text">{{ parent.name }}</span>
+                    <span class="cat-badge-pill" *ngIf="parent.children && parent.children.length > 0">
+                      {{ parent.children.length }} danh mục con
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Số lượng sản phẩm -->
+                <td class="col-cat-count" (click)="toggleExpandParentCategory(parent.id, $event)">
+                  <span class="cat-count-pill" *ngIf="parent.count > 0">{{ parent.count }} sản phẩm</span>
+                  <span class="cat-count-empty" *ngIf="parent.count === 0">-</span>
+                </td>
+              </tr>
+
+              <!-- Các Hàng Danh mục con (Child rows - dạng nhánh cây chuẩn trang danh mục) -->
+              <ng-container *ngIf="parent.children && parent.children.length > 0 && isParentCategoryExpanded(parent.id)">
+                <tr
+                  *ngFor="let child of parent.children; let isLastChild = last"
+                  class="cat-table-row child-row"
+                  [class.selected]="isCategorySelected(child.name)"
+                  (click)="toggleSelectCategory(child.name)">
+                  
+                  <!-- Nhánh cây nối dọc và ngang (Chuẩn Tree-branch trang danh mục) -->
+                  <td class="col-cat-expand col-cat-tree-cell" (click)="$event.stopPropagation()">
+                    <div 
+                      class="tree-line-v"
+                      [style.top]="'-1px'"
+                      [style.bottom]="isLastChild ? 'auto' : '-1px'"
+                      [style.height]="isLastChild ? 'calc(50% + 1px)' : 'auto'">
+                    </div>
+                    <div class="tree-line-h"></div>
+                  </td>
+
+                  <!-- Checkbox chọn con -->
+                  <td class="col-cat-check" (click)="$event.stopPropagation()">
+                    <input
+                      type="checkbox"
+                      class="picker-checkbox"
+                      [checked]="isCategorySelected(child.name)"
+                      (change)="toggleSelectCategory(child.name)" />
+                  </td>
+
+                  <!-- Tên danh mục con -->
+                  <td class="col-cat-name">
+                    <span class="cat-child-name-text">{{ child.name }}</span>
+                  </td>
+
+                  <!-- Số lượng sản phẩm con -->
+                  <td class="col-cat-count">
+                    <span class="cat-count-sub" *ngIf="child.count > 0">{{ child.count }} sản phẩm</span>
+                    <span class="cat-count-empty" *ngIf="child.count === 0">-</span>
+                  </td>
+                </tr>
+              </ng-container>
+            </ng-container>
+
+            <!-- Trống kết quả tìm kiếm -->
+            <tr *ngIf="filteredModalCategories.length === 0">
+              <td colspan="4" class="picker-empty-cell">
+                Không tìm thấy danh mục nào phù hợp
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <footer class="modal-footer picker-footer">
+        <div class="picker-selection-count">
+          Đã chọn <strong>{{ selectedCategoryNames.size }}</strong> danh mục
+        </div>
+        <div class="picker-footer-btns">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeCategoryPickerModal()">Hủy bỏ</button>
+          <button type="button" class="admin-btn admin-btn-primary" (click)="confirmCategoryPickerSelection()">
+            <app-icon name="Check" size="14"></app-icon>
+            <span>Thêm sản phẩm từ danh mục</span>
+          </button>
+        </div>
       </footer>
     </div>
   </div>

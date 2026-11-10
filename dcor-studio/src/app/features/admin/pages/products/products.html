@@ -442,14 +442,15 @@
                     <lucide-angular [img]="icons.Edit" size="15"></lucide-angular>
                   </button>
 
-                  <!-- Ẩn / Hiện (Có xác nhận) -->
-                  <button 
-                    type="button" 
-                    class="row-action-btn eye-btn" 
-                    (click)="requestToggleVisibility(product, $event)" 
-                    [title]="product.status === 'Đang bán' ? 'Tạm ẩn sản phẩm' : 'Bật bán sản phẩm'">
-                    <lucide-angular [img]="product.status === 'Đang bán' ? icons.Eye : icons.EyeOff" size="15"></lucide-angular>
-                  </button>
+                  <!-- Gạt trạng thái Bật / Tắt bán -->
+                  <div class="switch-toggle row-switch-toggle" [title]="product.status === 'Đang bán' ? 'Tạm ẩn sản phẩm' : 'Bật bán sản phẩm'" (click)="requestToggleVisibility(product, $event)">
+                    <input 
+                      type="checkbox" 
+                      [checked]="product.status === 'Đang bán'" 
+                      tabindex="-1"
+                    />
+                    <span class="slider"></span>
+                  </div>
 
                   <!-- Xóa 2 bước -->
                   <button 

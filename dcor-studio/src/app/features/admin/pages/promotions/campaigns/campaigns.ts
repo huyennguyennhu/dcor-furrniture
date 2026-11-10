@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -198,6 +198,88 @@ export class CampaignsComponent implements OnInit {
   selectedStatus: string = 'ALL';
   selectedChannel: string = 'ALL';
 
+  // Custom Dropdown Open States
+  isStatusDropdownOpen = false;
+  isChannelDropdownOpen = false;
+  isModalChannelDropdownOpen = false;
+
+  get selectedStatusLabel(): string {
+    const map: Record<string, string> = {
+      'ALL': 'Tất cả trạng thái',
+      'Ongoing': 'Ongoing',
+      'Upcoming': 'Upcoming',
+      'Ended': 'Ended',
+      'Paused': 'Paused'
+    };
+    return map[this.selectedStatus] || 'Tất cả trạng thái';
+  }
+
+  get selectedChannelLabel(): string {
+    const map: Record<string, string> = {
+      'ALL': 'Tất cả kênh áp dụng',
+      'TOÀN HỆ THỐNG': 'Toàn hệ thống',
+      'ONLINE': 'Online website',
+      'TẠI SHOWROOM': 'Tại showroom'
+    };
+    return map[this.selectedChannel] || 'Tất cả kênh áp dụng';
+  }
+
+  get modalChannelLabel(): string {
+    const map: Record<string, string> = {
+      'TOÀN HỆ THỐNG': 'Toàn hệ thống',
+      'ONLINE': 'Chỉ Online website',
+      'TẠI SHOWROOM': 'Tại Showroom'
+    };
+    return map[this.formData.channel] || this.formData.channel;
+  }
+
+  closeAllDropdowns() {
+    this.isStatusDropdownOpen = false;
+    this.isChannelDropdownOpen = false;
+    this.isModalChannelDropdownOpen = false;
+  }
+
+  toggleStatusDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isStatusDropdownOpen;
+    this.closeAllDropdowns();
+    this.isStatusDropdownOpen = !curr;
+  }
+
+  selectStatusFilter(status: string) {
+    this.selectedStatus = status;
+    this.isStatusDropdownOpen = false;
+  }
+
+  toggleChannelDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isChannelDropdownOpen;
+    this.closeAllDropdowns();
+    this.isChannelDropdownOpen = !curr;
+  }
+
+  selectChannelFilter(channel: string) {
+    this.selectedChannel = channel;
+    this.isChannelDropdownOpen = false;
+  }
+
+  toggleModalChannelDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isModalChannelDropdownOpen;
+    this.closeAllDropdowns();
+    this.isModalChannelDropdownOpen = !curr;
+  }
+
+  selectModalChannel(channel: 'TOÀN HỆ THỐNG' | 'ONLINE' | 'TẠI SHOWROOM') {
+    this.formData.channel = channel;
+    this.isModalChannelDropdownOpen = false;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.closeAllDropdowns();
+  }
+
   // Constants
   readonly SHOWROOMS_LIST = SHOWROOMS_LIST;
   categoriesCatalog: { category: string; products: { name: string; variant: string; price: number }[] }[] = [...CATEGORIES_CATALOG];
@@ -214,8 +296,56 @@ export class CampaignsComponent implements OnInit {
   campaignToEarlyEnd: CampaignItem | null = null;
   campaignToDelete: CampaignItem | null = null;
 
-  // Category Picker State
-  isCategoryPickerOpen = false;
+  // Category Picker State (Danh mục chính & Danh mục con)
+  isCategoryModalOpen = false;
+  categoryModalSearch = '';
+  selectedCategoryNames: Set<string> = new Set();
+  expandedMainCatIds: Set<string> = new Set();
+  categoriesHierarchyList: { 
+    id: string; 
+    name: string; 
+    count: number; 
+    children: { id: string; name: string; count: number }[] 
+  }[] = [];
+
+  // Product Picker Modal State (Chuẩn Shopee / Shopify)
+  isProductModalOpen = false;
+  productModalSearch = '';
+  productModalCategoryFilter = 'ALL';
+  selectedProductKeys: Set<string> = new Set(); // key: "name::variant"
+  allAvailableProducts: { id: string; name: string; variant: string; price: number; categoryName: string; image?: string }[] = [];
+
+  get filteredModalProducts() {
+    const term = this.productModalSearch.trim().toLowerCase();
+    const cat = this.productModalCategoryFilter;
+
+    return this.allAvailableProducts.filter(p => {
+      const matchCat = cat === 'ALL' || p.categoryName === cat;
+      const matchTerm = !term || p.name.toLowerCase().includes(term) || p.variant.toLowerCase().includes(term) || p.categoryName.toLowerCase().includes(term);
+      return matchCat && matchTerm;
+    });
+  }
+
+  get filteredModalCategories() {
+    const term = this.categoryModalSearch.trim().toLowerCase();
+    if (!term) return this.categoriesHierarchyList;
+    return this.categoriesHierarchyList
+      .map(parent => {
+        const parentMatch = parent.name.toLowerCase().includes(term);
+        const matchedChildren = parent.children.filter(ch => ch.name.toLowerCase().includes(term));
+        if (parentMatch) {
+          return parent;
+        }
+        if (matchedChildren.length > 0) {
+          return {
+            ...parent,
+            children: matchedChildren
+          };
+        }
+        return null;
+      })
+      .filter((p): p is { id: string; name: string; count: number; children: { id: string; name: string; count: number }[] } => p !== null);
+  }
 
   // Form Data (mặc định để trống)
   formData: {
@@ -239,6 +369,7 @@ export class CampaignsComponent implements OnInit {
   ngOnInit(): void {
     this.loadCampaigns();
     this.loadCatalogFromDatabase();
+    this.initCategoriesTree();
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -248,7 +379,6 @@ export class CampaignsComponent implements OnInit {
 
   loadCampaigns(): void {
     this.isLoading = true;
-    // Đồng bộ nhanh từ Storage/API
     setTimeout(() => {
       this.loadFromStorage();
       this.evaluateAutomaticStatuses();
@@ -256,7 +386,72 @@ export class CampaignsComponent implements OnInit {
     }, 250);
   }
 
+  initCategoriesTree(): void {
+    let savedCats: any[] = [];
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('dcor_admin_categories');
+        if (raw) savedCats = JSON.parse(raw);
+      } catch {}
+    }
+    const defaultCats = [
+      { id: 'cat-sofa', name: 'Sofa & Ghế bành', type: 'main', parentId: null },
+      { id: 'cat-sofa-l', name: 'Sofa Góc Chữ L Modula', type: 'main', parentId: 'cat-sofa' },
+      { id: 'cat-armchair', name: 'Ghế Bành Thư Giãn (Armchair)', type: 'main', parentId: 'cat-sofa' },
+      { id: 'cat-table', name: 'Bàn trà & Bàn góc', type: 'main', parentId: null },
+      { id: 'cat-coffee-table', name: 'Bàn Trà Mặt Đá Ceramic', type: 'main', parentId: 'cat-table' },
+      { id: 'cat-side-table', name: 'Bàn Góc & Bàn Tab', type: 'main', parentId: 'cat-table' },
+      { id: 'cat-dining', name: 'Bàn ăn & Ghế ăn', type: 'main', parentId: null },
+      { id: 'cat-dining-set', name: 'Bộ Bàn Ăn 6-8 Ghế', type: 'main', parentId: 'cat-dining' },
+      { id: 'cat-dining-chair', name: 'Ghế Ăn Độc Lập', type: 'main', parentId: 'cat-dining' },
+      { id: 'cat-bed', name: 'Phòng ngủ & Giường', type: 'main', parentId: null },
+      { id: 'cat-king-bed', name: 'Giường Bọc Nệm King/Queen', type: 'main', parentId: 'cat-bed' },
+      { id: 'cat-nightstand', name: 'Tap Đầu Giường', type: 'main', parentId: 'cat-bed' },
+      { id: 'cat-storage', name: 'Kệ & Tủ lưu trữ', type: 'main', parentId: null },
+      { id: 'cat-decor', name: 'Phụ kiện & Thảm trang trí', type: 'main', parentId: null }
+    ];
+
+    const all = [...defaultCats, ...savedCats.filter(s => !defaultCats.some(m => m.id === s.id))];
+    const roots = all.filter(c => !c.parentId && c.type === 'main');
+    this.categoriesHierarchyList = roots.map(r => {
+      const children = all.filter(c => c.parentId === r.id).map(ch => ({
+        id: ch.id,
+        name: ch.name,
+        count: this.getProductsCountForCategory(ch.name)
+      }));
+      return {
+        id: r.id,
+        name: r.name,
+        count: this.getProductsCountForCategory(r.name),
+        children
+      };
+    });
+  }
+
+  getProductsCountForCategory(catName: string): number {
+    const term = catName.toLowerCase();
+    return this.allAvailableProducts.filter(p =>
+      p.categoryName.toLowerCase().includes(term) ||
+      p.name.toLowerCase().includes(term)
+    ).length;
+  }
+
   loadCatalogFromDatabase(): void {
+    // Populate allAvailableProducts from static catalog first
+    const prods: { id: string; name: string; variant: string; price: number; categoryName: string }[] = [];
+    this.categoriesCatalog.forEach(cat => {
+      cat.products.forEach(p => {
+        prods.push({
+          id: `p-${prods.length + 1}`,
+          name: p.name,
+          variant: p.variant,
+          price: p.price,
+          categoryName: cat.category
+        });
+      });
+    });
+    this.allAvailableProducts = prods;
+
     fetch(`${environment.apiUrl}/admin/products?limit=100`, {
       headers: {
         'Content-Type': 'application/json',
@@ -267,6 +462,8 @@ export class CampaignsComponent implements OnInit {
       .then((data: any[]) => {
         if (Array.isArray(data) && data.length > 0) {
           const catMap = new Map<string, { name: string; variant: string; price: number }[]>();
+          const fetchedProds: { id: string; name: string; variant: string; price: number; categoryName: string }[] = [];
+
           data.forEach(p => {
             const catName = p.category?.name || 'Khác';
             if (!catMap.has(catName)) {
@@ -274,20 +471,37 @@ export class CampaignsComponent implements OnInit {
             }
             if (Array.isArray(p.variants) && p.variants.length > 0) {
               p.variants.forEach((v: any) => {
-                catMap.get(catName)!.push({
+                const item = {
                   name: p.name,
                   variant: v.name || 'Tiêu chuẩn',
                   price: Number(v.price) || Number(p.basePrice) || 0
+                };
+                catMap.get(catName)!.push(item);
+                fetchedProds.push({
+                  id: String(v.id || p.id),
+                  name: p.name,
+                  variant: item.variant,
+                  price: item.price,
+                  categoryName: catName
                 });
               });
             } else {
-              catMap.get(catName)!.push({
+              const item = {
                 name: p.name,
                 variant: 'Tiêu chuẩn',
                 price: Number(p.basePrice) || 0
+              };
+              catMap.get(catName)!.push(item);
+              fetchedProds.push({
+                id: String(p.id),
+                name: p.name,
+                variant: item.variant,
+                price: item.price,
+                categoryName: catName
               });
             }
           });
+
           const newCatalog: { category: string; products: { name: string; variant: string; price: number }[] }[] = [];
           catMap.forEach((prods, category) => {
             newCatalog.push({ category, products: prods });
@@ -295,6 +509,10 @@ export class CampaignsComponent implements OnInit {
           if (newCatalog.length > 0) {
             this.categoriesCatalog = newCatalog;
           }
+          if (fetchedProds.length > 0) {
+            this.allAvailableProducts = fetchedProds;
+          }
+          this.initCategoriesTree();
         }
       })
       .catch(err => {
@@ -451,7 +669,8 @@ export class CampaignsComponent implements OnInit {
     this.isEditing = false;
     this.editingId = null;
     this.formData = this.getEmptyForm();
-    this.isCategoryPickerOpen = false;
+    this.isCategoryModalOpen = false;
+    this.isProductModalOpen = false;
     this.isModalOpen = true;
   }
 
@@ -470,7 +689,8 @@ export class CampaignsComponent implements OnInit {
       status: camp.status,
       items: camp.items.map(it => ({ ...it }))
     };
-    this.isCategoryPickerOpen = false;
+    this.isCategoryModalOpen = false;
+    this.isProductModalOpen = false;
     this.isModalOpen = true;
   }
 
@@ -478,7 +698,8 @@ export class CampaignsComponent implements OnInit {
     this.isModalOpen = false;
     this.isEditing = false;
     this.editingId = null;
-    this.isCategoryPickerOpen = false;
+    this.isCategoryModalOpen = false;
+    this.isProductModalOpen = false;
   }
 
   openDetailModal(camp: CampaignItem): void {
@@ -524,53 +745,217 @@ export class CampaignsComponent implements OnInit {
     this.showToast(`Đã áp dụng giảm ${label} cho toàn bộ ${this.formData.items.length} sản phẩm!`, 'success');
   }
 
-  // 1. Thêm theo từng sản phẩm đơn lẻ
-  addProductRow(): void {
-    const defaultPct = this.formData.bulkDiscountType === 'PERCENT' && this.formData.bulkDiscountValue
-      ? Number(this.formData.bulkDiscountValue)
-      : 30;
-
-    this.formData.items.push({
-      productId: `P-${Date.now().toString().slice(-4)}`,
-      productName: '',
-      variantName: '',
-      originalPrice: null as any,
-      salePrice: null as any,
-      discountPercent: defaultPct
+  // Modal Chọn Sản phẩm kiểu Shopee / Shopify
+  openProductPickerModal(): void {
+    this.productModalSearch = '';
+    this.productModalCategoryFilter = 'ALL';
+    this.selectedProductKeys.clear();
+    // Pre-check các sản phẩm đã có trong bảng
+    this.formData.items.forEach(it => {
+      this.selectedProductKeys.add(`${it.productName}::${it.variantName || ''}`);
     });
+    this.isProductModalOpen = true;
   }
 
-  // 2. Thêm nhanh danh sách sản phẩm theo danh mục
-  addProductsByCategory(categoryName: string): void {
-    const cat = this.categoriesCatalog.find(c => c.category === categoryName);
-    if (!cat) return;
+  closeProductPickerModal(): void {
+    this.isProductModalOpen = false;
+  }
 
+  toggleSelectProductKey(key: string): void {
+    if (this.selectedProductKeys.has(key)) {
+      this.selectedProductKeys.delete(key);
+    } else {
+      this.selectedProductKeys.add(key);
+    }
+  }
+
+  isProductKeySelected(key: string): boolean {
+    return this.selectedProductKeys.has(key);
+  }
+
+  toggleSelectAllVisibleProducts(): void {
+    const visible = this.filteredModalProducts;
+    const allSelected = visible.every(p => this.selectedProductKeys.has(`${p.name}::${p.variant}`));
+    if (allSelected) {
+      visible.forEach(p => this.selectedProductKeys.delete(`${p.name}::${p.variant}`));
+    } else {
+      visible.forEach(p => this.selectedProductKeys.add(`${p.name}::${p.variant}`));
+    }
+  }
+
+  isAllVisibleProductsSelected(): boolean {
+    const visible = this.filteredModalProducts;
+    if (visible.length === 0) return false;
+    return visible.every(p => this.selectedProductKeys.has(`${p.name}::${p.variant}`));
+  }
+
+  confirmProductPickerSelection(): void {
+    const selectedProds = this.allAvailableProducts.filter(p => this.selectedProductKeys.has(`${p.name}::${p.variant}`));
+    
+    // Thêm các sản phẩm đã chọn vào bảng mà chưa tồn tại
+    selectedProds.forEach(p => {
+      if (!this.formData.items.some(it => it.productName === p.name && it.variantName === p.variant)) {
+        const { sale, pct } = this.calculateDiscountedPrice(p.price);
+        this.formData.items.push({
+          productId: p.id || `P-${Date.now().toString().slice(-4)}`,
+          productName: p.name,
+          variantName: p.variant,
+          originalPrice: p.price,
+          salePrice: sale,
+          discountPercent: pct
+        });
+      }
+    });
+
+    // Xóa các sản phẩm đã bị uncheck
+    this.formData.items = this.formData.items.filter(it => this.selectedProductKeys.has(`${it.productName}::${it.variantName || ''}`));
+
+    this.isProductModalOpen = false;
+    this.showToast(`Đã lưu danh sách ${this.formData.items.length} sản phẩm áp dụng!`, 'success');
+  }
+
+  // Modal Chọn Danh mục chính & con kiểu Shopee / Shopify
+  openCategoryPickerModal(): void {
+    this.categoryModalSearch = '';
+    this.selectedCategoryNames.clear();
+    // Mở rộng tất cả danh mục cha mặc định để dễ nhìn
+    this.expandedMainCatIds = new Set(this.categoriesHierarchyList.map(c => c.id));
+    this.isCategoryModalOpen = true;
+  }
+
+  closeCategoryPickerModal(): void {
+    this.isCategoryModalOpen = false;
+  }
+
+  toggleExpandParentCategory(catId: string, event?: Event): void {
+    if (event) event.stopPropagation();
+    if (this.expandedMainCatIds.has(catId)) {
+      this.expandedMainCatIds.delete(catId);
+    } else {
+      this.expandedMainCatIds.add(catId);
+    }
+  }
+
+  isParentCategoryExpanded(catId: string): boolean {
+    return this.expandedMainCatIds.has(catId);
+  }
+
+  toggleSelectCategory(catName: string): void {
+    if (this.selectedCategoryNames.has(catName)) {
+      this.selectedCategoryNames.delete(catName);
+    } else {
+      this.selectedCategoryNames.add(catName);
+    }
+  }
+
+  isCategorySelected(catName: string): boolean {
+    return this.selectedCategoryNames.has(catName);
+  }
+
+  toggleSelectParentAndChildren(parent: { id: string; name: string; count: number; children: { id: string; name: string; count: number }[] }): void {
+    const isSelected = this.isCategorySelected(parent.name);
+    if (isSelected) {
+      this.selectedCategoryNames.delete(parent.name);
+      parent.children.forEach(ch => this.selectedCategoryNames.delete(ch.name));
+    } else {
+      this.selectedCategoryNames.add(parent.name);
+      parent.children.forEach(ch => this.selectedCategoryNames.add(ch.name));
+    }
+  }
+
+  isParentChecked(parent: { id: string; name: string; count: number; children: { id: string; name: string; count: number }[] }): boolean {
+    return this.selectedCategoryNames.has(parent.name);
+  }
+
+  confirmCategoryPickerSelection(): void {
     let addedCount = 0;
+    this.selectedCategoryNames.forEach(catName => {
+      const term = catName.toLowerCase();
+      const matched = this.allAvailableProducts.filter(p =>
+        p.categoryName.toLowerCase().includes(term) ||
+        p.name.toLowerCase().includes(term)
+      );
+      matched.forEach(p => {
+        if (!this.formData.items.some(it => it.productName === p.name && it.variantName === p.variant)) {
+          const { sale, pct } = this.calculateDiscountedPrice(p.price);
+          this.formData.items.push({
+            productId: p.id || `P-${Date.now().toString().slice(-4)}`,
+            productName: p.name,
+            variantName: p.variant,
+            originalPrice: p.price,
+            salePrice: sale,
+            discountPercent: pct
+          });
+          addedCount++;
+        }
+      });
+    });
+
+    this.isCategoryModalOpen = false;
+    if (addedCount > 0) {
+      this.showToast(`Đã nạp thêm ${addedCount} sản phẩm từ các danh mục đã chọn!`, 'success');
+    } else {
+      this.showToast('Tất cả sản phẩm từ các danh mục này đã có trong danh sách!', 'info');
+    }
+  }
+
+  calculateDiscountedPrice(originalPrice: number): { sale: number; pct: number } {
     const bulkType = this.formData.bulkDiscountType;
     const bulkVal = Number(this.formData.bulkDiscountValue);
+    let sale = originalPrice;
+    let pct = 0;
 
-    cat.products.forEach(p => {
-      // Tránh trùng tên sản phẩm đã có
-      if (this.formData.items.some(it => it.productName === p.name)) return;
-
-      let sale = 0;
-      let pct = 30;
-
-      if (bulkVal > 0) {
-        if (bulkType === 'PERCENT') {
-          pct = Math.min(99, bulkVal);
-          sale = Math.round(p.price * (1 - pct / 100));
-        } else {
-          sale = Math.max(0, p.price - bulkVal);
-          pct = Math.min(99, Math.max(1, Math.round((bulkVal / p.price) * 100)));
-        }
+    if (bulkVal > 0) {
+      if (bulkType === 'PERCENT') {
+        pct = Math.min(99, bulkVal);
+        sale = Math.round(originalPrice * (1 - pct / 100));
       } else {
-        pct = 30;
-        sale = Math.round(p.price * 0.7);
+        sale = Math.max(0, originalPrice - bulkVal);
+        pct = Math.min(99, Math.max(1, Math.round((bulkVal / originalPrice) * 100)));
       }
+    } else {
+      pct = 30;
+      sale = Math.round(originalPrice * 0.7);
+    }
+    return { sale, pct };
+  }
 
+  // 1. Thêm 1 sản phẩm cụ thể từ danh sách chọn / tìm kiếm
+  selectProductToAdd(p: { id: string; name: string; variant: string; price: number; categoryName: string }): void {
+    if (this.formData.items.some(it => it.productName === p.name && it.variantName === p.variant)) {
+      this.showToast(`Sản phẩm "${p.name}" (${p.variant}) đã có trong danh sách!`, 'info');
+      return;
+    }
+
+    const { sale, pct } = this.calculateDiscountedPrice(p.price);
+    this.formData.items.push({
+      productId: p.id || `P-${Date.now().toString().slice(-4)}`,
+      productName: p.name,
+      variantName: p.variant,
+      originalPrice: p.price,
+      salePrice: sale,
+      discountPercent: pct
+    });
+
+    this.isProductModalOpen = false;
+    this.showToast(`Đã thêm "${p.name}" vào chương trình giảm giá!`, 'success');
+  }
+
+  // 2. Thêm nhanh danh sách sản phẩm theo danh mục (cha hoặc con)
+  addProductsByCategory(categoryName: string): void {
+    const term = categoryName.toLowerCase();
+    const matchedProducts = this.allAvailableProducts.filter(p =>
+      p.categoryName.toLowerCase().includes(term) ||
+      p.name.toLowerCase().includes(term)
+    );
+
+    let addedCount = 0;
+    matchedProducts.forEach(p => {
+      if (this.formData.items.some(it => it.productName === p.name && it.variantName === p.variant)) return;
+
+      const { sale, pct } = this.calculateDiscountedPrice(p.price);
       this.formData.items.push({
-        productId: `P-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 900)}`,
+        productId: p.id || `P-${Date.now().toString().slice(-4)}`,
         productName: p.name,
         variantName: p.variant,
         originalPrice: p.price,
@@ -580,7 +965,7 @@ export class CampaignsComponent implements OnInit {
       addedCount++;
     });
 
-    this.isCategoryPickerOpen = false;
+    this.isCategoryModalOpen = false;
     if (addedCount > 0) {
       this.showToast(`Đã thêm ${addedCount} sản phẩm từ danh mục "${categoryName}"!`, 'success');
     } else {

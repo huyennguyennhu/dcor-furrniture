@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -150,6 +150,129 @@ export class VouchersComponent implements OnInit {
   selectedStatus: string = 'ALL';
   selectedDiscountType: string = 'ALL';
   selectedScope: string = 'ALL';
+
+  // Custom Dropdown Open States
+  isStatusDropdownOpen = false;
+  isDiscountTypeDropdownOpen = false;
+  isScopeDropdownOpen = false;
+  isModalScopeDropdownOpen = false;
+  isModalCategoryDropdownOpen = false;
+
+  get selectedStatusLabel(): string {
+    const map: Record<string, string> = {
+      'ALL': 'Tất cả trạng thái',
+      'Active': 'Active',
+      'Upcoming': 'Upcoming',
+      'Paused': 'Paused',
+      'Ended': 'Ended'
+    };
+    return map[this.selectedStatus] || 'Tất cả trạng thái';
+  }
+
+  get selectedDiscountTypeLabel(): string {
+    const map: Record<string, string> = {
+      'ALL': 'Tất cả loại giảm',
+      'PERCENT': 'Giảm theo % (Phần trăm)',
+      'FIXED_AMOUNT': 'Giảm số tiền cố định (₫)'
+    };
+    return map[this.selectedDiscountType] || 'Tất cả loại giảm';
+  }
+
+  get selectedScopeLabel(): string {
+    const map: Record<string, string> = {
+      'ALL': 'Tất cả phạm vi',
+      'CATEGORY': 'Theo danh mục'
+    };
+    return map[this.selectedScope] || 'Tất cả phạm vi';
+  }
+
+  get modalScopeLabel(): string {
+    if (this.formData.scope === 'CATEGORY') return 'Theo danh mục sản phẩm cụ thể';
+    return 'Toàn bộ sản phẩm trên hệ thống';
+  }
+
+  get modalCategoryLabel(): string {
+    return this.formData.categoryScopeName || 'Chọn danh mục áp dụng';
+  }
+
+  closeAllDropdowns() {
+    this.isStatusDropdownOpen = false;
+    this.isDiscountTypeDropdownOpen = false;
+    this.isScopeDropdownOpen = false;
+    this.isModalScopeDropdownOpen = false;
+    this.isModalCategoryDropdownOpen = false;
+  }
+
+  toggleStatusDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isStatusDropdownOpen;
+    this.closeAllDropdowns();
+    this.isStatusDropdownOpen = !curr;
+  }
+
+  selectStatusFilter(status: string) {
+    this.selectedStatus = status;
+    this.isStatusDropdownOpen = false;
+  }
+
+  toggleDiscountTypeDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isDiscountTypeDropdownOpen;
+    this.closeAllDropdowns();
+    this.isDiscountTypeDropdownOpen = !curr;
+  }
+
+  selectDiscountTypeFilter(type: string) {
+    this.selectedDiscountType = type;
+    this.isDiscountTypeDropdownOpen = false;
+  }
+
+  toggleScopeDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isScopeDropdownOpen;
+    this.closeAllDropdowns();
+    this.isScopeDropdownOpen = !curr;
+  }
+
+  selectScopeFilter(scope: string) {
+    this.selectedScope = scope;
+    this.isScopeDropdownOpen = false;
+  }
+
+  toggleModalScopeDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isModalScopeDropdownOpen;
+    this.closeAllDropdowns();
+    this.isModalScopeDropdownOpen = !curr;
+  }
+
+  selectModalScope(scope: 'ALL' | 'CATEGORY') {
+    this.formData.scope = scope;
+    this.isModalScopeDropdownOpen = false;
+  }
+
+  toggleModalCategoryDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isModalCategoryDropdownOpen;
+    this.closeAllDropdowns();
+    this.isModalCategoryDropdownOpen = !curr;
+  }
+
+  selectModalCategory(cat: string) {
+    this.formData.categoryScopeName = cat;
+    this.isModalCategoryDropdownOpen = false;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.closeAllDropdowns();
+  }
+
+  onModalCardClick(e: Event) {
+    // Đóng dropdown bên trong modal nếu click vào vùng khác của modal card
+    this.isModalScopeDropdownOpen = false;
+    this.isModalCategoryDropdownOpen = false;
+  }
 
   // Category Scope List
   readonly CATEGORIES: string[] = [
