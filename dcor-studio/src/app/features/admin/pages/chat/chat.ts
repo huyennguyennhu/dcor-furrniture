@@ -8,6 +8,7 @@ import {
   effect,
   ViewChild,
   ElementRef,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,41 +18,30 @@ import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs'
 
 import { environment } from '../../../../../environments/environment';
 import { IconComponent } from '../../../../shared/components/icon/icon';
-import { Modal } from '../../../../shared/components/modal/modal';
 import { AdminAuthService } from '../../../../core/services/admin-auth.service';
 
 import {
   ChatConversation,
   ConversationDetailResponse,
   ChatMessage,
-  StaffUser,
-  BotScript,
-  BotActionType,
-  QuickReplyOption,
-  ScriptTestResult,
-  WorkingHoursSetting,
 } from './models/chat-admin.model';
 import { ChatAdminService } from './services/chat-admin.service';
 import { ChatUnreadService } from './services/chat-unread.service';
-import { ChatAudioService } from './services/chat-audio.service';
 
-type ChatTabFilter = 'all' | 'unread' | 'unanswered' | 'mine' | 'waiting' | 'closed';
-type ActiveView = 'conversations' | 'scripts' | 'settings';
+export type ChatTabFilter = 'all' | 'unanswered' | 'waiting';
 
-const DAYS_OF_WEEK: { day: number; label: string }[] = [
-  { day: 1, label: 'Thứ 2' },
-  { day: 2, label: 'Thứ 3' },
-  { day: 3, label: 'Thứ 4' },
-  { day: 4, label: 'Thứ 5' },
-  { day: 5, label: 'Thứ 6' },
-  { day: 6, label: 'Thứ 7' },
-  { day: 0, label: 'Chủ nhật' },
-];
+export interface GroupedChatMessage {
+  message: ChatMessage;
+  showSenderHeader: boolean;
+  isLastCustomerSeen: boolean;
+  showDateSeparator: boolean;
+  dateSeparatorLabel: string;
+}
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, IconComponent, Modal],
+  imports: [CommonModule, FormsModule, RouterModule, IconComponent],
   templateUrl: './chat.html',
   styleUrls: ['./chat.css'],
 })
@@ -59,32 +49,27 @@ export class ChatComponent implements OnInit, OnDestroy {
   public adminAuth = inject(AdminAuthService);
   public chatAdminService = inject(ChatAdminService);
   public chatUnreadService = inject(ChatUnreadService);
-  public audioService = inject(ChatAudioService);
 
   @ViewChild('messagesContainer') private messagesContainer?: ElementRef<HTMLDivElement>;
   @ViewChild('composerTextarea') private composerTextarea?: ElementRef<HTMLTextAreaElement>;
   @ViewChild('fileInput') private fileInput?: ElementRef<HTMLInputElement>;
-
-  // 1. Chế độ xem trang chính
-  public currentView = signal<ActiveView>('conversations');
 
   // Phân quyền
   public hasPermission = computed(() => {
     return this.adminAuth.hasPermission('chat', 'view');
   });
 
-  // 2. Realtime Socket State
+  // Realtime Socket
   private socket: Socket | null = null;
   public isConnected = signal<boolean>(true);
-  public isReconnecting = signal<boolean>(false);
-  public connectionBannerDismissed = signal<boolean>(false);
 
-  // 3. Tab HỘI THOẠI (Conversations)
+  // Bộ lọc danh sách (4 tab: all, unread, waiting, mine)
   public activeFilter = signal<ChatTabFilter>('all');
   public searchQuery = signal<string>('');
   private searchSubject = new Subject<string>();
   private searchSub?: Subscription;
 
+  // Danh sách hội thoại
   public conversations = signal<ChatConversation[]>([]);
   public totalConversations = signal<number>(0);
   public currentPage = signal<number>(1);
@@ -92,14 +77,32 @@ export class ChatComponent implements OnInit, OnDestroy {
   public totalPages = signal<number>(1);
   public isLoadingList = signal<boolean>(false);
 
-  // Filter Counts
-  public filterCounts = signal<Record<ChatTabFilter, number>>({
+  // Sắp xếp: Cần NV lên đầu (mode = WAITING_STAFF hoặc needsHuman), rồi theo tin mới nhất
+  public sortedConversations = computed(() => {
+    const list = [...this.conversations()];
+    return list.sort((a, b) => {
+      // 1. Cần NV lên đầu
+      const aNeeds = a.needsHuman || a.mode === 'WAITING_STAFF' ? 1 : 0;
+      const bNeeds = b.needsHuman || b.mode === 'WAITING_STAFF' ? 1 : 0;
+      if (aNeeds !== bNeeds) return bNeeds - aNeeds;
+
+      // 2. Thời gian tin nhắn cuối cùng mới nhất
+      const aTime = new Date(a.lastMessageAt).getTime() || 0;
+      const bTime = new Date(b.lastMessageAt).getTime() || 0;
+      return bTime - aTime;
+    });
+  });
+
+  // Counts từ backend
+  public serverCounts = signal<{ all: number; waiting: number; unanswered: number }>({
     all: 0,
-    unread: 0,
-    unanswered: 0,
-    mine: 0,
     waiting: 0,
-    closed: 0,
+    unanswered: 0,
+  });
+
+  // Đếm theo từng tab: ưu tiên số đếm toàn cục từ server
+  public tabCounts = computed(() => {
+    return this.serverCounts();
   });
 
   // Hội thoại đang chọn
@@ -107,132 +110,140 @@ export class ChatComponent implements OnInit, OnDestroy {
   public conversationDetail = signal<ConversationDetailResponse | null>(null);
   public isLoadingDetail = signal<boolean>(false);
 
-  // Tin nhắn trong hội thoại
+  // Tin nhắn
   public messages = signal<ChatMessage[]>([]);
   public isLoadingMessages = signal<boolean>(false);
   public isLoadingMoreMessages = signal<boolean>(false);
   public hasMoreMessages = signal<boolean>(false);
 
-  // Khách đang nhập
+  // Messenger logic: Nhóm tin liên tiếp cùng người gửi & vạch ngày & đánh dấu 'Đã xem'
+  public groupedMessages = computed<GroupedChatMessage[]>(() => {
+    const msgs = this.messages();
+    const result: GroupedChatMessage[] = [];
+
+    // Tìm tin nhắn cuối cùng do STAFF gửi mà khách đã xem (conv.unreadCustomer === 0 hoặc readAt có giá trị)
+    const conv = this.conversationDetail()?.conversation;
+    const isCustomerSeen = conv ? conv.unreadCustomer === 0 : false;
+    let lastStaffMsgIndex = -1;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].senderType === 'STAFF' && !msgs[i].pending) {
+        lastStaffMsgIndex = i;
+        break;
+      }
+    }
+
+    for (let i = 0; i < msgs.length; i++) {
+      const current = msgs[i];
+      const prev = i > 0 ? msgs[i - 1] : null;
+
+      // Kiểm tra vạch ngày
+      const currentDateKey = this.getDateKey(current.createdAt);
+      const prevDateKey = prev ? this.getDateKey(prev.createdAt) : null;
+      const showDateSeparator = i === 0 || currentDateKey !== prevDateKey;
+      const dateSeparatorLabel = showDateSeparator ? this.formatDateSeparator(current.createdAt) : '';
+
+      // Hiện sender header nếu là tin đầu tiên hoặc khác sender với tin trước
+      const showSenderHeader = !prev || prev.senderType !== current.senderType;
+      const isLastCustomerSeen = i === lastStaffMsgIndex && isCustomerSeen;
+
+      result.push({
+        message: current,
+        showSenderHeader,
+        isLastCustomerSeen,
+        showDateSeparator,
+        dateSeparatorLabel,
+      });
+    }
+
+    return result;
+  });
+
+  // Chỉ báo khách đang nhập
   public isCustomerTyping = signal<boolean>(false);
   private customerTypingTimeout: any = null;
 
-  // Ô soạn thảo
+  // Cuộn tin nhắn & nút 'Tin mới' khi đang đọc phía trên
+  public showNewMessageFloatingBtn = signal<boolean>(false);
+  private isUserNearBottom = true;
+
+  // Khung soạn tin
   public composerText = signal<string>('');
   public selectedImageFile = signal<File | null>(null);
   public selectedImagePreview = signal<string | null>(null);
   public isUploadingImage = signal<boolean>(false);
   public isSendingMessage = signal<boolean>(false);
 
-  // Ghi chú nội bộ
+  // Drawer thông tin khách hàng trượt từ phải
+  public isCustomerDrawerOpen = signal<boolean>(false);
   public noteInput = signal<string>('');
   public isSavingNote = signal<boolean>(false);
   public noteSavedSuccess = signal<boolean>(false);
 
-  // Nhân sự phục vụ tiếp nhận & chuyển giao
-  public staffList = signal<StaffUser[]>([]);
-  public showTransferModal = signal<boolean>(false);
-  public selectedTransferStaffId = signal<string>('');
-  public isTransferring = signal<boolean>(false);
-
-  // Lightbox xem ảnh
+  // Lightbox
   public lightboxImageUrl = signal<string | null>(null);
 
-  // Responsive Drawer & Mobile View
+  // Mobile mode
   public isMobileChatActive = signal<boolean>(false);
-  public isCustomerDrawerOpen = signal<boolean>(false);
 
-  // 4. Tab KỊCH BẢN BOT (Bot Scripts)
-  public scripts = signal<BotScript[]>([]);
-  public isLoadingScripts = signal<boolean>(false);
-  public scriptSearch = signal<string>('');
+  // Phụ trách & quyền hành động - MỘT NGUỒN SỰ THẬT DUY NHẤT TÍNH TỪ DỮ LIỆU HỘI THOẠI, KHÔNG PHỤ THUỘC STATUS
+  public currentStaffId = computed(() => {
+    const u = this.adminAuth.currentUser;
+    return u?.id ? String(u.id) : null;
+  });
 
-  public filteredScripts = computed(() => {
-    const q = this.scriptSearch().trim().toLowerCase();
-    const list = this.scripts();
-    if (!q) return list;
-    return list.filter(
-      (s) =>
-        s.intent.toLowerCase().includes(q) ||
-        s.name.toLowerCase().includes(q) ||
-        s.patterns.some((p) => p.toLowerCase().includes(q))
+  public isCurrentStaffAssigned = computed(() => {
+    const conv = this.conversationDetail()?.conversation;
+    const staffId = this.currentStaffId();
+    return Boolean(
+      conv &&
+      conv.mode === 'STAFF' &&
+      conv.assignedStaffId &&
+      staffId &&
+      conv.assignedStaffId === staffId
     );
   });
 
-  // Modal tạo/sửa kịch bản
-  public isScriptModalOpen = signal<boolean>(false);
-  public editingScriptId = signal<string | null>(null);
-  public scriptIntent = signal<string>('');
-  public scriptName = signal<string>('');
-  public scriptPatterns = signal<string[]>([]);
-  public patternChipInput = signal<string>('');
-  public scriptAnswer = signal<string>('');
-  public scriptQuickReplies = signal<QuickReplyOption[]>([]);
-  public scriptActionType = signal<BotActionType>('NONE');
-  public scriptPriority = signal<number>(0);
-  public scriptIsActive = signal<boolean>(true);
-  public scriptFormError = signal<string | null>(null);
-  public isSavingScript = signal<boolean>(false);
+  public isAssignedToOtherStaff = computed(() => {
+    const conv = this.conversationDetail()?.conversation;
+    const staffId = this.currentStaffId();
+    return Boolean(
+      conv &&
+      conv.mode === 'STAFF' &&
+      conv.assignedStaffId &&
+      conv.assignedStaffId !== staffId
+    );
+  });
 
-  // Cảnh báo trùng câu mẫu giữa các kịch bản
-  public duplicatePatternWarning = computed(() => {
-    const currentPatterns = this.scriptPatterns().map((p) => p.trim().toLowerCase());
-    const editId = this.editingScriptId();
-    const otherScripts = this.scripts().filter((s) => s.id !== editId);
+  public canClaimCurrent = computed(() => {
+    const conv = this.conversationDetail()?.conversation;
+    if (!conv) return false;
+    return conv.mode === 'BOT' || conv.mode === 'WAITING_STAFF';
+  });
 
-    const duplicates: { pattern: string; scriptName: string }[] = [];
-    for (const p of currentPatterns) {
-      if (!p) continue;
-      for (const s of otherScripts) {
-        if (s.patterns.some((sp) => sp.trim().toLowerCase() === p)) {
-          duplicates.push({ pattern: p, scriptName: s.name });
-        }
-      }
+  // canReply = mode là STAFF và assignedStaffId là nhân viên đang đăng nhập
+  public canReply = computed(() => {
+    return this.isCurrentStaffAssigned();
+  });
+
+  public isComposerDisabled = computed(() => {
+    return !this.canReply();
+  });
+
+  public composerPlaceholder = computed(() => {
+    const conv = this.conversationDetail()?.conversation;
+    if (!conv) return 'Chọn hội thoại để trả lời...';
+    if (this.canReply()) {
+      return 'Nhập nội dung tư vấn... (Enter gửi, Shift+Enter xuống dòng)';
     }
-    return duplicates;
+    if (this.isAssignedToOtherStaff()) {
+      const otherName = conv.assignedStaffName || 'nhân viên khác';
+      return `Đang do ${otherName} phụ trách`;
+    }
+    return 'Nhấn Nhận hội thoại để trả lời khách';
   });
-
-  // Xem trước câu trả lời đã thay biến động
-  public answerPreview = computed(() => {
-    const raw = this.scriptAnswer();
-    return this.replaceTemplateVariables(raw);
-  });
-
-  // Xóa kịch bản
-  public isDeleteScriptModalOpen = signal<boolean>(false);
-  public scriptToDelete = signal<BotScript | null>(null);
-  public isDeletingScript = signal<boolean>(false);
-
-  // Thử kịch bản (Test script)
-  public testText = signal<string>('');
-  public isTestingScript = signal<boolean>(false);
-  public testResult = signal<ScriptTestResult | null>(null);
-  public testError = signal<string | null>(null);
-
-  // 5. Tab CÀI ĐẶT (Settings)
-  public daysOfWeek = DAYS_OF_WEEK;
-  public settingsWorkingHours = signal<WorkingHoursSetting>({
-    start: '08:00',
-    end: '22:00',
-    days: [0, 1, 2, 3, 4, 5, 6],
-  });
-  public settingsGreeting = signal<string>('');
-  public settingsOfflineMessage = signal<string>('');
-  public settingsHandoffMessage = signal<string>('');
-  public settingsFallbackMessages = signal<string[]>([]);
-  public newFallbackInput = signal<string>('');
-  public settingsHotline = signal<string>('1900 1234');
-  public settingsAddress = signal<string>('669 QL1A, TP. Hồ Chí Minh');
-
-  public isSavingSettings = signal<boolean>(false);
-  public settingsFeedback = signal<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  // Quản lý tiêu đề trang
-  private originalDocumentTitle = '';
-  private pollIntervalTimer: any = null;
 
   constructor() {
-    // Tự động cập nhật tiêu đề tab trình duyệt theo unread
+    // Cập nhật số chưa đọc trên tiêu đề tab trình duyệt
     effect(() => {
       const count = this.chatUnreadService.totalUnread();
       if (typeof document !== 'undefined') {
@@ -246,243 +257,44 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (typeof document !== 'undefined') {
-      this.originalDocumentTitle = document.title;
-    }
-
-    // Debounce tìm kiếm hội thoại 300ms
+    // 1. Khởi tạo tìm kiếm debounce
     this.searchSub = this.searchSubject
-      .pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe((q) => {
-        this.searchQuery.set(q);
+      .pipe(debounceTime(350), distinctUntilChanged())
+      .subscribe((query) => {
+        this.searchQuery.set(query);
         this.currentPage.set(1);
         this.loadConversations();
       });
 
-    // Nạp dữ liệu ban đầu
-    this.initSocket();
+    // 2. Tải danh sách
     this.loadConversations();
-    this.loadFilterCounts();
-    this.loadStaffList();
-    this.loadSettings();
-    this.loadScripts();
 
-    // Polling nhẹ dự phòng mỗi 5s để đồng bộ danh sách hội thoại
-    // Polling backup da duoc tang tu 5s len 30s de giam Egress/DB vi he thong da co WebSocket socket.io realtime
-    this.pollIntervalTimer = setInterval(() => {
-      if (this.currentView() === 'conversations' && !this.isConnected()) {
-        this.refreshActiveConversationSilently();
-      }
-    }, 30000);
+    // 3. Khởi tạo socket realtime
+    this.initSocket();
   }
 
   ngOnDestroy(): void {
-    if (typeof document !== 'undefined' && this.originalDocumentTitle) {
-      document.title = this.originalDocumentTitle;
-    }
-
-    if (this.searchSub) {
-      this.searchSub.unsubscribe();
-    }
-
-    if (this.pollIntervalTimer) {
-      clearInterval(this.pollIntervalTimer);
-      this.pollIntervalTimer = null;
-    }
-
-    if (this.customerTypingTimeout) {
-      clearTimeout(this.customerTypingTimeout);
-    }
-
+    this.searchSub?.unsubscribe();
     this.disconnectSocket();
+    if (this.customerTypingTimeout) clearTimeout(this.customerTypingTimeout);
   }
 
-  // =========================================================================
-  // SOCKET.IO REALTIME
-  // =========================================================================
-
-  private initSocket(): void {
-    if (typeof window === 'undefined') return;
-
-    const token = this.chatUnreadService.getAdminToken();
-    if (!token) return;
-
-    const socketUrl = environment.apiUrl.replace(/\/api\/?$/, '');
-
-    try {
-      this.socket = io(socketUrl, {
-        auth: { token },
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: Infinity,
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 10000,
-      });
-
-      this.socket.on('connect', () => {
-        this.isConnected.set(true);
-        this.isReconnecting.set(false);
-      });
-
-      this.socket.on('disconnect', () => {
-        this.isConnected.set(false);
-        this.isReconnecting.set(true);
-      });
-
-      this.socket.on('connect_error', () => {
-        this.isConnected.set(false);
-        this.isReconnecting.set(true);
-      });
-
-      // Lắng nghe cập nhật unread toàn cục
-      this.socket.on('staff:unread', (data: { total: number }) => {
-        this.chatUnreadService.setUnread(data?.total || 0);
-      });
-
-      // Lắng nghe hội thoại mới được khởi tạo từ khách hàng
-      this.socket.on('staff:conversation:new', (data: any) => {
-        this.audioService.playChime();
-        this.loadConversations();
-        this.loadFilterCounts();
-      });
-
-      // Lắng nghe cập nhật hội thoại (có tin mới, chuyển trạng thái, v.v.)
-      this.socket.on('staff:conversation:update', (payload: any) => {
-        if (!payload || !payload.id) return;
-
-        // Nếu có tin nhắn mới mà không phải hội thoại đang mở -> phát âm báo
-        if (payload.id !== this.selectedConversationId() && payload.unreadStaff > 0) {
-          this.audioService.playChime();
-        }
-
-        // Cập nhật dòng hội thoại trong danh sách
-        this.conversations.update((list) => {
-          const index = list.findIndex((c) => c.id === payload.id);
-          if (index !== -1) {
-            const updated = {
-              ...list[index],
-              mode: payload.mode,
-              status: payload.status,
-              assignedStaffId: payload.assignedStaffId,
-              assignedStaffName: payload.assignedStaffName,
-              needsHuman: payload.needsHuman,
-              unreadStaff: payload.unreadStaff,
-              unreadCustomer: payload.unreadCustomer,
-              lastMessageAt: payload.lastMessageAt || new Date(),
-              lastMessagePreview: payload.lastMessagePreview || list[index].lastMessagePreview,
-            };
-            const newList = [...list];
-            newList.splice(index, 1);
-            return [updated, ...newList];
-          }
-          return list;
-        });
-
-        // Nếu là hội thoại đang mở -> tải tin nhắn mới
-        if (payload.id === this.selectedConversationId()) {
-          this.fetchLatestMessagesForActiveConversation();
-          // Đánh dấu đã đọc
-          this.emitStaffRead(payload.id);
-        }
-
-        this.loadFilterCounts();
-      });
-
-      // Lắng nghe tin nhắn mới nếu socket tham gia room hội thoại
-      this.socket.on('chat:message', (msg: ChatMessage) => {
-        if (!msg || !msg.conversationId) return;
-
-        if (msg.conversationId === this.selectedConversationId()) {
-          this.messages.update((list) => {
-            // Chống trùng bằng id hoặc clientMessageId
-            const exists = list.some(
-              (m) =>
-                m.id === msg.id ||
-                (m.clientMessageId && msg.clientMessageId && m.clientMessageId === msg.clientMessageId)
-            );
-            if (!exists) {
-              return [...list, msg];
-            }
-            // Nếu đã tồn tại dưới dạng pending -> cập nhật
-            return list.map((m) =>
-              m.clientMessageId === msg.clientMessageId ? { ...msg, pending: false } : m
-            );
-          });
-          this.scrollToBottom();
-          this.emitStaffRead(msg.conversationId);
-        } else {
-          // Tin nhắn của hội thoại khác
-          if (msg.senderType === 'CUSTOMER') {
-            this.audioService.playChime();
-          }
-        }
-      });
-
-      // Lắng nghe trạng thái khách đang gõ
-      this.socket.on(
-        'chat:typing',
-        (data: { conversationId: string; isTyping: boolean; senderType?: string }) => {
-          if (data?.conversationId === this.selectedConversationId() && data?.senderType === 'CUSTOMER') {
-            this.isCustomerTyping.set(!!data.isTyping);
-            if (this.customerTypingTimeout) {
-              clearTimeout(this.customerTypingTimeout);
-            }
-            if (data.isTyping) {
-              this.customerTypingTimeout = setTimeout(() => {
-                this.isCustomerTyping.set(false);
-              }, 4000);
-            }
-          }
-        }
-      );
-    } catch {
-      this.isConnected.set(false);
-    }
-  }
-
-  public retryConnection(): void {
-    if (this.socket) {
-      this.socket.connect();
-    } else {
-      this.initSocket();
-    }
-  }
-
-  private disconnectSocket(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-  }
-
-  private emitStaffRead(conversationId: string): void {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('staff:read', { conversationId });
-    }
-  }
-
-  private emitStaffTyping(isTyping: boolean): void {
-    const convId = this.selectedConversationId();
-    if (convId && this.socket && this.socket.connected) {
-      this.socket.emit('staff:typing', { conversationId: convId, isTyping });
+  @HostListener('window:keydown', ['$event'])
+  handleEscKey(event: KeyboardEvent): void {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      if (this.lightboxImageUrl()) {
+        this.closeLightbox();
+        return;
+      }
+      if (this.isCustomerDrawerOpen()) {
+        this.closeCustomerDrawer();
+      }
     }
   }
 
   // =========================================================================
-  // DANH SÁCH HỘI THOẠI (TAB CONVERSATIONS)
+  // API LOADERS
   // =========================================================================
-
-  public onSearchInput(event: Event): void {
-    const val = (event.target as HTMLInputElement).value || '';
-    this.searchSubject.next(val);
-  }
-
-  public setFilter(filter: ChatTabFilter): void {
-    if (this.activeFilter() === filter) return;
-    this.activeFilter.set(filter);
-    this.currentPage.set(1);
-    this.loadConversations();
-  }
 
   public loadConversations(page: number = this.currentPage()): void {
     this.isLoadingList.set(true);
@@ -494,34 +306,39 @@ export class ChatComponent implements OnInit, OnDestroy {
           this.totalConversations.set(res.total || 0);
           this.currentPage.set(res.page || 1);
           this.totalPages.set(res.totalPages || 1);
+          if (res.counts) {
+            this.serverCounts.set(res.counts);
+          }
           this.isLoadingList.set(false);
 
-          // Nếu chưa có hội thoại nào được chọn và có danh sách -> chọn hội thoại đầu tiên trên desktop
+          // Tự chọn hội thoại đầu tiên trên desktop nếu chưa chọn
           if (!this.selectedConversationId() && res.conversations?.length > 0) {
             if (typeof window !== 'undefined' && window.innerWidth >= 768) {
               this.selectConversation(res.conversations[0].id);
             }
           }
         },
-        error: (err) => {
+        error: () => {
           this.isLoadingList.set(false);
         },
       });
   }
 
-  public loadFilterCounts(): void {
-    const filters: ChatTabFilter[] = ['all', 'unread', 'unanswered', 'mine', 'waiting', 'closed'];
-    filters.forEach((f) => {
-      this.chatAdminService.getConversations(f, '', 1, 1).subscribe({
-        next: (res) => {
-          this.filterCounts.update((counts) => ({
-            ...counts,
-            [f]: res.total || 0,
-          }));
-        },
-        error: () => {},
-      });
-    });
+  public setFilter(filter: ChatTabFilter): void {
+    if (this.activeFilter() === filter) return;
+    this.activeFilter.set(filter);
+    this.currentPage.set(1);
+    this.loadConversations();
+  }
+
+  public onSearchInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value || '';
+    this.searchSubject.next(val);
+  }
+
+  public clearSearch(): void {
+    this.searchQuery.set('');
+    this.searchSubject.next('');
   }
 
   public selectConversation(id: string): void {
@@ -537,8 +354,9 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.messages.set([]);
     this.noteSavedSuccess.set(false);
     this.isCustomerTyping.set(false);
+    this.showNewMessageFloatingBtn.set(false);
 
-    // 1. Tải chi tiết hội thoại
+    // 1. Chi tiết hội thoại
     this.chatAdminService.getConversationDetail(id).subscribe({
       next: (detail) => {
         this.conversationDetail.set(detail);
@@ -550,7 +368,7 @@ export class ChatComponent implements OnInit, OnDestroy {
       },
     });
 
-    // 2. Tải danh sách tin nhắn
+    // 2. Danh sách tin nhắn
     this.chatAdminService.getMessages(id, undefined, 30).subscribe({
       next: (res) => {
         this.messages.set(res.messages || []);
@@ -561,7 +379,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         // Đánh dấu đã đọc qua socket
         this.emitStaffRead(id);
 
-        // Giảm unread trong danh sách tại chỗ
+        // Cập nhật unread tại chỗ
         this.conversations.update((list) =>
           list.map((c) => (c.id === id ? { ...c, unreadStaff: 0 } : c))
         );
@@ -572,17 +390,16 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  public backToConversationsList(): void {
-    this.isMobileChatActive.set(false);
-  }
-
-  public toggleCustomerDrawer(): void {
-    this.isCustomerDrawerOpen.update((v) => !v);
-  }
-
-  // Cuộn lên tải tin nhắn cũ
+  // Cuộn tải tin cũ
   public onMessagesScroll(event: Event): void {
     const el = event.target as HTMLElement;
+    const threshold = 60;
+    this.isUserNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+
+    if (this.isUserNearBottom) {
+      this.showNewMessageFloatingBtn.set(false);
+    }
+
     if (el.scrollTop === 0 && this.hasMoreMessages() && !this.isLoadingMoreMessages()) {
       this.loadOlderMessages();
     }
@@ -599,23 +416,22 @@ export class ChatComponent implements OnInit, OnDestroy {
         ? oldest.createdAt
         : oldest.createdAt.toISOString();
 
-    this.isLoadingMoreMessages.set(true);
     const container = this.messagesContainer?.nativeElement;
-    const prevScrollHeight = container?.scrollHeight || 0;
+    const previousHeight = container?.scrollHeight || 0;
 
+    this.isLoadingMoreMessages.set(true);
     this.chatAdminService.getMessages(convId, beforeDate, 30).subscribe({
       next: (res) => {
-        const older = res.messages || [];
-        this.messages.update((list) => [...older, ...list]);
+        this.messages.update((list) => [...(res.messages || []), ...list]);
         this.hasMoreMessages.set(res.hasMore || false);
         this.isLoadingMoreMessages.set(false);
 
-        // Duy trì vị trí cuộn sau khi tải tin cũ
+        // Duy trì vị trí scroll sau khi prepending messages mà không nhảy vị trí cuộn
         setTimeout(() => {
           if (container) {
-            container.scrollTop = container.scrollHeight - prevScrollHeight;
+            container.scrollTop = container.scrollHeight - previousHeight;
           }
-        }, 50);
+        }, 10);
       },
       error: () => {
         this.isLoadingMoreMessages.set(false);
@@ -623,45 +439,60 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  private fetchLatestMessagesForActiveConversation(): void {
+  // =========================================================================
+  // ACTIONS: NHẬN HỘI THOẠI & KẾT THÚC CA TƯ VẤN
+  // =========================================================================
+
+  public claimCurrentConversation(): void {
     const convId = this.selectedConversationId();
     if (!convId) return;
 
-    this.chatAdminService.getMessages(convId, undefined, 30).subscribe({
+    this.chatAdminService.claimConversation(convId).subscribe({
       next: (res) => {
-        const fetched = res.messages || [];
-        this.messages.update((existing) => {
-          const map = new Map<string, ChatMessage>();
-          existing.forEach((m) => {
-            if (m.id) map.set(m.id, m);
-            else if (m.clientMessageId) map.set(m.clientMessageId, m);
-          });
-          fetched.forEach((m) => {
-            if (m.id) map.set(m.id, m);
-          });
-          const merged = Array.from(map.values());
-          merged.sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          return merged;
-        });
-        this.scrollToBottom();
+        this.conversationDetail.update((d) =>
+          d ? { ...d, conversation: res.conversation } : null
+        );
+        this.loadConversations();
+      },
+      error: (err) => {
+        alert(err?.error?.message || 'Không thể tiếp nhận cuộc trò chuyện.');
       },
     });
   }
 
-  private refreshActiveConversationSilently(): void {
-    const convId = this.selectedConversationId();
-    if (!convId) return;
-    this.chatAdminService.getConversationDetail(convId).subscribe({
-      next: (detail) => {
-        this.conversationDetail.set(detail);
-      },
-    });
+  public closeConsultation(): void {
+    const conv = this.conversationDetail()?.conversation;
+    if (!conv) return;
+
+    if (!confirm('Bạn có chắc muốn kết thúc ca tư vấn này và trả về cho trợ lý AI?')) {
+      return;
+    }
+
+    // Gửi staff:close qua socket để kích hoạt chuẩn hệ thống (không khóa chat của khách)
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('staff:close', { conversationId: conv.id }, (res: any) => {
+        if (res?.conversation) {
+          this.conversationDetail.update((d) =>
+            d ? { ...d, conversation: res.conversation } : null
+          );
+        }
+        this.loadConversations();
+      });
+    } else {
+      this.chatAdminService.closeConversation(conv.id).subscribe({
+        next: (res) => {
+          this.conversationDetail.update((d) =>
+            d ? { ...d, conversation: res.conversation } : null
+          );
+          this.loadConversations();
+        },
+        error: (err) => alert(err?.error?.message || 'Không thể đóng ca tư vấn.'),
+      });
+    }
   }
 
   // =========================================================================
-  // GỬI TIN NHẮN (COMPOSER)
+  // COMPOSER & GỬI TIN NHẮN
   // =========================================================================
 
   public onComposerKeyDown(event: KeyboardEvent): void {
@@ -674,6 +505,12 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   public onComposerInput(): void {
+    const textarea = this.composerTextarea?.nativeElement;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      // Tối đa 4 dòng ~ 96px
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 96)}px`;
+    }
     this.emitStaffTyping(this.composerText().trim().length > 0);
   }
 
@@ -700,6 +537,9 @@ export class ChatComponent implements OnInit, OnDestroy {
   public removeSelectedImage(): void {
     this.selectedImageFile.set(null);
     this.selectedImagePreview.set(null);
+    if (this.fileInput?.nativeElement) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
 
   public async sendMessage(): Promise<void> {
@@ -732,18 +572,17 @@ export class ChatComponent implements OnInit, OnDestroy {
       } catch (err: any) {
         this.isUploadingImage.set(false);
         this.isSendingMessage.set(false);
-        alert('Không thể tải ảnh lên: ' + (err?.error?.message || 'Lỗi mạng hoặc server.'));
+        alert('Không thể tải ảnh: ' + (err?.error?.message || 'Lỗi mạng hoặc tải file.'));
         return;
       }
       this.isUploadingImage.set(false);
     }
 
-    // 2. Chuẩn bị payload
+    // 2. Gửi lạc quan (Optimistic update)
     const clientMessageId = `staff-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const currentStaff = this.adminAuth.currentUser;
     const staffName = currentStaff?.fullName || 'Chuyên viên tư vấn';
 
-    // 3. Optimistic update
     const optimisticMsg: ChatMessage = {
       id: clientMessageId,
       conversationId: convId,
@@ -760,12 +599,15 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.messages.update((list) => [...list, optimisticMsg]);
     this.scrollToBottom();
 
-    // 4. Reset composer
+    // 3. Reset ô soạn
     this.composerText.set('');
     this.selectedImageFile.set(null);
     this.selectedImagePreview.set(null);
+    if (this.composerTextarea?.nativeElement) {
+      this.composerTextarea.nativeElement.style.height = 'auto';
+    }
 
-    // 5. Gửi qua socket
+    // 4. Bắn socket staff:send
     if (this.socket && this.socket.connected) {
       this.socket.emit('staff:send', {
         conversationId: convId,
@@ -777,7 +619,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     this.isSendingMessage.set(false);
 
-    // Cập nhật chế độ hội thoại nếu chưa gán
+    // Cập nhật mode nếu chưa phải STAFF
     const detail = this.conversationDetail();
     if (detail && detail.conversation.mode !== 'STAFF') {
       this.conversationDetail.update((d) =>
@@ -789,7 +631,6 @@ export class ChatComponent implements OnInit, OnDestroy {
                 mode: 'STAFF',
                 assignedStaffId: currentStaff ? String(currentStaff.id) : null,
                 assignedStaffName: staffName,
-                needsHuman: false,
               },
             }
           : null
@@ -798,109 +639,15 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   // =========================================================================
-  // THAO TÁC HỘI THOẠI (STATE MACHINE)
+  // DRAWER & GHI CHÚ NỘI BỘ
   // =========================================================================
 
-  public claimCurrentConversation(): void {
-    const convId = this.selectedConversationId();
-    if (!convId) return;
-
-    this.chatAdminService.claimConversation(convId).subscribe({
-      next: (res) => {
-        this.conversationDetail.update((d) =>
-          d ? { ...d, conversation: res.conversation } : null
-        );
-        this.loadConversations();
-        this.loadFilterCounts();
-      },
-      error: (err) => {
-        alert(err?.error?.message || 'Không thể tiếp nhận cuộc trò chuyện.');
-      },
-    });
+  public openCustomerDrawer(): void {
+    this.isCustomerDrawerOpen.set(true);
   }
 
-  public openTransferModal(): void {
-    this.selectedTransferStaffId.set('');
-    this.showTransferModal.set(true);
-  }
-
-  public closeTransferModal(): void {
-    this.showTransferModal.set(false);
-  }
-
-  public confirmTransferConversation(): void {
-    const convId = this.selectedConversationId();
-    const staffId = this.selectedTransferStaffId();
-    if (!convId || !staffId) return;
-
-    this.isTransferring.set(true);
-    this.chatAdminService.transferConversation(convId, staffId).subscribe({
-      next: (res) => {
-        this.isTransferring.set(false);
-        this.showTransferModal.set(false);
-        this.conversationDetail.update((d) =>
-          d ? { ...d, conversation: res.conversation } : null
-        );
-        this.loadConversations();
-        this.loadFilterCounts();
-      },
-      error: (err) => {
-        this.isTransferring.set(false);
-        alert(err?.error?.message || 'Không thể chuyển giao cuộc trò chuyện.');
-      },
-    });
-  }
-
-  public returnCurrentToBot(): void {
-    const convId = this.selectedConversationId();
-    if (!convId) return;
-
-    if (!confirm('Bạn có chắc muốn trả cuộc trò chuyện này về cho trợ lý ảo DCor xử lý tự động?')) {
-      return;
-    }
-
-    this.chatAdminService.returnToBot(convId).subscribe({
-      next: (res) => {
-        this.conversationDetail.update((d) =>
-          d ? { ...d, conversation: res.conversation } : null
-        );
-        this.loadConversations();
-        this.loadFilterCounts();
-      },
-      error: (err) => {
-        alert(err?.error?.message || 'Không thể chuyển về cho Bot.');
-      },
-    });
-  }
-
-  public toggleCloseConversation(): void {
-    const conv = this.conversationDetail()?.conversation;
-    if (!conv) return;
-
-    if (conv.status === 'OPEN') {
-      if (!confirm('Bạn có chắc muốn kết thúc cuộc trò chuyện này?')) return;
-      this.chatAdminService.closeConversation(conv.id).subscribe({
-        next: (res) => {
-          this.conversationDetail.update((d) =>
-            d ? { ...d, conversation: res.conversation } : null
-          );
-          this.loadConversations();
-          this.loadFilterCounts();
-        },
-        error: (err) => alert(err?.error?.message || 'Không thể đóng cuộc trò chuyện.'),
-      });
-    } else {
-      this.chatAdminService.reopenConversation(conv.id).subscribe({
-        next: (res) => {
-          this.conversationDetail.update((d) =>
-            d ? { ...d, conversation: res.conversation } : null
-          );
-          this.loadConversations();
-          this.loadFilterCounts();
-        },
-        error: (err) => alert(err?.error?.message || 'Không thể mở lại cuộc trò chuyện.'),
-      });
-    }
+  public closeCustomerDrawer(): void {
+    this.isCustomerDrawerOpen.set(false);
   }
 
   public saveInternalNote(): void {
@@ -911,9 +658,17 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.noteSavedSuccess.set(false);
 
     this.chatAdminService.updateInternalNote(convId, this.noteInput()).subscribe({
-      next: () => {
+      next: (res) => {
         this.isSavingNote.set(false);
         this.noteSavedSuccess.set(true);
+        this.conversationDetail.update((d) =>
+          d
+            ? {
+                ...d,
+                conversation: { ...d.conversation, internalNote: res.internalNote },
+              }
+            : null
+        );
         setTimeout(() => this.noteSavedSuccess.set(false), 3000);
       },
       error: (err) => {
@@ -923,419 +678,185 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadStaffList(): void {
-    this.chatAdminService.getAvailableStaff().subscribe({
-      next: (res) => {
-        this.staffList.set(res.staff || []);
-      },
-    });
+  public getValidPhone(): string {
+    const conv = this.conversationDetail()?.conversation;
+    const cust = this.conversationDetail()?.customer;
+    // Khách vãng lai không hiển thị SĐT
+    if (!cust && (!conv?.customerType || conv.customerType === 'GUEST')) {
+      return '';
+    }
+    const phone = cust?.phone || conv?.guestPhone || '';
+    if (!phone || phone.startsWith('GOOG_')) return '';
+    return phone;
   }
 
   // =========================================================================
-  // TAB KỊCH BẢN BOT (SCRIPTS)
+  // SOCKET REALTIME LISTENERS
   // =========================================================================
 
-  public loadScripts(): void {
-    this.isLoadingScripts.set(true);
-    this.chatAdminService.getScripts().subscribe({
-      next: (res) => {
-        this.scripts.set(res.scripts || []);
-        this.isLoadingScripts.set(false);
-      },
-      error: () => {
-        this.isLoadingScripts.set(false);
-      },
-    });
-  }
+  private initSocket(): void {
+    if (typeof window === 'undefined') return;
 
-  public openCreateScriptModal(): void {
-    this.editingScriptId.set(null);
-    this.scriptIntent.set('');
-    this.scriptName.set('');
-    this.scriptPatterns.set([]);
-    this.patternChipInput.set('');
-    this.scriptAnswer.set('');
-    this.scriptQuickReplies.set([]);
-    this.scriptActionType.set('NONE');
-    this.scriptPriority.set(0);
-    this.scriptIsActive.set(true);
-    this.scriptFormError.set(null);
-    this.isScriptModalOpen.set(true);
-  }
+    const token =
+      sessionStorage.getItem('dcor_admin_token') ||
+      localStorage.getItem('dcor_admin_token');
 
-  public openEditScriptModal(script: BotScript): void {
-    this.editingScriptId.set(script.id);
-    this.scriptIntent.set(script.intent);
-    this.scriptName.set(script.name);
-    this.scriptPatterns.set([...(script.patterns || [])]);
-    this.patternChipInput.set('');
-    this.scriptAnswer.set(script.answer || '');
-    this.scriptQuickReplies.set([...(script.quickReplies || [])]);
-    this.scriptActionType.set(script.actionType || 'NONE');
-    this.scriptPriority.set(script.priority || 0);
-    this.scriptIsActive.set(script.isActive !== false);
-    this.scriptFormError.set(null);
-    this.isScriptModalOpen.set(true);
-  }
+    if (!token) return;
 
-  public closeScriptModal(): void {
-    this.isScriptModalOpen.set(false);
-  }
+    const socketUrl = environment.apiUrl.replace(/\/api\/?$/, '');
 
-  // Chip management
-  public addPatternChip(): void {
-    const val = this.patternChipInput().trim();
-    if (!val) return;
-    if (this.scriptPatterns().includes(val)) {
-      this.patternChipInput.set('');
-      return;
-    }
-    this.scriptPatterns.update((chips) => [...chips, val]);
-    this.patternChipInput.set('');
-  }
-
-  public onPatternInputKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' || event.key === ',') {
-      event.preventDefault();
-      this.addPatternChip();
-    }
-  }
-
-  public removePatternChip(index: number): void {
-    this.scriptPatterns.update((chips) => chips.filter((_, i) => i !== index));
-  }
-
-  // Quick replies management
-  public addQuickReplyOption(): void {
-    if (this.scriptQuickReplies().length >= 6) {
-      alert('Tối đa 6 nút phản hồi nhanh.');
-      return;
-    }
-    this.scriptQuickReplies.update((list) => [...list, { label: '', payload: '' }]);
-  }
-
-  public removeQuickReplyOption(index: number): void {
-    this.scriptQuickReplies.update((list) => list.filter((_, i) => i !== index));
-  }
-
-  public updateQuickReplyLabel(index: number, label: string): void {
-    this.scriptQuickReplies.update((list) =>
-      list.map((item, i) => (i === index ? { ...item, label } : item))
-    );
-  }
-
-  public updateQuickReplyPayload(index: number, payload: string): void {
-    this.scriptQuickReplies.update((list) =>
-      list.map((item, i) => (i === index ? { ...item, payload } : item))
-    );
-  }
-
-  // Chèn biến vào câu trả lời
-  public insertVariable(variableName: string): void {
-    this.scriptAnswer.update((prev) => prev + variableName);
-  }
-
-  public saveScript(): void {
-    const isEdit = !!this.editingScriptId();
-    const intent = this.scriptIntent().trim().toUpperCase();
-    const name = this.scriptName().trim();
-    const patterns = this.scriptPatterns();
-    const answer = this.scriptAnswer().trim();
-
-    if (!intent || !name) {
-      this.scriptFormError.set('Vui lòng nhập đầy đủ Mã kịch bản (intent) và Tên kịch bản.');
-      return;
-    }
-
-    if (patterns.length < 1) {
-      this.scriptFormError.set('Kịch bản phải có tối thiểu 1 câu mẫu/từ khóa.');
-      return;
-    }
-
-    if (!answer) {
-      this.scriptFormError.set('Vui lòng nhập nội dung câu trả lời của trợ lý ảo.');
-      return;
-    }
-
-    if (answer.length > 2000) {
-      this.scriptFormError.set('Nội dung câu trả lời không được vượt quá 2000 ký tự.');
-      return;
-    }
-
-    // Validate quick replies
-    const validQuickReplies = this.scriptQuickReplies().filter(
-      (qr) => qr.label.trim() && qr.payload.trim()
-    );
-
-    this.isSavingScript.set(true);
-    this.scriptFormError.set(null);
-
-    const payload: Partial<BotScript> = {
-      intent,
-      name,
-      patterns,
-      answer,
-      quickReplies: validQuickReplies.length > 0 ? validQuickReplies : undefined,
-      actionType: this.scriptActionType(),
-      priority: Number(this.scriptPriority()) || 0,
-      isActive: this.scriptIsActive(),
-    };
-
-    if (isEdit) {
-      this.chatAdminService.updateScript(this.editingScriptId()!, payload).subscribe({
-        next: () => {
-          this.isSavingScript.set(false);
-          this.isScriptModalOpen.set(false);
-          this.loadScripts();
-        },
-        error: (err) => {
-          this.isSavingScript.set(false);
-          this.scriptFormError.set(err?.error?.message || 'Không thể cập nhật kịch bản.');
-        },
+    try {
+      this.socket = io(socketUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
       });
-    } else {
-      this.chatAdminService.createScript(payload).subscribe({
-        next: () => {
-          this.isSavingScript.set(false);
-          this.isScriptModalOpen.set(false);
-          this.loadScripts();
-        },
-        error: (err) => {
-          this.isSavingScript.set(false);
-          this.scriptFormError.set(err?.error?.message || 'Không thể tạo kịch bản.');
-        },
+
+      this.socket.on('connect', () => {
+        this.isConnected.set(true);
+        if (this.selectedConversationId()) {
+          this.emitStaffRead(this.selectedConversationId()!);
+        }
       });
+
+      this.socket.on('disconnect', () => {
+        this.isConnected.set(false);
+      });
+
+      this.socket.on('staff:unread', (data: { total: number }) => {
+        const count = typeof data?.total === 'number' ? data.total : 0;
+        this.chatUnreadService.setUnread(count);
+      });
+
+      this.socket.on('staff:conversation:update', (payload: any) => {
+        if (!payload || !payload.id) return;
+        this.conversations.update((list) => {
+          const idx = list.findIndex((c) => c.id === payload.id);
+          if (idx >= 0) {
+            const updated = { ...list[idx], ...payload };
+            const nextList = [...list];
+            nextList[idx] = updated;
+            return nextList;
+          }
+          return [payload, ...list];
+        });
+
+        if (payload.id === this.selectedConversationId()) {
+          this.emitStaffRead(payload.id);
+        }
+      });
+
+      this.socket.on('chat:message', (msg: ChatMessage) => {
+        if (!msg || !msg.conversationId) return;
+
+        if (msg.conversationId === this.selectedConversationId()) {
+          this.messages.update((list) => {
+            const exists = list.some(
+              (m) =>
+                m.id === msg.id ||
+                (m.clientMessageId && msg.clientMessageId && m.clientMessageId === msg.clientMessageId)
+            );
+            if (!exists) return [...list, msg];
+            return list.map((m) =>
+              m.clientMessageId === msg.clientMessageId ? { ...msg, pending: false } : m
+            );
+          });
+
+          if (this.isUserNearBottom) {
+            this.scrollToBottom();
+          } else {
+            this.showNewMessageFloatingBtn.set(true);
+          }
+
+          this.emitStaffRead(msg.conversationId);
+        }
+      });
+
+      // Lắng nghe sự kiện khách đã làm mới cuộc trò chuyện
+      this.socket.on('chat:session_reset', (data: { conversationId: string; clearedAt: string; message: any }) => {
+        if (data?.conversationId === this.selectedConversationId() && data?.message) {
+          this.messages.update((list) => [...list, data.message]);
+          this.scrollToBottom();
+        }
+      });
+
+      // Lắng nghe khách đã xem (chat:read)
+      this.socket.on('chat:read', (data: { conversationId: string; readerType: string }) => {
+        if (data?.conversationId === this.selectedConversationId() && data?.readerType === 'CUSTOMER') {
+          this.conversationDetail.update((d) =>
+            d
+              ? {
+                  ...d,
+                  conversation: { ...d.conversation, unreadCustomer: 0 },
+                }
+              : null
+          );
+        }
+      });
+
+      // Chỉ báo khách đang nhập
+      this.socket.on('chat:typing', (data: { conversationId: string; isTyping: boolean; senderType?: string }) => {
+        if (data?.conversationId === this.selectedConversationId() && data?.senderType === 'CUSTOMER') {
+          this.isCustomerTyping.set(!!data.isTyping);
+          if (this.customerTypingTimeout) clearTimeout(this.customerTypingTimeout);
+          if (data.isTyping) {
+            this.customerTypingTimeout = setTimeout(() => {
+              this.isCustomerTyping.set(false);
+            }, 4000);
+          }
+        }
+      });
+    } catch {
+      this.isConnected.set(false);
     }
   }
 
-  public openDeleteScriptModal(script: BotScript): void {
-    this.scriptToDelete.set(script);
-    this.isDeleteScriptModalOpen.set(true);
+  private disconnectSocket(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
   }
 
-  public closeDeleteScriptModal(): void {
-    this.isDeleteScriptModalOpen.set(false);
-    this.scriptToDelete.set(null);
+  private emitStaffRead(conversationId: string): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('staff:read', { conversationId });
+    }
   }
 
-  public confirmDeleteScript(): void {
-    const script = this.scriptToDelete();
-    if (!script) return;
-
-    this.isDeletingScript.set(true);
-    this.chatAdminService.deleteScript(script.id).subscribe({
-      next: () => {
-        this.isDeletingScript.set(false);
-        this.isDeleteScriptModalOpen.set(false);
-        this.scriptToDelete.set(null);
-        this.loadScripts();
-      },
-      error: (err) => {
-        this.isDeletingScript.set(false);
-        alert(err?.error?.message || 'Không thể xóa kịch bản.');
-      },
-    });
-  }
-
-  public toggleScriptActive(script: BotScript): void {
-    this.chatAdminService
-      .updateScript(script.id, { isActive: !script.isActive })
-      .subscribe({
-        next: () => this.loadScripts(),
-        error: (err) => alert(err?.error?.message || 'Không thể đổi trạng thái kịch bản.'),
-      });
-  }
-
-  // Thử kịch bản (Test script)
-  public runScriptTest(): void {
-    const text = this.testText().trim();
-    if (!text) return;
-
-    this.isTestingScript.set(true);
-    this.testError.set(null);
-    this.testResult.set(null);
-
-    this.chatAdminService.testScript(text).subscribe({
-      next: (res) => {
-        this.testResult.set(res);
-        this.isTestingScript.set(false);
-      },
-      error: (err) => {
-        this.testError.set(err?.error?.message || 'Không thể kiểm tra kịch bản.');
-        this.isTestingScript.set(false);
-      },
-    });
+  private emitStaffTyping(isTyping: boolean): void {
+    const convId = this.selectedConversationId();
+    if (convId && this.socket && this.socket.connected) {
+      this.socket.emit('staff:typing', { conversationId: convId, isTyping });
+    }
   }
 
   // =========================================================================
-  // TAB CÀI ĐẶT (SETTINGS)
+  // SCROLL & UI HELPERS
   // =========================================================================
 
-  public loadSettings(): void {
-    this.chatAdminService.getSettings().subscribe({
-      next: (res) => {
-        const s = res.settings || {};
-        if (s['workingHours']) {
-          this.settingsWorkingHours.set(s['workingHours']);
-        }
-        if (s['greeting']) this.settingsGreeting.set(s['greeting']);
-        if (s['offlineMessage']) this.settingsOfflineMessage.set(s['offlineMessage']);
-        if (s['handoffMessage']) this.settingsHandoffMessage.set(s['handoffMessage']);
-        if (Array.isArray(s['fallbackMessages'])) {
-          this.settingsFallbackMessages.set(s['fallbackMessages']);
-        } else {
-          this.settingsFallbackMessages.set([
-            'Xin lỗi, DCor chưa hiểu câu hỏi của bạn. Bạn có thể miêu tả chi tiết hơn không?',
-            'DCor chưa nhận diện được yêu cầu này. Bạn vui lòng chọn các gợi ý bên dưới hoặc bấm Gặp nhân viên nhé!',
-            'DCor xin lỗi vì sự bất tiện này. Bạn có muốn kết nối với chuyên viên tư vấn ngay không?',
-          ]);
-        }
-        if (s['hotline']) this.settingsHotline.set(s['hotline']);
-        if (s['address']) this.settingsAddress.set(s['address']);
-      },
-    });
-  }
-
-  public toggleWorkingDay(day: number): void {
-    this.settingsWorkingHours.update((wh) => {
-      const days = [...wh.days];
-      const idx = days.indexOf(day);
-      if (idx > -1) {
-        if (days.length <= 1) {
-          alert('Phải chọn ít nhất 1 ngày làm việc trong tuần.');
-          return wh;
-        }
-        days.splice(idx, 1);
-      } else {
-        days.push(day);
+  public scrollToBottom(): void {
+    setTimeout(() => {
+      const container = this.messagesContainer?.nativeElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
       }
-      return { ...wh, days: days.sort() };
-    });
+    }, 30);
   }
 
-  public isDaySelected(day: number): boolean {
-    return this.settingsWorkingHours().days.includes(day);
-  }
-
-  public updateWorkStart(event: Event): void {
-    const val = (event.target as HTMLInputElement).value;
-    this.settingsWorkingHours.update((wh) => ({ ...wh, start: val }));
-  }
-
-  public updateWorkEnd(event: Event): void {
-    const val = (event.target as HTMLInputElement).value;
-    this.settingsWorkingHours.update((wh) => ({ ...wh, end: val }));
-  }
-
-  public addFallbackMessage(): void {
-    const val = this.newFallbackInput().trim();
-    if (!val) return;
-    if (val.length > 500) {
-      alert('Tin nhắn dự phòng không được vượt quá 500 ký tự.');
-      return;
+  public scrollToBottomSmooth(): void {
+    const container = this.messagesContainer?.nativeElement;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      this.showNewMessageFloatingBtn.set(false);
     }
-    this.settingsFallbackMessages.update((list) => [...list, val]);
-    this.newFallbackInput.set('');
   }
 
-  public removeFallbackMessage(index: number): void {
-    if (this.settingsFallbackMessages().length <= 3) {
-      alert('Danh sách tin nhắn Fallback phải duy trì tối thiểu 3 biến thể.');
-      return;
-    }
-    this.settingsFallbackMessages.update((list) => list.filter((_, i) => i !== index));
+  public backToConversationsList(): void {
+    this.isMobileChatActive.set(false);
   }
-
-  public updateFallbackItem(index: number, text: string): void {
-    this.settingsFallbackMessages.update((list) =>
-      list.map((item, i) => (i === index ? text : item))
-    );
-  }
-
-  public saveSettings(): void {
-    const wh = this.settingsWorkingHours();
-    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-    if (!timeRegex.test(wh.start) || !timeRegex.test(wh.end)) {
-      this.settingsFeedback.set({
-        type: 'error',
-        message: 'Giờ làm việc phải theo định dạng HH:mm (ví dụ 08:00, 22:00).',
-      });
-      return;
-    }
-
-    if (wh.start >= wh.end) {
-      this.settingsFeedback.set({
-        type: 'error',
-        message: 'Giờ kết thúc phải sau giờ bắt đầu làm việc.',
-      });
-      return;
-    }
-
-    if (wh.days.length === 0) {
-      this.settingsFeedback.set({
-        type: 'error',
-        message: 'Vui lòng chọn ít nhất 1 ngày làm việc.',
-      });
-      return;
-    }
-
-    const fallbacks = this.settingsFallbackMessages().map((f) => f.trim()).filter(Boolean);
-    if (fallbacks.length < 3) {
-      this.settingsFeedback.set({
-        type: 'error',
-        message: 'Cần ít nhất 3 biến thể tin nhắn dự phòng (Fallback).',
-      });
-      return;
-    }
-
-    if (
-      (this.settingsGreeting() && this.settingsGreeting().length > 500) ||
-      (this.settingsOfflineMessage() && this.settingsOfflineMessage().length > 500) ||
-      (this.settingsHandoffMessage() && this.settingsHandoffMessage().length > 500)
-    ) {
-      this.settingsFeedback.set({
-        type: 'error',
-        message: 'Các tin nhắn cấu hình không được vượt quá 500 ký tự.',
-      });
-      return;
-    }
-
-    this.isSavingSettings.set(true);
-    this.settingsFeedback.set(null);
-
-    const payload = {
-      workingHours: wh,
-      greeting: this.settingsGreeting().trim(),
-      offlineMessage: this.settingsOfflineMessage().trim(),
-      handoffMessage: this.settingsHandoffMessage().trim(),
-      fallbackMessages: fallbacks,
-      hotline: this.settingsHotline().trim(),
-      address: this.settingsAddress().trim(),
-    };
-
-    this.chatAdminService.updateSettings(payload).subscribe({
-      next: () => {
-        this.isSavingSettings.set(false);
-        this.settingsFeedback.set({
-          type: 'success',
-          message: 'Lưu cấu hình Chat & Bot thành công!',
-        });
-        setTimeout(() => this.settingsFeedback.set(null), 4000);
-      },
-      error: (err) => {
-        this.isSavingSettings.set(false);
-        this.settingsFeedback.set({
-          type: 'error',
-          message: err?.error?.message || 'Không thể lưu cấu hình.',
-        });
-      },
-    });
-  }
-
-  // =========================================================================
-  // HELPER FORMATTERS
-  // =========================================================================
 
   public openLightbox(imageUrl: string): void {
     this.lightboxImageUrl.set(imageUrl);
@@ -1345,110 +866,122 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.lightboxImageUrl.set(null);
   }
 
-  public replaceTemplateVariables(text: string): string {
-    if (!text) return '';
-    const wh = this.settingsWorkingHours();
-    const hoursText = `${wh.start} - ${wh.end} (Hàng ngày)`;
-    const statusOpenText = 'Đang mở cửa';
+  // Chip trạng thái danh sách: tính từ MỘT NGUỒN SỰ THẬT DUY NHẤT (không phụ thuộc status)
+  public getConversationChip(conv: ChatConversation): { label: string; class: string } | null {
+    if (conv.mode === 'STAFF') {
+      const name = conv.assignedStaffName ? ` · ${conv.assignedStaffName}` : '';
+      return { label: `Đang tư vấn${name}`, class: 'staff' };
+    }
+    if (conv.mode === 'WAITING_STAFF' || conv.needsHuman) {
+      return { label: 'Chờ nhân viên', class: 'waiting' };
+    }
+    return null;
+  }
 
-    return text
-      .replace(/\{\{hotline\}\}/g, this.settingsHotline() || '1900 1234')
-      .replace(/\{\{address\}\}/g, this.settingsAddress() || '669 QL1A, TP. Hồ Chí Minh')
-      .replace(/\{\{hours\}\}/g, hoursText)
-      .replace(/\{\{status_open\}\}/g, statusOpenText)
-      .replace(/\{\{handoffMessage\}\}/g, this.settingsHandoffMessage());
+  // Header loại khách
+  public getCustomerTypeLabel(conv: ChatConversation): string {
+    if (conv.customerType === 'MEMBER' || conv.customerId) {
+      return 'Thành viên';
+    }
+    return 'Khách vãng lai';
+  }
+
+  public getAvatarColor(name: string): string {
+    const colors = ['#765337', '#934B22', '#695138', '#5E4934', '#3E2F23', '#8B5E3C'];
+    if (!name) return colors[0];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
   }
 
   public getInitials(name: string): string {
     if (!name) return 'K';
-    const parts = name.trim().split(' ').filter(Boolean);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return (name[0] || 'K').toUpperCase();
-  }
-
-  public getAvatarColor(name: string): string {
-    const colors = [
-      '#765337',
-      '#BC5F13',
-      '#4F46E5',
-      '#059669',
-      '#D97706',
-      '#DC2626',
-      '#7C3AED',
-      '#0284C7',
-    ];
-    let hash = 0;
-    for (let i = 0; i < (name || '').length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const idx = Math.abs(hash) % colors.length;
-    return colors[idx];
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
   }
 
   public formatRelativeTime(dateInput: string | Date | undefined): string {
     if (!dateInput) return '';
-    const date = new Date(dateInput);
-    if (isNaN(date.getTime())) return '';
-
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
-    const diffHours = Math.floor(diffMin / 60);
-    const diffDays = Math.floor(diffHours / 24);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
 
     if (diffSec < 60) return 'Vừa xong';
     if (diffMin < 60) return `${diffMin} phút trước`;
-    if (diffHours < 24) {
-      const h = date.getHours().toString().padStart(2, '0');
-      const m = date.getMinutes().toString().padStart(2, '0');
-      return `${h}:${m}`;
-    }
-    if (diffDays === 1) return 'Hôm qua';
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-
-    const d = date.getDate().toString().padStart(2, '0');
-    const mo = (date.getMonth() + 1).toString().padStart(2, '0');
-    return `${d}/${mo}`;
+    if (diffHour < 24) return `${diffHour} giờ trước`;
+    if (diffDay === 1) return 'Hôm qua';
+    if (diffDay < 7) return `${diffDay} ngày trước`;
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
   }
 
   public formatMessageTime(dateInput: string | Date | undefined): string {
     if (!dateInput) return '';
-    const date = new Date(dateInput);
-    if (isNaN(date.getTime())) return '';
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${h}:${m}`;
+    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   }
 
-  public formatCurrency(val: any): string {
-    const num = Number(val) || 0;
+  private getDateKey(dateInput: string | Date | undefined): string {
+    if (!dateInput) return '';
+    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+  }
+
+  public formatDateSeparator(dateInput: string | Date | undefined): string {
+    if (!dateInput) return '';
+    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    const now = new Date();
+
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    if (isToday) return 'Hôm nay';
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday =
+      d.getDate() === yesterday.getDate() &&
+      d.getMonth() === yesterday.getMonth() &&
+      d.getFullYear() === yesterday.getFullYear();
+
+    if (isYesterday) return 'Hôm qua';
+
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  public isSessionResetMessage(msg: ChatMessage): boolean {
+    return msg.meta && msg.meta.type === 'SESSION_RESET';
+  }
+
+  public formatCurrency(amount: string | number | undefined): string {
+    if (amount === undefined || amount === null) return '0 đ';
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
   }
 
   public getOrderStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      PENDING: 'Chờ xác nhận',
+      PENDING: 'Chờ xử lý',
       CONFIRMED: 'Đã xác nhận',
-      PROCESSING: 'Đang xử lý',
-      READY_TO_SHIP: 'Sẵn sàng giao',
-      SHIPPED: 'Đang giao hàng',
+      PROCESSING: 'Đang chuẩn bị',
+      SHIPPING: 'Đang giao hàng',
       DELIVERED: 'Đã giao hàng',
       COMPLETED: 'Hoàn tất',
       CANCELLED: 'Đã hủy',
-      RETURN_REQUESTED: 'Yêu cầu trả hàng',
+      RETURN_REQUESTED: 'Y/c đổi trả',
+      RETURNED: 'Đã đổi trả',
     };
     return map[status] || status;
-  }
-
-  private scrollToBottom(): void {
-    setTimeout(() => {
-      if (this.messagesContainer?.nativeElement) {
-        this.messagesContainer.nativeElement.scrollTop =
-          this.messagesContainer.nativeElement.scrollHeight;
-      }
-    }, 60);
   }
 }

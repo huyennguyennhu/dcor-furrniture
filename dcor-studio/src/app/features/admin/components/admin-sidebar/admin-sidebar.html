@@ -28,6 +28,13 @@
             (click)="toggleMenu(item.href)">
             <app-icon [name]="item.icon" size="18"></app-icon>
             <span class="sidebar-label" *ngIf="!isCollapsed">{{ item.title }}</span>
+            <span
+              *ngIf="item.href === '/admin/chat' && chatUnreadService.totalUnread() > 0"
+              class="sidebar-chat-badge"
+              [class.collapsed-badge]="isCollapsed"
+              [attr.aria-label]="chatUnreadService.totalUnread() + ' tin nhắn chưa đọc'">
+              {{ isCollapsed ? '' : (chatUnreadService.totalUnread() > 99 ? '99+' : chatUnreadService.totalUnread()) }}
+            </span>
             <app-icon
               *ngIf="!isCollapsed"
               class="sidebar-chevron"

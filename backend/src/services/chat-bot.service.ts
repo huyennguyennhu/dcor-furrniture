@@ -3,10 +3,10 @@ import {
   normalizeChatText,
   calculatePatternScore,
   isComplaint,
+  isPureGreeting,
+  isHandoffRequest,
   extractOrderNumber,
   extractPhoneNumber,
-  extractProductSearchCriteria,
-  ExtractedBudget,
 } from './chat-text.util';
 
 export interface BotProcessResult {
@@ -29,41 +29,35 @@ export interface ScriptTestResult {
 
 const ORDER_STATUS_VN: Record<string, string> = {
   PENDING: 'Chờ xác nhận',
-  CONFIRMED: 'Đã xác nhận đơn hàng',
-  PROCESSING: 'Đang sản xuất / Chuẩn bị hàng',
+  CONFIRMED: 'Đã xác nhận',
+  PROCESSING: 'Đang xử lý / May đo',
   READY_TO_SHIP: 'Sẵn sàng giao hàng',
-  SHIPPED: 'Đang vận chuyển giao hàng',
+  SHIPPED: 'Đang giao hàng',
   DELIVERED: 'Đã giao hàng thành công',
-  COMPLETED: 'Đơn hàng hoàn tất',
-  CANCELLED: 'Đã hủy đơn',
+  COMPLETED: 'Hoàn tất đơn hàng',
+  CANCELLED: 'Đã hủy',
   RETURN_REQUESTED: 'Yêu cầu đổi trả',
   RETURNING: 'Đang hoàn trả hàng',
   RETURNED: 'Đã hoàn trả thành công',
   FAILED_DELIVERY: 'Giao hàng không thành công',
 };
 
-const PAYMENT_STATUS_VN: Record<string, string> = {
-  UNPAID: 'Chưa thanh toán',
-  PARTIAL: 'Đã đặt cọc / Thanh toán một phần',
-  PAID: 'Đã thanh toán đủ',
-  REFUND_PENDING: 'Đang chờ hoàn tiền',
-  REFUNDED: 'Đã hoàn tiền',
-};
-
 export class ChatBotService {
   /**
-   * Kiểm tra giờ mở cửa hiện tại theo múi giờ Asia/Ho_Chi_Minh
+   * Kiểm tra giờ mở cửa / giờ trực CSKH theo múi giờ Asia/Ho_Chi_Minh
+   * Mặc định 08:00 - 21:30
    */
   public isBusinessOpen(workingHoursSetting?: any): { isOpen: boolean; statusText: string; hoursText: string } {
     const config = workingHoursSetting || {
       start: '08:00',
-      end: '22:00',
+      end: '21:30',
       days: [0, 1, 2, 3, 4, 5, 6],
     };
 
-    const hoursText = `${config.start || '08:00'} - ${config.end || '22:00'} (Thứ 2 - Chủ Nhật)`;
+    const startStr = config.start || '08:00';
+    const endStr = config.end || '21:30';
+    const hoursText = `${startStr} - ${endStr}`;
 
-    // Tính thời gian hiện tại theo múi giờ Việt Nam (UTC+7)
     const now = new Date();
     const utc = now.getTime() + now.getTimezoneOffset() * 60000;
     const vnTime = new Date(utc + 7 * 3600000);
@@ -74,15 +68,14 @@ export class ChatBotService {
     if (!validDays.includes(dayOfWeek)) {
       return {
         isOpen: false,
-        statusText: 'Đang đóng cửa (hôm nay không làm việc)',
+        statusText: `Đang ngoài giờ trực (${hoursText})`,
         hoursText,
       };
     }
 
     const currentMinutes = vnTime.getHours() * 60 + vnTime.getMinutes();
-
-    const [startH, startM] = (config.start || '08:00').split(':').map(Number);
-    const [endH, endM] = (config.end || '22:00').split(':').map(Number);
+    const [startH, startM] = startStr.split(':').map(Number);
+    const [endH, endM] = endStr.split(':').map(Number);
 
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
@@ -90,17 +83,17 @@ export class ChatBotService {
     const isOpen = currentMinutes >= startMinutes && currentMinutes < endMinutes;
 
     const statusText = isOpen
-      ? `Đang mở cửa (${config.start || '08:00'} - ${config.end || '22:00'})`
-      : `Đang đóng cửa (mở cửa lại lúc ${config.start || '08:00'})`;
+      ? `Đang trong giờ trực (${hoursText})`
+      : `Đang ngoài giờ trực (trực lại lúc ${startStr} sáng mai)`;
 
     return { isOpen, statusText, hoursText };
   }
 
   /**
    * Thay thế các biến động trong câu trả lời bot:
-   * {{hotline}}, {{address}}, {{hours}}, {{status_open}}, {{handoffMessage}}
+   * {{hotline}}, {{address}}, {{hours}}, {{status_open}}, {{handoffMessage}}, {{name}}
    */
-  public replaceVariables(template: string, settings: Record<string, any>): string {
+  public replaceVariables(template: string, settings: Record<string, any>, extraVars?: Record<string, string>): string {
     if (!template) return '';
 
     const business = this.isBusinessOpen(settings['workingHours']);
@@ -110,12 +103,20 @@ export class ChatBotService {
       settings['handoffMessage'] ||
       'DCor đã tiếp nhận yêu cầu và đang kết nối bạn với chuyên viên tư vấn. Bạn vui lòng giữ kết nối trong ít phút nhé!';
 
-    return template
+    let res = template
       .replace(/\{\{hotline\}\}/g, hotline)
       .replace(/\{\{address\}\}/g, address)
       .replace(/\{\{hours\}\}/g, business.hoursText)
       .replace(/\{\{status_open\}\}/g, business.statusText)
       .replace(/\{\{handoffMessage\}\}/g, handoffMessage);
+
+    if (extraVars) {
+      for (const [k, v] of Object.entries(extraVars)) {
+        res = res.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v);
+      }
+    }
+
+    return res;
   }
 
   /**
@@ -178,6 +179,10 @@ export class ChatBotService {
     const scored: Array<{ script: any; score: number }> = [];
 
     for (const sc of scripts) {
+      if (sc.intent === 'GREETING' && !isPureGreeting(rawText)) {
+        continue;
+      }
+
       let maxScore = 0;
       const patterns: string[] = Array.isArray(sc.patterns) ? sc.patterns : [];
 
@@ -194,11 +199,9 @@ export class ChatBotService {
     }
 
     scored.sort((a, b) => {
-      // Nếu chênh lệch điểm >= 0.04 thì chọn điểm cao hơn
       if (Math.abs(b.score - a.score) >= 0.04) {
         return b.score - a.score;
       }
-      // Khi điểm xấp xỉ nhau, ưu tiên kịch bản có priority cao hơn
       const prioDiff = (b.script.priority || 0) - (a.script.priority || 0);
       if (prioDiff !== 0) return prioDiff;
       return b.score - a.score;
@@ -217,7 +220,7 @@ export class ChatBotService {
   }
 
   /**
-   * Xử lý tin nhắn khách hàng gửi đến Bot
+   * Xử lý tin nhắn khách hàng gửi đến Bot (24/7)
    */
   public async processMessage(params: {
     conversation: any;
@@ -229,89 +232,150 @@ export class ChatBotService {
     const scripts = await this.getActiveScripts();
     const botState = (conversation.botState as any) || {};
     const fallbackCount = conversation.fallbackCount || 0;
+    const isCustomerLoggedIn = Boolean(conversation.customerId);
 
-    // 1. Nếu khách gửi ảnh: Tự động kích hoạt chuyển nhân viên ngay
-    if (imageUrl) {
+    // 1. KHÁCH VÃNG LAI GỬI ẢNH:
+    // Theo yêu cầu mục 4: "KHÁCH VÃNG LAI gửi ảnh (server từ chối tin có imageUrl của guest) hoặc bấm 'Gặp nhân viên':
+    // bot trả 'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!' kèm meta {type:'LOGIN_CTA'}, mode giữ BOT, botState.pendingHandoff = true."
+    if (imageUrl && !isCustomerLoggedIn) {
+      botState.pendingHandoff = true;
+      return {
+        reply:
+          'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!',
+        meta: { type: 'LOGIN_CTA' },
+        quickReplies: [{ label: '🔐 Đăng nhập ngay', payload: 'dang_nhap' }],
+        needsHandoff: false,
+        newFallbackCount: fallbackCount,
+        updatedBotState: botState,
+      };
+    }
+
+    // Nếu KHÁCH ĐÃ ĐĂNG NHẬP gửi ảnh:
+    if (imageUrl && isCustomerLoggedIn) {
       const business = this.isBusinessOpen(settings['workingHours']);
-      const sysMsg = business.isOpen
-        ? 'Hiện đang trong giờ làm việc. Chuyên viên tư vấn DCor sẽ xem hình ảnh và phản hồi bạn trong giây lát.'
-        : 'Hiện đang ngoài giờ làm việc (08:00 - 22:00). Nhân viên DCor sẽ xem hình ảnh và liên hệ hỗ trợ bạn sớm nhất vào ca làm tiếp theo lúc 08:00 sáng mai.';
-
-      return {
-        reply: 'DCor đã nhận được hình ảnh của bạn và đang chuyển đến chuyên viên tư vấn để kiểm tra trực quan.',
-        needsHandoff: true,
-        systemMessage: sysMsg,
-        newFallbackCount: fallbackCount,
-        updatedBotState: botState,
-      };
+      if (business.isOpen) {
+        return {
+          reply:
+            'DCor đã tiếp nhận hình ảnh từ bạn và đang kết nối chuyên viên tư vấn để kiểm tra trực quan. Bạn vui lòng giữ kết nối trong ít phút nhé!',
+          needsHandoff: true,
+          systemMessage: 'Khách hàng gửi hình ảnh bản phối/mặt bằng cần chuyên viên hỗ trợ trực quan.',
+          newFallbackCount: fallbackCount,
+          updatedBotState: botState,
+        };
+      } else {
+        const offlineReply = this.replaceVariables(
+          settings['offlineMessage'] ||
+          'Hiện tại đội ngũ CSKH đang ngoài giờ trực ({{hours}}). Bạn có thể để lại nội dung cần hỗ trợ, DCor sẽ ưu tiên liên hệ phản hồi vào đầu giờ sáng mai nhé!',
+          settings
+        );
+        return {
+          reply: offlineReply,
+          needsHandoff: true,
+          systemMessage: 'Khách hàng gửi hình ảnh ngoài giờ trực của chuyên viên CSKH.',
+          newFallbackCount: fallbackCount,
+          updatedBotState: botState,
+        };
+      }
     }
 
-    // 2. Kiểm tra từ khóa khiếu nại nghiêm trọng -> Handoff ngay lập tức
-    if (isComplaint(userContent)) {
-      const complaintScript = scripts.find((s) => s.intent === 'COMPLAINT_FEEDBACK');
-      const answer = complaintScript
-        ? this.replaceVariables(complaintScript.answer, settings)
-        : 'DCor vô cùng xin lỗi về trải nghiệm chưa được hài lòng của bạn! Hệ thống đang ưu tiên chuyển tiếp cuộc trò chuyện tới Trưởng bộ phận CSKH để hỗ trợ bạn ngay lập tức.';
-
-      delete botState.step;
-      delete botState.pendingOrderNumber;
-      delete botState.pendingPhone;
-
-      return {
-        reply: answer,
-        needsHandoff: true,
-        systemMessage: 'Cuộc trò chuyện được chuyển tới nhân sự do khách hàng có phản ánh/khiếu nại dịch vụ.',
-        newFallbackCount: fallbackCount,
-        updatedBotState: botState,
-        quickReplies: [{ label: '📞 Hotline 1900 1234', payload: 'hotline' }],
-      };
-    }
-
-    // 2.1. Kiểm tra từ khóa Gặp nhân viên / Handoff trực tiếp -> ƯU TIÊN CAO HƠN MỌI TRẠNG THÁI CHỜ
-    const handoffKeywords = [
-      'gap nhan vien',
-      'gap cskh',
-      'gap tu van vien',
-      'noi chuyen voi nguoi that',
-      'ho tro truc tiep',
-      'nhan vien dau roi',
-      'tu van truc tiep',
-      'gap nhan vien tu van',
-    ];
-    const normalizedInputForHandoff = normalizeChatText(userContent);
-    const wantsHandoff = handoffKeywords.some((kw) => normalizedInputForHandoff.includes(kw));
+    // 2. Ý ĐỊNH CHUYỂN NHÂN VIÊN VÀ KHIẾU NẠI CÓ ƯU TIÊN CAO NHẤT VÀ ĐƯỢC XÉT TRƯỚC
+    const normalizedInput = normalizeChatText(userContent);
+    const wantsHandoff = isHandoffRequest(userContent);
 
     if (wantsHandoff) {
       delete botState.step;
       delete botState.pendingOrderNumber;
       delete botState.pendingPhone;
 
-      const handoffScript = scripts.find((s) => s.intent === 'HUMAN_HANDOFF');
-      const answer = handoffScript
-        ? this.replaceVariables(handoffScript.answer, settings)
-        : this.replaceVariables('{{handoffMessage}}', settings);
+      // Khách vãng lai bấm "Gặp nhân viên"
+      if (!isCustomerLoggedIn) {
+        botState.pendingHandoff = true;
+        return {
+          reply:
+            'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!',
+          meta: { type: 'LOGIN_CTA' },
+          quickReplies: [{ label: '🔐 Đăng nhập tài khoản', payload: 'dang_nhap' }],
+          needsHandoff: false,
+          newFallbackCount: 0,
+          updatedBotState: botState,
+        };
+      }
+
+      // Khách đã đăng nhập bấm "Gặp nhân viên"
+      const business = this.isBusinessOpen(settings['workingHours']);
+      if (business.isOpen) {
+        const handoffText = this.replaceVariables(
+          settings['handoffMessage'] ||
+          'DCor đã tiếp nhận yêu cầu và đang kết nối bạn với chuyên viên tư vấn. Bạn vui lòng giữ kết nối trong ít phút nhé!',
+          settings
+        );
+        return {
+          reply: handoffText,
+          needsHandoff: true,
+          systemMessage: 'Khách hàng yêu cầu kết nối chuyên viên tư vấn trực tiếp.',
+          newFallbackCount: 0,
+          updatedBotState: botState,
+          quickReplies: [
+            { label: '📞 Hotline 1900 1234', payload: 'hotline' },
+            { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+          ],
+        };
+      } else {
+        const offlineText = this.replaceVariables(
+          settings['offlineMessage'] ||
+          'Hiện tại đội ngũ CSKH đang ngoài giờ trực ({{hours}}). Bạn có thể để lại nội dung cần hỗ trợ, DCor sẽ ưu tiên liên hệ phản hồi vào đầu giờ sáng mai nhé!',
+          settings
+        );
+        return {
+          reply: offlineText,
+          needsHandoff: true, // Vẫn ghi nhận hội thoại cho nhân viên
+          systemMessage: 'Khách hàng liên hệ ngoài giờ trực CSKH.',
+          newFallbackCount: 0,
+          updatedBotState: botState,
+          quickReplies: [
+            { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+            { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+          ],
+        };
+      }
+    }
+
+    // 3. Kiểm tra khiếu nại nghiêm trọng -> Handoff
+    if (isComplaint(userContent)) {
+      if (!isCustomerLoggedIn) {
+        botState.pendingHandoff = true;
+        return {
+          reply:
+            'DCor rất tiếc về sự cố bạn gặp phải. Để chuyên viên DCor tra cứu hồ sơ và hỗ trợ xử lý triệt để, bạn vui lòng đăng nhập tài khoản nhé!',
+          meta: { type: 'LOGIN_CTA' },
+          quickReplies: [{ label: '🔐 Đăng nhập tài khoản', payload: 'dang_nhap' }],
+          needsHandoff: false,
+          newFallbackCount: fallbackCount,
+          updatedBotState: botState,
+        };
+      }
 
       const business = this.isBusinessOpen(settings['workingHours']);
-      const sysMsg = business.isOpen
-        ? 'Hiện đang trong giờ làm việc. Chuyên viên tư vấn DCor sẽ phản hồi bạn trong giây lát. Vui lòng giữ kết nối nhé!'
-        : 'Hiện đang ngoài giờ làm việc (08:00 - 22:00). Nhân viên DCor sẽ liên hệ hỗ trợ bạn sớm nhất vào ca làm tiếp theo lúc 08:00 sáng mai. Trong lúc chờ, bot vẫn sẵn sàng giải đáp các câu hỏi thường gặp của bạn.';
+      const complaintScript = scripts.find((s) => s.intent === 'COMPLAINT_FEEDBACK');
+      const answer = complaintScript
+        ? this.replaceVariables(complaintScript.answer, settings)
+        : 'DCor vô cùng xin lỗi về trải nghiệm chưa được hài lòng của bạn! Hệ thống đang ưu tiên chuyển tiếp cuộc trò chuyện tới Trưởng bộ phận CSKH để hỗ trợ bạn ngay lập tức.';
 
       return {
         reply: answer,
         needsHandoff: true,
-        systemMessage: sysMsg,
-        newFallbackCount: 0,
+        systemMessage: business.isOpen
+          ? 'Hội thoại được ưu tiên chuyển CSKH do phản ánh dịch vụ.'
+          : 'Khách phản ánh dịch vụ ngoài giờ trực. CSKH sẽ ưu tiên liên hệ đầu giờ sáng mai.',
+        newFallbackCount: fallbackCount,
         updatedBotState: botState,
-        quickReplies: handoffScript?.quickReplies || [
-          { label: '📞 Gọi Hotline khẩn', payload: 'hotline' },
-          { label: '⏰ Xem giờ làm việc', payload: 'giờ làm việc' },
-        ],
+        quickReplies: [{ label: '📞 Hotline 1900 1234', payload: 'hotline' }],
       };
     }
 
-    // 2.2. Kiểm tra từ khóa HỦY/THOÁT luồng tra cứu đơn hàng
+    // 4. Kiểm tra từ khóa HỦY/THOÁT luồng tra cứu đơn hàng
     const cancelKeywords = ['huy', 'huy tra cuu', 'khong tra cuu nua', 'quay lai', 'bo qua', 'thoat'];
-    if (botState.step && cancelKeywords.includes(normalizedInputForHandoff)) {
+    if (botState.step && cancelKeywords.includes(normalizedInput)) {
       delete botState.step;
       delete botState.pendingOrderNumber;
       delete botState.pendingPhone;
@@ -319,16 +383,16 @@ export class ChatBotService {
       return {
         reply: 'Đã hủy yêu cầu tra cứu đơn hàng. DCor có thể hỗ trợ gì khác cho bạn hôm nay?',
         quickReplies: [
-          { label: '🛋️ Tìm sản phẩm', payload: 'tìm sản phẩm' },
-          { label: '📦 Tra cứu đơn', payload: 'tra cứu đơn hàng' },
-          { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+          { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+          { label: '📐 May đo riêng', payload: 'may đo riêng' },
+          { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
         ],
         newFallbackCount: 0,
         updatedBotState: botState,
       };
     }
 
-    // 3. Xử lý luồng nhiều bước đang chờ (botState) - Chỉ tiếp tục khi khách không chuyển sang intent khác
+    // 5. Xử lý luồng nhiều bước tra cứu đơn hàng đang chờ (AWAITING_ORDER_NUMBER / AWAITING_PHONE)
     if (botState.step === 'AWAITING_ORDER_NUMBER' || botState.step === 'AWAITING_PHONE') {
       const { bestMatch: stepMatch } = this.scoreIntents(userContent, scripts);
       if (stepMatch && stepMatch.score >= 0.7 && stepMatch.script.intent !== 'ORDER_STATUS') {
@@ -340,88 +404,96 @@ export class ChatBotService {
       }
     }
 
-    // 4. Kiểm tra tin nhắn quá ngắn / chỉ có emoji
-    const normalizedInput = normalizeChatText(userContent);
-    if (!normalizedInput || normalizedInput.length < 2) {
-      const greetingScript = scripts.find((s) => s.intent === 'GREETING');
-      const replyText = greetingScript
-        ? this.replaceVariables(greetingScript.answer, settings)
-        : settings['greeting'] || 'Xin chào! DCor có thể hỗ trợ gì cho bạn hôm nay?';
+    // 6. Kiểm tra tin nhắn chào hỏi thuần túy hoặc quá ngắn
+    if (!normalizedInput || normalizedInput.length < 2 || isPureGreeting(userContent)) {
+      const defaultGreeting = isCustomerLoggedIn
+        ? 'Chào {{name}}! DCor có thể hỗ trợ gì cho bạn hôm nay?'
+        : 'Xin chào bạn! DCor có thể hỗ trợ gì cho bạn hôm nay?';
+
+      let replyText = defaultGreeting;
+      replyText = this.replaceVariables(replyText, settings, {
+        name: conversation.guestName || 'bạn',
+      });
+
+      const quickReplies = isCustomerLoggedIn
+        ? [
+          { label: '📦 Tình trạng đơn hàng', payload: 'tình trạng đơn hàng' },
+          { label: '📐 May đo riêng', payload: 'may đo riêng' },
+          { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+        ]
+        : [
+          { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+          { label: '📐 Tư vấn may đo theo kích thước', payload: 'tư vấn may đo theo kích thước' },
+          { label: '📍 Đặt lịch trải nghiệm Showroom', payload: 'đặt lịch trải nghiệm showroom' },
+        ];
 
       return {
         reply: replyText,
-        quickReplies: greetingScript?.quickReplies || [
-          { label: '🛋️ Tìm sản phẩm', payload: 'tìm sản phẩm' },
-          { label: '📦 Tra cứu đơn', payload: 'tra cứu đơn hàng' },
-          { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
-        ],
+        quickReplies,
         newFallbackCount: 0,
         updatedBotState: botState,
       };
     }
 
-    // 5. Nếu câu hỏi có chứa mã đơn hàng (DC-xxxxxx) -> tự động chuyển sang luồng tra cứu đơn hàng
+    // 7. Nếu câu hỏi có chứa mã đơn hàng (DC-xxxxxx hoặc ORD-xxxxxx) -> tự động chuyển sang luồng tra cứu đơn hàng
     const extractedOrderCode = extractOrderNumber(userContent);
     if (extractedOrderCode) {
       return await this.handleOrderStatusMultiStep(userContent, conversation, botState, settings);
     }
 
-    // 6. Chấm điểm Intent
+    // 8. Chấm điểm Intent
     const { bestMatch, secondMatch } = this.scoreIntents(userContent, scripts);
 
-    // Ngưỡng tự tin tối thiểu: 0.55
     const CONFIDENCE_THRESHOLD = 0.55;
     const AMBIGUITY_GAP = 0.1;
 
-    // A. Nếu điểm cao nhất < 0.55 -> Kích hoạt Fallback
+    // A. Nếu điểm cao nhất < 0.55 -> Kích hoạt Fallback xoay vòng (>= 3)
     if (!bestMatch || bestMatch.score < CONFIDENCE_THRESHOLD) {
       const nextFallback = fallbackCount + 1;
 
-      // Nếu fallbackCount >= 2 -> Tự động chuyển nhân viên
-      if (nextFallback >= 2) {
-        const business = this.isBusinessOpen(settings['workingHours']);
-        const sysMsg = business.isOpen
-          ? 'Hiện đang trong giờ làm việc. Chuyên viên tư vấn DCor sẽ phản hồi bạn trong giây lát. Vui lòng giữ kết nối nhé!'
-          : 'Hiện đang ngoài giờ làm việc (08:00 - 22:00). Nhân viên DCor sẽ liên hệ hỗ trợ bạn sớm nhất vào ca làm tiếp theo lúc 08:00 sáng mai. Trong lúc chờ, bot vẫn sẵn sàng giải đáp các câu hỏi thường gặp của bạn.';
-
-        return {
-          reply:
-            'DCor chưa nắm bắt chính xác nhu cầu của bạn sau 2 lần hỏi. Em đã chuyển tiếp cuộc trò chuyện tới chuyên viên CSKH để hỗ trợ bạn chu đáo hơn nhé!',
-          needsHandoff: true,
-          systemMessage: sysMsg,
-          newFallbackCount: nextFallback,
-          updatedBotState: botState,
-          quickReplies: [
-            { label: '📞 Gọi Hotline', payload: 'hotline' },
-            { label: '⏰ Giờ làm việc', payload: 'giờ làm việc' },
-          ],
-        };
-      }
-
-      // Fallback lần 1: Chọn thông điệp fallback xoay vòng
+      // Fallback xoay vòng
       const fallbackList: string[] = Array.isArray(settings['fallbackMessages'])
         ? settings['fallbackMessages']
         : [
-            'DCor chưa hiểu rõ câu hỏi của bạn. Bạn vui lòng diễn đạt cụ thể hơn hoặc chọn một trong các gợi ý bên dưới nhé!',
-            'Xin lỗi bạn, câu hỏi này nằm ngoài hiểu biết hiện tại của bot. Bạn thử mô tả lại hoặc bấm nút Gặp nhân viên để được hỗ trợ trực tiếp.',
-            'DCor chưa tìm được thông tin phù hợp với yêu cầu này. Bạn có thể chọn chủ đề cần giải đáp bên dưới để mình hỗ trợ ngay nhé!',
-          ];
+          'DCor chưa hiểu rõ câu hỏi của bạn. Bạn vui lòng diễn đạt cụ thể hơn hoặc chọn một trong các gợi ý bên dưới nhé!',
+          'Xin lỗi bạn, câu hỏi này nằm ngoài hiểu biết hiện tại của bot. Bạn thử mô tả lại hoặc bấm nút Gặp nhân viên để được hỗ trợ trực tiếp.',
+          'DCor chưa tìm được thông tin phù hợp với yêu cầu này. Bạn có thể chọn chủ đề cần giải đáp bên dưới để mình hỗ trợ ngay nhé!',
+        ];
 
       const fallbackText = fallbackList[fallbackCount % fallbackList.length];
 
+      const defaultQR = isCustomerLoggedIn
+        ? [
+          { label: '📦 Tình trạng đơn hàng', payload: 'tình trạng đơn hàng' },
+          { label: '📐 May đo riêng', payload: 'may đo riêng' },
+          { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+        ]
+        : [
+          { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+          { label: '📐 Tư vấn may đo theo kích thước', payload: 'tư vấn may đo theo kích thước' },
+          { label: '📍 Đặt lịch trải nghiệm Showroom', payload: 'đặt lịch trải nghiệm showroom' },
+        ];
+
       return {
         reply: fallbackText,
+        meta: {
+          type: 'LINK',
+          label: 'Xem tất cả sản phẩm',
+          url: '/explore',
+        },
         quickReplies: [
-          { label: '🛋️ Tìm sản phẩm', payload: 'tìm sản phẩm' },
-          { label: '📦 Tra cứu đơn', payload: 'tra cứu đơn hàng' },
-          { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+          { label: '🛋️ Sofa', payload: 'xem sofa' },
+          { label: '🍽️ Bàn ăn', payload: 'xem ban an' },
+          { label: '🛏️ Giường', payload: 'xem giuong' },
+          { label: '🚪 Tủ', payload: 'xem tu' },
+          ...defaultQR,
         ],
         newFallbackCount: nextFallback,
         updatedBotState: botState,
       };
     }
 
-    // B. Kiểm tra trạng thái MƠ HỒ (Ambiguity): điểm >= 0.55 nhưng hơn hạng nhì < 0.1
+    // B. Kiểm tra MƠ HỒ (Ambiguity)
     if (secondMatch && bestMatch.score - secondMatch.score < AMBIGUITY_GAP && secondMatch.score >= 0.45) {
       return {
         reply: `Có phải bạn đang muốn hỏi về "${bestMatch.script.name}" hoặc "${secondMatch.script.name}" không ạ? Bạn vui lòng bấm chọn bên dưới nhé:`,
@@ -443,32 +515,84 @@ export class ChatBotService {
     // C. Khớp Intent thành công -> Reset fallbackCount về 0
     const matchedScript = bestMatch.script;
 
-    // Xử lý theo ActionType
+    // Xử lý theo ActionType & Intent
     switch (matchedScript.actionType) {
-      case 'HANDOFF': {
-        const business = this.isBusinessOpen(settings['workingHours']);
-        const sysMsg = business.isOpen
-          ? 'Hiện đang trong giờ làm việc. Chuyên viên tư vấn DCor sẽ phản hồi bạn trong giây lát. Vui lòng giữ kết nối nhé!'
-          : 'Hiện đang ngoài giờ làm việc (08:00 - 22:00). Nhân viên DCor sẽ liên hệ hỗ trợ bạn sớm nhất vào ca làm tiếp theo lúc 08:00 sáng mai. Trong lúc chờ, bot vẫn sẵn sàng giải đáp các câu hỏi thường gặp của bạn.';
-
-        const reply = this.replaceVariables(matchedScript.answer, settings);
-
-        return {
-          reply,
-          needsHandoff: true,
-          systemMessage: sysMsg,
-          newFallbackCount: 0,
-          updatedBotState: botState,
-          quickReplies: matchedScript.quickReplies,
-        };
+      case 'SOFA_HOT': {
+        return await this.handleSofaHotFlow(matchedScript, settings);
       }
 
       case 'ORDER_STATUS': {
         return await this.handleOrderStatusMultiStep(userContent, conversation, botState, settings);
       }
 
-      case 'PRODUCT_SEARCH': {
-        return await this.handleProductSearchFlow(userContent, matchedScript, settings);
+      case 'BOOK_CONSULT': {
+        const reply = this.replaceVariables(matchedScript.answer, settings);
+        return {
+          reply,
+          meta: { type: 'BOOKING_CTA' },
+          quickReplies: matchedScript.quickReplies || [
+            { label: '📅 Đặt lịch tư vấn tại Showroom', payload: 'đặt lịch tư vấn tại showroom' },
+            { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+          ],
+          newFallbackCount: 0,
+          updatedBotState: botState,
+        };
+      }
+
+      case 'CUSTOM_DESIGN': {
+        const reply = this.replaceVariables(matchedScript.answer, settings);
+        return {
+          reply,
+          meta: {
+            type: 'LINK',
+            label: 'Xem các mẫu hỗ trợ May đo',
+            url: '/explore',
+          },
+          quickReplies: matchedScript.quickReplies || [
+            { label: '🛋️ Xem các mẫu hỗ trợ May đo', payload: 'xem mau may do' },
+            { label: '📍 Đặt lịch tư vấn tại Showroom', payload: 'đặt lịch tư vấn tại showroom' },
+          ],
+          newFallbackCount: 0,
+          updatedBotState: botState,
+        };
+      }
+
+      case 'HANDOFF': {
+        // Chuyển sang logic handoff phía trên
+        if (!isCustomerLoggedIn) {
+          botState.pendingHandoff = true;
+          return {
+            reply:
+              'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!',
+            meta: { type: 'LOGIN_CTA' },
+            quickReplies: [{ label: '🔐 Đăng nhập ngay', payload: 'dang_nhap' }],
+            needsHandoff: false,
+            newFallbackCount: 0,
+            updatedBotState: botState,
+          };
+        }
+
+        const business = this.isBusinessOpen(settings['workingHours']);
+        const reply = business.isOpen
+          ? this.replaceVariables(
+            settings['handoffMessage'] ||
+            'DCor đã tiếp nhận yêu cầu và đang kết nối bạn với chuyên viên tư vấn. Bạn vui lòng giữ kết nối trong ít phút nhé!',
+            settings
+          )
+          : this.replaceVariables(
+            settings['offlineMessage'] ||
+            'Hiện tại đội ngũ CSKH đang ngoài giờ trực ({{hours}}). Bạn có thể để lại nội dung cần hỗ trợ, DCor sẽ ưu tiên liên hệ phản hồi vào đầu giờ sáng mai nhé!',
+            settings
+          );
+
+        return {
+          reply,
+          needsHandoff: true,
+          systemMessage: business.isOpen ? undefined : 'Khách liên hệ ngoài giờ trực CSKH.',
+          newFallbackCount: 0,
+          updatedBotState: botState,
+          quickReplies: matchedScript.quickReplies,
+        };
       }
 
       default: {
@@ -484,49 +608,202 @@ export class ChatBotService {
   }
 
   /**
-   * Xử lý luồng tra cứu đơn hàng nhiều bước (ORDER_STATUS)
+   * Xử lý intent SOFA_HOT:
+   * Tối đa 3 thẻ sản phẩm đang bán thuộc nhóm Sofas có isBestSeller (thiếu thì lấy mới nhất)
+   * Thẻ: {productId, name, image, price, link: '/products/<id>'}
    */
-  private async handleOrderStatusMultiStep(
+  public async handleSofaHotFlow(script: any, settings: Record<string, any>): Promise<BotProcessResult> {
+    try {
+      // 1. Tìm các sản phẩm thuộc category Sofa có isBestSeller = true
+      const sofaCategoryFilter = {
+        category: {
+          OR: [{ slug: { contains: 'sofa', mode: 'insensitive' as const } }, { name: { contains: 'sofa', mode: 'insensitive' as const } }],
+        },
+      };
+
+      let products = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          isBestSeller: true,
+          ...sofaCategoryFilter,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        select: {
+          id: true,
+          name: true,
+          basePrice: true,
+          images: true,
+          isBestSeller: true,
+        },
+      });
+
+      // 2. Nếu thiếu < 3 sản phẩm, lấy bù các sản phẩm sofa mới nhất
+      if (products.length < 3) {
+        const needed = 3 - products.length;
+        const existingIds = products.map((p) => p.id);
+        const fallbackProducts = await prisma.product.findMany({
+          where: {
+            isActive: true,
+            deletedAt: null,
+            id: { notIn: existingIds },
+            ...sofaCategoryFilter,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: needed,
+          select: {
+            id: true,
+            name: true,
+            basePrice: true,
+            images: true,
+            isBestSeller: true,
+          },
+        });
+        products = [...products, ...fallbackProducts];
+      }
+
+      // Tạo các thẻ sản phẩm chuẩn format
+      const cards = products.map((p) => {
+        let firstImg = '';
+        if (Array.isArray(p.images) && p.images.length > 0) {
+          firstImg = String(p.images[0]);
+        } else if (typeof p.images === 'string') {
+          firstImg = p.images;
+        }
+
+        return {
+          productId: p.id,
+          name: p.name,
+          image: firstImg,
+          price: p.basePrice,
+          link: `/products/${p.id}`,
+        };
+      });
+
+      const reply = this.replaceVariables(
+        script.answer ||
+        'DCor gợi ý top mẫu Sofa nổi bật và được yêu thích nhất hiện nay. Bạn có thể bấm vào thẻ sản phẩm để xem chi tiết kích thước và chất liệu nhé!',
+        settings
+      );
+
+      return {
+        reply,
+        meta: {
+          type: 'SOFA_HOT_CARDS',
+          products: cards,
+        },
+        quickReplies: [
+          { label: '📐 May đo riêng', payload: 'may đo riêng' },
+          { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+          { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+        ],
+        newFallbackCount: 0,
+      };
+    } catch (error) {
+      console.error('Lỗi handleSofaHotFlow:', error);
+      return {
+        reply: this.replaceVariables(script.answer, settings),
+        quickReplies: script.quickReplies,
+        newFallbackCount: 0,
+      };
+    }
+  }
+
+  /**
+   * Xử lý luồng tra cứu đơn hàng ORDER_STATUS:
+   * - KHÁCH ĐĂNG NHẬP: không cần mã -> liệt kê tối đa 3 đơn gần nhất của chính khách (mã, trạng thái tiếng Việt, tổng tiền) theo customerId
+   * - KHÁCH VÃNG LAI hoặc hỏi đơn cụ thể: xin mã đơn và SĐT đặt hàng, chỉ trả khi KHỚP, không khớp chỉ nói không tìm thấy, tối đa 5 lần thử/giờ
+   */
+  public async handleOrderStatusMultiStep(
     userContent: string,
     conversation: any,
     currentBotState: any,
     settings: Record<string, any>
   ): Promise<BotProcessResult> {
     const state = { ...currentBotState };
-    const now = Date.now();
+    const isCustomerLoggedIn = Boolean(conversation.customerId);
 
-    // 1. Kiểm tra Rate Limit: Tối đa 5 lần tra cứu sai mỗi giờ
+    // Trích xuất mã đơn và SĐT từ tin nhắn hiện tại
+    const extractedOrderCode = extractOrderNumber(userContent) || state.pendingOrderNumber;
+    const extractedPhone = extractPhoneNumber(userContent) || state.pendingPhone;
+
+    // A. NẾU KHÁCH ĐÃ ĐĂNG NHẬP VÀ KHÔNG HỎI MÃ ĐƠN CỤ THỂ
+    // Liệt kê tối đa 3 đơn gần nhất của chính khách
+    if (isCustomerLoggedIn && !extractedOrderCode) {
+      try {
+        const orders = await prisma.order.findMany({
+          where: { customerId: conversation.customerId },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            totalAmount: true,
+            createdAt: true,
+          },
+        });
+
+        if (orders.length === 0) {
+          return {
+            reply: 'Hiện tại bạn chưa có đơn hàng nào tại DCor. Bạn có thể tham khảo các mẫu Sofa hot bên dưới nhé!',
+            quickReplies: [
+              { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+              { label: '📐 May đo riêng', payload: 'may đo riêng' },
+              { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+            ],
+            newFallbackCount: 0,
+            updatedBotState: state,
+          };
+        }
+
+        const lines = ['📦 **Danh sách đơn hàng gần nhất của bạn:**'];
+        for (const o of orders) {
+          const statusVn = ORDER_STATUS_VN[o.status] || o.status;
+          const totalVn = Number(o.totalAmount).toLocaleString('vi-VN');
+          lines.push(`• **${o.orderNumber}** - ${statusVn} (Tổng: ${totalVn} đ)`);
+        }
+        lines.push('\nNếu cần kiểm tra chi tiết đơn hàng cụ thể, bạn có thể gửi mã đơn cho DCor nhé!');
+
+        return {
+          reply: lines.join('\n'),
+          quickReplies: [
+            ...orders.map((o) => ({ label: `🔍 ${o.orderNumber}`, payload: o.orderNumber })),
+            { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
+          ],
+          newFallbackCount: 0,
+          updatedBotState: state,
+        };
+      } catch (err) {
+        console.error('Lỗi lấy đơn hàng của khách đăng nhập:', err);
+      }
+    }
+
+    // B. KHÁCH VÃNG LAI HOẶC HỎI ĐƠN CỤ THỂ:
+    // Kiểm tra Rate limit 5 lần thử mỗi giờ
+    const now = Date.now();
     const ONE_HOUR = 60 * 60 * 1000;
     if (state.lookupResetAt && now < state.lookupResetAt) {
       if ((state.lookupAttempts || 0) >= 5) {
         return {
           reply:
-            'Bạn đã nhập sai thông tin tra cứu quá 5 lần trong 1 giờ qua. Để đảm bảo bảo mật cho khách hàng, tính năng này tạm thời bị khóa. Bạn vui lòng bấm nút Gặp nhân viên để được hỗ trợ trực tiếp nhé!',
-          needsHandoff: true,
-          systemMessage: 'Khách hàng bị khóa tra cứu đơn do vượt quá 5 lần thử.',
+            'Bạn đã nhập sai thông tin tra cứu quá 5 lần trong 1 giờ qua. Để đảm bảo an toàn bảo mật thông tin, tính năng tra cứu tạm khóa. Bạn vui lòng đăng nhập hoặc bấm Gặp nhân viên để được hỗ trợ nhé!',
           quickReplies: [{ label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' }],
           updatedBotState: state,
         };
       }
     } else {
-      // Đã qua 1 giờ -> Reset attempts
       state.lookupAttempts = 0;
       state.lookupResetAt = now + ONE_HOUR;
     }
 
-    // 2. Tìm mã đơn hàng từ nội dung tin nhắn hoặc trong botState
-    const extractedOrderCode = extractOrderNumber(userContent) || state.pendingOrderNumber;
-
-    // 3. Tìm số điện thoại: Ưu tiên SĐT do khách nhập trực tiếp trong tin nhắn hoặc pendingPhone
-    let phone = extractPhoneNumber(userContent) || state.pendingPhone;
-
-    // Nếu chưa có mã đơn hàng
+    // 1. Chưa có mã đơn hàng
     if (!extractedOrderCode) {
       state.step = 'AWAITING_ORDER_NUMBER';
       return {
-        reply: 'Để tra cứu tiến độ đơn hàng, bạn vui lòng cung cấp mã đơn hàng (định dạng DC-xxxxxx) nhé!',
+        reply: 'Để tra cứu tiến độ đơn hàng, bạn vui lòng cung cấp mã đơn hàng (ví dụ DC-123456 hoặc ORD-...) nhé!',
         quickReplies: [
-          { label: '📦 Ví dụ: DC-123456', payload: 'DC-123456' },
           { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
           { label: '❌ Hủy', payload: 'hủy' },
         ],
@@ -535,27 +812,13 @@ export class ChatBotService {
       };
     }
 
-    // Đã có mã đơn hàng, lưu lại vào state
     state.pendingOrderNumber = extractedOrderCode;
 
-    // Nếu khách chưa nhập số điện thoại trực tiếp trong tin nhắn:
-    // Kiểm tra xem khách có tài khoản đã đăng nhập không
-    if (!phone && conversation.customerId) {
-      const cust = await prisma.customer.findUnique({
-        where: { id: conversation.customerId },
-        select: { phone: true },
-      });
-      if (cust?.phone) {
-        phone = cust.phone;
-      }
-    }
-
-    // Nếu vẫn chưa có số điện thoại (khách vãng lai chưa nhập SĐT tra cứu):
-    // Yêu cầu nhập SĐT để xác thực rõ ràng, KHÔNG tự động lấy SĐT vãng lai chưa được đối chiếu
-    if (!phone) {
+    // 2. Chưa có số điện thoại
+    if (!extractedPhone) {
       state.step = 'AWAITING_PHONE';
       return {
-        reply: `DCor đã nhận mã đơn **${extractedOrderCode}**. Để bảo mật thông tin, bạn vui lòng nhập số điện thoại đặt hàng để DCor đối chiếu nhé!`,
+        reply: `DCor đã nhận mã đơn **${extractedOrderCode}**. Để bảo mật thông tin đơn hàng, bạn vui lòng nhập số điện thoại đặt hàng để DCor đối chiếu nhé!`,
         quickReplies: [
           { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
           { label: '❌ Hủy tra cứu', payload: 'hủy' },
@@ -565,8 +828,8 @@ export class ChatBotService {
       };
     }
 
-    // Đã có cả mã đơn hàng và số điện thoại -> Thực hiện đối chiếu trong Database
-    const cleanPhone = phone.replace(/\s+/g, '').replace('+84', '0').replace(/^84/, '0');
+    // 3. Đã có cả mã đơn và số điện thoại -> Đối chiếu trong DB
+    const cleanPhone = extractedPhone.replace(/\s+/g, '').replace('+84', '0').replace(/^84/, '0');
 
     const order = await prisma.order.findFirst({
       where: {
@@ -574,19 +837,16 @@ export class ChatBotService {
       },
     });
 
-    // So sánh số điện thoại bảo mật
     const orderPhoneClean = order ? order.phone.replace(/\s+/g, '').replace('+84', '0').replace(/^84/, '0') : '';
 
+    // CHỈ TRẢ KHI KHỚP CẢ MÃ ĐƠN VÀ SĐT. Không khớp chỉ nói không tìm thấy.
     if (!order || orderPhoneClean !== cleanPhone) {
-      // Tăng số lần thử sai
       state.lookupAttempts = (state.lookupAttempts || 0) + 1;
-
-      // Không tiết lộ đơn có tồn tại hay không
       return {
         reply:
           'DCor không tìm thấy đơn hàng nào phù hợp với thông tin bạn cung cấp. Bạn vui lòng kiểm tra lại mã đơn và số điện thoại nhé!',
         quickReplies: [
-          { label: '🔄 Thử lại', payload: 'tra cứu đơn hàng' },
+          { label: '🔄 Thử lại', payload: 'tình trạng đơn hàng' },
           { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
           { label: '❌ Hủy', payload: 'hủy' },
         ],
@@ -595,21 +855,16 @@ export class ChatBotService {
       };
     }
 
-    // Khớp thông tin đơn hàng thành công!
+    // KHỚP THÀNH CÔNG!
     const statusVn = ORDER_STATUS_VN[order.status] || order.status;
-    const paymentVn = PAYMENT_STATUS_VN[order.paymentStatus] || order.paymentStatus;
     const totalAmountVn = Number(order.totalAmount).toLocaleString('vi-VN');
 
     const detailText =
       `📦 **Thông tin tiến độ đơn hàng ${order.orderNumber}:**\n` +
       `- **Trạng thái:** ${statusVn}\n` +
-      `- **Thanh toán:** ${paymentVn}\n` +
       `- **Tổng tiền:** ${totalAmountVn} đ\n` +
-      `- **Đơn vị vận chuyển:** ${order.shippingProvider || 'Đội vận chuyển DCor'}\n` +
-      `- **Mã vận đơn:** ${order.trackingCode || 'Đang cập nhật'}\n` +
       `- **Người nhận:** ${order.receiverName}`;
 
-    // Xóa trạng thái pending
     delete state.step;
     delete state.pendingOrderNumber;
     delete state.pendingPhone;
@@ -623,15 +878,11 @@ export class ChatBotService {
         orderNumber: order.orderNumber,
         status: order.status,
         statusVn,
-        paymentStatus: order.paymentStatus,
-        paymentVn,
         totalAmount: order.totalAmount.toString(),
-        shippingProvider: order.shippingProvider,
-        trackingCode: order.trackingCode,
       },
       quickReplies: [
-        { label: '🔄 Tra cứu đơn khác', payload: 'tra cứu đơn hàng' },
-        { label: '🛋️ Xem sản phẩm', payload: 'tìm sản phẩm' },
+        { label: '🔄 Tra cứu đơn khác', payload: 'tình trạng đơn hàng' },
+        { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
         { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
       ],
       updatedBotState: state,
@@ -640,161 +891,7 @@ export class ChatBotService {
   }
 
   /**
-   * Xử lý tìm kiếm sản phẩm từ Database thật (PRODUCT_SEARCH)
-   */
-  private async handleProductSearchFlow(
-    userContent: string,
-    script: any,
-    settings: Record<string, any>
-  ): Promise<BotProcessResult> {
-    const criteria = extractProductSearchCriteria(userContent);
-
-    try {
-      // Truy vấn sản phẩm đang bán (isActive = true, deletedAt = null)
-      const products = await prisma.product.findMany({
-        where: {
-          isActive: true,
-          deletedAt: null,
-        },
-        include: {
-          category: true,
-          variants: {
-            where: { isActive: true },
-          },
-        },
-        take: 30,
-      });
-
-      // Lọc và tính điểm sản phẩm phù hợp
-      interface ProductMatch {
-        product: any;
-        score: number;
-        lowestPrice: number;
-      }
-
-      const matches: ProductMatch[] = [];
-
-      for (const p of products) {
-        let score = 0;
-        const normName = normalizeChatText(p.name);
-        const normCat = normalizeChatText(p.category?.name || '');
-        const normDesc = normalizeChatText(p.description || '');
-
-        // Tìm giá thấp nhất từ biến thể hoặc basePrice
-        let lowestPrice = p.basePrice || 0;
-        if (p.variants && p.variants.length > 0) {
-          const prices = p.variants.map((v: any) => v.price).filter((pr: number) => pr > 0);
-          if (prices.length > 0) {
-            lowestPrice = Math.min(...prices);
-          }
-        }
-
-        // Khớp loại sản phẩm (sofa, bàn, ghế...)
-        if (criteria.categoryKeyword) {
-          const catTerm = normalizeChatText(criteria.categoryKeyword);
-          if (normName.includes(catTerm) || normCat.includes(catTerm)) {
-            score += 5;
-          }
-        }
-
-        // Khớp phòng (khách, ngủ, bếp...)
-        if (criteria.room) {
-          const roomTerm = normalizeChatText(criteria.room);
-          if (normName.includes(roomTerm) || normCat.includes(roomTerm) || normDesc.includes(roomTerm)) {
-            score += 3;
-          }
-        }
-
-        // Khớp ngân sách
-        if (criteria.budget) {
-          const { minPrice, maxPrice } = criteria.budget;
-          let withinBudget = true;
-          if (minPrice !== undefined && lowestPrice < minPrice) withinBudget = false;
-          if (maxPrice !== undefined && lowestPrice > maxPrice) withinBudget = false;
-
-          if (withinBudget) {
-            score += 4;
-          } else {
-            // Không nằm trong ngân sách -> trừ điểm nặng
-            score -= 10;
-          }
-        }
-
-        if (score > 0) {
-          matches.push({ product: p, score, lowestPrice });
-        }
-      }
-
-      matches.sort((a, b) => b.score - a.score);
-
-      const topProducts = matches.slice(0, 3);
-
-      if (topProducts.length === 0) {
-        return {
-          reply:
-            'DCor chưa tìm thấy sản phẩm nào khớp hoàn toàn với tiêu chí này. Bạn có thể ghé mục Khám phá (/explore) để xem trọn bộ sưu tập hoặc cho DCor biết thêm khoảng ngân sách/chất liệu bạn thích nhé!',
-          quickReplies: [
-            { label: '🛋️ Sofa phòng khách', payload: 'sofa phòng khách' },
-            { label: '🪑 Bàn ăn mặt đá', payload: 'bàn ăn mặt đá' },
-            { label: '🧑‍💼 Nhờ nhân viên gợi ý', payload: 'gặp nhân viên' },
-          ],
-          newFallbackCount: 0,
-        };
-      }
-
-      // Tạo thẻ meta sản phẩm
-      const productCards = topProducts.map(({ product, lowestPrice }) => {
-        let firstImg = '';
-        if (Array.isArray(product.images) && product.images.length > 0) {
-          firstImg = product.images[0];
-        } else if (typeof product.images === 'string') {
-          firstImg = product.images;
-        }
-
-        return {
-          productId: product.id,
-          name: product.name,
-          image: firstImg,
-          price: lowestPrice,
-          formattedPrice: `${lowestPrice.toLocaleString('vi-VN')} đ`,
-          link: `/products/${product.id}`,
-        };
-      });
-
-      const replyLines = [
-        'DCor gợi ý cho bạn một số mẫu nội thất nổi bật phù hợp với tiêu chí tìm kiếm:',
-      ];
-      for (const card of productCards) {
-        replyLines.push(`• **${card.name}** - Giá từ: ${card.formattedPrice}`);
-      }
-      replyLines.push('Bạn có thể bấm vào thẻ sản phẩm bên dưới để xem chi tiết chất liệu và thông số nhé!');
-
-      return {
-        reply: replyLines.join('\n'),
-        meta: {
-          type: 'PRODUCT_CARDS',
-          products: productCards,
-        },
-        quickReplies: [
-          { label: '🔍 Xem thêm sản phẩm', payload: 'tìm sản phẩm khác' },
-          { label: '📅 Đặt lịch trải nghiệm', payload: 'đặt lịch tư vấn' },
-          { label: '🧑‍💼 Tư vấn chi tiết', payload: 'gặp nhân viên' },
-        ],
-        newFallbackCount: 0,
-      };
-    } catch (error) {
-      console.error('Lỗi tìm kiếm sản phẩm:', error);
-      return {
-        reply: this.replaceVariables(script.answer, settings),
-        quickReplies: script.quickReplies,
-        newFallbackCount: 0,
-      };
-    }
-  }
-
-  /**
    * Phương thức Test Intent dành cho Admin API POST /scripts/test
-   * KHÔNG tạo tin nhắn, không có tác dụng phụ DB
    */
   public async testScriptText(rawText: string): Promise<ScriptTestResult> {
     const scripts = await this.getActiveScripts();

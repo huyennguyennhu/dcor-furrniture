@@ -138,7 +138,12 @@ export class AdminSidebar implements OnInit, OnDestroy {
       title: 'Hội thoại',
       icon: 'MessagesSquare',
       href: '/admin/chat',
-      module: 'chat'
+      module: 'chat',
+      subItems: [
+        { title: 'Hội thoại', href: '/admin/chat' },
+        { title: 'Kịch bản bot', href: '/admin/chat/scripts' },
+        { title: 'Cài đặt', href: '/admin/chat/settings' },
+      ]
     },
     {
       title: 'Nhân sự',

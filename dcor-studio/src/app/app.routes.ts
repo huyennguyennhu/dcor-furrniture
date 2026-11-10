@@ -51,6 +51,8 @@ export const routes: Routes = [
       { path: 'appointments/requests', loadComponent: () => import('./features/admin/pages/appointments/appointments').then(m => m.AppointmentsComponent) },
       { path: 'content', loadComponent: () => import('./features/admin/pages/content/content').then(m => m.ContentComponent) },
       { path: 'chat', loadComponent: () => import('./features/admin/pages/chat/chat').then(m => m.ChatComponent) },
+      { path: 'chat/scripts', loadComponent: () => import('./features/admin/pages/chat/chat-scripts/chat-scripts').then(m => m.ChatScriptsComponent) },
+      { path: 'chat/settings', loadComponent: () => import('./features/admin/pages/chat/chat-settings/chat-settings').then(m => m.ChatSettingsComponent) },
       { path: 'designs', loadComponent: () => import('./features/admin/pages/designs/designs').then(m => m.DesignsComponent) },
       { path: 'designs/settings', loadComponent: () => import('./features/admin/pages/designs/design-settings/design-settings').then(m => m.DesignSettingsComponent) },
       { path: 'designs/posts', loadComponent: () => import('./features/admin/pages/designs/design-posts/design-posts').then(m => m.DesignPostsComponent) },

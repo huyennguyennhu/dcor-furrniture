@@ -3,8 +3,8 @@
  * - Chuẩn hóa chữ thường, loại bỏ dấu (NFD), làm sạch ký tự thừa
  * - Mở rộng từ viết tắt và từ điển đồng nghĩa
  * - Trích xuất ngân sách (5tr, dưới 10 triệu, từ 3 đến 8 triệu...)
- * - Trích xuất mã đơn hàng (DC-xxxxxx)
- * - Trích xuất danh mục sản phẩm, phòng, kích thước
+ * - Trích xuất mã đơn hàng (DC-xxxxxx, ORD-xxxxxx)
+ * - Trích xuất số điện thoại bảo mật
  * - Chấm điểm tương đồng ngữ nghĩa / token overlap
  */
 
@@ -201,16 +201,25 @@ export function extractBudget(rawText: string): ExtractedBudget | null {
 }
 
 /**
- * Trích xuất mã đơn hàng định dạng DC-xxxxxx
- * Hỗ trợ các biến thể: DC-123456, dc-123456, DC 123456, dc123456
+ * Trích xuất mã đơn hàng định dạng DC-xxxxxx hoặc ORD-xxxxxx
+ * Hỗ trợ các biến thể: DC-123456, dc-123456, DC 123456, dc123456, ORD-1791280290761-1
  */
 export function extractOrderNumber(text: string): string | null {
   if (!text) return null;
   const clean = text.trim();
-  const match = clean.match(/\b(?:DC|dc)[-\s]?(\d{5,8})\b/i);
-  if (match) {
-    return `DC-${match[1]}`;
+
+  // 1. Kiểm tra format ORD-...
+  const ordMatch = clean.match(/\b(ORD-[0-9a-zA-Z-]+)\b/i);
+  if (ordMatch) {
+    return ordMatch[1].toUpperCase();
   }
+
+  // 2. Kiểm tra format DC-xxxxxx
+  const dcMatch = clean.match(/\b(?:DC|dc)[-\s]?([0-9a-zA-Z]{5,12})\b/i);
+  if (dcMatch) {
+    return `DC-${dcMatch[1].toUpperCase()}`;
+  }
+
   return null;
 }
 
@@ -287,7 +296,9 @@ export function extractProductSearchCriteria(rawText: string): {
   }
 
   // Kích thước (1m8, 2m, 1m6, 2m2, nhỏ, vừa, lớn...)
-  const dimMatch = normalized.match(/\b(\d+(?:[.,]\d+)?\s*(?:m|met)(?:\s*(?:x|\*)\s*\d+(?:[.,]\d+)?\s*(?:m|met)?)?)\b/i);
+  const dimMatch = normalized.match(
+    /\b(\d+(?:[.,]\d+)?\s*(?:m|met)(?:\s*(?:x|\*)\s*\d+(?:[.,]\d+)?\s*(?:m|met)?)?)\b/i
+  );
   let dimensions: string | undefined = dimMatch ? dimMatch[0] : undefined;
   if (!dimensions) {
     if (normalized.includes('1m8')) dimensions = '1m8';
@@ -306,6 +317,70 @@ export function extractProductSearchCriteria(rawText: string): {
     dimensions,
     budget,
   };
+}
+
+/**
+ * Kiểm tra câu chào hỏi có phải là thuần túy chào hỏi không (tối đa 4 từ hoặc chỉ gồm từ chào và từ đệm)
+ */
+export function isPureGreeting(rawText: string): boolean {
+  if (!rawText) return false;
+  const normalized = normalizeChatText(rawText);
+  if (!normalized) return false;
+  const words = normalized.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return false;
+
+  const greetingWords = new Set([
+    'xin', 'chao', 'hello', 'hi', 'alo', 'ad', 'admin', 'shop', 'dcor',
+    'oi', 'nhe', 'nha', 'ban', 'co', 'ai', 'o', 'day', 'khong', 'a', 'ak', 'ah'
+  ]);
+
+  // Nếu tất cả các từ đều là từ chào hỏi/từ đệm
+  if (words.every((w) => greetingWords.has(w))) {
+    return true;
+  }
+
+  // Hoặc tối đa 4 từ và có chứa từ chào chính
+  if (words.length <= 4) {
+    const mainGreetings = ['xin chao', 'chao', 'hello', 'hi', 'alo'];
+    return mainGreetings.some((g) => normalized.startsWith(g) || normalized === g);
+  }
+
+  return false;
+}
+
+/**
+ * Kiểm tra xem câu có chứa ý định gặp nhân viên / chuyển nhân viên không
+ */
+export function isHandoffRequest(rawText: string): boolean {
+  if (!rawText) return false;
+  const normalized = normalizeChatText(rawText);
+  const handoffPatterns = [
+    'gap nhan vien',
+    'gap cskh',
+    'gap cham soc khach hang',
+    'gap tu van vien',
+    'noi chuyen voi nguoi that',
+    'ho tro truc tiep',
+    'nhan vien dau',
+    'tu van vien dau',
+    'tu van truc tiep',
+    'chuyen nhan vien',
+    'cho minh gap nhan vien',
+    'cho toi gap nhan vien',
+    'cho gap nhan vien',
+    'muon gap nhan vien',
+    'can gap nhan vien',
+    'can nhan vien',
+    'muon nhan vien',
+    'noi chuyen nguoi that',
+    'nguoi that tu van',
+    'nhan vien ho tro',
+    'tu van giup minh',
+    'ket noi nhan vien',
+    'co nhan vien o day khong',
+    'muon gap nguoi that',
+  ];
+  return handoffPatterns.some((p) => normalized.includes(p));
 }
 
 /**
@@ -335,7 +410,7 @@ export function calculatePatternScore(normalizedInput: string, rawPattern: strin
   let phraseScore = 0;
   if (normalizedInput.includes(normalizedPattern)) {
     const lengthRatio = normalizedPattern.length / normalizedInput.length;
-    phraseScore = 0.50 + 0.50 * lengthRatio;
+    phraseScore = 0.5 + 0.5 * lengthRatio;
   } else if (normalizedPattern.includes(normalizedInput) && normalizedInput.length >= 4) {
     const lengthRatio = normalizedInput.length / normalizedPattern.length;
     phraseScore = 0.45 + 0.45 * lengthRatio;

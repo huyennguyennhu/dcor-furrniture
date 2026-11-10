@@ -16,12 +16,12 @@ export interface ProductCardItem {
   name: string;
   image: string;
   price: number;
-  formattedPrice: string;
+  formattedPrice?: string;
   link: string;
 }
 
 export interface ProductCardsMeta {
-  type: 'PRODUCT_CARDS';
+  type: 'PRODUCT_CARDS' | 'SOFA_HOT_CARDS';
   products: ProductCardItem[];
 }
 
@@ -31,11 +31,25 @@ export interface OrderCardMeta {
   orderNumber: string;
   status: string;
   statusVn: string;
-  paymentStatus: string;
-  paymentVn: string;
+  paymentStatus?: string;
+  paymentVn?: string;
   totalAmount: string;
   shippingProvider?: string;
   trackingCode?: string;
+}
+
+export interface BookingCtaMeta {
+  type: 'BOOKING_CTA';
+}
+
+export interface LoginCtaMeta {
+  type: 'LOGIN_CTA';
+}
+
+export interface LinkMeta {
+  type: 'LINK';
+  label: string;
+  url: string;
 }
 
 export interface ChatMessage {
@@ -48,7 +62,7 @@ export interface ChatMessage {
   imageUrl?: string | null;
   clientMessageId?: string | null;
   quickReplies?: QuickReply[] | null;
-  meta?: ProductCardsMeta | OrderCardMeta | any;
+  meta?: ProductCardsMeta | OrderCardMeta | BookingCtaMeta | LoginCtaMeta | LinkMeta | any;
   readAt?: Date | string | null;
   createdAt: Date | string;
   deliveryStatus?: MessageDeliveryStatus;
@@ -73,7 +87,7 @@ export interface ChatConversation {
 }
 
 export interface GuestSession {
-  conversationId: string;
+  conversationId?: string;
   guestToken: string;
   guestName?: string;
   guestPhone?: string;
@@ -82,8 +96,15 @@ export interface GuestSession {
 export interface ChatInitResponse {
   conversationId: string;
   guestToken: string;
-  message: ChatMessage;
+  message?: ChatMessage;
   error?: string;
+}
+
+export interface GreetingResponse {
+  isAuthenticated: boolean;
+  customerName?: string;
+  greeting: string;
+  quickReplies: QuickReply[];
 }
 
 export interface TypingIndicator {
@@ -106,4 +127,3 @@ export interface UploadImageResponse {
   height: number;
   bytes: number;
 }
-

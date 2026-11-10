@@ -1,0 +1,275 @@
+<div class="settings-page-container">
+  <!-- Kiểm tra quyền truy cập -->
+  <div *ngIf="!hasPermission()" class="permission-denied-card">
+    <app-icon name="ShieldAlert" size="48" color="#DC2626"></app-icon>
+    <h2 style="font-size: 18px; font-weight: 700; color: #DC2626; margin: 0;">Không đủ quyền truy cập</h2>
+    <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">Tài khoản không có quyền xem hoặc chỉnh sửa Cài đặt Chat & Bot (403 Forbidden).</p>
+  </div>
+
+  <div *ngIf="hasPermission()" style="display: flex; flex-direction: column; gap: 20px;">
+    <!-- Page Header -->
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-main-heading">Cài đặt Chat & Trợ lý Bot</h1>
+        <p class="page-sub-desc">Cấu hình khung giờ làm việc của chuyên viên, các mẫu thông điệp tự động và câu thoại dự phòng.</p>
+      </div>
+
+      <button
+        type="button"
+        class="btn-header-save"
+        [disabled]="isSavingSettings()"
+        (click)="saveSettings()">
+        <app-icon *ngIf="!isSavingSettings()" name="Save" size="16"></app-icon>
+        <app-icon *ngIf="isSavingSettings()" name="RefreshCw" size="16" class="animate-spin"></app-icon>
+        <span>{{ isSavingSettings() ? 'Đang lưu...' : 'Lưu cài đặt' }}</span>
+      </button>
+    </div>
+
+    <!-- Hàng thẻ chỉ số (stat-card) -->
+    <div class="stat-cards-grid">
+      <app-stat-card
+        title="Khung giờ trực"
+        [value]="settingsWorkingHours().start + ' - ' + settingsWorkingHours().end"
+        description="Giờ mở cửa showroom">
+        <div icon class="stat-icon-wrap clock">
+          <app-icon name="Clock" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+
+      <app-stat-card
+        title="Ngày hoạt động"
+        [value]="settingsWorkingHours().days.length + ' ngày/tuần'"
+        description="Lịch trực chuyên viên tư vấn">
+        <div icon class="stat-icon-wrap">
+          <app-icon name="Calendar" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+
+      <app-stat-card
+        title="Mẫu câu dự phòng"
+        [value]="settingsFallbackMessages().length"
+        description="Tối thiểu 3 mẫu xoay vòng">
+        <div icon class="stat-icon-wrap fallback">
+          <app-icon name="MessageCircle" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+
+      <app-stat-card
+        title="Hotline liên hệ"
+        [value]="settingsHotline()"
+        description="Đường dây nóng khẩn cấp">
+        <div icon class="stat-icon-wrap phone">
+          <app-icon name="Phone" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div *ngIf="settingsFeedback()" class="feedback-alert-box" [ngClass]="settingsFeedback()!.type">
+      <app-icon [name]="settingsFeedback()!.type === 'success' ? 'Check' : 'AlertTriangle'" size="18"></app-icon>
+      <span>{{ settingsFeedback()!.message }}</span>
+    </div>
+
+    <!-- Khối form cài đặt bo tròn -->
+    <div class="settings-main-card">
+      <!-- 1. Giờ làm việc -->
+      <fieldset class="settings-section-fieldset">
+        <legend class="section-legend-title">1. Giờ làm việc chuyên viên tư vấn & Showroom</legend>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group-field">
+            <label class="form-label" for="workStartInput">Giờ bắt đầu (HH:mm)</label>
+            <input
+              id="workStartInput"
+              type="time"
+              class="form-input-text"
+              [value]="settingsWorkingHours().start"
+              (change)="updateWorkStart($event)" />
+          </div>
+
+          <div class="form-group-field">
+            <label class="form-label" for="workEndInput">Giờ kết thúc (HH:mm)</label>
+            <input
+              id="workEndInput"
+              type="time"
+              class="form-input-text"
+              [value]="settingsWorkingHours().end"
+              (change)="updateWorkEnd($event)" />
+          </div>
+        </div>
+
+        <div class="form-group-field">
+          <label class="form-label">Các ngày làm việc trong tuần</label>
+          <div class="days-button-row">
+            <button
+              *ngFor="let d of daysOfWeek"
+              type="button"
+              class="day-pill-btn"
+              [class.selected]="isDaySelected(d.day)"
+              (click)="toggleWorkingDay(d.day)">
+              {{ d.label }}
+            </button>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- 2. Thông điệp tự động (Bao gồm các khóa mới: greetingGuest, greetingAuth, loginPromptMessage) -->
+      <fieldset class="settings-section-fieldset">
+        <legend class="section-legend-title">2. Thông điệp tự động của Bot</legend>
+
+        <!-- Lời chào khách vãng lai -->
+        <div class="form-group-field">
+          <div class="form-label-row">
+            <label class="form-label" for="greetingGuestInput">Lời chào khách vãng lai (Guest Greeting)</label>
+            <span class="form-char-count">{{ settingsGreetingGuest().length }}/500</span>
+          </div>
+          <textarea
+            id="greetingGuestInput"
+            class="form-textarea-control"
+            rows="2"
+            maxlength="500"
+            [ngModel]="settingsGreetingGuest()"
+            (ngModelChange)="settingsGreetingGuest.set($event)"
+            placeholder="Xin chào bạn! Mình là Trợ lý AI của DCor..."></textarea>
+        </div>
+
+        <!-- Lời chào khách đăng nhập -->
+        <div class="form-group-field">
+          <div class="form-label-row">
+            <label class="form-label" for="greetingAuthInput">Lời chào khách đăng nhập (Auth Greeting)</label>
+            <span class="form-char-count">{{ settingsGreetingAuth().length }}/500</span>
+          </div>
+          <textarea
+            id="greetingAuthInput"
+            class="form-textarea-control"
+            rows="2"
+            maxlength="500"
+            [ngModel]="settingsGreetingAuth()"
+            (ngModelChange)="settingsGreetingAuth.set($event)"
+            placeholder="Chào {{ '{{name}}' }}! DCor có thể hỗ trợ gì cho không gian sống của bạn hôm nay?"></textarea>
+        </div>
+
+        <!-- Thông điệp nhắc đăng nhập -->
+        <div class="form-group-field">
+          <div class="form-label-row">
+            <label class="form-label" for="loginPromptInput">Thông điệp nhắc đăng nhập (Login Prompt CTA)</label>
+            <span class="form-char-count">{{ settingsLoginPrompt().length }}/500</span>
+          </div>
+          <textarea
+            id="loginPromptInput"
+            class="form-textarea-control"
+            rows="2"
+            maxlength="500"
+            [ngModel]="settingsLoginPrompt()"
+            (ngModelChange)="settingsLoginPrompt.set($event)"
+            placeholder="Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!"></textarea>
+        </div>
+
+        <!-- Tin ngoài giờ -->
+        <div class="form-group-field">
+          <div class="form-label-row">
+            <label class="form-label" for="offlineInput">Tin nhắn ngoài giờ làm việc (Offline Message)</label>
+            <span class="form-char-count">{{ settingsOfflineMessage().length }}/500</span>
+          </div>
+          <textarea
+            id="offlineInput"
+            class="form-textarea-control"
+            rows="2"
+            maxlength="500"
+            [ngModel]="settingsOfflineMessage()"
+            (ngModelChange)="settingsOfflineMessage.set($event)"
+            placeholder="Hiện tại showroom DCor đã hết giờ tiếp nhận trực tiếp..."></textarea>
+        </div>
+
+        <!-- Tin chuyển nhân viên -->
+        <div class="form-group-field">
+          <div class="form-label-row">
+            <label class="form-label" for="handoffInput">Tin nhắn kết nối nhân viên (Handoff Message)</label>
+            <span class="form-char-count">{{ settingsHandoffMessage().length }}/500</span>
+          </div>
+          <textarea
+            id="handoffInput"
+            class="form-textarea-control"
+            rows="2"
+            maxlength="500"
+            [ngModel]="settingsHandoffMessage()"
+            (ngModelChange)="settingsHandoffMessage.set($event)"
+            placeholder="DCor đã tiếp nhận yêu cầu và đang kết nối bạn với chuyên viên tư vấn..."></textarea>
+        </div>
+
+        <!-- Hotline & Địa chỉ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group-field">
+            <label class="form-label" for="hotlineInput">Hotline hỗ trợ</label>
+            <input
+              id="hotlineInput"
+              type="text"
+              class="form-input-text"
+              [ngModel]="settingsHotline()"
+              (ngModelChange)="settingsHotline.set($event)" />
+          </div>
+
+          <div class="form-group-field">
+            <label class="form-label" for="addressInput">Địa chỉ showroom</label>
+            <input
+              id="addressInput"
+              type="text"
+              class="form-input-text"
+              [ngModel]="settingsAddress()"
+              (ngModelChange)="settingsAddress.set($event)" />
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- 3. Tin nhắn dự phòng (Fallback) -->
+      <fieldset class="settings-section-fieldset">
+        <legend class="section-legend-title">3. Tin nhắn dự phòng (Fallback Messages - Tối thiểu 3 mẫu)</legend>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+          Bot sẽ luân phiên chọn một trong các câu thoại dưới đây khi không xác định được nội dung của khách.
+        </p>
+
+        <div class="fallback-rows-list">
+          <div *ngFor="let fb of settingsFallbackMessages(); let i = index" class="fallback-single-row">
+            <span class="fallback-badge-idx">#{{ i + 1 }}</span>
+            <input
+              type="text"
+              class="form-input-text"
+              style="flex: 1;"
+              maxlength="500"
+              [value]="fb"
+              (change)="updateFallbackItem(i, $any($event.target).value)" />
+            <button
+              type="button"
+              class="btn-remove-fallback-item"
+              [disabled]="settingsFallbackMessages().length <= 3"
+              (click)="removeFallbackMessage(i)"
+              aria-label="Xóa câu dự phòng">
+              <app-icon name="Trash2" size="16"></app-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="add-fallback-row">
+          <input
+            type="text"
+            class="form-input-text"
+            style="flex: 1;"
+            maxlength="500"
+            placeholder="Nhập thêm câu dự phòng mới..."
+            [ngModel]="newFallbackInput()"
+            (ngModelChange)="newFallbackInput.set($event)"
+            (keydown.enter)="addFallbackMessage()" />
+          <button
+            type="button"
+            class="btn-add-fallback-action"
+            [disabled]="!newFallbackInput().trim()"
+            (click)="addFallbackMessage()">
+            <app-icon name="Plus" size="14"></app-icon>
+            <span>Thêm câu dự phòng</span>
+          </button>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</div>
+

@@ -8,6 +8,7 @@ import {
   ChatConversation,
   ChatMessage,
   ChatInitResponse,
+  GreetingResponse,
   GuestSession,
   MessagesResponse,
   TypingIndicator,
@@ -16,6 +17,7 @@ import {
 
 export const GUEST_STORAGE_KEY = 'dcor_chat_guest';
 export const CHAT_UI_OPEN_KEY = 'dcor_chat_ui_open';
+export const PENDING_HANDOFF_KEY = 'dcor_chat_pending_handoff';
 
 @Injectable({
   providedIn: 'root',
@@ -38,9 +40,10 @@ export class ChatSocketService {
   public typingIndicator = signal<TypingIndicator | null>(null);
   public unreadCount = signal(0);
   public isLoadingHistory = signal(false);
-  public hasMoreHistory = signal(true);
+  public hasMoreHistory = signal(false);
   public isRateLimited = signal(false);
   public rateLimitMessage = signal<string | null>(null);
+  public initialGreeting = signal<GreetingResponse | null>(null);
 
   // Computed
   public isGuest = computed(() => !this.authService.isAuthenticated());
@@ -71,14 +74,32 @@ export class ChatSocketService {
   }
 
   /**
+   * Sinh hoặc lấy guestToken ngẫu nhiên duy nhất
+   */
+  public getOrCreateGuestToken(): string {
+    const session = this.getGuestSession();
+    if (session?.guestToken) {
+      return session.guestToken;
+    }
+    // Sinh chuỗi ngẫu nhiên 64 ký tự hex
+    const array = new Uint8Array(32);
+    if (typeof window !== 'undefined' && window.crypto) {
+      window.crypto.getRandomValues(array);
+    } else {
+      for (let i = 0; i < 32; i++) array[i] = Math.floor(Math.random() * 256);
+    }
+    const token = Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    this.saveGuestSession({ guestToken: token });
+    return token;
+  }
+
+  /**
    * Lưu phiên khách vãng lai
    */
   public saveGuestSession(session: GuestSession): void {
     try {
       localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(session));
-    } catch {
-      // Bỏ qua lỗi hạn mức lưu trữ
-    }
+    } catch {}
   }
 
   /**
@@ -94,24 +115,42 @@ export class ChatSocketService {
   }
 
   /**
-   * Xóa phiên khách vãng lai
+   * Xóa toàn bộ dữ liệu lưu phiên chat của khách (token, session id, tin nhắn, pending handoff)
    */
-  public clearGuestSession(): void {
+  public clearAllChatStorage(): void {
     try {
       localStorage.removeItem(GUEST_STORAGE_KEY);
-    } catch {
-      // Bỏ qua
-    }
+      localStorage.removeItem(PENDING_HANDOFF_KEY);
+      sessionStorage.removeItem(CHAT_UI_OPEN_KEY);
+      sessionStorage.removeItem('dcor_chat_messages');
+      sessionStorage.removeItem('dcor_chat_session_id');
+      sessionStorage.removeItem('dcor_chat_token');
+    } catch {}
   }
 
   /**
-   * Tạo HttpHeaders chứa token đăng nhập hoặc X-Guest-Token
+   * Quản lý cờ pendingHandoff khi chuyển sang đăng nhập
    */
+  public setPendingHandoff(val: boolean): void {
+    try {
+      if (val) {
+        localStorage.setItem(PENDING_HANDOFF_KEY, 'true');
+      } else {
+        localStorage.removeItem(PENDING_HANDOFF_KEY);
+      }
+    } catch {}
+  }
+
+  public hasPendingHandoff(): boolean {
+    try {
+      return localStorage.getItem(PENDING_HANDOFF_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  }
+
   private errorTimeoutTimer: any = null;
 
-  /**
-   * Đặt thông báo lỗi với cơ chế tự ẩn sau 5.5 giây
-   */
   public setError(msg: string | null): void {
     if (this.errorTimeoutTimer) {
       clearTimeout(this.errorTimeoutTimer);
@@ -128,7 +167,6 @@ export class ChatSocketService {
 
   /**
    * Tạo HttpHeaders chứa token đăng nhập hoặc X-Guest-Token
-   * Đảm bảo MỌI lời gọi REST chat tự gắn đúng định danh duy nhất (Authorization hoặc X-Guest-Token)
    */
   private getAuthHeaders(): HttpHeaders {
     let headers = new HttpHeaders();
@@ -138,9 +176,9 @@ export class ChatSocketService {
         headers = headers.set('Authorization', `Bearer ${token}`);
       }
     } else {
-      const guestSession = this.getGuestSession();
-      if (guestSession?.guestToken) {
-        headers = headers.set('X-Guest-Token', guestSession.guestToken);
+      const guestToken = this.getOrCreateGuestToken();
+      if (guestToken) {
+        headers = headers.set('X-Guest-Token', guestToken);
       }
     }
     return headers;
@@ -165,9 +203,9 @@ export class ChatSocketService {
       }
     }
 
-    const guestSession = this.getGuestSession();
-    if (guestSession?.guestToken) {
-      authPayload['guestToken'] = guestSession.guestToken;
+    const guestToken = this.getOrCreateGuestToken();
+    if (guestToken) {
+      authPayload['guestToken'] = guestToken;
     }
 
     if (this.socket) {
@@ -201,7 +239,6 @@ export class ChatSocketService {
       this.socketError.set(null);
       this.isRateLimited.set(false);
 
-      // Đồng bộ lại tin nhắn còn thiếu sau khi kết nối lại
       const currentConv = this.currentConversation();
       if (currentConv?.id) {
         this.syncMessagesAfterReconnect(currentConv.id);
@@ -231,6 +268,36 @@ export class ChatSocketService {
       }
     });
 
+    this.socket.on('chat:session_reset', (data: { conversationId: string; clearedAt: string }) => {
+      const current = this.currentConversation();
+      if (current && current.id === data.conversationId) {
+        this.messages.set([]);
+        this.fetchGreeting();
+      }
+    });
+
+    this.socket.on('chat:init:success', (data: { conversationId: string; guestToken?: string }) => {
+      if (data?.conversationId) {
+        const guestSession = this.getGuestSession() || { guestToken: data.guestToken || '' };
+        guestSession.conversationId = data.conversationId;
+        if (data.guestToken) {
+          guestSession.guestToken = data.guestToken;
+        }
+        this.saveGuestSession(guestSession);
+
+        const cur = this.currentConversation();
+        if (!cur) {
+          this.currentConversation.set({
+            id: data.conversationId,
+            mode: 'BOT',
+            status: 'OPEN',
+            unreadCustomer: 0,
+            unreadStaff: 0,
+          });
+        }
+      }
+    });
+
     this.socket.on('chat:typing', (data: TypingIndicator) => {
       if (data.senderType !== 'CUSTOMER') {
         if (data.isTyping) {
@@ -255,9 +322,9 @@ export class ChatSocketService {
       }
     });
 
-    this.socket.on('chat:error', (err: { message: string }) => {
+    this.socket.on('chat:error', (err: { code?: string; message?: string }) => {
       const msg = err?.message || 'Đã có lỗi xảy ra.';
-      this.socketError.set(msg);
+      this.setError(msg);
 
       if (msg.includes('quá nhanh') || msg.includes('20 tin/phút')) {
         this.isRateLimited.set(true);
@@ -276,7 +343,7 @@ export class ChatSocketService {
   private handleIncomingMessage(incoming: ChatMessage): void {
     const list = this.messages();
 
-    // 1. Kiểm tra đối chiếu với tin nhắn gửi lạc quan (optimistic)
+    // 1. Đối chiếu với tin gửi lạc quan
     if (incoming.clientMessageId) {
       const optIndex = list.findIndex(
         (m) => m.clientMessageId === incoming.clientMessageId
@@ -310,75 +377,39 @@ export class ChatSocketService {
   }
 
   /**
-   * Khởi tạo cuộc trò chuyện cho khách vãng lai
+   * REST: GET /api/chat/greeting (Công khai, không tạo hội thoại trong DB)
    */
-  public async initGuestConversation(name: string, phone: string): Promise<ChatInitResponse> {
-    if (!this.socket) {
-      this.connect();
-    }
-
-    return new Promise((resolve, reject) => {
-      if (!this.socket) {
-        reject(new Error('Chưa thiết lập socket.'));
-        return;
+  public async fetchGreeting(): Promise<GreetingResponse | null> {
+    try {
+      const headers = this.getAuthHeaders();
+      const res = await firstValueFrom(
+        this.http
+          .get<GreetingResponse>(`${environment.apiUrl}/chat/greeting`, { headers })
+          .pipe(timeout(10000))
+      );
+      if (res) {
+        this.initialGreeting.set(res);
+        return res;
       }
-
-      const timer = setTimeout(() => {
-        reject(new Error('Yêu cầu khởi tạo quá thời gian chờ (15s).'));
-      }, 15000);
-
-      this.socket.emit('chat:init', { name, phone }, (res: any) => {
-        clearTimeout(timer);
-        if (res && res.error) {
-          reject(new Error(res.error));
-        } else if (res && res.conversationId) {
-          const guestSession: GuestSession = {
-            conversationId: res.conversationId,
-            guestToken: res.guestToken,
-            guestName: name,
-            guestPhone: phone,
-          };
-          this.saveGuestSession(guestSession);
-
-          // Tải thông tin hội thoại
-          this.currentConversation.set({
-            id: res.conversationId,
-            mode: 'BOT',
-            status: 'OPEN',
-            unreadCustomer: 0,
-            unreadStaff: 0,
-            guestName: name,
-            guestPhone: phone,
-          });
-
-          // Thêm tin nhắn chào hỏi
-          if (res.message) {
-            this.messages.set([{ ...res.message, deliveryStatus: 'SENT' }]);
-          }
-
-          resolve(res);
-        } else {
-          reject(new Error('Phản hồi khởi tạo không hợp lệ.'));
-        }
-      });
-    });
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Gửi tin nhắn qua Socket kèm cập nhật lạc quan
    */
   public sendMessage(content: string, imageUrl?: string): string {
-    const conv = this.currentConversation();
-    if (!conv) {
-      throw new Error('Chưa có cuộc trò chuyện nào.');
-    }
-
     const clientMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const conv = this.currentConversation();
+    const convId = conv?.id || '';
+
     const optimisticMessage: ChatMessage = {
       id: clientMessageId,
-      conversationId: conv.id,
+      conversationId: convId,
       senderType: 'CUSTOMER',
-      senderName: conv.guestName || this.authService.getCurrentUser()?.fullName || 'Khách hàng',
+      senderName: conv?.guestName || this.authService.getCurrentUser()?.fullName || 'Khách vãng lai',
       content: content.trim(),
       imageUrl: imageUrl || null,
       clientMessageId,
@@ -390,25 +421,37 @@ export class ChatSocketService {
     this.messages.update((list) => [...list, optimisticMessage]);
 
     if (!this.socket || !this.socket.connected) {
-      // Đánh dấu lỗi nếu socket mất kết nối
-      this.markOptimisticMessageFailed(clientMessageId);
-      return clientMessageId;
+      this.connect();
     }
 
-    this.socket.emit('chat:send', {
-      conversationId: conv.id,
+    const payload: any = {
       content: content.trim(),
       imageUrl: imageUrl || undefined,
       clientMessageId,
-    });
+    };
+    if (convId) {
+      payload.conversationId = convId;
+    }
 
-    // Timeout dự phòng sau 10 giây nếu server không phản hồi
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('chat:send', payload);
+    } else {
+      setTimeout(() => {
+        if (this.socket && this.socket.connected) {
+          this.socket.emit('chat:send', payload);
+        } else {
+          this.markOptimisticMessageFailed(clientMessageId);
+        }
+      }, 1000);
+    }
+
+    // Timeout dự phòng sau 12 giây nếu server không phản hồi
     setTimeout(() => {
       const target = this.messages().find((m) => m.clientMessageId === clientMessageId);
       if (target && target.deliveryStatus === 'SENDING') {
         this.markOptimisticMessageFailed(clientMessageId);
       }
-    }, 10000);
+    }, 12000);
 
     return clientMessageId;
   }
@@ -420,33 +463,41 @@ export class ChatSocketService {
     const target = this.messages().find((m) => m.clientMessageId === clientMessageId);
     if (!target) return;
 
-    const conv = this.currentConversation();
-    if (!conv) return;
-
     this.messages.update((list) =>
       list.map((m) =>
         m.clientMessageId === clientMessageId ? { ...m, deliveryStatus: 'SENDING' } : m
       )
     );
 
-    if (!this.socket || !this.socket.connected) {
-      this.markOptimisticMessageFailed(clientMessageId);
-      return;
-    }
-
-    this.socket.emit('chat:send', {
-      conversationId: conv.id,
+    const conv = this.currentConversation();
+    const payload: any = {
       content: target.content,
       imageUrl: target.imageUrl || undefined,
       clientMessageId,
-    });
+    };
+    if (conv?.id) {
+      payload.conversationId = conv.id;
+    }
+
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('chat:send', payload);
+    } else {
+      this.connect();
+      setTimeout(() => {
+        if (this.socket && this.socket.connected) {
+          this.socket.emit('chat:send', payload);
+        } else {
+          this.markOptimisticMessageFailed(clientMessageId);
+        }
+      }, 1000);
+    }
 
     setTimeout(() => {
       const cur = this.messages().find((m) => m.clientMessageId === clientMessageId);
       if (cur && cur.deliveryStatus === 'SENDING') {
         this.markOptimisticMessageFailed(clientMessageId);
       }
-    }, 10000);
+    }, 12000);
   }
 
   private markOptimisticMessageFailed(clientMessageId: string): void {
@@ -477,7 +528,7 @@ export class ChatSocketService {
   }
 
   /**
-   * Chọn câu trả lời gợi ý nhanh (Gửi như một tin nhắn khách hàng với Optimistic UI)
+   * Chọn câu trả lời gợi ý nhanh
    */
   public selectQuickReply(payload: string): void {
     if (!payload || !payload.trim()) return;
@@ -505,13 +556,10 @@ export class ChatSocketService {
       return null;
     } catch (err: any) {
       if (err instanceof HttpErrorResponse && (err.status === 404 || err.status === 403)) {
-        // Gặp 403 hoặc 404 trên phiên cũ (đổi tài khoản, token hết hạn, phiên cũ không khớp):
-        // tự xóa phiên lưu cũ dcor_chat_guest và khởi tạo lại phiên mới thay vì hiện lỗi
-        this.clearGuestSession();
+        this.clearAllChatStorage();
         this.currentConversation.set(null);
         return null;
       }
-      this.handleHttpError(err);
       return null;
     }
   }
@@ -545,27 +593,23 @@ export class ChatSocketService {
       const incomingList = res.messages.map((m) => ({ ...m, deliveryStatus: 'SENT' as const }));
 
       if (before) {
-        // Tải thêm trang cũ hơn: chèn vào đầu danh sách, loại bỏ trùng
         this.messages.update((prev) => {
           const prevIds = new Set(prev.map((p) => p.id));
           const filteredIncoming = incomingList.filter((m) => !prevIds.has(m.id));
           return [...filteredIncoming, ...prev];
         });
       } else {
-        // Tải lần đầu
         this.messages.set(incomingList);
       }
 
       return incomingList;
     } catch (err: any) {
       if (err instanceof HttpErrorResponse && (err.status === 403 || err.status === 404)) {
-        // Gặp 403 hoặc 404 khi tải tin: tự xóa phiên lưu cũ
-        this.clearGuestSession();
+        this.clearAllChatStorage();
         this.currentConversation.set(null);
         this.hasMoreHistory.set(false);
         return [];
       }
-      this.handleHttpError(err);
       return [];
     } finally {
       this.isLoadingHistory.set(false);
@@ -610,9 +654,86 @@ export class ChatSocketService {
           return uniqueList;
         });
       }
-    } catch {
-      // Giữ tin nhắn hiện tại nếu đồng bộ nền thất bại
-    }
+    } catch {}
+  }
+
+  /**
+   * REST: POST /api/chat/conversations/claim
+   * Gắn hội thoại guest vào customerId sau khi đăng nhập thành công
+   */
+  public async claimConversation(): Promise<void> {
+    if (!this.authService.isAuthenticated()) return;
+    const session = this.getGuestSession();
+    if (!session?.guestToken) return;
+
+    try {
+      const headers = this.getAuthHeaders();
+      const res = await firstValueFrom(
+        this.http
+          .post<{ message: string; conversation: ChatConversation; hadPendingHandoff: boolean }>(
+            `${environment.apiUrl}/chat/conversations/claim`,
+            { guestToken: session.guestToken },
+            { headers }
+          )
+          .pipe(timeout(10000))
+      );
+
+      if (res && res.conversation) {
+        this.currentConversation.set(res.conversation);
+        this.setPendingHandoff(false);
+
+        // Nối lại socket với JWT token khách
+        this.disconnect();
+        this.connect();
+
+        // Tải lại tin nhắn mới nhất (đã có tin SYSTEM kết nối nhân viên nếu pendingHandoff)
+        await this.fetchMessages(res.conversation.id, undefined, 30);
+      }
+    } catch {}
+  }
+
+  /**
+   * REST: DELETE /api/chat/conversations/:id
+   * Bấm nút thùng rác: backend KHÔNG xóa hội thoại, chỉ đánh dấu làm mới;
+   * KHÔNG xóa conversationId hay guestToken đã lưu (khách vãng lai vẫn là cùng một người);
+   * Xóa bong bóng trên màn hình, tải lại lịch sử (rỗng) và hiện lại lời chào gốc.
+   */
+  public async deleteConversation(conversationId: string): Promise<void> {
+    const headers = this.getAuthHeaders();
+    try {
+      await firstValueFrom(
+        this.http
+          .delete(`${environment.apiUrl}/chat/conversations/${conversationId}`, { headers })
+          .pipe(timeout(10000))
+      );
+    } catch {}
+
+    // Xóa bong bóng trên màn hình
+    this.messages.set([]);
+    this.unreadCount.set(0);
+    this.typingIndicator.set(null);
+    this.setPendingHandoff(false);
+
+    // Tải lại lịch sử (sẽ rỗng vì backend lọc tin createdAt > customerClearedAt)
+    await this.fetchMessages(conversationId, undefined, 30);
+
+    // Hiện lại lời chào gốc
+    await this.fetchGreeting();
+  }
+
+  /**
+   * Đưa widget về trạng thái lời chào mới (chưa có hội thoại)
+   */
+  public resetToFreshState(): void {
+    this.clearAllChatStorage();
+    this.currentConversation.set(null);
+    this.messages.set([]);
+    this.unreadCount.set(0);
+    this.typingIndicator.set(null);
+    this.setPendingHandoff(false);
+
+    // Nạp lại lời chào mới
+    this.fetchGreeting();
   }
 
   /**
@@ -623,7 +744,7 @@ export class ChatSocketService {
       return file;
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -653,7 +774,6 @@ export class ChatSocketService {
 
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Thử nén dần theo chất lượng
           const tryCompress = (quality: number) => {
             canvas.toBlob(
               (blob) => {
@@ -703,116 +823,11 @@ export class ChatSocketService {
           .pipe(timeout(25000))
       );
       return res.url;
-    } catch (err) {
-      this.handleHttpError(err);
+    } catch (err: any) {
+      const msg = err?.error?.message || 'Không thể tải ảnh lên.';
+      this.setError(msg);
       throw err;
     }
-  }
-
-  /**
-   * Khách hàng kết thúc cuộc trò chuyện hiện tại (chuyển sang trạng thái CLOSED)
-   */
-  public async closeCurrentConversation(): Promise<void> {
-    const conv = this.currentConversation();
-    if (!conv) return;
-
-    // 1. Gửi qua socket nếu đang kết nối
-    if (this.socket && this.socket.connected) {
-      await new Promise<void>((resolve) => {
-        this.socket!.emit('chat:close', { conversationId: conv.id }, () => {
-          resolve();
-        });
-        setTimeout(resolve, 3000);
-      });
-    } else {
-      // Hoặc gọi REST fallback
-      try {
-        const headers = this.getAuthHeaders();
-        await firstValueFrom(
-          this.http
-            .post(`${environment.apiUrl}/chat/conversations/${conv.id}/close`, {}, { headers })
-            .pipe(timeout(5000))
-        );
-      } catch (_) {}
-    }
-
-    // 2. Cập nhật local state: Đánh dấu CLOSED (giữ lại hội thoại và tin nhắn cho khách xem lại)
-    this.currentConversation.update((c) =>
-      c ? { ...c, status: 'CLOSED', closedAt: new Date().toISOString() } : null
-    );
-
-    // 3. Thêm tin nhắn hệ thống nếu chưa có
-    const hasSysMsg = this.messages().some(
-      (m) => m.senderType === 'SYSTEM' && m.content.includes('kết thúc')
-    );
-    if (!hasSysMsg) {
-      const closeMsg: ChatMessage = {
-        id: `sys-${Date.now()}`,
-        conversationId: conv.id,
-        senderType: 'SYSTEM',
-        senderName: 'Hệ thống DCor',
-        content: 'Cuộc trò chuyện đã được kết thúc.',
-        createdAt: new Date().toISOString(),
-        deliveryStatus: 'SENT',
-      };
-      this.messages.update((list) => [...list, closeMsg]);
-    }
-  }
-
-  /**
-   * Đặt lại phiên trò chuyện để sẵn sàng cho phiên mới
-   */
-  public resetConversation(): void {
-    this.clearGuestSession();
-    this.currentConversation.set(null);
-    this.messages.set([]);
-    this.unreadCount.set(0);
-    this.typingIndicator.set(null);
-  }
-
-  /**
-   * Kết thúc cuộc trò chuyện (Xóa phiên khách vãng lai)
-   */
-  public endConversation(): void {
-    this.resetConversation();
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-  }
-
-  /**
-   * Xử lý lỗi HTTP và trả thông báo tiếng Việt
-   */
-  public formatErrorMessage(err: any): string {
-    if (!err) return 'Đã có lỗi xảy ra.';
-    if (err.status === 0) {
-      return 'Mất kết nối với máy chủ. Vui lòng kiểm tra đường truyền.';
-    }
-    if (err.status === 401) {
-      return 'Phiên xác thực đã hết hạn. Vui lòng thử lại.';
-    }
-    if (err.status === 403) {
-      return 'Không thể truy cập cuộc trò chuyện. Đang làm mới phiên kết nối...';
-    }
-    if (err.status === 404) {
-      return 'Không tìm thấy cuộc trò chuyện.';
-    }
-    if (err.status === 429) {
-      return 'Bạn đang gửi yêu cầu quá nhanh. Vui lòng đợi trong giây lát.';
-    }
-    if (typeof err.status === 'number' && err.status >= 500) {
-      return 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.';
-    }
-    if (err.error?.message) {
-      return err.error.message;
-    }
-    return err.message || 'Đã có lỗi xảy ra.';
-  }
-
-  private handleHttpError(err: any): void {
-    const msg = this.formatErrorMessage(err);
-    this.setError(msg);
   }
 
   /**
@@ -828,4 +843,3 @@ export class ChatSocketService {
     this.isReconnecting.set(false);
   }
 }
-

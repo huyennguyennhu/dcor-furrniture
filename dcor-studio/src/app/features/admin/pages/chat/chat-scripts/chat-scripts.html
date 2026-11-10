@@ -1,0 +1,326 @@
+<div class="scripts-page-container">
+  <!-- Kiểm tra quyền truy cập -->
+  <div *ngIf="!hasPermission()" class="permission-denied-card">
+    <app-icon name="ShieldAlert" size="48" color="#DC2626"></app-icon>
+    <h2 style="font-size: 18px; font-weight: 700; color: #DC2626; margin: 0;">Không đủ quyền truy cập</h2>
+    <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">Tài khoản không có quyền xem hoặc chỉnh sửa kịch bản Chatbot (403 Forbidden).</p>
+  </div>
+
+  <div *ngIf="hasPermission()" style="display: flex; flex-direction: column; gap: 20px;">
+    <!-- Page Header -->
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-main-heading">Kịch bản Chatbot</h1>
+        <p class="page-sub-desc">Quản lý các kịch bản trả lời tự động, bộ từ khóa câu mẫu và luồng hành động của trợ lý AI.</p>
+      </div>
+
+      <div class="header-action-wrap">
+        <button type="button" class="btn-header-primary" (click)="openCreateScriptModal()">
+          <app-icon name="Plus" size="16"></app-icon>
+          <span>Thêm kịch bản</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Hàng thẻ chỉ số (stat-card đồng bộ chuẩn các trang admin) -->
+    <div class="stat-cards-grid">
+      <app-stat-card
+        title="Tổng kịch bản"
+        [value]="scripts().length"
+        description="Toàn bộ kịch bản hệ thống">
+        <div icon class="stat-icon-wrap">
+          <app-icon name="Bot" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+
+      <app-stat-card
+        title="Đang kích hoạt"
+        [value]="activeScriptsCount()"
+        description="Sẵn sàng phản hồi khách">
+        <div icon class="stat-icon-wrap active">
+          <app-icon name="Check" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+
+      <app-stat-card
+        title="Kịch bản hành động"
+        [value]="actionScriptsCount()"
+        description="Giao việc tra cứu / nhân viên">
+        <div icon class="stat-icon-wrap action">
+          <app-icon name="Zap" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+
+      <app-stat-card
+        title="Mức ưu tiên cao"
+        [value]="highPriorityCount()"
+        description="Độ ưu tiên xử lý >= 10">
+        <div icon class="stat-icon-wrap test">
+          <app-icon name="Star" size="20"></app-icon>
+        </div>
+      </app-stat-card>
+    </div>
+
+    <!-- Khung Thử Nghiệm Kịch Bản (Live Test) -->
+    <div class="test-script-card">
+      <div class="test-card-header">
+        <app-icon name="Zap" size="20" color="#2563EB"></app-icon>
+        <div>
+          <h3 class="test-card-title">Thử nghiệm kịch bản (Live Test)</h3>
+          <p class="test-card-desc">Nhập câu hỏi để kiểm tra độ khớp ý định (Intent), điểm số tự tin và câu trả lời dự kiến.</p>
+        </div>
+      </div>
+
+      <div class="test-input-row">
+        <input
+          type="text"
+          class="test-text-input"
+          placeholder="Ví dụ: Shop có mẫu sofa da góc L nào dưới 20 triệu không?..."
+          [ngModel]="testText()"
+          (ngModelChange)="testText.set($event)"
+          (keydown.enter)="runScriptTest()" />
+        <button
+          type="button"
+          class="btn-run-test"
+          [disabled]="isTestingScript() || !testText().trim()"
+          (click)="runScriptTest()">
+          <app-icon *ngIf="!isTestingScript()" name="Zap" size="16"></app-icon>
+          <app-icon *ngIf="isTestingScript()" name="RefreshCw" size="16" class="animate-spin"></app-icon>
+          <span>{{ isTestingScript() ? 'Đang chấm điểm...' : 'Kiểm tra' }}</span>
+        </button>
+      </div>
+
+      <!-- Kết quả kiểm tra -->
+      <div *ngIf="testResult()" class="test-result-box">
+        <div class="result-header-row">
+          <span>Intent nhận diện: <strong>{{ testResult()!.intent }}</strong></span>
+          <span class="score-badge" [class.high]="testResult()!.score >= 0.7">
+            Độ tin cậy: {{ (testResult()!.score * 100).toFixed(0) }}%
+          </span>
+        </div>
+        <div class="result-reply-line">
+          <strong>Câu trả lời dự kiến:</strong> {{ testResult()!.reply }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Thanh lọc & tìm kiếm trong khung viền bo tròn -->
+    <div class="filter-toolbar-box">
+      <div class="filter-search-wrap">
+        <app-icon name="Search" size="16" color="#9CA3AF"></app-icon>
+        <input
+          type="text"
+          class="search-text-input"
+          placeholder="Tìm theo intent, tên hoặc câu mẫu..."
+          [ngModel]="scriptSearch()"
+          (ngModelChange)="scriptSearch.set($event)"
+          aria-label="Tìm kiếm kịch bản" />
+      </div>
+
+      <span style="font-size: 13px; color: var(--text-secondary);">
+        Hiển thị <strong>{{ filteredScripts().length }}</strong> kịch bản
+      </span>
+    </div>
+
+    <!-- Khối nội dung trong thẻ bo góc: Bảng kịch bản theo chuẩn data-table -->
+    <div class="scripts-table-card">
+      <div *ngIf="isLoadingScripts()" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <app-icon name="RefreshCw" size="24" class="animate-spin"></app-icon>
+        <p style="margin-top: 8px;">Đang tải danh sách kịch bản...</p>
+      </div>
+
+      <div *ngIf="!isLoadingScripts() && filteredScripts().length === 0" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        Không tìm thấy kịch bản nào phù hợp.
+      </div>
+
+      <div class="table-responsive" *ngIf="!isLoadingScripts() && filteredScripts().length > 0">
+        <table class="admin-data-table" aria-label="Bảng danh sách kịch bản chatbot">
+          <thead>
+            <tr>
+              <th scope="col">Mã kịch bản (Intent)</th>
+              <th scope="col">Tên kịch bản</th>
+              <th scope="col">Số câu mẫu</th>
+              <th scope="col">Loại hành động</th>
+              <th scope="col">Ưu tiên</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col" style="text-align: right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of filteredScripts()">
+              <td><span class="intent-code-tag">{{ s.intent }}</span></td>
+              <td style="font-weight: 600;">{{ s.name }}</td>
+              <td><span class="pattern-count-badge">{{ s.patterns.length }} câu mẫu</span></td>
+              <td><span class="action-type-pill">{{ s.actionType }}</span></td>
+              <td>{{ s.priority }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="toggle-switch-btn"
+                  [class.active]="s.isActive"
+                  (click)="toggleScriptActive(s)"
+                  [attr.aria-label]="s.isActive ? 'Tắt kịch bản' : 'Bật kịch bản'">
+                  <span class="switch-circle"></span>
+                </button>
+              </td>
+              <td style="text-align: right;">
+                <div class="row-action-btns">
+                  <button
+                    type="button"
+                    class="btn-table-icon"
+                    (click)="openEditScriptModal(s)"
+                    title="Chỉnh sửa kịch bản"
+                    aria-label="Chỉnh sửa kịch bản">
+                    <app-icon name="Edit" size="15"></app-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-table-icon delete"
+                    (click)="openDeleteScriptModal(s)"
+                    title="Xóa kịch bản"
+                    aria-label="Xóa kịch bản">
+                    <app-icon name="Trash2" size="15"></app-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TẠO / SỬA KỊCH BẢN -->
+<app-modal
+  [isOpen]="isScriptModalOpen()"
+  [title]="editingScriptId() ? 'Chỉnh sửa kịch bản Bot' : 'Thêm kịch bản Bot mới'"
+  width="680px"
+  [hasFooter]="true"
+  (close)="closeScriptModal()">
+  <div class="modal-form-vertical">
+    <div *ngIf="scriptFormError()" style="background: #FEE2E2; color: #DC2626; padding: 10px 14px; border-radius: 8px; font-size: 13px;">
+      {{ scriptFormError() }}
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <div class="form-group-field">
+        <label class="form-label" for="intentInput">Mã Intent</label>
+        <input
+          id="intentInput"
+          type="text"
+          class="form-input-text"
+          placeholder="VD: POLICY_WARRANTY"
+          [disabled]="!!editingScriptId()"
+          [ngModel]="scriptIntent()"
+          (ngModelChange)="scriptIntent.set($event)" />
+      </div>
+
+      <div class="form-group-field">
+        <label class="form-label" for="nameInput">Tên kịch bản</label>
+        <input
+          id="nameInput"
+          type="text"
+          class="form-input-text"
+          placeholder="VD: Chính sách bảo hành"
+          [ngModel]="scriptName()"
+          (ngModelChange)="scriptName.set($event)" />
+      </div>
+    </div>
+
+    <!-- Patterns -->
+    <div class="form-group-field">
+      <label class="form-label">Câu mẫu / Từ khóa kích hoạt (Nhấn Enter để thêm)</label>
+      <div class="pattern-chips-wrapper">
+        <span *ngFor="let p of scriptPatterns(); let i = index" class="pattern-chip-item">
+          <span>{{ p }}</span>
+          <button type="button" class="btn-remove-chip" (click)="removePatternChip(i)" aria-label="Xóa">
+            <app-icon name="X" size="12"></app-icon>
+          </button>
+        </span>
+        <input
+          type="text"
+          class="chip-input-naked"
+          placeholder="Nhập câu mẫu và nhấn Enter..."
+          [ngModel]="patternChipInput()"
+          (ngModelChange)="patternChipInput.set($event)"
+          (keydown)="onPatternInputKeyDown($event)" />
+      </div>
+    </div>
+
+    <!-- Answer -->
+    <div class="form-group-field">
+      <label class="form-label" for="answerInput">Nội dung câu trả lời của trợ lý ảo</label>
+      <textarea
+        id="answerInput"
+        class="form-textarea-control"
+        rows="4"
+        maxlength="2000"
+        placeholder="Nhập nội dung trả lời..."
+        [ngModel]="scriptAnswer()"
+        (ngModelChange)="scriptAnswer.set($event)"></textarea>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <div class="form-group-field">
+        <label class="form-label" for="actionSelect">Loại hành động</label>
+        <select
+          id="actionSelect"
+          class="form-select-control"
+          [ngModel]="scriptActionType()"
+          (ngModelChange)="scriptActionType.set($event)">
+          <option value="NONE">NONE (Không hành động)</option>
+          <option value="ORDER_STATUS">ORDER_STATUS (Tra cứu đơn)</option>
+          <option value="PRODUCT_SEARCH">PRODUCT_SEARCH (Tìm sản phẩm)</option>
+          <option value="HANDOFF">HANDOFF (Chuyển nhân viên)</option>
+          <option value="BUSINESS_HOURS">BUSINESS_HOURS (Giờ làm việc)</option>
+          <option value="BOOK_CONSULT">BOOK_CONSULT (Đặt lịch tư vấn)</option>
+        </select>
+      </div>
+
+      <div class="form-group-field">
+        <label class="form-label" for="priorityInput">Mức ưu tiên</label>
+        <input
+          id="priorityInput"
+          type="number"
+          class="form-input-text"
+          [ngModel]="scriptPriority()"
+          (ngModelChange)="scriptPriority.set($event)" />
+      </div>
+    </div>
+  </div>
+
+  <div footer style="display: flex; justify-content: flex-end; gap: 8px;">
+    <button type="button" class="btn-modal-cancel" (click)="closeScriptModal()">Hủy bỏ</button>
+    <button
+      type="button"
+      class="btn-modal-submit"
+      [disabled]="isSavingScript()"
+      (click)="saveScript()">
+      {{ isSavingScript() ? 'Đang lưu...' : (editingScriptId() ? 'Cập nhật' : 'Tạo kịch bản') }}
+    </button>
+  </div>
+</app-modal>
+
+<!-- MODAL XÁC NHẬN XÓA -->
+<app-modal
+  [isOpen]="isDeleteScriptModalOpen()"
+  title="Xác nhận xóa kịch bản"
+  width="420px"
+  [hasFooter]="true"
+  (close)="closeDeleteScriptModal()">
+  <p style="font-size: 13.5px; color: var(--text-secondary); margin: 8px 0;">
+    Bạn có chắc muốn xóa kịch bản <strong>"{{ scriptToDelete()?.name }}"</strong>? Thao tác này không thể hoàn tác.
+  </p>
+  <div footer style="display: flex; justify-content: flex-end; gap: 8px;">
+    <button type="button" class="btn-modal-cancel" (click)="closeDeleteScriptModal()">Hủy</button>
+    <button
+      type="button"
+      class="btn-modal-danger"
+      [disabled]="isDeletingScript()"
+      (click)="confirmDeleteScript()">
+      {{ isDeletingScript() ? 'Đang xóa...' : 'Xác nhận xóa' }}
+    </button>
+  </div>
+</app-modal>
+

@@ -1,5 +1,5 @@
 <!-- =========================================================================
-     DCor CHAT WIDGET - GIAO DIỆN CHUẨN DESIGN TOKENS DCOR
+     DCor CHAT WIDGET - GIAO DIỆN CHUẨN DESIGN TOKENS DCOR & LUỒNG MỚI
      ========================================================================= -->
 
 <!-- 1. BONG BÓNG CHAT NỔI (GÓC PHẢI DƯỚI) -->
@@ -36,7 +36,7 @@
       class="chat-dialog-window"
       [class.dock-active]="isDockActive()"
     >
-      <!-- HEADER MỘT HÀNG: AVATAR | TIÊU ĐỀ + DÒNG PHỤ | CÁC NÚT THAO TÁC -->
+      <!-- HEADER: BÊN TRÁI AVATAR + TIÊU ĐỀ + DÒNG PHỤ | BÊN PHẢI CHỈ 2 NÚT (DẤU TRỪ & THÙNG RÁC) -->
       <header class="chat-header">
         <div class="chat-header-left">
           <!-- Avatar tròn có chấm trạng thái -->
@@ -60,7 +60,7 @@
           <div class="chat-header-info">
             <div class="chat-header-title-row">
               <span class="chat-header-title">{{ conversationTitle() }}</span>
-              @if (chatService.currentConversation()?.mode === 'BOT') {
+              @if (chatService.currentConversation()?.mode === 'BOT' || !chatService.currentConversation()) {
                 <span class="chat-ai-badge">AI</span>
               }
             </div>
@@ -68,57 +68,55 @@
           </div>
         </div>
 
-        <!-- Nhóm nút bên phải: Kết thúc & Đóng -->
+        <!-- Nhóm nút bên phải: CHỈ 2 NÚT: (1) Thu gọn cửa sổ (Minus) và (2) Kết thúc phiên (Trash2) -->
         <div class="chat-header-actions">
-          @if (hasActiveSession() && !chatService.isConversationClosed()) {
-            <button
-              type="button"
-              class="chat-header-btn chat-end-btn"
-              (click)="showEndConfirm.set(true)"
-              aria-label="Kết thúc cuộc trò chuyện"
-              title="Kết thúc cuộc trò chuyện"
-            >
-              <app-icon name="LogOut" size="17"></app-icon>
-            </button>
-          }
+          <button
+            type="button"
+            class="chat-header-btn chat-minimize-btn"
+            (click)="closeChat()"
+            aria-label="Thu gọn cửa sổ chat"
+            title="Thu gọn cửa sổ (dấu trừ)"
+          >
+            <app-icon name="Minus" size="18"></app-icon>
+          </button>
 
           <button
             type="button"
-            class="chat-header-btn chat-close-btn"
-            (click)="closeChat()"
-            aria-label="Đóng cửa sổ chat (Esc)"
-            title="Đóng cửa sổ chat (Esc)"
+            class="chat-header-btn chat-end-btn"
+            (click)="openResetConfirm()"
+            aria-label="Làm mới cuộc trò chuyện"
+            title="Kết thúc phiên / Làm mới cuộc trò chuyện"
           >
-            <app-icon name="X" size="19"></app-icon>
+            <app-icon name="Trash2" size="17"></app-icon>
           </button>
         </div>
       </header>
 
-      <!-- LỚP PHỦ NỀN MỜ XÁC NHẬN KẾT THÚC HỘI THOẠI (CHỈ HIỆN KHI BẤM) -->
-      @if (showEndConfirm()) {
-        <div class="chat-confirm-backdrop" (click)="showEndConfirm.set(false)">
+      <!-- HỘP XÁC NHẬN DẠNG LỚP PHỦ (OVERLAY) TRONG KHUNG CHAT (NỀN MỜ, CHỈ HIỆN KHI BẤM THÙNG RÁC) -->
+      @if (showResetConfirm()) {
+        <div class="chat-confirm-backdrop" (click)="closeResetConfirm()">
           <div class="chat-confirm-card" (click)="$event.stopPropagation()">
             <div class="chat-confirm-icon-box">
-              <app-icon name="LogOut" size="22" color="#C42326"></app-icon>
+              <app-icon name="Trash2" size="22" color="#C42326"></app-icon>
             </div>
-            <h4 class="chat-confirm-title">Kết thúc cuộc trò chuyện?</h4>
+            <h4 class="chat-confirm-title">Làm mới cuộc trò chuyện?</h4>
             <p class="chat-confirm-desc">
-              Phiên hỗ trợ hiện tại sẽ kết thúc và thông tin phiên của bạn sẽ được làm mới.
+              Lịch sử tin nhắn hiện tại sẽ được xóa.
             </p>
             <div class="chat-confirm-actions">
               <button
                 type="button"
                 class="chat-btn-cancel"
-                (click)="showEndConfirm.set(false)"
+                (click)="closeResetConfirm()"
               >
                 Hủy
               </button>
               <button
                 type="button"
                 class="chat-btn-confirm"
-                (click)="confirmEndConversation()"
+                (click)="confirmResetConversation()"
               >
-                Kết thúc
+                Đồng ý
               </button>
             </div>
           </div>
@@ -161,145 +159,149 @@
 
       <!-- BODY NỘI DUNG CHAT (VÙNG CUỘN) -->
       <div class="chat-body">
-        <!-- TRƯỜNG HỢP A: KHÁCH VÃNG LAI CHƯA CÓ PHIÊN -> FORM ĐĂNG KÝ THÔNG TIN -->
-        @if (!hasActiveSession() && !isAuthenticated()) {
-          <div class="chat-guest-form-container">
-            <div class="chat-guest-form-header">
-              <div class="chat-guest-icon-badge">
-                <app-icon name="Bot" size="26" color="#765337"></app-icon>
-              </div>
-              <h3 class="chat-guest-title">Chào mừng bạn đến với DCor!</h3>
-              <p class="chat-guest-desc">
-                Vui lòng cung cấp tên và số điện thoại để chuyên viên DCor hỗ trợ bạn chu đáo nhất.
-              </p>
+        <div
+          #messagesContainer
+          class="chat-messages-container"
+          (scroll)="onScroll($event)"
+          aria-live="polite"
+        >
+          <!-- Spinner tải thêm tin cũ hơn -->
+          @if (chatService.isLoadingHistory()) {
+            <div class="chat-history-loading">
+              <app-icon name="LoaderCircle" size="16" class="chat-spin" color="#757575"></app-icon>
+              <span>Đang tải tin nhắn cũ...</span>
             </div>
+          }
 
-            <form (ngSubmit)="submitGuestInit()" class="chat-guest-form">
-              <!-- Họ và tên -->
-              <div class="chat-form-group">
-                <label for="guest-name-input" class="chat-form-label">
-                  Họ và tên <span class="chat-form-required">*</span>
-                </label>
-                <input
-                  id="guest-name-input"
-                  type="text"
-                  maxlength="50"
-                  placeholder="Ví dụ: Nguyễn Văn An"
-                  [ngModel]="guestName()"
-                  (ngModelChange)="guestName.set($event)"
-                  name="guestName"
-                  class="chat-form-input"
-                  required
-                />
+          <!-- LỜI CHÀO BAN ĐẦU CỦA BOT (HIỆN NGAY KHI MỞ CHAT THEO GET /api/chat/greeting) -->
+          @if (chatService.initialGreeting(); as initGreet) {
+            <div class="chat-msg-row-bot chat-initial-greeting-row">
+              <div class="chat-msg-avatar">
+                <app-icon name="Bot" size="15" color="#765337"></app-icon>
               </div>
 
-              <!-- Số điện thoại -->
-              <div class="chat-form-group">
-                <label for="guest-phone-input" class="chat-form-label">
-                  Số điện thoại <span class="chat-form-required">*</span>
-                </label>
-                <input
-                  id="guest-phone-input"
-                  type="tel"
-                  maxlength="10"
-                  placeholder="Ví dụ: 0912345678"
-                  [ngModel]="guestPhone()"
-                  (ngModelChange)="guestPhone.set($event)"
-                  name="guestPhone"
-                  class="chat-form-input"
-                  required
-                />
-                <span class="chat-form-hint">
-                  Định dạng 10 số (đầu số 03, 05, 07, 08, 09)
-                </span>
-              </div>
+              <div class="chat-bot-content-wrap">
+                <span class="chat-sender-label">Trợ lý AI DCor</span>
 
-              <!-- Lỗi form -->
-              @if (guestFormError()) {
-                <div class="chat-form-error-alert">
-                  {{ guestFormError() }}
-                </div>
-              }
-
-              <!-- Nút submit form -->
-              <button
-                type="submit"
-                class="chat-btn-submit-guest"
-                [disabled]="isSubmittingInit() || !guestName().trim() || !guestPhone().trim()"
-              >
-                @if (isSubmittingInit()) {
-                  <app-icon name="LoaderCircle" size="18" class="chat-spin" color="#ffffff"></app-icon>
-                  <span>Đang kết nối...</span>
-                } @else {
-                  <span>Bắt đầu trò chuyện</span>
-                  <app-icon name="ArrowRight" size="16" color="#ffffff"></app-icon>
-                }
-              </button>
-            </form>
-
-            <div class="chat-guest-security-note">
-              <app-icon name="ShieldCheck" size="14" color="#00A30B"></app-icon>
-              <span>Thông tin được bảo mật theo chính sách DCor</span>
-            </div>
-          </div>
-        } @else if (!hasActiveSession() && isAuthenticated()) {
-          <!-- TRƯỜNG HỢP B: KHÁCH ĐÃ ĐĂNG NHẬP NHƯNG CHƯA CÓ PHIÊN CHAT NÀO -->
-          <div class="chat-guest-form-container">
-            <div class="chat-guest-form-header">
-              <div class="chat-guest-icon-badge">
-                <app-icon name="Bot" size="26" color="#765337"></app-icon>
-              </div>
-              <h3 class="chat-guest-title">Xin chào {{ currentUser()?.fullName || 'bạn' }}!</h3>
-              <p class="chat-guest-desc">
-                Trợ lý ảo DCor luôn sẵn sàng hỗ trợ bạn tìm kiếm sản phẩm nội thất, tư vấn thiết kế và tra cứu đơn hàng 24/7.
-              </p>
-            </div>
-            <div style="padding: 0 20px 20px; display: flex; justify-content: center;">
-              <button
-                type="button"
-                class="chat-btn-submit-guest"
-                [disabled]="isSubmittingInit()"
-                (click)="startNewConversation()"
-              >
-                @if (isSubmittingInit()) {
-                  <app-icon name="LoaderCircle" size="18" class="chat-spin" color="#ffffff"></app-icon>
-                  <span>Đang kết nối...</span>
-                } @else {
-                  <app-icon name="Sparkles" size="16" color="#ffffff"></app-icon>
-                  <span>Bắt đầu cuộc trò chuyện</span>
-                }
-              </button>
-            </div>
-          </div>
-        } @else {
-          <!-- TRƯỜNG HỢP B: VÙNG TIN NHẮN CUỘN -->
-          <div
-            #messagesContainer
-            class="chat-messages-container"
-            (scroll)="onScroll($event)"
-            aria-live="polite"
-          >
-            <!-- Spinner tải thêm tin cũ hơn -->
-            @if (chatService.isLoadingHistory()) {
-              <div class="chat-history-loading">
-                <app-icon name="LoaderCircle" size="16" class="chat-spin" color="#757575"></app-icon>
-                <span>Đang tải tin nhắn cũ...</span>
-              </div>
-            }
-
-            <!-- DANH SÁCH TIN NHẮN -->
-            @for (msg of chatService.messages(); track msg.id || msg.clientMessageId; let i = $index) {
-              <!-- Tin Hệ thống (SYSTEM) - Căn giữa dạng chip -->
-              @if (msg.senderType === 'SYSTEM') {
-                <div class="chat-msg-row-system">
-                  <div class="chat-system-chip">
-                    {{ msg.content }}
+                <div class="chat-bubble-bot">
+                  <div class="chat-bubble-text">
+                    {{ initGreet.greeting }}
                   </div>
                 </div>
-              } @else if (msg.senderType === 'CUSTOMER') {
-                <!-- Tin Khách hàng (CUSTOMER) - Căn phải, nền nâu chữ trắng -->
-                <div class="chat-msg-row-customer">
-                  <div class="chat-bubble-customer">
+
+                <!-- Nút gợi ý nhanh ban đầu -->
+                @if (chatService.messages().length === 0 && initGreet.quickReplies && initGreet.quickReplies.length > 0) {
+                  <div class="chat-quick-replies-wrap">
+                    @for (qr of initGreet.quickReplies; track qr.payload) {
+                      <button
+                        type="button"
+                        class="chat-quick-chip"
+                        [disabled]="usedQuickReplyMessageIds().has('initial-greeting')"
+                        (click)="onQuickReplyClick('initial-greeting', qr.payload)"
+                      >
+                        {{ qr.label }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- DANH SÁCH TIN NHẮN TƯƠNG TÁC -->
+          @for (msg of chatService.messages(); track msg.id || msg.clientMessageId; let i = $index) {
+            <!-- Tin Hệ thống (SYSTEM) - Căn giữa dạng chip -->
+            @if (msg.senderType === 'SYSTEM') {
+              <div class="chat-msg-row-system">
+                <div class="chat-system-chip">
+                  {{ msg.content }}
+                </div>
+              </div>
+            } @else if (msg.senderType === 'CUSTOMER') {
+              <!-- Tin Khách hàng (CUSTOMER) - Căn phải, nền nâu chữ trắng -->
+              <div class="chat-msg-row-customer">
+                <div class="chat-bubble-customer">
+                  @if (msg.imageUrl) {
+                    <div class="chat-msg-image-wrap">
+                      <img
+                        [src]="msg.imageUrl"
+                        alt="Ảnh đính kèm"
+                        class="chat-msg-image"
+                        loading="lazy"
+                      />
+                    </div>
+                  }
+
+                  @if (msg.content) {
+                    <div class="chat-bubble-text">
+                      @for (part of parseMessageContent(msg.content); track $index) {
+                        @if (part.type === 'link') {
+                          <a
+                            [href]="part.href"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="chat-link-customer"
+                          >
+                            {{ part.value }}
+                          </a>
+                        } @else {
+                          <span>{{ part.value }}</span>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Trạng thái gửi & Giờ -->
+                <div class="chat-meta-customer">
+                  <span>{{ formatTime(msg.createdAt) }}</span>
+
+                  @if (msg.deliveryStatus === 'SENDING') {
+                    <span class="chat-status-sending">
+                      <app-icon name="LoaderCircle" size="11" class="chat-spin"></app-icon>
+                      <span>Đang gửi</span>
+                    </span>
+                  } @else if (msg.deliveryStatus === 'FAILED') {
+                    <span class="chat-status-failed">
+                      <app-icon name="AlertCircle" size="12" color="#C42326"></app-icon>
+                      <span>Lỗi</span>
+                      <button
+                        type="button"
+                        class="chat-btn-retry"
+                        (click)="retryMessage(msg.clientMessageId)"
+                        aria-label="Gửi lại tin nhắn"
+                      >
+                        Gửi lại
+                      </button>
+                    </span>
+                  } @else {
+                    <span class="chat-status-sent" title="Đã gửi">
+                      <app-icon name="Check" size="12" color="#00A30B"></app-icon>
+                    </span>
+                  }
+                </div>
+              </div>
+            } @else {
+              <!-- Tin BOT hoặc NHÂN VIÊN - Căn trái, nền kem có viền -->
+              <div class="chat-msg-row-bot">
+                <div class="chat-msg-avatar">
+                  @if (msg.senderType === 'STAFF') {
+                    <app-icon name="Headphones" size="15" color="#765337"></app-icon>
+                  } @else {
+                    <app-icon name="Bot" size="15" color="#765337"></app-icon>
+                  }
+                </div>
+
+                <div class="chat-bot-content-wrap">
+                  <span class="chat-sender-label">
+                    {{ msg.senderName || (msg.senderType === 'STAFF' ? 'Chuyên viên tư vấn' : 'Trợ lý AI DCor') }}
+                  </span>
+
+                  <!-- Bong bóng tin nhắn -->
+                  <div
+                    class="chat-bubble-bot"
+                    [class.chat-bubble-staff]="msg.senderType === 'STAFF'"
+                  >
                     @if (msg.imageUrl) {
                       <div class="chat-msg-image-wrap">
                         <img
@@ -319,7 +321,7 @@
                               [href]="part.href"
                               target="_blank"
                               rel="noopener noreferrer"
-                              class="chat-link-customer"
+                              class="chat-link-bot"
                             >
                               {{ part.value }}
                             </a>
@@ -331,331 +333,308 @@
                     }
                   </div>
 
-                  <!-- Trạng thái gửi & Giờ -->
-                  <div class="chat-meta-customer">
-                    <span>{{ formatTime(msg.createdAt) }}</span>
+                  <!-- THẺ HÀNH ĐỘNG LIÊN KẾT (META LINK) -->
+                  @if (asLinkMeta(msg.meta); as linkMeta) {
+                    <div class="chat-action-card-box">
+                      <button
+                        type="button"
+                        class="chat-action-btn-link"
+                        (click)="handleLinkClick(linkMeta.url)"
+                        [title]="linkMeta.label"
+                      >
+                        @if (isInternalUrl(linkMeta.url)) {
+                          <app-icon name="ArrowRight" size="14" color="#ffffff"></app-icon>
+                        } @else {
+                          <app-icon name="ExternalLink" size="14" color="#ffffff"></app-icon>
+                        }
+                        <span>{{ linkMeta.label || 'Xem chi tiết' }}</span>
+                      </button>
+                    </div>
+                  }
 
-                    @if (msg.deliveryStatus === 'SENDING') {
-                      <span class="chat-status-sending">
-                        <app-icon name="LoaderCircle" size="11" class="chat-spin"></app-icon>
-                        <span>Đang gửi</span>
-                      </span>
-                    } @else if (msg.deliveryStatus === 'FAILED') {
-                      <span class="chat-status-failed">
-                        <app-icon name="AlertCircle" size="12" color="#C42326"></app-icon>
-                        <span>Lỗi</span>
-                        <button
-                          type="button"
-                          class="chat-btn-retry"
-                          (click)="retryMessage(msg.clientMessageId)"
-                          aria-label="Gửi lại tin nhắn"
-                        >
-                          Gửi lại
-                        </button>
-                      </span>
-                    } @else {
-                      <span class="chat-status-sent" title="Đã gửi">
-                        <app-icon name="Check" size="12" color="#00A30B"></app-icon>
-                      </span>
-                    }
-                  </div>
-                </div>
-              } @else {
-                <!-- Tin BOT hoặc NHÂN VIÊN - Căn trái, nền kem có viền -->
-                <div class="chat-msg-row-bot">
-                  <!-- Avatar nhỏ ở tin đầu của nhóm -->
-                  <div class="chat-msg-avatar">
-                    @if (msg.senderType === 'STAFF') {
-                      <app-icon name="Headphones" size="15" color="#765337"></app-icon>
-                    } @else {
-                      <app-icon name="Bot" size="15" color="#765337"></app-icon>
-                    }
-                  </div>
+                  <!-- THẺ HÀNH ĐỘNG ĐĂNG NHẬP (META LOGIN_CTA) -->
+                  @if (isLoginCta(msg.meta)) {
+                    <div class="chat-action-card-box">
+                      <div class="chat-action-card-desc">
+                        Đăng nhập tài khoản để chuyên viên CSKH lưu lại bản phối và tư vấn trực tiếp 1:1 cùng bạn.
+                      </div>
+                      <button
+                        type="button"
+                        class="chat-action-btn-primary"
+                        (click)="navigateToLogin()"
+                      >
+                        <app-icon name="CircleUserRound" size="15" color="#ffffff"></app-icon>
+                        <span>Đăng nhập ngay</span>
+                      </button>
+                    </div>
+                  }
 
-                  <div class="chat-bot-content-wrap">
-                    <!-- Tên người gửi nhỏ -->
-                    <span class="chat-sender-label">
-                      {{ msg.senderName || (msg.senderType === 'STAFF' ? 'Chuyên viên tư vấn' : 'Trợ lý ảo DCor') }}
-                    </span>
+                  <!-- THẺ HÀNH ĐỘNG ĐẶT LỊCH SHOWROOM (META BOOKING_CTA) -->
+                  @if (isBookingCta(msg.meta)) {
+                    <div class="chat-action-card-box">
+                      <button
+                        type="button"
+                        class="chat-action-btn-secondary"
+                        (click)="handleBookingCta()"
+                      >
+                        <app-icon name="CalendarDays" size="15" color="#ffffff"></app-icon>
+                        <span>Đặt lịch tư vấn tại Showroom</span>
+                      </button>
+                    </div>
+                  }
 
-                    <!-- Bong bóng tin nhắn -->
-                    <div
-                      class="chat-bubble-bot"
-                      [class.chat-bubble-staff]="msg.senderType === 'STAFF'"
-                    >
-                      @if (msg.imageUrl) {
-                        <div class="chat-msg-image-wrap">
-                          <img
-                            [src]="msg.imageUrl"
-                            alt="Ảnh đính kèm"
-                            class="chat-msg-image"
-                            loading="lazy"
-                          />
-                        </div>
-                      }
-
-                      @if (msg.content) {
-                        <div class="chat-bubble-text">
-                          @for (part of parseMessageContent(msg.content); track $index) {
-                            @if (part.type === 'link') {
-                              <a
-                                [href]="part.href"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="chat-link-bot"
-                              >
-                                {{ part.value }}
-                              </a>
-                            } @else {
-                              <span>{{ part.value }}</span>
-                            }
-                          }
+                  <!-- THẺ SẢN PHẨM SOFA HOT (META PRODUCT_CARDS / SOFA_HOT_CARDS) -->
+                  @if (asProductCards(msg.meta); as productMeta) {
+                    <div class="chat-cards-list">
+                      @for (p of productMeta.products; track p.productId) {
+                        <div class="chat-product-card-box">
+                          <div class="chat-product-thumb-wrap">
+                            <img
+                              [src]="p.image || 'assets/images/placeholder.webp'"
+                              [alt]="p.name"
+                              class="chat-product-thumb"
+                              loading="lazy"
+                            />
+                          </div>
+                          <div class="chat-product-details">
+                            <h4 class="chat-product-title" [title]="p.name">
+                              {{ p.name }}
+                            </h4>
+                            <span class="chat-product-price">
+                              {{ p.formattedPrice || (p.price | number) + ' đ' }}
+                            </span>
+                            <button
+                              type="button"
+                              class="chat-product-btn"
+                              (click)="viewProduct(p.productId)"
+                            >
+                              <span>Xem</span>
+                              <app-icon name="ArrowRight" size="12" color="#ffffff"></app-icon>
+                            </button>
+                          </div>
                         </div>
                       }
                     </div>
+                  }
 
-                    <!-- THẺ SẢN PHẨM (META PRODUCT_CARDS) -->
-                    @if (asProductCards(msg.meta); as productMeta) {
-                      <div class="chat-cards-list">
-                        @for (p of productMeta.products; track p.productId) {
-                          <div class="chat-product-card-box">
-                            <div class="chat-product-thumb-wrap">
-                              <img
-                                [src]="p.image || 'assets/images/placeholder.webp'"
-                                [alt]="p.name"
-                                class="chat-product-thumb"
-                                loading="lazy"
-                              />
-                            </div>
-                            <div class="chat-product-details">
-                              <h4 class="chat-product-title" [title]="p.name">
-                                {{ p.name }}
-                              </h4>
-                              <span class="chat-product-price">
-                                {{ p.formattedPrice }}
-                              </span>
-                              <button
-                                type="button"
-                                class="chat-product-btn"
-                                (click)="viewProduct(p.productId)"
-                              >
-                                <span>Xem</span>
-                                <app-icon name="ArrowRight" size="12" color="#ffffff"></app-icon>
-                              </button>
-                            </div>
-                          </div>
-                        }
+                  <!-- THẺ ĐƠN HÀNG (META ORDER_CARD) -->
+                  @if (asOrderCard(msg.meta); as orderMeta) {
+                    <div class="chat-order-card-box">
+                      <div class="chat-order-header">
+                        <span class="chat-order-code">Đơn #{{ orderMeta.orderNumber }}</span>
+                        <span
+                          class="chat-order-badge"
+                          [ngClass]="getOrderStatusClass(orderMeta.status)"
+                        >
+                          {{ orderMeta.statusVn }}
+                        </span>
                       </div>
-                    }
-
-                    <!-- THẺ ĐƠN HÀNG (META ORDER_CARD) -->
-                    @if (asOrderCard(msg.meta); as orderMeta) {
-                      <div class="chat-order-card-box">
-                        <div class="chat-order-header">
-                          <span class="chat-order-code">Đơn #{{ orderMeta.orderNumber }}</span>
-                          <span
-                            class="chat-order-badge"
-                            [ngClass]="getOrderStatusClass(orderMeta.status)"
-                          >
-                            {{ orderMeta.statusVn }}
-                          </span>
-                        </div>
-                        <div class="chat-order-rows">
+                      <div class="chat-order-rows">
+                        @if (orderMeta.paymentVn) {
                           <div class="chat-order-row">
                             <span class="chat-order-label">Thanh toán:</span>
                             <span class="chat-order-val">{{ orderMeta.paymentVn }}</span>
                           </div>
-                          <div class="chat-order-row">
-                            <span class="chat-order-label">Tổng tiền:</span>
-                            <span class="chat-order-val chat-order-total">{{ orderMeta.totalAmount | number }} đ</span>
-                          </div>
-                          @if (orderMeta.shippingProvider) {
-                            <div class="chat-order-row">
-                              <span class="chat-order-label">Vận chuyển:</span>
-                              <span class="chat-order-val">{{ orderMeta.shippingProvider }}</span>
-                            </div>
-                          }
-                          @if (orderMeta.trackingCode) {
-                            <div class="chat-order-row">
-                              <span class="chat-order-label">Mã vận đơn:</span>
-                              <span class="chat-order-val chat-order-tracking">{{ orderMeta.trackingCode }}</span>
-                            </div>
-                          }
+                        }
+                        <div class="chat-order-row">
+                          <span class="chat-order-label">Tổng tiền:</span>
+                          <span class="chat-order-val chat-order-total">{{ orderMeta.totalAmount | number }} đ</span>
                         </div>
-                      </div>
-                    }
-
-                    <!-- GỢI Ý NHANH (QUICK REPLIES) - HÀNG CHIP TỰ XUỐNG DÒNG, KHÔNG CẮT MÉP -->
-                    @if (msg.quickReplies && msg.quickReplies.length > 0) {
-                      <div class="chat-quick-replies-wrap">
-                        @for (qr of msg.quickReplies; track qr.payload) {
-                          <button
-                            type="button"
-                            class="chat-quick-chip"
-                            [disabled]="usedQuickReplyMessageIds().has(msg.id)"
-                            (click)="onQuickReplyClick(msg.id, qr.payload)"
-                          >
-                            {{ qr.label }}
-                          </button>
+                        @if (orderMeta.shippingProvider) {
+                          <div class="chat-order-row">
+                            <span class="chat-order-label">Vận chuyển:</span>
+                            <span class="chat-order-val">{{ orderMeta.shippingProvider }}</span>
+                          </div>
+                        }
+                        @if (orderMeta.trackingCode) {
+                          <div class="chat-order-row">
+                            <span class="chat-order-label">Mã vận đơn:</span>
+                            <span class="chat-order-val chat-order-tracking">{{ orderMeta.trackingCode }}</span>
+                          </div>
                         }
                       </div>
-                    }
+                    </div>
+                  }
 
-                    <!-- Giờ gửi nhỏ màu xám -->
-                    <span class="chat-meta-bot">
-                      {{ formatTime(msg.createdAt) }}
-                    </span>
+                  <!-- GỢI Ý NHANH (QUICK REPLIES) -->
+                  @if (msg.quickReplies && msg.quickReplies.length > 0) {
+                    <div class="chat-quick-replies-wrap">
+                      @for (qr of msg.quickReplies; track qr.payload) {
+                        <button
+                          type="button"
+                          class="chat-quick-chip"
+                          [disabled]="usedQuickReplyMessageIds().has(msg.id)"
+                          (click)="onQuickReplyClick(msg.id, qr.payload)"
+                        >
+                          {{ qr.label }}
+                        </button>
+                      }
+                    </div>
+                  }
+
+                  <!-- Giờ gửi nhỏ màu xám -->
+                  <span class="chat-meta-bot">
+                    {{ formatTime(msg.createdAt) }}
+                  </span>
+                </div>
+              </div>
+            }
+          }
+
+          <!-- NHẮC NHỞ ĐĂNG NHẬP KHI KHÁCH VÃNG LAI BẤM NÚT ẢNH -->
+          @if (showGuestUploadLoginPrompt()) {
+            <div class="chat-msg-row-bot">
+              <div class="chat-msg-avatar">
+                <app-icon name="Bot" size="15" color="#765337"></app-icon>
+              </div>
+              <div class="chat-bot-content-wrap">
+                <span class="chat-sender-label">Trợ lý AI DCor</span>
+                <div class="chat-bubble-bot">
+                  <div class="chat-bubble-text">
+                    Để gửi hình ảnh bản phối và kết nối chuyên viên tư vấn trực tiếp, bạn vui lòng đăng nhập tài khoản nhé!
                   </div>
                 </div>
-              }
-            }
-
-            <!-- CHỈ BÁO ĐANG SOẠN TIN (TYPING INDICATOR) -->
-            @if (chatService.typingIndicator(); as typing) {
-              <div class="chat-typing-row">
-                <div class="chat-msg-avatar">
-                  @if (typing.senderType === 'STAFF') {
-                    <app-icon name="Headphones" size="15" color="#765337"></app-icon>
-                  } @else {
-                    <app-icon name="Bot" size="15" color="#765337"></app-icon>
-                  }
+                <div class="chat-action-card-box">
+                  <button
+                    type="button"
+                    class="chat-action-btn-primary"
+                    (click)="navigateToLogin()"
+                  >
+                    <app-icon name="CircleUserRound" size="15" color="#ffffff"></app-icon>
+                    <span>Đăng nhập ngay</span>
+                  </button>
                 </div>
-                <div class="chat-typing-bubble">
-                  <span class="chat-typing-dot"></span>
-                  <span class="chat-typing-dot"></span>
-                  <span class="chat-typing-dot"></span>
-                </div>
-                <span class="chat-typing-text">
-                  {{ typing.senderName || (typing.senderType === 'STAFF' ? 'Chuyên viên' : 'Trợ lý DCor') }} đang soạn tin...
-                </span>
               </div>
-            }
-
-            <!-- THÔNG BÁO HỘI THOẠI ĐÃ ĐÓNG -->
-            @if (chatService.isConversationClosed()) {
-              <div class="chat-closed-notice-card">
-                <p class="chat-closed-text">Cuộc trò chuyện này đã kết thúc.</p>
-                <button
-                  type="button"
-                  class="chat-btn-new-conv"
-                  (click)="startNewConversation()"
-                >
-                  <app-icon name="Sparkles" size="14" color="#ffffff"></app-icon>
-                  <span>Bắt đầu cuộc trò chuyện mới</span>
-                </button>
-              </div>
-            }
-          </div>
-
-          <!-- NÚT "CÓ TIN MỚI ↓" -->
-          @if (showNewMessagesButton()) {
-            <button
-              type="button"
-              class="chat-btn-new-messages-toast"
-              (click)="scrollToBottom('smooth')"
-            >
-              <span>Có tin mới</span>
-              <app-icon name="ArrowDown" size="13" color="#ffffff"></app-icon>
-            </button>
+            </div>
           }
+
+          <!-- CHỈ BÁO ĐANG SOẠN TIN (TYPING INDICATOR) -->
+          @if (chatService.typingIndicator(); as typing) {
+            <div class="chat-typing-row">
+              <div class="chat-msg-avatar">
+                @if (typing.senderType === 'STAFF') {
+                  <app-icon name="Headphones" size="15" color="#765337"></app-icon>
+                } @else {
+                  <app-icon name="Bot" size="15" color="#765337"></app-icon>
+                }
+              </div>
+              <div class="chat-typing-bubble">
+                <span class="chat-typing-dot"></span>
+                <span class="chat-typing-dot"></span>
+                <span class="chat-typing-dot"></span>
+              </div>
+              <span class="chat-typing-text">
+                {{ typing.senderName || (typing.senderType === 'STAFF' ? 'Chuyên viên' : 'Trợ lý AI DCor') }} đang soạn tin...
+              </span>
+            </div>
+          }
+        </div>
+
+        <!-- NÚT "CÓ TIN MỚI ↓" -->
+        @if (showNewMessagesButton()) {
+          <button
+            type="button"
+            class="chat-btn-new-messages-toast"
+            (click)="scrollToBottom('smooth')"
+          >
+            <span>Có tin mới</span>
+            <app-icon name="ArrowDown" size="13" color="#ffffff"></app-icon>
+          </button>
         }
       </div>
 
-      <!-- VÙNG SOẠN TIN: MỘT HÀNG DUY NHẤT TRONG MỘT KHUNG VIỀN BO TRÒN -->
-      @if (hasActiveSession() && !chatService.isConversationClosed()) {
-        <footer class="chat-footer">
-          <div class="chat-composer-box">
-            <!-- Hàng xem trước ảnh đã chọn (nằm PHÍA TRÊN hàng soạn, TRONG CÙNG KHUNG) -->
-            @if (selectedImagePreview()) {
-              <div class="chat-preview-row">
-                <div class="chat-preview-thumb-wrap">
-                  <img [src]="selectedImagePreview()" alt="Xem trước ảnh" class="chat-preview-thumb" />
-                  <button
-                    type="button"
-                    class="chat-preview-remove"
-                    (click)="removeSelectedImage()"
-                    aria-label="Bỏ chọn ảnh"
-                    title="Bỏ ảnh"
-                  >
-                    <app-icon name="X" size="12" color="#ffffff"></app-icon>
-                  </button>
-                </div>
-                <div class="chat-preview-meta">
-                  <span class="chat-preview-filename">{{ selectedImageFile()?.name }}</span>
-                  <span class="chat-preview-hint">Tự động nén &lt; 800KB</span>
-                </div>
+      <!-- VÙNG SOẠN TIN: MỘT HÀNG DUY NHẤT TRONG MỘT KHUNG VIỀN BO TRÒN (KHÔNG KHÓA Ô NHẬP) -->
+      <footer class="chat-footer">
+        <div class="chat-composer-box">
+          <!-- Hàng xem trước ảnh đã chọn (nằm PHÍA TRÊN hàng soạn, TRONG CÙNG KHUNG) -->
+          @if (selectedImagePreview()) {
+            <div class="chat-preview-row">
+              <div class="chat-preview-thumb-wrap">
+                <img [src]="selectedImagePreview()" alt="Xem trước ảnh" class="chat-preview-thumb" />
+                <button
+                  type="button"
+                  class="chat-preview-remove"
+                  (click)="removeSelectedImage()"
+                  aria-label="Bỏ chọn ảnh"
+                  title="Bỏ ảnh"
+                >
+                  <app-icon name="X" size="12" color="#ffffff"></app-icon>
+                </button>
               </div>
-            }
-
-            <!-- HÀNG SOẠN DUY NHẤT: [NÚT ẢNH] [TEXTAREA] [NÚT GỬI] -->
-            <div class="chat-composer-row">
-              <!-- Input file ẩn hoàn toàn (không còn 'Choose File No file chosen') -->
-              <input
-                #fileInput
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                class="chat-file-input-hidden"
-                (change)="onFileSelected($event)"
-              />
-
-              <!-- Nút icon ảnh 36-40px -->
-              <button
-                type="button"
-                class="chat-attach-btn"
-                [disabled]="isUploadingImage() || isSending()"
-                (click)="triggerFileInput()"
-                aria-label="Đính kèm hình ảnh"
-                title="Đính kèm hình ảnh (JPG, PNG, WebP)"
-              >
-                <app-icon name="Image" size="19" color="#616161"></app-icon>
-              </button>
-
-              <!-- Ô nhập textarea tự giãn, không viền riêng -->
-              <div class="chat-textarea-wrapper">
-                <textarea
-                  #messageTextarea
-                  rows="1"
-                  maxlength="1000"
-                  placeholder="Nhập tin nhắn..."
-                  title="Nhấn Enter để gửi, Shift+Enter để xuống dòng"
-                  [ngModel]="inputContent()"
-                  (ngModelChange)="inputContent.set($event)"
-                  (input)="onTextareaInput($event)"
-                  (keydown)="handleKeydown($event)"
-                  class="chat-textarea"
-                  aria-label="Nội dung tin nhắn"
-                ></textarea>
+              <div class="chat-preview-meta">
+                <span class="chat-preview-filename">{{ selectedImageFile()?.name }}</span>
+                <span class="chat-preview-hint">Tự động nén &lt; 800KB</span>
               </div>
-
-              <!-- Nút gửi tròn 36-40px cùng hàng, căn đáy với ô nhập -->
-              <button
-                type="button"
-                class="chat-send-btn"
-                [class.chat-send-btn-active]="inputContent().trim().length > 0 || selectedImageFile()"
-                [disabled]="isSending() || isUploadingImage() || (!inputContent().trim() && !selectedImageFile())"
-                (click)="handleSendMessage()"
-                aria-label="Gửi tin nhắn"
-                title="Gửi tin nhắn (Enter)"
-              >
-                @if (isSending() || isUploadingImage()) {
-                  <app-icon name="LoaderCircle" size="18" class="chat-spin" color="#ffffff"></app-icon>
-                } @else {
-                  <app-icon name="Send" size="17" color="#ffffff"></app-icon>
-                }
-              </button>
             </div>
-          </div>
+          }
 
-          <!-- Dòng chữ nhỏ gợi ý phím tắt & bộ đếm ký tự -->
-          <div class="chat-composer-subtext">
-            <span>Nhấn Enter để gửi, Shift+Enter để xuống dòng</span>
-            @if (inputContent().length > 500) {
-              <span class="chat-char-counter">{{ inputContent().length }}/1000</span>
-            }
+          <!-- HÀNG SOẠN DUY NHẤT: [NÚT ẢNH] [TEXTAREA] [NÚT GỬI] -->
+          <div class="chat-composer-row">
+            <!-- Input file ẩn hoàn toàn (không còn 'Choose File No file chosen') -->
+            <input
+              #fileInput
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="chat-file-input-hidden"
+              (change)="onFileSelected($event)"
+            />
+
+            <!-- Nút icon ảnh 36-40px -->
+            <button
+              type="button"
+              class="chat-attach-btn"
+              [disabled]="isUploadingImage() || isSending()"
+              (click)="triggerFileInput()"
+              aria-label="Đính kèm hình ảnh"
+              title="Đính kèm hình ảnh (JPG, PNG, WebP)"
+            >
+              <app-icon name="Image" size="19" color="#616161"></app-icon>
+            </button>
+
+            <!-- Ô nhập textarea tự giãn tối đa 4 dòng, không viền riêng -->
+            <div class="chat-textarea-wrapper">
+              <textarea
+                #messageTextarea
+                rows="1"
+                maxlength="1000"
+                placeholder="Nhập tin nhắn..."
+                title="Nhấn Enter để gửi, Shift+Enter để xuống dòng"
+                [ngModel]="inputContent()"
+                (ngModelChange)="inputContent.set($event)"
+                (input)="onTextareaInput($event)"
+                (keydown)="handleKeydown($event)"
+                class="chat-textarea"
+                aria-label="Nội dung tin nhắn"
+              ></textarea>
+            </div>
+
+            <!-- Nút gửi tròn 36-40px cùng hàng, căn đáy với ô nhập -->
+            <button
+              type="button"
+              class="chat-send-btn"
+              [class.chat-send-btn-active]="inputContent().trim().length > 0 || selectedImageFile()"
+              [disabled]="isSending() || isUploadingImage() || (!inputContent().trim() && !selectedImageFile())"
+              (click)="handleSendMessage()"
+              aria-label="Gửi tin nhắn"
+              title="Gửi tin nhắn (Enter)"
+            >
+              @if (isSending() || isUploadingImage()) {
+                <app-icon name="LoaderCircle" size="18" class="chat-spin" color="#ffffff"></app-icon>
+              } @else {
+                <app-icon name="Send" size="17" color="#ffffff"></app-icon>
+              }
+            </button>
           </div>
-        </footer>
-      }
+        </div>
+
+        <!-- Dòng chữ nhỏ gợi ý phím tắt & bộ đếm ký tự -->
+        <div class="chat-composer-subtext">
+          <span>Nhấn Enter để gửi, Shift+Enter để xuống dòng</span>
+          @if (inputContent().length > 500) {
+            <span class="chat-char-counter">{{ inputContent().length }}/1000</span>
+          }
+        </div>
+      </footer>
     </div>
   </div>
 }
-
