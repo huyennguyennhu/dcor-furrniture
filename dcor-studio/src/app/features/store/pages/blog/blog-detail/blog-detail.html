@@ -4,413 +4,383 @@
     <!-- 1. BREADCRUMB -->
     <nav aria-label="Breadcrumb" class="detail-breadcrumb">
       <a routerLink="/" class="detail-breadcrumb-link">
-        <app-icon name="House" size="14"></app-icon>
         <span>Trang chủ</span>
       </a>
       <span class="detail-breadcrumb-sep">/</span>
-      <a routerLink="/blog" class="detail-breadcrumb-link">Blog và Cảm hứng</a>
+      <a routerLink="/blog" class="detail-breadcrumb-link">Blog</a>
       @if (post()) {
-        <span class="detail-breadcrumb-sep">/</span>
-        <a [routerLink]="['/blog']" [queryParams]="{ category: post()!.category.slug }" class="detail-breadcrumb-link">
-          {{ post()!.category.name }}
-        </a>
-        <span class="detail-breadcrumb-sep">/</span>
-        <span class="detail-breadcrumb-current">{{ post()!.title }}</span>
+
+      <span class="detail-breadcrumb-sep">/</span>
+      <span class="detail-breadcrumb-current">{{ post()!.title }}</span>
       }
     </nav>
 
     <!-- 2. SKELETON LOADING -->
     @if (isLoading()) {
-      <div style="height: 320px; background: #eee; border-radius: 16px; margin-bottom: 24px;"></div>
+    <div style="height: 320px; background: #eee; border-radius: 16px; margin-bottom: 24px;"></div>
     }
 
     <!-- 3. TRƯỜNG HỢP 404: BÀI VIẾT KHÔNG KHẢ DỤNG -->
     @if (!isLoading() && is404()) {
-      <div style="background: var(--color-surface, #fff); border: 1px solid var(--color-border, #e0e0e0); border-radius: 16px; padding: 48px 24px; text-align: center; max-width: 680px; margin: 40px auto;">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--color-sub-bg, #fff3e3); color: var(--color-accent, #bc5f13); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-          <app-icon name="AlertCircle" size="32"></app-icon>
-        </div>
-        <h1 style="font-size: 24px; font-weight: 800; margin: 0 0 12px; color: var(--color-text, #0a0a0a);">Bài viết không khả dụng</h1>
-        <p style="font-size: 14px; color: var(--color-text-secondary, #616161); margin: 0 0 24px;">
-          {{ errorMessage() || 'Bài viết bạn đang tìm có thể đã bị ẩn, gỡ bỏ hoặc đường dẫn không chính xác.' }}
-        </p>
-        <a routerLink="/blog" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; background: var(--color-primary, #765337); color: #fff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">
-          <app-icon name="ArrowLeft" size="16"></app-icon>
-          <span>Về trang Blog và Cảm hứng</span>
-        </a>
-
-        <!-- Suggestions -->
-        @if (suggestions().length > 0) {
-          <div style="margin-top: 40px; text-align: left; border-top: 1px solid var(--color-border, #e0e0e0); padding-top: 24px;">
-            <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 16px; color: var(--color-text, #0a0a0a);">Bài viết gợi ý dành cho bạn:</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-              @for (sug of suggestions(); track sug.id) {
-                <a [routerLink]="['/blog', sug.slug]" style="display: block; text-decoration: none; color: inherit; border: 1px solid var(--color-border, #e0e0e0); border-radius: 10px; overflow: hidden; background: var(--color-page, #fcf8f3);">
-                  <div style="aspect-ratio: 16/10; overflow: hidden;">
-                    <img [src]="sug.coverImageUrl || ''" [alt]="sug.title" style="width: 100%; height: 100%; object-fit: cover;">
-                  </div>
-                  <div style="padding: 12px;">
-                    <h4 style="font-size: 13.5px; font-weight: 700; margin: 0 0 6px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ sug.title }}</h4>
-                    <span style="font-size: 12px; color: var(--color-accent, #bc5f13); font-weight: 600;">Đọc ngay &rarr;</span>
-                  </div>
-                </a>
-              }
-            </div>
-          </div>
-        }
+    <div
+      style="background: var(--color-surface, #fff); border: 1px solid var(--color-border, #e0e0e0); border-radius: 16px; padding: 48px 24px; text-align: center; max-width: 680px; margin: 40px auto;">
+      <div
+        style="width: 56px; height: 56px; border-radius: 50%; background: var(--color-sub-bg, #fff3e3); color: var(--color-accent, #bc5f13); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+        <app-icon name="AlertCircle" size="32"></app-icon>
       </div>
+      <h1 style="font-size: 24px; font-weight: 800; margin: 0 0 12px; color: var(--color-text, #0a0a0a);">Bài viết không
+        khả dụng</h1>
+      <p style="font-size: 14px; color: var(--color-text-secondary, #616161); margin: 0 0 24px;">
+        {{ errorMessage() || 'Bài viết bạn đang tìm có thể đã bị ẩn, gỡ bỏ hoặc đường dẫn không chính xác.' }}
+      </p>
+      <a routerLink="/blog"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; background: var(--color-primary, #765337); color: #fff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">
+        <app-icon name="ArrowLeft" size="16"></app-icon>
+        <span>Về trang Blog và Cảm hứng</span>
+      </a>
+
+      <!-- Suggestions -->
+      @if (suggestions().length > 0) {
+      <div
+        style="margin-top: 40px; text-align: left; border-top: 1px solid var(--color-border, #e0e0e0); padding-top: 24px;">
+        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 16px; color: var(--color-text, #0a0a0a);">Bài viết gợi
+          ý dành cho bạn:</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          @for (sug of suggestions(); track sug.id) {
+          <a [routerLink]="['/blog', sug.slug]"
+            style="display: block; text-decoration: none; color: inherit; border: 1px solid var(--color-border, #e0e0e0); border-radius: 10px; overflow: hidden; background: var(--color-page, #fcf8f3);">
+            <div style="aspect-ratio: 16/10; overflow: hidden;">
+              <img [src]="sug.coverImageUrl || ''" [alt]="sug.title"
+                style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div style="padding: 12px;">
+              <h4
+                style="font-size: 13.5px; font-weight: 700; margin: 0 0 6px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                {{ sug.title }}</h4>
+              <span style="font-size: 12px; color: var(--color-accent, #bc5f13); font-weight: 600;">Đọc ngay
+                &rarr;</span>
+            </div>
+          </a>
+          }
+        </div>
+      </div>
+      }
+    </div>
     }
 
     <!-- 4. NỘI DUNG CHI TIẾT BÀI VIẾT (BỐ CỤC TẠP CHÍ) -->
     @if (!isLoading() && post()) {
-      <article>
+    <article>
 
-        <!-- HEADER -->
-        <header class="detail-header">
-          <a [routerLink]="['/blog']" [queryParams]="{ category: post()!.category.slug }" class="detail-badge-cat">
-            {{ post()!.category.name }}
-          </a>
+      <!-- HEADER -->
+      <header class="detail-header">
+        <a [routerLink]="['/blog']" [queryParams]="{ category: post()!.category.slug }" class="detail-badge-cat">
+          {{ post()!.category.name }}
+        </a>
 
-          <h1 class="detail-title">
-            {{ post()!.title }}
-          </h1>
+        <h1 class="detail-title">
+          {{ post()!.title }}
+        </h1>
 
-          <!-- ACTION BAR (Tác giả, Ngày, Thời gian đọc + Nút Thích & Chia sẻ cùng hàng) -->
-          <div class="detail-action-bar">
-            <div class="detail-author-box">
-              <div class="detail-author-avatar">
-                {{ post()!.authorName.charAt(0).toUpperCase() }}
-              </div>
-              <div>
-                <span class="detail-author-name">{{ post()!.authorName }}</span>
-                <div class="detail-meta-text">
-                  <span>{{ formatDate(post()!.publishedAt) }}</span>
-                  <span>•</span>
-                  <span>{{ post()!.readingMinutes }} phút đọc</span>
-                  <span>•</span>
-                  <span>{{ post()!.viewsCount }} lượt xem</span>
-                </div>
+        <!-- ACTION BAR (Tác giả, Ngày, Thời gian đọc + Nút Thích & Chia sẻ cùng hàng) -->
+        <div class="detail-action-bar">
+          <div class="detail-author-box">
+            <div class="detail-author-avatar">
+              {{ post()!.authorName.charAt(0).toUpperCase() }}
+            </div>
+            <div>
+              <span class="detail-author-name">{{ post()!.authorName }}</span>
+              <div class="detail-meta-text">
+                <span>{{ formatDate(post()!.publishedAt) }}</span>
+                <span>•</span>
+                <span>{{ post()!.readingMinutes }} phút đọc</span>
+                <span>•</span>
+                <span>{{ post()!.viewsCount }} lượt xem</span>
               </div>
             </div>
-
-            <div class="detail-actions-group">
-              <button 
-                type="button" 
-                (click)="toggleLike()" 
-                class="btn-like"
-                [class.is-liked]="isLiked()"
-                [attr.aria-label]="isLiked() ? 'Bỏ thích bài viết' : 'Thích bài viết'"
-              >
-                <app-icon name="Heart" size="16" [filled]="isLiked()" [color]="isLiked() ? 'var(--color-danger, #c42326)' : 'currentColor'"></app-icon>
-                <span>{{ likesCount() }}</span>
-              </button>
-
-              <button 
-                type="button" 
-                (click)="copyShareLink()" 
-                class="btn-share"
-                aria-label="Chia sẻ bài viết"
-              >
-                <app-icon name="Share2" size="16"></app-icon>
-                <span>Chia sẻ</span>
-              </button>
-            </div>
           </div>
-        </header>
 
-        <!-- ẢNH BÌA TỈ LỆ 21/9 BO GÓC -->
-        @if (post()!.coverImageUrl) {
-          <div class="detail-cover-wrap">
-            <img [src]="post()!.coverImageUrl" [alt]="post()!.title" class="detail-cover-img">
-          </div>
-        }
-
-        <!-- EXCERPT DẪN NHẬP -->
-        @if (post()!.excerpt) {
-          <div class="detail-excerpt-box">
-            {{ post()!.excerpt }}
-          </div>
-        }
-
-        <!-- MOBILE TABLE OF CONTENTS (Thu gọn ở mobile) -->
-        @if (toc().length > 0) {
-          <div class="detail-mobile-toc">
-            <button 
-              type="button" 
-              (click)="toggleMobileToc()" 
-              class="detail-mobile-toc-toggle"
-              aria-label="Mở/đóng mục lục"
-            >
-              <span style="display: flex; align-items: center; gap: 8px;">
-                <app-icon name="ListIndentDecrease" size="16" color="var(--color-accent, #bc5f13)"></app-icon>
-                <span>Mục lục bài viết ({{ toc().length }} mục)</span>
-              </span>
-              <app-icon [name]="isMobileTocOpen() ? 'ChevronUp' : 'ChevronDown'" size="16"></app-icon>
+          <div class="detail-actions-group">
+            <button type="button" (click)="toggleLike()" class="btn-like" [class.is-liked]="isLiked()"
+              [attr.aria-label]="isLiked() ? 'Bỏ thích bài viết' : 'Thích bài viết'">
+              <app-icon name="Heart" size="16" [filled]="isLiked()"
+                [color]="isLiked() ? 'var(--color-danger, #c42326)' : 'currentColor'"></app-icon>
+              <span>{{ likesCount() }}</span>
             </button>
-            @if (isMobileTocOpen()) {
-              <div class="detail-mobile-toc-list">
-                @for (item of toc(); track item.id) {
-                  <button 
-                    type="button"
-                    (click)="scrollToHeading(item.id)" 
-                    class="detail-mobile-toc-btn"
-                    [class.is-active]="activeHeadingId() === item.id"
-                    [style.padding-left.px]="item.level === 3 ? 16 : 4"
-                  >
-                    {{ item.text }}
-                  </button>
-                }
-              </div>
-            }
+
+            <button type="button" (click)="copyShareLink()" class="btn-share" aria-label="Chia sẻ bài viết">
+              <app-icon name="Share2" size="16"></app-icon>
+              <span>Chia sẻ</span>
+            </button>
           </div>
+        </div>
+      </header>
+
+      <!-- ẢNH BÌA TỈ LỆ 21/9 BO GÓC -->
+      @if (post()!.coverImageUrl) {
+      <div class="detail-cover-wrap">
+        <img [src]="post()!.coverImageUrl" [alt]="post()!.title" class="detail-cover-img">
+      </div>
+      }
+
+      <!-- EXCERPT DẪN NHẬP -->
+      @if (post()!.excerpt) {
+      <div class="detail-excerpt-box">
+        {{ post()!.excerpt }}
+      </div>
+      }
+
+      <!-- MOBILE TABLE OF CONTENTS (Thu gọn ở mobile) -->
+      @if (toc().length > 0) {
+      <div class="detail-mobile-toc">
+        <button type="button" (click)="toggleMobileToc()" class="detail-mobile-toc-toggle" aria-label="Mở/đóng mục lục">
+          <span style="display: flex; align-items: center; gap: 8px;">
+            <app-icon name="ListIndentDecrease" size="16" color="var(--color-accent, #bc5f13)"></app-icon>
+            <span>Mục lục bài viết ({{ toc().length }} mục)</span>
+          </span>
+          <app-icon [name]="isMobileTocOpen() ? 'ChevronUp' : 'ChevronDown'" size="16"></app-icon>
+        </button>
+        @if (isMobileTocOpen()) {
+        <div class="detail-mobile-toc-list">
+          @for (item of toc(); track item.id) {
+          <button type="button" (click)="scrollToHeading(item.id)" class="detail-mobile-toc-btn"
+            [class.is-active]="activeHeadingId() === item.id" [style.padding-left.px]="item.level === 3 ? 16 : 4">
+            {{ item.text }}
+          </button>
+          }
+        </div>
         }
+      </div>
+      }
 
-        <!-- BỐ CỤC 2 CỘT: CỘT ĐỌC 760PX & STICKY TOC SIDEBAR -->
-        <div class="detail-layout-row">
+      <!-- BỐ CỤC 2 CỘT: CỘT ĐỌC 760PX & STICKY TOC SIDEBAR -->
+      <div class="detail-layout-row">
 
-          <!-- CỘT ĐỌC MAX-WIDTH 760PX, CHỮ 17PX LINE-HEIGHT 1.75 -->
-          <div class="detail-content-col">
-            @for (block of post()!.blocks; track $index) {
-              @switch (block.type) {
-                @case ('heading') {
-                  @if (block.level === 2) {
-                    <h2 [id]="block.id" class="article-h2">{{ block.text }}</h2>
-                  } @else {
-                    <h3 [id]="block.id" class="article-h3">{{ block.text }}</h3>
-                  }
-                }
+        <!-- CỘT ĐỌC MAX-WIDTH 760PX, CHỮ 17PX LINE-HEIGHT 1.75 -->
+        <div class="detail-content-col">
+          @for (block of post()!.blocks; track $index) {
+          @switch (block.type) {
+          @case ('heading') {
+          @if (block.level === 2) {
+          <h2 [id]="block.id" class="article-h2">{{ block.text }}</h2>
+          } @else {
+          <h3 [id]="block.id" class="article-h3">{{ block.text }}</h3>
+          }
+          }
 
-                @case ('paragraph') {
-                  <p class="article-p">{{ block.text }}</p>
-                }
+          @case ('paragraph') {
+          <p class="article-p">{{ block.text }}</p>
+          }
 
-                @case ('image') {
-                  <figure class="article-figure">
-                    <div (click)="openLightbox(block.url, block.caption)" class="article-img-wrap" title="Bấm để phóng to">
-                      <img [src]="block.url" [alt]="block.caption || post()!.title" class="article-img">
-                      <div class="article-img-overlay">
-                        <app-icon name="Maximize2" size="12"></app-icon>
-                        <span>Phóng to</span>
-                      </div>
-                    </div>
-                    @if (block.caption) {
-                      <figcaption class="article-caption">{{ block.caption }}</figcaption>
-                    }
-                  </figure>
-                }
-
-                @case ('quote') {
-                  <blockquote class="article-quote">
-                    <p class="article-quote-text">“{{ block.text }}”</p>
-                    @if (block.cite) {
-                      <cite class="article-quote-cite">— {{ block.cite }}</cite>
-                    }
-                  </blockquote>
-                }
-
-                @case ('list') {
-                  @if (block.ordered) {
-                    <ol class="article-list">
-                      @for (item of block.items; track $index) {
-                        <li>{{ item }}</li>
-                      }
-                    </ol>
-                  } @else {
-                    <ul class="article-list">
-                      @for (item of block.items; track $index) {
-                        <li>{{ item }}</li>
-                      }
-                    </ul>
-                  }
-                }
-
-                @case ('products') {
-                  <div class="article-products-block">
-                    @if (block.title) {
-                      <h4 class="article-products-title">
-                        <app-icon name="ShoppingBag" size="18" color="var(--color-primary, #765337)"></app-icon>
-                        <span>{{ block.title }}</span>
-                      </h4>
-                    }
-                    @let matchedProds = getProductsForBlock(block.productIds);
-                    @if (matchedProds.length > 0) {
-                      <div class="article-products-grid">
-                        @for (prod of matchedProds; track prod.id) {
-                          <a [routerLink]="['/products', prod.id]" class="article-product-card">
-                            <img [src]="prod.image || ''" [alt]="prod.name" class="article-prod-img">
-                            <div class="article-prod-info">
-                              <h5 class="article-prod-name">{{ prod.name }}</h5>
-                              <p class="article-prod-price">{{ formatVnd(prod.price) }}</p>
-                            </div>
-                          </a>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-              }
-            }
-
-            <!-- KHU VỰC BÌNH LUẬN CÓ KHUNG -->
-            <section class="detail-comments-section" id="comments-section">
-              <h3 class="detail-comments-title">
-                <app-icon name="MessageCircle" size="20" color="var(--color-primary, #765337)"></app-icon>
-                <span>Bình luận ({{ post()!.commentCount || comments().length }})</span>
-              </h3>
-
-              <!-- Ô nhập bình luận -->
-              <div class="comment-input-box">
-                @if (isAuthenticated()) {
-                  <textarea
-                    [(ngModel)]="commentContent"
-                    maxlength="500"
-                    placeholder="Viết cảm nghĩ của bạn về bài viết (tối đa 500 ký tự)..."
-                    class="comment-textarea"
-                  ></textarea>
-                  <div class="comment-input-footer">
-                    <span class="comment-char-counter">{{ commentContent().length }} / 500 ký tự</span>
-                    <button 
-                      type="button" 
-                      (click)="submitComment()" 
-                      [disabled]="isSubmittingComment() || !commentContent().trim() || commentContent().length > 500"
-                      class="btn-submit-comment"
-                    >
-                      <app-icon name="Send" size="14"></app-icon>
-                      <span>{{ isSubmittingComment() ? 'Đang gửi...' : 'Gửi bình luận' }}</span>
-                    </button>
-                  </div>
-                } @else {
-                  <div style="text-align: center; padding: 12px 0;">
-                    <p style="font-size: 13.5px; color: var(--color-text-secondary, #616161); margin: 0 0 12px;">
-                      Vui lòng đăng nhập để gửi bình luận.
-                    </p>
-                    <a [routerLink]="['/login']" [queryParams]="{ returnUrl: currentUrl() }" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; background: var(--color-primary, #765337); color: #fff; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">
-                      <app-icon name="UserRound" size="14"></app-icon>
-                      <span>Đăng nhập</span>
-                    </a>
-                  </div>
-                }
+          @case ('image') {
+          <figure class="article-figure">
+            <div (click)="openLightbox(block.url, block.caption)" class="article-img-wrap" title="Bấm để phóng to">
+              <img [src]="block.url" [alt]="block.caption || post()!.title" class="article-img">
+              <div class="article-img-overlay">
+                <app-icon name="Maximize2" size="12"></app-icon>
+                <span>Phóng to</span>
               </div>
+            </div>
+            @if (block.caption) {
+            <figcaption class="article-caption">{{ block.caption }}</figcaption>
+            }
+          </figure>
+          }
 
-              <!-- Danh sách bình luận -->
-              @if (comments().length === 0) {
-                <p style="text-align: center; color: var(--color-text-muted, #757575); font-size: 13.5px; padding: 16px 0; margin: 0;">
-                  Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ!
-                </p>
-              } @else {
-                @for (c of comments(); track c.id) {
-                  <div class="comment-item">
-                    <div class="comment-header">
-                      <div class="comment-user">
-                        <div class="comment-avatar">
-                          {{ (c.authorName || 'K').charAt(0).toUpperCase() }}
-                        </div>
-                        <div>
-                          <span class="comment-name">{{ c.authorName }}</span>
-                          <span class="comment-time">{{ formatDateTime(c.createdAt) }}</span>
-                        </div>
-                      </div>
-                      @if (c.isMine) {
-                        <button type="button" (click)="openDeleteCommentModal(c.id)" class="btn-del-comment" title="Xóa bình luận">
-                          <app-icon name="Trash2" size="14"></app-icon>
-                          <span>Xóa</span>
-                        </button>
-                      }
-                    </div>
-                    <p class="comment-body">{{ c.content }}</p>
-                  </div>
-                }
+          @case ('quote') {
+          <blockquote class="article-quote">
+            <p class="article-quote-text">“{{ block.text }}”</p>
+            @if (block.cite) {
+            <cite class="article-quote-cite">— {{ block.cite }}</cite>
+            }
+          </blockquote>
+          }
+
+          @case ('list') {
+          @if (block.ordered) {
+          <ol class="article-list">
+            @for (item of block.items; track $index) {
+            <li>{{ item }}</li>
+            }
+          </ol>
+          } @else {
+          <ul class="article-list">
+            @for (item of block.items; track $index) {
+            <li>{{ item }}</li>
+            }
+          </ul>
+          }
+          }
+
+          @case ('products') {
+          <div class="article-products-block">
+            @if (block.title) {
+            <h4 class="article-products-title">
+              <app-icon name="ShoppingBag" size="18" color="var(--color-primary, #765337)"></app-icon>
+              <span>{{ block.title }}</span>
+            </h4>
+            }
+            @let matchedProds = getProductsForBlock(block.productIds);
+            @if (matchedProds.length > 0) {
+            <div class="article-products-grid">
+              @for (prod of matchedProds; track prod.id) {
+              <a [routerLink]="['/products', prod.id]" class="article-product-card">
+                <img [src]="prod.image || ''" [alt]="prod.name" class="article-prod-img">
+                <div class="article-prod-info">
+                  <h5 class="article-prod-name">{{ prod.name }}</h5>
+                  <p class="article-prod-price">{{ formatVnd(prod.price) }}</p>
+                </div>
+              </a>
               }
-            </section>
-
+            </div>
+            }
           </div>
+          }
+          }
+          }
 
-          <!-- MỤC LỤC STICKY TỪ 1024PX (DESKTOP) -->
-          <aside class="detail-sidebar">
-            @if (toc().length > 0) {
-              <div class="detail-toc-card">
-                <h4 class="detail-toc-heading">
-                  <app-icon name="ListIndentDecrease" size="16" color="var(--color-accent, #bc5f13)"></app-icon>
-                  <span>Mục lục nội dung</span>
-                </h4>
-                <nav class="detail-toc-nav" aria-label="Mục lục bài viết">
-                  @for (item of toc(); track item.id) {
-                    <button 
-                      type="button" 
-                      (click)="scrollToHeading(item.id)" 
-                      class="detail-toc-btn"
-                      [class.is-active]="activeHeadingId() === item.id"
-                      [style.padding-left.px]="item.level === 3 ? 18 : 10"
-                      [title]="item.text"
-                    >
-                      {{ item.text }}
-                    </button>
-                  }
-                </nav>
+          <!-- KHU VỰC BÌNH LUẬN CÓ KHUNG -->
+          <section class="detail-comments-section" id="comments-section">
+            <h3 class="detail-comments-title">
+              <app-icon name="MessageCircle" size="20" color="var(--color-primary, #765337)"></app-icon>
+              <span>Bình luận ({{ post()!.commentCount || comments().length }})</span>
+            </h3>
+
+            <!-- Ô nhập bình luận -->
+            <div class="comment-input-box">
+              @if (isAuthenticated()) {
+              <textarea [(ngModel)]="commentContent" maxlength="500"
+                placeholder="Viết cảm nghĩ của bạn về bài viết (tối đa 500 ký tự)..."
+                class="comment-textarea"></textarea>
+              <div class="comment-input-footer">
+                <span class="comment-char-counter">{{ commentContent().length }} / 500 ký tự</span>
+                <button type="button" (click)="submitComment()"
+                  [disabled]="isSubmittingComment() || !commentContent().trim() || commentContent().length > 500"
+                  class="btn-submit-comment">
+                  <app-icon name="Send" size="14"></app-icon>
+                  <span>{{ isSubmittingComment() ? 'Đang gửi...' : 'Gửi bình luận' }}</span>
+                </button>
               </div>
+              } @else {
+              <div style="text-align: center; padding: 12px 0;">
+                <p style="font-size: 13.5px; color: var(--color-text-secondary, #616161); margin: 0 0 12px;">
+                  Vui lòng đăng nhập để gửi bình luận.
+                </p>
+                <a [routerLink]="['/login']" [queryParams]="{ returnUrl: currentUrl() }"
+                  style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; background: var(--color-primary, #765337); color: #fff; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">
+                  <app-icon name="UserRound" size="14"></app-icon>
+                  <span>Đăng nhập</span>
+                </a>
+              </div>
+              }
+            </div>
+
+            <!-- Danh sách bình luận -->
+            @if (comments().length === 0) {
+            <p
+              style="text-align: center; color: var(--color-text-muted, #757575); font-size: 13.5px; padding: 16px 0; margin: 0;">
+              Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ!
+            </p>
+            } @else {
+            @for (c of comments(); track c.id) {
+            <div class="comment-item">
+              <div class="comment-header">
+                <div class="comment-user">
+                  <div class="comment-avatar">
+                    {{ (c.authorName || 'K').charAt(0).toUpperCase() }}
+                  </div>
+                  <div>
+                    <span class="comment-name">{{ c.authorName }}</span>
+                    <span class="comment-time">{{ formatDateTime(c.createdAt) }}</span>
+                  </div>
+                </div>
+                @if (c.isMine) {
+                <button type="button" (click)="openDeleteCommentModal(c.id)" class="btn-del-comment"
+                  title="Xóa bình luận">
+                  <app-icon name="Trash2" size="14"></app-icon>
+                  <span>Xóa</span>
+                </button>
+                }
+              </div>
+              <p class="comment-body">{{ c.content }}</p>
+            </div>
             }
-          </aside>
+            }
+          </section>
 
         </div>
 
-        <!-- BÀI VIẾT LIÊN QUAN (3 BÀI) -->
-        @if (post()!.related && post()!.related.length > 0) {
-          <section class="detail-related-section">
-            <h3 class="detail-related-title">Bài viết liên quan</h3>
-            <div class="detail-related-grid">
-              @for (item of post()!.related; track item.id) {
-                <a [routerLink]="['/blog', item.slug]" class="related-card">
-                  <div class="related-img-wrap">
-                    @if (item.coverImageUrl) {
-                      <img [src]="item.coverImageUrl" [alt]="item.title" class="related-img">
-                    } @else {
-                      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
-                        <app-icon name="Newspaper" size="36"></app-icon>
-                      </div>
-                    }
-                  </div>
-                  <div class="related-body">
-                    <span class="related-date">{{ formatDate(item.publishedAt) }}</span>
-                    <h4 class="related-heading">{{ item.title }}</h4>
-                    <p class="related-excerpt">{{ item.excerpt }}</p>
-                  </div>
-                </a>
+        <!-- MỤC LỤC STICKY TỪ 1024PX (DESKTOP) -->
+        <aside class="detail-sidebar">
+          @if (toc().length > 0) {
+          <div class="detail-toc-card">
+            <h4 class="detail-toc-heading">
+              <app-icon name="ListIndentDecrease" size="16" color="var(--color-accent, #bc5f13)"></app-icon>
+              <span>Mục lục nội dung</span>
+            </h4>
+            <nav class="detail-toc-nav" aria-label="Mục lục bài viết">
+              @for (item of toc(); track item.id) {
+              <button type="button" (click)="scrollToHeading(item.id)" class="detail-toc-btn"
+                [class.is-active]="activeHeadingId() === item.id" [style.padding-left.px]="item.level === 3 ? 18 : 10"
+                [title]="item.text">
+                {{ item.text }}
+              </button>
+              }
+            </nav>
+          </div>
+          }
+        </aside>
+
+      </div>
+
+      <!-- BÀI VIẾT LIÊN QUAN (3 BÀI) -->
+      @if (post()!.related && post()!.related.length > 0) {
+      <section class="detail-related-section">
+        <h3 class="detail-related-title">Bài viết liên quan</h3>
+        <div class="detail-related-grid">
+          @for (item of post()!.related; track item.id) {
+          <a [routerLink]="['/blog', item.slug]" class="related-card">
+            <div class="related-img-wrap">
+              @if (item.coverImageUrl) {
+              <img [src]="item.coverImageUrl" [alt]="item.title" class="related-img">
+              } @else {
+              <div
+                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
+                <app-icon name="Newspaper" size="36"></app-icon>
+              </div>
               }
             </div>
-          </section>
-        }
+            <div class="related-body">
+              <span class="related-date">{{ formatDate(item.publishedAt) }}</span>
+              <h4 class="related-heading">{{ item.title }}</h4>
+              <p class="related-excerpt">{{ item.excerpt }}</p>
+            </div>
+          </a>
+          }
+        </div>
+      </section>
+      }
 
-      </article>
+    </article>
     }
 
   </div>
 </div>
 
 <!-- MODAL XÁC NHẬN XÓA BÌNH LUẬN -->
-<app-modal 
-  [isOpen]="isDeleteModalOpen()" 
-  [title]="'Xác nhận xóa bình luận'" 
-  [hasFooter]="true" 
-  (close)="closeDeleteModal()"
->
+<app-modal [isOpen]="isDeleteModalOpen()" [title]="'Xác nhận xóa bình luận'" [hasFooter]="true"
+  (close)="closeDeleteModal()">
   <p style="font-size: 14px; line-height: 1.6; color: var(--color-text-secondary, #616161); margin: 0;">
     Bạn có chắc chắn muốn xóa bình luận này không? Thao tác này không thể hoàn tác.
   </p>
 
   <div footer style="display: flex; align-items: center; gap: 12px;">
-    <button 
-      type="button" 
-      (click)="closeDeleteModal()" 
-      style="padding: 8px 16px; border: 1px solid var(--color-border, #e0e0e0); background: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;"
-    >
+    <button type="button" (click)="closeDeleteModal()"
+      style="padding: 8px 16px; border: 1px solid var(--color-border, #e0e0e0); background: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
       Hủy
     </button>
-    <button 
-      type="button" 
-      (click)="executeDeleteComment()" 
-      [disabled]="isDeletingComment()"
-      style="padding: 8px 16px; border: none; background: var(--color-danger, #c42326); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;"
-    >
+    <button type="button" (click)="executeDeleteComment()" [disabled]="isDeletingComment()"
+      style="padding: 8px 16px; border: none; background: var(--color-danger, #c42326); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
       {{ isDeletingComment() ? 'Đang xóa...' : 'Xóa bình luận' }}
     </button>
   </div>
@@ -418,23 +388,24 @@
 
 <!-- LIGHTBOX XEM ẢNH -->
 @if (lightboxUrl()) {
-  <div class="lightbox-overlay" (click)="closeLightbox()">
-    <div class="lightbox-content" (click)="$event.stopPropagation()">
-      <button type="button" (click)="closeLightbox()" class="lightbox-close-btn" aria-label="Đóng">
-        <app-icon name="X" size="24"></app-icon>
-      </button>
-      <img [src]="lightboxUrl()!" [alt]="lightboxCaption() || 'Ảnh phóng to'" class="lightbox-img">
-      @if (lightboxCaption()) {
-        <p class="lightbox-caption">{{ lightboxCaption() }}</p>
-      }
-    </div>
+<div class="lightbox-overlay" (click)="closeLightbox()">
+  <div class="lightbox-content" (click)="$event.stopPropagation()">
+    <button type="button" (click)="closeLightbox()" class="lightbox-close-btn" aria-label="Đóng">
+      <app-icon name="X" size="24"></app-icon>
+    </button>
+    <img [src]="lightboxUrl()!" [alt]="lightboxCaption() || 'Ảnh phóng to'" class="lightbox-img">
+    @if (lightboxCaption()) {
+    <p class="lightbox-caption">{{ lightboxCaption() }}</p>
+    }
   </div>
+</div>
 }
 
 <!-- TOAST -->
 @if (toastMessage()) {
-  <div class="detail-toast" [class.is-success]="toastType() === 'success'" [class.is-error]="toastType() === 'error'">
-    <app-icon [name]="toastType() === 'success' ? 'Check' : (toastType() === 'error' ? 'AlertTriangle' : 'Info')" size="16"></app-icon>
-    <span>{{ toastMessage() }}</span>
-  </div>
+<div class="detail-toast" [class.is-success]="toastType() === 'success'" [class.is-error]="toastType() === 'error'">
+  <app-icon [name]="toastType() === 'success' ? 'Check' : (toastType() === 'error' ? 'AlertTriangle' : 'Info')"
+    size="16"></app-icon>
+  <span>{{ toastMessage() }}</span>
+</div>
 }

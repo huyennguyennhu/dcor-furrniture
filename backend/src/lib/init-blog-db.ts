@@ -77,8 +77,25 @@ export async function initBlogDatabase(): Promise<void> {
       `);
       await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "BlogLike_postId_customerId_key" ON "BlogLike"("postId", "customerId")`);
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_bloglike_customerid" ON "BlogLike"("customerId")`);
+
+      // 5. Cập nhật đường dẫn ảnh bìa các bài viết mẫu từ .png sang .jpg nếu còn tồn tại
+      await prisma.$executeRawUnsafe(`
+        UPDATE "BlogPost" 
+        SET "coverImageUrl" = '/assets/room_img/phong_khach.jpg' 
+        WHERE "coverImageUrl" LIKE '%phong_khach.png'
+      `);
+      await prisma.$executeRawUnsafe(`
+        UPDATE "BlogPost" 
+        SET "coverImageUrl" = '/assets/room_img/phong_ngu.jpg' 
+        WHERE "coverImageUrl" LIKE '%phong_ngu.png'
+      `);
+      await prisma.$executeRawUnsafe(`
+        UPDATE "BlogPost" 
+        SET "coverImageUrl" = '/assets/room_img/phong_lam_viec.jpg' 
+        WHERE "coverImageUrl" LIKE '%phong_an.png'
+      `);
     });
-    console.log('[INFO] Blog database tables initialized successfully.');
+    console.log('[INFO] Blog database tables and image paths initialized successfully.');
   } catch (error) {
     console.error('[ERROR] Failed to initialize Blog database:', error);
   }

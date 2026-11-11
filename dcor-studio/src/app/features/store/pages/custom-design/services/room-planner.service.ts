@@ -9,6 +9,7 @@ import {
 
 export interface SummaryProductItem {
   productId: string;
+  variantId?: string;
   name: string;
   category: string;
   imageUrl: string;
@@ -95,9 +96,13 @@ export class RoomPlannerService {
         existing.count++;
         existing.totalPrice += obj.unitPrice;
         existing.objectIds.push(obj.id);
+        if (!existing.variantId && obj.variantId) {
+          existing.variantId = obj.variantId;
+        }
       } else {
         map.set(obj.productId, {
           productId: obj.productId,
+          variantId: obj.variantId || obj.productId,
           name: obj.name,
           category: obj.category,
           imageUrl: obj.imageUrl,
@@ -385,9 +390,16 @@ export class RoomPlannerService {
 
     const maxZ = this.objects().reduce((max, o) => Math.max(max, o.zIndex), 0);
 
+    const variantId =
+      product.selectedVariantId ||
+      product.variantId ||
+      product.variants?.[0]?.id ||
+      product.id;
+
     const newObj: PlannerObject = {
       id: `obj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       productId: product.productId || product.id || String(Date.now()),
+      variantId,
       productSlug: product.slug,
       name: product.name || 'Sản phẩm nội thất',
       category: product.category || 'Nội thất',

@@ -2,7 +2,8 @@
   <!-- User Profile Header -->
   <div class="user-profile-header">
     <div class="avatar-container">
-      <img *ngIf="isLoggedIn && profile?.avatarUrl; else guestOrInitialAvatar" [src]="profile?.avatarUrl" [alt]="profile?.fullName" class="user-avatar" />
+      <img *ngIf="isLoggedIn && profile?.avatarUrl; else guestOrInitialAvatar" [src]="profile?.avatarUrl"
+        [alt]="profile?.fullName" class="user-avatar" />
       <ng-template #guestOrInitialAvatar>
         <div class="avatar-initial">{{ isLoggedIn ? initials : 'K' }}</div>
       </ng-template>
@@ -11,7 +12,8 @@
     <div class="user-meta">
       <h3 class="user-name">{{ isLoggedIn ? (profile?.fullName || 'Khách hàng Dcor') : 'Khách vãng lai' }}</h3>
       <p class="user-phone">
-        {{ isLoggedIn ? (profile?.phone || profile?.email || 'Chưa cập nhật') : (guestPhone ? ('SĐT: ' + guestPhone) : 'Chưa xác thực SĐT') }}
+        {{ isLoggedIn ? (profile?.phone || profile?.email || 'Chưa cập nhật') : (guestPhone ? ('SĐT: ' + guestPhone) :
+        'Chưa xác thực SĐT') }}
       </p>
     </div>
 
@@ -33,91 +35,71 @@
   <!-- Navigation Links -->
   <nav class="sidebar-nav">
     <!-- 1. Hồ sơ cá nhân -->
-    <a 
-      routerLink="/account/profile" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/profile" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.CircleUserRound" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Hồ sơ cá nhân</span>
     </a>
 
     <!-- 2. Sổ địa chỉ (Chỉ hiện cho tài khoản đăng nhập) -->
-    <a *ngIf="isLoggedIn"
-      routerLink="/account/addresses" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
-      class="nav-item">
+    <a *ngIf="isLoggedIn" routerLink="/account/addresses" routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }" class="nav-item">
       <lucide-angular [img]="icons.MapPin" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Sổ địa chỉ</span>
     </a>
 
     <!-- 3. Đơn hàng của tôi -->
-    <a 
-      routerLink="/account/orders" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/orders" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.Package" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Đơn hàng của tôi</span>
     </a>
 
     <!-- 4. Yêu cầu đổi trả -->
-    <a 
-      routerLink="/account/returns" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/returns" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.RefreshCw" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Yêu cầu đổi trả</span>
     </a>
 
     <!-- 5. Bảo hành sản phẩm -->
-    <a 
-      routerLink="/account/warranty" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/warranty" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.ShieldCheck" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Bảo hành sản phẩm</span>
     </a>
 
     <!-- 6. Sản phẩm yêu thích -->
-    <a 
-      routerLink="/account/wishlist" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/wishlist" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.Heart" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Sản phẩm yêu thích</span>
     </a>
 
     <!-- 7. Lịch hẹn tư vấn -->
-    <a 
-      routerLink="/account/appointments" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/appointments" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.CalendarDays" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Lịch hẹn tư vấn</span>
     </a>
 
     <!-- 8. Đơn may đo & Custom -->
-    <a 
-      routerLink="/account/custom-requests" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/custom-requests" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.Pencil" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Đơn may đo & Custom</span>
     </a>
 
-    <!-- 9. Thông báo (Chỉ hiện cho tài khoản đăng nhập) -->
-    <a *ngIf="isLoggedIn"
-      routerLink="/account/notifications" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <!-- 9. Thiết kế của tôi -->
+    <a routerLink="/community" [queryParams]="{ tab: 'my-hub', sub: 'saved' }" routerLinkActive="active"
       class="nav-item">
+      <lucide-angular [img]="icons.Layers" size="18" class="nav-icon"></lucide-angular>
+      <span class="nav-label">Thiết kế của tôi</span>
+    </a>
+
+    <!-- 10. Thông báo (Chỉ hiện cho tài khoản đăng nhập) -->
+    <a *ngIf="isLoggedIn" routerLink="/account/notifications" routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }" class="nav-item">
       <lucide-angular [img]="icons.Bell" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Thông báo</span>
       <span *ngIf="unreadNotificationCount > 0" class="order-badge">{{ unreadNotificationCount }}</span>

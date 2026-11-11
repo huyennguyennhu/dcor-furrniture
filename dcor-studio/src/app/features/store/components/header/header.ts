@@ -150,6 +150,7 @@ export class Header implements OnInit, OnDestroy {
       this.isMobileSearchOpen = false;
       this.isNotificationDropdownOpen = false;
       this.closeGuestUserMenu();
+      this.closeUserMenu();
       this.syncUser();
     });
   }
@@ -216,18 +217,38 @@ export class Header implements OnInit, OnDestroy {
     }
   }
 
-  onNotificationMouseEnter(): void {
+  onNotificationIconMouseEnter(): void {
     if (this.notifCloseTimer) {
       clearTimeout(this.notifCloseTimer);
       this.notifCloseTimer = null;
     }
     this.updateNotificationsPreview(this.customerService.currentNotifications);
     this.isNotificationDropdownOpen = true;
+    this.cdr.markForCheck();
   }
 
-  onNotificationMouseLeave(): void {
+  onNotificationIconMouseLeave(): void {
+    if (this.notifCloseTimer) clearTimeout(this.notifCloseTimer);
     this.notifCloseTimer = setTimeout(() => {
       this.isNotificationDropdownOpen = false;
+      this.cdr.markForCheck();
+    }, 250);
+  }
+
+  onNotificationDropdownMouseEnter(): void {
+    if (this.notifCloseTimer) {
+      clearTimeout(this.notifCloseTimer);
+      this.notifCloseTimer = null;
+    }
+    this.isNotificationDropdownOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  onNotificationDropdownMouseLeave(): void {
+    if (this.notifCloseTimer) clearTimeout(this.notifCloseTimer);
+    this.notifCloseTimer = setTimeout(() => {
+      this.isNotificationDropdownOpen = false;
+      this.cdr.markForCheck();
     }, 200);
   }
 
@@ -288,6 +309,19 @@ export class Header implements OnInit, OnDestroy {
     this.syncUser();
   }
 
+  @HostListener('window:dcor-auth-logout')
+  onAuthLogout(): void {
+    this.cartCount = 0;
+    this.wishlistCount = 0;
+    this.syncUser();
+  }
+
+  @HostListener('window:dcor-auth-login')
+  onAuthLogin(): void {
+    this.syncUser();
+    this.wishlistService.reloadWishlist();
+  }
+
   @HostListener('window:scroll')
   onWindowScroll(): void {
     const nextScrolled = window.scrollY > 20;
@@ -309,6 +343,16 @@ export class Header implements OnInit, OnDestroy {
   onDocumentClick(event: MouseEvent): void {
     if (this.shopMenuOpen && !this.shopNavItem?.nativeElement?.contains(event.target as Node)) {
       this.closeShopMenu();
+    }
+    const target = event.target as HTMLElement;
+    if (target && !target.closest('.guest-dropdown-wrapper')) {
+      this.isGuestMenuOpen = false;
+    }
+    if (target && !target.closest('.user-dropdown-wrapper')) {
+      this.closeUserMenu();
+    }
+    if (target && !target.closest('.header-notification-wrapper')) {
+      this.isNotificationDropdownOpen = false;
     }
   }
 
@@ -449,13 +493,15 @@ export class Header implements OnInit, OnDestroy {
   }
 
   logout() {
-    localStorage.removeItem('dcor_customer_token');
-    localStorage.removeItem('dcor_customer');
-    localStorage.removeItem('dcor_customer_user');
-    localStorage.removeItem('dcor_user');
+    this.authService.clearSession();
+    this.cartService.resetCartOnLogout();
+    this.wishlistService.resetWishlistOnLogout();
     this.isLoggedIn = false;
     this.user = null;
-    this.userMenuOpen = false;
+    this.closeUserMenu();
+    this.cartCount = 0;
+    this.wishlistCount = 0;
+    this.lastCartToken = null;
     this.router.navigate(['/']);
   }
 
@@ -467,38 +513,109 @@ export class Header implements OnInit, OnDestroy {
     return this.authService.getGuestPhone();
   }
 
-  toggleUserMenu() {
-    this.userMenuOpen = !this.userMenuOpen;
+  private userHoverTimer: any = null;
+
+  onUserIconMouseEnter(): void {
+    clearTimeout(this.userHoverTimer);
+    this.userMenuOpen = true;
+    this.cdr.markForCheck();
   }
 
-  isGuestHovering = false;
-  isGuestMenuClicked = false;
-  private guestHoverTimer: any = null;
-
-  onGuestMouseEnter(): void {
-    if (this.isGuestMenuClicked) return;
-    clearTimeout(this.guestHoverTimer);
-    this.isGuestHovering = true;
-  }
-
-  onGuestMouseLeave(): void {
-    this.guestHoverTimer = setTimeout(() => {
-      this.isGuestHovering = false;
+  onUserIconMouseLeave(): void {
+    clearTimeout(this.userHoverTimer);
+    this.userHoverTimer = setTimeout(() => {
+      this.userMenuOpen = false;
+      this.cdr.markForCheck();
     }, 250);
   }
 
+  onUserDropdownMouseEnter(): void {
+    clearTimeout(this.userHoverTimer);
+    this.userMenuOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  onUserDropdownMouseLeave(): void {
+    clearTimeout(this.userHoverTimer);
+    this.userHoverTimer = setTimeout(() => {
+      this.userMenuOpen = false;
+      this.cdr.markForCheck();
+    }, 200);
+  }
+
+  toggleUserMenu(): void {
+    clearTimeout(this.userHoverTimer);
+    this.userMenuOpen = !this.userMenuOpen;
+    this.cdr.markForCheck();
+  }
+
+  closeUserMenu(): void {
+    clearTimeout(this.userHoverTimer);
+    this.userMenuOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  isGuestMenuOpen = false;
+  private guestHoverTimer: any = null;
+
+  onGuestIconMouseEnter(): void {
+    clearTimeout(this.guestHoverTimer);
+    this.isGuestMenuOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  onGuestIconMouseLeave(): void {
+    clearTimeout(this.guestHoverTimer);
+    this.guestHoverTimer = setTimeout(() => {
+      this.isGuestMenuOpen = false;
+      this.cdr.markForCheck();
+    }, 250);
+  }
+
+  onGuestDropdownMouseEnter(): void {
+    clearTimeout(this.guestHoverTimer);
+    this.isGuestMenuOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  onGuestDropdownMouseLeave(): void {
+    clearTimeout(this.guestHoverTimer);
+    this.guestHoverTimer = setTimeout(() => {
+      this.isGuestMenuOpen = false;
+      this.cdr.markForCheck();
+    }, 200);
+  }
+
   toggleGuestUserMenu(): void {
-    this.isGuestHovering = false;
-    this.isGuestMenuClicked = !this.isGuestMenuClicked;
+    clearTimeout(this.guestHoverTimer);
+    this.isGuestMenuOpen = !this.isGuestMenuOpen;
+    this.cdr.markForCheck();
   }
 
   closeGuestUserMenu(): void {
-    this.isGuestMenuClicked = false;
-    this.isGuestHovering = false;
+    clearTimeout(this.guestHoverTimer);
+    this.isGuestMenuOpen = false;
+    this.cdr.markForCheck();
   }
 
   toggleCartDrawer() {
     this.isCartDrawerOpen = !this.isCartDrawerOpen;
+    if (this.isCartDrawerOpen) {
+      this.cartService.loadCart().subscribe(items => {
+        this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
+        this.cdr.markForCheck();
+      });
+    }
+  }
+
+  @HostListener('window:dcor-open-cart')
+  onOpenCartFromGlobal(): void {
+    this.isCartDrawerOpen = true;
+    this.cartService.loadCart().subscribe(items => {
+      this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
+      this.cdr.markForCheck();
+    });
+    this.cdr.markForCheck();
   }
 
   onSearchFocus() {
@@ -518,8 +635,13 @@ export class Header implements OnInit, OnDestroy {
       this.lastCartToken = token;
       if (token) {
         this.cartService.loadCart();
+        this.wishlistService.reloadWishlist();
       } else {
-        this.cartCount = 0;
+        this.cartService.loadCart().subscribe(items => {
+          this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
+          this.cdr.markForCheck();
+        });
+        this.wishlistCount = 0;
       }
     }
 
@@ -532,6 +654,9 @@ export class Header implements OnInit, OnDestroy {
       this.user = null;
       this.isLoggedIn = false;
       this.customerService.clearNotifications();
+      this.cartCount = this.cartService.currentCart.reduce((count, item) => count + item.quantity, 0);
+      this.wishlistCount = 0;
+      this.cdr.markForCheck();
       return;
     }
 

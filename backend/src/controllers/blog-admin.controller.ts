@@ -69,7 +69,7 @@ export function validateAndSanitizeBlocks(blocks: any): BlockValidationResult {
         if (!isValidImageUrl(url)) {
           return {
             isValid: false,
-            error: `Khối ${i + 1} (image): URL hình ảnh phải bắt đầu bằng https:// hoặc /assets/...`
+            error: `Khối ${i + 1} (image): URL hình ảnh phải bắt đầu bằng https://, /assets/... hoặc data:image/`
           };
         }
         const caption = block.caption !== undefined ? stripHtml(block.caption) : undefined;
@@ -138,6 +138,138 @@ export function validateAndSanitizeBlocks(blocks: any): BlockValidationResult {
   }
 
   return { isValid: true, sanitizedBlocks: sanitized };
+}
+
+// ============================================================================
+// HÀM CHUYỂN ĐỔI 2 CHIỀU BLOCKS <-> HTML (HỖ TRỢ WYSIWYG EDITOR)
+// ============================================================================
+
+export function blocksToHtml(blocks: any): string {
+  if (!Array.isArray(blocks) || blocks.length === 0) return '';
+  return blocks
+    .map(b => {
+      if (!b || typeof b !== 'object') return '';
+      switch (b.type) {
+        case 'heading': {
+          const level = b.level === 3 ? 3 : 2;
+          return `<h${level}>${b.text || ''}</h${level}>`;
+        }
+        case 'paragraph': {
+          return `<p>${b.text || ''}</p>`;
+        }
+        case 'quote': {
+          const cite = b.cite ? `<cite style="display:block;margin-top:6px;font-size:13px;color:#71717a;">${b.cite}</cite>` : '';
+          return `<blockquote style="border-left: 3px solid #8b5cf6; padding-left: 14px; margin: 16px 0; color: #4b5563; font-style: italic;"><p>${b.text || ''}</p>${cite}</blockquote>`;
+        }
+        case 'list': {
+          const tag = b.ordered ? 'ol' : 'ul';
+          const items = Array.isArray(b.items)
+            ? b.items.map((it: string) => `<li>${it}</li>`).join('')
+            : '';
+          return `<${tag}>${items}</${tag}>`;
+        }
+        case 'image': {
+          const caption = b.caption
+            ? `<figcaption style="text-align:center;font-size:13px;color:#71717a;margin-top:8px;font-style:italic;">${b.caption}</figcaption>`
+            : '';
+          return `<figure class="article-embed-figure" style="margin: 20px 0; text-align: center;"><img src="${b.url}" alt="${b.caption || ''}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.08);" />${caption}</figure>`;
+        }
+        default:
+          return '';
+      }
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+export function htmlToBlocks(html: string): any[] {
+  if (!html || typeof html !== 'string') return [];
+  const trimmed = html.trim();
+  if (!trimmed) return [];
+
+  const blocks: any[] = [];
+  const elementRegex = /<(h[2-4]|blockquote|ul|ol|figure|p|div)([^>]*)>([\s\S]*?)<\/\1>|<img([^>]+)\/?>/gi;
+  let match;
+
+  while ((match = elementRegex.exec(trimmed)) !== null) {
+    if (match[1]) {
+      const tag = match[1].toLowerCase();
+      const inner = match[3];
+
+      if (tag === 'h2') {
+        const text = stripHtml(inner);
+        if (text) blocks.push({ type: 'heading', level: 2, text });
+      } else if (tag === 'h3' || tag === 'h4') {
+        const text = stripHtml(inner);
+        if (text) blocks.push({ type: 'heading', level: 3, text });
+      } else if (tag === 'blockquote') {
+        const citeMatch = inner.match(/<cite[^>]*>([\s\S]*?)<\/cite>/i);
+        const cite = citeMatch ? stripHtml(citeMatch[1]) : undefined;
+        const text = stripHtml(inner.replace(/<cite[^>]*>[\s\S]*?<\/cite>/gi, ''));
+        if (text) {
+          const q: any = { type: 'quote', text };
+          if (cite) q.cite = cite;
+          blocks.push(q);
+        }
+      } else if (tag === 'ul' || tag === 'ol') {
+        const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+        let liMatch;
+        const items: string[] = [];
+        while ((liMatch = liRegex.exec(inner)) !== null) {
+          const itemText = stripHtml(liMatch[1]);
+          if (itemText) items.push(itemText);
+        }
+        if (items.length > 0) {
+          blocks.push({ type: 'list', ordered: tag === 'ol', items });
+        }
+      } else if (tag === 'figure') {
+        const srcMatch = inner.match(/src=["']([^"']+)["']/i);
+        const figcapMatch = inner.match(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/i);
+        const altMatch = inner.match(/alt=["']([^"']*)["']/i);
+        if (srcMatch && srcMatch[1]) {
+          const url = srcMatch[1].trim();
+          const caption = figcapMatch ? stripHtml(figcapMatch[1]) : (altMatch ? altMatch[1] : undefined);
+          const imgBlock: any = { type: 'image', url };
+          if (caption) imgBlock.caption = caption;
+          blocks.push(imgBlock);
+        }
+      } else {
+        const imgMatch = inner.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+        if (imgMatch && imgMatch[1]) {
+          const url = imgMatch[1].trim();
+          const altMatch = imgMatch[0].match(/alt=["']([^"']*)["']/i);
+          const caption = altMatch ? altMatch[1] : undefined;
+          const imgBlock: any = { type: 'image', url };
+          if (caption) imgBlock.caption = caption;
+          blocks.push(imgBlock);
+        }
+        const text = stripHtml(inner);
+        if (text) {
+          blocks.push({ type: 'paragraph', text });
+        }
+      }
+    } else if (match[4]) {
+      const imgAttrs = match[4];
+      const srcMatch = imgAttrs.match(/src=["']([^"']+)["']/i);
+      const altMatch = imgAttrs.match(/alt=["']([^"']*)["']/i);
+      if (srcMatch && srcMatch[1]) {
+        const url = srcMatch[1].trim();
+        const caption = altMatch ? altMatch[1] : undefined;
+        const imgBlock: any = { type: 'image', url };
+        if (caption) imgBlock.caption = caption;
+        blocks.push(imgBlock);
+      }
+    }
+  }
+
+  if (blocks.length === 0) {
+    const text = stripHtml(trimmed);
+    if (text) {
+      blocks.push({ type: 'paragraph', text });
+    }
+  }
+
+  return blocks;
 }
 
 async function findUniquePostSlug(baseSlug: string, excludeId?: string): Promise<string> {
@@ -244,15 +376,23 @@ export const blogAdminController = {
         title: p.title,
         excerpt: p.excerpt,
         coverImageUrl: p.coverImageUrl,
+        coverImage: p.coverImageUrl || '',
         categoryId: p.categoryId,
         category: p.category,
+        categoryName: p.category?.name || '',
         tags: p.tags,
         authorName: p.authorName,
+        author: p.authorName,
         status: p.status,
         publishedAt: p.publishedAt,
         likesCount: p.likesCount,
         viewsCount: p.viewsCount,
+        views: p.viewsCount,
         commentCount: p._count.comments,
+        blocks: p.blocks,
+        content: blocksToHtml(p.blocks),
+        productIds: p.productIds,
+        relatedProductIds: p.productIds,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt
       }));
@@ -366,6 +506,12 @@ export const blogAdminController = {
 
       res.json({
         ...post,
+        coverImage: post.coverImageUrl,
+        categoryName: post.category?.name || '',
+        author: post.authorName,
+        views: post.viewsCount,
+        relatedProductIds: post.productIds,
+        content: blocksToHtml(post.blocks),
         commentCount: post._count.comments,
         likesCount: post.likesCount,
         taggedProducts
@@ -383,13 +529,18 @@ export const blogAdminController = {
         title,
         excerpt,
         blocks,
+        content,
         coverImageUrl,
+        coverImage,
         categoryId,
         tags,
         seoDescription,
+        seoTitle,
         status,
         publishedAt,
-        productIds
+        scheduledAt,
+        productIds,
+        relatedProductIds
       } = req.body;
 
       // Validate tiêu đề
@@ -400,16 +551,34 @@ export const blogAdminController = {
       }
 
       const cleanExcerpt = stripHtml(excerpt);
-      const cleanCover = typeof coverImageUrl === 'string' ? coverImageUrl.trim() : null;
-      const targetStatus = status === 'PUBLISHED' ? 'PUBLISHED' : status === 'HIDDEN' ? 'HIDDEN' : 'DRAFT';
+      const cleanCover = typeof coverImageUrl === 'string' && coverImageUrl.trim()
+        ? coverImageUrl.trim()
+        : (typeof coverImage === 'string' && coverImage.trim() ? coverImage.trim() : null);
+
+      const targetStatus = status === 'PUBLISHED'
+        ? 'PUBLISHED'
+        : status === 'HIDDEN'
+          ? 'HIDDEN'
+          : status === 'SCHEDULED'
+            ? 'SCHEDULED'
+            : 'DRAFT';
+
+      // Parse blocks from content if blocks not provided
+      let inputBlocks = blocks;
+      if ((!inputBlocks || !Array.isArray(inputBlocks) || inputBlocks.length === 0) && content) {
+        inputBlocks = htmlToBlocks(content);
+      }
 
       // Validate blocks
-      const blockValidation = validateAndSanitizeBlocks(blocks);
+      const blockValidation = validateAndSanitizeBlocks(inputBlocks);
       if (!blockValidation.isValid) {
         res.status(400).json({ message: blockValidation.error });
         return;
       }
-      const sanitizedBlocks = blockValidation.sanitizedBlocks || [];
+      let sanitizedBlocks = blockValidation.sanitizedBlocks || [];
+      if (sanitizedBlocks.length === 0 && cleanExcerpt) {
+        sanitizedBlocks = [{ type: 'paragraph', text: cleanExcerpt }];
+      }
 
       // Kiểm tra danh mục
       if (!categoryId) {
@@ -429,11 +598,14 @@ export const blogAdminController = {
       }
 
       // Kiểm tra bắt buộc trước khi xuất bản
-      let finalPublishedAt: Date | null = publishedAt ? new Date(publishedAt) : null;
+      let finalPublishedAt: Date | null = publishedAt
+        ? new Date(publishedAt)
+        : (scheduledAt ? new Date(scheduledAt) : null);
+
       if (targetStatus === 'PUBLISHED') {
-        if (!cleanTitle || !cleanExcerpt || !cleanCover || !categoryId || sanitizedBlocks.length < 1) {
+        if (!cleanTitle || !cleanCover || !categoryId) {
           res.status(400).json({
-            message: 'Không thể xuất bản: Bài viết cần có đầy đủ tiêu đề, tóm tắt, ảnh bìa, danh mục và ít nhất 1 khối nội dung.'
+            message: 'Không thể xuất bản: Bài viết cần có đầy đủ tiêu đề, ảnh bìa và danh mục.'
           });
           return;
         }
@@ -443,7 +615,7 @@ export const blogAdminController = {
       }
 
       // Sinh slug tự động và đảm bảo tính duy nhất
-      const baseSlug = generateSlug(cleanTitle) || 'bai-viet';
+      const baseSlug = generateSlug(req.body.slug || cleanTitle) || 'bai-viet';
       const uniqueSlug = await findUniquePostSlug(baseSlug);
 
       const cleanTags = Array.isArray(tags)
@@ -451,9 +623,10 @@ export const blogAdminController = {
         : [];
       const cleanProductIds = Array.isArray(productIds)
         ? productIds.map((id: any) => String(id).trim()).filter(Boolean)
-        : [];
+        : (Array.isArray(relatedProductIds) ? relatedProductIds.map((id: any) => String(id).trim()).filter(Boolean) : []);
 
       const authorName =
+        (req.body.author && String(req.body.author).trim()) ||
         (req.user?.fullName && String(req.user.fullName).trim()) ||
         req.user?.email ||
         'Ban biên tập DCor';
@@ -469,7 +642,7 @@ export const blogAdminController = {
             coverImageUrl: cleanCover,
             categoryId: categoryExists.id,
             tags: cleanTags,
-            seoDescription: stripHtml(seoDescription) || null,
+            seoDescription: stripHtml(seoDescription || seoTitle) || null,
             authorName,
             status: targetStatus,
             publishedAt: finalPublishedAt,
@@ -521,13 +694,19 @@ export const blogAdminController = {
         slug,
         excerpt,
         blocks,
+        content,
         coverImageUrl,
+        coverImage,
         categoryId,
         tags,
         seoDescription,
+        seoTitle,
         status,
         publishedAt,
-        productIds
+        scheduledAt,
+        productIds,
+        relatedProductIds,
+        author
       } = req.body;
 
       const dataToUpdate: any = {};
@@ -556,6 +735,8 @@ export const blogAdminController = {
 
       if (coverImageUrl !== undefined) {
         dataToUpdate.coverImageUrl = typeof coverImageUrl === 'string' ? coverImageUrl.trim() : null;
+      } else if (coverImage !== undefined) {
+        dataToUpdate.coverImageUrl = typeof coverImage === 'string' ? coverImage.trim() : null;
       }
 
       if (categoryId !== undefined) {
@@ -578,6 +759,8 @@ export const blogAdminController = {
           return;
         }
         dataToUpdate.blocks = blockValidation.sanitizedBlocks || [];
+      } else if (content !== undefined) {
+        dataToUpdate.blocks = htmlToBlocks(content);
       }
 
       if (tags !== undefined) {
@@ -590,15 +773,23 @@ export const blogAdminController = {
         dataToUpdate.productIds = Array.isArray(productIds)
           ? productIds.map((pid: any) => String(pid).trim()).filter(Boolean)
           : [];
+      } else if (relatedProductIds !== undefined) {
+        dataToUpdate.productIds = Array.isArray(relatedProductIds)
+          ? relatedProductIds.map((pid: any) => String(pid).trim()).filter(Boolean)
+          : [];
       }
 
-      if (seoDescription !== undefined) {
-        dataToUpdate.seoDescription = stripHtml(seoDescription) || null;
+      if (author !== undefined) {
+        dataToUpdate.authorName = stripHtml(author) || 'Ban biên tập DCor';
+      }
+
+      if (seoDescription !== undefined || seoTitle !== undefined) {
+        dataToUpdate.seoDescription = stripHtml(seoDescription || seoTitle) || null;
       }
 
       if (status !== undefined) {
         const targetStatus = String(status).toUpperCase();
-        if (!['DRAFT', 'PUBLISHED', 'HIDDEN'].includes(targetStatus)) {
+        if (!['DRAFT', 'PUBLISHED', 'HIDDEN', 'SCHEDULED'].includes(targetStatus)) {
           res.status(400).json({ message: 'Trạng thái bài viết không hợp lệ.' });
           return;
         }
@@ -607,27 +798,33 @@ export const blogAdminController = {
 
       if (publishedAt !== undefined) {
         dataToUpdate.publishedAt = publishedAt ? new Date(publishedAt) : null;
+      } else if (scheduledAt !== undefined) {
+        dataToUpdate.publishedAt = scheduledAt ? new Date(scheduledAt) : null;
       }
 
       // Kiểm tra tính hợp lệ trước khi xuất bản nếu trạng thái cuối cùng là PUBLISHED
       const effectiveStatus = dataToUpdate.status || existingPost.status;
       if (effectiveStatus === 'PUBLISHED') {
         const effectiveTitle = dataToUpdate.title ?? existingPost.title;
-        const effectiveExcerpt = dataToUpdate.excerpt ?? existingPost.excerpt;
         const effectiveCover = dataToUpdate.coverImageUrl ?? existingPost.coverImageUrl;
         const effectiveCategory = dataToUpdate.categoryId ?? existingPost.categoryId;
-        const effectiveBlocks = dataToUpdate.blocks ?? existingPost.blocks;
+        let effectiveBlocks = dataToUpdate.blocks ?? existingPost.blocks;
+
+        if (!Array.isArray(effectiveBlocks) || effectiveBlocks.length < 1) {
+          const excerptText = dataToUpdate.excerpt ?? existingPost.excerpt;
+          if (excerptText) {
+            effectiveBlocks = [{ type: 'paragraph', text: excerptText }];
+            dataToUpdate.blocks = effectiveBlocks;
+          }
+        }
 
         if (
           !effectiveTitle ||
-          !effectiveExcerpt ||
           !effectiveCover ||
-          !effectiveCategory ||
-          !Array.isArray(effectiveBlocks) ||
-          effectiveBlocks.length < 1
+          !effectiveCategory
         ) {
           res.status(400).json({
-            message: 'Không thể xuất bản: Bài viết cần có đầy đủ tiêu đề, tóm tắt, ảnh bìa, danh mục và ít nhất 1 khối nội dung.'
+            message: 'Không thể xuất bản: Bài viết cần có đầy đủ tiêu đề, ảnh bìa và danh mục.'
           });
           return;
         }
@@ -794,7 +991,9 @@ export const blogAdminController = {
         slug: c.slug,
         sortOrder: c.sortOrder,
         isActive: c.isActive,
+        status: c.isActive ? 'ACTIVE' : 'HIDDEN',
         postCount: c._count.posts,
+        articleCount: c._count.posts,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt
       }));
@@ -809,7 +1008,7 @@ export const blogAdminController = {
   // 8. Danh mục Blog: Tạo mới
   createCategory: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { name, slug, sortOrder, isActive } = req.body;
+      const { name, slug, sortOrder, isActive, status } = req.body;
 
       const cleanName = stripHtml(name);
       if (!cleanName) {
@@ -820,20 +1019,29 @@ export const blogAdminController = {
       const baseSlug = generateSlug(slug || cleanName) || 'danh-muc';
       const uniqueSlug = await findUniqueCategorySlug(baseSlug);
 
+      const isCatActive = status !== undefined
+        ? status === 'ACTIVE'
+        : (isActive !== undefined ? Boolean(isActive) : true);
+
       const category = await withDbRetry(() =>
         prisma.blogCategory.create({
           data: {
             name: cleanName,
             slug: uniqueSlug,
             sortOrder: Number(sortOrder) || 0,
-            isActive: isActive !== undefined ? Boolean(isActive) : true
+            isActive: isCatActive
           }
         })
       );
 
       res.status(201).json({
         message: 'Tạo danh mục thành công.',
-        category
+        category: {
+          ...category,
+          status: category.isActive ? 'ACTIVE' : 'HIDDEN',
+          articleCount: 0,
+          postCount: 0
+        }
       });
     } catch (error) {
       console.error('[ERROR] Lỗi admin createCategory:', error);
@@ -857,7 +1065,7 @@ export const blogAdminController = {
         return;
       }
 
-      const { name, slug, sortOrder, isActive } = req.body;
+      const { name, slug, sortOrder, isActive, status } = req.body;
       const dataToUpdate: any = {};
 
       if (name !== undefined) {
@@ -882,7 +1090,9 @@ export const blogAdminController = {
         dataToUpdate.sortOrder = Number(sortOrder) || 0;
       }
 
-      if (isActive !== undefined) {
+      if (status !== undefined) {
+        dataToUpdate.isActive = status === 'ACTIVE';
+      } else if (isActive !== undefined) {
         dataToUpdate.isActive = Boolean(isActive);
       }
 
@@ -895,7 +1105,10 @@ export const blogAdminController = {
 
       res.json({
         message: 'Cập nhật danh mục thành công.',
-        category: updated
+        category: {
+          ...updated,
+          status: updated.isActive ? 'ACTIVE' : 'HIDDEN'
+        }
       });
     } catch (error) {
       console.error('[ERROR] Lỗi admin updateCategory:', error);

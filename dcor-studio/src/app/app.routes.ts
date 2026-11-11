@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { Routes, Router } from '@angular/router';
+import { inject } from '@angular/core';
 import { adminGuard } from './core/guards/admin.guard';
 import { adminGuestGuard } from './core/guards/guest.guard';
 import { customerGuard } from './core/guards/customer.guard';
@@ -116,7 +117,7 @@ export const routes: Routes = [
           { path: 'wishlist', loadComponent: () => import('./features/account/pages/wishlist/wishlist').then(m => m.WishlistComponent) },
           { path: 'appointments', loadComponent: () => import('./features/account/pages/appointments/appointments').then(m => m.AccountAppointmentsComponent) },
           { path: 'custom-requests', loadComponent: () => import('./features/account/pages/custom-requests/custom-requests').then(m => m.CustomRequestsComponent) },
-          { path: 'designs', loadComponent: () => import('./features/account/pages/my-designs/my-designs').then(m => m.MyDesignsComponent) },
+          { path: 'designs', redirectTo: () => inject(Router).createUrlTree(['/community'], { queryParams: { tab: 'my-hub', sub: 'saved' } }) },
           { path: 'notifications', canActivate: [customerGuard], loadComponent: () => import('./features/account/pages/notifications/notifications').then(m => m.AccountNotificationsComponent) },
         ]
       }

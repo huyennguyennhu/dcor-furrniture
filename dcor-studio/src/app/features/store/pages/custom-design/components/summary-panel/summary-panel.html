@@ -1,19 +1,14 @@
 <div class="summary-panel-container">
-  
+
   <!-- Header -->
   <div class="summary-header">
     <div class="header-left">
-      <h3 class="summary-title">Nội thất trong phòng</h3>
-      <span class="count-badge">{{ plannerService.totalItemsCount() }} món</span>
+      <h3 class="summary-title">Sản phẩm</h3>
+      <span class="count-badge">{{ plannerService.totalItemsCount() }}</span>
     </div>
-    <button 
-      *ngIf="plannerService.totalItemsCount() > 0" 
-      type="button" 
-      class="clear-all-btn" 
-      [disabled]="plannerService.totalItemsCount() === 0"
-      (click)="handleClearAll()"
-      title="Xóa tất cả vật thể chưa khóa"
-      aria-label="Xóa tất cả nội thất trong phòng">
+    <button *ngIf="plannerService.totalItemsCount() > 0" type="button" class="clear-all-btn"
+      [disabled]="plannerService.totalItemsCount() === 0" (click)="handleClearAll()"
+      title="Xóa tất cả vật thể chưa khóa" aria-label="Xóa tất cả nội thất trong phòng">
       <app-icon name="Trash2" size="14"></app-icon>
       <span>Xóa hết</span>
     </button>
@@ -21,7 +16,7 @@
 
   <!-- Body -->
   <div class="summary-body">
-    
+
     <!-- Empty State -->
     <div *ngIf="plannerService.summaryItems().length === 0" class="empty-summary-box">
       <div class="empty-icon-circle">
@@ -36,78 +31,69 @@
     <!-- Items List -->
     <div *ngIf="plannerService.summaryItems().length > 0" class="summary-items-list">
       @for (item of plannerService.summaryItems(); track item.productId) {
-        <div 
-          class="summary-item-card" 
-          [class.selected]="isItemSelected(item)"
-          (click)="selectItem(item)">
-          
-          <div class="item-row-top">
-            <img 
-              [src]="item.imageUrl" 
-              [alt]="item.name" 
-              class="item-thumb" 
-              (error)="onImgError($event)"
-            />
-            
-            <div class="item-meta">
-              <div class="item-title-row">
-                <h4 class="item-name" [title]="item.name">{{ item.name }}</h4>
-                <span class="item-count-tag">× {{ item.count }}</span>
-              </div>
+      <div class="summary-item-card" [class.selected]="isItemSelected(item)" (click)="selectItem(item)">
 
-              <div class="item-dim-line">
-                <span class="dim-badge" [class.estimated]="item.isEstimatedDimension">
-                  <app-icon name="Ruler" size="11"></app-icon>
-                  <span>{{ item.dimensionCm.width }} × {{ item.dimensionCm.depth }} cm</span>
-                </span>
-              </div>
+        <div class="item-row-top">
+          <img [src]="item.imageUrl" [alt]="item.name" class="item-thumb" (error)="onImgError($event)" />
+
+          <div class="item-meta">
+            <div class="item-title-row">
+              <h4 class="item-name" [title]="item.name">{{ item.name }}</h4>
+              <span class="item-count-tag">× {{ item.count }}</span>
             </div>
 
-            <button 
-              type="button" 
-              class="item-delete-btn" 
-              (click)="removeProduct($event, item)" 
-              [title]="'Xóa ' + item.name + ' khỏi phòng'"
-              [attr.aria-label]="'Xóa ' + item.name + ' khỏi phòng'">
-              <app-icon name="Trash2" size="14"></app-icon>
-            </button>
-          </div>
-
-          <!-- Placeholder chọn màu sắc biến thể -->
-          <div class="color-placeholder-box">
-            <div class="color-header">
-              <span class="color-label">Biến thể màu sắc:</span>
-              <span class="color-val">Tiêu chuẩn</span>
+            <div class="item-dim-line">
+              <span class="dim-badge" [class.estimated]="item.isEstimatedDimension">
+                <app-icon name="Ruler" size="11"></app-icon>
+                <span>{{ item.dimensionCm.width }} × {{ item.dimensionCm.depth }} cm</span>
+              </span>
             </div>
-            <p class="color-hint">
-              * Tùy chọn phối màu vải / chất liệu chân sẽ khả dụng ở lượt cập nhật tiếp theo.
-            </p>
           </div>
 
-          <!-- Price Row -->
-          <div class="item-price-footer">
-            <span class="unit-price-hint" *ngIf="item.count > 1">
-              Đơn giá: {{ formatPrice(item.unitPrice) }}
-            </span>
-            <span class="total-item-price">{{ formatPrice(item.totalPrice) }}</span>
-          </div>
-
+          <button type="button" class="item-delete-btn" (click)="removeProduct($event, item)"
+            [title]="'Xóa ' + item.name + ' khỏi phòng'" [attr.aria-label]="'Xóa ' + item.name + ' khỏi phòng'">
+            <app-icon name="X" size="12"></app-icon>
+          </button>
         </div>
+
+        <!-- Price Row -->
+        <div class="item-price-footer">
+          <span class="unit-price-hint" *ngIf="item.count > 1">
+            Đơn giá: {{ formatPrice(item.unitPrice) }}
+          </span>
+          <span class="total-item-price">{{ formatPrice(item.totalPrice) }}</span>
+        </div>
+
+      </div>
       }
     </div>
 
   </div>
 
-  <!-- Footer Total -->
+  <!-- Footer Total & Actions -->
   <div class="summary-footer">
     <div class="total-row">
       <span class="total-label">Tổng tiền ước tính</span>
       <span class="total-amount">{{ formatPrice(plannerService.totalPrice()) }}</span>
     </div>
-    
+
     <p class="total-note">
-      * Giá tính trên cấu hình tiêu chuẩn tối thiểu. Lưu bản nháp và thêm trọn bộ vào giỏ hàng sẽ được mở ở lượt kế tiếp.
+      * Giá tính trên cấu hình tiêu chuẩn. Tùy chọn phối màu & chất liệu có thể thay đổi trong giỏ hàng.
     </p>
+
+    <!-- Nút Thêm tất cả vào giỏ hàng -->
+    <button type="button" class="add-all-cart-btn" [class.is-success]="addedSuccess()"
+      [disabled]="plannerService.totalItemsCount() === 0 || isAddingToCart()" (click)="addAllToCart()"
+      [title]="addedSuccess() ? 'Đã thêm tất cả vào giỏ hàng' : 'Thêm toàn bộ sản phẩm trong phòng vào giỏ hàng'"
+      aria-label="Thêm tất cả vào giỏ hàng">
+      <app-icon [name]="isAddingToCart() ? 'LoaderCircle' : (addedSuccess() ? 'Check' : 'ShoppingCart')" size="16"
+        [class.icon-spin]="isAddingToCart()">
+      </app-icon>
+      <span>
+        {{ isAddingToCart() ? 'Đang thêm vào giỏ...' : (addedSuccess() ? 'Đã thêm tất cả vào giỏ hàng!' : 'Thêm tất cả
+        vào giỏ hàng') }}
+      </span>
+    </button>
   </div>
 
 </div>

@@ -1,24 +1,15 @@
 <div class="setup-container">
-  
+
   <!-- ============================================== -->
   <!-- BƯỚC 1: CHỌN NGUỒN KHỞI TẠO (BẢN MẪU / TẢI ẢNH) -->
   <!-- ============================================== -->
   <ng-container *ngIf="plannerService.setupSubStep() === 'source'">
     <div class="setup-header text-center">
-      <div class="header-badge">
-        <app-icon name="Sparkles" size="16"></app-icon>
-        <span>DCor 2D Room Planner</span>
-      </div>
       <h1 class="setup-title">Thiết kế không gian phòng</h1>
       <p class="setup-subtitle">
         Chọn một mặt bằng không gian bên dưới để bắt đầu bài trí nội thất.
       </p>
-      <div class="setup-header-actions" style="margin-top: 14px; display: flex; justify-content: center; gap: 12px;">
-        <a routerLink="/account/designs" class="my-designs-entry-link" aria-label="Xem Thiết kế của tôi">
-          <app-icon name="Layers" size="16"></app-icon>
-          <span>Thiết kế của tôi</span>
-        </a>
-      </div>
+
     </div>
 
     <!-- LƯỚI BẢN MẪU & Ô TẢI ẢNH MẶT BẰNG THẬT (1 LƯỚI DUY NHẤT) -->
@@ -27,14 +18,14 @@
       <!-- Loading Skeletons -->
       <div *ngIf="isLoadingTemplates()" class="template-grid">
         @for (i of [1, 2, 3, 4]; track i) {
-          <div class="template-skeleton-card">
-            <div class="skeleton-img"></div>
-            <div class="skeleton-content">
-              <div class="skeleton-line line-title"></div>
-              <div class="skeleton-line line-desc"></div>
-              <div class="skeleton-line line-dim"></div>
-            </div>
+        <div class="template-skeleton-card">
+          <div class="skeleton-img"></div>
+          <div class="skeleton-content">
+            <div class="skeleton-line line-title"></div>
+            <div class="skeleton-line line-desc"></div>
+            <div class="skeleton-line line-dim"></div>
           </div>
+        </div>
         }
       </div>
 
@@ -51,63 +42,43 @@
 
       <!-- Danh sách bản mẫu từ API + Ô tải ảnh là ô cuối cùng trong cùng 1 lưới (REQ 1) -->
       <div *ngIf="!isLoadingTemplates() && !templatesError()" class="template-grid">
-        
+
         <!-- Các bản mẫu có sẵn -->
         @for (tmpl of templates(); track tmpl.id) {
-          <div 
-            class="template-card" 
-            [class.selected]="activeSource() === 'template' && selectedTemplate()?.id === tmpl.id"
-            (click)="selectTemplateCard(tmpl)"
-            role="button"
-            tabindex="0"
-            [attr.aria-pressed]="activeSource() === 'template' && selectedTemplate()?.id === tmpl.id"
-            [attr.aria-label]="'Chọn bản mẫu ' + tmpl.name">
-            <div class="template-image-wrapper">
-              <img 
-                [src]="tmpl.imageUrl" 
-                [alt]="tmpl.name" 
-                class="template-image" 
-                (error)="onImgError($event)" 
-              />
-              <div class="template-type-badge">{{ tmpl.roomType }}</div>
-              <div class="template-selected-badge" *ngIf="activeSource() === 'template' && selectedTemplate()?.id === tmpl.id">
-                <app-icon name="Check" size="16"></app-icon>
-              </div>
+        <div class="template-card"
+          [class.selected]="activeSource() === 'template' && selectedTemplate()?.id === tmpl.id"
+          (click)="selectTemplateCard(tmpl)" role="button" tabindex="0"
+          [attr.aria-pressed]="activeSource() === 'template' && selectedTemplate()?.id === tmpl.id"
+          [attr.aria-label]="'Chọn bản mẫu ' + tmpl.name">
+          <div class="template-image-wrapper">
+            <img [src]="tmpl.imageUrl" [alt]="tmpl.name" class="template-image" (error)="onImgError($event)" />
+            <div class="template-type-badge">{{ tmpl.roomType }}</div>
+            <div class="template-selected-badge"
+              *ngIf="activeSource() === 'template' && selectedTemplate()?.id === tmpl.id">
+              <app-icon name="Check" size="16"></app-icon>
             </div>
-            <div class="template-info">
-              <h3 class="template-name" [title]="tmpl.name">{{ tmpl.name }}</h3>
-              <p class="template-desc" [title]="tmpl.description">{{ tmpl.description }}</p>
-              <div class="template-footer">
-                <div class="dim-tag">
-                  <app-icon name="Ruler" size="14"></app-icon>
-                  <span>Gợi ý: {{ tmpl.defaultDimensions.length }}m × {{ tmpl.defaultDimensions.width }}m</span>
-                </div>
+          </div>
+          <div class="template-info">
+            <h3 class="template-name" [title]="tmpl.name">{{ tmpl.name }}</h3>
+            <p class="template-desc" [title]="tmpl.description">{{ tmpl.description }}</p>
+            <div class="template-footer">
+              <div class="dim-tag">
+                <app-icon name="Ruler" size="14"></app-icon>
+                <span>Gợi ý: {{ tmpl.defaultDimensions.length }}m × {{ tmpl.defaultDimensions.width }}m</span>
               </div>
             </div>
           </div>
+        </div>
         }
 
         <!-- Ô TẢI ẢNH MẶT BẰNG THẬT: Ô CUỐI CÙNG CỦA LƯỚI, CÙNG CẤU TRÚC VÀ CHIỀU CAO (REQ 1) -->
-        <div 
-          class="template-card upload-tile-card"
-          [class.selected]="activeSource() === 'upload' && uploadedImage()"
-          [class.dragging]="isDraggingFile()"
-          (click)="handleUploadCardClick(fileInput)"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onFileDrop($event)"
-          role="button"
-          tabindex="0"
-          [attr.aria-pressed]="activeSource() === 'upload' && uploadedImage()"
-          aria-label="Tải ảnh mặt bằng thật">
+        <div class="template-card upload-tile-card" [class.selected]="activeSource() === 'upload' && uploadedImage()"
+          [class.dragging]="isDraggingFile()" (click)="handleUploadCardClick(fileInput)" (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)" (drop)="onFileDrop($event)" role="button" tabindex="0"
+          [attr.aria-pressed]="activeSource() === 'upload' && uploadedImage()" aria-label="Tải ảnh mặt bằng thật">
 
-          <input 
-            #fileInput 
-            type="file" 
-            accept="image/jpeg,image/png,image/webp" 
-            class="hidden-file-input" 
-            (change)="onFileSelected($event)" 
-          />
+          <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" class="hidden-file-input"
+            (change)="onFileSelected($event)" />
 
           <!-- 1. Khi chưa có ảnh tải lên và không nén -->
           <ng-container *ngIf="!uploadedImage() && !isCompressing()">
@@ -153,19 +124,11 @@
           <!-- 3. Khi đã tải ảnh thành công: Hiện ảnh thu nhỏ + nút Đổi ảnh (REQ 1) -->
           <ng-container *ngIf="uploadedImage() && !isCompressing()">
             <div class="template-image-wrapper">
-              <img 
-                [src]="uploadedImage()?.imageUrl" 
-                [alt]="uploadedImage()?.name" 
-                class="template-image" 
-                (error)="onImgError($event)" 
-              />
+              <img [src]="uploadedImage()?.imageUrl" [alt]="uploadedImage()?.name" class="template-image"
+                (error)="onImgError($event)" />
               <div class="template-type-badge upload-success-badge">Mặt bằng của bạn</div>
-              <button 
-                type="button" 
-                class="change-photo-badge-btn" 
-                (click)="triggerFileInput($event, fileInput)"
-                title="Chọn ảnh mặt bằng khác"
-                aria-label="Đổi ảnh khác">
+              <button type="button" class="change-photo-badge-btn" (click)="triggerFileInput($event, fileInput)"
+                title="Chọn ảnh mặt bằng khác" aria-label="Đổi ảnh khác">
                 <app-icon name="RefreshCw" size="12"></app-icon>
                 <span>Đổi ảnh</span>
               </button>
@@ -174,8 +137,10 @@
               </div>
             </div>
             <div class="template-info">
-              <h3 class="template-name" [title]="uploadedImage()?.name">{{ uploadedImage()?.name || 'Mặt bằng của bạn' }}</h3>
-              <p class="template-desc">Ảnh mặt bằng thật ({{ uploadedImage()?.naturalWidth }} × {{ uploadedImage()?.naturalHeight }} px)</p>
+              <h3 class="template-name" [title]="uploadedImage()?.name">{{ uploadedImage()?.name || 'Mặt bằng của bạn'
+                }}</h3>
+              <p class="template-desc">Ảnh mặt bằng thật ({{ uploadedImage()?.naturalWidth }} × {{
+                uploadedImage()?.naturalHeight }} px)</p>
               <div class="template-footer">
                 <div class="dim-tag">
                   <app-icon name="Ruler" size="14"></app-icon>
@@ -199,11 +164,8 @@
 
     <!-- Nút hành động bước 1 -->
     <div class="setup-actions-bar text-center">
-      <button 
-        type="button" 
-        class="setup-primary-btn" 
-        [disabled]="activeSource() === 'template' ? !selectedTemplate() : !uploadedImage()"
-        (click)="confirmSource()"
+      <button type="button" class="setup-primary-btn"
+        [disabled]="activeSource() === 'template' ? !selectedTemplate() : !uploadedImage()" (click)="confirmSource()"
         aria-label="Tiếp tục sang bước nhập kích thước phòng">
         <span>Tiếp tục: Cấu hình kích thước</span>
         <app-icon name="ArrowRight" size="18"></app-icon>
@@ -214,11 +176,13 @@
     <!-- MỤC: THIẾT KẾ ĐÃ LƯU TRÊN MÁY NÀY (REQ 3)       -->
     <!-- ============================================== -->
     <div class="saved-drafts-section" *ngIf="savedDrafts().length > 0">
-      <div class="section-title-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <div class="section-title-row"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <div class="section-heading-group">
-          <h2 class="section-title" style="margin: 0;">Thiết kế của tôi gần đây</h2>
+          <h2 class="section-title" style="margin: 0;">Thiết kế gần đây</h2>
         </div>
-        <a routerLink="/account/designs" class="view-all-designs-link" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: var(--color-primary, #765337); text-decoration: none;">
+        <a routerLink="/community" [queryParams]="{ tab: 'my-hub', sub: 'saved' }" class="view-all-designs-link"
+          style="display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: var(--color-primary, #765337); text-decoration: none;">
           <span>Xem tất cả</span>
           <app-icon name="ArrowRight" size="14"></app-icon>
         </a>
@@ -226,63 +190,46 @@
 
       <div class="saved-drafts-grid">
         @for (draft of savedDrafts(); track draft.id) {
-          <div class="saved-draft-card">
-            <div class="draft-thumb-wrap" (click)="openDraft(draft)" title="Bấm để mở thiết kế">
-              <img 
-                *ngIf="draft.thumbnailUrl" 
-                [src]="draft.thumbnailUrl" 
-                [alt]="draft.title" 
-                class="draft-thumb-img" 
-                (error)="onImgError($event)"
-              />
-              <div *ngIf="!draft.thumbnailUrl" class="draft-thumb-placeholder">
-                <app-icon name="Layers" size="32"></app-icon>
-              </div>
-              <div class="draft-objects-badge">
-                {{ draft.objects.length }} món
-              </div>
+        <div class="hub-item-card">
+          <div class="hub-thumb-wrap" (click)="openDraft(draft)" title="Bấm để mở thiết kế">
+            <img *ngIf="draft.thumbnailUrl" [src]="draft.thumbnailUrl" [alt]="draft.title" class="hub-thumb-img"
+              (error)="onImgError($event)" />
+            <div *ngIf="!draft.thumbnailUrl" class="hub-thumb-placeholder">
+              <app-icon name="Layers" size="32"></app-icon>
             </div>
-
-            <div class="draft-info">
-              <h3 class="draft-title" [title]="draft.title" (click)="openDraft(draft)">{{ draft.title }}</h3>
-              <span class="draft-date">
-                <app-icon name="Clock" size="12"></app-icon>
-                <span>Sửa đổi: {{ draft.updatedAt | date:'HH:mm - dd/MM/yyyy' }}</span>
-              </span>
-
-              <div class="draft-actions-row">
-                <button 
-                  type="button" 
-                  class="draft-action-btn open-btn" 
-                  (click)="openDraft(draft)"
-                  title="Mở lại thiết kế này để tiếp tục vẽ"
-                  aria-label="Mở thiết kế">
-                  <app-icon name="ArrowRight" size="14"></app-icon>
-                  <span>Mở</span>
-                </button>
-
-                <button 
-                  type="button" 
-                  class="draft-action-btn edit-btn" 
-                  (click)="promptRenameDraft(draft, $event)"
-                  title="Đổi tên thiết kế"
-                  aria-label="Đổi tên thiết kế">
-                  <app-icon name="Pencil" size="13"></app-icon>
-                  <span>Đổi tên</span>
-                </button>
-
-                <button 
-                  type="button" 
-                  class="draft-action-btn delete-btn" 
-                  (click)="promptDeleteDraft(draft, $event)"
-                  title="Xóa thiết kế khỏi máy này"
-                  aria-label="Xóa thiết kế">
-                  <app-icon name="Trash2" size="13"></app-icon>
-                  <span>Xóa</span>
-                </button>
-              </div>
+            <div class="hub-hover-action">
+              <span>Mở chỉnh sửa 3D</span>
             </div>
           </div>
+
+          <div class="hub-item-info">
+            <h4 class="hub-item-title" (click)="openDraft(draft)" [title]="draft.title">
+              {{ draft.title }}
+            </h4>
+            <div class="hub-item-meta">
+              <span class="meta-tag">{{ draft.dimensions.length }}m × {{ draft.dimensions.width }}m</span>
+              <span class="meta-dot">•</span>
+              <span class="meta-tag">{{ (draft.layoutCount !== undefined ? draft.layoutCount : draft.objects.length) }} món nội thất</span>
+            </div>
+            <div class="hub-item-date">
+              <app-icon name="Calendar" size="15"></app-icon>
+              <span>Chỉnh sửa: {{ formatRelativeTime(draft.updatedAt || draft.createdAt) }}</span>
+            </div>
+
+            <div class="hub-item-footer">
+              <button type="button" class="hub-action-btn primary-action" (click)="openDraft(draft)"
+                title="Mở lại thiết kế này để tiếp tục vẽ" aria-label="Mở thiết kế">
+                <app-icon name="Pencil" size="15"></app-icon>
+                <span>Mở phòng</span>
+              </button>
+              <button type="button" class="hub-action-btn outline-action" (click)="openDraft(draft)"
+                title="Mở phòng và đăng lên cộng đồng">
+                <app-icon name="Share2" size="15"></app-icon>
+                <span>Đăng bài</span>
+              </button>
+            </div>
+          </div>
+        </div>
         }
       </div>
     </div>
@@ -294,10 +241,7 @@
   <!-- ============================================== -->
   <ng-container *ngIf="plannerService.setupSubStep() === 'dimensions'">
     <div class="setup-header text-center">
-      <div class="header-badge">
-        <app-icon name="Ruler" size="16"></app-icon>
-        <span>Bước 2 / 2</span>
-      </div>
+
       <h1 class="setup-title">Xác định kích thước phòng</h1>
       <p class="setup-subtitle">
         Nhập kích thước thực tế (mét) để hệ thống tự động quy đổi và hiển thị đúng tỉ lệ vật thể nội thất trên canvas.
@@ -317,19 +261,9 @@
             Chiều dài mặt ngang (m) <span class="required-star">*</span>
           </label>
           <div class="input-with-unit">
-            <input 
-              id="dim-length"
-              type="number" 
-              [(ngModel)]="lengthMeters" 
-              name="lengthMeters"
-              min="1" 
-              max="30" 
-              step="0.1" 
-              required
-              class="dimension-input"
-              [class.has-error]="lengthMeters < 1 || lengthMeters > 30"
-              placeholder="VD: 5.0"
-            />
+            <input id="dim-length" type="number" [(ngModel)]="lengthMeters" name="lengthMeters" min="1" max="30"
+              step="0.1" required class="dimension-input" [class.has-error]="lengthMeters < 1 || lengthMeters > 30"
+              placeholder="VD: 5.0" />
             <span class="unit-badge">mét</span>
           </div>
           <span class="field-hint" *ngIf="lengthMeters < 1 || lengthMeters > 30">
@@ -345,19 +279,9 @@
             Chiều rộng / chiều sâu (m) <span class="required-star">*</span>
           </label>
           <div class="input-with-unit">
-            <input 
-              id="dim-width"
-              type="number" 
-              [(ngModel)]="widthMeters" 
-              name="widthMeters"
-              min="1" 
-              max="30" 
-              step="0.1" 
-              required
-              class="dimension-input"
-              [class.has-error]="widthMeters < 1 || widthMeters > 30"
-              placeholder="VD: 4.0"
-            />
+            <input id="dim-width" type="number" [(ngModel)]="widthMeters" name="widthMeters" min="1" max="30" step="0.1"
+              required class="dimension-input" [class.has-error]="widthMeters < 1 || widthMeters > 30"
+              placeholder="VD: 4.0" />
             <span class="unit-badge">mét</span>
           </div>
           <span class="field-hint" *ngIf="widthMeters < 1 || widthMeters > 30">
@@ -370,18 +294,9 @@
             Chiều cao trần (m) <span class="optional-tag">(tùy chọn)</span>
           </label>
           <div class="input-with-unit">
-            <input 
-              id="dim-height"
-              type="number" 
-              [(ngModel)]="heightMeters" 
-              name="heightMeters"
-              min="1" 
-              max="30" 
-              step="0.1" 
-              class="dimension-input"
-              [class.has-error]="heightMeters && (heightMeters < 1 || heightMeters > 30)"
-              placeholder="VD: 2.8"
-            />
+            <input id="dim-height" type="number" [(ngModel)]="heightMeters" name="heightMeters" min="1" max="30"
+              step="0.1" class="dimension-input"
+              [class.has-error]="heightMeters && (heightMeters < 1 || heightMeters > 30)" placeholder="VD: 2.8" />
             <span class="unit-badge">mét</span>
           </div>
           <span class="field-hint" *ngIf="heightMeters && (heightMeters < 1 || heightMeters > 30)">
@@ -389,31 +304,17 @@
           </span>
         </div>
 
-        <div class="rule-box">
-          <app-icon name="Info" size="18"></app-icon>
-          <div class="rule-box-content">
-            <strong>Tỉ lệ quy đổi tự động:</strong>
-            <p>1 mét thực tế ≈ <strong>{{ calculatedPxPerMeter }}</strong> pixels trên canvas. Nội thất 180×90 cm sẽ hiển thị đúng chuẩn tỉ lệ này.</p>
-          </div>
-        </div>
 
         <div class="form-buttons-row">
-          <button 
-            type="button" 
-            class="setup-secondary-btn" 
-            (click)="plannerService.backToSourceSelection()"
+          <button type="button" class="setup-secondary-btn" (click)="plannerService.backToSourceSelection()"
             aria-label="Quay lại bước chọn nguồn ảnh">
             <app-icon name="ArrowLeft" size="16"></app-icon>
             <span>Đổi nguồn ảnh</span>
           </button>
 
-          <button 
-            type="button" 
-            class="setup-primary-btn" 
-            [disabled]="!isDimensionsValid()"
-            (click)="handleStartPlanner()"
-            aria-label="Vào không gian thiết kế">
-            <span>Vào không gian thiết kế</span>
+          <button type="button" class="setup-primary-btn" [disabled]="!isDimensionsValid()"
+            (click)="handleStartPlanner()" aria-label="Vào không gian thiết kế">
+            <span>Tiếp tục</span>
             <app-icon name="ArrowRight" size="18"></app-icon>
           </button>
         </div>
@@ -435,13 +336,9 @@
           </div>
 
           <div class="preview-image-container">
-            <img 
-              [src]="previewBg?.imageUrl" 
-              alt="Preview phòng" 
-              class="preview-room-image" 
-              (error)="onImgError($event)"
-            />
-            
+            <img [src]="previewBg?.imageUrl" alt="Preview phòng" class="preview-room-image"
+              (error)="onImgError($event)" />
+
             <!-- Lưới mờ minh họa -->
             <div class="preview-grid-overlay"></div>
           </div>
@@ -454,63 +351,63 @@
           </div>
         </div>
 
-        <p class="preview-caption text-center">
-          Ảnh nền phòng được căn chuẩn tỉ lệ {{ lengthMeters }}m × {{ widthMeters }}m. Bạn có thể bật/tắt lưới tham chiếu 1m khi vào canvas.
-        </p>
+
       </div>
     </div>
   </ng-container>
 
+    <!-- ============================================== -->
+  <!-- MODAL ĐỔI TÊN THIẾT KẾ                         -->
   <!-- ============================================== -->
-  <!-- MODAL ĐỔI TÊN THIẾT KẾ (REQ 3)                  -->
-  <!-- ============================================== -->
-  <app-modal 
-    [isOpen]="isRenameModalOpen()" 
-    [title]="'Đổi tên thiết kế'" 
-    [hasFooter]="true" 
-    width="440px"
+  <app-modal [isOpen]="isRenameModalOpen()" [title]="'Đổi tên thiết kế'" [hasFooter]="true" width="440px"
     (close)="closeRenameModal()">
-    <div style="padding: 16px 20px;">
-      <label for="rename-input" style="display:block; margin-bottom: 8px; font-weight:600; font-size:13px; color:#0a0a0a;">Tên thiết kế mới</label>
-      <input 
-        id="rename-input" 
-        type="text" 
-        [ngModel]="renameInput()" 
-        (ngModelChange)="renameInput.set($event)"
-        maxlength="80" 
-        style="width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1.5px solid var(--color-border, #e0e0e0); border-radius: 8px; font-size: 13.5px;"
-        (keydown.enter)="confirmRenameDraft()"
-      />
+    <div class="setup-modal-rename-body">
+      <div class="setup-modal-form-group">
+        <label for="rename-input" class="setup-modal-label">
+          Tên thiết kế mới <span class="required-star">*</span>
+        </label>
+        <div class="setup-modal-input-wrap">
+          <input id="rename-input" type="text" class="setup-modal-input"
+            [ngModel]="renameInput()" (ngModelChange)="renameInput.set($event)"
+            maxlength="80"
+            placeholder="VD: Thiết kế phòng khách hiện đại"
+            (keydown.enter)="confirmRenameDraft()" />
+          <span class="setup-modal-char-count">{{ renameInput().length }}/80</span>
+        </div>
+        <p class="setup-modal-hint">Tên này giúp bạn dễ dàng nhận diện và phân biệt giữa các bản thiết kế.</p>
+      </div>
     </div>
-    <div footer style="display:flex; justify-content:flex-end; gap:8px; padding: 12px 20px; border-top: 1px solid var(--color-border-subtle, #f0f0f0);">
-      <button type="button" class="btn-secondary" (click)="closeRenameModal()">Hủy</button>
-      <button type="button" class="btn-primary" (click)="confirmRenameDraft()" [disabled]="!renameInput().trim()">Lưu tên</button>
+    <div footer class="setup-modal-footer-actions">
+      <button type="button" class="setup-modal-btn btn-cancel" (click)="closeRenameModal()">Hủy</button>
+      <button type="button" class="setup-modal-btn btn-save" (click)="confirmRenameDraft()" [disabled]="!renameInput().trim()">
+        <app-icon name="Check" size="16"></app-icon>
+        <span>Lưu tên</span>
+      </button>
     </div>
   </app-modal>
 
   <!-- ============================================== -->
-  <!-- MODAL XÁC NHẬN XÓA THIẾT KẾ (REQ 3)             -->
+  <!-- MODAL XÁC NHẬN XÓA THIẾT KẾ                    -->
   <!-- ============================================== -->
-  <app-modal 
-    [isOpen]="isDeleteConfirmOpen()" 
-    [title]="'Xác nhận xóa thiết kế'" 
-    [hasFooter]="true" 
-    width="440px"
+  <app-modal [isOpen]="isDeleteConfirmOpen()" [title]="'Xác nhận xóa thiết kế'" [hasFooter]="true" width="440px"
     (close)="closeDeleteModal()">
-    <div class="confirm-modal-body" style="padding: 16px 20px; display:flex; gap:14px; align-items:flex-start;">
-      <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-        <app-icon name="Trash2" size="20"></app-icon>
+    <div class="setup-modal-delete-body">
+      <div class="setup-modal-delete-icon">
+        <app-icon name="Trash2" size="22"></app-icon>
       </div>
-      <div>
-        <p style="margin:0 0 6px; font-weight:600; font-size:14.5px; color:#0a0a0a;">Bạn có chắc chắn muốn xóa thiết kế này?</p>
-        <p style="margin:0; font-size:13px; color:#616161; line-height:1.45;">
-          Thiết kế "<strong>{{ draftToDelete()?.title }}</strong>" sẽ bị xóa vĩnh viễn khỏi trình duyệt của máy này.
+      <div class="setup-modal-delete-content">
+        <h4 class="setup-modal-delete-title">Bạn có chắc chắn muốn xóa thiết kế này?</h4>
+        <p class="setup-modal-delete-desc">
+          Bản thiết kế <strong class="delete-target-name">"{{ draftToDelete()?.title }}"</strong> sẽ bị xóa vĩnh viễn khỏi danh sách và không thể khôi phục lại.
         </p>
       </div>
     </div>
-    <div footer style="display:flex; justify-content:flex-end; gap:8px; padding: 12px 20px; border-top: 1px solid var(--color-border-subtle, #f0f0f0);">
-      <button type="button" class="btn-secondary" (click)="closeDeleteModal()">Giữ lại</button>
-      <button type="button" class="btn-primary danger" (click)="confirmDeleteDraft()">Xóa thiết kế</button>
+    <div footer class="setup-modal-footer-actions">
+      <button type="button" class="setup-modal-btn btn-cancel" (click)="closeDeleteModal()">Giữ lại</button>
+      <button type="button" class="setup-modal-btn btn-delete" (click)="confirmDeleteDraft()">
+        <app-icon name="Trash2" size="16"></app-icon>
+        <span>Xóa thiết kế</span>
+      </button>
     </div>
   </app-modal>
 

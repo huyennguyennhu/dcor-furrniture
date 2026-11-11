@@ -1,4 +1,5 @@
-import { Component, ChangeDetectorRef, ElementRef, signal, OnInit, OnDestroy, effect, Inject } from '@angular/core';
+import { Component, ChangeDetectorRef, ElementRef, signal, OnInit, OnDestroy, HostListener, effect, Inject } from '@angular/core';
+import { environment } from '../../../../../environments/environment';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -42,6 +43,10 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
   // Trạng thái drawer trên thiết bị di động / máy tính bảng (<=1024px)
   mobileDrawer = signal<'none' | 'products' | 'summary'>('none');
 
+  // Trạng thái sửa tên phòng trực tiếp trên topbar
+  isEditingTitle = signal<boolean>(false);
+  editingTitleValue = signal<string>('');
+
   // Trạng thái mở modal xác nhận đổi phòng
   isConfirmChangeRoomOpen = signal<boolean>(false);
 
@@ -50,7 +55,6 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
   saveModalTitleInput = signal<string>('');
   isSavingDraft = signal<boolean>(false);
   autoSaveError = signal<string | null>(null);
-  private autosaveTimer: any = null;
 
   // Menu "..." gom nút trên màn hình <= 768px
   isMoreMenuOpen = signal<boolean>(false);
@@ -70,6 +74,11 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
   postDescription = signal<string>('');
   isAgreed = signal<boolean>(false);
   taggedProducts = signal<TaggedProductItem[]>([]);
+
+  // Trạng thái lưu thiết kế
+  isDesignSavedPermanently = signal<boolean>(false);
+  hasUnsavedChanges = signal<boolean>(false);
+  private isLoadingDesign = false;
 
   // Thông báo lỗi, cảnh báo và thành công
   publishErrorMessage = signal<string | null>(null);
@@ -93,17 +102,17 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
     private elementRef: ElementRef<HTMLElement>,
     private cdr: ChangeDetectorRef
   ) {
-    // Tự động lưu sau 2 giây không thao tác trên máy chủ (chỉ khi đã đăng nhập)
+    // Theo dõi khi có thay đổi thiết kế sau khi đã lưu
     effect(() => {
-      // Đăng ký phụ thuộc để kích hoạt effect khi nội thất hoặc kích thước thay đổi
       const objs = this.plannerService.objects();
       const dims = this.plannerService.dimensions();
       const bg = this.plannerService.background();
-      const zoom = this.plannerService.zoom();
       const step = this.plannerService.currentStep();
 
-      if (step === 'planner' && bg && dims && objs.length > 0) {
-        this.triggerDebouncedAutosave();
+      if (step === 'planner' && bg && dims && !this.isLoadingDesign) {
+        if (this.isDesignSavedPermanently()) {
+          this.hasUnsavedChanges.set(true);
+        }
       }
     });
   }
@@ -135,6 +144,9 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Lưu bản nháp (hết hạn sau 7 ngày) nếu khách thoát ra mà chưa lưu vĩnh viễn
+    this.saveDraftOnExit();
+
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', this.onWindowResize);
     }
@@ -147,10 +159,6 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
 
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
-    }
-
-    if (this.autosaveTimer) {
-      clearTimeout(this.autosaveTimer);
     }
   }
 
@@ -199,6 +207,20 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
         zoom: 1
       };
 
+      this.isLoadingDesign = true;
+      const applyLoadedStatus = () => {
+        if (full.status === 'SAVED') {
+          this.isDesignSavedPermanently.set(true);
+          this.hasUnsavedChanges.set(false);
+          this.plannerService.lastSavedTime.set('Đã lưu');
+        } else {
+          this.isDesignSavedPermanently.set(false);
+          this.hasUnsavedChanges.set(false);
+          this.plannerService.lastSavedTime.set(null);
+        }
+        setTimeout(() => { this.isLoadingDesign = false; }, 400);
+      };
+
       // Đọc kích thước điểm ảnh thật của hình nền
       const img = new Image();
       img.onload = () => {
@@ -207,7 +229,7 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
         this.plannerService.loadDesign(fullDesign);
         this.plannerService.currentDraftId.set(full.id);
         this.plannerService.currentDraftTitle.set(full.title);
-        this.plannerService.lastSavedTime.set(full.status === 'SAVED' ? 'Đã lưu' : 'Đã lưu nháp');
+        applyLoadedStatus();
         this.showToast(`Đã mở thiết kế "${full.title}".`, 'success');
         this.cdr.markForCheck();
       };
@@ -215,7 +237,7 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
         this.plannerService.loadDesign(fullDesign);
         this.plannerService.currentDraftId.set(full.id);
         this.plannerService.currentDraftTitle.set(full.title);
-        this.plannerService.lastSavedTime.set(full.status === 'SAVED' ? 'Đã lưu' : 'Đã lưu nháp');
+        applyLoadedStatus();
         this.showToast(`Đã mở thiết kế "${full.title}".`, 'success');
         this.cdr.markForCheck();
       };
@@ -223,6 +245,53 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
     } catch (err: any) {
       this.showToast(this.myDesignApi.formatError(err, 'Không thể tải thiết kế từ máy chủ.'), 'error');
     }
+  }
+
+  // ==========================================
+  // SỬA TÊN THIẾT KẾ TRỰC TIẾP TRÊN TOPBAR
+  // ==========================================
+  startEditingTitle(): void {
+    const current = this.plannerService.currentDraftTitle() || this.plannerService.background()?.name || 'Bản thiết kế';
+    this.editingTitleValue.set(current);
+    this.isEditingTitle.set(true);
+    setTimeout(() => {
+      const inputEl = document.getElementById('topbar-title-input') as HTMLInputElement | null;
+      if (inputEl) {
+        inputEl.focus();
+        inputEl.select();
+      }
+    }, 60);
+  }
+
+  saveInlineTitle(): void {
+    if (!this.isEditingTitle()) return;
+    const trimmed = this.editingTitleValue().trim();
+    if (!trimmed) {
+      this.cancelEditingTitle();
+      return;
+    }
+
+    const oldTitle = this.plannerService.currentDraftTitle() || this.plannerService.background()?.name;
+    this.plannerService.currentDraftTitle.set(trimmed);
+    this.isEditingTitle.set(false);
+
+    const draftId = this.plannerService.currentDraftId();
+    if (draftId && trimmed !== oldTitle) {
+      this.myDesignApi.renameDesign(draftId, trimmed).subscribe({
+        next: () => {
+          this.showToast(`Đã đổi tên thiết kế thành "${trimmed}".`, 'success');
+        },
+        error: (err) => {
+          this.showToast(this.myDesignApi.formatError(err, 'Không thể cập nhật tên trên máy chủ.'), 'error');
+        }
+      });
+    } else if (trimmed !== oldTitle) {
+      this.showToast(`Đã đổi tên thiết kế thành "${trimmed}".`, 'info');
+    }
+  }
+
+  cancelEditingTitle(): void {
+    this.isEditingTitle.set(false);
   }
 
   // ==========================================
@@ -272,93 +341,110 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // TỰ ĐỘNG LƯU BẢN NHÁP (DEBOUNCE 2 GIÂY TRÊN MÁY CHỦ)
+  // LƯU BẢN NHÁP KHI KHÁCH OUT RA (TỰ HẾT HẠN SAU 7 NGÀY NẾU KHÔNG BẤM LƯU)
   // ==========================================
-  private triggerDebouncedAutosave(): void {
-    if (this.autosaveTimer) {
-      clearTimeout(this.autosaveTimer);
-    }
-    this.autosaveTimer = setTimeout(() => {
-      this.performAutosave();
-    }, 2000);
-  }
-
-  async performAutosave(): Promise<void> {
-    // Chưa đăng nhập thì lưu tạm trong bộ nhớ của service, không gửi lên server
-    if (!this.authService.isAuthenticated()) {
-      return;
-    }
-
-    if (this.plannerService.currentStep() !== 'planner') {
-      return;
-    }
-
+  saveDraftOnExit(): void {
+    if (!this.authService.isAuthenticated()) return;
+    if (this.plannerService.currentStep() !== 'planner') return;
+    const objs = this.plannerService.objects();
     const bg = this.plannerService.background();
     const dims = this.plannerService.dimensions();
-    const objs = this.plannerService.objects();
+    if (!bg || !dims || objs.length === 0) return;
 
-    if (!bg || !dims || objs.length === 0) {
+    // Nếu đã lưu vĩnh viễn và không có thay đổi mới thì không cần lưu nháp
+    if (this.isDesignSavedPermanently() && !this.hasUnsavedChanges()) {
       return;
     }
 
     const draftId = this.plannerService.currentDraftId();
-    this.isSavingDraft.set(true);
+    const defaultTitle = this.plannerService.currentDraftTitle() ||
+      (bg.name ? `Thiết kế ${bg.name}` : 'Bản nháp thiết kế');
 
-    try {
-      if (!draftId) {
-        // Thiết kế mới: Tự động tạo bản nháp DRAFT trên máy chủ sau thao tác đầu tiên
-        const defaultTitle =
-          this.plannerService.currentDraftTitle() ||
-          (bg.name ? `Thiết kế ${bg.name}` : 'Thiết kế phòng khách');
-
-        const created = await firstValueFrom(
-          this.myDesignApi.createDraft({
-            title: defaultTitle,
-            backgroundType: bg.type === 'upload' ? 'UPLOAD' : 'TEMPLATE',
-            backgroundUrl: bg.imageUrl,
-            templateId: bg.templateId || null,
-            roomLength: dims.length,
-            roomWidth: dims.width,
-            roomHeight: dims.height || 2.8,
-            layout: objs
-          })
-        );
-
-        this.plannerService.currentDraftId.set(created.id);
-        this.plannerService.currentDraftTitle.set(created.title);
-        const now = new Date();
-        const hh = now.getHours().toString().padStart(2, '0');
-        const mm = now.getMinutes().toString().padStart(2, '0');
-        this.plannerService.lastSavedTime.set(`Đã lưu nháp lúc ${hh}:${mm}`);
-        this.autoSaveError.set(null);
-      } else {
-        // Bản nháp đã có trên máy chủ: Tự lưu cập nhật layout và kích thước
-        await firstValueFrom(
-          this.myDesignApi.updateDesign(draftId, {
-            roomLength: dims.length,
-            roomWidth: dims.width,
-            roomHeight: dims.height || 2.8,
-            layout: objs
-          })
-        );
-
-        const now = new Date();
-        const hh = now.getHours().toString().padStart(2, '0');
-        const mm = now.getMinutes().toString().padStart(2, '0');
-        this.plannerService.lastSavedTime.set(`Đã lưu nháp lúc ${hh}:${mm}`);
-        this.autoSaveError.set(null);
-      }
-    } catch (err: any) {
-      this.autoSaveError.set('Lỗi lưu nháp');
-    } finally {
-      this.isSavingDraft.set(false);
-      this.cdr.markForCheck();
+    if (!draftId) {
+      this.myDesignApi.createDraft({
+        title: defaultTitle,
+        backgroundType: bg.type === 'upload' ? 'UPLOAD' : 'TEMPLATE',
+        backgroundUrl: bg.imageUrl,
+        templateId: bg.templateId || null,
+        roomLength: dims.length,
+        roomWidth: dims.width,
+        roomHeight: dims.height || 2.8,
+        layout: objs
+      }).subscribe({
+        next: (created) => {
+          this.plannerService.currentDraftId.set(created.id);
+        },
+        error: () => {}
+      });
+    } else if (!this.isDesignSavedPermanently() || this.hasUnsavedChanges()) {
+      this.myDesignApi.updateDesign(draftId, {
+        roomLength: dims.length,
+        roomWidth: dims.width,
+        roomHeight: dims.height || 2.8,
+        layout: objs
+      }).subscribe({
+        next: () => {},
+        error: () => {}
+      });
     }
   }
 
-  retryAutoSave(): void {
-    this.autoSaveError.set(null);
-    this.performAutosave();
+  @HostListener('window:beforeunload')
+  onBeforeUnload(): void {
+    if (!this.authService.isAuthenticated()) return;
+    if (this.plannerService.currentStep() !== 'planner') return;
+    const objs = this.plannerService.objects();
+    const bg = this.plannerService.background();
+    const dims = this.plannerService.dimensions();
+    if (!bg || !dims || objs.length === 0) return;
+    if (this.isDesignSavedPermanently() && !this.hasUnsavedChanges()) return;
+
+    const token = this.authService.getToken();
+    if (!token) return;
+
+    const draftId = this.plannerService.currentDraftId();
+    const defaultTitle = this.plannerService.currentDraftTitle() ||
+      (bg.name ? `Thiết kế ${bg.name}` : 'Bản nháp thiết kế');
+
+    try {
+      if (!draftId) {
+        const payload = JSON.stringify({
+          title: defaultTitle,
+          backgroundType: bg.type === 'upload' ? 'UPLOAD' : 'TEMPLATE',
+          backgroundUrl: bg.imageUrl,
+          templateId: bg.templateId || null,
+          roomLength: dims.length,
+          roomWidth: dims.width,
+          roomHeight: dims.height || 2.8,
+          layout: objs
+        });
+        fetch(`${environment.apiUrl}/store/my-designs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: payload,
+          keepalive: true
+        }).catch(() => {});
+      } else {
+        const payload = JSON.stringify({
+          roomLength: dims.length,
+          roomWidth: dims.width,
+          roomHeight: dims.height || 2.8,
+          layout: objs
+        });
+        fetch(`${environment.apiUrl}/store/my-designs/${draftId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: payload,
+          keepalive: true
+        }).catch(() => {});
+      }
+    } catch {}
   }
 
   // ==========================================
@@ -378,9 +464,21 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Mở hộp thoại nhập tên thiết kế
+    const existingTitle = this.plannerService.currentDraftTitle()?.trim();
+
+    // Nếu thiết kế đã từng lưu vĩnh viễn và đã có tên: lưu trực tiếp, không bắt đặt lại tên
+    if (this.isDesignSavedPermanently() && existingTitle) {
+      if (!this.hasUnsavedChanges()) {
+        this.showToast('Thiết kế đã được lưu vĩnh viễn ở trạng thái mới nhất.', 'info');
+        return;
+      }
+      void this.executeSaveDesign(existingTitle);
+      return;
+    }
+
+    // Lần đầu lưu: Mở hộp thoại nhập tên thiết kế
     const defaultName =
-      this.plannerService.currentDraftTitle() ||
+      existingTitle ||
       (this.plannerService.background()?.name
         ? `Thiết kế ${this.plannerService.background()?.name}`
         : 'Thiết kế phòng khách hoàn thiện');
@@ -395,7 +493,10 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
   async confirmSaveDesign(): Promise<void> {
     const title = this.saveModalTitleInput().trim();
     if (!title) return;
+    await this.executeSaveDesign(title);
+  }
 
+  async executeSaveDesign(title: string): Promise<void> {
     const bg = this.plannerService.background();
     const dims = this.plannerService.dimensions();
     const objs = this.plannerService.objects();
@@ -429,20 +530,31 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
         );
         draftId = created.id;
         this.plannerService.currentDraftId.set(created.id);
+      } else {
+        // Cập nhật lại layout và thông số mới nhất của thiết kế
+        await firstValueFrom(
+          this.myDesignApi.updateDesign(draftId, {
+            title,
+            roomLength: dims.length,
+            roomWidth: dims.width,
+            roomHeight: dims.height || 2.8,
+            layout: objs,
+            coverImageUrl: coverUrl
+          })
+        );
       }
 
-      // 3. Gọi PATCH /:id/save để chuyển sang SAVED vĩnh viễn
-      await firstValueFrom(this.myDesignApi.saveDesign(draftId, title, coverUrl));
+      // 3. Gọi PATCH /:id/save để chuyển sang SAVED vĩnh viễn (kèm layout mới nhất)
+      await firstValueFrom(this.myDesignApi.saveDesign(draftId, title, coverUrl, objs));
 
       this.plannerService.currentDraftTitle.set(title);
-      const now = new Date();
-      const hh = now.getHours().toString().padStart(2, '0');
-      const mm = now.getMinutes().toString().padStart(2, '0');
-      this.plannerService.lastSavedTime.set(`Đã lưu lúc ${hh}:${mm}`);
+      this.isDesignSavedPermanently.set(true);
+      this.hasUnsavedChanges.set(false);
+      this.plannerService.lastSavedTime.set('Đã lưu');
       this.autoSaveError.set(null);
 
       this.isSaveModalOpen.set(false);
-      this.showToast('Đã lưu thiết kế thành công vào tài khoản của bạn.', 'success');
+      this.showToast('Đã lưu thiết kế vĩnh viễn vào tài khoản của bạn.', 'success');
     } catch (err: any) {
       this.showToast(this.myDesignApi.formatError(err, 'Lưu thiết kế không thành công.'), 'error');
     } finally {
@@ -581,14 +693,64 @@ export class CustomDesignComponent implements OnInit, OnDestroy {
         this.publishedPostStatus.set(postRes?.status || 'PENDING');
         this.isPublishSuccess.set(true);
 
-        // Sau khi đăng lên Cộng đồng thành công, gọi PATCH link-post để liên kết thiết kế
-        const draftId = this.plannerService.currentDraftId();
-        if (draftId && postRes?.id) {
-          this.myDesignApi.linkPost(draftId, postRes.id).subscribe({
-            next: () => {},
+        // Đăng bài => Tự động lưu thiết kế vĩnh viễn (SAVED)
+        this.isDesignSavedPermanently.set(true);
+        this.hasUnsavedChanges.set(false);
+        this.plannerService.lastSavedTime.set('Đã lưu');
+        this.plannerService.currentDraftTitle.set(title);
+
+        const bg = this.plannerService.background();
+        const dims = this.plannerService.dimensions();
+        const objs = this.plannerService.objects();
+        let draftId = this.plannerService.currentDraftId();
+
+        const finalizeSave = (id: string) => {
+          this.myDesignApi.saveDesign(id, title, postRes?.imageUrl, objs).subscribe({
+            next: () => {
+              if (postRes?.id) {
+                this.myDesignApi.linkPost(id, postRes.id).subscribe();
+              }
+            },
             error: () => {}
           });
+        };
+
+        if (!draftId && bg && dims) {
+          this.myDesignApi.createDraft({
+            title,
+            backgroundType: bg.type === 'upload' ? 'UPLOAD' : 'TEMPLATE',
+            backgroundUrl: bg.imageUrl,
+            templateId: bg.templateId || null,
+            roomLength: dims.length,
+            roomWidth: dims.width,
+            roomHeight: dims.height || 2.8,
+            layout: objs,
+            coverImageUrl: postRes?.imageUrl
+          }).subscribe({
+            next: (created) => {
+              this.plannerService.currentDraftId.set(created.id);
+              finalizeSave(created.id);
+            },
+            error: () => {}
+          });
+        } else if (draftId) {
+          const updatePayload: any = {
+            title,
+            layout: objs,
+            coverImageUrl: postRes?.imageUrl
+          };
+          if (dims) {
+            updatePayload.roomLength = dims.length;
+            updatePayload.roomWidth = dims.width;
+            updatePayload.roomHeight = dims.height || 2.8;
+          }
+          this.myDesignApi.updateDesign(draftId, updatePayload).subscribe({
+            next: () => finalizeSave(draftId),
+            error: () => finalizeSave(draftId)
+          });
         }
+
+        this.showToast('Đăng bài thành công! Bài viết đang chờ quản trị viên duyệt.', 'success');
       },
       error: (err: any) => {
         this.publishErrorMessage.set(this.publishService.formatHttpError(err));

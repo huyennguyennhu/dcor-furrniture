@@ -1,559 +1,965 @@
 <div class="community-page">
-  <!-- Top Banner / Hero Section -->
+  <!-- Top Banner / Hero Section with Sketch Background fading/blurring to solid color on left -->
   <header class="community-header">
+    <!-- Background sketch layer -->
+    <div class="hero-bg-sketch" aria-hidden="true"></div>
+    <!-- Soft blur transition layer -->
+    <div class="hero-bg-blur-mask" aria-hidden="true"></div>
+    <!-- Solid color fade overlay -->
+    <div class="hero-bg-overlay" aria-hidden="true"></div>
+
     <div class="header-container">
-      <div class="header-content">
-        <div class="badge-pill">
-          <app-icon name="Sparkles" size="14" class="text-amber-600"></app-icon>
-          <span>Không gian sáng tạo DCor</span>
-        </div>
-        <h1 class="header-title">Cộng đồng Không gian Sống DCor</h1>
-        <p class="header-subtitle">
-          Khám phá những ý tưởng nội thất thực tế từ cộng đồng yêu nhà đẹp và lan tỏa nguồn cảm hứng cho tổ ấm của bạn.
-        </p>
+      <div class="hero-grid">
+        <!-- Left: Text, Badge, CTA & Search -->
+        <div class="hero-left">
 
-        <!-- Actions Bar: Search + CTA -->
-        <div class="actions-bar">
-          <div class="search-box">
-            <app-icon name="Search" size="18" class="search-icon"></app-icon>
-            <input
-              type="text"
-              class="search-input"
-              placeholder="Tìm kiếm bài viết, phong cách, tác giả..."
-              [ngModel]="searchQuery()"
-              (ngModelChange)="onSearchInput($event)"
-              aria-label="Tìm kiếm bài viết cộng đồng"
-            />
-            @if (searchQuery()) {
-              <button
-                type="button"
-                class="search-clear-btn"
-                (click)="clearSearch()"
-                aria-label="Xóa nội dung tìm kiếm"
-              >
-                <app-icon name="X" size="16"></app-icon>
-              </button>
-            }
+          <h1 class="hero-title">
+            <p>Khám phá &amp; Chia sẻ</p>
+            <p class="hero-title-break">Cảm hứng Không gian</p>
+          </h1>
+
+          <p class="hero-desc">
+            Cộng đồng chia sẻ các thiết kế nội thất thực tế từ người dùng và nhà thiết kế DCor. Cùng giao lưu, thả tim,
+            bình luận và biến ý tưởng thiết kế thành hiện thực.
+          </p>
+
+          <!-- Actions Bar: CTA Button -->
+          <div class="hero-actions-row">
+            <a routerLink="/custom-design" class="hero-cta-btn" aria-label="Tạo thiết kế & Chia sẻ">
+              <app-icon name="Pencil" size="16"></app-icon>
+              <span>Tạo thiết kế &amp; Chia sẻ</span>
+            </a>
           </div>
+        </div>
 
-          <a
-            routerLink="/custom-design"
-            class="cta-design-btn"
-            aria-label="Thiết kế của bạn tại Room Planner"
-          >
-            <app-icon name="Pencil" size="18"></app-icon>
-            <span>Thiết kế của bạn</span>
-          </a>
+        <!-- Right: Living Room Image Card floating over sketch background -->
+        <div class="hero-right">
+
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Content Grid -->
+  <!-- Main Content Area with Seamless Unified Control Toolbar -->
   <main class="community-main">
     <div class="content-container">
 
-      <!-- Loading State: Skeletons -->
-      @if (isLoading()) {
+      <!-- Unified Community Control Toolbar (Segmented Switch & Contextual Filters in one sleek row) -->
+      <div class="community-toolbar">
+        <!-- Left: Segmented Control Switcher (Apple / Modern SaaS style) -->
+        <div class="segmented-control" role="tablist" aria-label="Chế độ xem cộng đồng">
+          <button type="button" class="segment-btn" [class.active]="mainTab() === 'feed'"
+            (click)="switchMainTab('feed')" role="tab" [attr.aria-selected]="mainTab() === 'feed'">
+            <app-icon name="Sparkles" size="16"></app-icon>
+            <span>Khám phá cộng đồng</span>
+          </button>
+
+          <button type="button" class="segment-btn" [class.active]="mainTab() === 'my-hub'"
+            (click)="switchMainTab('my-hub')" role="tab" [attr.aria-selected]="mainTab() === 'my-hub'">
+            <app-icon name="Layers" size="16"></app-icon>
+            <span>Thiết kế của tôi</span>
+            @if (isLoggedIn() && (mySavedDesigns().length + myPublishedPosts().length + myDraftDesigns().length) > 0) {
+            <span class="segment-badge">
+              {{ mySavedDesigns().length + myPublishedPosts().length + myDraftDesigns().length }}
+            </span>
+            }
+          </button>
+        </div>
+
+        <!-- Right: Filters (Mới nhất / Thịnh hành) + Results count (when viewing community feed) -->
+        @if (mainTab() === 'feed') {
+        <div class="toolbar-filter-group">
+          <div class="filter-pills">
+            <button type="button" class="filter-pill" [class.active]="feedFilter() === 'newest'"
+              (click)="setFeedFilter('newest')">
+              <app-icon name="Sparkles" size="13" class="pill-icon text-amber-500"></app-icon>
+              <span>Mới nhất</span>
+            </button>
+
+            <button type="button" class="filter-pill" [class.active]="feedFilter() === 'trending'"
+              (click)="setFeedFilter('trending')">
+              <app-icon name="TrendingUp" size="13" class="pill-icon text-rose-500"></app-icon>
+              <span>Thịnh hành</span>
+            </button>
+          </div>
+
+          <div class="feed-results-count" *ngIf="!isLoading() && !errorMessage()">
+            <span>Hiển thị <strong>{{ filteredPosts().length }}</strong> không gian</span>
+          </div>
+        </div>
+        }
+      </div>
+
+      <!-- ==================================================================== -->
+      <!-- TAB 1: KHÁM PHÁ CỘNG ĐỒNG (COMMUNITY FEED)                           -->
+      <!-- ==================================================================== -->
+      @if (mainTab() === 'feed') {
+      <div class="feed-section">
+
+        <!-- Loading Skeletons -->
+        @if (isLoading()) {
         <div class="posts-grid" aria-busy="true" aria-label="Đang tải danh sách bài viết">
           @for (item of [1, 2, 3, 4, 5, 6]; track item) {
-            <div class="skeleton-card">
-              <div class="skeleton-image"></div>
-              <div class="skeleton-body">
-                <div class="skeleton-author-row">
-                  <div class="skeleton-avatar"></div>
-                  <div class="skeleton-meta">
-                    <div class="skeleton-line w-24"></div>
-                    <div class="skeleton-line w-16"></div>
-                  </div>
-                </div>
-                <div class="skeleton-line w-full h-5 mt-2"></div>
-                <div class="skeleton-line w-three-quarters mt-2"></div>
-                <div class="skeleton-footer mt-4">
-                  <div class="skeleton-pill"></div>
-                  <div class="skeleton-pill"></div>
+          <div class="skeleton-card">
+            <div class="skeleton-image"></div>
+            <div class="skeleton-body">
+              <div class="skeleton-author-row">
+                <div class="skeleton-avatar"></div>
+                <div class="skeleton-meta">
+                  <div class="skeleton-line w-24"></div>
+                  <div class="skeleton-line w-16"></div>
                 </div>
               </div>
+              <div class="skeleton-line w-full h-5 mt-2"></div>
+              <div class="skeleton-line w-three-quarters mt-2"></div>
+              <div class="skeleton-footer mt-4">
+                <div class="skeleton-pill"></div>
+                <div class="skeleton-pill"></div>
+              </div>
             </div>
+          </div>
           }
         </div>
-      }
+        }
 
-      <!-- Error State -->
-      @else if (errorMessage()) {
+        <!-- Error State -->
+        @else if (errorMessage()) {
         <div class="state-container error-state" role="alert">
           <div class="state-icon-wrapper error-icon-bg">
             <app-icon name="AlertCircle" size="36" class="text-rose-600"></app-icon>
           </div>
           <h2 class="state-title">Không thể tải bài viết</h2>
           <p class="state-desc">{{ errorMessage() }}</p>
-          <button
-            type="button"
-            class="retry-btn"
-            (click)="retry()"
-            aria-label="Thử lại tải danh sách bài viết"
-          >
+          <button type="button" class="retry-btn" (click)="retry()" aria-label="Thử lại tải danh sách bài viết">
             <app-icon name="RefreshCw" size="16"></app-icon>
             <span>Thử lại</span>
           </button>
         </div>
-      }
+        }
 
-      <!-- Empty State -->
-      @else if (posts().length === 0) {
+        <!-- Empty Feed State -->
+        @else if (filteredPosts().length === 0) {
         <div class="state-container empty-state">
           <div class="state-icon-wrapper empty-icon-bg">
             <app-icon name="Image" size="40" class="text-amber-700"></app-icon>
           </div>
-          <h2 class="state-title">Chưa có bài viết nào</h2>
+          <h2 class="state-title">Chưa có bài viết nào phù hợp</h2>
           <p class="state-desc">
             @if (searchQuery()) {
-              Không tìm thấy kết quả nào phù hợp với từ khóa "{{ searchQuery() }}". Vui lòng thử tìm kiếm với từ khóa khác.
+            Không tìm thấy thiết kế nào phù hợp với từ khóa "{{ searchQuery() }}".
             } @else {
-              Hãy là người đầu tiên sáng tạo và chia sẻ không gian sống đậm chất DCor lên cộng đồng!
+            Hãy là người đầu tiên chia sẻ không gian sáng tạo của bạn lên cộng đồng!
             }
           </p>
-          @if (searchQuery()) {
-            <button
-              type="button"
-              class="clear-filter-btn"
-              (click)="clearSearch()"
-              aria-label="Xem tất cả bài viết"
-            >
-              <span>Xem tất cả bài viết</span>
-            </button>
+          @if (searchQuery() || feedFilter() !== 'all') {
+          <button type="button" class="clear-filter-btn" (click)="clearSearch(); setFeedFilter('all')"
+            aria-label="Xem tất cả bài viết">
+            <span>Xem tất cả bài viết</span>
+          </button>
           } @else {
-            <a
-              routerLink="/custom-design"
-              class="cta-design-btn"
-              aria-label="Tạo thiết kế đầu tiên"
-            >
-              <app-icon name="Sparkles" size="18"></app-icon>
-              <span>Tạo thiết kế ngay</span>
-            </a>
+          <a routerLink="/custom-design" class="cta-design-btn" aria-label="Tạo thiết kế đầu tiên">
+            <app-icon name="Sparkles" size="18"></app-icon>
+            <span>Thiết kế không gian ngay</span>
+          </a>
           }
         </div>
-      }
+        }
 
-      <!-- Posts Grid -->
-      @else {
+        <!-- Feed Posts Grid -->
+        @else {
         <div class="posts-grid">
-          @for (post of posts(); track post.id) {
-            <article
-              class="post-card"
-              (click)="openDetail(post)"
-              tabindex="0"
-              role="button"
-              [attr.aria-label]="'Xem chi tiết bài viết: ' + post.title"
-              (keydown.enter)="openDetail(post)"
-            >
-              <!-- Image Container -->
-              <div class="post-media-wrap">
-                <img
-                  [src]="post.imageUrl"
-                  [alt]="post.title"
-                  class="post-image"
-                  loading="lazy"
-                />
-                <div class="media-overlay"></div>
+          @for (post of filteredPosts(); track post.id) {
+          <article class="post-card" tabindex="0">
 
-                <!-- Tagged products badge -->
-                @if (post.taggedProducts && post.taggedProducts.length > 0) {
-                  <div class="tagged-badge" title="Sản phẩm gắn thẻ">
-                    <app-icon name="Tag" size="13"></app-icon>
-                    <span>{{ post.taggedProducts.length }} sản phẩm</span>
-                  </div>
-                }
+            <!-- Card Header: Author Meta & Direct Share -->
+            <div class="post-card-header">
+              <div class="author-row">
+                <div class="author-avatar" [style.background]="getAuthorAvatar(post) ? 'transparent' : getAvatarGradient(post.authorName)">
+                  <img *ngIf="getAuthorAvatar(post) as avt; else postInitialTpl"
+                    [src]="avt" [alt]="post.authorName" class="author-avatar-img" />
+                  <ng-template #postInitialTpl>
+                    {{ getAuthorInitial(post.authorName) }}
+                  </ng-template>
+                </div>
+                <div class="author-meta">
+                  <span class="author-name" [title]="post.authorName">{{ post.authorName }}</span>
+                  <span class="post-date">{{ formatRelativeTime(post.createdAt) }}</span>
+                </div>
               </div>
 
-              <!-- Post Body -->
-              <div class="post-body">
-                <!-- Author Row -->
-                <div class="author-row">
-                  <div
-                    class="author-avatar"
-                    [style.background]="getAvatarGradient(post.authorName)"
-                    aria-hidden="true"
-                  >
-                    {{ getAuthorInitial(post.authorName) }}
-                  </div>
-                  <div class="author-meta">
-                    <span class="author-name">{{ post.authorName }}</span>
-                    <span class="post-date">{{ formatRelativeTime(post.createdAt) }}</span>
-                  </div>
+              <button type="button" class="post-quick-share" (click)="sharePost(post, $event)" title="Chia sẻ liên kết"
+                aria-label="Chia sẻ liên kết bài viết">
+                <app-icon name="Share2" size="15"></app-icon>
+              </button>
+            </div>
+
+            <!-- Card Visual Media Container -->
+            <div class="post-media-wrap" (click)="openDetail(post)" role="button"
+              [attr.aria-label]="'Xem chi tiết thiết kế: ' + post.title">
+              <img [src]="post.imageUrl" [alt]="post.title" class="post-image" loading="lazy" />
+              <div class="media-hover-overlay">
+                <span class="view-detail-hint">
+                  <app-icon name="Eye" size="16"></app-icon>
+                  <span>Xem chi tiết & sản phẩm</span>
+                </span>
+              </div>
+
+              <!-- Tagged products badge -->
+              @if (post.taggedProducts && post.taggedProducts.length > 0) {
+              <div class="tagged-badge" title="Sản phẩm gắn thẻ trong thiết kế">
+                <app-icon name="Tag" size="13"></app-icon>
+                <span>{{ post.taggedProducts.length }} sản phẩm</span>
+              </div>
+              }
+            </div>
+
+            <!-- Card Content -->
+            <div class="post-body">
+              <h2 class="post-title" (click)="openDetail(post)" [title]="post.title">
+                {{ post.title }}
+              </h2>
+
+              @if (post.description) {
+              <p class="post-description" (click)="openDetail(post)" [title]="post.description">
+                {{ post.description }}
+              </p>
+              }
+
+              <!-- Social Interaction Bar: Thả tim & Bình luận & Chi tiết -->
+              <div class="post-interaction-bar">
+                <div class="post-social-group">
+                  <!-- NÚT THẢ TIM (LIKE BUTTON) CÓ TƯƠNG TÁC THẬT -->
+                  <button type="button" class="social-action-btn like-action-btn" [class.liked]="isLiked(post.id)"
+                    (click)="toggleLike(post, $event)" [attr.aria-pressed]="isLiked(post.id)"
+                    [title]="isLiked(post.id) ? 'Bỏ thích' : 'Thả tim bài viết'">
+                    <app-icon name="Heart" size="17" [filled]="isLiked(post.id)"
+                      [class.text-rose-500]="isLiked(post.id)"></app-icon>
+                    <span class="action-count">{{ post.likesCount || 0 }}</span>
+                  </button>
+
+                  <!-- NÚT BÌNH LUẬN (COMMENT BUTTON) MỞ HỘP THOẠI THẢO LUẬN -->
+                  <button type="button" class="social-action-btn comment-action-btn"
+                    (click)="openCommentThread(post, $event)"
+                    [title]="'Xem ' + (post.comments?.length || 0) + ' bình luận'">
+                    <app-icon name="MessageCircle" size="17"></app-icon>
+                    <span class="action-count">{{ post.comments?.length || 0 }}</span>
+                  </button>
                 </div>
 
-                <!-- Post Title -->
-                <h2 class="post-title" [title]="post.title">
-                  {{ post.title }}
-                </h2>
+                <!-- NÚT XEM CHI TIẾT SẢN PHẨM -->
+                <button type="button" class="view-room-btn" (click)="openDetail(post)" title="Xem chi tiết thiết kế">
+                  <span>Khám phá</span>
+                  <app-icon name="ArrowRight" size="13"></app-icon>
+                </button>
+              </div>
+            </div>
 
-                <!-- Description truncated to 2 lines -->
-                @if (post.description) {
-                  <p class="post-description" [title]="post.description">
-                    {{ post.description }}
-                  </p>
-                }
+          </article>
+          }
+        </div>
+        }
 
-                <!-- Post Footer Stats -->
-                <div class="post-footer">
-                  <div class="stats-group">
-                    <!-- Read-only Like Count -->
-                    <div
-                      class="stat-item like-stat"
-                      title="Lượt thích"
-                      aria-label="Lượt thích: {{ post.likesCount || 0 }}"
-                    >
-                      <app-icon name="Heart" size="16" class="text-rose-500" [filled]="(post.likesCount || 0) > 0"></app-icon>
-                      <span class="stat-value">{{ post.likesCount || 0 }}</span>
-                    </div>
+      </div>
+      }
 
-                    <!-- Comment Count -->
-                    <div
-                      class="stat-item comment-stat"
-                      title="Bình luận"
-                      aria-label="Bình luận: {{ post.comments?.length || 0 }}"
-                    >
-                      <app-icon name="MessageCircle" size="16" class="text-stone-500"></app-icon>
-                      <span class="stat-value">{{ post.comments?.length || 0 }}</span>
-                    </div>
-                  </div>
+      <!-- ==================================================================== -->
+      <!-- TAB 2: THIẾT KẾ CỦA TÔI (MY DESIGN HUB)                              -->
+      <!-- ==================================================================== -->
+      @if (mainTab() === 'my-hub') {
+      <div class="my-hub-section">
 
-                  <!-- Quick Share Button -->
-                  <button
-                    type="button"
-                    class="quick-share-btn"
-                    (click)="sharePost(post, $event)"
-                    aria-label="Chia sẻ liên kết bài viết"
-                    title="Chia sẻ liên kết"
-                  >
-                    <app-icon name="Share2" size="16"></app-icon>
+        <!-- Trường hợp chưa đăng nhập -->
+        @if (!isLoggedIn()) {
+        <div class="hub-guest-card">
+          <div class="guest-card-icon">
+            <app-icon name="Layers" size="44"></app-icon>
+          </div>
+          <h2 class="guest-card-title">Quản lý Không gian & Tương tác của bạn</h2>
+          <p class="guest-card-desc">
+            Đăng nhập tài khoản DCor để đồng bộ toàn bộ thiết kế đã lưu, bài viết đã đăng, bản nháp phòng 3D và các ý
+            tưởng bạn yêu thích trong cộng đồng.
+          </p>
+          <div class="guest-benefits-list">
+            <div class="benefit-item">
+              <app-icon name="Check" size="16" class="text-emerald-600"></app-icon>
+              <span>Lưu và tiếp tục chỉnh sửa phòng trên mọi thiết bị</span>
+            </div>
+            <div class="benefit-item">
+              <app-icon name="Check" size="16" class="text-emerald-600"></app-icon>
+              <span>Xem tiến độ bài đăng chia sẻ cộng đồng</span>
+            </div>
+            <div class="benefit-item">
+              <app-icon name="Check" size="16" class="text-emerald-600"></app-icon>
+              <span>Lưu danh sách bài viết & nội thất yêu thích</span>
+            </div>
+          </div>
+          <div class="guest-card-actions">
+            <a [routerLink]="['/login']" [queryParams]="{ returnUrl: '/community?tab=my-hub' }" class="hub-login-btn">
+              <span>Đăng nhập ngay</span>
+              <app-icon name="ArrowRight" size="16"></app-icon>
+            </a>
+            <a routerLink="/custom-design" class="hub-planner-btn">
+              <app-icon name="Pencil" size="16"></app-icon>
+              <span>Thử thiết kế phòng mới</span>
+            </a>
+          </div>
+        </div>
+        }
+
+        <!-- Trường hợp đã đăng nhập -->
+        @else {
+        <div class="my-hub-authenticated">
+
+          <!-- Sub-navigation Pills: Thiết kế đã lưu / Bài đã đăng / Bài yêu thích / Bản nháp -->
+          <div class="my-hub-tabs-row">
+            <div class="my-hub-subtabs">
+              <button type="button" class="subtab-btn" [class.active]="myHubSubTab() === 'saved'"
+                (click)="switchMyHubSubTab('saved')">
+                <app-icon name="Bookmark" size="15"></app-icon>
+                <span>Thiết kế đã lưu</span>
+                <span class="subtab-count">{{ mySavedDesigns().length }}</span>
+              </button>
+
+              <button type="button" class="subtab-btn" [class.active]="myHubSubTab() === 'posts'"
+                (click)="switchMyHubSubTab('posts')">
+                <app-icon name="Send" size="15"></app-icon>
+                <span>Bài đã đăng</span>
+                <span class="subtab-count">{{ myPublishedPosts().length }}</span>
+              </button>
+
+              <button type="button" class="subtab-btn" [class.active]="myHubSubTab() === 'liked'"
+                (click)="switchMyHubSubTab('liked')">
+                <app-icon name="Heart" size="15" [filled]="true" class="text-rose-500"></app-icon>
+                <span>Bài đã yêu thích</span>
+                <span class="subtab-count">{{ myLikedPosts().length }}</span>
+              </button>
+
+              <button type="button" class="subtab-btn" [class.active]="myHubSubTab() === 'drafts'"
+                (click)="switchMyHubSubTab('drafts')">
+                <app-icon name="Clock" size="15"></app-icon>
+                <span>Bản nháp (7 ngày)</span>
+                <span class="subtab-count">{{ myDraftDesigns().length }}</span>
+              </button>
+            </div>
+
+            <a routerLink="/custom-design" class="new-design-pill-btn">
+              <app-icon name="Plus" size="15"></app-icon>
+              <span>Thiết kế phòng mới</span>
+            </a>
+          </div>
+
+          <!-- Loading State for My Hub -->
+          @if (isLoadingMyHub()) {
+          <div class="posts-grid" aria-busy="true">
+            @for (i of [1, 2, 3, 4]; track i) {
+            <div class="skeleton-card">
+              <div class="skeleton-image"></div>
+              <div class="skeleton-body">
+                <div class="skeleton-line w-full h-5"></div>
+                <div class="skeleton-line w-three-quarters mt-2"></div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+
+          <!-- ============================================== -->
+          <!-- SUB-TAB 1: THIẾT KẾ ĐÃ LƯU (SAVED)             -->
+          <!-- ============================================== -->
+          @else if (myHubSubTab() === 'saved') {
+          @if (mySavedDesigns().length === 0) {
+          <div class="state-container hub-empty-state">
+            <div class="state-icon-wrapper empty-icon-bg">
+              <app-icon name="Bookmark" size="36" class="text-amber-700"></app-icon>
+            </div>
+            <h3 class="state-title">Chưa có thiết kế nào được lưu vĩnh viễn</h3>
+            <p class="state-desc">
+              Khi thiết kế phòng tại DCor Room Planner, bấm nút "Lưu" để đồng bộ và lưu trữ vĩnh viễn vào tài khoản của
+              bạn.
+            </p>
+            <a routerLink="/custom-design" class="cta-design-btn">
+              <app-icon name="Pencil" size="16"></app-icon>
+              <span>Bắt đầu thiết kế ngay</span>
+            </a>
+          </div>
+          } @else {
+          <div class="hub-grid">
+            @for (item of mySavedDesigns(); track item.id) {
+            <div class="hub-item-card">
+              <div class="hub-thumb-wrap" (click)="openDesignInPlanner(item.id)">
+                <img *ngIf="item.coverImageUrl" [src]="item.coverImageUrl" [alt]="item.title" class="hub-thumb-img" />
+                <div *ngIf="!item.coverImageUrl" class="hub-thumb-placeholder">
+                  <app-icon name="Layers" size="32"></app-icon>
+                </div>
+                <div class="hub-hover-action">
+                  <span>Mở chỉnh sửa 3D</span>
+                </div>
+              </div>
+
+              <div class="hub-item-info">
+                <h4 class="hub-item-title" (click)="openDesignInPlanner(item.id)" [title]="item.title">
+                  {{ item.title }}
+                </h4>
+                <div class="hub-item-meta">
+                  <span class="meta-tag">{{ item.roomLength }}m × {{ item.roomWidth }}m</span>
+                  <span class="meta-dot">•</span>
+                  <span class="meta-tag">{{ item.layoutCount || 0 }} món nội thất</span>
+                </div>
+                <div class="hub-item-date">
+                  <app-icon name="Calendar" size="15"></app-icon>
+                  <span>Chỉnh sửa: {{ formatRelativeTime(item.lastEditedAt || item.updatedAt) }}</span>
+                </div>
+
+                <div class="hub-item-footer">
+                  <button type="button" class="hub-action-btn primary-action" (click)="openDesignInPlanner(item.id)">
+                    <app-icon name="Pencil" size="15"></app-icon>
+                    <span>Mở phòng</span>
+                  </button>
+                  <button type="button" class="hub-action-btn outline-action" (click)="openDesignInPlanner(item.id)"
+                    title="Mở phòng và đăng lên cộng đồng">
+                    <app-icon name="Share2" size="15"></app-icon>
+                    <span>Đăng bài</span>
                   </button>
                 </div>
               </div>
-            </article>
+            </div>
+            }
+          </div>
           }
+          }
+
+          <!-- ============================================== -->
+          <!-- SUB-TAB 2: BÀI ĐÃ ĐĂNG (POSTS)                 -->
+          <!-- ============================================== -->
+          @else if (myHubSubTab() === 'posts') {
+          @if (myPublishedPosts().length === 0) {
+          <div class="state-container hub-empty-state">
+            <div class="state-icon-wrapper empty-icon-bg">
+              <app-icon name="Send" size="36" class="text-amber-700"></app-icon>
+            </div>
+            <h3 class="state-title">Bạn chưa đăng bài viết thiết kế nào</h3>
+            <p class="state-desc">
+              Hãy hoàn thiện một không gian phòng đẹp và bấm "Đăng bài" để chia sẻ nguồn cảm hứng với cộng đồng DCor!
+            </p>
+            <a routerLink="/custom-design" class="cta-design-btn">
+              <app-icon name="Sparkles" size="16"></app-icon>
+              <span>Tạo bài đăng ngay</span>
+            </a>
+          </div>
+          } @else {
+          <div class="hub-grid">
+            @for (post of myPublishedPosts(); track post.id) {
+            <div class="hub-item-card">
+              <div class="hub-thumb-wrap" (click)="post.status === 'PUBLISHED' ? openDetail(post) : null">
+                <img [src]="post.imageUrl" [alt]="post.title" class="hub-thumb-img" />
+
+                <!-- Status Badge: Đã duyệt / Chờ duyệt / Bị từ chối -->
+                @if (post.status === 'PUBLISHED') {
+                <div class="hub-badge status-published">
+                  <app-icon name="CircleCheck" size="12"></app-icon>
+                  <span>Đã duyệt</span>
+                </div>
+                } @else if (post.status === 'PENDING') {
+                <div class="hub-badge status-pending">
+                  <app-icon name="Clock" size="12"></app-icon>
+                  <span>Chờ admin duyệt</span>
+                </div>
+                } @else if (post.status === 'REJECTED') {
+                <div class="hub-badge status-rejected">
+                  <app-icon name="AlertCircle" size="12"></app-icon>
+                  <span>Bị từ chối</span>
+                </div>
+                }
+              </div>
+
+              <div class="hub-item-info">
+                <h4 class="hub-item-title" [title]="post.title"
+                  (click)="post.status === 'PUBLISHED' ? openDetail(post) : null">
+                  {{ post.title }}
+                </h4>
+
+                @if (post.rejectionReason && post.status === 'REJECTED') {
+                <p class="rejection-reason-box">
+                  <strong>Lý do từ chối:</strong> {{ post.rejectionReason }}
+                </p>
+                }
+
+                <div class="hub-item-stats">
+                  <span class="hub-stat" title="Lượt thả tim">
+                    <app-icon name="Heart" size="14" class="text-rose-500" [filled]="true"></app-icon>
+                    <span>{{ post.likesCount || 0 }}</span>
+                  </span>
+                  <span class="meta-dot">•</span>
+                  <span class="hub-stat" title="Bình luận">
+                    <app-icon name="MessageCircle" size="14"></app-icon>
+                    <span>{{ post.comments?.length || 0 }}</span>
+                  </span>
+                  <span class="meta-dot">•</span>
+                  <span class="hub-date">{{ formatRelativeTime(post.createdAt) }}</span>
+                </div>
+
+                <div class="hub-item-footer">
+                  @if (post.status === 'PUBLISHED') {
+                  <button type="button" class="hub-action-btn primary-action" (click)="openDetail(post)">
+                    <app-icon name="Eye" size="14"></app-icon>
+                    <span>Xem thảo luận</span>
+                  </button>
+                  <button type="button" class="hub-action-btn outline-action" (click)="sharePost(post, $event)">
+                    <app-icon name="Share2" size="14"></app-icon>
+                    <span>Chia sẻ</span>
+                  </button>
+                  } @else if (post.status === 'PENDING') {
+                  <span class="status-notice-text">
+                    <app-icon name="Clock" size="13"></app-icon>
+                    <span>Đang chờ duyệt để hiển thị lên bảng tin</span>
+                  </span>
+                  } @else {
+                  <a routerLink="/custom-design" class="hub-action-btn outline-action">
+                    <app-icon name="RefreshCw" size="14"></app-icon>
+                    <span>Thiết kế lại</span>
+                  </a>
+                  }
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+          }
+
+          <!-- ============================================== -->
+          <!-- SUB-TAB 3: BÀI ĐÃ YÊU THÍCH (LIKED)             -->
+          <!-- ============================================== -->
+          @else if (myHubSubTab() === 'liked') {
+          @if (myLikedPosts().length === 0) {
+          <div class="state-container hub-empty-state">
+            <div class="state-icon-wrapper empty-icon-bg">
+              <app-icon name="Heart" size="36" class="text-rose-500" [filled]="true"></app-icon>
+            </div>
+            <h3 class="state-title">Chưa có bài viết yêu thích nào</h3>
+            <p class="state-desc">
+              Khi dạo quanh cộng đồng, bấm vào biểu tượng trái tim để lưu lại những không gian phòng mà bạn thích nhất.
+            </p>
+            <button type="button" class="cta-design-btn" (click)="switchMainTab('feed')">
+              <app-icon name="Sparkles" size="16"></app-icon>
+              <span>Khám phá bảng tin ngay</span>
+            </button>
+          </div>
+          } @else {
+          <div class="hub-grid">
+            @for (item of myLikedPosts(); track item.id) {
+            <div class="hub-item-card">
+              <div class="hub-thumb-wrap" (click)="openLikedPostDetail(item)">
+                <img [src]="item.imageUrl" [alt]="item.title" class="hub-thumb-img" />
+
+                <div class="hub-hover-action">
+                  <span>Xem chi tiết</span>
+                </div>
+              </div>
+
+              <div class="hub-item-info">
+                <div class="author-tag">
+                  <app-icon name="UserRound" size="12"></app-icon>
+                  <span>{{ item.authorName }}</span>
+                </div>
+                <h4 class="hub-item-title" (click)="openLikedPostDetail(item)" [title]="item.title">
+                  {{ item.title }}
+                </h4>
+                <div class="hub-item-stats">
+                  <span class="hub-stat">
+                    <app-icon name="Heart" size="14" class="text-rose-500" [filled]="true"></app-icon>
+                    <span>{{ item.likesCount || 0 }} lượt thích</span>
+                  </span>
+                </div>
+
+                <div class="hub-item-footer">
+                  <button type="button" class="hub-action-btn primary-action" (click)="openLikedPostDetail(item)">
+                    <app-icon name="Eye" size="14"></app-icon>
+                    <span>Xem chi tiết</span>
+                  </button>
+                  <button type="button" class="hub-action-btn outline-action" (click)="sharePost(item, $event)">
+                    <app-icon name="Share2" size="14"></app-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+          }
+
+          <!-- ============================================== -->
+          <!-- SUB-TAB 4: BẢN NHÁP 7 NGÀY (DRAFTS)            -->
+          <!-- ============================================== -->
+          @else if (myHubSubTab() === 'drafts') {
+          @if (myDraftDesigns().length === 0) {
+          <div class="state-container hub-empty-state">
+            <div class="state-icon-wrapper empty-icon-bg">
+              <app-icon name="Clock" size="36" class="text-amber-700"></app-icon>
+            </div>
+            <h3 class="state-title">Không có bản nháp tạm thời nào</h3>
+            <p class="state-desc">
+              Các bản nháp chưa lưu vĩnh viễn sẽ được hệ thống tự động dọn dẹp sau 7 ngày để đảm bảo hiệu năng.
+            </p>
+            <a routerLink="/custom-design" class="cta-design-btn">
+              <app-icon name="Pencil" size="16"></app-icon>
+              <span>Bắt đầu thiết kế</span>
+            </a>
+          </div>
+          } @else {
+          <div class="hub-grid">
+            @for (draft of myDraftDesigns(); track draft.id) {
+            <div class="hub-item-card draft-card">
+              <div class="hub-thumb-wrap" (click)="openDesignInPlanner(draft.id)">
+                <img *ngIf="draft.coverImageUrl" [src]="draft.coverImageUrl" [alt]="draft.title"
+                  class="hub-thumb-img" />
+                <div *ngIf="!draft.coverImageUrl" class="hub-thumb-placeholder">
+                  <app-icon name="Layers" size="32"></app-icon>
+                </div>
+
+                <!-- Days left badge -->
+                <div class="hub-badge draft-countdown-badge" [class.urgent]="(draft.daysLeft || 7) <= 2">
+                  <app-icon name="Clock" size="12"></app-icon>
+                  <span>Còn {{ draft.daysLeft !== undefined ? draft.daysLeft : 7 }} ngày</span>
+                </div>
+              </div>
+
+              <div class="hub-item-info">
+                <h4 class="hub-item-title" (click)="openDesignInPlanner(draft.id)" [title]="draft.title">
+                  {{ draft.title }}
+                </h4>
+                <div class="hub-item-meta">
+                  <span class="meta-tag">{{ draft.roomLength }}m × {{ draft.roomWidth }}m</span>
+                  <span class="meta-dot">•</span>
+                  <span class="meta-tag">{{ draft.layoutCount || 0 }} món</span>
+                </div>
+                <p class="draft-warning-text">
+                  * Nháp sẽ tự động bị xóa sau 7 ngày nếu bạn không bấm lưu vĩnh viễn.
+                </p>
+
+                <div class="hub-item-footer">
+                  <button type="button" class="hub-action-btn primary-action" (click)="openDesignInPlanner(draft.id)">
+                    <app-icon name="Pencil" size="14"></app-icon>
+                    <span>Tiếp tục vẽ</span>
+                  </button>
+                  <button type="button" class="hub-action-btn danger-action" (click)="deleteDraft(draft.id, $event)"
+                    title="Xóa bản nháp này">
+                    <app-icon name="Trash2" size="14"></app-icon>
+                    <span>Xóa</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+          }
+
         </div>
+        }
+
+      </div>
       }
 
     </div>
   </main>
 
-  <!-- Detail View (Modal / Drawer) -->
+  <!-- ========================================================================= -->
+  <!-- CHI TIẾT BÀI VIẾT (DETAIL DRAWER / MODAL) & BÌNH LUẬN                      -->
+  <!-- ========================================================================= -->
   @if (isDetailOpen() && activePost()) {
-    <div
-      class="detail-backdrop"
-      (click)="closeDetail()"
-      role="dialog"
-      aria-modal="true"
-      [attr.aria-label]="activePost()?.title"
-    >
-      <div class="detail-container" (click)="$event.stopPropagation()">
+  <div class="detail-backdrop" (click)="closeDetail()" role="dialog" aria-modal="true"
+    [attr.aria-label]="activePost()?.title">
+    <div class="detail-container" (click)="$event.stopPropagation()">
 
-        <div class="detail-grid">
-          <!-- Left: Big Image & Interactive Tagged Pins -->
-          <div class="detail-media-pane" (click)="clearActivePin()">
-            <div class="image-wrapper">
-              <img
-                [src]="activePost()!.imageUrl"
-                [alt]="activePost()!.title"
-                class="detail-image"
-              />
-
-              <!-- Product Pins positioned by x,y percentage -->
-              @if (activePost()!.taggedProducts && activePost()!.taggedProducts!.length > 0) {
-                @for (pin of activePost()!.taggedProducts!; track $index) {
-                  <div
-                    class="product-pin"
-                    [style.left.%]="pin.x"
-                    [style.top.%]="pin.y"
-                    [class.pin-active]="activePinIndex() === $index"
-                    (click)="togglePin($index, $event)"
-                  >
-                    <!-- Pulse Beacon -->
-                    <span class="pin-beacon"></span>
-                    <button
-                      type="button"
-                      class="pin-dot"
-                      aria-label="Xem sản phẩm gắn thẻ: {{ pin.name }}"
-                    >
-                      <app-icon name="Tag" size="12"></app-icon>
-                    </button>
-
-                    <!-- Pin Tooltip -->
-                    <div class="pin-tooltip">
-                      <div class="tooltip-header">
-                        @if (pin.productId) {
-                          <a
-                            [routerLink]="['/products', pin.productId]"
-                            class="tooltip-product-name with-link"
-                            (click)="$event.stopPropagation()"
-                            title="Xem chi tiết sản phẩm"
-                          >
-                            <span>{{ pin.name }}</span>
-                            <app-icon name="ExternalLink" size="12"></app-icon>
-                          </a>
-                        } @else {
-                          <span class="tooltip-product-name">{{ pin.name }}</span>
-                        }
-                      </div>
-                      <div class="tooltip-price">{{ formatPrice(pin.price) }}</div>
-                      @if (pin.productId) {
-                        <button
-                          type="button"
-                          class="tooltip-add-cart-btn"
-                          (click)="addToCart(pin, $event)"
-                          [disabled]="addingToCartProductId() === pin.productId"
-                          aria-label="Thêm vào giỏ hàng"
-                        >
-                          @if (addingToCartProductId() === pin.productId) {
-                            <app-icon name="LoaderCircle" size="12" class="animate-spin"></app-icon>
-                            <span>Đang thêm...</span>
-                          } @else {
-                            <app-icon name="ShoppingBag" size="12"></app-icon>
-                            <span>Thêm vào giỏ</span>
-                          }
-                        </button>
-                      }
-                    </div>
-                  </div>
-                }
-              }
-            </div>
-
-            <!-- Hint on image -->
-            @if (activePost()!.taggedProducts && activePost()!.taggedProducts!.length > 0) {
-              <div class="media-hint">
-                <app-icon name="Tag" size="14"></app-icon>
-                <span>Chạm hoặc rê chuột vào các điểm gắn thẻ để xem thông tin sản phẩm</span>
-              </div>
-            }
-          </div>
-
-          <!-- Right: Info, Tagged Products List, Comments Section -->
-          <div class="detail-info-pane">
-
-            <!-- Author & Actions Header -->
-            <div class="detail-header">
-              <div class="author-row">
-                <div
-                  class="author-avatar large"
-                  [style.background]="getAvatarGradient(activePost()!.authorName)"
-                >
-                  {{ getAuthorInitial(activePost()!.authorName) }}
-                </div>
-                <div class="author-meta">
-                  <span class="author-name font-semibold">{{ activePost()!.authorName }}</span>
-                  <div class="post-date-row">
-                    <app-icon name="Clock" size="12" class="text-stone-400"></app-icon>
-                    <span>{{ formatRelativeTime(activePost()!.createdAt) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Action buttons -->
-              <div class="detail-actions">
-                <button
-                  type="button"
-                  class="action-btn share-btn"
-                  (click)="sharePost(activePost()!, $event)"
-                  aria-label="Sao chép liên kết chia sẻ"
-                  title="Sao chép liên kết chia sẻ"
-                >
-                  <app-icon name="Share2" size="16"></app-icon>
-                  <span>Chia sẻ</span>
-                </button>
-                <button
-                  type="button"
-                  class="action-btn close-btn"
-                  (click)="closeDetail()"
-                  aria-label="Đóng chi tiết bài viết"
-                  title="Đóng chi tiết"
-                >
-                  <app-icon name="X" size="18"></app-icon>
-                </button>
-              </div>
-            </div>
-
-            <!-- Post Content -->
-            <div class="detail-content">
-              <h2 class="detail-title">{{ activePost()!.title }}</h2>
-              @if (activePost()!.description) {
-                <p class="detail-desc">{{ activePost()!.description }}</p>
-              }
-
-              <!-- Stats bar -->
-              <div class="detail-stats-bar">
-                <div class="stat-pill like-pill">
-                  <app-icon name="Heart" size="16" class="text-rose-500" [filled]="(activePost()!.likesCount || 0) > 0"></app-icon>
-                  <span>{{ activePost()!.likesCount || 0 }} lượt thích</span>
-                </div>
-                <div class="stat-pill">
-                  <app-icon name="MessageCircle" size="16" class="text-stone-500"></app-icon>
-                  <span>{{ activeComments().length }} bình luận</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Tagged Products List Section -->
-            @if (activePost()!.taggedProducts && activePost()!.taggedProducts!.length > 0) {
-              <div class="tagged-section">
-                <h3 class="section-title">
-                  <app-icon name="Tag" size="16" class="text-amber-700"></app-icon>
-                  <span>Sản phẩm trong thiết kế ({{ activePost()!.taggedProducts!.length }})</span>
-                </h3>
-
-                <div class="tagged-list">
-                  @for (prod of activePost()!.taggedProducts!; track $index) {
-                    <div class="tagged-item">
-                      <div class="tagged-info">
-                        @if (prod.productId) {
-                          <a
-                            [routerLink]="['/products', prod.productId]"
-                            class="tagged-name with-link"
-                            title="Xem trang sản phẩm"
-                          >
-                            <span>{{ prod.name }}</span>
-                            <app-icon name="ExternalLink" size="13"></app-icon>
-                          </a>
-                        } @else {
-                          <span class="tagged-name">{{ prod.name }}</span>
-                        }
-                        <span class="tagged-price">{{ formatPrice(prod.price) }}</span>
-                      </div>
-
-                      @if (prod.productId) {
-                        <button
-                          type="button"
-                          class="add-cart-btn"
-                          (click)="addToCart(prod, $event)"
-                          [disabled]="addingToCartProductId() === prod.productId"
-                          aria-label="Thêm {{ prod.name }} vào giỏ hàng"
-                        >
-                          @if (addingToCartProductId() === prod.productId) {
-                            <app-icon name="LoaderCircle" size="14" class="animate-spin"></app-icon>
-                            <span>Đang thêm</span>
-                          } @else {
-                            <app-icon name="ShoppingBag" size="14"></app-icon>
-                            <span>Thêm vào giỏ</span>
-                          }
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Comments Section -->
-            <div class="comments-section">
-              <h3 class="section-title">
-                <app-icon name="MessageCircle" size="16" class="text-amber-700"></app-icon>
-                <span>Thảo luận ({{ activeComments().length }})</span>
-              </h3>
-
-              <!-- Comment List -->
-              <div class="comments-list">
-                @if (activeComments().length === 0) {
-                  <div class="empty-comments">
-                    <p>Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ về thiết kế này!</p>
-                  </div>
-                } @else {
-                  @for (cmt of activeComments(); track cmt.id) {
-                    <div class="comment-item">
-                      <div
-                        class="comment-avatar"
-                        [style.background]="getAvatarGradient(cmt.authorName)"
-                      >
-                        {{ getAuthorInitial(cmt.authorName) }}
-                      </div>
-                      <div class="comment-bubble">
-                        <div class="comment-meta">
-                          <span class="comment-author">{{ cmt.authorName }}</span>
-                          <span class="comment-time">{{ formatRelativeTime(cmt.createdAt) }}</span>
-                        </div>
-                        <p class="comment-text">{{ cmt.content }}</p>
-                      </div>
-                    </div>
-                  }
-                }
-              </div>
-
-              <!-- New Comment Box -->
-              <div class="comment-form-wrap">
-                @if (isLoggedIn()) {
-                  <form (ngSubmit)="submitComment()" class="comment-form">
-                    <div class="comment-input-wrap">
-                      <textarea
-                        class="comment-textarea"
-                        rows="3"
-                        maxlength="500"
-                        placeholder="Chia sẻ nhận xét hoặc đặt câu hỏi về thiết kế này (tối đa 500 ký tự)..."
-                        [ngModel]="newCommentContent()"
-                        (ngModelChange)="newCommentContent.set($event)"
-                        name="commentContent"
-                        aria-label="Nhập nội dung bình luận"
-                      ></textarea>
-                      <div class="textarea-footer">
-                        <span class="char-count" [class.near-limit]="newCommentContent().length >= 450">
-                          {{ newCommentContent().length }}/500
-                        </span>
-                        <button
-                          type="submit"
-                          class="submit-comment-btn"
-                          [disabled]="isSubmittingComment() || !newCommentContent().trim()"
-                          aria-label="Gửi bình luận"
-                        >
-                          @if (isSubmittingComment()) {
-                            <app-icon name="LoaderCircle" size="16" class="animate-spin"></app-icon>
-                            <span>Đang gửi...</span>
-                          } @else {
-                            <app-icon name="Send" size="16"></app-icon>
-                            <span>Gửi</span>
-                          }
-                        </button>
-                      </div>
-                    </div>
-
-                    @if (commentError()) {
-                      <div class="comment-error" role="alert">
-                        <app-icon name="AlertCircle" size="14"></app-icon>
-                        <span>{{ commentError() }}</span>
-                      </div>
-                    }
-                  </form>
-                } @else {
-                  <div class="login-prompt-card">
-                    <div class="prompt-text">
-                      <app-icon name="CircleUserRound" size="20" class="text-amber-600"></app-icon>
-                      <span>Đăng nhập để tham gia thảo luận và chia sẻ cảm nghĩ về thiết kế này.</span>
-                    </div>
-                    <a
-                      [routerLink]="['/login']"
-                      [queryParams]="{ returnUrl: '/community' }"
-                      class="login-redirect-btn"
-                      aria-label="Đi đến trang đăng nhập"
-                    >
-                      <span>Đăng nhập ngay</span>
-                    </a>
-                  </div>
-                }
-              </div>
-
-            </div>
-
+      <div class="detail-grid">
+        <!-- Cột trái: Ảnh kích thước lớn của không gian thiết kế -->
+        <div class="detail-media-pane">
+          <div class="image-wrapper">
+            <img [src]="activePost()!.imageUrl" [alt]="activePost()!.title" class="detail-image" />
           </div>
         </div>
 
+        <!-- Cột phải: Thông tin tác giả, Thả tim, Danh sách sản phẩm & Thảo luận -->
+        <div class="detail-info-pane">
+
+          <!-- Header: Tác giả & Nút chia sẻ, đóng -->
+          <div class="detail-header">
+            <div class="author-row">
+              <div class="author-avatar large" [style.background]="getAuthorAvatar(activePost()!) ? 'transparent' : getAvatarGradient(activePost()!.authorName)">
+                <img *ngIf="getAuthorAvatar(activePost()!) as avt; else detailInitialTpl"
+                  [src]="avt" [alt]="activePost()!.authorName" class="author-avatar-img" />
+                <ng-template #detailInitialTpl>
+                  {{ getAuthorInitial(activePost()!.authorName) }}
+                </ng-template>
+              </div>
+              <div class="author-meta">
+                <span class="author-name font-semibold">{{ activePost()!.authorName }}</span>
+                <div class="post-date-row">
+                  <app-icon name="Clock" size="12" class="text-stone-400"></app-icon>
+                  <span>{{ formatRelativeTime(activePost()!.createdAt) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-actions">
+              <button type="button" class="action-btn share-btn" (click)="sharePost(activePost()!, $event)"
+                aria-label="Sao chép liên kết chia sẻ" title="Sao chép liên kết chia sẻ">
+                <app-icon name="Share2" size="16"></app-icon>
+              </button>
+              <button type="button" class="action-btn close-btn" (click)="closeDetail()"
+                aria-label="Đóng chi tiết bài viết" title="Đóng chi tiết">
+                <app-icon name="X" size="18"></app-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Nội dung bài viết -->
+          <div class="detail-content">
+            <h2 class="detail-title">{{ activePost()!.title }}</h2>
+            @if (activePost()!.description) {
+            <p class="detail-desc">{{ activePost()!.description }}</p>
+            }
+
+            <!-- Thanh tương tác cộng đồng trong Modal: Thả tim & Thảo luận -->
+            <div class="detail-social-actions-bar">
+              <button type="button" class="detail-like-btn" [class.liked]="isLiked(activePost()!.id)"
+                (click)="toggleLike(activePost()!)" [title]="isLiked(activePost()!.id) ? 'Bỏ thích' : 'Thả tim'">
+                <app-icon name="Heart" size="18" [filled]="isLiked(activePost()!.id)"
+                  [class.text-rose-500]="isLiked(activePost()!.id)"></app-icon>
+                <span>{{ activePost()!.likesCount || 0 }} lượt thích</span>
+              </button>
+
+              <div class="detail-comment-stat">
+                <app-icon name="MessageCircle" size="18" class="text-stone-500"></app-icon>
+                <span>{{ activeComments().length }} bình luận</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danh sách sản phẩm gắn thẻ trong thiết kế -->
+          @if (activePost()!.taggedProducts && activePost()!.taggedProducts!.length > 0) {
+          <div class="tagged-section">
+            <h3 class="section-title">
+              <app-icon name="Tag" size="16" class="text-amber-700"></app-icon>
+              <span>Nội thất trong thiết kế ({{ activePost()!.taggedProducts!.length }})</span>
+            </h3>
+
+            <div class="tagged-list">
+              @for (prod of activePost()!.taggedProducts!; track $index) {
+              <div class="tagged-item">
+                <!-- Ảnh sản phẩm nội thất -->
+                <div class="tagged-thumb-wrap">
+                  <img [src]="getProductThumbnail(prod)" [alt]="prod.name" class="tagged-thumb-img" loading="lazy" />
+                </div>
+
+                <!-- Tên & Giá sản phẩm -->
+                <div class="tagged-info">
+                  @if (prod.productId) {
+                  <a [routerLink]="['/products', prod.productId]" class="tagged-name with-link"
+                    title="Xem chi tiết sản phẩm">
+                    <span>{{ prod.name }}</span>
+                    <app-icon name="ExternalLink" size="12"></app-icon>
+                  </a>
+                  } @else {
+                  <span class="tagged-name" [title]="prod.name">{{ prod.name }}</span>
+                  }
+                  <span class="tagged-price">{{ formatPrice(prod.price) }}</span>
+                </div>
+
+                <!-- Nút thêm vào giỏ hàng (Chỉ icon) -->
+                @if (prod.productId) {
+                <button type="button" class="add-cart-btn icon-only" (click)="addToCart(prod, $event)"
+                  [disabled]="addingToCartProductId() === prod.productId"
+                  [title]="'Thêm ' + prod.name + ' vào giỏ hàng'"
+                  aria-label="Thêm {{ prod.name }} vào giỏ hàng">
+                  @if (addingToCartProductId() === prod.productId) {
+                  <app-icon name="LoaderCircle" size="16" class="animate-spin"></app-icon>
+                  } @else {
+                  <app-icon name="ShoppingBag" size="16"></app-icon>
+                  }
+                </button>
+                }
+              </div>
+              }
+            </div>
+          </div>
+          }
+
+          <!-- Khu vực bình luận & Thảo luận cộng đồng -->
+          <div class="comments-section" id="community-comment-box">
+            <h3 class="section-title">
+              <app-icon name="MessageCircle" size="16" class="text-amber-700"></app-icon>
+              <span>Thảo luận cộng đồng ({{ activeComments().length }})</span>
+            </h3>
+
+            <!-- Danh sách bình luận & các nhánh câu trả lời nằm ngay bên dưới -->
+            <div class="comments-list">
+              @if (commentThreads().length === 0) {
+              <div class="empty-comments">
+                <p>Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ về thiết kế này!</p>
+              </div>
+              } @else {
+              @for (thread of commentThreads(); track thread.comment.id) {
+              <div class="comment-thread-block">
+                <!-- Bình luận gốc (Parent) -->
+                <div class="comment-item" [id]="'comment-' + thread.comment.id">
+                  <div class="comment-avatar" [style.background]="getCommentAuthorAvatar(thread.comment) ? 'transparent' : getAvatarGradient(thread.comment.authorName)">
+                    <img *ngIf="getCommentAuthorAvatar(thread.comment) as cAvt; else parentInitialTpl"
+                      [src]="cAvt" [alt]="thread.comment.authorName" class="author-avatar-img" />
+                    <ng-template #parentInitialTpl>
+                      {{ getAuthorInitial(thread.comment.authorName) }}
+                    </ng-template>
+                  </div>
+                  <div class="comment-bubble">
+                    <div class="comment-meta">
+                      <span class="comment-author">{{ thread.comment.authorName }}</span>
+                      <span class="comment-time">{{ formatRelativeTime(thread.comment.createdAt) }}</span>
+                    </div>
+
+                    @if (getReplyTarget(thread.comment.content); as targetUser) {
+                    <div class="comment-reply-indicator">
+                      <app-icon name="CornerDownRight" size="13" class="reply-corner-icon"></app-icon>
+                      <span class="reply-target-pill">Phản hồi <strong>@{{ targetUser }}</strong></span>
+                    </div>
+                    }
+
+                    <p class="comment-text">{{ getCleanCommentContent(thread.comment.content) }}</p>
+
+                    <div class="comment-bubble-footer">
+                      <button type="button" class="comment-reply-btn" (click)="replyToComment(thread.comment)"
+                        [title]="'Trả lời bình luận của ' + thread.comment.authorName" aria-label="Trả lời bình luận">
+                        <app-icon name="Reply" size="12"></app-icon>
+                        <span>Trả lời</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Danh sách câu trả lời nằm NGAY DƯỚI câu mà nó trả lời -->
+                @if (thread.replies.length > 0) {
+                <div class="replies-branch-container">
+                  @for (rep of thread.replies; track rep.id) {
+                  <div class="comment-item is-reply" [id]="'comment-' + rep.id">
+                    <div class="comment-avatar reply-avatar" [style.background]="getCommentAuthorAvatar(rep) ? 'transparent' : getAvatarGradient(rep.authorName)">
+                      <img *ngIf="getCommentAuthorAvatar(rep) as rAvt; else repInitialTpl"
+                        [src]="rAvt" [alt]="rep.authorName" class="author-avatar-img" />
+                      <ng-template #repInitialTpl>
+                        {{ getAuthorInitial(rep.authorName) }}
+                      </ng-template>
+                    </div>
+                    <div class="comment-bubble reply-bubble">
+                      <div class="comment-meta">
+                        <span class="comment-author">{{ rep.authorName }}</span>
+                        <span class="comment-time">{{ formatRelativeTime(rep.createdAt) }}</span>
+                      </div>
+
+                      @if (getReplyTarget(rep.content); as targetUser) {
+                      <div class="comment-reply-indicator">
+                        <app-icon name="CornerDownRight" size="13" class="reply-corner-icon"></app-icon>
+                        <span class="reply-target-pill">Phản hồi <strong>@{{ targetUser }}</strong></span>
+                      </div>
+                      }
+
+                      <p class="comment-text">{{ getCleanCommentContent(rep.content) }}</p>
+
+                      <div class="comment-bubble-footer">
+                        <button type="button" class="comment-reply-btn" (click)="replyToComment(rep, thread.comment)"
+                          [title]="'Trả lời bình luận của ' + rep.authorName" aria-label="Trả lời bình luận">
+                          <app-icon name="Reply" size="12"></app-icon>
+                          <span>Trả lời</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  }
+                </div>
+                }
+              </div>
+              }
+              }
+            </div>
+
+            <!-- Khung viết bình luận mới -->
+            <div class="comment-form-wrap">
+              @if (isLoggedIn()) {
+              <form (ngSubmit)="submitComment()" class="comment-form">
+                <!-- Banner ngữ cảnh phản hồi bình luận -->
+                @if (replyingToComment(); as rep) {
+                <div class="reply-context-banner">
+                  <div class="reply-context-left">
+                    <app-icon name="CornerDownRight" size="14" class="reply-banner-icon"></app-icon>
+                    <span class="reply-context-text">
+                      Đang trả lời <strong>@{{ rep.authorName }}</strong>:
+                      <em class="reply-context-snippet">"{{ truncateText(getCleanCommentContent(rep.content), 36) }}"</em>
+                    </span>
+                  </div>
+                  <button type="button" class="cancel-reply-btn" (click)="cancelReply()"
+                    title="Hủy chế độ trả lời" aria-label="Hủy chế độ trả lời">
+                    <app-icon name="X" size="13"></app-icon>
+                    <span>Hủy</span>
+                  </button>
+                </div>
+                }
+
+                <div class="comment-input-wrap">
+                  <textarea id="communityCommentTextarea" class="comment-textarea" rows="3" maxlength="500"
+                    [placeholder]="replyingToComment() ? ('Viết câu trả lời cho @' + replyingToComment()!.authorName + ' (tối đa 500 ký tự)...') : 'Viết cảm nghĩ hoặc góp ý về thiết kế này (tối đa 500 ký tự)...'"
+                    [ngModel]="newCommentContent()" (ngModelChange)="newCommentContent.set($event)"
+                    name="commentContent" aria-label="Nhập nội dung bình luận"></textarea>
+                  <div class="textarea-footer">
+                    <span class="char-count" [class.near-limit]="newCommentContent().length >= 450">
+                      {{ newCommentContent().length }}/500
+                    </span>
+                    <button type="submit" class="submit-comment-btn"
+                      [disabled]="isSubmittingComment() || !newCommentContent().trim()"
+                      [attr.aria-label]="replyingToComment() ? 'Gửi câu trả lời' : 'Gửi bình luận'">
+                      @if (isSubmittingComment()) {
+                      <app-icon name="LoaderCircle" size="16" class="animate-spin"></app-icon>
+                      <span>Đang gửi...</span>
+                      } @else {
+                      <app-icon name="Send" size="16"></app-icon>
+                      <span>{{ replyingToComment() ? 'Gửi phản hồi' : 'Gửi bình luận' }}</span>
+                      }
+                    </button>
+                  </div>
+                </div>
+
+                @if (commentError()) {
+                <div class="comment-error" role="alert">
+                  <app-icon name="AlertCircle" size="14"></app-icon>
+                  <span>{{ commentError() }}</span>
+                </div>
+                }
+              </form>
+              } @else {
+              <div class="login-prompt-card">
+                <div class="prompt-text">
+                  <app-icon name="CircleUserRound" size="20" class="text-amber-600"></app-icon>
+                  <span>Đăng nhập để tham gia thảo luận và trả lời bình luận trong thiết kế này.</span>
+                </div>
+                <a [routerLink]="['/login']" [queryParams]="{ returnUrl: '/community?post=' + activePost()!.id }"
+                  class="login-redirect-btn" aria-label="Đi đến trang đăng nhập">
+                  <span>Đăng nhập ngay</span>
+                </a>
+              </div>
+              }
+            </div>
+
+          </div>
+
+        </div>
       </div>
+
     </div>
+  </div>
   }
 
   <!-- Floating Toast Notification -->
   @if (toastMessage()) {
-    <div class="floating-toast" role="status" aria-live="polite">
-      <app-icon name="Check" size="16" class="toast-check"></app-icon>
-      <span>{{ toastMessage() }}</span>
-    </div>
+  <div class="floating-toast" role="status" aria-live="polite">
+    <app-icon name="Check" size="16" class="toast-check"></app-icon>
+    <span>{{ toastMessage() }}</span>
+  </div>
   }
 </div>

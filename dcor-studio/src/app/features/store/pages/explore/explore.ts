@@ -65,9 +65,23 @@ export class ExploreComponent implements OnInit, OnDestroy {
   
   searchQuery = '';
   filters: FilterState = { ...INITIAL_FILTER_STATE };
-  sortBy = 'featured';
+  sortCriterion: 'featured' | 'newest' | 'sale' = 'featured';
+  priceSortOrder: '' | 'price-asc' | 'price-desc' = '';
   currentPage = 1;
   itemsPerPage = 12;
+
+  get sortBy(): string {
+    return this.priceSortOrder || this.sortCriterion;
+  }
+  set sortBy(val: string) {
+    if (val === 'price-asc' || val === 'price-desc') {
+      this.priceSortOrder = val;
+    } else if (val === 'featured' || val === 'newest' || val === 'sale') {
+      this.sortCriterion = val;
+    } else if (!val || val === 'default') {
+      this.priceSortOrder = '';
+    }
+  }
 
   quickViewProduct: CatalogProduct | null = null;
   isQuickViewOpen = false;
@@ -180,7 +194,12 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (savedState.filters) {
           this.filters = { ...savedState.filters };
         }
-        if (savedState.sortBy) {
+        if (savedState.sortCriterion) {
+          this.sortCriterion = savedState.sortCriterion;
+        }
+        if (savedState.priceSortOrder !== undefined) {
+          this.priceSortOrder = savedState.priceSortOrder;
+        } else if (savedState.sortBy) {
           this.sortBy = savedState.sortBy;
         }
         if (savedState.searchQuery !== undefined) {
@@ -682,24 +701,64 @@ export class ExploreComponent implements OnInit, OnDestroy {
       return price >= min && price <= max;
     });
 
-    if (this.sortBy === 'featured') {
+    // 1. Áp dụng tiêu chí lọc "Đang khuyến mãi": ưu tiên lọc các sản phẩm đang có sale
+    if (this.sortCriterion === 'sale') {
+      const onSaleList = list.filter(prod => this.isOnSale(prod));
+      if (onSaleList.length > 0) {
+        list = onSaleList;
+      }
+    }
+
+    // 2. Sắp xếp danh sách kết hợp giữa tiêu chí chính và sắp xếp theo giá
+    if (this.priceSortOrder === 'price-asc') {
       list.sort((a, b) => {
-        if (a.isBestSeller && !b.isBestSeller) return -1;
-        if (!a.isBestSeller && b.isBestSeller) return 1;
+        const diff = this.getProductPriceVal(a) - this.getProductPriceVal(b);
+        if (diff !== 0) return diff;
+        if (this.sortCriterion === 'featured') {
+          if (a.isBestSeller && !b.isBestSeller) return -1;
+          if (!a.isBestSeller && b.isBestSeller) return 1;
+        } else if (this.sortCriterion === 'newest') {
+          const dA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dB - dA;
+        } else if (this.sortCriterion === 'sale') {
+          return (b.discountValue || 0) - (a.discountValue || 0);
+        }
         return 0;
       });
-    } else if (this.sortBy === 'newest') {
+    } else if (this.priceSortOrder === 'price-desc') {
       list.sort((a, b) => {
-        const dA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dB - dA;
+        const diff = this.getProductPriceVal(b) - this.getProductPriceVal(a);
+        if (diff !== 0) return diff;
+        if (this.sortCriterion === 'featured') {
+          if (a.isBestSeller && !b.isBestSeller) return -1;
+          if (!a.isBestSeller && b.isBestSeller) return 1;
+        } else if (this.sortCriterion === 'newest') {
+          const dA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dB - dA;
+        } else if (this.sortCriterion === 'sale') {
+          return (b.discountValue || 0) - (a.discountValue || 0);
+        }
+        return 0;
       });
-    } else if (this.sortBy === 'price-asc') {
-      list.sort((a, b) => this.getProductPriceVal(a) - this.getProductPriceVal(b));
-    } else if (this.sortBy === 'price-desc') {
-      list.sort((a, b) => this.getProductPriceVal(b) - this.getProductPriceVal(a));
-    } else if (this.sortBy === 'sale') {
-      list.sort((a, b) => (b.discountValue || 0) - (a.discountValue || 0));
+    } else {
+      // Mặc định (không sắp xếp giá): sắp xếp theo tiêu chí đã chọn
+      if (this.sortCriterion === 'featured') {
+        list.sort((a, b) => {
+          if (a.isBestSeller && !b.isBestSeller) return -1;
+          if (!a.isBestSeller && b.isBestSeller) return 1;
+          return 0;
+        });
+      } else if (this.sortCriterion === 'newest') {
+        list.sort((a, b) => {
+          const dA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dB - dA;
+        });
+      } else if (this.sortCriterion === 'sale') {
+        list.sort((a, b) => (b.discountValue || 0) - (a.discountValue || 0));
+      }
     }
 
     return list;
@@ -830,10 +889,38 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.scrollToTop();
   }
 
-  onSortChange(newSort: string) {
-    this.sortBy = newSort;
+  get isPriceSort(): boolean {
+    return this.priceSortOrder === 'price-asc' || this.priceSortOrder === 'price-desc';
+  }
+
+  setSortCriterion(criterion: 'featured' | 'newest' | 'sale') {
+    if (this.sortCriterion === criterion && criterion !== 'featured') {
+      this.sortCriterion = 'featured';
+    } else {
+      this.sortCriterion = criterion;
+    }
     this.currentPage = 1;
     this.scrollToTop();
+  }
+
+  onPriceSortChange(order: string) {
+    if (order === 'price-asc' || order === 'price-desc') {
+      this.priceSortOrder = order;
+    } else {
+      this.priceSortOrder = '';
+    }
+    this.currentPage = 1;
+    this.scrollToTop();
+  }
+
+  onSortChange(newSort: string) {
+    if (newSort === 'price-asc' || newSort === 'price-desc') {
+      this.onPriceSortChange(newSort);
+    } else if (newSort === 'featured' || newSort === 'newest' || newSort === 'sale') {
+      this.setSortCriterion(newSort);
+    } else {
+      this.onPriceSortChange('');
+    }
   }
 
   clearAllFilters() {
@@ -1081,6 +1168,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
         currentPage: this.currentPage,
         filters: this.filters,
         sortBy: this.sortBy,
+        sortCriterion: this.sortCriterion,
+        priceSortOrder: this.priceSortOrder,
         searchQuery: this.searchQuery,
         productId: productId || '',
         timestamp: Date.now()

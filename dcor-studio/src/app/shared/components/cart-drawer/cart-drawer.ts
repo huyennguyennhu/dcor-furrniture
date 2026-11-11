@@ -123,6 +123,10 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['isOpen']?.currentValue === true) {
+      // Tải lại giỏ hàng để luôn hiển thị sản phẩm mới nhất
+      this.cartService.loadCart().subscribe(() => {
+        this.syncPromotionsWithSubTotal();
+      });
       // Khi người dùng ấn vào giỏ hàng: nạp khuyến mãi và tự động áp mã tốt nhất ngay lập tức!
       this.promotionService.loadPromotions().subscribe(() => {
         this.syncPromotionsWithSubTotal();

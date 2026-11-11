@@ -13,6 +13,7 @@ export interface TaggedProductItem {
   productId: string;
   name: string;
   price: number; // số nguyên VND
+  imageUrl?: string;
 }
 
 export interface DesignPostPayload {
@@ -112,7 +113,8 @@ export class CommunityPublishService {
         y,
         productId: obj.productId,
         name: obj.name,
-        price: Math.round(obj.unitPrice || 0)
+        price: Math.round(obj.unitPrice || 0),
+        imageUrl: obj.imageUrl || undefined
       };
     });
   }

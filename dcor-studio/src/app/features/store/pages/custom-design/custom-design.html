@@ -12,48 +12,53 @@
   <!-- ============================================== -->
   <ng-container *ngIf="plannerService.currentStep() === 'planner'">
     <div class="planner-workspace-shell">
-      
+
       <!-- Top Bar điều hướng & Thao tác chính -->
       <header class="planner-topbar">
         <!-- Nhóm bên trái: Đổi phòng & Thông tin phòng -->
         <div class="topbar-left">
-          <button 
-            type="button" 
-            class="topbar-back-btn" 
-            (click)="handleChangeRoomClick()"
-            title="Quay lại đổi mặt bằng hoặc chỉnh lại kích thước phòng"
-            aria-label="Đổi phòng">
+          <button type="button" class="topbar-back-btn" (click)="handleChangeRoomClick()"
+            title="Quay lại đổi mặt bằng hoặc chỉnh lại kích thước phòng" aria-label="Đổi phòng">
             <app-icon name="ArrowLeft" size="16"></app-icon>
-            <span class="back-text">Đổi phòng</span>
           </button>
 
-          <div class="topbar-room-badge">
-            <span class="room-name">{{ plannerService.currentDraftTitle() || plannerService.background()?.name }}</span>
-            <span class="room-dims">{{ plannerService.dimensions()?.length }}m × {{ plannerService.dimensions()?.width }}m</span>
+          <div class="topbar-room-badge" [class.is-editing]="isEditingTitle()">
+            @if (!isEditingTitle()) {
+            <div class="room-title-interactive" (click)="startEditingTitle()" title="Bấm vào để chỉnh sửa tên phòng">
+              <span class="room-name">{{ plannerService.currentDraftTitle() || plannerService.background()?.name
+                }}</span>
+              <span class="badge-edit-hint" aria-hidden="true" title="Chỉnh sửa tên">
+                <app-icon name="Pencil" size="12"></app-icon>
+              </span>
+            </div>
+            } @else {
+            <div class="room-title-editor">
+              <input id="topbar-title-input" type="text" class="room-name-inline-input" [ngModel]="editingTitleValue()"
+                (ngModelChange)="editingTitleValue.set($event)" (keydown.enter)="saveInlineTitle()"
+                (keydown.escape)="cancelEditingTitle()" (blur)="saveInlineTitle()" maxlength="60"
+                placeholder="Nhập tên phòng..." />
+              <button type="button" class="inline-save-btn" (mousedown)="$event.preventDefault(); saveInlineTitle()"
+                title="Lưu tên" aria-label="Lưu tên">
+                <app-icon name="Check" size="12"></app-icon>
+              </button>
+            </div>
+            }
+            <span class="room-dims">{{ plannerService.dimensions()?.length }}m × {{ plannerService.dimensions()?.width
+              }}m</span>
           </div>
         </div>
 
         <!-- Nhóm ở giữa: Undo / Redo & 3 nút hành động chính (Lưu, Xuất ảnh, Đăng bài) -->
         <div class="topbar-center">
           <div class="history-controls-group">
-            <button 
-              type="button" 
-              class="topbar-icon-btn" 
-              [disabled]="!plannerService.canUndo()"
-              (click)="plannerService.undo()"
-              title="Hoàn tác (Ctrl+Z)"
-              aria-label="Hoàn tác">
+            <button type="button" class="topbar-icon-btn" [disabled]="!plannerService.canUndo()"
+              (click)="plannerService.undo()" title="Hoàn tác (Ctrl+Z)" aria-label="Hoàn tác">
               <app-icon name="Undo2" size="16"></app-icon>
               <span class="btn-text">Hoàn tác</span>
             </button>
 
-            <button 
-              type="button" 
-              class="topbar-icon-btn" 
-              [disabled]="!plannerService.canRedo()"
-              (click)="plannerService.redo()"
-              title="Làm lại (Ctrl+Y)"
-              aria-label="Làm lại">
+            <button type="button" class="topbar-icon-btn" [disabled]="!plannerService.canRedo()"
+              (click)="plannerService.redo()" title="Làm lại (Ctrl+Y)" aria-label="Làm lại">
               <app-icon name="Redo2" size="16"></app-icon>
               <span class="btn-text">Làm lại</span>
             </button>
@@ -61,95 +66,75 @@
 
           <!-- Nhóm các nút hành động chính trên 1 hàng -->
           <div class="topbar-actions-group">
-            
-            <!-- Lối vào Thiết kế của tôi -->
-            <a 
-              routerLink="/account/designs" 
-              class="topbar-action-btn my-designs-btn" 
-              title="Đi đến trang Thiết kế của tôi"
-              aria-label="Thiết kế của tôi">
-              <app-icon name="Layers" size="16"></app-icon>
-              <span class="action-btn-text">Thiết kế của tôi</span>
-            </a>
 
-            <!-- 1. Lưu thiết kế & Tự lưu nháp trên máy chủ -->
-            <button 
-              type="button" 
-              class="topbar-action-btn save-btn" 
-              [class.save-error]="autoSaveError()"
-              [disabled]="plannerService.objects().length === 0 || isSavingDraft()"
-              (click)="autoSaveError() ? retryAutoSave() : handleSaveDesignClick()"
-              [title]="autoSaveError() ? (autoSaveError() + ' - Bấm để thử lại') : (plannerService.lastSavedTime() || 'Lưu thiết kế')"
-              [attr.aria-label]="autoSaveError() || plannerService.lastSavedTime() || 'Lưu thiết kế'">
-              <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : (autoSaveError() ? 'AlertTriangle' : 'Save')" size="16" [class.icon-spin]="isSavingDraft()"></app-icon>
+            <!-- 1. Nút Lưu thiết kế vĩnh viễn -->
+            <button type="button" class="topbar-action-btn save-btn"
+              [class.is-saved]="isDesignSavedPermanently() && !hasUnsavedChanges()"
+              [disabled]="plannerService.objects().length === 0 || isSavingDraft()" (click)="handleSaveDesignClick()"
+              [title]="(isDesignSavedPermanently() && !hasUnsavedChanges()) ? 'Thiết kế đã được lưu vĩnh viễn' : 'Lưu thiết kế vĩnh viễn'"
+              [attr.aria-label]="(isDesignSavedPermanently() && !hasUnsavedChanges()) ? 'Đã lưu' : 'Lưu thiết kế'">
+              <app-icon
+                [name]="isSavingDraft() ? 'LoaderCircle' : ((isDesignSavedPermanently() && !hasUnsavedChanges()) ? 'Check' : 'Save')"
+                size="16" [class.icon-spin]="isSavingDraft()">
+              </app-icon>
               <span class="action-btn-text">
-                {{ autoSaveError() ? (autoSaveError() + ' · Thử lại') : (isSavingDraft() ? 'Đang lưu...' : (plannerService.lastSavedTime() || 'Lưu thiết kế')) }}
+                {{ isSavingDraft() ? 'Đang lưu...' : ((isDesignSavedPermanently() && !hasUnsavedChanges()) ? 'Đã lưu' :
+                'Lưu thiết kế') }}
               </span>
             </button>
 
             <!-- 2. Xuất ảnh thiết kế PNG -->
-            <button 
-              type="button" 
-              class="topbar-action-btn export-btn" 
+            <button type="button" class="topbar-action-btn export-btn"
               [disabled]="plannerService.objects().length === 0 || publishService.isExporting()"
-              (click)="handleExportPngClick()"
-              title="Tải ảnh thiết kế PNG (dcor-thiet-ke-YYYYMMDD.png)"
+              (click)="handleExportPngClick()" title="Tải ảnh thiết kế PNG (dcor-thiet-ke-YYYYMMDD.png)"
               aria-label="Xuất ảnh PNG">
-              <app-icon [name]="publishService.isExporting() ? 'LoaderCircle' : 'Download'" size="16" [class.icon-spin]="publishService.isExporting()"></app-icon>
+              <app-icon [name]="publishService.isExporting() ? 'LoaderCircle' : 'Download'" size="16"
+                [class.icon-spin]="publishService.isExporting()"></app-icon>
               <span class="action-btn-text">Xuất ảnh</span>
             </button>
 
             <!-- 3. Đăng lên Cộng đồng -->
-            <button 
-              type="button" 
-              class="topbar-action-btn publish-btn" 
+            <button type="button" class="topbar-action-btn publish-btn"
               [disabled]="plannerService.objects().length === 0 || (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null)"
               (click)="handlePublishClick()"
               [title]="(!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Thiết kế này đã được đăng' : 'Đăng thiết kế lên Cộng đồng DCor'"
               aria-label="Đăng bài">
               <app-icon name="Share2" size="16"></app-icon>
               <span class="action-btn-text">
-                {{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Đã đăng' : 'Đăng bài' }}
+                {{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !==
+                null) ? 'Đã đăng' : 'Đăng bài' }}
               </span>
             </button>
 
             <!-- Menu "..." gom 3 nút trên màn hình <= 768px -->
             <div class="topbar-more-menu-wrap">
-              <button 
-                type="button" 
-                class="topbar-more-btn" 
-                (click)="toggleMoreMenu()" 
-                title="Tùy chọn khác" 
+              <button type="button" class="topbar-more-btn" (click)="toggleMoreMenu()" title="Tùy chọn khác"
                 aria-label="Tùy chọn khác">
                 <app-icon name="MoreHorizontal" size="18"></app-icon>
               </button>
 
               <div *ngIf="isMoreMenuOpen()" class="topbar-more-dropdown">
-                <button 
-                  type="button" 
-                  class="dropdown-menu-item" 
+                <button type="button" class="dropdown-menu-item"
                   [disabled]="plannerService.objects().length === 0 || isSavingDraft()"
                   (click)="handleSaveDesignClick()">
-                  <app-icon name="Save" size="16"></app-icon>
-                  <span>{{ plannerService.lastSavedTime() ? plannerService.lastSavedTime() : 'Lưu thiết kế' }}</span>
+                  <app-icon [name]="(isDesignSavedPermanently() && !hasUnsavedChanges()) ? 'Check' : 'Save'"
+                    size="16"></app-icon>
+                  <span>{{ (isDesignSavedPermanently() && !hasUnsavedChanges()) ? 'Đã lưu' : 'Lưu thiết kế' }}</span>
                 </button>
 
-                <button 
-                  type="button" 
-                  class="dropdown-menu-item" 
+                <button type="button" class="dropdown-menu-item"
                   [disabled]="plannerService.objects().length === 0 || publishService.isExporting()"
                   (click)="handleExportPngClick()">
                   <app-icon name="Download" size="16"></app-icon>
                   <span>Xuất ảnh PNG</span>
                 </button>
 
-                <button 
-                  type="button" 
-                  class="dropdown-menu-item" 
+                <button type="button" class="dropdown-menu-item"
                   [disabled]="plannerService.objects().length === 0 || (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null)"
                   (click)="handlePublishClick()">
                   <app-icon name="Share2" size="16"></app-icon>
-                  <span>{{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint() !== null) ? 'Đã đăng' : 'Đăng bài' }}</span>
+                  <span>{{ (!publishService.hasLayoutChangedSincePublish() && publishService.lastPublishedFingerprint()
+                    !== null) ? 'Đã đăng' : 'Đăng bài' }}</span>
                 </button>
               </div>
             </div>
@@ -161,24 +146,17 @@
         <div class="topbar-right">
           <!-- Mobile Drawer Toggles (chỉ hiện khi màn hình <= 1024px, tổng tiền hiển thị trong tab mobile) -->
           <div class="mobile-toggles-row">
-            <button 
-              type="button" 
-              class="mobile-drawer-toggle-btn"
-              [class.active]="mobileDrawer() === 'products'"
-              (click)="toggleMobileDrawer('products')"
-              aria-label="Mở danh mục nội thất">
+            <button type="button" class="mobile-drawer-toggle-btn" [class.active]="mobileDrawer() === 'products'"
+              (click)="toggleMobileDrawer('products')" aria-label="Mở danh mục nội thất">
               <app-icon name="Package" size="16"></app-icon>
               <span>Nội thất</span>
             </button>
 
-            <button 
-              type="button" 
-              class="mobile-drawer-toggle-btn"
-              [class.active]="mobileDrawer() === 'summary'"
-              (click)="toggleMobileDrawer('summary')"
-              aria-label="Mở danh sách nội thất đã chọn">
+            <button type="button" class="mobile-drawer-toggle-btn" [class.active]="mobileDrawer() === 'summary'"
+              (click)="toggleMobileDrawer('summary')" aria-label="Mở danh sách nội thất đã chọn">
               <app-icon name="ShoppingBag" size="16"></app-icon>
-              <span>Đã chọn ({{ plannerService.totalItemsCount() }}) · {{ plannerService.totalPrice() | number }} ₫</span>
+              <span>Đã chọn ({{ plannerService.totalItemsCount() }}) · {{ plannerService.totalPrice() | number }}
+                ₫</span>
             </button>
           </div>
         </div>
@@ -186,11 +164,9 @@
 
       <!-- Main Layout 3 Cột -->
       <div class="planner-columns-layout">
-        
+
         <!-- Cột Trái: Danh mục & Tìm kiếm nội thất -->
-        <aside 
-          class="planner-left-column" 
-          [class.mobile-open]="mobileDrawer() === 'products'">
+        <aside class="planner-left-column" [class.mobile-open]="mobileDrawer() === 'products'">
           <div class="mobile-column-header">
             <h4>Chọn nội thất DCor</h4>
             <button type="button" class="close-drawer-btn" (click)="closeMobileDrawer()" aria-label="Đóng danh mục">
@@ -206,9 +182,7 @@
         </main>
 
         <!-- Cột Phải: Danh sách món & Tổng tiền ước tính -->
-        <aside 
-          class="planner-right-column" 
-          [class.mobile-open]="mobileDrawer() === 'summary'">
+        <aside class="planner-right-column" [class.mobile-open]="mobileDrawer() === 'summary'">
           <div class="mobile-column-header">
             <h4>Nội thất trong phòng</h4>
             <button type="button" class="close-drawer-btn" (click)="closeMobileDrawer()" aria-label="Đóng tóm tắt">
@@ -219,10 +193,7 @@
         </aside>
 
         <!-- Lớp phủ đóng Drawer trên Mobile -->
-        <div 
-          *ngIf="mobileDrawer() !== 'none'" 
-          class="mobile-backdrop" 
-          (click)="closeMobileDrawer()">
+        <div *ngIf="mobileDrawer() !== 'none'" class="mobile-backdrop" (click)="closeMobileDrawer()">
         </div>
 
       </div>
@@ -234,7 +205,8 @@
   <!-- 3. TOAST THÔNG BÁO NỔI GÓC DƯỚI BẢN VẼ          -->
   <!-- ============================================== -->
   <div *ngIf="toastMessage()" class="planner-toast" [class]="'toast-' + toastType()">
-    <app-icon [name]="toastType() === 'success' ? 'CircleCheck' : (toastType() === 'error' ? 'AlertCircle' : 'Info')" size="18"></app-icon>
+    <app-icon [name]="toastType() === 'success' ? 'CircleCheck' : (toastType() === 'error' ? 'AlertCircle' : 'Info')"
+      size="18"></app-icon>
     <span class="toast-text">{{ toastMessage() }}</span>
     <button type="button" class="toast-close-btn" (click)="closeToast()" aria-label="Đóng thông báo">
       <app-icon name="X" size="14"></app-icon>
@@ -244,11 +216,7 @@
   <!-- ============================================== -->
   <!-- 4. MODAL XÁC NHẬN ĐỔI PHÒNG                    -->
   <!-- ============================================== -->
-  <app-modal 
-    [isOpen]="isConfirmChangeRoomOpen()" 
-    [title]="'Xác nhận đổi phòng'" 
-    [hasFooter]="true" 
-    width="440px"
+  <app-modal [isOpen]="isConfirmChangeRoomOpen()" [title]="'Xác nhận đổi phòng'" [hasFooter]="true" width="440px"
     (close)="cancelChangeRoom()">
     <div class="confirm-modal-body">
       <div class="confirm-modal-icon-badge">
@@ -257,7 +225,8 @@
       <div class="confirm-modal-message">
         <p class="modal-lead-text">Bạn có chắc chắn muốn đổi sang không gian phòng khác?</p>
         <p class="modal-sub-text">
-          Tất cả <strong>{{ plannerService.objects().length }}</strong> nội thất đã sắp đặt trên bản vẽ phòng hiện tại sẽ bị xóa sạch khỏi không gian.
+          Tất cả <strong>{{ plannerService.objects().length }}</strong> nội thất đã sắp đặt trên bản vẽ phòng hiện tại
+          sẽ bị xóa sạch khỏi không gian.
         </p>
       </div>
     </div>
@@ -270,35 +239,27 @@
   <!-- ============================================== -->
   <!-- 5. MODAL LƯU THIẾT KẾ VÀO TÀI KHOẢN             -->
   <!-- ============================================== -->
-  <app-modal 
-    [isOpen]="isSaveModalOpen()" 
-    [title]="'Lưu thiết kế vào tài khoản'" 
-    [hasFooter]="true" 
-    width="480px"
+  <app-modal [isOpen]="isSaveModalOpen()" [title]="'Lưu thiết kế vào tài khoản'" [hasFooter]="true" width="480px"
     (close)="closeSaveModal()">
     <div class="save-modal-body">
       <p class="save-modal-description">
-        Thiết kế và ảnh bìa không gian sẽ được đồng bộ và lưu vĩnh viễn vào tài khoản của bạn tại <strong>Thiết kế của tôi</strong>.
+        Thiết kế và ảnh bìa không gian sẽ được đồng bộ và lưu vĩnh viễn vào tài khoản của bạn tại <strong>Thiết kế của
+          tôi</strong>.
       </p>
       <div class="form-group">
         <label for="save-design-title" class="field-label">Tên thiết kế <span class="required-star">*</span></label>
-        <input 
-          id="save-design-title" 
-          type="text" 
-          [ngModel]="saveModalTitleInput()" 
-          (ngModelChange)="saveModalTitleInput.set($event)"
-          maxlength="100" 
-          placeholder="VD: Phòng khách hiện đại của tôi" 
-          class="publish-input"
-          (keydown.enter)="confirmSaveDesign()"
-          [disabled]="isSavingDraft()"
-        />
+        <input id="save-design-title" type="text" [ngModel]="saveModalTitleInput()"
+          (ngModelChange)="saveModalTitleInput.set($event)" maxlength="100"
+          placeholder="VD: Phòng khách hiện đại của tôi" class="publish-input" (keydown.enter)="confirmSaveDesign()"
+          [disabled]="isSavingDraft()" />
       </div>
     </div>
     <div footer class="save-modal-footer">
       <button type="button" class="btn-secondary" (click)="closeSaveModal()" [disabled]="isSavingDraft()">Hủy</button>
-      <button type="button" class="btn-primary" (click)="confirmSaveDesign()" [disabled]="!saveModalTitleInput().trim() || isSavingDraft()">
-        <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : 'Save'" size="16" [class.icon-spin]="isSavingDraft()"></app-icon>
+      <button type="button" class="btn-primary" (click)="confirmSaveDesign()"
+        [disabled]="!saveModalTitleInput().trim() || isSavingDraft()">
+        <app-icon [name]="isSavingDraft() ? 'LoaderCircle' : 'Save'" size="16"
+          [class.icon-spin]="isSavingDraft()"></app-icon>
         <span>{{ isSavingDraft() ? 'Đang nén ảnh & lưu...' : 'Lưu thiết kế' }}</span>
       </button>
     </div>
@@ -307,11 +268,7 @@
   <!-- ============================================== -->
   <!-- 6. MODAL YÊU CẦU ĐĂNG NHẬP                     -->
   <!-- ============================================== -->
-  <app-modal 
-    [isOpen]="isLoginPromptOpen()" 
-    [title]="'Yêu cầu đăng nhập'" 
-    [hasFooter]="true" 
-    width="460px"
+  <app-modal [isOpen]="isLoginPromptOpen()" [title]="'Yêu cầu đăng nhập'" [hasFooter]="true" width="460px"
     (close)="cancelLoginPrompt()">
     <div class="login-modal-body">
       <div class="login-modal-icon-badge">
@@ -322,10 +279,6 @@
         <p class="login-modal-text">
           Vui lòng đăng nhập tài khoản khách hàng để chia sẻ tác phẩm của bạn với cộng đồng yêu nội thất DCor.
         </p>
-        <div class="login-modal-notice-box">
-          <app-icon name="Sparkles" size="18"></app-icon>
-          <span>Thiết kế hiện tại (ảnh nền, kích thước và nội thất) sẽ được lưu tạm tự động và khôi phục khi bạn quay lại.</span>
-        </div>
       </div>
     </div>
     <div footer class="login-modal-footer">
@@ -337,39 +290,32 @@
   <!-- ============================================== -->
   <!-- 7. MODAL ĐĂNG THIẾT KẾ LÊN CỘNG ĐỒNG (REQ 4)   -->
   <!-- ============================================== -->
-  <app-modal 
-    [isOpen]="isPublishModalOpen()" 
-    [title]="isPublishSuccess() ? (publishedPostStatus() === 'PUBLISHED' ? 'Đã đăng bài' : 'Thông báo gửi bài') : 'Đăng thiết kế lên Cộng đồng'" 
-    [hasFooter]="!isPublishSuccess()" 
-    width="680px"
-    (close)="closePublishModal()">
+  <app-modal [isOpen]="isPublishModalOpen()"
+    [title]="isPublishSuccess() ? (publishedPostStatus() === 'PUBLISHED' ? 'Đã đăng bài' : 'Thông báo gửi bài') : 'Đăng thiết kế lên Cộng đồng'"
+    [hasFooter]="!isPublishSuccess()" width="680px" (close)="closePublishModal()">
 
-    <!-- THÀNH CÔNG: DỰA THEO TRƯỜNG STATUS CỦA BÀI ĐĂNG (REQ 4) -->
+    <!-- THÀNH CÔNG: THÔNG BÁO ĐÃ LƯU & CHỜ DUYỆT TỪ ADMIN -->
     <ng-container *ngIf="isPublishSuccess()">
       <div class="publish-success-view">
         <div class="success-icon-badge">
           <app-icon name="CircleCheck" size="44" color="#16a34a"></app-icon>
         </div>
         <h3 class="success-heading">
-          {{ publishedPostStatus() === 'PUBLISHED' ? 'Đăng bài thành công!' : 'Đã gửi bài thành công!' }}
+          Đăng bài thành công!
         </h3>
         <p class="success-message">
-          {{ publishedPostStatus() === 'PUBLISHED' 
-              ? 'Bài của bạn đã được đăng lên Cộng đồng' 
-              : 'Bài đã được gửi và sẽ hiển thị sau khi quản trị viên duyệt' }}
+          Thiết kế của bạn đã được lưu vĩnh viễn và bài viết đã được gửi thành công. Bài viết đang chờ quản trị viên
+          (Admin) phê duyệt trước khi hiển thị công khai trên Cộng đồng.
         </p>
         <div class="success-actions-row">
           <button type="button" class="btn-secondary" (click)="closePublishModal()">
-            {{ publishedPostStatus() === 'PUBLISHED' ? 'Tiếp tục thiết kế' : 'Đóng' }}
+            Tiếp tục thiết kế
           </button>
-          <button 
-            *ngIf="publishedPostStatus() === 'PUBLISHED'"
-            type="button" 
-            class="btn-primary" 
-            (click)="goToCommunity()">
-            <app-icon name="ExternalLink" size="16"></app-icon>
-            <span>Xem Cộng đồng</span>
-          </button>
+          <a routerLink="/community" [queryParams]="{ tab: 'my-hub', sub: 'saved' }" (click)="closePublishModal()"
+            class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            <app-icon name="Layers" size="16"></app-icon>
+            <span>Xem Thiết kế của tôi</span>
+          </a>
         </div>
       </div>
     </ng-container>
@@ -393,20 +339,15 @@
         <!-- 1. Xem trước ảnh xuất (JPEG tự động nén <= 800KB) -->
         <div class="publish-preview-section">
           <div class="preview-header">
-            <span class="field-label">Xem trước ảnh xuất (JPEG):</span>
-            <span class="preview-badge size-badge" *ngIf="compressedImageSizeText()">{{ compressedImageSizeText() }}</span>
+            <span class="field-label">Xem trước ảnh xuất:</span>
           </div>
           <div class="preview-viewport-card">
             <div *ngIf="isGeneratingPreview()" class="preview-loading-overlay">
               <app-icon name="LoaderCircle" size="30" class="icon-spin"></app-icon>
               <span>Đang kết xuất và tối ưu ảnh thiết kế...</span>
             </div>
-            <img 
-              *ngIf="previewImageUrl() && !isGeneratingPreview()" 
-              [src]="previewImageUrl()" 
-              alt="Bản xem trước thiết kế" 
-              class="preview-rendered-img"
-            />
+            <img *ngIf="previewImageUrl() && !isGeneratingPreview()" [src]="previewImageUrl()"
+              alt="Bản xem trước thiết kế" class="preview-rendered-img" />
           </div>
         </div>
 
@@ -415,20 +356,13 @@
           <!-- Tiêu đề (Bắt buộc, <= 100 ký tự) -->
           <div class="form-group">
             <div class="form-label-row">
-              <label for="publish-title" class="field-label">Tiêu đề thiết kế <span class="required-star">*</span></label>
+              <label for="publish-title" class="field-label">Tiêu đề thiết kế <span
+                  class="required-star">*</span></label>
               <span class="char-counter" [class.over]="postTitle().length > 100">{{ postTitle().length }}/100</span>
             </div>
-            <input 
-              id="publish-title" 
-              type="text" 
-              [ngModel]="postTitle()" 
-              (ngModelChange)="postTitle.set($event)"
-              maxlength="100" 
-              placeholder="VD: Phòng khách phong cách Scandinavian ấm cúng" 
-              class="publish-input"
-              [class.input-error]="postTitleTouched() && !postTitle().trim()"
-              (blur)="postTitleTouched.set(true)"
-            />
+            <input id="publish-title" type="text" [ngModel]="postTitle()" (ngModelChange)="postTitle.set($event)"
+              maxlength="100" placeholder="VD: Phòng khách phong cách Scandinavian ấm cúng" class="publish-input"
+              [class.input-error]="postTitleTouched() && !postTitle().trim()" (blur)="postTitleTouched.set(true)" />
             <span class="field-error-text" *ngIf="postTitleTouched() && !postTitle().trim()">
               Vui lòng nhập tiêu đề thiết kế (tối đa 100 ký tự).
             </span>
@@ -438,15 +372,12 @@
           <div class="form-group">
             <div class="form-label-row">
               <label for="publish-desc" class="field-label">Chú thích bài đăng</label>
-              <span class="char-counter" [class.over]="postDescription().length > 500">{{ postDescription().length }}/500</span>
+              <span class="char-counter" [class.over]="postDescription().length > 500">{{ postDescription().length
+                }}/500</span>
             </div>
-            <textarea 
-              id="publish-desc" 
-              rows="3" 
-              [ngModel]="postDescription()" 
-              (ngModelChange)="postDescription.set($event)"
-              maxlength="500" 
-              placeholder="Chia sẻ cảm hứng bài trí, ý tưởng phối màu hay phong cách không gian với cộng đồng DCor..." 
+            <textarea id="publish-desc" rows="3" [ngModel]="postDescription()"
+              (ngModelChange)="postDescription.set($event)" maxlength="500"
+              placeholder="Chia sẻ cảm hứng bài trí, ý tưởng phối màu hay phong cách không gian với cộng đồng DCor..."
               class="publish-textarea">
             </textarea>
           </div>
@@ -459,12 +390,9 @@
             </div>
             <div class="tagged-products-list">
               @for (item of taggedProducts(); track item.productId + '-' + item.x + '-' + item.y) {
-                <div class="tagged-product-chip">
-                  <span class="tag-pin">🏷️</span>
-                  <span class="tag-name">{{ item.name }}</span>
-                  <span class="tag-coords">({{ item.x }}%, {{ item.y }}%)</span>
-                  <span class="tag-price">{{ item.price | number }} ₫</span>
-                </div>
+              <div class="tagged-product-chip">
+                <span class="tag-name">{{ item.name }}</span>
+              </div>
               }
             </div>
           </div>
@@ -472,14 +400,11 @@
           <!-- Checkbox đồng ý -->
           <div class="agreement-row">
             <label class="agreement-checkbox-label">
-              <input 
-                type="checkbox" 
-                [ngModel]="isAgreed()" 
-                (ngModelChange)="isAgreed.set($event)"
-                class="agreement-checkbox" 
-              />
+              <input type="checkbox" [ngModel]="isAgreed()" (ngModelChange)="isAgreed.set($event)"
+                class="agreement-checkbox" />
               <span class="agreement-text">
-                Tôi đồng ý chia sẻ thiết kế này lên Cộng đồng DCor và xác nhận nội dung không vi phạm tiêu chuẩn cộng đồng.
+                Tôi đồng ý chia sẻ thiết kế này lên Cộng đồng DCor và xác nhận nội dung không vi phạm tiêu chuẩn cộng
+                đồng.
               </span>
             </label>
           </div>
@@ -491,19 +416,15 @@
 
     <!-- Footer gửi bài: Nút ghi "Đăng bài" (REQ 4) -->
     <div footer *ngIf="!isPublishSuccess()" class="publish-modal-footer">
-      <button 
-        type="button" 
-        class="btn-secondary" 
-        [disabled]="publishService.isSubmitting()"
+      <button type="button" class="btn-secondary" [disabled]="publishService.isSubmitting()"
         (click)="closePublishModal()">
         Hủy
       </button>
-      <button 
-        type="button" 
-        class="btn-primary" 
+      <button type="button" class="btn-primary"
         [disabled]="publishService.isSubmitting() || isGeneratingPreview() || !postTitle().trim() || postTitle().length > 100 || postDescription().length > 500 || !isAgreed()"
         (click)="submitPublishPost()">
-        <app-icon [name]="publishService.isSubmitting() ? 'LoaderCircle' : 'Send'" size="16" [class.icon-spin]="publishService.isSubmitting()"></app-icon>
+        <app-icon [name]="publishService.isSubmitting() ? 'LoaderCircle' : 'Send'" size="16"
+          [class.icon-spin]="publishService.isSubmitting()"></app-icon>
         <span>{{ publishService.isSubmitting() ? 'Đang gửi bài...' : 'Đăng bài' }}</span>
       </button>
     </div>

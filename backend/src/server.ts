@@ -756,7 +756,7 @@ server.listen(port, () => {
         await initMyDesignsDatabase();
         await initChatDatabase();
         await initBlogDatabase();
-        console.log('[DB-Init] Khởi tạo các bảng thành công.');
+        console.log('[DB-Init] Khởi tạo các bảng và ảnh Blog thành công.');
       } catch (err) {
         console.error('[DB-Init] Lỗi khởi tạo bảng:', err);
       }

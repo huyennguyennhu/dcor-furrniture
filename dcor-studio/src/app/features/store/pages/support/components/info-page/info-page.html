@@ -511,45 +511,11 @@
 <!-- FALLBACK FOR STANDARD SUPPORT / POLICIES / GUIDES -->
 <ng-template #standardSupportLayout>
   <div class="support-page-wrapper">
-    <!-- Top Breadcrumb Bar -->
-    <div class="support-breadcrumb-bar">
-      <div class="container">
-        <nav class="support-breadcrumb-nav" aria-label="Điều hướng phân cấp">
-          <ol class="support-breadcrumb-list">
-            <li class="support-breadcrumb-item">
-              <a routerLink="/" class="support-breadcrumb-link" aria-label="Về trang chủ">
-                <app-icon name="House" size="14"></app-icon>
-                <span>Trang chủ</span>
-              </a>
-            </li>
-            <li class="support-breadcrumb-separator" aria-hidden="true">
-              <app-icon name="ChevronRight" size="14"></app-icon>
-            </li>
-            <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
-              <li class="support-breadcrumb-item" [class.is-active]="last" [attr.aria-current]="last ? 'page' : null">
-                <a *ngIf="!last && crumb.url" [routerLink]="crumb.url" class="support-breadcrumb-link">
-                  {{ crumb.label }}
-                </a>
-                <span *ngIf="last || !crumb.url" class="support-breadcrumb-current">
-                  {{ crumb.label }}
-                </span>
-              </li>
-              <li *ngIf="!last" class="support-breadcrumb-separator" aria-hidden="true">
-                <app-icon name="ChevronRight" size="14"></app-icon>
-              </li>
-            </ng-container>
-          </ol>
-        </nav>
-      </div>
-    </div>
 
     <!-- Header Section -->
     <section class="support-hero" aria-label="Tiêu đề trang thông tin">
       <div class="support-hero-content">
-        <div class="support-hero-badge">
-          <app-icon name="Sparkles" size="14"></app-icon>
-          <span>{{ badge }}</span>
-        </div>
+
         <h1 class="support-hero-title">{{ title }}</h1>
         <p class="support-hero-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
         <div class="support-hero-meta" *ngIf="showPolicyMeta && lastUpdated">
@@ -682,82 +648,6 @@
               </div>
             </div>
           </section>
-
-          <!-- Khối: Cần hỗ trợ thêm? -->
-          <section class="support-contact-card" aria-label="Khối hỗ trợ trực tiếp">
-            <div class="support-contact-header">
-              <div class="support-contact-icon-badge">
-                <app-icon name="Headphones" size="24" color="var(--color-primary)"></app-icon>
-              </div>
-              <div>
-                <h3 class="support-contact-title">Bạn vẫn cần hỗ trợ thêm?</h3>
-                <p class="support-contact-subtitle">
-                  Đội ngũ chuyên viên tư vấn DCor luôn sẵn sàng lắng nghe và giải đáp mọi băn khoăn của quý khách.
-                </p>
-              </div>
-            </div>
-
-            <div class="support-contact-grid">
-              <a [href]="'tel:' + hotline.replace(' ', '')" class="support-contact-item" aria-label="Gọi hotline">
-                <div class="support-contact-item-icon">
-                  <app-icon name="Phone" size="18"></app-icon>
-                </div>
-                <div class="support-contact-item-info">
-                  <span class="support-contact-item-label">Tổng đài Hotline</span>
-                  <strong class="support-contact-item-val">{{ hotline }}</strong>
-                </div>
-              </a>
-
-              <a [href]="'mailto:' + email" class="support-contact-item" aria-label="Gửi email hỗ trợ">
-                <div class="support-contact-item-icon">
-                  <app-icon name="Mail" size="18"></app-icon>
-                </div>
-                <div class="support-contact-item-info">
-                  <span class="support-contact-item-label">Hòm thư điện tử</span>
-                  <strong class="support-contact-item-val">{{ email }}</strong>
-                </div>
-              </a>
-
-              <div class="support-contact-item is-static">
-                <div class="support-contact-item-icon">
-                  <app-icon name="Clock" size="18"></app-icon>
-                </div>
-                <div class="support-contact-item-info">
-                  <span class="support-contact-item-label">Thời gian làm việc</span>
-                  <strong class="support-contact-item-val">{{ workingHours }}</strong>
-                </div>
-              </div>
-
-              <div class="support-contact-item is-static">
-                <div class="support-contact-item-icon">
-                  <app-icon name="MapPin" size="18"></app-icon>
-                </div>
-                <div class="support-contact-item-info">
-                  <span class="support-contact-item-label">Địa chỉ Showroom</span>
-                  <strong class="support-contact-item-val">{{ address }}</strong>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Liên kết chính sách khác -->
-          <section class="support-other-policies" *ngIf="otherPolicies().length" aria-label="Các chính sách liên quan">
-            <h3 class="support-other-policies-title">Xem thêm các chính sách & hướng dẫn khác</h3>
-            <div class="support-other-policies-grid">
-              <a *ngFor="let p of otherPolicies()" [routerLink]="p.href" class="support-policy-card-link">
-                <div class="support-policy-card-header">
-                  <app-icon [name]="p.iconName" size="20" color="var(--color-primary)"></app-icon>
-                  <span class="support-policy-card-tag">{{ p.badge }}</span>
-                </div>
-                <h4 class="support-policy-card-title">{{ p.label }}</h4>
-                <p class="support-policy-card-desc">{{ p.description }}</p>
-                <span class="support-policy-card-arrow">
-                  <span>Tìm hiểu ngay</span>
-                  <app-icon name="ArrowRight" size="14"></app-icon>
-                </span>
-              </a>
-            </div>
-          </section>
         </article>
 
         <!-- Right Sticky Sidebar (Table of Contents) -->
@@ -786,11 +676,110 @@
                 <strong>Cần trợ giúp nhanh?</strong>
               </div>
               <p>Hotline: <a [href]="'tel:' + hotline.replace(' ', '')">{{ hotline }}</a></p>
-              <a routerLink="/custom-design" class="support-sidebar-cta">Đặt lịch tư vấn</a>
+              <button type="button" class="support-sidebar-cta" (click)="openConsultationModal()">Đặt lịch tư vấn</button>
             </div>
           </div>
         </aside>
       </div>
+
+      <!-- Khối: Cần hỗ trợ thêm? (Tách riêng ngoài grid tương tự FAQ) -->
+      <section class="support-contact-card" aria-label="Khối liên hệ hỗ trợ">
+        <div class="support-contact-header">
+          <div class="support-contact-icon-badge">
+            <app-icon name="Headphones" size="24" color="var(--color-primary)"></app-icon>
+          </div>
+          <div>
+            <h3 class="support-contact-title">Bạn vẫn cần hỗ trợ thêm?</h3>
+            <p class="support-contact-subtitle">
+              Đội ngũ chuyên viên tư vấn DCor luôn sẵn sàng lắng nghe và giải đáp mọi băn khoăn của quý khách.
+            </p>
+          </div>
+        </div>
+
+        <div class="support-contact-grid">
+          <a [href]="'tel:' + hotline.replace(' ', '')" class="support-contact-item" aria-label="Gọi hotline">
+            <div class="support-contact-item-icon">
+              <app-icon name="Phone" size="18"></app-icon>
+            </div>
+            <div class="support-contact-item-info">
+              <span class="support-contact-item-label">Tổng đài Hotline</span>
+              <strong class="support-contact-item-val">{{ hotline }}</strong>
+            </div>
+          </a>
+
+          <a [href]="'mailto:' + email" class="support-contact-item" aria-label="Gửi email hỗ trợ">
+            <div class="support-contact-item-icon">
+              <app-icon name="Mail" size="18"></app-icon>
+            </div>
+            <div class="support-contact-item-info">
+              <span class="support-contact-item-label">Hòm thư điện tử</span>
+              <strong class="support-contact-item-val">{{ email }}</strong>
+            </div>
+          </a>
+
+          <div class="support-contact-item is-static">
+            <div class="support-contact-item-icon">
+              <app-icon name="Clock" size="18"></app-icon>
+            </div>
+            <div class="support-contact-item-info">
+              <span class="support-contact-item-label">Thời gian làm việc</span>
+              <strong class="support-contact-item-val">{{ workingHours }}</strong>
+            </div>
+          </div>
+
+          <div class="support-contact-item is-static">
+            <div class="support-contact-item-icon">
+              <app-icon name="MapPin" size="18"></app-icon>
+            </div>
+            <div class="support-contact-item-info">
+              <span class="support-contact-item-label">Địa chỉ Showroom</span>
+              <strong class="support-contact-item-val">{{ address }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="support-contact-actions">
+          <button type="button" class="support-btn-primary" (click)="openConsultationModal()"
+            aria-label="Đặt lịch tư vấn">
+            <app-icon name="Calendar" size="18"></app-icon>
+            <span>Đặt lịch tư vấn</span>
+          </button>
+          <a routerLink="/huong-dan-mua-hang" class="support-btn-outline" aria-label="Xem hướng dẫn mua hàng">
+            <app-icon name="ShoppingBag" size="18"></app-icon>
+            <span>Hướng dẫn mua hàng</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Khối: Chính sách khác (Tách riêng ngoài grid tương tự FAQ) -->
+      <section class="support-other-policies" *ngIf="otherPolicies().length" aria-label="Khối liên kết chính sách khác">
+        <div class="support-other-header">
+          <h3 class="support-other-title">Chính sách & Hướng dẫn liên quan</h3>
+          <p class="support-other-desc">Tìm hiểu thêm các thông tin quy chế hoạt động của DCor</p>
+        </div>
+
+        <div class="support-other-grid">
+          <a *ngFor="let policy of otherPolicies()" [routerLink]="policy.href" class="support-other-card"
+            [attr.aria-label]="'Xem ' + policy.label">
+            <div class="support-other-card-top">
+              <div class="support-other-icon-wrap">
+                <app-icon [name]="policy.iconName" size="20" color="var(--color-primary)"></app-icon>
+              </div>
+              <span class="support-other-card-badge" *ngIf="policy.badge">{{ policy.badge }}</span>
+            </div>
+            <h4 class="support-other-card-title">{{ policy.label }}</h4>
+            <p class="support-other-card-desc">{{ policy.description }}</p>
+            <span class="support-other-card-arrow">
+              <span>Xem chi tiết</span>
+              <app-icon name="ArrowRight" size="14"></app-icon>
+            </span>
+          </a>
+        </div>
+      </section>
     </main>
+
+    <!-- Modal Đặt lịch tư vấn Showroom -->
+    <app-showroom-consultation-modal [isOpen]="isConsultationModalOpen"
+      (close)="closeConsultationModal()"></app-showroom-consultation-modal>
   </div>
 </ng-template>

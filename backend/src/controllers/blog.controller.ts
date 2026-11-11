@@ -14,7 +14,13 @@ export function stripHtml(input: any): string {
 export function isValidImageUrl(url: any): boolean {
   if (typeof url !== 'string') return false;
   const trimmed = url.trim();
-  return trimmed.startsWith('https://') || trimmed.startsWith('/assets/');
+  return (
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('/assets/') ||
+    trimmed.startsWith('assets/') ||
+    trimmed.startsWith('data:image/')
+  );
 }
 
 export function generateSlug(text: string): string {

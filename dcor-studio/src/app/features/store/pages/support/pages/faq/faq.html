@@ -1,49 +1,26 @@
 <div class="faq-page-wrapper">
-  <!-- Breadcrumb Bar -->
-  <div class="faq-breadcrumb-bar">
-    <div class="container">
-      <nav class="faq-breadcrumb-nav" aria-label="Điều hướng phân cấp">
-        <a routerLink="/" class="faq-breadcrumb-link">
-          <app-icon name="House" size="14"></app-icon>
-          <span>Trang chủ</span>
-        </a>
-        <span class="faq-breadcrumb-sep">/</span>
-        <span class="faq-breadcrumb-current">Câu hỏi thường gặp (FAQ)</span>
-      </nav>
-    </div>
-  </div>
+
 
   <!-- Hero Header with Search -->
   <section class="faq-hero" aria-label="Đầu trang câu hỏi thường gặp">
     <div class="faq-hero-inner">
-      <div class="faq-hero-badge">
-        <app-icon name="Sparkles" size="14"></app-icon>
-        <span>Trung tâm trợ giúp DCor</span>
-      </div>
+
       <h1 class="faq-hero-title">Câu hỏi thường gặp</h1>
       <p class="faq-hero-subtitle">
-        Giải đáp tức thì các thắc mắc phổ biến về quy trình đặt hàng, chính sách thanh toán, giao vận và thiết kế nội thất tại DCor.
+        Giải đáp tức thì các thắc mắc phổ biến về quy trình đặt hàng, chính sách thanh toán, giao vận và thiết kế nội
+        thất tại DCor.
       </p>
 
       <!-- Search Bar -->
       <div class="faq-search-wrapper">
         <div class="faq-search-box">
           <app-icon name="Search" size="20" class="faq-search-icon"></app-icon>
-          <input
-            type="text"
-            class="faq-search-input"
-            [ngModel]="searchQuery()"
+          <input type="text" class="faq-search-input" [ngModel]="searchQuery()"
             (ngModelChange)="searchQuery.set($event)"
             placeholder="Tìm kiếm câu hỏi (ví dụ: OTP, COD, bảo hành, đổi trả, kích thước...)"
-            aria-label="Tìm kiếm câu hỏi trợ giúp"
-          />
-          <button
-            *ngIf="searchQuery()"
-            type="button"
-            class="faq-search-clear"
-            (click)="clearSearch()"
-            aria-label="Xóa từ khóa tìm kiếm"
-          >
+            aria-label="Tìm kiếm câu hỏi trợ giúp" />
+          <button *ngIf="searchQuery()" type="button" class="faq-search-clear" (click)="clearSearch()"
+            aria-label="Xóa từ khóa tìm kiếm">
             <app-icon name="X" size="16"></app-icon>
           </button>
         </div>
@@ -55,116 +32,130 @@
     </div>
   </section>
 
-  <!-- Category Filter Tabs -->
-  <div class="faq-categories-bar">
-    <div class="container">
-      <div class="faq-categories-scroll" role="tablist" aria-label="Lọc câu hỏi theo chủ đề">
-        <button
-          *ngFor="let cat of categories"
-          type="button"
-          class="faq-cat-tab"
-          [class.is-active]="selectedCategory() === cat.id"
-          (click)="setCategory(cat.id)"
-          role="tab"
-          [attr.aria-selected]="selectedCategory() === cat.id"
-          [attr.aria-label]="cat.name"
-        >
-          <app-icon [name]="cat.iconName" size="16"></app-icon>
-          <span>{{ cat.name }}</span>
-          <span class="faq-cat-count" *ngIf="categoryCounts()[cat.id]">
-            ({{ categoryCounts()[cat.id] }})
-          </span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Main FAQ Content -->
   <main class="faq-main-container">
-    <div class="faq-accordion-container" *ngIf="filteredFaqs().length > 0; else noResultsTemplate">
-      <div
-        *ngFor="let item of filteredFaqs(); let idx = index"
-        class="faq-item"
-        [class.is-open]="isExpanded(item.id)"
-      >
-        <button
-          type="button"
-          class="faq-question-btn"
-          (click)="toggleFaq(item.id, $event)"
-          (keydown.enter)="toggleFaq(item.id, $event)"
-          (keydown.space)="toggleFaq(item.id, $event)"
-          [attr.aria-expanded]="isExpanded(item.id)"
-          [attr.aria-controls]="'faq-ans-' + item.id"
-          [attr.id]="'faq-btn-' + item.id"
-        >
-          <div class="faq-question-left">
-            <span class="faq-q-badge">Q{{ idx + 1 }}</span>
-            <h3
-              class="faq-question-text"
-              [innerHTML]="highlightText(item.question, searchQuery())"
-            ></h3>
-          </div>
-          <div class="faq-question-chevron">
-            <app-icon
-              name="ChevronDown"
-              size="20"
-              [style.transform]="isExpanded(item.id) ? 'rotate(180deg)' : 'none'"
-              style="transition: transform 0.25s;"
-            ></app-icon>
-          </div>
-        </button>
+    <div class="faq-layout-grid">
+      <!-- FAQ Sidebar Navigation -->
+      <aside class="faq-sidebar" aria-label="Danh mục câu hỏi trợ giúp">
+        <div class="faq-sidebar-sticky">
+          <div class="faq-sidebar-card">
+            <div class="faq-sidebar-header">
+              <div class="faq-sidebar-header-icon">
+                <app-icon name="Layers" size="18"></app-icon>
+              </div>
+              <div class="faq-sidebar-header-text">
+                <h2 class="faq-sidebar-title">Chủ đề câu hỏi</h2>
+                <span class="faq-sidebar-subtitle">{{ allFaqs.length }} câu hỏi thường gặp</span>
+              </div>
+            </div>
 
-        <div
-          [id]="'faq-ans-' + item.id"
-          class="faq-answer-panel"
-          *ngIf="isExpanded(item.id)"
-          role="region"
-          [attr.aria-labelledby]="'faq-btn-' + item.id"
-        >
-          <div class="faq-answer-inner">
-            <p
-              class="faq-answer-text"
-              [innerHTML]="highlightText(item.answer, searchQuery())"
-            ></p>
-            <div class="faq-tags-list" *ngIf="item.tags.length">
-              <span class="faq-tag-label">Từ khóa:</span>
-              <span *ngFor="let tag of item.tags" class="faq-tag-pill">#{{ tag }}</span>
+            <nav class="faq-sidebar-nav" role="tablist" aria-label="Danh sách chủ đề câu hỏi">
+              <button *ngFor="let cat of categories" type="button" class="faq-sidebar-btn"
+                [class.is-active]="selectedCategory() === cat.id" (click)="setCategory(cat.id)" role="tab"
+                [attr.aria-selected]="selectedCategory() === cat.id" [attr.aria-label]="cat.name">
+                <div class="faq-sidebar-btn-left">
+                  <app-icon [name]="cat.iconName" size="18" class="faq-sidebar-btn-icon"></app-icon>
+                  <span class="faq-sidebar-btn-label">{{ cat.name }}</span>
+                </div>
+                <span class="faq-sidebar-badge" *ngIf="categoryCounts()[cat.id]">
+                  {{ categoryCounts()[cat.id] }}
+                </span>
+              </button>
+            </nav>
+
+            <!-- Hộp hỗ trợ nhanh bên dưới sidebar -->
+            <div class="faq-sidebar-support-box">
+              <div class="faq-sidebar-support-top">
+                <app-icon name="Headphones" size="18" color="var(--color-primary)"></app-icon>
+                <span class="faq-sidebar-support-heading">Hỗ trợ 24/7</span>
+              </div>
+              <p class="faq-sidebar-support-desc">Chưa tìm thấy thông tin phù hợp? Chuyên viên DCor luôn sẵn sàng giải
+                đáp.</p>
+              <a [href]="'tel:' + hotline.replace(' ', '')" class="faq-sidebar-hotline-btn">
+                <app-icon name="Phone" size="14"></app-icon>
+                <span>{{ hotline }}</span>
+              </a>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- Empty State: Not Found -->
-    <ng-template #noResultsTemplate>
-      <div class="faq-empty-state">
-        <div class="faq-empty-icon-wrap">
-          <app-icon name="Search" size="36" color="var(--color-primary)"></app-icon>
+      <!-- Main FAQ Accordion Area -->
+      <section class="faq-content-column" aria-label="Danh sách câu trả lời">
+        <!-- Chuyên mục Header -->
+        <div class="faq-content-header">
+          <div class="faq-content-title-wrap">
+            <h2 class="faq-content-title">{{ selectedCategoryName() }}</h2>
+            <span class="faq-content-count-pill">{{ filteredFaqs().length }} câu hỏi</span>
+          </div>
+          <p class="faq-content-desc" *ngIf="selectedCategoryDesc() && !searchQuery()">
+            {{ selectedCategoryDesc() }}
+          </p>
         </div>
-        <h3 class="faq-empty-title">Không tìm thấy câu hỏi phù hợp</h3>
-        <p class="faq-empty-desc">
-          Không có kết quả nào khớp với từ khóa <strong>"{{ searchQuery() }}"</strong> trong chủ đề đã chọn.
-        </p>
-        <div class="faq-empty-suggestions">
-          <p>Quý khách có thể thử:</p>
-          <ul>
-            <li>Kiểm tra lại chính tả từ khóa tìm kiếm</li>
-            <li>Chọn tab "Tất cả câu hỏi" để mở rộng phạm vi tìm</li>
-            <li>Hoặc liên hệ trực tiếp với chuyên viên tư vấn DCor bên dưới:</li>
-          </ul>
+
+        <div class="faq-accordion-container" *ngIf="filteredFaqs().length > 0; else noResultsTemplate">
+          <div *ngFor="let item of filteredFaqs(); let idx = index" class="faq-item"
+            [class.is-open]="isExpanded(item.id)">
+            <button type="button" class="faq-question-btn" (click)="toggleFaq(item.id, $event)"
+              (keydown.enter)="toggleFaq(item.id, $event)" (keydown.space)="toggleFaq(item.id, $event)"
+              [attr.aria-expanded]="isExpanded(item.id)" [attr.aria-controls]="'faq-ans-' + item.id"
+              [attr.id]="'faq-btn-' + item.id">
+              <div class="faq-question-left">
+                <span class="faq-q-badge">Q{{ idx + 1 }}</span>
+                <h3 class="faq-question-text" [innerHTML]="highlightText(item.question, searchQuery())"></h3>
+              </div>
+              <div class="faq-question-chevron">
+                <app-icon name="ChevronDown" size="20"
+                  [style.transform]="isExpanded(item.id) ? 'rotate(180deg)' : 'none'"
+                  style="transition: transform 0.25s;"></app-icon>
+              </div>
+            </button>
+
+            <div [id]="'faq-ans-' + item.id" class="faq-answer-panel" *ngIf="isExpanded(item.id)" role="region"
+              [attr.aria-labelledby]="'faq-btn-' + item.id">
+              <div class="faq-answer-inner">
+                <p class="faq-answer-text" [innerHTML]="highlightText(item.answer, searchQuery())"></p>
+                <div class="faq-tags-list" *ngIf="item.tags.length">
+                  <span class="faq-tag-label">Từ khóa:</span>
+                  <span *ngFor="let tag of item.tags" class="faq-tag-pill">#{{ tag }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="faq-empty-actions">
-          <button type="button" class="faq-btn-clear" (click)="clearSearch()">
-            <app-icon name="RefreshCw" size="16"></app-icon>
-            <span>Xóa từ khóa tìm kiếm</span>
-          </button>
-          <a [href]="'tel:' + hotline.replace(' ', '')" class="faq-btn-call">
-            <app-icon name="Phone" size="16"></app-icon>
-            <span>Gọi ngay {{ hotline }}</span>
-          </a>
-        </div>
-      </div>
-    </ng-template>
+
+        <!-- Empty State: Not Found -->
+        <ng-template #noResultsTemplate>
+          <div class="faq-empty-state">
+            <div class="faq-empty-icon-wrap">
+              <app-icon name="Search" size="36" color="var(--color-primary)"></app-icon>
+            </div>
+            <h3 class="faq-empty-title">Không tìm thấy câu hỏi phù hợp</h3>
+            <p class="faq-empty-desc">
+              Không có kết quả nào khớp với từ khóa <strong>"{{ searchQuery() }}"</strong> trong chủ đề đã chọn.
+            </p>
+            <div class="faq-empty-suggestions">
+              <p>Quý khách có thể thử:</p>
+              <ul>
+                <li>Kiểm tra lại chính tả từ khóa tìm kiếm</li>
+                <li>Chọn tab "Tất cả câu hỏi" ở sidebar bên trái để mở rộng phạm vi tìm</li>
+                <li>Hoặc liên hệ trực tiếp với chuyên viên tư vấn DCor bên dưới:</li>
+              </ul>
+            </div>
+            <div class="faq-empty-actions">
+              <button type="button" class="faq-btn-clear" (click)="clearSearch()">
+                <app-icon name="RefreshCw" size="16"></app-icon>
+                <span>Xóa từ khóa tìm kiếm</span>
+              </button>
+              <a [href]="'tel:' + hotline.replace(' ', '')" class="faq-btn-call">
+                <app-icon name="Phone" size="16"></app-icon>
+                <span>Gọi ngay {{ hotline }}</span>
+              </a>
+            </div>
+          </div>
+        </ng-template>
+      </section>
+    </div>
 
     <!-- Khối: Cần hỗ trợ thêm? -->
     <section class="support-contact-card" aria-label="Khối liên hệ hỗ trợ">
@@ -223,10 +214,11 @@
       </div>
 
       <div class="support-contact-actions">
-        <a routerLink="/custom-design" class="support-btn-primary" aria-label="Đặt lịch tư vấn">
+        <button type="button" class="support-btn-primary" (click)="openConsultationModal()"
+          aria-label="Đặt lịch tư vấn">
           <app-icon name="Calendar" size="18"></app-icon>
           <span>Đặt lịch tư vấn</span>
-        </a>
+        </button>
         <a routerLink="/huong-dan-mua-hang" class="support-btn-outline" aria-label="Xem hướng dẫn mua hàng">
           <app-icon name="ShoppingBag" size="18"></app-icon>
           <span>Hướng dẫn mua hàng</span>
@@ -242,12 +234,8 @@
       </div>
 
       <div class="support-other-grid">
-        <a
-          *ngFor="let policy of otherPolicies()"
-          [routerLink]="policy.href"
-          class="support-other-card"
-          [attr.aria-label]="'Xem ' + policy.label"
-        >
+        <a *ngFor="let policy of otherPolicies()" [routerLink]="policy.href" class="support-other-card"
+          [attr.aria-label]="'Xem ' + policy.label">
           <div class="support-other-card-top">
             <div class="support-other-icon-wrap">
               <app-icon [name]="policy.iconName" size="20" color="var(--color-primary)"></app-icon>
@@ -264,5 +252,8 @@
       </div>
     </section>
   </main>
-</div>
 
+  <!-- Modal Đặt lịch tư vấn Showroom -->
+  <app-showroom-consultation-modal [isOpen]="isConsultationModalOpen"
+    (close)="closeConsultationModal()"></app-showroom-consultation-modal>
+</div>

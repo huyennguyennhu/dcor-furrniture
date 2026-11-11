@@ -44,11 +44,30 @@ export class CartService {
   constructor(private http: HttpClient) {
     this.cleanStaleTokens();
     this.loadCart();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('dcor-auth-logout', () => {
+        this.resetCartOnLogout();
+      });
+      window.addEventListener('dcor-auth-login', () => {
+        this.loadCart().subscribe();
+      });
+      window.addEventListener('storage', (event: StorageEvent) => {
+        if (event.key === 'dcor_customer_token') {
+          if (!event.newValue) {
+            this.resetCartOnLogout();
+          } else {
+            this.loadCart().subscribe();
+          }
+        }
+      });
+    }
   }
 
   /** Xóa token rác hoặc token guest nếu lỡ bị lưu vào dcor_customer_token */
   private cleanStaleTokens(): void {
     try {
+      // Khách vãng lai không lưu giỏ hàng vào localStorage để khi đóng web vào lại không bị lưu
+      localStorage.removeItem(GUEST_CART_KEY);
       const token = localStorage.getItem('dcor_customer_token');
       if (token) {
         if (token.startsWith('guest-')) {
@@ -79,6 +98,18 @@ export class CartService {
     return this.cartSubject.value;
   }
 
+  /**
+   * Reset giỏ hàng khi người dùng đăng xuất
+   */
+  public resetCartOnLogout(): void {
+    try {
+      sessionStorage.removeItem(GUEST_CART_KEY);
+      localStorage.removeItem(GUEST_CART_KEY);
+    } catch {}
+    this.cartSubject.next([]);
+    this.isLoadingSubject.next(false);
+  }
+
   /** Kiểm tra khách đã đăng nhập chưa (yêu cầu tài khoản thành viên thật, không dùng token tạm của guest) */
   get isLoggedIn(): boolean {
     const token = localStorage.getItem('dcor_customer_token');
@@ -107,20 +138,23 @@ export class CartService {
     }
   }
 
-  /** Lấy giỏ hàng guest từ localStorage */
+  /** Lấy giỏ hàng guest từ sessionStorage (không lưu qua phiên trình duyệt) */
   private loadGuestCart(): CartItem[] {
     try {
-      const raw = localStorage.getItem(GUEST_CART_KEY);
+      // Dọn dẹp localStorage nếu trước đó có lỡ lưu
+      localStorage.removeItem(GUEST_CART_KEY);
+      const raw = sessionStorage.getItem(GUEST_CART_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
     }
   }
 
-  /** Lưu giỏ hàng guest vào localStorage */
+  /** Lưu giỏ hàng guest vào sessionStorage */
   private saveGuestCart(items: CartItem[]): void {
     try {
-      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
+      localStorage.removeItem(GUEST_CART_KEY);
+      sessionStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
     } catch {
       console.error('Không thể lưu giỏ hàng guest');
     }
@@ -206,12 +240,11 @@ export class CartService {
       .pipe(
         tap(() => this.loadCart().subscribe()),
         catchError((err) => {
-          if (err.status === 401 || err.status === 403) {
-            // Khi phiên đăng nhập hết hạn hoặc là khách vãng lai: tự động lưu vào giỏ guest, không làm gián đoạn trải nghiệm
-            this.addGuestItem(variantId, quantity, selectedOptions, guestProductInfo);
-            return of({ message: 'Đã thêm vào giỏ hàng' });
-          }
-          return throwError(() => err);
+          // Khi phiên đăng nhập hết hạn, không có quyền, hoặc biến thể không tồn tại trên server:
+          // tự động fallback lưu vào giỏ hàng cục bộ để không bao giờ làm mất sản phẩm của người dùng
+          console.warn('Lỗi khi thêm giỏ hàng online, tự động lưu vào giỏ hàng offline/guest:', err);
+          this.addGuestItem(variantId, quantity, selectedOptions, guestProductInfo);
+          return of({ message: 'Đã thêm vào giỏ hàng' });
         })
       );
   }
@@ -232,6 +265,7 @@ export class CartService {
     );
 
     Promise.allSettled(mergePromises).then(() => {
+      sessionStorage.removeItem(GUEST_CART_KEY);
       localStorage.removeItem(GUEST_CART_KEY);
       this.loadCart().subscribe();
     });

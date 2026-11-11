@@ -20,8 +20,17 @@ router.put('/templates/:id', authenticateJWT, requirePermission('designs', 'conf
 router.delete('/templates/:id', authenticateJWT, requirePermission('designs', 'delete'), designController.deleteTemplate);
 
 // Design Posts (Bài đăng thiết kế cộng đồng & Kiểm duyệt)
-router.get('/posts', authenticateJWT, requirePermission('designs', 'view'), designController.getPosts);
-router.post('/posts', authenticateJWT, requirePermission('designs', 'config'), designController.createPost);
+// Storefront public xem danh sách bài viết đã duyệt (status=PUBLISHED)
+router.get('/posts', (req, res, next) => {
+  if (req.query.status === 'PUBLISHED') {
+    return designController.getPosts(req, res);
+  }
+  return authenticateJWT(req, res, () => {
+    requirePermission('designs', 'view')(req, res, () => designController.getPosts(req, res));
+  });
+});
+// Khách hàng hoặc Admin đã đăng nhập đều có thể gửi bài đăng thiết kế mới (trạng thái khởi tạo PENDING chờ duyệt)
+router.post('/posts', authenticateJWT, designController.createPost);
 router.put('/posts/:id/status', authenticateJWT, requirePermission('designs', 'approve'), designController.updatePostStatus);
 router.delete('/posts/:id', authenticateJWT, requirePermission('designs', 'delete'), designController.deletePost);
 

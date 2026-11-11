@@ -13,7 +13,8 @@ export interface WishlistItem {
   inStock?: boolean;
 }
 
-const STORAGE_KEY = 'dcor_wishlist';
+const LEGACY_STORAGE_KEY = 'dcor_wishlist';
+const GUEST_STORAGE_KEY = 'dcor_wishlist_guest';
 
 @Injectable({
   providedIn: 'root'
@@ -25,26 +26,96 @@ export class WishlistService {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      window.addEventListener('storage', (event: StorageEvent) => {
-        if (event.key === STORAGE_KEY) {
-          this.wishlistSubject.next(this.getInitialWishlist());
-        }
+      window.addEventListener('storage', () => {
+        this.reloadWishlist();
+      });
+      window.addEventListener('dcor-auth-logout', () => {
+        this.resetWishlistOnLogout();
+      });
+      window.addEventListener('dcor-auth-login', () => {
+        this.reloadWishlist();
+      });
+      window.addEventListener('dcor-user-updated', () => {
+        this.reloadWishlist();
       });
     }
   }
 
-  private getInitialWishlist(): string[] {
+  private getUserId(): string | null {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
+      const userStr = localStorage.getItem('dcor_customer') || 
+                      localStorage.getItem('dcor_customer_user') || 
+                      localStorage.getItem('dcor_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user && user.id && !String(user.id).startsWith('guest-')) {
+          return String(user.id);
+        }
+      }
+    } catch {}
+    return null;
+  }
+
+  private getStorageKey(): string {
+    const userId = this.getUserId();
+    if (userId) {
+      return `dcor_wishlist_${userId}`;
+    }
+    return GUEST_STORAGE_KEY;
+  }
+
+  public reloadWishlist(): void {
+    this.wishlistSubject.next(this.getInitialWishlist());
+  }
+
+  public resetWishlistOnLogout(): void {
+    try {
+      sessionStorage.removeItem(GUEST_STORAGE_KEY);
+      localStorage.removeItem(GUEST_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {}
+    this.wishlistSubject.next([]);
+  }
+
+  private getInitialWishlist(): any[] {
+    try {
+      const userId = this.getUserId();
+      const currentKey = this.getStorageKey();
+
+      if (userId) {
+        // Đã đăng nhập: Lưu vĩnh viễn theo tài khoản trong localStorage
+        const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy && !localStorage.getItem(currentKey)) {
+          localStorage.setItem(currentKey, legacy);
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+        }
+        const data = localStorage.getItem(currentKey);
+        return data ? JSON.parse(data) : [];
+      } else {
+        // Khách vãng lai: Lưu vào sessionStorage (out khỏi web vô lại là mất)
+        try {
+          localStorage.removeItem(GUEST_STORAGE_KEY);
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+        } catch {}
+        const data = sessionStorage.getItem(currentKey);
+        return data ? JSON.parse(data) : [];
+      }
     } catch {
       return [];
     }
   }
 
-  private saveToStorage(list: string[]): void {
+  private saveToStorage(list: any[]): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      const userId = this.getUserId();
+      const key = this.getStorageKey();
+      if (userId) {
+        localStorage.setItem(key, JSON.stringify(list));
+      } else {
+        // Khách vãng lai: chỉ lưu sessionStorage
+        sessionStorage.setItem(key, JSON.stringify(list));
+        localStorage.removeItem(key);
+      }
     } catch (err) {
       console.error('Lỗi lưu danh sách yêu thích:', err);
     }

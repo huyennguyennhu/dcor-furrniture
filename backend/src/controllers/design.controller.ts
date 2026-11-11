@@ -197,8 +197,108 @@ export const designController = {
         })
       );
 
-      memoryCache.set(cacheKey, posts);
-      res.json(posts);
+      // Bổ sung authorAvatar từ bảng Customer (nếu có)
+      const emails = (posts as any[]).map((p: any) => p.authorEmail).filter(Boolean);
+      const names = (posts as any[]).map((p: any) => p.authorName).filter(Boolean);
+      let emailMap = new Map<string, string>();
+      let nameMap = new Map<string, string>();
+
+      if (emails.length > 0 || names.length > 0) {
+        const customers: any[] = await withDbRetry(() =>
+          (prisma as any).customer.findMany({
+            where: {
+              OR: [
+                ...(emails.length > 0 ? [{ email: { in: emails } }] : []),
+                ...(names.length > 0 ? [{ fullName: { in: names } }] : [])
+              ]
+            },
+            select: { email: true, fullName: true, avatarUrl: true }
+          })
+        );
+
+        for (const c of (customers || [])) {
+          if (c.email && c.avatarUrl) emailMap.set(c.email.toLowerCase(), c.avatarUrl);
+          if (c.fullName && c.avatarUrl) nameMap.set(c.fullName.toLowerCase(), c.avatarUrl);
+        }
+      }
+
+      // Lấy danh sách productId & productName từ taggedProducts để bổ sung ảnh sản phẩm
+      const taggedProductIds: string[] = [];
+      const taggedProductNames: string[] = [];
+      for (const p of posts as any[]) {
+        if (Array.isArray(p.taggedProducts)) {
+          for (const tp of p.taggedProducts) {
+            if (tp && !tp.imageUrl) {
+              if (tp.productId) taggedProductIds.push(tp.productId);
+              if (tp.name) taggedProductNames.push(tp.name);
+            }
+          }
+        }
+      }
+
+      const prodImageById = new Map<string, string>();
+      const prodImageByName = new Map<string, string>();
+
+      if (taggedProductIds.length > 0 || taggedProductNames.length > 0) {
+        const uniqueIds = Array.from(new Set(taggedProductIds));
+        const uniqueNames = Array.from(new Set(taggedProductNames));
+        const prods: any[] = await withDbRetry(() =>
+          (prisma as any).product.findMany({
+            where: {
+              OR: [
+                ...(uniqueIds.length > 0 ? [{ id: { in: uniqueIds } }] : []),
+                ...(uniqueNames.length > 0 ? [{ name: { in: uniqueNames } }] : [])
+              ]
+            },
+            select: { id: true, name: true, images: true }
+          })
+        ).catch(() => []);
+
+        for (const pr of (prods || [])) {
+          let img: string | null = null;
+          if (Array.isArray(pr.images) && pr.images.length > 0) {
+            img = typeof pr.images[0] === 'string' ? pr.images[0] : (pr.images[0]?.url || null);
+          } else if (typeof pr.images === 'string') {
+            try {
+              const parsed = JSON.parse(pr.images);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                img = typeof parsed[0] === 'string' ? parsed[0] : (parsed[0]?.url || null);
+              }
+            } catch {}
+          }
+          if (img) {
+            if (pr.id) prodImageById.set(pr.id, img);
+            if (pr.name) prodImageByName.set(pr.name.toLowerCase().trim(), img);
+          }
+        }
+      }
+
+      const postsWithAvatar = (posts as any[]).map((p: any) => {
+        let enrichedTagged = p.taggedProducts;
+        if (Array.isArray(p.taggedProducts)) {
+          enrichedTagged = p.taggedProducts.map((tp: any) => {
+            if (!tp) return tp;
+            const img = tp.imageUrl ||
+                        (tp.productId ? prodImageById.get(tp.productId) : null) ||
+                        (tp.name ? prodImageByName.get(tp.name.toLowerCase().trim()) : null) ||
+                        null;
+            return {
+              ...tp,
+              imageUrl: img
+            };
+          });
+        }
+        return {
+          ...p,
+          taggedProducts: enrichedTagged,
+          authorAvatar: (p.authorEmail && emailMap.get(p.authorEmail.toLowerCase())) ||
+                        (p.authorName && nameMap.get(p.authorName.toLowerCase())) ||
+                        null
+        };
+      });
+
+      memoryCache.set(cacheKey, postsWithAvatar);
+      res.json(postsWithAvatar);
     } catch (error: any) {
       console.error('[ERROR] Lấy danh sách bài đăng thiết kế thất bại:', error);
       res.status(500).json({ message: 'Không thể tải danh sách bài đăng.', error: error.message });
@@ -222,12 +322,15 @@ export const designController = {
         return;
       }
 
+      const user = (req as any).user;
+      const resolvedEmail = authorEmail ? String(authorEmail).trim() : (user?.email ? String(user.email).trim() : null);
+
       const post = await withDbRetry(() =>
         (prisma as any).designPost.create({
           data: {
             title: String(title).trim(),
             authorName: String(authorName).trim(),
-            authorEmail: authorEmail ? String(authorEmail).trim() : null,
+            authorEmail: resolvedEmail,
             description: description ? String(description).trim() : null,
             imageUrl: String(imageUrl).trim(),
             taggedProducts: taggedProducts || null,

@@ -26,6 +26,7 @@ export interface RoomTemplate {
 export interface PlannerObject {
   id: string;
   productId: string;
+  variantId?: string;
   productSlug?: string;
   name: string;
   category: string;
@@ -54,6 +55,7 @@ export interface PlannerDesign {
   background: PlannerBackground;
   dimensions: RoomDimensions;
   objects: PlannerObject[];
+  layoutCount?: number;
   thumbnailUrl?: string;
   zoom?: number;
   createdAt?: string;

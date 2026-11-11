@@ -171,6 +171,7 @@ export class AuthService {
       this.userSubject.next(user);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('dcor-auth-login', { detail: user }));
       }
     } catch (e) {
       console.error('Không thể lưu phiên vào localStorage', e);
@@ -237,9 +238,12 @@ export class AuthService {
       localStorage.removeItem(this.USER_KEY);
       localStorage.removeItem('dcor_customer_user');
       localStorage.removeItem('dcor_user');
+      localStorage.removeItem('dcor_guest_cart');
+      localStorage.removeItem('dcor_wishlist_guest');
       this.userSubject.next(null);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('dcor-auth-logout'));
       }
     } catch (e) {
       console.error('Lỗi khi xóa phiên', e);

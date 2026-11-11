@@ -6,6 +6,12 @@ import { CategoryDropdownComponent, CategoryDropdownOption } from '../category-d
 import { RoomPlannerService } from '../../services/room-planner.service';
 import { environment } from '../../../../../../../environments/environment';
 
+export interface ProductAngleImage {
+  id: string;
+  imageUrl: string;
+  label: string;
+}
+
 export interface PlannerProductCard {
   id: string;
   productId: string;
@@ -19,6 +25,7 @@ export interface PlannerProductCard {
   dimensionCm: { width: number; depth: number };
   isEstimatedDimension: boolean;
   rawProduct: any;
+  angleImages: ProductAngleImage[];
 }
 
 const FALLBACK_IMAGE =
@@ -44,6 +51,7 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
 
   searchQuery = signal<string>('');
   selectedCategory = signal<string>('all');
+  expandedProductIds = signal<Set<string>>(new Set());
 
   // Phân trang / Xem thêm
   readonly pageSize: number = 12;
@@ -204,41 +212,19 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
       { id: 'all', name: 'Tất cả danh mục', slug: 'all', level: 0, isParent: false }
     ];
 
-    // Lấy các danh mục gốc (parentId == null hoặc không có)
+    // Chỉ lọc theo danh mục chính (danh mục gốc: parentId == null hoặc không có)
     const roots = catData
       .filter((c: any) => !c.parentId && c.isActive !== false)
       .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     for (const root of roots) {
-      // Tìm con trực tiếp từ catData hoặc từ mảng root.children
-      const childrenMap = new Map<string, any>();
-      if (Array.isArray(root.children)) {
-        root.children.filter((ch: any) => ch.isActive !== false).forEach((ch: any) => childrenMap.set(ch.id, ch));
-      }
-      catData
-        .filter((c: any) => c.parentId === root.id && c.isActive !== false)
-        .forEach((ch: any) => childrenMap.set(ch.id, ch));
-
-      const children = Array.from(childrenMap.values()).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-
       options.push({
         id: root.id,
         name: root.name,
-        slug: root.slug || root.name.toLowerCase(),
+        slug: root.slug || (root.name ? root.name.toLowerCase() : ''),
         level: 0,
-        isParent: children.length > 0
+        isParent: false
       });
-
-      for (const child of children) {
-        options.push({
-          id: child.id,
-          name: child.name,
-          slug: child.slug || child.name.toLowerCase(),
-          level: 1,
-          isParent: false,
-          parentId: root.id
-        });
-      }
     }
 
     this.categoryOptions.set(options);
@@ -286,6 +272,43 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
         (Array.isArray(p.images) && p.images[0]) ||
         'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
 
+      // Trích xuất tất cả các ảnh góc nhìn / chiều khác nhau của sản phẩm (hoàn toàn lấy từ dữ liệu có sẵn, 0 request database)
+      const angleImages: ProductAngleImage[] = [];
+      const seenUrls = new Set<string>();
+
+      const addAngle = (url: any, labelText?: string) => {
+        if (!url || !isCleanUrl(url)) return;
+        const trimmed = String(url).trim();
+        if (seenUrls.has(trimmed)) return;
+        seenUrls.add(trimmed);
+        const idx = angleImages.length + 1;
+        angleImages.push({
+          id: `${rawId}-angle-${idx}`,
+          imageUrl: trimmed,
+          label: labelText || `Góc ${idx}`
+        });
+      };
+
+      // 1. Ảnh chính ban đầu (Góc chính diện)
+      addAngle(finalImage, 'Góc chính');
+
+      // 2. Các ảnh góc chiều khác trong mảng p.images
+      if (Array.isArray(p.images)) {
+        p.images.forEach((u: any) => addAngle(u));
+      }
+
+      // 3. Các ảnh góc chiều khác trong mảng variants nếu có
+      if (Array.isArray(p.variants)) {
+        p.variants.forEach((v: any) => {
+          const vImgs = v.optionValues?.images || v.images || [];
+          if (Array.isArray(vImgs)) {
+            vImgs.forEach((u: any) => addAngle(u));
+          } else if (typeof vImgs === 'string') {
+            addAngle(vImgs);
+          }
+        });
+      }
+
       const { width, depth, isEstimated } = this.extractDimensions(p);
       const name = p.name || 'Sản phẩm nội thất';
 
@@ -309,7 +332,8 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
         formattedPrice: new Intl.NumberFormat('vi-VN').format(lowestPrice) + ' ₫',
         dimensionCm: { width, depth },
         isEstimatedDimension: isEstimated,
-        rawProduct: p
+        rawProduct: p,
+        angleImages
       });
     }
 
@@ -431,9 +455,79 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
     return { width, depth, isEstimated: false };
   }
 
-  // Bấm nút thêm vào phòng
+  // Đóng / mở sổ danh sách ảnh chiều khác của sản phẩm (hoàn toàn Client-side, 0 request DB)
+  toggleAngles(productId: string, e?: Event): void {
+    if (e) e.stopPropagation();
+    const current = new Set(this.expandedProductIds());
+    if (current.has(productId)) {
+      current.delete(productId);
+    } else {
+      current.add(productId);
+    }
+    this.expandedProductIds.set(current);
+  }
+
+  isExpanded(productId: string): boolean {
+    return this.expandedProductIds().has(productId);
+  }
+
+  // Nhấn vào ảnh góc: Đổi ảnh chính của card sang góc đó
+  selectAngle(prod: PlannerProductCard, angle: ProductAngleImage, e?: Event): void {
+    if (e) e.stopPropagation();
+    prod.imageUrl = angle.imageUrl;
+  }
+
+  // Thêm góc ảnh cụ thể vào phòng
+  handleAddAngle(prod: PlannerProductCard, angle: ProductAngleImage, e?: Event): void {
+    if (e) e.stopPropagation();
+    const angleProduct = {
+      ...prod.rawProduct,
+      variantId: prod.rawProduct.variants?.[0]?.id || prod.id,
+      imageUrl: angle.imageUrl,
+      images: [angle.imageUrl, ...(prod.rawProduct.images || [])],
+      basePrice: prod.unitPrice,
+      unitPrice: prod.unitPrice
+    };
+    this.plannerService.addProductToCanvas(angleProduct);
+
+    // Cập nhật ảnh chính trên card
+    prod.imageUrl = angle.imageUrl;
+
+    this.addedProductId.set(angle.id);
+    setTimeout(() => {
+      if (this.addedProductId() === angle.id) {
+        this.addedProductId.set(null);
+        this.cdr.markForCheck();
+      }
+    }, 700);
+  }
+
+  // Kéo thả góc ảnh cụ thể vào canvas
+  onDragStartAngle(e: DragEvent, prod: PlannerProductCard, angle: ProductAngleImage): void {
+    if (e.dataTransfer) {
+      const angleProduct = {
+        ...prod.rawProduct,
+        variantId: prod.rawProduct.variants?.[0]?.id || prod.id,
+        imageUrl: angle.imageUrl,
+        images: [angle.imageUrl, ...(prod.rawProduct.images || [])],
+        basePrice: prod.unitPrice,
+        unitPrice: prod.unitPrice
+      };
+      e.dataTransfer.setData('application/json', JSON.stringify(angleProduct));
+      e.dataTransfer.effectAllowed = 'copy';
+    }
+  }
+
+  // Bấm nút thêm vào phòng (dùng màu hiện tại của card)
   handleAddProduct(prod: PlannerProductCard): void {
-    this.plannerService.addProductToCanvas(prod.rawProduct);
+    const productToAdd = {
+      ...prod.rawProduct,
+      variantId: prod.rawProduct.variants?.[0]?.id || prod.id,
+      images: [prod.imageUrl, ...(prod.rawProduct.images || [])],
+      basePrice: prod.unitPrice,
+      unitPrice: prod.unitPrice
+    };
+    this.plannerService.addProductToCanvas(productToAdd);
 
     // Feedback visual nhanh
     this.addedProductId.set(prod.id);
@@ -445,12 +539,41 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
     }, 700);
   }
 
-  // Kéo thả vào canvas
+  // Kéo thả vào canvas (dùng màu hiện tại của card)
   onDragStart(e: DragEvent, prod: PlannerProductCard): void {
     if (e.dataTransfer) {
-      e.dataTransfer.setData('application/json', JSON.stringify(prod.rawProduct));
+      const productToAdd = {
+        ...prod.rawProduct,
+        variantId: prod.rawProduct.variants?.[0]?.id || prod.id,
+        images: [prod.imageUrl, ...(prod.rawProduct.images || [])],
+        basePrice: prod.unitPrice,
+        unitPrice: prod.unitPrice
+      };
+      e.dataTransfer.setData('application/json', JSON.stringify(productToAdd));
       e.dataTransfer.effectAllowed = 'copy';
     }
+  }
+
+  private detectColor(text: string): { name: string; hex: string } {
+    const lower = (text || '').toLowerCase();
+    if (lower.includes('green') || lower.includes('xanh lá') || lower.includes('xanh rêu') || lower.includes('olive') || lower.includes('rêu')) return { name: 'Xanh rêu', hex: '#3B5E45' };
+    if (lower.includes('sky blue') || lower.includes('xanh dương') || lower.includes('navy') || lower.includes('blue') || lower.includes('xanh lam')) return { name: 'Xanh navy', hex: '#2B4C7E' };
+    if (lower.includes('yellow') || lower.includes('vàng') || lower.includes('ochre')) return { name: 'Vàng nghệ', hex: '#D4A017' };
+    if (lower.includes('red') || lower.includes('đỏ') || lower.includes('burgundy') || lower.includes('crimson')) return { name: 'Đỏ rượu', hex: '#9E2A2B' };
+    if (lower.includes('pink') || lower.includes('hồng') || lower.includes('rose') || lower.includes('dusty pink')) return { name: 'Hồng phấn', hex: '#D89A9E' };
+    if (lower.includes('orange') || lower.includes('cam') || lower.includes('terracotta') || lower.includes('đất')) return { name: 'Cam đất', hex: '#C86432' };
+    if (lower.includes('grey') || lower.includes('gray') || lower.includes('xám') || lower.includes('ghi') || lower.includes('ash')) return { name: 'Xám khói', hex: '#7D7F7D' };
+    if (lower.includes('white') || lower.includes('trắng') || lower.includes('kem') || lower.includes('ivory') || lower.includes('cream')) return { name: 'Trắng kem', hex: '#F0ECE1' };
+    if (lower.includes('black') || lower.includes('đen') || lower.includes('charcoal') || lower.includes('anthracite')) return { name: 'Đen nhung', hex: '#222222' };
+    if (lower.includes('brown') || lower.includes('nâu') || lower.includes('cognac') || lower.includes('caramel') || lower.includes('da bò')) return { name: 'Nâu da bò', hex: '#6E473B' };
+    if (lower.includes('beige') || lower.includes('be') || lower.includes('sand') || lower.includes('cát')) return { name: 'Be sáng', hex: '#C8BAA9' };
+    if (lower.includes('wood') || lower.includes('gỗ') || lower.includes('oak') || lower.includes('walnut') || lower.includes('sồi') || lower.includes('óc chó')) return { name: 'Gỗ tự nhiên', hex: '#8B5A2B' };
+    
+    const cleanText = text.trim();
+    if (cleanText && cleanText.length <= 25) {
+      return { name: cleanText, hex: '#8C8C8C' };
+    }
+    return { name: cleanText ? cleanText.slice(0, 22) + '…' : 'Tiêu chuẩn', hex: '#8C8C8C' };
   }
 
   ngAfterViewInit(): void {

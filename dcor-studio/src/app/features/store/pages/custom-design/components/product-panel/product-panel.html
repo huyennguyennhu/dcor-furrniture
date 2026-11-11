@@ -1,24 +1,14 @@
 <div class="product-panel-container">
-  
+
   <!-- Header: Tìm kiếm, Dropdown Danh mục & Số lượng kết quả -->
   <div class="panel-header">
     <div class="search-filter-row">
       <!-- Ô tìm kiếm sản phẩm -->
       <div class="search-input-wrap">
         <app-icon name="Search" size="15" class="search-icon"></app-icon>
-        <input 
-          type="text" 
-          [ngModel]="searchQuery()" 
-          (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
-          placeholder="Tìm sofa, bàn, đèn..." 
-          class="panel-search-input" 
-          aria-label="Tìm kiếm sản phẩm nội thất"
-        />
-        <button 
-          *ngIf="searchQuery()" 
-          type="button" 
-          class="clear-search-btn" 
-          (click)="clearSearch()" 
+        <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
+          placeholder="Tìm sofa, bàn, đèn..." class="panel-search-input" aria-label="Tìm kiếm sản phẩm nội thất" />
+        <button *ngIf="searchQuery()" type="button" class="clear-search-btn" (click)="clearSearch()"
           aria-label="Xóa từ khóa tìm kiếm">
           <app-icon name="X" size="14"></app-icon>
         </button>
@@ -26,9 +16,7 @@
 
       <!-- Dropdown Danh mục (nằm cạnh ô tìm kiếm, xếp dọc trên mobile) -->
       <div class="category-dropdown-wrap">
-        <app-category-dropdown
-          [options]="categoryOptions()"
-          [selectedId]="selectedCategory()"
+        <app-category-dropdown [options]="categoryOptions()" [selectedId]="selectedCategory()"
           (categoryChange)="setCategory($event)">
         </app-category-dropdown>
       </div>
@@ -42,18 +30,18 @@
 
   <!-- Danh sách sản phẩm (cuộn dọc) -->
   <div #panelBody class="panel-body">
-    
+
     <!-- Loading Skeletons -->
     <div *ngIf="isLoading()" class="skeleton-list">
       @for (i of [1, 2, 3, 4]; track i) {
-        <div class="product-skeleton-card">
-          <div class="skeleton-img"></div>
-          <div class="skeleton-info">
-            <div class="skeleton-line line-short"></div>
-            <div class="skeleton-line line-title"></div>
-            <div class="skeleton-line line-price"></div>
-          </div>
+      <div class="product-skeleton-card">
+        <div class="skeleton-img"></div>
+        <div class="skeleton-info">
+          <div class="skeleton-line line-short"></div>
+          <div class="skeleton-line line-title"></div>
+          <div class="skeleton-line line-price"></div>
         </div>
+      </div>
       }
     </div>
 
@@ -70,16 +58,13 @@
     </div>
 
     <!-- Empty State (Chỉ hiện khi API trả về thật sự rỗng) -->
-    <div *ngIf="!isLoading() && !loadError() && allFilteredProducts().length === 0" class="panel-state-card empty-state">
+    <div *ngIf="!isLoading() && !loadError() && allFilteredProducts().length === 0"
+      class="panel-state-card empty-state">
       <app-icon name="Package" size="32" color="var(--color-text-muted, #757575)"></app-icon>
       <p class="state-title">Không tìm thấy sản phẩm</p>
       <p class="state-message">Thử đổi từ khóa hoặc chọn danh mục khác để xem thêm nội thất DCor.</p>
-      <button 
-        *ngIf="searchQuery() || selectedCategory() !== 'all'" 
-        type="button" 
-        class="reset-filter-btn" 
-        (click)="clearSearch(); setCategory('all')"
-        aria-label="Đặt lại bộ lọc tìm kiếm">
+      <button *ngIf="searchQuery() || selectedCategory() !== 'all'" type="button" class="reset-filter-btn"
+        (click)="clearSearch(); setCategory('all')" aria-label="Đặt lại bộ lọc tìm kiếm">
         Đặt lại bộ lọc
       </button>
     </div>
@@ -87,25 +72,16 @@
     <!-- Product Cards -->
     <div *ngIf="!isLoading() && !loadError() && displayedProducts().length > 0" class="product-cards-list">
       @for (prod of displayedProducts(); track prod.id) {
-        <div 
-          class="product-item-card" 
-          draggable="true" 
-          (dragstart)="onDragStart($event, prod)"
-          (click)="handleAddProduct(prod)"
-          title="Thêm vào phòng">
-          
+      <div class="product-item-card-wrapper">
+        <div class="product-item-card" draggable="true" (dragstart)="onDragStart($event, prod)"
+          (click)="handleAddProduct(prod)" title="Thêm vào phòng">
+
           <div class="item-thumb-box">
-            <img 
-              [src]="prod.imageUrl" 
-              [alt]="prod.name" 
-              class="item-thumb-img" 
-              loading="lazy" 
-              (error)="onImgError($event)"
-            />
+            <img [src]="prod.imageUrl" [alt]="prod.name" class="item-thumb-img" loading="lazy"
+              (error)="onImgError($event)" />
           </div>
 
           <div class="item-main-info">
-            <span class="item-category" [title]="prod.category">{{ prod.category }}</span>
             <h4 class="item-name" [title]="prod.name">{{ prod.name }}</h4>
 
             <div class="item-specs-row">
@@ -114,14 +90,20 @@
                 <span>{{ prod.dimensionCm.width }} × {{ prod.dimensionCm.depth }} cm</span>
                 <span *ngIf="prod.isEstimatedDimension" class="estimated-star" title="Kích thước ước lượng">*</span>
               </span>
+
+              <!-- Nút sổ các góc chiều khác của sản phẩm (nếu có từ 2 góc ảnh trở lên) -->
+              <button *ngIf="prod.angleImages && prod.angleImages.length > 1" type="button" class="angle-toggle-btn"
+                [class.active]="isExpanded(prod.id)" (click)="toggleAngles(prod.id, $event)"
+                [title]="isExpanded(prod.id) ? 'Thu gọn các góc ảnh' : 'Nhấn để sổ ra ' + prod.angleImages.length + ' góc chiều khác nhau'">
+                <app-icon name="Layers" size="12"></app-icon>
+                <span class="angle-label-text">{{ prod.angleImages.length }} góc ảnh</span>
+                <app-icon [name]="isExpanded(prod.id) ? 'ChevronUp' : 'ChevronDown'" size="12"></app-icon>
+              </button>
             </div>
 
             <div class="item-price-row">
               <span class="item-price">{{ prod.formattedPrice }}</span>
-              <button 
-                type="button" 
-                class="add-item-btn" 
-                [class.added-feedback]="addedProductId() === prod.id"
+              <button type="button" class="add-item-btn" [class.added-feedback]="addedProductId() === prod.id"
                 (click)="$event.stopPropagation(); handleAddProduct(prod)"
                 [attr.aria-label]="'Thêm ' + prod.name + ' vào phòng'">
                 <app-icon [name]="addedProductId() === prod.id ? 'Check' : 'Plus'" size="14"></app-icon>
@@ -130,6 +112,40 @@
             </div>
           </div>
         </div>
+
+        <!-- Danh sách các ảnh góc chiều khác SỔ RA khi người dùng nhấn (hoàn toàn ở client, không gọi database) -->
+        <div *ngIf="isExpanded(prod.id) && prod.angleImages && prod.angleImages.length > 1"
+          class="angles-collapse-panel">
+          <div class="angles-panel-header">
+            <span class="angles-title">Góc khác:</span>
+          </div>
+          <div class="angles-grid">
+            @for (ang of prod.angleImages; track ang.id) {
+            <div class="angle-thumb-card" [class.is-active]="prod.imageUrl === ang.imageUrl" draggable="true"
+              (dragstart)="onDragStartAngle($event, prod, ang)" (click)="selectAngle(prod, ang, $event)"
+              [title]="ang.label + ' - Nhấp để xem góc này'">
+
+              <div class="angle-img-box">
+                <img [src]="ang.imageUrl" [alt]="ang.label" class="angle-img" loading="lazy"
+                  (error)="onImgError($event)" />
+                <span *ngIf="prod.imageUrl === ang.imageUrl" class="active-badge" title="Đang hiển thị">
+                  <app-icon name="Check" size="10"></app-icon>
+                </span>
+              </div>
+
+              <div class="angle-meta">
+                <span class="angle-name">{{ ang.label }}</span>
+              </div>
+
+              <button type="button" class="angle-add-btn" [class.added-feedback]="addedProductId() === ang.id"
+                (click)="handleAddAngle(prod, ang, $event)" title="Thêm góc ảnh này vào phòng">
+                <app-icon [name]="addedProductId() === ang.id ? 'Check' : 'Plus'" size="12"></app-icon>
+              </button>
+            </div>
+            }
+          </div>
+        </div>
+      </div>
       }
 
       <!-- Cuộn vô tận / Xem thêm (Phân trang mượt mà) -->
@@ -138,7 +154,8 @@
           <app-icon name="LoaderCircle" size="16" class="icon-spin"></app-icon>
           <span>Đang tải thêm...</span>
         </span>
-        <button *ngIf="!isLoadingMore()" type="button" class="load-more-btn" (click)="loadMore()" aria-label="Xem thêm sản phẩm">
+        <button *ngIf="!isLoadingMore()" type="button" class="load-more-btn" (click)="loadMore()"
+          aria-label="Xem thêm sản phẩm">
           <span>Xem thêm (còn {{ remainingCount() }} sản phẩm)</span>
           <app-icon name="ChevronDown" size="14"></app-icon>
         </button>

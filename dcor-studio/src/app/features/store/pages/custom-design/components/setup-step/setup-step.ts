@@ -351,7 +351,17 @@ export class SetupStepComponent implements OnInit {
         firstValueFrom(this.myDesignApi.listDesigns('DRAFT')).catch(() => [])
       ]);
 
-      const combined: UserDesignApi[] = [...(savedList || []), ...(draftList || [])].slice(0, 8);
+      const allDesigns: UserDesignApi[] = [...(savedList || []), ...(draftList || [])];
+
+      // Sắp xếp theo thời gian chỉnh sửa mới nhất trước
+      allDesigns.sort((a, b) => {
+        const timeA = new Date(a.lastEditedAt || a.updatedAt || a.createdAt).getTime();
+        const timeB = new Date(b.lastEditedAt || b.updatedAt || b.createdAt).getTime();
+        return timeB - timeA;
+      });
+
+      // Chỉ hiển thị đúng 4 thiết kế gần nhất
+      const combined: UserDesignApi[] = allDesigns.slice(0, 4);
 
       const mapped: PlannerDesign[] = combined.map((d) => ({
         id: d.id,
@@ -370,6 +380,9 @@ export class SetupStepComponent implements OnInit {
           height: d.roomHeight || 2.8
         },
         objects: Array.isArray(d.layout) ? d.layout : [],
+        layoutCount: typeof d.layoutCount === 'number' && d.layoutCount > 0
+          ? d.layoutCount
+          : (Array.isArray(d.layout) ? d.layout.length : (d.layoutCount || 0)),
         thumbnailUrl: d.coverImageUrl || undefined,
         createdAt: d.createdAt,
         updatedAt: d.lastEditedAt || d.updatedAt
@@ -503,6 +516,35 @@ export class SetupStepComponent implements OnInit {
     const bg = this.previewBg;
     if (!bg || !this.lengthMeters || this.lengthMeters <= 0) return 0;
     return Math.round(bg.naturalWidth / this.lengthMeters);
+  }
+
+  formatRelativeTime(dateStr?: string): string {
+    if (!dateStr) return '';
+    try {
+      const now = new Date();
+      const date = new Date(dateStr);
+      const diffMs = now.getTime() - date.getTime();
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHour = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHour / 24);
+
+      if (diffSec < 60) return 'Vừa xong';
+      if (diffMin < 60) return `${diffMin} phút trước`;
+      if (diffHour < 24) return `${diffHour} giờ trước`;
+      if (diffDay < 7) return `${diffDay} ngày trước`;
+      if (diffDay < 30) {
+        const weeks = Math.floor(diffDay / 7);
+        return `${weeks} tuần trước`;
+      }
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateStr;
+    }
   }
 
   onImgError(e: Event): void {

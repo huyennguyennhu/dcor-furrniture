@@ -89,14 +89,45 @@
       <!-- Right: Sắp xếp theo -->
       <div class="subbar-right">
         <span class="sort-prefix">Sắp xếp theo:</span>
-        <app-custom-select [value]="sortBy" (valueChange)="onSortChange($event)" [options]="[
-            { value: 'featured', label: 'Bán chạy nhất' },
-            { value: 'newest', label: 'Mới nhất' },
-            { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
-            { value: 'price-desc', label: 'Giá: Cao đến Thấp' },
-            { value: 'sale', label: 'Đang khuyến mãi' }
-          ]">
-        </app-custom-select>
+
+        <!-- Nhóm nút chọn nhanh: Bán chạy nhất, Mới nhất, Đang khuyến mãi -->
+        <div class="sort-quick-group">
+          <button type="button" 
+                  class="sort-btn" 
+                  [class.active]="sortCriterion === 'featured'" 
+                  (click)="setSortCriterion('featured')"
+                  title="Sắp xếp theo sản phẩm bán chạy nhất">
+            Bán chạy nhất
+          </button>
+          <button type="button" 
+                  class="sort-btn" 
+                  [class.active]="sortCriterion === 'newest'" 
+                  (click)="setSortCriterion('newest')"
+                  title="Sắp xếp theo sản phẩm mới nhất">
+            Mới nhất
+          </button>
+          <button type="button" 
+                  class="sort-btn" 
+                  [class.active]="sortCriterion === 'sale'" 
+                  (click)="setSortCriterion('sale')"
+                  title="Lọc sản phẩm đang có khuyến mãi">
+            Đang khuyến mãi
+          </button>
+        </div>
+
+        <!-- Sắp xếp theo Giá riêng biệt -->
+        <div class="sort-price-wrapper" [class.is-active]="isPriceSort">
+          <app-custom-select 
+            [value]="priceSortOrder" 
+            placeholder="Giá"
+            (valueChange)="onPriceSortChange($event)" 
+            [options]="[
+              { value: 'default', label: 'Giá: Mặc định' },
+              { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
+              { value: 'price-desc', label: 'Giá: Cao đến Thấp' }
+            ]">
+          </app-custom-select>
+        </div>
       </div>
 
     </div>

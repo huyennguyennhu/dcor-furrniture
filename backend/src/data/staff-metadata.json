@@ -20,5 +20,17 @@
     "assignedBranches": [
       "KHO_TONG_HCM"
     ]
+  },
+  "nhinly23406@st.uel.edu.vn": {
+    "roles": [
+      "QL Sản phẩm",
+      "QL Đơn hàng"
+    ],
+    "role": "QL Sản phẩm",
+    "branchId": "KHO_TONG_HCM",
+    "branchName": "Kho Tổng (TP.HCM), Toàn hệ thống",
+    "assignedBranches": [
+      "KHO_TONG_HCM"
+    ]
   }
 }

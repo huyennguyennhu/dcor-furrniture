@@ -89,10 +89,37 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  padding: 4px 10px;
   background: var(--color-surface-subtle, #f9fafb);
   border: 1px solid var(--color-border-subtle, #ededed);
   border-radius: var(--radius-control, 8px);
+  transition: all 0.2s ease;
+}
+
+.topbar-room-badge:not(.is-editing):hover {
+  border-color: #d1c7b7;
+  background: #fdfbf7;
+}
+
+.topbar-room-badge.is-editing {
+  background: #ffffff;
+  border-color: var(--color-primary, #765337);
+  box-shadow: 0 0 0 2px rgba(118, 83, 55, 0.15);
+}
+
+.room-title-interactive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  min-width: 0;
+}
+
+.room-title-interactive:hover {
+  background: rgba(118, 83, 55, 0.08);
 }
 
 .topbar-room-badge .room-name {
@@ -103,6 +130,58 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 180px;
+}
+
+.badge-edit-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  opacity: 0.7;
+  transition: all 0.15s ease;
+}
+
+.room-title-interactive:hover .badge-edit-hint {
+  color: var(--color-primary, #765337);
+  opacity: 1;
+}
+
+.room-title-editor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.room-name-inline-input {
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-text-heading, #0a0a0a);
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 160px;
+  padding: 2px 4px;
+  border-bottom: 1.5px solid var(--color-primary, #765337);
+}
+
+.inline-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: none;
+  background: var(--color-primary, #765337);
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease;
+}
+
+.inline-save-btn:hover {
+  background: #5e422b;
 }
 
 .topbar-room-badge .room-dims {
@@ -120,8 +199,10 @@
 .topbar-center {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
   gap: 12px;
-  flex-shrink: 0;
 }
 
 .history-controls-group {
@@ -170,6 +251,7 @@
   gap: 8px;
   white-space: nowrap;
   position: relative;
+  margin-left: auto;
 }
 
 .topbar-action-btn {
@@ -196,6 +278,18 @@
   background: var(--color-sub-bg, #fff3e3);
   color: var(--color-primary, #765337);
   border-color: var(--color-primary, #765337);
+}
+
+.topbar-action-btn.save-btn.is-saved {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #16a34a;
+}
+
+.topbar-action-btn.save-btn.is-saved:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #4ade80;
+  color: #15803d;
 }
 
 .topbar-action-btn.export-btn {
@@ -322,6 +416,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+@media (min-width: 1025px) {
+  .topbar-right {
+    display: none;
+  }
 }
 
 .topbar-price-card {

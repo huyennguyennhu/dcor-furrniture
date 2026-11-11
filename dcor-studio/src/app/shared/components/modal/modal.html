@@ -1,28 +1,28 @@
-<div *ngIf="isOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+<div *ngIf="isOpen" class="modal-overlay">
   <!-- Backdrop -->
   <div 
-    style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);" 
+    class="modal-backdrop" 
     (click)="onClose()"
   ></div>
   
   <!-- Modal Content -->
-  <div [style.width]="width" style="position: relative; background: var(--bg-primary); border-radius: 12px; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+  <div [style.width]="width" class="modal-card">
     
     <!-- Header -->
-    <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-      <h2 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0;">{{ title }}</h2>
+    <div class="modal-header">
+      <h2 class="modal-title">{{ title }}</h2>
       <button (click)="onClose()" class="admin-close-btn" aria-label="Đóng">
-        <app-icon name="X" size="20"></app-icon>
+        <app-icon name="X" size="18"></app-icon>
       </button>
     </div>
     
     <!-- Body -->
-    <div style="padding: 24px; overflow-y: auto;">
+    <div class="modal-body">
       <ng-content></ng-content>
     </div>
     
     <!-- Footer -->
-    <div *ngIf="hasFooter" style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-secondary); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+    <div *ngIf="hasFooter" class="modal-footer">
       <ng-content select="[footer]"></ng-content>
     </div>
 

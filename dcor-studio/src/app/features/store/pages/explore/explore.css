@@ -236,14 +236,79 @@
 .subbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-left: auto;
+  flex-wrap: wrap;
 }
 
 .sort-prefix {
-  font-size: 14px;
+  font-size: 13.5px;
   color: #4b5563;
+  font-weight: 500;
   white-space: nowrap;
+}
+
+.sort-quick-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #e5e3dc;
+  background-color: #ffffff;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.sort-btn:hover {
+  border-color: #bc5f13;
+  color: #bc5f13;
+  background-color: #fdfaf7;
+}
+
+.sort-btn.active {
+  background-color: #765337;
+  border-color: #765337;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.2);
+}
+
+.sort-price-wrapper {
+  min-width: 175px;
+  position: relative;
+}
+
+.sort-price-wrapper.is-active ::ng-deep button {
+  border-color: #765337 !important;
+  color: #765337 !important;
+  font-weight: 600 !important;
+  background-color: #fdfaf7 !important;
+  box-shadow: 0 0 0 1px #765337;
+}
+
+.sort-price-wrapper ::ng-deep button {
+  height: 38px !important;
+  box-sizing: border-box !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.sort-price-wrapper ::ng-deep button:hover {
+  border-color: #bc5f13 !important;
 }
 
 /* ==========================================================================
@@ -473,7 +538,29 @@
   .subbar-right {
     margin-left: 0;
     width: 100%;
-    justify-content: space-between;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .sort-quick-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .sort-btn {
+    padding: 6px 12px;
+    height: 36px;
+    font-size: 12.5px;
+  }
+
+  .sort-price-wrapper {
+    flex: 1 1 150px;
+    min-width: 140px;
   }
 }
 

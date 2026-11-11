@@ -13,7 +13,8 @@ import {
   Pencil, 
   Bell, 
   LogOut,
-  Star
+  Star,
+  Layers
 } from 'lucide-angular';
 import { CustomerService, CustomerProfile } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -38,7 +39,8 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
     Pencil,
     Bell,
     LogOut,
-    Star
+    Star,
+    Layers
   };
 
   profile: CustomerProfile | null = null;

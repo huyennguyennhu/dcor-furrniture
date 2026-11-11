@@ -70,6 +70,25 @@ function isValidLayout(layout: any): boolean {
   return Array.isArray(layout) && layout.length <= 200;
 }
 
+function extractLayoutCount(layout: any): number {
+  if (!layout) return 0;
+  let parsed = layout;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return 0;
+    }
+  }
+  if (Array.isArray(parsed)) return parsed.length;
+  if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed.objects)) return parsed.objects.length;
+    if (Array.isArray(parsed.items)) return parsed.items.length;
+    if (Array.isArray(parsed.layout)) return parsed.layout.length;
+  }
+  return 0;
+}
+
 // ============================================================================
 // CONTROLLER THIẾT KẾ CỦA TÔI
 // ============================================================================
@@ -261,7 +280,7 @@ export const myDesignController = {
     try {
       const { id } = req.params;
       const customerId = req.user.userId;
-      const { title, coverImageUrl } = req.body;
+      const { title, coverImageUrl, layout, roomLength, roomWidth, roomHeight } = req.body;
 
       const existing: any = await withDbRetry<any>(() =>
         (prisma as any).userDesign.findUnique({
@@ -289,6 +308,11 @@ export const myDesignController = {
         return;
       }
 
+      if (layout !== undefined && !isValidLayout(layout)) {
+        res.status(400).json({ message: 'Bố cục layout phải là mảng không quá 200 phần tử.' });
+        return;
+      }
+
       const updated = await withDbRetry<any>(() =>
         (prisma as any).userDesign.update({
           where: { id },
@@ -296,6 +320,10 @@ export const myDesignController = {
             status: 'SAVED',
             ...(title !== undefined && { title: title.trim() }),
             ...(coverImageUrl !== undefined && { coverImageUrl: coverImageUrl ? String(coverImageUrl).trim() : null }),
+            ...(layout !== undefined && { layout: Array.isArray(layout) ? layout : [] }),
+            ...(roomLength !== undefined && { roomLength: Number(roomLength) }),
+            ...(roomWidth !== undefined && { roomWidth: Number(roomWidth) }),
+            ...(roomHeight !== undefined && { roomHeight: roomHeight !== null ? Number(roomHeight) : null }),
             lastEditedAt: new Date()
           }
         })
@@ -489,7 +517,7 @@ export const myDesignController = {
       const rawTab = req.query.tab;
       const tab = (rawTab ? String(rawTab).toUpperCase() : 'DRAFT').trim();
 
-      if (!['DRAFT', 'SAVED', 'LIKED'].includes(tab)) {
+      if (!['DRAFT', 'SAVED', 'LIKED', 'POSTS', 'MY_POSTS'].includes(tab)) {
         res.status(400).json({ message: 'Tham số tab không hợp lệ. Vui lòng chọn DRAFT, SAVED hoặc LIKED.' });
         return;
       }
@@ -525,7 +553,7 @@ export const myDesignController = {
         const now = Date.now();
         const formatted = (Array.isArray(drafts) ? drafts : []).map((d: any) => {
           const { layout, ...rest } = d;
-          const layoutCount = Array.isArray(layout) ? layout.length : 0;
+          const layoutCount = extractLayoutCount(layout);
           const expiresAt = new Date(d.lastEditedAt).getTime() + 7 * 24 * 60 * 60 * 1000;
           const daysLeft = Math.max(0, Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000)));
 
@@ -535,6 +563,34 @@ export const myDesignController = {
             daysLeft
           };
         });
+
+        // Fallback: nếu layoutCount === 0 nhưng có postId thì lấy từ taggedProducts của bài viết
+        const missingDraftPostIds = formatted
+          .filter((f: any) => f.layoutCount === 0 && f.postId)
+          .map((f: any) => f.postId);
+        if (missingDraftPostIds.length > 0) {
+          const posts = await withDbRetry<any[]>(() =>
+            (prisma as any).designPost.findMany({
+              where: { id: { in: missingDraftPostIds } },
+              select: { id: true, taggedProducts: true }
+            })
+          ).catch(() => []);
+          const postCountMap = new Map<string, number>();
+          for (const p of posts || []) {
+            let count = 0;
+            if (Array.isArray(p.taggedProducts)) {
+              count = p.taggedProducts.length;
+            } else if (typeof p.taggedProducts === 'string') {
+              try { count = JSON.parse(p.taggedProducts).length; } catch {}
+            }
+            postCountMap.set(p.id, count);
+          }
+          for (const f of formatted) {
+            if (f.layoutCount === 0 && f.postId && postCountMap.has(f.postId)) {
+              f.layoutCount = postCountMap.get(f.postId) || 0;
+            }
+          }
+        }
 
         res.json(formatted);
         return;
@@ -556,12 +612,40 @@ export const myDesignController = {
 
         const formatted = (Array.isArray(saved) ? saved : []).map((d: any) => {
           const { layout, ...rest } = d;
-          const layoutCount = Array.isArray(layout) ? layout.length : 0;
+          const layoutCount = extractLayoutCount(layout);
           return {
             ...rest,
             layoutCount
           };
         });
+
+        // Fallback: nếu layoutCount === 0 nhưng có postId thì lấy từ taggedProducts của bài viết
+        const missingSavedPostIds = formatted
+          .filter((f: any) => f.layoutCount === 0 && f.postId)
+          .map((f: any) => f.postId);
+        if (missingSavedPostIds.length > 0) {
+          const posts = await withDbRetry<any[]>(() =>
+            (prisma as any).designPost.findMany({
+              where: { id: { in: missingSavedPostIds } },
+              select: { id: true, taggedProducts: true }
+            })
+          ).catch(() => []);
+          const postCountMap = new Map<string, number>();
+          for (const p of posts || []) {
+            let count = 0;
+            if (Array.isArray(p.taggedProducts)) {
+              count = p.taggedProducts.length;
+            } else if (typeof p.taggedProducts === 'string') {
+              try { count = JSON.parse(p.taggedProducts).length; } catch {}
+            }
+            postCountMap.set(p.id, count);
+          }
+          for (const f of formatted) {
+            if (f.layoutCount === 0 && f.postId && postCountMap.has(f.postId)) {
+              f.layoutCount = postCountMap.get(f.postId) || 0;
+            }
+          }
+        }
 
         res.json(formatted);
         return;
@@ -622,6 +706,61 @@ export const myDesignController = {
         }
 
         res.json(result);
+        return;
+      }
+
+      // Tab POSTS / MY_POSTS: Trả danh sách bài viết thiết kế cộng đồng do khách hàng này đăng
+      if (tab === 'POSTS' || tab === 'MY_POSTS') {
+        const customer = await withDbRetry<any>(() =>
+          (prisma as any).customer.findUnique({
+            where: { id: customerId },
+            select: { email: true, phone: true, avatarUrl: true }
+          })
+        );
+
+        const userDesignsWithPost = await withDbRetry<any[]>(() =>
+          (prisma as any).userDesign.findMany({
+            where: { customerId, postId: { not: null } },
+            select: { postId: true }
+          })
+        );
+        const linkedPostIds = Array.isArray(userDesignsWithPost)
+          ? userDesignsWithPost.map((u: any) => u.postId).filter(Boolean)
+          : [];
+
+        const conditions: any[] = [];
+        if (linkedPostIds.length > 0) {
+          conditions.push({ id: { in: linkedPostIds } });
+        }
+        if (customer?.email) {
+          conditions.push({ authorEmail: customer.email });
+        }
+
+        if (conditions.length === 0) {
+          res.json([]);
+          return;
+        }
+
+        const posts = await withDbRetry<any[]>(() =>
+          (prisma as any).designPost.findMany({
+            where: {
+              OR: conditions
+            },
+            include: {
+              comments: {
+                orderBy: { createdAt: 'desc' }
+              }
+            },
+            orderBy: { createdAt: 'desc' }
+          })
+        );
+
+        const postsWithAvatar = (posts || []).map((p: any) => ({
+          ...p,
+          authorAvatar: customer?.avatarUrl || null
+        }));
+
+        res.json(postsWithAvatar);
         return;
       }
     } catch (error: any) {

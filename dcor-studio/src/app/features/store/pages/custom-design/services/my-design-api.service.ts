@@ -119,9 +119,9 @@ export class MyDesignApiService {
     return this.http.put<UserDesignApi>(`${this.baseUrl}/${id}`, data).pipe(timeout(API_TIMEOUT_MS));
   }
 
-  // 3. Chuyển trạng thái từ DRAFT sang SAVED kèm tiêu đề và ảnh bìa
-  saveDesign(id: string, title?: string, coverImageUrl?: string): Observable<UserDesignApi> {
-    return this.http.patch<UserDesignApi>(`${this.baseUrl}/${id}/save`, { title, coverImageUrl }).pipe(timeout(API_TIMEOUT_MS));
+  // 3. Chuyển trạng thái từ DRAFT sang SAVED kèm tiêu đề và ảnh bìa (và bố cục layout nếu có)
+  saveDesign(id: string, title?: string, coverImageUrl?: string, layout?: any[]): Observable<UserDesignApi> {
+    return this.http.patch<UserDesignApi>(`${this.baseUrl}/${id}/save`, { title, coverImageUrl, layout }).pipe(timeout(API_TIMEOUT_MS));
   }
 
   // 4. Đổi tên thiết kế
@@ -162,6 +162,11 @@ export class MyDesignApiService {
   // 11. Lấy danh sách ID các bài viết đã thích để tô tim
   getMyLikes(): Observable<string[]> {
     return this.http.get<string[]>(`${this.communityUrl}/likes/mine`).pipe(timeout(API_TIMEOUT_MS));
+  }
+
+  // 12. Lấy danh sách bài viết thiết kế cộng đồng do người dùng đăng
+  listMyPosts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}?tab=POSTS`).pipe(timeout(API_TIMEOUT_MS));
   }
 
   // 12. Upload hình ảnh (ảnh nền hoặc ảnh bìa thiết kế nén) qua multipart/form-data
