@@ -69,6 +69,9 @@ export interface OrderDetail {
   deliveredAt?: string | Date;
   isDeliveredWaitingConfirm?: boolean;
   remainingConfirmSeconds?: number;
+  isExpiringSoon?: boolean;
+  isExpired?: boolean;
+  remainingExpirySeconds?: number;
   items: OrderItemDetail[];
   statusHistory: OrderStatusHistoryItem[];
   payments: PaymentTransactionItem[];
@@ -86,6 +89,9 @@ export interface OrderSummary {
   cancelledAt?: string | null;
   isDeliveredWaitingConfirm?: boolean;
   remainingConfirmSeconds?: number;
+  isExpiringSoon?: boolean;
+  isExpired?: boolean;
+  remainingExpirySeconds?: number;
   total: number;
   totalAmount: number;
   subTotal: number;
@@ -213,7 +219,7 @@ export class OrderService {
   // Cập nhật trạng thái đơn hàng (Đồng bộ trực tiếp với hệ thống Admin)
   updateOrderStatusSync(orderIdOrNumber: string, status: string, notes?: string): Observable<{ message: string; order: any }> {
     return this.http.put<{ message: string; order: any }>(
-      `${environment.apiUrl}/admin/orders/${orderIdOrNumber}/status`,
+      `${this.baseUrl}/${orderIdOrNumber}/status`,
       {
         status,
         notes: notes || `Chuyển trạng thái thử nghiệm đồng bộ Admin sang ${status}`,

@@ -50,18 +50,28 @@ export interface CustomerProfile {
 export interface WarrantyItem {
   id: string;
   orderNumber: string;
+  warrantyCode?: string;
+  productId?: string;
   productName: string;
   sku?: string;
   imageUrl?: string;
   variantDescription?: string;
+  variantName?: string;
+  price?: number;
+  quantity?: number;
   purchaseDate: string;
   deliveredDate: string;
   warrantyPeriodMonths: number;
   expiryDate: string;
   isExpired: boolean;
   daysLeft: number;
+  progressPercent?: number;
   status: 'ACTIVE' | 'EXPIRED';
   statusLabel: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  coverageTerms?: string[] | any;
 }
 
 export interface CustomerAppointment {

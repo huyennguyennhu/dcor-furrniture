@@ -14,6 +14,22 @@ let io: Server | null = null;
 // Hàng đợi tuần tự xử lý tin nhắn theo từng hội thoại (chống race condition và đảo lộn thứ tự)
 const conversationQueues = new Map<string, Promise<void>>();
 
+// Map khóa Promise trong bộ nhớ để bảo đảm thao tác 'tìm hoặc tạo' hội thoại là duy nhất khi chạy đồng thời
+const conversationInitLocks = new Map<string, Promise<any>>();
+
+export function normalizeConversationOutput<T extends { status?: string; mode?: string; assignedStaffId?: string | null; needsHuman?: boolean }>(conv: T): T {
+  if (conv && conv.status === 'CLOSED') {
+    return {
+      ...conv,
+      status: 'OPEN',
+      mode: conv.mode === 'STAFF' ? 'BOT' : (conv.mode || 'BOT'),
+      assignedStaffId: conv.mode === 'STAFF' ? null : conv.assignedStaffId,
+      needsHuman: conv.mode === 'STAFF' ? false : conv.needsHuman,
+    };
+  }
+  return conv;
+}
+
 // Bộ đếm giới hạn tốc độ tin nhắn: 20 tin / phút mỗi socket
 const socketMessageTimestamps = new Map<string, number[]>();
 
@@ -26,6 +42,145 @@ export function getIO(): Server {
 
 export function hashGuestToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Tìm hoặc tạo hội thoại duy nhất an toàn khi chạy đồng thời.
+ * Sử dụng lock theo Map<string, Promise> trong bộ nhớ + catch unique violation và đọc lại.
+ */
+export async function getOrCreateConversation(params: {
+  customerId?: string | null;
+  guestTokenHash?: string | null;
+  name?: string;
+  phone?: string;
+  initialPreview?: string;
+}): Promise<{ conversation: any; isExisting: boolean; guestToken: string | null }> {
+  const lockKey = params.customerId
+    ? `CUST:${params.customerId}`
+    : params.guestTokenHash
+    ? `GUEST_HASH:${params.guestTokenHash}`
+    : `NEW_GUEST:${Math.random().toString(36).substring(2, 9)}`;
+
+  while (conversationInitLocks.has(lockKey)) {
+    try {
+      await conversationInitLocks.get(lockKey);
+    } catch (_) {}
+  }
+
+  let resolveLock!: (val: any) => void;
+  const lockPromise = new Promise((resolve) => {
+    resolveLock = resolve;
+  });
+  conversationInitLocks.set(lockKey, lockPromise);
+
+  try {
+    let finalName = 'Khách vãng lai';
+    let finalPhone = '';
+
+    // 1. Nếu có customerId: kiểm tra DB trước
+    if (params.customerId) {
+      const customer = await prisma.customer.findUnique({
+        where: { id: params.customerId },
+      });
+      if (customer) {
+        if (customer.fullName && customer.fullName.trim()) finalName = customer.fullName.trim();
+        if (customer.phone && !customer.phone.startsWith('GOOG_')) finalPhone = customer.phone;
+      }
+
+      let existing = await prisma.chatConversation.findFirst({
+        where: { customerId: params.customerId },
+      });
+      if (existing) {
+        if (existing.status !== 'OPEN') {
+          existing = await prisma.chatConversation.update({
+            where: { id: existing.id },
+            data: { status: 'OPEN', closedAt: null },
+          });
+        }
+        return { conversation: existing, isExisting: true, guestToken: null };
+      }
+    } else if (params.guestTokenHash) {
+      let existing = await prisma.chatConversation.findFirst({
+        where: { guestTokenHash: params.guestTokenHash },
+      });
+      if (existing) {
+        if (existing.status !== 'OPEN') {
+          existing = await prisma.chatConversation.update({
+            where: { id: existing.id },
+            data: { status: 'OPEN', closedAt: null },
+          });
+        }
+        return { conversation: existing, isExisting: true, guestToken: null };
+      }
+      if (params.name && params.name.trim()) finalName = params.name.trim();
+      if (params.phone && params.phone.trim() && !params.phone.startsWith('GOOG_')) finalPhone = params.phone.trim();
+    } else {
+      if (params.name && params.name.trim()) finalName = params.name.trim();
+      if (params.phone && params.phone.trim() && !params.phone.startsWith('GOOG_')) finalPhone = params.phone.trim();
+    }
+
+    // 2. Tạo mới với token
+    const guestToken = params.guestTokenHash ? null : crypto.randomBytes(32).toString('hex');
+    const guestTokenHash = params.guestTokenHash || (guestToken ? hashGuestToken(guestToken) : null);
+
+    let conversation: any = null;
+    let isExisting = false;
+
+    try {
+      conversation = await prisma.$transaction(async (tx) => {
+        if (params.customerId) {
+          const checkCust = await tx.chatConversation.findFirst({
+            where: { customerId: params.customerId },
+          });
+          if (checkCust) return checkCust;
+        } else if (guestTokenHash) {
+          const checkGuest = await tx.chatConversation.findFirst({
+            where: { guestTokenHash },
+          });
+          if (checkGuest) return checkGuest;
+        }
+
+        return await tx.chatConversation.create({
+          data: {
+            customerId: params.customerId || null,
+            guestName: finalName,
+            guestPhone: finalPhone,
+            guestTokenHash,
+            mode: 'BOT',
+            status: 'OPEN',
+            unreadCustomer: 1,
+            lastMessagePreview: params.initialPreview || 'Xin chào bạn! Mình là Trợ lý AI của DCor...',
+          },
+        });
+      });
+    } catch (dbErr: any) {
+      // Bắt lỗi vi phạm unique (P2002) hoặc race condition, đọc lại hội thoại đã tạo
+      if (params.customerId) {
+        conversation = await prisma.chatConversation.findFirst({
+          where: { customerId: params.customerId },
+        });
+        isExisting = true;
+      } else if (guestTokenHash) {
+        conversation = await prisma.chatConversation.findFirst({
+          where: { guestTokenHash },
+        });
+        isExisting = true;
+      }
+      if (!conversation) throw dbErr;
+    }
+
+    if (conversation.customerId && params.customerId) {
+      const checkCount = await prisma.chatMessage.count({
+        where: { conversationId: conversation.id },
+      });
+      if (checkCount > 0) isExisting = true;
+    }
+
+    return { conversation, isExisting, guestToken };
+  } finally {
+    conversationInitLocks.delete(lockKey);
+    resolveLock(true);
+  }
 }
 
 /**
@@ -54,26 +209,35 @@ export async function broadcastConversationUpdate(conversationId: string) {
     });
     if (!conv) return;
 
+    const safeConv = normalizeConversationOutput(conv);
     let assignedStaffName: string | null = null;
-    if (conv.assignedStaffId) {
+    if (safeConv.assignedStaffId) {
       const staff = await prisma.staffUser.findUnique({
-        where: { id: conv.assignedStaffId },
+        where: { id: safeConv.assignedStaffId },
         select: { fullName: true },
       });
       assignedStaffName = staff?.fullName || null;
     }
 
+    // Hiển thị Khách vãng lai #<4 ký tự cuối id> nếu không có tên
+    const displayName = safeConv.guestName && safeConv.guestName.trim()
+      ? safeConv.guestName
+      : `Khách vãng lai #${safeConv.id.slice(-4)}`;
+
     const payload = {
-      id: conv.id,
-      mode: conv.mode,
-      status: conv.status,
-      assignedStaffId: conv.assignedStaffId,
+      id: safeConv.id,
+      guestName: displayName,
+      guestPhone: safeConv.guestPhone || '',
+      customerId: safeConv.customerId,
+      mode: safeConv.mode,
+      status: safeConv.status,
+      assignedStaffId: safeConv.assignedStaffId,
       assignedStaffName,
-      needsHuman: conv.needsHuman,
-      unreadStaff: conv.unreadStaff,
-      unreadCustomer: conv.unreadCustomer,
-      lastMessageAt: conv.lastMessageAt,
-      lastMessagePreview: conv.lastMessagePreview,
+      needsHuman: safeConv.needsHuman,
+      unreadStaff: safeConv.unreadStaff,
+      unreadCustomer: safeConv.unreadCustomer,
+      lastMessageAt: safeConv.lastMessageAt,
+      lastMessagePreview: safeConv.lastMessagePreview,
     };
 
     io.to(`conv:${conv.id}`).emit('chat:conversation', payload);
@@ -117,7 +281,6 @@ export function initChatSocket(httpServer: HttpServer): Server {
             });
 
             if (staff && staff.status === 'ACTIVE' && staff.deletedAt === null) {
-              // Cập nhật roles & role mới nhất từ Staff Metadata tương tự auth.middleware
               const iamUser: any = {
                 ...decoded,
                 userId: staff.id,
@@ -134,7 +297,6 @@ export function initChatSocket(httpServer: HttpServer): Server {
                 iamUser.role = metadata.role || metadata.roles[0];
               }
 
-              // Kiểm tra phân quyền IAM trên phân hệ chat: xem ('view') và chỉnh sửa ('edit')
               const canChatView = iamService.hasPermission(iamUser, 'chat', 'view');
               const canChatEdit = iamService.hasPermission(iamUser, 'chat', 'edit');
 
@@ -148,9 +310,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
               return next();
             }
           }
-        } catch (_) {
-          // Token staff không hợp lệ -> kiểm tra tiếp nếu là token khách
-        }
+        } catch (_) {}
       }
 
       // 2. Kiểm tra nếu là khách hàng đã đăng nhập (customerToken)
@@ -192,8 +352,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
   });
 
   io.on('connection', async (socket: Socket) => {
-    // Chỉ cho vào room 'staff' khi token là token nhân sự VÀ có quyền xem phân hệ chat (IAM chat view)
-    // Token khách hàng (CUSTOMER / GUEST) TUYỆT ĐỐI không bao giờ được vào room staff
+    // Chỉ cho vào room 'staff' khi token là token nhân sự VÀ có quyền xem phân hệ chat
     if (socket.data.isStaff && socket.data.canChatView && !socket.data.isCustomer && !socket.data.isGuest) {
       socket.join('staff');
       const totalUnread = await getTotalUnreadStaffCount();
@@ -209,73 +368,61 @@ export function initChatSocket(httpServer: HttpServer): Server {
     // SỰ KIỆN KHÁCH HÀNG -> SERVER
     // ========================================================
 
-    // 1. chat:init (Khởi tạo hội thoại mới cho khách vãng lai hoặc kết nối lại)
-    socket.on('chat:init', async (data: { name: string; phone: string }, callback?: (res: any) => void) => {
+    // 1. chat:init (Khách vãng lai ZERO FRICTION: Không yêu cầu tên/SĐT)
+    // Nhận rỗng: tạo hội thoại guestName 'Khách vãng lai', guestPhone rỗng
+    // Khách đăng nhập: tìm hội thoại theo customerId; có thì dùng lại (đưa status về OPEN), chưa có thì tạo.
+    // Không bao giờ có hai hội thoại cùng customerId (dùng memory lock + transaction + xử lý lỗi vi phạm unique).
+    socket.on('chat:init', async (data?: { name?: string; phone?: string }, callback?: (res: any) => void) => {
       try {
-        const { name, phone } = data || {};
-        let trimmedName = (name || '').trim();
-        let trimmedPhone = (phone || '').trim();
+        const { conversation, isExisting, guestToken } = await getOrCreateConversation({
+          customerId: socket.data.customerId,
+          guestTokenHash: socket.data.guestTokenHash,
+          name: data?.name,
+          phone: data?.phone,
+        });
 
-        if (socket.data.customerId) {
-          const customer = await prisma.customer.findUnique({
-            where: { id: socket.data.customerId },
-          });
-          if (customer) {
-            if (!trimmedPhone && customer.phone) trimmedPhone = customer.phone;
-            if (!trimmedName && customer.fullName) trimmedName = customer.fullName;
+        let firstMsg: any = null;
+
+        if (!isExisting) {
+          // Lấy lời chào và quick replies từ ChatSetting theo trạng thái đăng nhập
+          const settings = await chatBotService.getSettingsMap();
+          let greetingText = '';
+          let quickReplies: any[] = [];
+
+          if (socket.data.customerId) {
+            greetingText = 'Chào {{name}}! DCor có thể hỗ trợ gì cho bạn hôm nay?';
+            greetingText = chatBotService.replaceVariables(greetingText, settings, { name: conversation.guestName || 'bạn' });
+            quickReplies = [
+              { label: '📦 Tình trạng đơn hàng', payload: 'tình trạng đơn hàng' },
+              { label: '📐 May đo riêng', payload: 'may đo riêng' },
+              { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+            ];
+          } else {
+            greetingText = 'Xin chào bạn! DCor có thể hỗ trợ gì cho bạn hôm nay?';
+            greetingText = chatBotService.replaceVariables(greetingText, settings);
+            quickReplies = [
+              { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+              { label: '📐 Tư vấn may đo theo kích thước', payload: 'tư vấn may đo theo kích thước' },
+              { label: '📍 Đặt lịch trải nghiệm Showroom', payload: 'đặt lịch trải nghiệm showroom' },
+            ];
           }
+
+          firstMsg = await prisma.chatMessage.create({
+            data: {
+              conversationId: conversation.id,
+              senderType: 'BOT',
+              senderName: 'Trợ lý AI DCor',
+              content: greetingText,
+              quickReplies,
+            },
+          });
         }
-        if (!trimmedName) trimmedName = 'Khách hàng';
-
-        // Kiểm tra số điện thoại Việt Nam hợp lệ
-        const phoneRegex = /(?:(?:\+84|84|0)[3|5|7|8|9])([0-9]{8})\b/;
-        if (!trimmedPhone || !phoneRegex.test(trimmedPhone)) {
-          const errRes = { message: 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (10 số).' };
-          if (callback) callback({ error: errRes.message });
-          else socket.emit('chat:error', errRes);
-          return;
-        }
-
-        // Sinh guestToken ngẫu nhiên 32 bytes hex và băm SHA-256
-        const guestToken = crypto.randomBytes(32).toString('hex');
-        const guestTokenHash = hashGuestToken(guestToken);
-
-        // Tạo hội thoại trong Database
-        const conversation = await prisma.chatConversation.create({
-          data: {
-            customerId: socket.data.customerId || null,
-            guestName: trimmedName,
-            guestPhone: trimmedPhone,
-            guestTokenHash,
-            mode: 'BOT',
-            status: 'OPEN',
-            unreadCustomer: 1,
-            lastMessagePreview: 'Xin chào! DCor có thể hỗ trợ gì cho bạn hôm nay?',
-          },
-        });
-
-        // Tạo tin nhắn BOT chào hỏi đầu tiên
-        const settings = await chatBotService.getSettingsMap();
-        const greetingText = settings['greeting'] || 'Xin chào! DCor có thể hỗ trợ gì cho bạn hôm nay?';
-        const formattedGreeting = chatBotService.replaceVariables(greetingText, settings);
-
-        const firstMsg = await prisma.chatMessage.create({
-          data: {
-            conversationId: conversation.id,
-            senderType: 'BOT',
-            senderName: 'Trợ lý ảo DCor',
-            content: formattedGreeting,
-            quickReplies: [
-              { label: '🛋️ Tìm sản phẩm', payload: 'tìm sản phẩm' },
-              { label: '📦 Tra cứu đơn', payload: 'tra cứu đơn hàng' },
-              { label: '🏷️ Khuyến mãi', payload: 'khuyến mãi' },
-              { label: '🧑‍💼 Gặp nhân viên', payload: 'gặp nhân viên' },
-            ],
-          },
-        });
 
         socket.data.conversationId = conversation.id;
-        socket.data.isGuest = true;
+        socket.data.isGuest = !socket.data.customerId;
+        if (conversation.guestTokenHash) {
+          socket.data.guestTokenHash = conversation.guestTokenHash;
+        }
         socket.join(`conv:${conversation.id}`);
 
         const result = {
@@ -287,12 +434,14 @@ export function initChatSocket(httpServer: HttpServer): Server {
         if (callback) callback(result);
         socket.emit('chat:init:success', result);
 
-        // Báo cho toàn bộ nhân sự có hội thoại mới
-        if (io) {
+        if (io && !isExisting) {
+          const displayName = conversation.guestName && conversation.guestName !== 'Khách vãng lai'
+            ? conversation.guestName
+            : `Khách vãng lai #${conversation.id.slice(-4)}`;
           io.to('staff').emit('staff:conversation:new', {
             id: conversation.id,
-            guestName: trimmedName,
-            guestPhone: trimmedPhone,
+            guestName: displayName,
+            guestPhone: conversation.guestPhone || '',
             mode: conversation.mode,
             createdAt: conversation.createdAt,
           });
@@ -310,17 +459,12 @@ export function initChatSocket(httpServer: HttpServer): Server {
     socket.on(
       'chat:send',
       async (payload: {
-        conversationId: string;
-        content: string;
+        conversationId?: string;
+        content?: string;
         imageUrl?: string;
         clientMessageId?: string;
       }) => {
-        const { conversationId, content, imageUrl, clientMessageId } = payload || {};
-
-        if (!conversationId) {
-          socket.emit('chat:error', { message: 'Thiếu mã hội thoại (conversationId).' });
-          return;
-        }
+        let { conversationId, content, imageUrl, clientMessageId } = payload || {};
 
         // A. Giới hạn tốc độ: 20 tin / phút mỗi socket
         const now = Date.now();
@@ -341,23 +485,73 @@ export function initChatSocket(httpServer: HttpServer): Server {
           return;
         }
 
-        // C. Kiểm tra ảnh hợp lệ (chỉ chấp nhận HTTPS từ server upload)
-        if (imageUrl) {
-          if (!imageUrl.startsWith('https://')) {
-            socket.emit('chat:error', { message: 'URL hình ảnh không hợp lệ (phải bắt đầu bằng https://).' });
-            return;
+        // C. KIỂM TRA ẢNH:
+        // Nếu là khách vãng lai (không có customerId) gửi ảnh:
+        // Server từ chối tin có imageUrl của guest
+        const isCustomerLoggedIn = Boolean(socket.data.customerId);
+        if (imageUrl && !isCustomerLoggedIn) {
+          // Từ chối không lưu ảnh và gửi phản hồi LOGIN_CTA
+          socket.emit('chat:error', {
+            code: 'REQUIRE_LOGIN',
+            message: 'Vui lòng đăng nhập để gửi hình ảnh bản phối cho chuyên viên tư vấn.',
+          });
+
+          // Nếu có conversationId, gửi bot reply LOGIN_CTA
+          if (conversationId) {
+            const botReplyMsg = await prisma.chatMessage.create({
+              data: {
+                conversationId,
+                senderType: 'BOT',
+                senderName: 'Trợ lý AI DCor',
+                content:
+                  'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!',
+                meta: { type: 'LOGIN_CTA' },
+                quickReplies: [{ label: '🔐 Đăng nhập ngay', payload: 'dang_nhap' }],
+              },
+            });
+            await prisma.chatConversation.update({
+              where: { id: conversationId },
+              data: {
+                botState: { pendingHandoff: true },
+                lastMessageAt: new Date(),
+                lastMessagePreview: botReplyMsg.content.slice(0, 100),
+              },
+            });
+            if (io) {
+              io.to(`conv:${conversationId}`).emit('chat:message', botReplyMsg);
+            }
           }
+          return;
         }
 
-        // D. Kiểm tra hội thoại trong DB
-        const conv = await prisma.chatConversation.findUnique({
-          where: { id: conversationId },
-        });
+        if (imageUrl && !imageUrl.startsWith('https://')) {
+          socket.emit('chat:error', { message: 'URL hình ảnh không hợp lệ (phải bắt đầu bằng https://).' });
+          return;
+        }
 
-        if (conv && socket.data.customerId && !conv.customerId) {
-          await prisma.chatConversation.update({
+        // D. TỰ TẠO HOẶC TÌM HỘI THOẠI DUY NHẤT (nếu chưa có conversationId)
+        let conv: any = null;
+        if (!conversationId) {
+          const { conversation, guestToken } = await getOrCreateConversation({
+            customerId: socket.data.customerId,
+            guestTokenHash: socket.data.guestTokenHash,
+            initialPreview: (content || '[Hình ảnh]').slice(0, 100),
+          });
+          conv = conversation;
+          conversationId = conv.id;
+          socket.data.conversationId = conv.id;
+          if (conv.guestTokenHash) socket.data.guestTokenHash = conv.guestTokenHash;
+          socket.join(`conv:${conv.id}`);
+
+          if (guestToken) {
+            socket.emit('chat:init:success', {
+              conversationId: conv.id,
+              guestToken,
+            });
+          }
+        } else {
+          conv = await prisma.chatConversation.findUnique({
             where: { id: conversationId },
-            data: { customerId: socket.data.customerId },
           });
         }
 
@@ -366,40 +560,52 @@ export function initChatSocket(httpServer: HttpServer): Server {
           return;
         }
 
-        if (conv.status === 'CLOSED') {
-          socket.emit('chat:error', { message: 'Cuộc trò chuyện này đã kết thúc.' });
-          return;
+        // Đảm bảo status luôn là OPEN
+        if (conv.status !== 'OPEN') {
+          conv = await prisma.chatConversation.update({
+            where: { id: conversationId },
+            data: {
+              status: 'OPEN',
+              closedAt: null,
+            },
+          });
         }
+
+        if (socket.data.customerId && !conv.customerId) {
+          conv = await prisma.chatConversation.update({
+            where: { id: conversationId },
+            data: { customerId: socket.data.customerId },
+          });
+        }
+
+        const convId = conversationId!;
 
         // E. Chống gửi trùng lặp bằng clientMessageId
         if (clientMessageId) {
           const existing = await prisma.chatMessage.findUnique({
             where: {
               conversationId_clientMessageId: {
-                conversationId,
+                conversationId: convId,
                 clientMessageId,
               },
             },
           });
           if (existing) {
-            // Trả lại tin cũ cho khách nếu bị mất gói tin
             socket.emit('chat:message', existing);
             return;
           }
         }
 
-        // Đảm bảo socket đã join room hội thoại
-        socket.join(`conv:${conversationId}`);
+        socket.join(`conv:${convId}`);
 
         // F. Xử lý tuần tự theo hàng đợi của từng hội thoại (Mutex queue)
-        const prevPromise = conversationQueues.get(conversationId) || Promise.resolve();
+        const prevPromise = conversationQueues.get(convId) || Promise.resolve();
         const nextPromise = prevPromise
           .then(async () => {
-            // Lưu tin nhắn của Khách
-            const senderName = conv.guestName || 'Khách hàng';
+            const senderName = conv.guestName || (socket.data.customerId ? 'Khách hàng' : 'Khách vãng lai');
             const customerMsg = await prisma.chatMessage.create({
               data: {
-                conversationId,
+                conversationId: convId,
                 senderType: 'CUSTOMER',
                 senderId: socket.data.customerId || null,
                 senderName,
@@ -409,9 +615,8 @@ export function initChatSocket(httpServer: HttpServer): Server {
               },
             });
 
-            // Cập nhật hội thoại
             await prisma.chatConversation.update({
-              where: { id: conversationId },
+              where: { id: convId },
               data: {
                 unreadStaff: { increment: 1 },
                 lastMessageAt: new Date(),
@@ -419,61 +624,54 @@ export function initChatSocket(httpServer: HttpServer): Server {
               },
             });
 
-            // Phát tin nhắn tới room khách & room staff
             if (io) {
-              io.to(`conv:${conversationId}`).emit('chat:message', customerMsg);
+              io.to(`conv:${convId}`).emit('chat:message', customerMsg);
             }
-            await broadcastConversationUpdate(conversationId);
+            await broadcastConversationUpdate(convId);
 
-            // G. Xử lý phản hồi tự động nếu mode là BOT
-            // Nếu mode là STAFF hoặc WAITING_STAFF: Bot TUYỆT ĐỐI KHÔNG trả lời tự động!
+            // G. Xử lý phản hồi tự động nếu mode là BOT (Bot trả lời 24/7)
+            // Nếu mode là STAFF hoặc WAITING_STAFF: Bot không can thiệp
             if (conv.mode === 'STAFF' || conv.mode === 'WAITING_STAFF') {
               return;
             }
 
-            // Kích hoạt trạng thái Bot đang gõ phím (chat:typing)
             if (io) {
-              io.to(`conv:${conversationId}`).emit('chat:typing', {
-                conversationId,
+              io.to(`conv:${convId}`).emit('chat:typing', {
+                conversationId: convId,
                 isTyping: true,
                 senderType: 'BOT',
-                senderName: 'Trợ lý ảo DCor',
+                senderName: 'Trợ lý AI DCor',
               });
             }
 
-            // Xử lý logic Bot
             const botResult = await chatBotService.processMessage({
               conversation: conv,
               userContent: content || '',
               imageUrl,
             });
 
-            // Tính thời gian gõ phím giả lập (500 - 1200ms)
             const typingDelay = chatBotService.getTypingDelay(botResult.reply);
             await new Promise((resolve) => setTimeout(resolve, typingDelay));
 
-            // Tắt trạng thái đang gõ phím
             if (io) {
-              io.to(`conv:${conversationId}`).emit('chat:typing', {
-                conversationId,
+              io.to(`conv:${convId}`).emit('chat:typing', {
+                conversationId: convId,
                 isTyping: false,
                 senderType: 'BOT',
               });
             }
 
-            // Lưu tin nhắn Bot
             const botMsg = await prisma.chatMessage.create({
               data: {
-                conversationId,
+                conversationId: convId,
                 senderType: 'BOT',
-                senderName: 'Trợ lý ảo DCor',
+                senderName: 'Trợ lý AI DCor',
                 content: botResult.reply,
                 quickReplies: botResult.quickReplies ? (botResult.quickReplies as any) : undefined,
                 meta: botResult.meta ? (botResult.meta as any) : undefined,
               },
             });
 
-            // Cập nhật Conversation theo kết quả Bot
             const updateData: any = {
               unreadCustomer: { increment: 1 },
               lastMessageAt: new Date(),
@@ -488,44 +686,41 @@ export function initChatSocket(httpServer: HttpServer): Server {
               updateData.botState = botResult.updatedBotState;
             }
 
-            // Nếu Bot kích hoạt chuyển nhân viên (Handoff)
             if (botResult.needsHandoff) {
               updateData.mode = 'WAITING_STAFF';
               updateData.needsHuman = true;
             }
 
             await prisma.chatConversation.update({
-              where: { id: conversationId },
+              where: { id: convId },
               data: updateData,
             });
 
-            // Phát tin nhắn Bot vào room
             if (io) {
-              io.to(`conv:${conversationId}`).emit('chat:message', botMsg);
+              io.to(`conv:${convId}`).emit('chat:message', botMsg);
             }
 
-            // Nếu có tin nhắn SYSTEM kèm theo (ví dụ thông báo giờ làm việc khi handoff)
             if (botResult.systemMessage) {
               const sysMsg = await prisma.chatMessage.create({
                 data: {
-                  conversationId,
+                  conversationId: convId,
                   senderType: 'SYSTEM',
                   senderName: 'Hệ thống DCor',
                   content: botResult.systemMessage,
                 },
               });
               if (io) {
-                io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
+                io.to(`conv:${convId}`).emit('chat:message', sysMsg);
               }
             }
 
-            await broadcastConversationUpdate(conversationId);
+            await broadcastConversationUpdate(convId);
           })
           .catch((err) => {
             console.error('Lỗi xử lý tin nhắn trong hàng đợi:', err);
           });
 
-        conversationQueues.set(conversationId, nextPromise);
+        conversationQueues.set(convId, nextPromise);
       }
     );
 
@@ -569,88 +764,10 @@ export function initChatSocket(httpServer: HttpServer): Server {
       }
     });
 
-    // 5b. chat:close (Khách hàng hoặc khách vãng lai kết thúc hội thoại)
-    socket.on('chat:close', async (data: { conversationId: string }, callback?: (res: any) => void) => {
-      try {
-        const conversationId = data?.conversationId || socket.data.conversationId;
-        if (!conversationId) {
-          const errMsg = 'Thiếu mã cuộc trò chuyện.';
-          if (callback) callback({ error: errMsg });
-          else socket.emit('chat:error', { message: errMsg });
-          return;
-        }
-
-        const conv = await prisma.chatConversation.findUnique({
-          where: { id: conversationId },
-        });
-
-        if (!conv) {
-          const errMsg = 'Không tìm thấy cuộc trò chuyện.';
-          if (callback) callback({ error: errMsg });
-          else socket.emit('chat:error', { message: errMsg });
-          return;
-        }
-
-        const isOwner =
-          (socket.data.customerId && conv.customerId === socket.data.customerId) ||
-          (socket.data.isGuest && conv.id === socket.data.conversationId) ||
-          (socket.data.guestTokenHash && conv.guestTokenHash === socket.data.guestTokenHash) ||
-          (socket.data.isStaff && socket.data.canChatEdit);
-
-        if (!isOwner) {
-          const errMsg = 'Bạn không có quyền kết thúc cuộc trò chuyện này.';
-          if (callback) callback({ error: errMsg });
-          else socket.emit('chat:error', { message: errMsg });
-          return;
-        }
-
-        if (conv.status === 'CLOSED') {
-          if (callback) callback({ success: true, conversation: conv });
-          return;
-        }
-
-        const updated = await prisma.chatConversation.update({
-          where: { id: conversationId },
-          data: {
-            status: 'CLOSED',
-            closedAt: new Date(),
-          },
-        });
-
-        const sysMsg = await prisma.chatMessage.create({
-          data: {
-            conversationId,
-            senderType: 'SYSTEM',
-            senderName: 'Hệ thống DCor',
-            content: 'Cuộc trò chuyện đã được kết thúc.',
-          },
-        });
-
-        if (io) {
-          io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
-          io.to(`conv:${conversationId}`).emit('chat:conversation', {
-            id: updated.id,
-            mode: updated.mode,
-            status: 'CLOSED',
-            closedAt: updated.closedAt,
-          });
-        }
-        await broadcastConversationUpdate(conversationId);
-
-        if (callback) callback({ success: true, conversation: updated });
-        socket.emit('chat:close:success', { conversation: updated });
-      } catch (error) {
-        console.error('Lỗi chat:close:', error);
-        if (callback) callback({ error: 'Không thể kết thúc cuộc trò chuyện.' });
-        else socket.emit('chat:error', { message: 'Không thể kết thúc cuộc trò chuyện.' });
-      }
-    });
-
-    // 5. quickReply:select (Dự phòng cho client cũ nếu gửi event này)
+    // 5. quickReply:select (Khách chọn nút quick reply)
     socket.on('quickReply:select', (data: { conversationId: string; payload: string }) => {
       if (data?.conversationId && data?.payload) {
-        // Tự kích hoạt hàm xử lý chat:send nội bộ trên cùng socket instance
-        socket.emit('_internal:chat:send', {
+        socket.emit('chat:send', {
           conversationId: data.conversationId,
           content: data.payload,
           clientMessageId: `qr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -662,7 +779,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
     // SỰ KIỆN NHÂN SỰ -> SERVER (YÊU CẦU QUYỀN CHAT TƯƠNG ỨNG)
     // ========================================================
 
-    // 6. staff:send (Nhân sự gửi tin nhắn trả lời - Yêu cầu quyền chat edit)
+    // 6. staff:send (Nhân sự gửi tin nhắn trả lời)
     socket.on(
       'staff:send',
       async (
@@ -692,7 +809,6 @@ export function initChatSocket(httpServer: HttpServer): Server {
 
           const staff = socket.data.staffUser;
 
-          // Kiểm tra hội thoại
           const conv = await prisma.chatConversation.findUnique({
             where: { id: conversationId },
           });
@@ -704,7 +820,6 @@ export function initChatSocket(httpServer: HttpServer): Server {
             return;
           }
 
-          // Lưu tin nhắn nhân viên
           const staffMsg = await prisma.chatMessage.create({
             data: {
               conversationId,
@@ -717,7 +832,6 @@ export function initChatSocket(httpServer: HttpServer): Server {
             },
           });
 
-          // Cập nhật hội thoại: Chuyển mode sang STAFF nếu đang WAITING_STAFF, gán staff nếu chưa gán
           const updateData: any = {
             unreadCustomer: { increment: 1 },
             lastMessageAt: new Date(),
@@ -735,7 +849,6 @@ export function initChatSocket(httpServer: HttpServer): Server {
             data: updateData,
           });
 
-          // Phát tin nhắn vào room hội thoại
           if (io) {
             io.to(`conv:${conversationId}`).emit('chat:message', staffMsg);
           }
@@ -751,7 +864,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
       }
     );
 
-    // 7. staff:claim (Nhân sự tiếp nhận hội thoại - Yêu cầu quyền chat edit)
+    // 7. staff:claim (Nhân sự tiếp nhận hội thoại)
     socket.on('staff:claim', async (data: { conversationId: string }, callback?: (res: any) => void) => {
       try {
         if (!socket.data.isStaff || !socket.data.staffUser || !socket.data.canChatEdit) {
@@ -804,76 +917,9 @@ export function initChatSocket(httpServer: HttpServer): Server {
       }
     });
 
-    // 8. staff:transfer (Nhân sự chuyển giao hội thoại - Yêu cầu quyền chat edit)
-    socket.on(
-      'staff:transfer',
-      async (data: { conversationId: string; staffId?: string; targetStaffId?: string }, callback?: (res: any) => void) => {
-        try {
-          if (!socket.data.isStaff || !socket.data.staffUser || !socket.data.canChatEdit) {
-            const errMsg = 'Bạn không có quyền chỉnh sửa trên phân hệ chat (yêu cầu quyền chat edit).';
-            if (callback) callback({ error: errMsg });
-            else socket.emit('chat:error', { code: 'PERMISSION_DENIED', message: errMsg });
-            return;
-          }
-
-          const conversationId = data?.conversationId;
-          const targetStaffId = data?.staffId || data?.targetStaffId;
-          if (!conversationId || !targetStaffId) {
-            const errMsg = 'Thiếu mã cuộc trò chuyện hoặc mã nhân sự chuyển giao.';
-            if (callback) callback({ error: errMsg });
-            else socket.emit('chat:error', { message: errMsg });
-            return;
-          }
-
-          const targetStaff = await prisma.staffUser.findUnique({
-            where: { id: targetStaffId },
-            select: { id: true, fullName: true, status: true },
-          });
-
-          if (!targetStaff || targetStaff.status !== 'ACTIVE') {
-            const errMsg = 'Nhân sự được chọn không tồn tại hoặc đã bị khóa.';
-            if (callback) callback({ error: errMsg });
-            else socket.emit('chat:error', { message: errMsg });
-            return;
-          }
-
-          const updated = await prisma.chatConversation.update({
-            where: { id: conversationId },
-            data: {
-              assignedStaffId: targetStaffId,
-              mode: 'STAFF',
-              needsHuman: false,
-            },
-          });
-
-          const currentStaff = socket.data.staffUser;
-          const sysMsg = await prisma.chatMessage.create({
-            data: {
-              conversationId,
-              senderType: 'SYSTEM',
-              senderId: currentStaff.id,
-              senderName: 'Hệ thống DCor',
-              content: `${currentStaff.fullName} đã chuyển cuộc trò chuyện sang chuyên viên tư vấn ${targetStaff.fullName}.`,
-            },
-          });
-
-          if (io) {
-            io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
-          }
-          await broadcastConversationUpdate(conversationId);
-
-          const resData = { message: 'Chuyển giao cuộc trò chuyện thành công.', conversation: updated };
-          if (callback) callback(resData);
-          socket.emit('staff:transfer:success', resData);
-        } catch (error) {
-          console.error('Lỗi staff:transfer:', error);
-          if (callback) callback({ error: 'Không thể chuyển giao cuộc trò chuyện.' });
-          else socket.emit('chat:error', { message: 'Không thể chuyển giao cuộc trò chuyện.' });
-        }
-      }
-    );
-
-    // 9. staff:close (Nhân sự đóng hội thoại - Yêu cầu quyền chat edit)
+    // 8. staff:close (Nhân sự "Kết thúc ca tư vấn")
+    // Gửi tin SYSTEM 'Phiên hỗ trợ trực tiếp đã hoàn thành. Trợ lý AI DCor sẵn sàng tiếp tục đồng hành cùng bạn!',
+    // mode về BOT, gỡ assignedStaffId và needsHuman, status giữ OPEN.
     socket.on('staff:close', async (data: { conversationId: string }, callback?: (res: any) => void) => {
       try {
         if (!socket.data.isStaff || !socket.data.staffUser || !socket.data.canChatEdit) {
@@ -894,8 +940,11 @@ export function initChatSocket(httpServer: HttpServer): Server {
         const updated = await prisma.chatConversation.update({
           where: { id: conversationId },
           data: {
-            status: 'CLOSED',
-            closedAt: new Date(),
+            status: 'OPEN',
+            mode: 'BOT',
+            assignedStaffId: null,
+            needsHuman: false,
+            fallbackCount: 0,
           },
         });
 
@@ -904,7 +953,8 @@ export function initChatSocket(httpServer: HttpServer): Server {
             conversationId,
             senderType: 'SYSTEM',
             senderName: 'Hệ thống DCor',
-            content: 'Cuộc trò chuyện đã được kết thúc.',
+            content:
+              'Phiên hỗ trợ trực tiếp đã hoàn thành. Trợ lý AI DCor sẵn sàng tiếp tục đồng hành cùng bạn!',
           },
         });
 
@@ -913,7 +963,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
         }
         await broadcastConversationUpdate(conversationId);
 
-        const resData = { message: 'Đã đóng cuộc trò chuyện.', conversation: updated };
+        const resData = { message: 'Đã hoàn thành ca tư vấn.', conversation: updated };
         if (callback) callback(resData);
         socket.emit('staff:close:success', resData);
       } catch (error) {
@@ -923,7 +973,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
       }
     });
 
-    // 10. staff:typing (Nhân viên đang gõ - Yêu cầu quyền xem chat)
+    // 9. staff:typing
     socket.on('staff:typing', (data: { conversationId: string; isTyping: boolean }) => {
       if (socket.data.isStaff && socket.data.canChatView && data?.conversationId && io) {
         socket.to(`conv:${data.conversationId}`).emit('chat:typing', {
@@ -935,7 +985,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
       }
     });
 
-    // 11. staff:read (Nhân viên đã đọc - Yêu cầu quyền xem chat)
+    // 10. staff:read
     socket.on('staff:read', async (data: { conversationId: string }) => {
       try {
         if (!socket.data.isStaff || !socket.data.canChatView || !data?.conversationId) return;
@@ -975,4 +1025,3 @@ export function initChatSocket(httpServer: HttpServer): Server {
 
   return io;
 }
-

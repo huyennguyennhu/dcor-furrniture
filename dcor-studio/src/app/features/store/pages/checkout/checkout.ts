@@ -30,7 +30,8 @@ import {
   Trash2,
   MapPin,
   Search,
-  Plus
+  Plus,
+  Clock
 } from 'lucide-angular';
 import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { PromotionService, AppliedPromotion } from '../../../../core/services/promotion.service';
@@ -89,7 +90,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     Trash2,
     MapPin,
     Search,
-    Plus
+    Plus,
+    Clock
   };
 
   // Trạng thái màn hình: 'checkout' hoặc 'success'
@@ -214,14 +216,53 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     qrUrl?: string;
   } | null = null;
 
-  // Tặng quà cho người thân & Ẩn giá
+  // Tùy chọn hiển thị giá tiền trên kiện hàng / hóa đơn giao hàng (mặc định Bật)
+  showPriceOnInvoice = true;
   isGift = false;
   hideInvoicePrice = false;
 
-  onGiftToggleChange() {
-    if (!this.isGift) {
-      this.hideInvoicePrice = false;
+  onPriceVisibilityToggle() {
+    this.hideInvoicePrice = !this.showPriceOnInvoice;
+  }
+
+  // Quản lý sao chép clipboard trong popup thanh toán
+  copiedFields: { [key: string]: boolean } = {};
+
+  copyToClipboard(text: string, label: string): void {
+    if (!text) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.copiedFields[label] = true;
+        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.copiedFields[label] = false;
+          this.cdr.detectChanges();
+        }, 2000);
+      }).catch(() => {
+        this.fallbackCopyText(text, label);
+      });
+    } else {
+      this.fallbackCopyText(text, label);
     }
+  }
+
+  private fallbackCopyText(text: string, label: string): void {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      this.copiedFields[label] = true;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        this.copiedFields[label] = false;
+        this.cdr.detectChanges();
+      }, 2000);
+    } catch (_) {}
   }
 
   // Phương thức thanh toán: Chỉ gồm 2 phương thức: Chuyển khoản hoặc Thanh toán khi nhận hàng
@@ -334,14 +375,18 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   viewMyOrders() {
     this.showSuccessModal = false;
     const orderPhone = (this.createdOrder?.phone || this.phone || '').trim();
-    if (!this.isLoggedIn && orderPhone) {
-      this.authService.setGuestPhone(orderPhone, 'guest-order-token');
-      this.router.navigate(['/account/orders'], {
-        queryParams: { phone: orderPhone }
-      });
-    } else {
-      this.router.navigate(['/account/orders']);
+    const orderNumber = this.createdOrder?.orderNumber;
+    const queryParams: any = {};
+    if (orderNumber) {
+      queryParams.orderNumber = orderNumber;
     }
+    if (orderPhone) {
+      this.authService.setGuestPhone(orderPhone, 'guest-order-token');
+      if (!this.isLoggedIn) {
+        queryParams.phone = orderPhone;
+      }
+    }
+    this.router.navigate(['/account/orders'], { queryParams });
   }
 
   closeSuccessModal() {
@@ -742,7 +787,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         }
       }
     } catch (e) {}
-    return this.totalAmount >= threshold;
+    return this.totalAmount > threshold;
   }
 
   get depositAmount(): number {
@@ -775,9 +820,14 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     }
 
     // Phân tách nếu chuỗi địa chỉ khớp định dạng
-    const parts = (addr.address || '').split(',').map(p => p.trim());
+    if (addr.province) this.selectedProvince = addr.province;
+    if (addr.district) this.selectedDistrict = addr.district;
+    if (addr.ward) this.selectedWard = addr.ward;
+    if (addr.detail) this.streetAddress = addr.detail;
+
+    const parts = (addr.address || '').split(',').map(p => p.trim()).filter(Boolean);
     if (parts.length >= 4) {
-      this.streetAddress = parts.slice(0, parts.length - 3).join(', ');
+      this.streetAddress = addr.detail || parts.slice(0, parts.length - 3).join(', ');
       const wardPart = parts[parts.length - 3];
       const distPart = parts[parts.length - 2];
       const provPart = parts[parts.length - 1];
@@ -794,9 +844,33 @@ export class CheckoutComponent implements OnInit, OnDestroy {
           if (foundWard) this.selectedWard = foundWard;
         }
       }
+    } else if (parts.length === 3) {
+      this.streetAddress = addr.detail || parts[0];
+      const wardPart = parts[1];
+      const provPart = parts[2];
+      const foundProv = this.provinces.find(p => p.includes(provPart) || provPart.includes(p));
+      if (foundProv) {
+        this.selectedProvince = foundProv;
+        this.districts = getDistrictsForProvince(this.selectedProvince);
+        this.wards = getWardsForDistrict(this.selectedProvince, this.selectedDistrict || '');
+        const foundWard = this.wards.find(w => w.includes(wardPart) || wardPart.includes(w));
+        if (foundWard) this.selectedWard = foundWard;
+      }
     } else {
-      this.streetAddress = addr.address;
+      this.streetAddress = addr.detail || (parts.length > 0 ? parts[0] : addr.address);
     }
+
+    // Làm sạch this.address để không bị lặp từ
+    const rawTokens = (addr.address || '').split(',').map(p => p.trim()).filter(Boolean);
+    const seen = new Set<string>();
+    const cleanTokens: string[] = [];
+    for (const t of rawTokens) {
+      if (!seen.has(t.toLowerCase())) {
+        seen.add(t.toLowerCase());
+        cleanTokens.push(t);
+      }
+    }
+    this.address = cleanTokens.join(', ');
 
     delete this.errors.phone;
     delete this.errors.fullName;
@@ -1439,13 +1513,19 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       province: this.selectedProvince,
       district: this.selectedDistrict,
       ward: this.selectedWard,
-      detailAddress: (this.streetAddress || '').trim(),
+      detailAddress: (() => {
+        let s = (this.streetAddress || '').trim();
+        if (this.selectedProvince && s.toLowerCase().includes(this.selectedProvince.toLowerCase())) {
+          s = s.split(',')[0].trim();
+        }
+        return s;
+      })(),
       address: (this.address || '').trim(),
       shippingNotes: (this.shippingNotes || '').trim() || undefined,
       paymentMethod: this.paymentMethod,
       voucherCode: this.appliedVoucher?.code || undefined,
-      isGift: this.isGift,
-      hideInvoicePrice: this.isGift ? this.hideInvoicePrice : false,
+      isGift: false,
+      hideInvoicePrice: !this.showPriceOnInvoice,
       items: this.checkoutItems.map(i => ({
         variantId: i.variantId,
         quantity: i.quantity,
@@ -1514,8 +1594,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       depositAmount: this.isHighValueOrder ? this.depositAmount : undefined,
       remainingAmount: this.isHighValueOrder ? this.remainingAmount : undefined,
       deliveryEstimate: '3 - 5 ngày làm việc',
-      isGift: this.isGift,
-      hideInvoicePrice: this.isGift && this.hideInvoicePrice,
+      isGift: false,
+      hideInvoicePrice: !this.showPriceOnInvoice,
       items: [...this.checkoutItems]
     };
 
@@ -1532,12 +1612,16 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     try {
       const existing = JSON.parse(localStorage.getItem('dcor_placed_orders') || '[]');
       const firstItem = (this.checkoutItems && this.checkoutItems.length > 0 ? this.checkoutItems[0] : null) as any;
+      const isBankTransfer = this.paymentMethod === 'BANK_TRANSFER';
       const newEntry = {
         id: orderNumber,
         phone: this.phone ? this.phone.trim() : '',
         date: new Date().toISOString().split('T')[0],
         total: this.totalAmount || 0,
-        status: this.isHighValueOrder ? 'Chờ đặt cọc' : 'Chờ xác nhận',
+        status: this.isHighValueOrder ? 'Chờ đặt cọc' : (isBankTransfer ? 'Chờ thanh toán' : 'Chờ xác nhận'),
+        statusKey: this.isHighValueOrder ? 'PENDING_PAYMENT' : (isBankTransfer ? 'PENDING_PAYMENT' : 'PENDING'),
+        paymentMethod: this.paymentMethod,
+        paymentStatus: 'UNPAID',
         items: this.checkoutItems.length || 1,
         depositAmount: this.isHighValueOrder ? this.depositAmount : undefined,
         firstProductName: firstItem?.name || firstItem?.productName || `Đơn hàng DCor #${orderNumber}`,
@@ -1552,16 +1636,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       this.authService.setGuestPhone(this.phone.trim(), 'guest-order-token');
     }
 
-    // Hiển thị Popup theo phân loại đơn hàng:
-    // + Đơn > 50 triệu: hiện popup đặt cọc trong 24h
-    // + Còn lại: hiện popup đặt hàng thành công
-    if (this.isHighValueOrder) {
-      this.showDepositModal = true;
-      this.showSuccessModal = false;
-    } else {
-      this.showDepositModal = false;
-      this.showSuccessModal = true;
-    }
+    // Luôn luôn hiển thị popup Bạn đã đặt hàng thành công
+    // Nếu là đơn cần chuyển khoản hoặc đặt cọc (> 50 triệu), popup tích hợp luôn khối thanh toán & mã QR
+    this.showSuccessModal = true;
+    this.showDepositModal = false;
 
     // Chuyển sang màn hình Đặt hàng thành công làm nền
     this.currentStep = 'success';

@@ -1,0 +1,227 @@
+<!-- BACKDROP / OVERLAY -->
+<div *ngIf="isOpen" class="review-modal-backdrop" (click)="handleClose()">
+  <div class="review-modal-container" (click)="$event.stopPropagation()">
+    
+    <!-- MODAL HEADER -->
+    <header class="modal-header">
+      <div class="header-titles">
+        <h2 class="modal-title">Đánh giá sản phẩm</h2>
+        <span class="order-badge" *ngIf="orderNumber">Đơn hàng #{{ orderNumber }}</span>
+      </div>
+      <button type="button" class="btn-close" (click)="handleClose()" aria-label="Đóng">
+        <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+      </button>
+    </header>
+
+    <!-- SUCCESS TOAST BANNER -->
+    <div *ngIf="successToast" class="alert-banner alert-success">
+      <lucide-angular [img]="icons.Check" size="18" class="alert-icon"></lucide-angular>
+      <span>{{ successToast }}</span>
+    </div>
+
+    <!-- ERROR TOAST BANNER -->
+    <div *ngIf="errorMessage" class="alert-banner alert-error">
+      <lucide-angular [img]="icons.AlertCircle" size="18" class="alert-icon"></lucide-angular>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- MODAL BODY: SCROLLABLE REVIEWS LIST -->
+    <div class="modal-body">
+      <div class="product-review-card" *ngFor="let form of forms; let i = index">
+        
+        <!-- PRODUCT INFO HEADER -->
+        <div class="product-info-bar">
+          <div class="product-thumb">
+            <img *ngIf="form.productImage; else placeholderImg" [src]="form.productImage" [alt]="form.productName" />
+            <ng-template #placeholderImg>
+              <div class="no-img-box">
+                <lucide-angular [img]="icons.ImageIcon" size="20"></lucide-angular>
+              </div>
+            </ng-template>
+          </div>
+          <div class="product-meta">
+            <h4 class="product-name">{{ form.productName }}</h4>
+            <p class="product-variant" *ngIf="form.variantDescription">
+              Phân loại: <span>{{ form.variantDescription }}</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- 5-STAR RATING SYSTEM -->
+        <div class="rating-section">
+          <label class="section-label">Chất lượng sản phẩm</label>
+          <div class="star-rating-group">
+            <div class="stars-row">
+              <button 
+                *ngFor="let star of [1, 2, 3, 4, 5]" 
+                type="button" 
+                class="star-btn"
+                [class.active]="star <= (form.hoverRating || form.rating)"
+                (mouseenter)="setHoverRating(i, star)"
+                (mouseleave)="setHoverRating(i, 0)"
+                (click)="setRating(i, star)"
+                [title]="star + ' sao'">
+                <svg viewBox="0 0 24 24" class="star-svg" [class.filled]="star <= (form.hoverRating || form.rating)">
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                </svg>
+              </button>
+            </div>
+            <span class="rating-sentiment-text">
+              {{ getRatingText(form.hoverRating || form.rating) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- TEXT COMMENT AREA -->
+        <div class="comment-section">
+          <label class="section-label" [for]="'comment-' + i">Chia sẻ cảm nhận chi tiết</label>
+          <textarea 
+            [id]="'comment-' + i"
+            class="comment-textarea"
+            [(ngModel)]="form.comment"
+            rows="3"
+            maxlength="1000"
+            placeholder="Hãy chia sẻ thêm về chất lượng gia công, độ hoàn thiện của gỗ/da, quy cách đóng gói và thái độ giao hàng...">
+          </textarea>
+          <div class="textarea-footer">
+            <span class="char-count">{{ form.comment.length }}/1000 ký tự</span>
+          </div>
+        </div>
+
+        <!-- MEDIA ATTACHMENTS (CAMERA & UPLOAD) -->
+        <div class="media-section">
+          <div class="media-header">
+            <label class="section-label">Hình ảnh thực tế (Tối đa 5 ảnh)</label>
+            <span class="image-count-hint">{{ form.images.length }}/5 ảnh</span>
+          </div>
+
+          <!-- ACTION BUTTONS: CHỤP ẢNH & TẢI ẢNH -->
+          <div class="media-actions-row">
+            <!-- Nút Chụp ảnh trực tiếp từ Camera -->
+            <button 
+              type="button" 
+              class="btn-media-action btn-camera"
+              (click)="openCamera(i)"
+              [disabled]="form.images.length >= 5 || form.uploadingImages"
+              title="Chụp ảnh trực tiếp từ camera của bạn">
+              <lucide-angular [img]="icons.Camera" size="18"></lucide-angular>
+              <span>Chụp ảnh</span>
+            </button>
+
+            <!-- Nút Tải ảnh lên từ thiết bị -->
+            <label 
+              class="btn-media-action btn-upload"
+              [class.disabled]="form.images.length >= 5 || form.uploadingImages"
+              title="Chọn ảnh từ thiết bị">
+              <lucide-angular [img]="icons.Upload" size="18"></lucide-angular>
+              <span>Tải ảnh lên</span>
+              <input 
+                type="file" 
+                class="hidden-file-input" 
+                accept="image/*" 
+                multiple
+                [disabled]="form.images.length >= 5 || form.uploadingImages"
+                (change)="onFilesSelected($event, i)" />
+            </label>
+
+            <!-- Hidden input fallback cho thiết bị di động chụp camera native -->
+            <input 
+              type="file" 
+              [id]="'camera-fallback-' + i" 
+              class="hidden-file-input" 
+              accept="image/*" 
+              capture="environment"
+              (change)="onFilesSelected($event, i)" />
+          </div>
+
+          <!-- UPLOADING SPINNER INDICATOR -->
+          <div *ngIf="form.uploadingImages" class="uploading-indicator">
+            <lucide-angular [img]="icons.Loader2" size="16" class="spin-icon"></lucide-angular>
+            <span>Đang tải và nén hình ảnh lên đám mây...</span>
+          </div>
+
+          <!-- PREVIEW THUMBNAILS LIST -->
+          <div class="thumbnails-grid" *ngIf="form.images.length > 0">
+            <div class="thumb-item" *ngFor="let imgUrl of form.images; let imgIdx = index">
+              <img [src]="imgUrl" alt="Ảnh đánh giá" class="thumb-img" />
+              <button 
+                type="button" 
+                class="thumb-remove-btn" 
+                (click)="removeImage(i, imgIdx)"
+                title="Xóa ảnh này">
+                <lucide-angular [img]="icons.X" size="12"></lucide-angular>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ANONYMOUS CHECKBOX (CARD THIẾT KẾ CHUẨN DCOR) -->
+      <div class="anonymous-setting-card">
+        <label class="anonymous-toggle-label" for="anonymousCheckbox">
+          <div class="custom-checkbox-wrapper">
+            <input type="checkbox" id="anonymousCheckbox" [(ngModel)]="isAnonymous" class="custom-checkbox-input" />
+            <span class="custom-checkbox-box" [class.checked]="isAnonymous">
+              <lucide-angular [img]="icons.Check" size="14" class="check-tick-icon" *ngIf="isAnonymous"></lucide-angular>
+            </span>
+          </div>
+          <div class="anonymous-text-meta">
+            <div class="anonymous-title-row">
+              <strong class="anonymous-title">Đánh giá ẩn danh</strong>
+              <span class="anonymous-privacy-badge">
+                <lucide-angular [img]="icons.ShieldCheck" size="12"></lucide-angular>
+                Bảo vệ riêng tư
+              </span>
+            </div>
+            <p class="anonymous-desc">
+              Tên của bạn sẽ được hiển thị dạng <strong>H***n</strong> trên website để bảo vệ quyền riêng tư cá nhân.
+            </p>
+          </div>
+        </label>
+      </div>
+
+    </div>
+
+    <!-- MODAL FOOTER -->
+    <footer class="modal-footer">
+      <button type="button" class="btn-cancel" (click)="handleClose()" [disabled]="isSubmitting">
+        Hủy bỏ
+      </button>
+      <button 
+        type="button" 
+        class="btn-submit" 
+        (click)="submitReviews()" 
+        [disabled]="isSubmitting || forms.length === 0">
+        <lucide-angular *ngIf="isSubmitting" [img]="icons.Loader2" size="16" class="spin-icon"></lucide-angular>
+        <span>{{ isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá' }}</span>
+      </button>
+    </footer>
+
+    <!-- LIVE CAMERA STREAM OVERLAY (KHI BẤM CHỤP ẢNH) -->
+    <div *ngIf="isCameraActive" class="camera-stream-overlay">
+      <div class="camera-box">
+        <div class="camera-top-bar">
+          <span class="camera-title">Chụp ảnh sản phẩm thực tế</span>
+          <button type="button" class="camera-close-btn" (click)="closeCamera()">
+            <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+          </button>
+        </div>
+        
+        <div class="video-wrapper">
+          <video #cameraVideo autoplay playsinline class="camera-video"></video>
+          <canvas #cameraCanvas style="display: none;"></canvas>
+        </div>
+
+        <div class="camera-actions-bar">
+          <button type="button" class="btn-snap-photo" (click)="capturePhoto()">
+            <div class="snap-inner-circle"></div>
+          </button>
+          <span class="snap-hint">Chạm vào nút để chụp ảnh</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+

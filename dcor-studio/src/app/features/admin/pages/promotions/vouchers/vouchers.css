@@ -1239,3 +1239,114 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================================
+   CUSTOM DROPDOWN (DONG BO PHONG CACH TRANG SAN PHAM)
+   ========================================================================== */
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  background-color: #FAF8F5;
+  border: 1px solid #E4DACF;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4A433D;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropdown-trigger-btn:hover,
+.dropdown-trigger-btn.active {
+  background-color: #FFFFFF;
+  border-color: #765337;
+  color: #765337;
+}
+
+.dropdown-label {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  background-color: #FFFFFF;
+  border: 1px solid #E4DACF;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #4A433D;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dropdown-item:hover {
+  background-color: #F8F4EE;
+  color: #765337;
+}
+
+.dropdown-item.selected {
+  background-color: #F3ECE2;
+  color: #765337;
+  font-weight: 600;
+}
+
+/* Modal Form Custom Dropdown Full-Width */
+.modal-custom-dropdown {
+  width: 100%;
+}
+
+.modal-dropdown-trigger {
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.modal-dropdown-trigger .dropdown-label {
+  max-width: 100%;
+  flex: 1;
+}
+
+.modal-dropdown-menu {
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1050;
+}

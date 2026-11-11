@@ -212,13 +212,16 @@
           </div>
         </div>
 
-        <!-- Đặt làm mặc định đặt ở cuối form -->
-        <div class="form-group form-default-checkbox-group">
-          <label class="checkbox-label default-toggle-label">
-            <input type="checkbox" [(ngModel)]="formData.isDefault" class="custom-checkbox" />
-            <span class="default-toggle-text">Đặt làm địa chỉ nhận hàng mặc định</span>
-          </label>
-        </div>
+        <!-- Đặt làm mặc định đặt ở cuối form (Checkbox màu trắng chuẩn DCor) -->
+            <div class="form-group form-default-checkbox-group">
+              <label class="checkbox-label default-toggle-label" for="addressIsDefault">
+                <input type="checkbox" id="addressIsDefault" [(ngModel)]="formData.isDefault" class="custom-checkbox-native" />
+                <span class="custom-checkbox-box" [class.checked]="formData.isDefault">
+                  <lucide-angular [img]="icons.Check" size="14" class="check-tick-icon" *ngIf="formData.isDefault"></lucide-angular>
+                </span>
+                <span class="default-toggle-text">Đặt làm địa chỉ nhận hàng mặc định</span>
+              </label>
+            </div>
       </div>
 
       <div class="modal-footer">

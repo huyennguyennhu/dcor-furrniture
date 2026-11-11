@@ -105,7 +105,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
       module: 'promotions',
       subItems: [
         { title: 'Mã giảm giá', href: '/admin/vouchers' },
-        { title: 'Giảm giá sản phẩm', href: '/admin/campaigns' },
+        { title: 'Chương trình giảm giá', href: '/admin/campaigns' },
       ]
     },
     {
@@ -138,7 +138,12 @@ export class AdminSidebar implements OnInit, OnDestroy {
       title: 'Hội thoại',
       icon: 'MessagesSquare',
       href: '/admin/chat',
-      module: 'chat'
+      module: 'chat',
+      subItems: [
+        { title: 'Hội thoại', href: '/admin/chat' },
+        { title: 'Kịch bản bot', href: '/admin/chat/scripts' },
+        { title: 'Cài đặt', href: '/admin/chat/settings' },
+      ]
     },
     {
       title: 'Nhân sự',

@@ -232,11 +232,13 @@
 
 .appointment-card {
   background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 18px;
-  box-shadow: 0 4px 20px rgba(118, 83, 55, 0.04);
-  padding: 24px;
-  transition: all 0.2s ease;
+  border: 1px solid #E6DFD5;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(118, 83, 55, 0.04);
+  padding: 0 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-bottom: 18px;
 }
 
 .appointment-card:hover {
@@ -427,30 +429,62 @@
   gap: 10px;
 }
 
+/* Nút Đổi giờ hẹn (Secondary Outline theo chuẩn DCor UI Style Guide) */
 .btn-reschedule {
-  color: #765337;
-  border-color: #765337;
-  padding: 6px 14px;
-  font-size: 13px;
+  background: #FFFFFF;
+  color: var(--color-primary, #765337);
+  border: 1px solid var(--color-primary, #765337);
+  border-radius: var(--radius-control, 8px);
+  padding: 5px 12px;
+  font-size: 12.5px;
   font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .btn-reschedule:hover {
-  background: #765337;
-  color: #FFFFFF;
+  background: var(--color-sub-bg, #FFF3E3);
+  border-color: var(--color-primary-hover, #BC5F13);
+  color: var(--color-primary-hover, #BC5F13);
+  box-shadow: 0 1px 3px rgba(188, 95, 19, 0.15);
 }
 
+.btn-reschedule:active {
+  background: #FFEAD0;
+  border-color: var(--color-primary-pressed, #3F2C1B);
+  color: var(--color-primary-pressed, #3F2C1B);
+}
+
+/* Nút Hủy lịch hẹn (Danger Outline theo chuẩn DCor UI Style Guide) */
 .btn-cancel {
-  color: #dc2626;
-  border-color: #fca5a5;
-  padding: 6px 14px;
-  font-size: 13px;
+  background: #FFFFFF;
+  color: var(--color-danger, #C42326);
+  border: 1px solid rgba(196, 35, 38, 0.35);
+  border-radius: var(--radius-control, 8px);
+  padding: 5px 12px;
+  font-size: 12.5px;
   font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .btn-cancel:hover {
-  background: #fee2e2;
-  border-color: #ef4444;
+  background: var(--color-danger-bg, #FFE8E8);
+  border-color: var(--color-danger, #C42326);
+  color: var(--color-danger-hover, #8C1F1F);
+  box-shadow: 0 1px 3px rgba(196, 35, 38, 0.15);
+}
+
+.btn-cancel:active {
+  background: #FFD6D6;
+  border-color: var(--color-danger-hover, #8C1F1F);
+  color: var(--color-danger-hover, #8C1F1F);
 }
 
 .footer-confirmed-note {
@@ -522,7 +556,7 @@
 }
 
 .modal-header {
-  padding: 20px 28px 16px;
+  padding: 12px 28px 10px;
   border-bottom: 1px solid #EFE5D9;
   display: flex;
   justify-content: space-between;
@@ -532,21 +566,15 @@
 }
 
 .modal-tag {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: #BC5F13;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-  display: inline-block;
+  display: none;
 }
 
 .modal-title {
   font-family: var(--font-title, 'Cinzel', serif);
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 700;
   color: #18181b;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
 }
 
 .modal-subtitle {
@@ -575,11 +603,11 @@
 }
 
 .modal-body {
-  padding: 20px 28px;
+  padding: 14px 28px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   background: #FCF8F3;
 }
 
@@ -953,24 +981,82 @@
   flex-shrink: 0;
 }
 
-/* Khung giờ đầy bị làm mờ */
+/* Khung giờ đầy / Khung giờ bị khóa */
 .slot-btn.slot-full,
+.slot-btn.slot-disabled,
 .slot-btn:disabled {
   opacity: 0.45;
   filter: grayscale(1);
-  cursor: not-allowed;
-  background: #EFEFEF;
-  border-color: #E0E0E0;
-  pointer-events: none;
+  cursor: not-allowed !important;
+  background: #F4F4F5 !important;
+  border-color: #E4E4E7 !important;
+  pointer-events: none !important;
+  color: #71717A !important;
 }
 
 .badge-slot-full {
   font-size: 10px;
   font-weight: 700;
-  color: #71717a;
-  background: rgba(0, 0, 0, 0.08);
-  padding: 1px 5px;
+  color: #DC2626;
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  padding: 1px 6px;
   border-radius: 4px;
+}
+
+.badge-slot-past {
+  color: #71717A !important;
+  background: #E4E4E7 !important;
+  border-color: #D4D4D8 !important;
+}
+
+.slot-card.slot-full,
+.slot-card.slot-disabled {
+  opacity: 0.45;
+  filter: grayscale(1);
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  background: #F4F4F5 !important;
+  border-color: #E4E4E7 !important;
+}
+
+/* Cảnh báo lỗi màu đỏ đặt ngay dưới ô ngày / khung giờ bị trùng */
+.date-conflict-error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 13px;
+  background: #FFF1F2;
+  border: 1px solid #FECDD3;
+  border-left: 3.5px solid #DC2626;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #B91C1C;
+  animation: fadeIn 0.2s ease;
+}
+
+.date-conflict-error-box .error-icon {
+  color: #DC2626;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.date-conflict-error-box strong {
+  color: #991B1B;
+  font-weight: 700;
+}
+
+.input-box-error {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+.slot-count-badge.badge-danger {
+  color: #DC2626 !important;
+  background: #FEE2E2 !important;
+  border: 1px solid #FECACA !important;
 }
 
 .badge-slot-open {
@@ -1534,4 +1620,754 @@
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ======================================================== */
+/* THẺ LỊCH HẸN THEO PHONG CÁCH ĐƠN HÀNG CHUẨN DCOR         */
+/* ======================================================== */
+.appointment-card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-card, 12px);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.appointment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(118, 83, 55, 0.08);
+  border-color: rgba(118, 83, 55, 0.3);
+}
+
+/* TOPBAR FULL MÀU THEO TRẠNG THÁI GIỐNG ĐƠN HÀNG */
+.apt-card-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid #E6DFD5;
+  transition: background-color 0.2s ease;
+}
+
+.apt-card-topbar .topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apt-card-topbar .status-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.apt-card-topbar .topbar-status-text {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.apt-card-topbar .topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #55504A;
+  font-weight: 500;
+}
+
+.apt-card-topbar .meta-divider {
+  color: #D1C7BD;
+}
+
+.apt-card-topbar .meta-type-tag {
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+}
+
+/* Các màu trạng thái cho Topbar giống đơn hàng */
+.apt-card-topbar.status-pending {
+  background: #FFFDF5;
+  border-bottom-color: #F6E5B8;
+  color: #B45309;
+}
+.apt-card-topbar.status-pending .status-indicator-dot {
+  background: #F2BF3D;
+}
+.apt-card-topbar.status-pending .topbar-status-text {
+  color: #92400E;
+}
+
+.apt-card-topbar.status-confirmed {
+  background: #F0FDF4;
+  border-bottom-color: #BBF7D0;
+  color: #166534;
+}
+.apt-card-topbar.status-confirmed .status-indicator-dot {
+  background: #00A30B;
+}
+.apt-card-topbar.status-confirmed .topbar-status-text {
+  color: #15803D;
+}
+
+.apt-card-topbar.status-completed {
+  background: #F4FBF7;
+  border-bottom-color: #D1E7DD;
+  color: #0F5132;
+}
+
+.apt-card-topbar.status-cancelled {
+  background: #FEF2F2;
+  border-bottom-color: #FECACA;
+  color: #991B1B;
+}
+.apt-card-topbar.status-cancelled .status-indicator-dot {
+  background: #C42326;
+}
+.apt-card-topbar.status-cancelled .topbar-status-text {
+  color: #C42326;
+}
+
+/* BODY CARD: Ô VUÔNG NGÀY THÁNG + CỘT THÔNG TIN */
+.apt-card-body {
+  display: flex;
+  padding: 18px 20px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* Ô VUÔNG NGÀY THÁNG */
+.apt-date-square {
+  width: 76px;
+  background: #FAF6F0;
+  border: 1.5px solid #EAE2D8;
+  border-radius: 8px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(118, 83, 55, 0.05);
+}
+
+.square-month {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #8C827A;
+  letter-spacing: 0.5px;
+}
+
+.square-day {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-primary, #765337);
+  line-height: 1.1;
+  margin: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.square-weekday {
+  font-size: 10.5px;
+  color: #616161;
+  font-weight: 500;
+}
+
+/* CỘT THÔNG TIN CHI TIẾT */
+.apt-info-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.apt-time-headline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.headline-clock {
+  color: var(--color-primary, #765337);
+}
+
+.time-range {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text, #0A0A0A);
+}
+
+.type-pill {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(118, 83, 55, 0.2);
+}
+
+.apt-details-grid {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.detail-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  background: #FAF8F5;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #EFEAE3;
+}
+
+.cell-label {
+  color: var(--color-text-secondary, #616161);
+  font-size: 12px;
+}
+
+.cell-val {
+  color: var(--color-text, #0A0A0A);
+  font-weight: 600;
+}
+
+.apt-customer-note {
+  font-size: 12.5px;
+  color: #616161;
+  background: #FAF8F5;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 3px solid var(--color-primary, #765337);
+}
+
+.note-label {
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+  margin-right: 4px;
+}
+
+/* FOOTER THẺ */
+.apt-card-footer {
+  padding: 12px 20px;
+  background: #FAF8F5;
+  border-top: 1px solid #EFEAE3;
+}
+
+.clickable-date-box {
+  cursor: pointer;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.compact-segments {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .apt-card-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .apt-date-square {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 10px 16px;
+  }
+  .square-day {
+    font-size: 20px;
+  }
+}
+
+/* ========================================================= */
+/* TABS BAR (Đồng bộ chuẩn DCor UI Style Guide như Đơn hàng)  */
+/* ========================================================= */
+.order-tabs-bar {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--color-border, #E0E0E0);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: transparent;
+}
+.order-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+.order-tabs-bar .tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  height: 44px;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--color-text-secondary, #616161) !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  text-align: center;
+  transition: color 0.2s ease;
+  min-width: max-content;
+}
+.order-tabs-bar .tab-btn:hover {
+  color: var(--color-text, #0A0A0A) !important;
+}
+.order-tabs-bar .tab-btn.active {
+  color: var(--color-primary, #765337) !important;
+  font-weight: 600;
+}
+.order-tabs-bar .tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--color-primary, #765337);
+}
+.order-tabs-bar .tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill, 999px);
+  background: #f4f4f5;
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.order-tabs-bar .tab-btn.active .tab-badge,
+.order-tabs-bar .tab-badge.active-badge {
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  font-weight: 700;
+}
+
+/* COMPACT CARD & BUTTONS (Tuân theo DCor UI Style Guide) */
+.appointment-card {
+  margin-bottom: 14px !important;
+  border-radius: var(--radius-card, 12px) !important;
+  border: 1px solid var(--color-border, #E0E0E0) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  overflow: hidden !important;
+}
+.apt-card-topbar {
+  padding: 8px 16px !important;
+}
+.apt-card-topbar .topbar-status-text {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+.apt-card-topbar .topbar-meta {
+  font-size: 12px !important;
+}
+.apt-card-topbar.status-pending {
+  background: #FFF7ED !important;
+  border-bottom: 1px solid #FED7AA !important;
+  color: #C2410C !important;
+}
+.apt-card-topbar.status-pending .status-indicator-dot {
+  background: #EA580C !important;
+}
+.apt-card-topbar.status-pending .topbar-status-text {
+  color: #C2410C !important;
+}
+.apt-card-topbar.status-pending .topbar-meta {
+  color: #9A3412 !important;
+}
+.apt-card-topbar.status-pending .meta-type-tag {
+  color: #C2410C !important;
+}
+.apt-card-topbar.status-confirmed {
+  background: #F0FDF4 !important;
+  border-bottom: 1px solid #BBF7D0 !important;
+  color: #15803D !important;
+}
+.apt-card-topbar.status-confirmed .status-indicator-dot {
+  background: #16A34A !important;
+}
+.apt-card-topbar.status-confirmed .topbar-status-text {
+  color: #15803D !important;
+}
+.apt-card-topbar.status-confirmed .topbar-meta {
+  color: #166534 !important;
+}
+.apt-card-topbar.status-confirmed .meta-type-tag {
+  color: #15803D !important;
+}
+.apt-card-topbar.status-completed {
+  background: #F4FBF7 !important;
+  border-bottom: 1px solid #D1E7DD !important;
+  color: #0F5132 !important;
+}
+.apt-card-topbar.status-completed .status-indicator-dot {
+  background: #198754 !important;
+}
+.apt-card-topbar.status-completed .topbar-status-text {
+  color: #0F5132 !important;
+}
+.apt-card-topbar.status-completed .topbar-meta {
+  color: #0F5132 !important;
+}
+.apt-card-topbar.status-cancelled {
+  background: #FEF2F2 !important;
+  border-bottom: 1px solid #FECACA !important;
+  color: #DC2626 !important;
+}
+.apt-card-topbar.status-cancelled .status-indicator-dot {
+  background: #DC2626 !important;
+}
+.apt-card-topbar.status-cancelled .topbar-status-text {
+  color: #DC2626 !important;
+}
+.apt-card-topbar.status-cancelled .topbar-meta {
+  color: #991B1B !important;
+}
+.apt-card-topbar.status-cancelled .meta-type-tag {
+  color: #DC2626 !important;
+}
+
+.apt-card-body {
+  padding: 12px 16px !important;
+  gap: 14px !important;
+}
+.apt-date-square {
+  width: 62px !important;
+  padding: 6px 4px !important;
+  border-radius: 6px !important;
+}
+.square-day {
+  font-size: 20px !important;
+  margin: 1px 0 !important;
+}
+.square-month {
+  font-size: 9.5px !important;
+}
+.square-weekday {
+  font-size: 9.5px !important;
+}
+.time-range {
+  font-size: 14px !important;
+}
+.apt-details-grid {
+  gap: 6px 10px !important;
+}
+.detail-cell {
+  font-size: 12px !important;
+  padding: 3px 8px !important;
+}
+.apt-card-footer {
+  padding: 8px 16px !important;
+}
+.footer-pending-actions {
+  gap: 8px !important;
+}
+.pending-hint {
+  font-size: 12px !important;
+}
+.actions-group {
+  gap: 8px !important;
+}
+.actions-group .btn-reschedule,
+.actions-group .btn-cancel {
+  height: 32px !important;
+  padding: 4px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-control, 8px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* ========================================================================== */
+/* THẺ LỊCH HẸN — CHUẨN THIẾT KẾ GIỐNG ĐƠN HÀNG (FULL BLEED TOPBAR)           */
+/* ========================================================================== */
+.appointment-card {
+  padding: 0 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E6DFD5 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 10px rgba(118, 83, 55, 0.04) !important;
+  margin-bottom: 18px !important;
+}
+
+.appointment-card:hover {
+  border-color: #BC5F13 !important;
+  box-shadow: 0 6px 20px rgba(118, 83, 55, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+.apt-card-topbar {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 20px !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #E6DFD5 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+.apt-card-topbar .topbar-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.apt-card-topbar .status-indicator-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+}
+
+.apt-card-topbar .topbar-status-text {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.apt-card-topbar .topbar-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+}
+
+.apt-card-topbar .meta-date {
+  font-weight: 500 !important;
+}
+
+.apt-card-topbar .meta-divider {
+  opacity: 0.6 !important;
+}
+
+.apt-card-topbar .meta-type-tag {
+  font-weight: 500 !important;
+}
+
+.apt-card-topbar .meta-code {
+  font-weight: 700 !important;
+}
+
+/* 1. Chờ xác nhận (PENDING) - Nền cam hổ phách nhạt chuẩn đơn hàng */
+.apt-card-topbar.status-pending {
+  background: #FFF7ED !important;
+  border-bottom: 1px solid #FED7AA !important;
+}
+.apt-card-topbar.status-pending .status-indicator-dot {
+  background: #EA580C !important;
+}
+.apt-card-topbar.status-pending .topbar-status-text {
+  color: #C2410C !important;
+}
+.apt-card-topbar.status-pending .topbar-meta {
+  color: #9A3412 !important;
+}
+.apt-card-topbar.status-pending .meta-divider {
+  color: #FDBA74 !important;
+}
+.apt-card-topbar.status-pending .meta-type-tag {
+  color: #9A3412 !important;
+}
+.apt-card-topbar.status-pending .meta-code {
+  color: #7C2D12 !important;
+}
+
+/* 2. Đã xác nhận / Sắp tới (CONFIRMED) - Nền xanh lá nhạt */
+.apt-card-topbar.status-confirmed {
+  background: #F0FDF4 !important;
+  border-bottom: 1px solid #BBF7D0 !important;
+}
+.apt-card-topbar.status-confirmed .status-indicator-dot {
+  background: #16A34A !important;
+}
+.apt-card-topbar.status-confirmed .topbar-status-text {
+  color: #15803D !important;
+}
+.apt-card-topbar.status-confirmed .topbar-meta {
+  color: #166534 !important;
+}
+.apt-card-topbar.status-confirmed .meta-divider {
+  color: #86EFAC !important;
+}
+.apt-card-topbar.status-confirmed .meta-type-tag {
+  color: #166534 !important;
+}
+.apt-card-topbar.status-confirmed .meta-code {
+  color: #14532D !important;
+}
+
+/* 3. Hoàn tất (COMPLETED) - Nền xanh ngọc */
+.apt-card-topbar.status-completed {
+  background: #F4FBF7 !important;
+  border-bottom: 1px solid #D1E7DD !important;
+}
+.apt-card-topbar.status-completed .status-indicator-dot {
+  background: #198754 !important;
+}
+.apt-card-topbar.status-completed .topbar-status-text {
+  color: #0F5132 !important;
+}
+.apt-card-topbar.status-completed .topbar-meta {
+  color: #0F5132 !important;
+}
+.apt-card-topbar.status-completed .meta-divider {
+  color: #A3CFBB !important;
+}
+.apt-card-topbar.status-completed .meta-code {
+  color: #0A3622 !important;
+}
+
+/* 4. Đã hủy (CANCELLED) - Nền hồng đỏ nhạt chuẩn như hình ảnh bên phải */
+.apt-card-topbar.status-cancelled {
+  background: #FFF1F2 !important;
+  border-bottom: 1px solid #FECDD3 !important;
+}
+.apt-card-topbar.status-cancelled .status-indicator-dot {
+  background: #E11D48 !important;
+}
+.apt-card-topbar.status-cancelled .topbar-status-text {
+  color: #BE123C !important;
+}
+.apt-card-topbar.status-cancelled .topbar-meta {
+  color: #9F1239 !important;
+}
+.apt-card-topbar.status-cancelled .meta-divider {
+  color: #FDA4AF !important;
+}
+.apt-card-topbar.status-cancelled .meta-type-tag {
+  color: #9F1239 !important;
+}
+.apt-card-topbar.status-cancelled .meta-code {
+  color: #881337 !important;
+}
+
+.apt-card-body {
+  padding: 14px 20px !important;
+}
+
+.apt-card-footer {
+  padding: 10px 20px !important;
+  background: #FAF9F6 !important;
+  border-top: 1px solid #F0ECE6 !important;
+}
+
+/* BUTTON HOVER ENFORCEMENT ACCORDING TO DCOR UI STYLE GUIDE */
+.actions-group .btn-reschedule,
+.btn-reschedule {
+  background: #FFFFFF !important;
+  color: var(--color-primary, #765337) !important;
+  border: 1px solid var(--color-primary, #765337) !important;
+  border-radius: var(--radius-control, 8px) !important;
+  height: 32px !important;
+  padding: 5px 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              border-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+.actions-group .btn-reschedule:hover,
+.btn-reschedule:hover {
+  background: var(--color-primary-hover, #BC5F13) !important;
+  border-color: var(--color-primary-hover, #BC5F13) !important;
+  color: #FFFFFF !important;
+  box-shadow: var(--shadow-hover, 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%)) !important;
+}
+
+.actions-group .btn-reschedule:hover lucide-angular,
+.actions-group .btn-reschedule:hover span,
+.btn-reschedule:hover lucide-angular,
+.btn-reschedule:hover span {
+  color: #FFFFFF !important;
+}
+
+.actions-group .btn-reschedule:active,
+.btn-reschedule:active {
+  background: var(--color-primary-pressed, #3F2C1B) !important;
+  border-color: var(--color-primary-pressed, #3F2C1B) !important;
+  color: #FFFFFF !important;
+}
+
+.actions-group .btn-cancel,
+.btn-cancel {
+  background: #FFFFFF !important;
+  color: var(--color-danger, #C42326) !important;
+  border: 1px solid var(--color-danger, #C42326) !important;
+  border-radius: var(--radius-control, 8px) !important;
+  height: 32px !important;
+  padding: 5px 14px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              border-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+.actions-group .btn-cancel:hover,
+.btn-cancel:hover {
+  background: var(--color-danger, #C42326) !important;
+  border-color: var(--color-danger, #C42326) !important;
+  color: #FFFFFF !important;
+  box-shadow: var(--shadow-hover, 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%)) !important;
+}
+
+.actions-group .btn-cancel:hover lucide-angular,
+.actions-group .btn-cancel:hover span,
+.btn-cancel:hover lucide-angular,
+.btn-cancel:hover span {
+  color: #FFFFFF !important;
+}
+
+.actions-group .btn-cancel:active,
+.btn-cancel:active {
+  background: var(--color-danger-hover, #8C1F1F) !important;
+  border-color: var(--color-danger-hover, #8C1F1F) !important;
+  color: #FFFFFF !important;
 }

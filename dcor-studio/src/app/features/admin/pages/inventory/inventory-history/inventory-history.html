@@ -148,16 +148,10 @@
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('code')" title="Sắp xếp theo Mã biến động">
-                <span>Mã biến động</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'code' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'code' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'code' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'code' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 140px;">
+              Mã biến động
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 140px;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('date')" title="Sắp xếp theo Thời gian">
                 <span>Thời gian</span>
                 <span class="sort-arrows-inline">
@@ -166,43 +160,19 @@
                 </span>
               </div>
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('product')" [title]="'Sắp xếp theo ' + (viewBy === 'variant' ? 'Biến thể' : 'Sản phẩm')">
-                <span>{{ viewBy === 'variant' ? 'Biến thể' : 'Sản phẩm' }}</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'product' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'product' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'product' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'product' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); min-width: 240px;">
+              {{ viewBy === 'variant' ? 'Biến thể' : 'Sản phẩm' }}
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('location')" title="Sắp xếp theo Kho">
-                <span>Kho</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'location' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'location' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'location' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'location' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 150px;">
+              Kho
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('orderType')" title="Sắp xếp theo Loại đơn">
-                <span>Loại đơn</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'orderType' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'orderType' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'orderType' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'orderType' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 120px;">
+              Loại đơn
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái">
-                <span>Trạng thái</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 120px;">
+              Trạng thái
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 150px;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('quantity')" title="Sắp xếp theo Biến động kho">
                 <span>Biến động kho</span>
                 <span class="sort-arrows-inline">
@@ -211,23 +181,8 @@
                 </span>
               </div>
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('reference')" title="Sắp xếp theo Chứng từ">
-                <span>Chứng từ</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'reference' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'reference' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'reference' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'reference' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
-            </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('creator')" title="Sắp xếp theo Người thực hiện">
-                <span>Người thực hiện</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'creator' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'creator' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'creator' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'creator' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 160px;">
+              Người thực hiện
             </th>
             <th style="padding: 16px 16px 16px 4px; text-align: center; width: 1%; white-space: nowrap;"></th>
           </tr>
@@ -252,6 +207,9 @@
               onmouseout="this.style.background='transparent'">
             <td style="padding: 16px;">
               <span style="font-weight: 600; color: var(--accent);">{{ item.id }}</span>
+              <div *ngIf="item.reference" style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">
+                CT: <span style="font-family: monospace;">{{ item.reference }}</span>
+              </div>
             </td>
             <td style="padding: 16px;">
               <div>
@@ -330,9 +288,6 @@
                   </span>
                 </div>
               </div>
-            </td>
-            <td style="padding: 16px;">
-              <span style="color: var(--text-secondary); font-weight: 500;">{{ item.reference }}</span>
             </td>
             <td style="padding: 16px;">
               <div style="display: flex; align-items: center; gap: 8px;">

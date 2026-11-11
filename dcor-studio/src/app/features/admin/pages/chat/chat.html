@@ -1,507 +1,428 @@
-<div class="chat-admin-container">
+<div class="chat-page-container">
   <!-- Kiểm tra phân quyền -->
   <div *ngIf="!hasPermission()" class="permission-denied-card">
-    <app-icon name="ShieldAlert" size="48" color="var(--color-danger)"></app-icon>
-    <h2>Không đủ quyền truy cập</h2>
-    <p>Tài khoản của bạn không có quyền xem hoặc quản lý phân hệ Chatbox CSKH.</p>
+    <app-icon name="ShieldAlert" size="48" color="#DC2626"></app-icon>
+    <h2 class="permission-title">Không đủ quyền truy cập</h2>
+    <p class="permission-desc">Tài khoản của bạn không có quyền xem hoặc quản lý phân hệ Chatbox CSKH (403 Forbidden).</p>
   </div>
 
-  <div *ngIf="hasPermission()" class="chat-admin-layout">
-    <!-- BANNER MẤT KẾT NỐI REALTIME -->
-    <div *ngIf="!isConnected()" class="connection-alert-banner" role="alert">
-      <div class="flex items-center gap-2">
-        <app-icon name="AlertTriangle" size="18" color="#FFFFFF"></app-icon>
-        <span><strong>Mất kết nối máy chủ realtime.</strong> Hệ thống đang tự động kết nối lại...</span>
+  <div *ngIf="hasPermission()" class="chat-page-content">
+    <!-- Page Header (Tiêu đề + mô tả) -->
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-main-heading">Quản lý hội thoại</h1>
+        <p class="page-sub-desc">Theo dõi, tiếp nhận và hỗ trợ tư vấn khách hàng qua kênh chatbox trực tuyến.</p>
       </div>
-      <button type="button" class="retry-connection-btn" (click)="retryConnection()" aria-label="Thử kết nối lại">
-        <app-icon name="RefreshCw" size="14"></app-icon>
-        <span>Thử lại ngay</span>
-      </button>
     </div>
 
-    <!-- THANH ĐIỀU HƯỚNG TRÊN CÙNG (3 VIEW MODES + SOUND TOGGLE) -->
-    <header class="chat-header-bar">
-      <div class="header-left">
-        <h1 class="page-title">Quản lý Chatbox CSKH</h1>
-        <div class="view-tabs" role="tablist" aria-label="Chế độ xem quản lý chat">
-          <button
-            type="button"
-            role="tab"
-            class="view-tab-btn"
-            [class.active]="currentView() === 'conversations'"
-            [attr.aria-selected]="currentView() === 'conversations'"
-            (click)="currentView.set('conversations')">
-            <app-icon name="MessagesSquare" size="18"></app-icon>
-            <span>Hội thoại</span>
-            <span *ngIf="chatUnreadService.totalUnread() > 0" class="tab-badge">
-              {{ chatUnreadService.badgeText() }}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            class="view-tab-btn"
-            [class.active]="currentView() === 'scripts'"
-            [attr.aria-selected]="currentView() === 'scripts'"
-            (click)="currentView.set('scripts')">
-            <app-icon name="Bot" size="18"></app-icon>
-            <span>Kịch bản bot</span>
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            class="view-tab-btn"
-            [class.active]="currentView() === 'settings'"
-            [attr.aria-selected]="currentView() === 'settings'"
-            (click)="currentView.set('settings')">
-            <app-icon name="Settings" size="18"></app-icon>
-            <span>Cài đặt</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="header-right">
-        <!-- Nút bật/tắt âm báo -->
-        <button
-          type="button"
-          class="sound-toggle-btn"
-          [class.muted]="!audioService.isSoundEnabled()"
-          (click)="audioService.toggleSound()"
-          [attr.aria-label]="audioService.isSoundEnabled() ? 'Tắt âm báo tin mới' : 'Bật âm báo tin mới'"
-          [title]="audioService.isSoundEnabled() ? 'Âm báo tin mới: Đang bật (bấm để tắt)' : 'Âm báo tin mới: Đang tắt (bấm để bật)'">
-          <app-icon [name]="audioService.isSoundEnabled() ? 'Volume2' : 'VolumeX'" size="18"></app-icon>
-          <span class="sound-label">{{ audioService.isSoundEnabled() ? 'Âm báo: Bật' : 'Âm báo: Tắt' }}</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- ================================================================= -->
-    <!-- VIEW 1: HỘI THOẠI (3 CỘT RESPONSIVE) -->
-    <!-- ================================================================= -->
-    <div *ngIf="currentView() === 'conversations'" class="conversations-view-container">
-      <!-- CỘT 1: DANH SÁCH HỘI THOẠI -->
-      <aside class="conversations-sidebar" [class.mobile-hidden]="isMobileChatActive()">
-        <!-- Ô tìm kiếm -->
-        <div class="sidebar-search-box">
-          <div class="search-input-wrapper">
-            <app-icon name="Search" size="16" class="search-icon"></app-icon>
+    <!-- KHỐI NỘI DUNG CHÍNH (HAI CỘT TRONG THẺ BO GÓC) -->
+    <div class="chat-main-card">
+      <!-- CỘT TRÁI: DANH SÁCH HỘI THOẠI -->
+      <aside class="conversations-pane" [class.mobile-hidden]="isMobileChatActive()">
+        <!-- Thanh lọc & tìm kiếm trong khung viền bo tròn (Cố định ở đỉnh cột) -->
+        <div class="filter-toolbar-box">
+          <div class="filter-search-wrap">
+            <app-icon name="Search" size="16" class="search-icon-svg"></app-icon>
             <input
               type="text"
-              class="search-input"
+              class="search-text-input"
               placeholder="Tìm theo tên, SĐT, tin nhắn..."
               [value]="searchQuery()"
               (input)="onSearchInput($event)"
               aria-label="Tìm kiếm cuộc trò chuyện" />
+            <button
+              *ngIf="searchQuery()"
+              type="button"
+              class="search-clear-btn"
+              (click)="clearSearch()"
+              aria-label="Xóa tìm kiếm">
+              <app-icon name="X" size="14"></app-icon>
+            </button>
+          </div>
+
+          <!-- 3 tab: 'Tất cả', 'Chưa trả lời', 'Cần NV', chia đều chiều rộng, không bị cắt chữ hay xuống dòng -->
+          <div class="filter-pills-row" role="tablist" aria-label="Bộ lọc hội thoại">
+            <button
+              type="button"
+              role="tab"
+              class="filter-tab-pill"
+              [class.active]="activeFilter() === 'all'"
+              [attr.aria-selected]="activeFilter() === 'all'"
+              (click)="setFilter('all')">
+              <span class="tab-label-text">Tất cả</span>
+              <span class="pill-count-tag">{{ tabCounts().all }}</span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              class="filter-tab-pill"
+              [class.active]="activeFilter() === 'unanswered'"
+              [attr.aria-selected]="activeFilter() === 'unanswered'"
+              (click)="setFilter('unanswered')">
+              <span class="tab-label-text">Chưa trả lời</span>
+              <span class="pill-count-tag">{{ tabCounts().unanswered }}</span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              class="filter-tab-pill"
+              [class.active]="activeFilter() === 'waiting'"
+              [attr.aria-selected]="activeFilter() === 'waiting'"
+              (click)="setFilter('waiting')">
+              <span class="tab-label-text">Cần NV</span>
+              <span class="pill-count-tag">{{ tabCounts().waiting }}</span>
+            </button>
           </div>
         </div>
 
-        <!-- Các tab lọc -->
-        <nav class="filter-tabs-scroll" aria-label="Bộ lọc hội thoại">
-          <button
-            type="button"
-            class="filter-pill"
-            [class.active]="activeFilter() === 'all'"
-            (click)="setFilter('all')">
-            <span>Tất cả</span>
-            <span class="count-tag">{{ filterCounts().all }}</span>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.active]="activeFilter() === 'unread'"
-            (click)="setFilter('unread')">
-            <span>Chưa đọc</span>
-            <span class="count-tag highlight">{{ filterCounts().unread }}</span>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.active]="activeFilter() === 'unanswered'"
-            (click)="setFilter('unanswered')">
-            <span>Chưa trả lời</span>
-            <span class="count-tag">{{ filterCounts().unanswered }}</span>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.active]="activeFilter() === 'mine'"
-            (click)="setFilter('mine')">
-            <span>Của tôi</span>
-            <span class="count-tag">{{ filterCounts().mine }}</span>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.active]="activeFilter() === 'waiting'"
-            (click)="setFilter('waiting')">
-            <span>Chờ nhân viên</span>
-            <span class="count-tag alert">{{ filterCounts().waiting }}</span>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.active]="activeFilter() === 'closed'"
-            (click)="setFilter('closed')">
-            <span>Đã đóng</span>
-            <span class="count-tag">{{ filterCounts().closed }}</span>
-          </button>
-        </nav>
-
-        <!-- Danh sách items -->
-        <div class="conversations-list" role="list">
-          <div *ngIf="isLoadingList()" class="loading-state">
+        <!-- Danh sách items (Cuộn độc lập) -->
+        <div class="conversations-scroll-list" role="list">
+          <div *ngIf="isLoadingList()" class="list-state-msg">
             <app-icon name="RefreshCw" size="24" class="animate-spin text-primary"></app-icon>
-            <p>Đang tải danh sách...</p>
+            <span>Đang tải danh sách...</span>
           </div>
 
-          <div *ngIf="!isLoadingList() && conversations().length === 0" class="empty-state">
-            <app-icon name="MessageCircle" size="36" color="var(--color-text-muted)"></app-icon>
-            <p>Không có cuộc trò chuyện nào phù hợp.</p>
+          <div *ngIf="!isLoadingList() && conversations().length === 0" class="list-state-msg">
+            <app-icon name="MessageCircle" size="36"></app-icon>
+            <span>Không tìm thấy cuộc trò chuyện nào.</span>
           </div>
 
           <div
-            *ngFor="let conv of conversations()"
-            class="conversation-item"
+            *ngFor="let conv of sortedConversations()"
+            class="conversation-row-item"
             [class.selected]="conv.id === selectedConversationId()"
-            [class.needs-human-highlight]="conv.needsHuman"
-            [class.unread-item]="conv.unreadStaff > 0"
+            [class.is-unread]="conv.unreadStaff > 0"
             (click)="selectConversation(conv.id)"
             role="listitem"
             tabindex="0"
             (keydown.enter)="selectConversation(conv.id)">
             <!-- Avatar -->
             <div
-              class="avatar-circle"
+              class="conv-avatar-circle"
               [style.background-color]="getAvatarColor(conv.guestName)">
               {{ getInitials(conv.guestName) }}
             </div>
 
             <!-- Content -->
-            <div class="item-content">
-              <div class="item-header-row">
-                <span class="customer-name" [title]="conv.guestName">{{ conv.guestName }}</span>
-                <span class="relative-time">{{ formatRelativeTime(conv.lastMessageAt) }}</span>
-              </div>
-
-              <div class="item-sub-row">
-                <span class="customer-type-tag" [class.registered]="conv.customerId">
-                  {{ conv.customerId ? 'Thành viên' : 'Khách vãng lai' }}
+            <div class="conv-item-content">
+              <div class="conv-top-line">
+                <span
+                  class="conv-customer-name"
+                  [class.unread-bold]="conv.unreadStaff > 0"
+                  [title]="conv.guestName">
+                  {{ conv.guestName }}
                 </span>
-                <span class="customer-phone" *ngIf="conv.guestPhone">{{ conv.guestPhone }}</span>
+                <span class="conv-time-text">{{ formatRelativeTime(conv.lastMessageAt) }}</span>
               </div>
 
-              <div class="item-message-preview" [title]="conv.lastMessagePreview">
+              <div
+                class="conv-preview-line"
+                [class.unread-bold]="conv.unreadStaff > 0"
+                [title]="conv.lastMessagePreview">
                 {{ conv.lastMessagePreview || '[Chưa có tin nhắn]' }}
               </div>
 
-              <div class="item-footer-row">
-                <!-- Mode Badge -->
-                <span
-                  class="mode-badge"
-                  [class.mode-bot]="conv.mode === 'BOT'"
-                  [class.mode-waiting]="conv.mode === 'WAITING_STAFF'"
-                  [class.mode-staff]="conv.mode === 'STAFF'">
-                  <app-icon
-                    [name]="conv.mode === 'BOT' ? 'Bot' : (conv.mode === 'WAITING_STAFF' ? 'AlertCircle' : 'UserCheck')"
-                    size="12">
-                  </app-icon>
-                  <span *ngIf="conv.mode === 'BOT'">Trợ lý Bot</span>
-                  <span *ngIf="conv.mode === 'WAITING_STAFF'">Chờ nhân viên</span>
-                  <span *ngIf="conv.mode === 'STAFF'">
-                    {{ conv.assignedStaffName ? conv.assignedStaffName : 'Chuyên viên' }}
+              <div class="conv-bottom-line">
+                <!-- Chip trạng thái: chỉ hiện khi Chờ nhân viên hoặc Đang tư vấn, bot thường không hiện -->
+                <ng-container *ngIf="getConversationChip(conv) as chip">
+                  <span
+                    class="chip-status-tag"
+                    [ngClass]="chip.class">
+                    {{ chip.label }}
                   </span>
-                </span>
+                </ng-container>
 
-                <!-- Needs Human Badge -->
-                <span *ngIf="conv.needsHuman" class="needs-human-badge" title="Cần nhân sự hỗ trợ ngay">
-                  <app-icon name="AlertTriangle" size="12"></app-icon>
-                  <span>Cần nhân viên</span>
-                </span>
-
-                <!-- Unread Badge -->
-                <span *ngIf="conv.unreadStaff > 0" class="unread-count-badge">
-                  {{ conv.unreadStaff > 99 ? '99+' : conv.unreadStaff }}
-                </span>
+                <!-- Dấu chấm xanh/cam chưa đọc hoặc badge số lượng -->
+                <span *ngIf="conv.unreadStaff > 0" class="unread-dot-indicator" title="Tin nhắn chưa đọc"></span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Phân trang danh sách -->
-        <div class="sidebar-pagination" *ngIf="totalPages() > 1">
+        <div class="list-pagination-bar" *ngIf="totalPages() > 1">
           <button
             type="button"
-            class="page-nav-btn"
+            class="page-arrow-btn"
             [disabled]="currentPage() <= 1"
             (click)="loadConversations(currentPage() - 1)"
             aria-label="Trang trước">
-            <app-icon name="ChevronLeft" size="16"></app-icon>
+            <app-icon name="ChevronLeft" size="14"></app-icon>
           </button>
-          <span class="page-indicator">Trang {{ currentPage() }} / {{ totalPages() }}</span>
+          <span>Trang {{ currentPage() }} / {{ totalPages() }}</span>
           <button
             type="button"
-            class="page-nav-btn"
+            class="page-arrow-btn"
             [disabled]="currentPage() >= totalPages()"
             (click)="loadConversations(currentPage() + 1)"
             aria-label="Trang sau">
-            <app-icon name="ChevronRight" size="16"></app-icon>
+            <app-icon name="ChevronRight" size="14"></app-icon>
           </button>
         </div>
       </aside>
 
-      <!-- CỘT 2: KHUNG TRÒ CHUYỆN (CHAT WINDOW) -->
-      <main class="chat-main-window" [class.mobile-visible]="isMobileChatActive()">
+      <!-- CỘT PHẢI: KHUNG CHAT -->
+      <main class="chat-window-pane" [class.mobile-active]="isMobileChatActive()">
         <ng-container *ngIf="selectedConversationId() && conversationDetail(); else noConversationSelected">
-          <!-- Chat Header -->
-          <div class="chat-header">
-            <div class="chat-header-info">
+          <!-- Chat Header: Cố định -->
+          <div class="chat-pane-header">
+            <div
+              class="chat-header-identity"
+              (click)="openCustomerDrawer()"
+              title="Bấm để xem hồ sơ và đơn hàng khách hàng"
+              role="button"
+              tabindex="0"
+              (keydown.enter)="openCustomerDrawer()">
               <!-- Nút quay lại trên mobile -->
               <button
                 type="button"
-                class="mobile-back-btn"
-                (click)="backToConversationsList()"
+                class="mobile-back-icon-btn"
+                (click)="$event.stopPropagation(); backToConversationsList()"
                 aria-label="Quay lại danh sách hội thoại">
-                <app-icon name="ArrowLeft" size="20"></app-icon>
+                <app-icon name="ArrowLeft" size="18"></app-icon>
               </button>
 
               <div
-                class="avatar-circle small"
+                class="header-avatar-small"
                 [style.background-color]="getAvatarColor(conversationDetail()!.conversation.guestName)">
                 {{ getInitials(conversationDetail()!.conversation.guestName) }}
               </div>
 
-              <div class="header-titles">
-                <div class="name-status-row">
-                  <h2 class="active-customer-name">{{ conversationDetail()!.conversation.guestName }}</h2>
-                  <span
-                    class="status-indicator-pill"
-                    [class.open]="conversationDetail()!.conversation.status === 'OPEN'"
-                    [class.closed]="conversationDetail()!.conversation.status === 'CLOSED'">
-                    {{ conversationDetail()!.conversation.status === 'OPEN' ? 'Đang mở' : 'Đã đóng' }}
+              <div class="header-text-details">
+                <div class="header-name-row">
+                  <h2 class="header-customer-name">{{ conversationDetail()!.conversation.guestName }}</h2>
+                  <span class="customer-kind-badge" [class.member]="conversationDetail()!.conversation.customerType === 'MEMBER' || conversationDetail()!.conversation.customerId">
+                    {{ getCustomerTypeLabel(conversationDetail()!.conversation) }}
                   </span>
                 </div>
-                <div class="sub-info-row">
-                  <span class="phone" *ngIf="conversationDetail()!.conversation.guestPhone">
-                    {{ conversationDetail()!.conversation.guestPhone }}
-                  </span>
-                  <span class="staff-assigned">
+                <div class="header-sub-row">
+                  <span class="header-staff-tag">
                     Phụ trách: <strong>{{ conversationDetail()!.conversation.assignedStaffName || 'Chưa phân công' }}</strong>
                   </span>
                 </div>
               </div>
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Header Action: MỘT nút chính theo ngữ cảnh + Nút "i" -->
             <div class="chat-header-actions">
-              <!-- Nút Nhận hội thoại -->
+              <!-- Trường hợp 1: Chưa ai nhận -> Nhận hội thoại -->
               <button
-                *ngIf="conversationDetail()!.conversation.status === 'OPEN' && conversationDetail()!.conversation.mode !== 'STAFF'"
+                *ngIf="canClaimCurrent()"
                 type="button"
-                class="btn-action primary"
+                class="btn-chat-primary-action claim"
                 (click)="claimCurrentConversation()"
-                aria-label="Tiếp nhận cuộc trò chuyện này">
-                <app-icon name="UserCheck" size="16"></app-icon>
+                aria-label="Nhận hội thoại này">
+                <app-icon name="UserCheck" size="15"></app-icon>
                 <span>Nhận hội thoại</span>
               </button>
 
-              <!-- Nút Chuyển giao -->
+              <!-- Trường hợp 2: Chính mình đang phụ trách -> Kết thúc ca tư vấn -->
               <button
-                *ngIf="conversationDetail()!.conversation.status === 'OPEN'"
+                *ngIf="isCurrentStaffAssigned()"
                 type="button"
-                class="btn-action outline"
-                (click)="openTransferModal()"
-                aria-label="Chuyển cuộc trò chuyện sang nhân sự khác">
-                <app-icon name="ArrowRight" size="16"></app-icon>
-                <span>Chuyển giao...</span>
+                class="btn-chat-primary-action close-consult"
+                (click)="closeConsultation()"
+                aria-label="Kết thúc ca tư vấn">
+                <app-icon name="Check" size="15"></app-icon>
+                <span>Kết thúc ca tư vấn</span>
               </button>
 
-              <!-- Nút Trả về bot -->
-              <button
-                *ngIf="conversationDetail()!.conversation.status === 'OPEN' && conversationDetail()!.conversation.mode === 'STAFF'"
-                type="button"
-                class="btn-action outline"
-                (click)="returnCurrentToBot()"
-                aria-label="Chuyển lại cho trợ lý ảo Bot">
-                <app-icon name="Bot" size="16"></app-icon>
-                <span>Trả về bot</span>
-              </button>
-
-              <!-- Nút Đóng / Mở lại -->
+              <!-- Nút 'i' mở drawer thông tin khách -->
               <button
                 type="button"
-                class="btn-action secondary"
-                (click)="toggleCloseConversation()"
-                [attr.aria-label]="conversationDetail()!.conversation.status === 'OPEN' ? 'Kết thúc cuộc trò chuyện' : 'Mở lại cuộc trò chuyện'">
-                <app-icon
-                  [name]="conversationDetail()!.conversation.status === 'OPEN' ? 'X' : 'RotateCcw'"
-                  size="16">
-                </app-icon>
-                <span>{{ conversationDetail()!.conversation.status === 'OPEN' ? 'Đóng' : 'Mở lại' }}</span>
-              </button>
-
-              <!-- Nút mở drawer thông tin khách trên tablet/mobile -->
-              <button
-                type="button"
-                class="btn-action icon-only drawer-toggle-btn"
-                (click)="toggleCustomerDrawer()"
-                aria-label="Xem chi tiết khách hàng và đơn hàng">
+                class="btn-drawer-shortcut"
+                (click)="openCustomerDrawer()"
+                aria-label="Xem thông tin chi tiết khách hàng"
+                title="Xem thông tin chi tiết">
                 <app-icon name="Info" size="18"></app-icon>
               </button>
             </div>
           </div>
 
-          <!-- Messages Container -->
+          <!-- Messages Container: Cuộn độc lập -->
           <div
             #messagesContainer
-            class="chat-messages-container"
+            class="messages-viewport"
             (scroll)="onMessagesScroll($event)"
             role="log"
             aria-live="polite">
-            <!-- Loading indicator khi tải tin cũ -->
-            <div *ngIf="isLoadingMoreMessages()" class="loading-more-box">
-              <app-icon name="RefreshCw" size="16" class="animate-spin"></app-icon>
+            <!-- Loading indicator khi cuộn lên tải tin cũ -->
+            <div *ngIf="isLoadingMoreMessages()" class="load-more-spinner-row">
+              <app-icon name="RefreshCw" size="14" class="animate-spin"></app-icon>
               <span>Đang tải tin cũ hơn...</span>
             </div>
 
-            <!-- Tải lần đầu -->
-            <div *ngIf="isLoadingMessages()" class="initial-loading-messages">
-              <app-icon name="RefreshCw" size="28" class="animate-spin text-primary"></app-icon>
-              <p>Đang tải nội dung tin nhắn...</p>
+            <div *ngIf="isLoadingMessages()" class="list-state-msg">
+              <app-icon name="RefreshCw" size="24" class="animate-spin text-primary"></app-icon>
+              <span>Đang tải tin nhắn...</span>
             </div>
 
-            <!-- Danh sách tin nhắn -->
-            <div *ngFor="let msg of messages()" class="message-wrapper" [ngClass]="msg.senderType.toLowerCase()">
-              <!-- Tin nhắn Hệ thống (SYSTEM) -->
-              <div *ngIf="msg.senderType === 'SYSTEM'" class="system-message-bubble">
-                <app-icon name="Info" size="14"></app-icon>
-                <span>{{ msg.content }}</span>
+            <!-- Danh sách tin nhắn theo Messenger -->
+            <ng-container *ngFor="let item of groupedMessages(); let idx = index">
+              <!-- Vạch phân cách ngày -->
+              <div *ngIf="item.showDateSeparator" class="date-separator-divider">
+                <span class="date-separator-pill">{{ item.dateSeparatorLabel }}</span>
               </div>
 
-              <!-- Tin nhắn Khách / Bot / Nhân viên -->
-              <div *ngIf="msg.senderType !== 'SYSTEM'" class="chat-bubble-container">
-                <div class="message-sender-title" *ngIf="msg.senderType !== 'STAFF'">
-                  <span class="sender-name">{{ msg.senderName }}</span>
-                  <span *ngIf="msg.senderType === 'BOT'" class="bot-badge-pill">Bot</span>
+              <!-- Tin SYSTEM meta SESSION_RESET: Vạch 'Khách đã làm mới cuộc trò chuyện' -->
+              <div *ngIf="isSessionResetMessage(item.message)" class="session-reset-divider">
+                <span class="session-reset-pill">
+                  <app-icon name="RefreshCw" size="12"></app-icon>
+                  Khách đã làm mới cuộc trò chuyện
+                </span>
+              </div>
+
+              <!-- Tin nhắn Hệ thống khác: chip căn giữa -->
+              <div *ngIf="item.message.senderType === 'SYSTEM' && !isSessionResetMessage(item.message)" class="system-msg-row">
+                <span class="system-pill">
+                  <app-icon name="Info" size="12"></app-icon>
+                  {{ item.message.content }}
+                </span>
+              </div>
+
+              <!-- Tin nhắn Khách / Nhân viên / Bot -->
+              <div
+                *ngIf="item.message.senderType !== 'SYSTEM'"
+                class="msg-bubble-group"
+                [class.incoming]="item.message.senderType !== 'STAFF'"
+                [class.outgoing]="item.message.senderType === 'STAFF'">
+                <!-- Tên người gửi nếu là tin đầu cụm của người khác -->
+                <div *ngIf="item.showSenderHeader && item.message.senderType !== 'STAFF'" class="msg-sender-label">
+                  <span>{{ item.message.senderName }}</span>
+                  <span *ngIf="item.message.senderType === 'BOT'" class="chip-status-tag bot">Bot</span>
                 </div>
 
-                <div class="chat-bubble" [class.has-image]="msg.imageUrl">
-                  <!-- Ảnh trong tin nhắn -->
-                  <div *ngIf="msg.imageUrl" class="bubble-image-box">
-                    <img
-                      [src]="msg.imageUrl"
-                      alt="Hình ảnh trong tin nhắn"
-                      loading="lazy"
-                      (click)="openLightbox(msg.imageUrl!)" />
+                <div class="bubble-card">
+                  <!-- Thumbnail ảnh nếu có -->
+                  <div *ngIf="item.message.imageUrl" class="bubble-img-box" (click)="openLightbox(item.message.imageUrl!)">
+                    <img [src]="item.message.imageUrl" alt="Hình ảnh đính kèm" loading="lazy" />
                   </div>
 
-                  <!-- Nội dung văn bản -->
-                  <p *ngIf="msg.content" class="bubble-text">{{ msg.content }}</p>
+                  <!-- Nội dung text -->
+                  <p *ngIf="item.message.content" class="bubble-text-content">{{ item.message.content }}</p>
 
-                  <!-- Nút Quick Reply nếu bot gửi -->
-                  <div *ngIf="msg.quickReplies && msg.quickReplies.length > 0" class="quick-replies-list">
-                    <span *ngFor="let qr of msg.quickReplies" class="qr-chip-preview">
+                  <!-- Nút liên kết từ meta LINK (không hiện URL thô) -->
+                  <div *ngIf="item.message.meta?.type === 'LINK' && item.message.meta?.url" class="meta-link-action-box">
+                    <a
+                      [href]="item.message.meta.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="meta-link-cta-btn">
+                      <app-icon name="ExternalLink" size="13"></app-icon>
+                      <span>{{ item.message.meta.label || 'Xem liên kết chi tiết' }}</span>
+                    </a>
+                  </div>
+
+                  <!-- Quick replies nếu có -->
+                  <div *ngIf="item.message.quickReplies && item.message.quickReplies.length > 0" class="quick-replies-list-box">
+                    <span *ngFor="let qr of item.message.quickReplies" class="quick-reply-display-tag">
                       {{ qr.label }}
                     </span>
                   </div>
 
-                  <!-- Thời gian gửi & pending -->
-                  <div class="bubble-meta">
-                    <span class="bubble-time">{{ formatMessageTime(msg.createdAt) }}</span>
-                    <span *ngIf="msg.pending" class="pending-tag">Đang gửi...</span>
+                  <!-- Giờ gửi & trạng thái pending -->
+                  <div class="bubble-meta-row">
+                    <span>{{ formatMessageTime(item.message.createdAt) }}</span>
+                    <span *ngIf="item.message.pending">Đang gửi...</span>
                   </div>
                 </div>
+
+                <!-- Đã xem khi khách đã đọc (hiện ở tin cuối cùng của staff nếu khách đã đọc) -->
+                <div *ngIf="item.isLastCustomerSeen" class="seen-status-text">
+                  <app-icon name="CheckCheck" size="12" color="#10B981"></app-icon>
+                  <span>Đã xem</span>
+                </div>
               </div>
-            </div>
+            </ng-container>
 
             <!-- Chỉ báo khách đang nhập -->
-            <div *ngIf="isCustomerTyping()" class="customer-typing-indicator">
-              <span class="typing-text">Khách hàng đang nhập</span>
-              <span class="dot-flashing"></span>
-              <span class="dot-flashing"></span>
-              <span class="dot-flashing"></span>
+            <div *ngIf="isCustomerTyping()" class="customer-typing-row">
+              <span>Khách hàng đang nhập</span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
             </div>
           </div>
 
-          <!-- Composer Area -->
-          <div class="chat-composer-wrapper">
-            <!-- Thông báo nhắc nhở khi chưa nhận hội thoại -->
-            <div
-              *ngIf="conversationDetail()!.conversation.status === 'OPEN' && conversationDetail()!.conversation.mode !== 'STAFF'"
-              class="composer-handoff-banner">
-              <app-icon name="Info" size="16" color="#BC5F13"></app-icon>
-              <span>Bạn chưa tiếp nhận hội thoại này. Gửi tin nhắn đầu tiên sẽ tự động gán cho bạn.</span>
-              <button type="button" class="quick-claim-link" (click)="claimCurrentConversation()">
-                Nhận hội thoại ngay
-              </button>
-            </div>
+          <!-- Nút Tin mới khi người dùng đang cuộn ở phía trên -->
+          <button
+            *ngIf="showNewMessageFloatingBtn()"
+            type="button"
+            class="new-messages-pill-btn"
+            (click)="scrollToBottomSmooth()"
+            aria-label="Cuộn xuống xem tin nhắn mới">
+            <app-icon name="ArrowDownCircle" size="14"></app-icon>
+            <span>Tin mới</span>
+          </button>
 
-            <!-- Preview ảnh đã chọn trước khi gửi -->
-            <div *ngIf="selectedImagePreview()" class="selected-image-preview-bar">
-              <div class="preview-thumbnail">
-                <img [src]="selectedImagePreview()" alt="Ảnh đính kèm" />
+          <!-- KHUNG SOẠN TIN: Luôn hiển thị, Ghim đáy, Một hàng: [icon đính kèm] [textarea tự giãn tối đa 4 dòng] [đếm ký tự] [nút gửi] -->
+          <div class="chat-composer-box">
+            <!-- Preview ảnh đã chọn (thumbnail nhỏ kèm nút hủy) -->
+            <div *ngIf="selectedImagePreview()" class="image-preview-strip">
+              <div class="thumb-wrapper">
+                <img [src]="selectedImagePreview()" alt="Thumbnail ảnh đính kèm" />
                 <button
                   type="button"
-                  class="remove-image-btn"
+                  class="btn-remove-thumb"
                   (click)="removeSelectedImage()"
-                  aria-label="Hủy đính kèm ảnh">
-                  <app-icon name="X" size="14"></app-icon>
+                  aria-label="Xóa ảnh đính kèm">
+                  <app-icon name="X" size="10"></app-icon>
                 </button>
               </div>
-              <span class="image-name">{{ selectedImageFile()?.name }}</span>
-              <span *ngIf="isUploadingImage()" class="uploading-note">Đang nén & tải ảnh...</span>
+              <span class="thumb-filename-text">{{ selectedImageFile()?.name }}</span>
+              <span *ngIf="isUploadingImage()" class="thumb-uploading-text">Đang tải ảnh...</span>
             </div>
 
-            <!-- Form Soạn thảo -->
-            <div class="composer-box" [class.disabled]="conversationDetail()!.conversation.status === 'CLOSED'">
-              <!-- Nút đính kèm ảnh -->
+            <!-- Một hàng soạn tin chuẩn -->
+            <div class="composer-single-row">
+              <!-- Nút icon đính kèm (input file gốc bị ẩn hoàn toàn) -->
               <input
                 #fileInput
                 type="file"
                 accept="image/*"
-                class="hidden"
+                class="hidden-file-input"
                 (change)="onFileSelected($event)" />
+
               <button
                 type="button"
-                class="composer-btn-attach"
-                [disabled]="conversationDetail()!.conversation.status === 'CLOSED' || isSendingMessage()"
+                class="btn-icon-attach"
+                [disabled]="isComposerDisabled() || isSendingMessage()"
                 (click)="fileInput.click()"
-                aria-label="Đính kèm hình ảnh (tối đa 800KB)">
-                <app-icon name="Paperclip" size="20"></app-icon>
+                aria-label="Đính kèm hình ảnh"
+                title="Đính kèm hình ảnh">
+                <app-icon name="Paperclip" size="18"></app-icon>
               </button>
 
-              <!-- Textarea -->
+              <!-- Textarea tự giãn tối đa 4 dòng -->
               <textarea
                 #composerTextarea
-                class="composer-textarea"
+                class="composer-textarea-control"
                 rows="1"
-                placeholder="Nhập nội dung tư vấn... (Enter gửi, Shift+Enter xuống dòng)"
+                [placeholder]="composerPlaceholder()"
                 [ngModel]="composerText()"
                 (ngModelChange)="composerText.set($event); onComposerInput()"
                 (keydown)="onComposerKeyDown($event)"
-                [disabled]="conversationDetail()!.conversation.status === 'CLOSED' || isSendingMessage()"
+                [disabled]="isComposerDisabled() || isSendingMessage()"
                 maxlength="1000"
                 aria-label="Nội dung tin nhắn tư vấn"></textarea>
 
-              <!-- Đếm ký tự -->
-              <span class="char-counter" [class.limit]="composerText().length >= 950">
+              <!-- Bộ đếm ký tự nhỏ -->
+              <span class="composer-char-small" [class.limit-warn]="composerText().length >= 950">
                 {{ composerText().length }}/1000
               </span>
 
               <!-- Nút gửi -->
               <button
                 type="button"
-                class="composer-btn-send"
-                [disabled]="
-                  conversationDetail()!.conversation.status === 'CLOSED' ||
-                  isSendingMessage() ||
-                  (!composerText().trim() && !selectedImageFile())
-                "
+                class="btn-composer-send"
+                [disabled]="isComposerDisabled() || isSendingMessage() || (!composerText().trim() && !selectedImageFile())"
                 (click)="sendMessage()"
-                aria-label="Gửi tin nhắn">
-                <app-icon *ngIf="!isSendingMessage()" name="Send" size="18"></app-icon>
-                <app-icon *ngIf="isSendingMessage()" name="RefreshCw" size="18" class="animate-spin"></app-icon>
+                aria-label="Gửi tin nhắn"
+                title="Gửi tin nhắn">
+                <app-icon *ngIf="!isSendingMessage()" name="Send" size="16"></app-icon>
+                <app-icon *ngIf="isSendingMessage()" name="RefreshCw" size="16" class="animate-spin"></app-icon>
               </button>
             </div>
           </div>
@@ -509,472 +430,140 @@
 
         <!-- Trạng thái chưa chọn hội thoại -->
         <ng-template #noConversationSelected>
-          <div class="no-selection-placeholder">
-            <app-icon name="MessagesSquare" size="56" color="var(--color-primary-subtle)"></app-icon>
-            <h3>Chưa chọn cuộc trò chuyện</h3>
-            <p>Vui lòng chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu tư vấn.</p>
+          <div class="no-chat-selected-box">
+            <app-icon name="MessagesSquare" size="48"></app-icon>
+            <h3 class="no-chat-title">Chưa chọn cuộc trò chuyện</h3>
+            <p class="no-chat-desc">Vui lòng chọn một cuộc trò chuyện từ danh sách bên trái để xem nội dung.</p>
           </div>
         </ng-template>
       </main>
+    </div>
+  </div>
+</div>
 
-      <!-- CỘT 3: THÔNG TIN KHÁCH HÀNG & 3 ĐƠN HÀNG GẦN NHẤT -->
-      <aside
-        class="customer-info-panel"
-        [class.drawer-open]="isCustomerDrawerOpen()"
-        *ngIf="selectedConversationId() && conversationDetail()">
-        <div class="panel-header">
-          <h3 class="panel-title">Thông tin khách hàng</h3>
-          <button
-            type="button"
-            class="close-drawer-btn"
-            (click)="toggleCustomerDrawer()"
-            aria-label="Đóng bảng thông tin khách">
-            <app-icon name="X" size="18"></app-icon>
-          </button>
-        </div>
-
-        <div class="panel-content-scroll">
-          <!-- Thẻ tóm tắt khách -->
-          <div class="customer-card">
-            <div class="customer-card-header">
-              <div
-                class="avatar-circle"
-                [style.background-color]="getAvatarColor(conversationDetail()!.conversation.guestName)">
-                {{ getInitials(conversationDetail()!.conversation.guestName) }}
-              </div>
-              <div class="customer-identity">
-                <h4 class="name">{{ conversationDetail()!.conversation.guestName }}</h4>
-                <span class="badge" [class.member]="conversationDetail()!.customer">
-                  {{ conversationDetail()!.customer ? 'Khách thành viên' : 'Khách vãng lai' }}
-                </span>
-              </div>
-            </div>
-
-            <div class="customer-field-list">
-              <div class="field-item">
-                <span class="label">Số điện thoại:</span>
-                <span class="value">{{ conversationDetail()!.conversation.guestPhone || 'Chưa cung cấp' }}</span>
-              </div>
-              <div class="field-item">
-                <span class="label">Email:</span>
-                <span class="value">{{ conversationDetail()!.customer?.email || 'Chưa cung cấp' }}</span>
-              </div>
-              <div class="field-item" *ngIf="conversationDetail()!.customer?.totalSpent">
-                <span class="label">Tổng chi tiêu:</span>
-                <span class="value highlight">
-                  {{ formatCurrency(conversationDetail()!.customer?.totalSpent) }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 3 Đơn hàng gần nhất -->
-          <div class="recent-orders-section">
-            <h4 class="section-title">
-              <app-icon name="Package" size="16"></app-icon>
-              <span>3 đơn hàng gần nhất</span>
-            </h4>
-
-            <div *ngIf="conversationDetail()!.recentOrders.length === 0" class="no-orders-box">
-              <p>Khách hàng chưa có đơn hàng nào.</p>
-            </div>
-
-            <div *ngFor="let order of conversationDetail()!.recentOrders" class="order-mini-card">
-              <div class="order-card-row">
-                <a
-                  [routerLink]="['/admin/orders', order.id]"
-                  target="_blank"
-                  class="order-number-link"
-                  [title]="'Mở chi tiết đơn hàng ' + order.orderNumber + ' ở tab mới'">
-                  <span>#{{ order.orderNumber }}</span>
-                  <app-icon name="ExternalLink" size="12"></app-icon>
-                </a>
-                <span class="order-status-tag">{{ getOrderStatusLabel(order.status) }}</span>
-              </div>
-              <div class="order-card-row sub">
-                <span class="order-amount">{{ formatCurrency(order.totalAmount) }}</span>
-                <span class="order-date">{{ formatRelativeTime(order.createdAt) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Ghi chú nội bộ -->
-          <div class="internal-notes-section">
-            <h4 class="section-title">
-              <app-icon name="FileText" size="16"></app-icon>
-              <span>Ghi chú nội bộ</span>
-            </h4>
-            <p class="section-hint">Ghi chú riêng cho nhân viên, khách hàng không nhìn thấy.</p>
-
-            <textarea
-              class="internal-note-textarea"
-              rows="4"
-              placeholder="Nhập lưu ý về sở thích, địa chỉ, yêu cầu đặc biệt của khách..."
-              [ngModel]="noteInput()"
-              (ngModelChange)="noteInput.set($event)"></textarea>
-
-            <div class="note-actions-row">
-              <span *ngIf="noteSavedSuccess()" class="save-success-tag">
-                <app-icon name="Check" size="14"></app-icon>
-                <span>Đã lưu thành công!</span>
-              </span>
-
-              <button
-                type="button"
-                class="btn-save-note"
-                [disabled]="isSavingNote()"
-                (click)="saveInternalNote()">
-                <app-icon *ngIf="!isSavingNote()" name="Save" size="14"></app-icon>
-                <app-icon *ngIf="isSavingNote()" name="RefreshCw" size="14" class="animate-spin"></app-icon>
-                <span>{{ isSavingNote() ? 'Đang lưu...' : 'Lưu ghi chú' }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </aside>
+<!-- ===================================================================== -->
+<!-- DRAWER TRƯỢT TỪ PHẢI (SLIDE-RIGHT DRAWER) -->
+<!-- ===================================================================== -->
+<div
+  *ngIf="isCustomerDrawerOpen()"
+  class="drawer-backdrop-overlay"
+  (click)="closeCustomerDrawer()"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Thông tin khách hàng và lịch sử đơn hàng">
+  <div
+    class="drawer-slide-content"
+    (click)="$event.stopPropagation()"
+    tabindex="-1">
+    <!-- Drawer Header -->
+    <div class="drawer-top-bar">
+      <h3 class="drawer-title-heading">Hồ sơ khách hàng</h3>
+      <button
+        type="button"
+        class="btn-close-drawer-icon"
+        (click)="closeCustomerDrawer()"
+        aria-label="Đóng bảng thông tin khách">
+        <app-icon name="X" size="20"></app-icon>
+      </button>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- VIEW 2: KỊCH BẢN BOT (BOT SCRIPTS) -->
-    <!-- ================================================================= -->
-    <div *ngIf="currentView() === 'scripts'" class="scripts-view-container">
-      <div class="scripts-top-actions">
-        <div class="search-scripts-box">
-          <app-icon name="Search" size="16" class="search-icon"></app-icon>
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Tìm theo intent, tên hoặc câu mẫu..."
-            [ngModel]="scriptSearch()"
-            (ngModelChange)="scriptSearch.set($event)"
-            aria-label="Tìm kiếm kịch bản bot" />
-        </div>
-
-        <button type="button" class="btn-create-script" (click)="openCreateScriptModal()">
-          <app-icon name="Plus" size="16"></app-icon>
-          <span>Thêm kịch bản mới</span>
-        </button>
-      </div>
-
-      <!-- Khung Thử Kịch Bản (Test Script Panel) -->
-      <div class="test-script-card">
-        <div class="test-header">
-          <div class="test-title">
-            <app-icon name="Zap" size="18" color="var(--color-accent)"></app-icon>
-            <h3>Khung thử nghiệm kịch bản (Live Test)</h3>
+    <!-- Drawer Body -->
+    <div class="drawer-body-scroll" *ngIf="conversationDetail()">
+      <!-- 1. Hồ sơ khách (Tên, Loại khách, SĐT hợp lệ, Email) -->
+      <div class="drawer-customer-card">
+        <div class="card-avatar-heading">
+          <div
+            class="conv-avatar-circle"
+            [style.background-color]="getAvatarColor(conversationDetail()!.conversation.guestName)">
+            {{ getInitials(conversationDetail()!.conversation.guestName) }}
           </div>
-          <span class="test-desc">Nhập một câu bất kỳ để kiểm tra mức độ khớp kịch bản và câu trả lời dự kiến.</span>
-        </div>
-
-        <div class="test-input-row">
-          <input
-            type="text"
-            class="test-input"
-            placeholder="Ví dụ: Shop có mẫu sofa da góc L nào dưới 20 triệu không?..."
-            [ngModel]="testText()"
-            (ngModelChange)="testText.set($event)"
-            (keydown.enter)="runScriptTest()" />
-          <button
-            type="button"
-            class="btn-run-test"
-            [disabled]="isTestingScript() || !testText().trim()"
-            (click)="runScriptTest()">
-            <app-icon *ngIf="!isTestingScript()" name="Zap" size="16"></app-icon>
-            <app-icon *ngIf="isTestingScript()" name="RefreshCw" size="16" class="animate-spin"></app-icon>
-            <span>{{ isTestingScript() ? 'Đang chấm điểm...' : 'Kiểm tra' }}</span>
-          </button>
-        </div>
-
-        <!-- Kết quả thử nghiệm -->
-        <div *ngIf="testError()" class="test-error-box">
-          <app-icon name="AlertTriangle" size="16"></app-icon>
-          <span>{{ testError() }}</span>
-        </div>
-
-        <div *ngIf="testResult()" class="test-result-box">
-          <div class="result-header">
-            <span class="matched-intent">
-              Intent khớp nhất: <strong>{{ testResult()!.intent }}</strong>
-            </span>
-            <span class="matched-score" [class.high-score]="testResult()!.score >= 0.7">
-              Điểm số: {{ (testResult()!.score * 100).toFixed(0) }}%
+          <div class="card-name-box">
+            <h4>{{ conversationDetail()!.conversation.guestName }}</h4>
+            <span class="customer-type-badge" [class.member]="conversationDetail()!.customer || conversationDetail()!.conversation.customerType === 'MEMBER'">
+              {{ conversationDetail()!.customer || conversationDetail()!.conversation.customerType === 'MEMBER' ? 'Khách thành viên' : 'Khách vãng lai (chưa đăng nhập)' }}
             </span>
           </div>
+        </div>
 
-          <div class="result-reply-preview">
-            <span class="label">Câu trả lời bot dự kiến:</span>
-            <p class="reply-text">{{ testResult()!.reply }}</p>
+        <div class="customer-info-fields">
+          <!-- Chỉ hiện số điện thoại nếu là khách thành viên và có số hợp lệ -->
+          <div class="field-pair" *ngIf="conversationDetail()!.customer || conversationDetail()!.conversation.customerType === 'MEMBER'">
+            <span class="label">Số điện thoại:</span>
+            <span class="val">{{ getValidPhone() || 'Chưa cung cấp' }}</span>
           </div>
-
-          <div *ngIf="testResult()!.candidates.length" class="candidates-table-wrap">
-            <span class="label">Các ứng viên tiềm năng:</span>
-            <div class="candidates-chip-list">
-              <span *ngFor="let c of testResult()!.candidates" class="candidate-chip">
-                {{ c.name }} ({{ c.intent }}): {{ (c.score * 100).toFixed(0) }}%
-              </span>
-            </div>
+          <div class="field-pair">
+            <span class="label">Email:</span>
+            <span class="val">{{ conversationDetail()!.customer?.email || 'Chưa cung cấp' }}</span>
+          </div>
+          <div class="field-pair" *ngIf="conversationDetail()!.customer?.totalSpent">
+            <span class="label">Tổng chi tiêu:</span>
+            <span class="val highlight">{{ formatCurrency(conversationDetail()!.customer?.totalSpent) }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Bảng Danh Sách Kịch Bản -->
-      <div class="scripts-table-card">
-        <div *ngIf="isLoadingScripts()" class="loading-state">
-          <app-icon name="RefreshCw" size="24" class="animate-spin text-primary"></app-icon>
-          <p>Đang tải danh sách kịch bản...</p>
+      <!-- 2. 3 Đơn hàng gần nhất (bấm mở /admin/orders/<id> ở tab mới) -->
+      <div class="drawer-orders-section">
+        <h4 class="drawer-section-title">
+          <app-icon name="Package" size="16"></app-icon>
+          <span>3 đơn hàng gần nhất</span>
+        </h4>
+
+        <div *ngIf="conversationDetail()!.recentOrders.length === 0" class="drawer-orders-empty">
+          Chưa có đơn hàng nào.
         </div>
 
-        <div *ngIf="!isLoadingScripts() && filteredScripts().length === 0" class="empty-state">
-          <p>Chưa có kịch bản nào phù hợp.</p>
-        </div>
-
-        <div class="table-responsive" *ngIf="!isLoadingScripts() && filteredScripts().length > 0">
-          <table class="scripts-table" aria-label="Bảng danh sách kịch bản bot">
-            <thead>
-              <tr>
-                <th scope="col">Mã kịch bản (Intent)</th>
-                <th scope="col">Tên kịch bản</th>
-                <th scope="col">Số câu mẫu</th>
-                <th scope="col">Loại hành động</th>
-                <th scope="col">Ưu tiên</th>
-                <th scope="col">Trạng thái</th>
-                <th scope="col" class="text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let s of filteredScripts()">
-                <td><code class="intent-code">{{ s.intent }}</code></td>
-                <td class="font-medium text-primary-dark">{{ s.name }}</td>
-                <td>
-                  <span class="patterns-count-badge">{{ s.patterns.length }} câu mẫu</span>
-                </td>
-                <td>
-                  <span class="action-tag">{{ s.actionType }}</span>
-                </td>
-                <td>{{ s.priority }}</td>
-                <td>
-                  <button
-                    type="button"
-                    class="toggle-switch-btn"
-                    [class.active]="s.isActive"
-                    (click)="toggleScriptActive(s)"
-                    [attr.aria-label]="s.isActive ? 'Tắt kịch bản ' + s.name : 'Bật kịch bản ' + s.name">
-                    <span class="switch-handle"></span>
-                  </button>
-                </td>
-                <td class="text-right">
-                  <div class="row-actions">
-                    <button
-                      type="button"
-                      class="btn-row-action edit"
-                      (click)="openEditScriptModal(s)"
-                      [attr.aria-label]="'Sửa kịch bản ' + s.name"
-                      title="Chỉnh sửa kịch bản">
-                      <app-icon name="Edit" size="16"></app-icon>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-row-action delete"
-                      (click)="openDeleteScriptModal(s)"
-                      [attr.aria-label]="'Xóa kịch bản ' + s.name"
-                      title="Xóa kịch bản">
-                      <app-icon name="Trash2" size="16"></app-icon>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div *ngFor="let order of conversationDetail()!.recentOrders" class="recent-order-item">
+          <div class="order-top-link-row">
+            <a
+              [routerLink]="['/admin/orders', order.id]"
+              target="_blank"
+              class="order-link-btn"
+              [title]="'Mở đơn hàng #' + order.orderNumber + ' ở tab mới'">
+              <span>#{{ order.orderNumber }}</span>
+              <app-icon name="ExternalLink" size="12"></app-icon>
+            </a>
+            <span class="order-status-badge">{{ getOrderStatusLabel(order.status) }}</span>
+          </div>
+          <div class="order-bottom-sum-row">
+            <span class="order-price">{{ formatCurrency(order.totalAmount) }}</span>
+            <span>{{ formatRelativeTime(order.createdAt) }}</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- ================================================================= -->
-    <!-- VIEW 3: CÀI ĐẶT (SETTINGS) -->
-    <!-- ================================================================= -->
-    <div *ngIf="currentView() === 'settings'" class="settings-view-container">
-      <div class="settings-form-card">
-        <div class="settings-card-header">
-          <h2>Cấu hình Giờ làm việc & Tin nhắn hệ thống</h2>
-          <p>Thiết lập giờ mở cửa của showroom và các mẫu thông điệp tự động phản hồi cho khách hàng.</p>
-        </div>
+      <!-- 3. Ghi chú nội bộ (Lưu bằng PUT /:id/note) -->
+      <div class="drawer-note-section">
+        <h4 class="drawer-section-title">
+          <app-icon name="FileText" size="16"></app-icon>
+          <span>Ghi chú nội bộ</span>
+        </h4>
+        <p class="drawer-note-desc">
+          Ghi chú dành riêng cho nhân viên tư vấn, khách hàng không nhìn thấy.
+        </p>
 
-        <div *ngIf="settingsFeedback()" class="settings-alert-box" [ngClass]="settingsFeedback()!.type">
-          <app-icon [name]="settingsFeedback()!.type === 'success' ? 'Check' : 'AlertTriangle'" size="18"></app-icon>
-          <span>{{ settingsFeedback()!.message }}</span>
-        </div>
+        <textarea
+          class="note-textarea-control"
+          rows="4"
+          placeholder="Nhập ghi chú về nhu cầu, địa chỉ, lưu ý cho khách..."
+          [ngModel]="noteInput()"
+          (ngModelChange)="noteInput.set($event)"></textarea>
 
-        <!-- 1. Giờ làm việc -->
-        <fieldset class="settings-section">
-          <legend class="section-heading">1. Giờ làm việc CSKH & Showroom</legend>
+        <div class="note-save-row">
+          <span *ngIf="noteSavedSuccess()" class="note-success-text">
+            <app-icon name="Check" size="14"></app-icon>
+            <span>Đã lưu thành công!</span>
+          </span>
 
-          <div class="time-range-grid">
-            <div class="form-group">
-              <label for="workStartInput">Giờ bắt đầu (HH:mm)</label>
-              <input
-                id="workStartInput"
-                type="time"
-                class="form-control"
-                [value]="settingsWorkingHours().start"
-                (change)="updateWorkStart($event)" />
-            </div>
-
-            <div class="form-group">
-              <label for="workEndInput">Giờ kết thúc (HH:mm)</label>
-              <input
-                id="workEndInput"
-                type="time"
-                class="form-control"
-                [value]="settingsWorkingHours().end"
-                (change)="updateWorkEnd($event)" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Các ngày hoạt động trong tuần</label>
-            <div class="days-button-group">
-              <button
-                *ngFor="let d of daysOfWeek"
-                type="button"
-                class="day-btn"
-                [class.selected]="isDaySelected(d.day)"
-                (click)="toggleWorkingDay(d.day)">
-                {{ d.label }}
-              </button>
-            </div>
-          </div>
-        </fieldset>
-
-        <!-- 2. Thông điệp tự động -->
-        <fieldset class="settings-section">
-          <legend class="section-heading">2. Thông điệp tự động của Bot</legend>
-
-          <!-- Lời chào -->
-          <div class="form-group">
-            <div class="label-row">
-              <label for="greetingTextarea">Lời chào ban đầu (Greeting)</label>
-              <span class="char-count">{{ settingsGreeting().length }}/500</span>
-            </div>
-            <textarea
-              id="greetingTextarea"
-              class="form-control"
-              rows="3"
-              maxlength="500"
-              [ngModel]="settingsGreeting()"
-              (ngModelChange)="settingsGreeting.set($event)"
-              placeholder="Xin chào! DCor có thể hỗ trợ gì cho bạn hôm nay?..."></textarea>
-          </div>
-
-          <!-- Tin ngoài giờ -->
-          <div class="form-group">
-            <div class="label-row">
-              <label for="offlineTextarea">Tin nhắn ngoài giờ làm việc (Offline Message)</label>
-              <span class="char-count">{{ settingsOfflineMessage().length }}/500</span>
-            </div>
-            <textarea
-              id="offlineTextarea"
-              class="form-control"
-              rows="3"
-              maxlength="500"
-              [ngModel]="settingsOfflineMessage()"
-              (ngModelChange)="settingsOfflineMessage.set($event)"
-              placeholder="Hiện tại showroom DCor đã hết giờ tiếp nhận trực tiếp..."></textarea>
-          </div>
-
-          <!-- Tin chuyển nhân viên -->
-          <div class="form-group">
-            <div class="label-row">
-              <label for="handoffTextarea">Tin nhắn chuyển giao nhân viên (Handoff Message)</label>
-              <span class="char-count">{{ settingsHandoffMessage().length }}/500</span>
-            </div>
-            <textarea
-              id="handoffTextarea"
-              class="form-control"
-              rows="3"
-              maxlength="500"
-              [ngModel]="settingsHandoffMessage()"
-              (ngModelChange)="settingsHandoffMessage.set($event)"
-              placeholder="DCor đã tiếp nhận và đang kết nối bạn với chuyên viên tư vấn..."></textarea>
-          </div>
-
-          <!-- Thông tin hỗ trợ -->
-          <div class="two-col-grid">
-            <div class="form-group">
-              <label for="hotlineInput">Số điện thoại Hotline</label>
-              <input
-                id="hotlineInput"
-                type="text"
-                class="form-control"
-                [ngModel]="settingsHotline()"
-                (ngModelChange)="settingsHotline.set($event)" />
-            </div>
-            <div class="form-group">
-              <label for="addressInput">Địa chỉ Showroom chính</label>
-              <input
-                id="addressInput"
-                type="text"
-                class="form-control"
-                [ngModel]="settingsAddress()"
-                (ngModelChange)="settingsAddress.set($event)" />
-            </div>
-          </div>
-        </fieldset>
-
-        <!-- 3. Tin nhắn dự phòng (Fallback) -->
-        <fieldset class="settings-section">
-          <legend class="section-heading">3. Tin nhắn dự phòng (Fallback Messages - Tối thiểu 3 mẫu)</legend>
-          <p class="section-hint">Bot sẽ luân phiên sử dụng khi không nhận diện được câu hỏi của khách hàng.</p>
-
-          <div class="fallback-list">
-            <div *ngFor="let fb of settingsFallbackMessages(); let i = index" class="fallback-item-row">
-              <span class="fallback-index">#{{ i + 1 }}</span>
-              <input
-                type="text"
-                class="form-control flex-1"
-                maxlength="500"
-                [value]="fb"
-                (change)="updateFallbackItem(i, $any($event.target).value)" />
-              <button
-                type="button"
-                class="btn-remove-fallback"
-                [disabled]="settingsFallbackMessages().length <= 3"
-                (click)="removeFallbackMessage(i)"
-                aria-label="Xóa câu dự phòng này">
-                <app-icon name="Trash2" size="16"></app-icon>
-              </button>
-            </div>
-          </div>
-
-          <div class="add-fallback-row">
-            <input
-              type="text"
-              class="form-control flex-1"
-              maxlength="500"
-              placeholder="Nhập thêm câu dự phòng mới..."
-              [ngModel]="newFallbackInput()"
-              (ngModelChange)="newFallbackInput.set($event)"
-              (keydown.enter)="addFallbackMessage()" />
-            <button
-              type="button"
-              class="btn-add-fallback"
-              [disabled]="!newFallbackInput().trim()"
-              (click)="addFallbackMessage()">
-              <app-icon name="Plus" size="16"></app-icon>
-              <span>Thêm câu dự phòng</span>
-            </button>
-          </div>
-        </fieldset>
-
-        <!-- Nút lưu cài đặt -->
-        <div class="settings-footer-actions">
           <button
             type="button"
-            class="btn-save-settings"
-            [disabled]="isSavingSettings()"
-            (click)="saveSettings()">
-            <app-icon *ngIf="!isSavingSettings()" name="Save" size="18"></app-icon>
-            <app-icon *ngIf="isSavingSettings()" name="RefreshCw" size="18" class="animate-spin"></app-icon>
-            <span>{{ isSavingSettings() ? 'Đang lưu cấu hình...' : 'Lưu toàn bộ cài đặt' }}</span>
+            class="btn-save-note-primary"
+            [disabled]="isSavingNote()"
+            (click)="saveInternalNote()"
+            aria-label="Lưu ghi chú nội bộ">
+            <app-icon *ngIf="!isSavingNote()" name="Save" size="14"></app-icon>
+            <app-icon *ngIf="isSavingNote()" name="RefreshCw" size="14" class="animate-spin"></app-icon>
+            <span>{{ isSavingNote() ? 'Đang lưu...' : 'Lưu ghi chú' }}</span>
           </button>
         </div>
       </div>
@@ -982,274 +571,10 @@
   </div>
 </div>
 
-<!-- ===================================================================== -->
-<!-- MODAL: TẠO / CHỈNH SỬA KỊCH BẢN (BOT SCRIPT MODAL) -->
-<!-- ===================================================================== -->
-<app-modal
-  [isOpen]="isScriptModalOpen()"
-  [title]="editingScriptId() ? 'Chỉnh sửa kịch bản Bot' : 'Thêm kịch bản Bot mới'"
-  width="720px"
-  [hasFooter]="true"
-  (close)="closeScriptModal()">
-  <div class="script-modal-form">
-    <!-- Cảnh báo lỗi form -->
-    <div *ngIf="scriptFormError()" class="form-error-alert">
-      <app-icon name="AlertTriangle" size="16"></app-icon>
-      <span>{{ scriptFormError() }}</span>
-    </div>
-
-    <!-- Cảnh báo trùng câu mẫu -->
-    <div *ngIf="duplicatePatternWarning().length > 0" class="pattern-duplicate-alert">
-      <app-icon name="AlertTriangle" size="16" color="#C42326"></app-icon>
-      <div class="text-sm">
-        <strong>Cảnh báo câu mẫu bị trùng với kịch bản khác:</strong>
-        <ul class="list-disc pl-5 mt-1">
-          <li *ngFor="let dup of duplicatePatternWarning()">
-            "{{ dup.pattern }}" đã tồn tại trong kịch bản <em>{{ dup.scriptName }}</em>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Intent & Name -->
-    <div class="form-row two-cols">
-      <div class="form-group">
-        <label for="scriptIntentInput">Mã kịch bản (Intent slug)</label>
-        <input
-          id="scriptIntentInput"
-          type="text"
-          class="form-control"
-          placeholder="VD: POLICY_SHIPPING"
-          [disabled]="!!editingScriptId()"
-          [ngModel]="scriptIntent()"
-          (ngModelChange)="scriptIntent.set($event)" />
-        <span class="field-hint" *ngIf="!editingScriptId()">Viết hoa, không dấu, khóa sau khi tạo.</span>
-      </div>
-
-      <div class="form-group">
-        <label for="scriptNameInput">Tên kịch bản</label>
-        <input
-          id="scriptNameInput"
-          type="text"
-          class="form-control"
-          placeholder="VD: Chính sách giao hàng & lắp đặt"
-          [ngModel]="scriptName()"
-          (ngModelChange)="scriptName.set($event)" />
-      </div>
-    </div>
-
-    <!-- Patterns (Chips input) -->
-    <div class="form-group">
-      <label>Câu mẫu / Từ khóa kích hoạt (nhấn Enter hoặc phẩy để thêm)</label>
-      <div class="pattern-chips-box">
-        <span *ngFor="let chip of scriptPatterns(); let i = index" class="pattern-chip">
-          <span>{{ chip }}</span>
-          <button type="button" (click)="removePatternChip(i)" aria-label="Xóa câu mẫu">
-            <app-icon name="X" size="12"></app-icon>
-          </button>
-        </span>
-        <input
-          type="text"
-          class="chip-input"
-          placeholder="Nhập câu mẫu và nhấn Enter..."
-          [ngModel]="patternChipInput()"
-          (ngModelChange)="patternChipInput.set($event)"
-          (keydown)="onPatternInputKeyDown($event)" />
-      </div>
-      <span class="field-hint">Tối thiểu 1 câu mẫu để bot có thể học và nhận diện.</span>
-    </div>
-
-    <!-- Answer Textarea -->
-    <div class="form-group">
-      <div class="label-row">
-        <label for="scriptAnswerInput">Nội dung câu trả lời của trợ lý ảo</label>
-        <span class="char-count">{{ scriptAnswer().length }}/2000</span>
-      </div>
-
-      <!-- Nút chèn biến -->
-      <div class="variable-buttons-bar">
-        <span class="var-title">Chèn biến động:</span>
-        <button type="button" class="var-btn" (click)="insertVariable('{{hotline}}')">{{ '{{hotline}}' }}</button>
-        <button type="button" class="var-btn" (click)="insertVariable('{{address}}')">{{ '{{address}}' }}</button>
-        <button type="button" class="var-btn" (click)="insertVariable('{{hours}}')">{{ '{{hours}}' }}</button>
-        <button type="button" class="var-btn" (click)="insertVariable('{{status_open}}')">{{ '{{status_open}}' }}</button>
-      </div>
-
-      <textarea
-        id="scriptAnswerInput"
-        class="form-control"
-        rows="4"
-        maxlength="2000"
-        placeholder="Nhập nội dung trả lời..."
-        [ngModel]="scriptAnswer()"
-        (ngModelChange)="scriptAnswer.set($event)"></textarea>
-
-      <!-- Khung xem trước đã thay biến -->
-      <div class="answer-live-preview" *ngIf="scriptAnswer()">
-        <span class="preview-label">Xem trước (đã thay biến):</span>
-        <p class="preview-content">{{ answerPreview() }}</p>
-      </div>
-    </div>
-
-    <!-- Action Type, Priority & IsActive -->
-    <div class="form-row three-cols">
-      <div class="form-group">
-        <label for="actionTypeSelect">Loại hành động</label>
-        <select
-          id="actionTypeSelect"
-          class="form-control"
-          [ngModel]="scriptActionType()"
-          (ngModelChange)="scriptActionType.set($event)">
-          <option value="NONE">NONE (Không hành động)</option>
-          <option value="ORDER_STATUS">ORDER_STATUS (Tra cứu đơn)</option>
-          <option value="PRODUCT_SEARCH">PRODUCT_SEARCH (Tìm sản phẩm)</option>
-          <option value="HANDOFF">HANDOFF (Chuyển nhân viên)</option>
-          <option value="BUSINESS_HOURS">BUSINESS_HOURS (Giờ làm việc)</option>
-          <option value="BOOK_CONSULT">BOOK_CONSULT (Đặt lịch tư vấn)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="priorityInput">Mức ưu tiên</label>
-        <input
-          id="priorityInput"
-          type="number"
-          class="form-control"
-          [ngModel]="scriptPriority()"
-          (ngModelChange)="scriptPriority.set($event)" />
-      </div>
-
-      <div class="form-group">
-        <label>Trạng thái</label>
-        <div class="flex items-center gap-2 mt-2">
-          <button
-            type="button"
-            class="toggle-switch-btn"
-            [class.active]="scriptIsActive()"
-            (click)="scriptIsActive.set(!scriptIsActive())">
-            <span class="switch-handle"></span>
-          </button>
-          <span>{{ scriptIsActive() ? 'Đang bật' : 'Tạm tắt' }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Replies (Tối đa 6) -->
-    <div class="form-group">
-      <div class="label-row">
-        <label>Nút gợi ý nhanh (Quick Replies - tối đa 6 nút)</label>
-        <button
-          type="button"
-          class="btn-add-qr"
-          [disabled]="scriptQuickReplies().length >= 6"
-          (click)="addQuickReplyOption()">
-          <app-icon name="Plus" size="14"></app-icon>
-          <span>Thêm nút</span>
-        </button>
-      </div>
-
-      <div class="quick-replies-editor-list">
-        <div *ngFor="let qr of scriptQuickReplies(); let idx = index" class="qr-item-row">
-          <input
-            type="text"
-            class="form-control flex-1"
-            placeholder="Nhãn nút (VD: 🛋️ Xem sofa)"
-            [value]="qr.label"
-            (input)="updateQuickReplyLabel(idx, $any($event.target).value)" />
-          <input
-            type="text"
-            class="form-control flex-1"
-            placeholder="Payload (VD: tìm sofa)"
-            [value]="qr.payload"
-            (input)="updateQuickReplyPayload(idx, $any($event.target).value)" />
-          <button
-            type="button"
-            class="btn-remove-qr"
-            (click)="removeQuickReplyOption(idx)"
-            aria-label="Xóa nút này">
-            <app-icon name="Trash2" size="16"></app-icon>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div footer>
-    <button type="button" class="btn-modal-cancel" (click)="closeScriptModal()">Hủy bỏ</button>
-    <button
-      type="button"
-      class="btn-modal-submit"
-      [disabled]="isSavingScript()"
-      (click)="saveScript()">
-      {{ isSavingScript() ? 'Đang lưu...' : (editingScriptId() ? 'Cập nhật kịch bản' : 'Tạo kịch bản') }}
-    </button>
-  </div>
-</app-modal>
-
-<!-- ===================================================================== -->
-<!-- MODAL: XÁC NHẬN XÓA KỊCH BẢN -->
-<!-- ===================================================================== -->
-<app-modal
-  [isOpen]="isDeleteScriptModalOpen()"
-  title="Xác nhận xóa kịch bản"
-  width="420px"
-  [hasFooter]="true"
-  (close)="closeDeleteScriptModal()">
-  <p class="py-2 text-sm text-gray-700">
-    Bạn có chắc muốn xóa kịch bản <strong>"{{ scriptToDelete()?.name }}"</strong> (<code>{{ scriptToDelete()?.intent }}</code>)?
-    Thao tác này không thể hoàn tác.
-  </p>
-  <div footer>
-    <button type="button" class="btn-modal-cancel" (click)="closeDeleteScriptModal()">Hủy</button>
-    <button
-      type="button"
-      class="btn-modal-danger"
-      [disabled]="isDeletingScript()"
-      (click)="confirmDeleteScript()">
-      {{ isDeletingScript() ? 'Đang xóa...' : 'Xác nhận xóa' }}
-    </button>
-  </div>
-</app-modal>
-
-<!-- ===================================================================== -->
-<!-- MODAL: CHUYỂN GIAO HỘI THOẠI (TRANSFER MODAL) -->
-<!-- ===================================================================== -->
-<app-modal
-  [isOpen]="showTransferModal()"
-  title="Chuyển giao cuộc trò chuyện"
-  width="460px"
-  [hasFooter]="true"
-  (close)="closeTransferModal()">
-  <div class="py-2">
-    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn nhân sự tiếp nhận:</label>
-    <select
-      class="form-control"
-      [ngModel]="selectedTransferStaffId()"
-      (ngModelChange)="selectedTransferStaffId.set($event)">
-      <option value="" disabled>-- Vui lòng chọn nhân sự --</option>
-      <option *ngFor="let staff of staffList()" [value]="staff.id">
-        {{ staff.fullName }} ({{ staff.role }})
-      </option>
-    </select>
-  </div>
-  <div footer>
-    <button type="button" class="btn-modal-cancel" (click)="closeTransferModal()">Hủy</button>
-    <button
-      type="button"
-      class="btn-modal-submit"
-      [disabled]="!selectedTransferStaffId() || isTransferring()"
-      (click)="confirmTransferConversation()">
-      {{ isTransferring() ? 'Đang chuyển...' : 'Xác nhận chuyển' }}
-    </button>
-  </div>
-</app-modal>
-
-<!-- ===================================================================== -->
-<!-- LIGHTBOX: XEM ẢNH PHÓNG TO -->
-<!-- ===================================================================== -->
-<div *ngIf="lightboxImageUrl()" class="chat-lightbox-overlay" (click)="closeLightbox()">
-  <div class="lightbox-content" (click)="$event.stopPropagation()">
-    <button type="button" class="lightbox-close-btn" (click)="closeLightbox()" aria-label="Đóng ảnh phóng to">
+<!-- LIGHTBOX XEM ẢNH -->
+<div *ngIf="lightboxImageUrl()" class="image-lightbox-overlay" (click)="closeLightbox()">
+  <div class="lightbox-img-box" (click)="$event.stopPropagation()">
+    <button type="button" class="btn-close-lightbox" (click)="closeLightbox()" aria-label="Đóng ảnh">
       <app-icon name="X" size="24"></app-icon>
     </button>
     <img [src]="lightboxImageUrl()" alt="Xem ảnh phóng to" />

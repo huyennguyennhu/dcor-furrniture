@@ -205,6 +205,11 @@
   flex: 1;
 }
 
+.unreviewed-badge {
+  background: #ea580c !important;
+  color: #ffffff !important;
+}
+
 .order-badge {
   background: var(--color-accent, #BC5F13);
   color: #ffffff;
@@ -279,4 +284,52 @@
     margin-top: 0;
     padding: 8px 14px;
   }
+}
+
+
+/* Tooltip hover cho Tier Badge ở Sidebar */
+.tier-badge.has-tooltip {
+  position: relative;
+  cursor: pointer;
+}
+
+.tier-hover-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #18181B;
+  color: #FFFFFF;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+  width: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 50;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.tier-hover-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #18181B transparent;
+}
+
+.tier-badge.has-tooltip:hover .tier-hover-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }

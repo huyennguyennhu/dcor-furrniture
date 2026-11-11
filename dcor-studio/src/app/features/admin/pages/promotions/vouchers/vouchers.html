@@ -11,8 +11,8 @@
   <!-- Page Header -->
   <header class="admin-page-heading">
     <div class="heading-title-group">
-      <h1 class="page-title">Quản lý Mã giảm giá & Voucher</h1>
-      
+      <h1 class="page-title">Mã giảm giá</h1>
+      <p class="page-subtitle">Thiết lập các mã voucher ưu đãi, quản lý trần giảm giá và theo dõi doanh thu thực tế mang lại.</p>
     </div>
     <div class="admin-page-actions">
       <button type="button" class="admin-btn admin-btn-primary" (click)="openCreateModal()">
@@ -87,25 +87,87 @@
     </div>
 
     <div class="filter-controls-group">
-      <select class="admin-select" [(ngModel)]="selectedStatus" aria-label="Lọc theo trạng thái">
-        <option value="ALL">Tất cả trạng thái</option>
-        <option value="Active">Active</option>
-        <option value="Upcoming">Upcoming</option>
-        <option value="Paused">Paused</option>
-        <option value="Ended">Ended</option>
-      </select>
+      <!-- Dropdown Lọc Trạng thái -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedStatus !== 'ALL'"
+          (click)="toggleStatusDropdown($event)">
+          <span class="dropdown-label">{{ selectedStatusLabel }}</span>
+          <app-icon name="ChevronDown" size="14"></app-icon>
+        </button>
+        <div class="dropdown-menu" *ngIf="isStatusDropdownOpen">
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'ALL'" (click)="selectStatusFilter('ALL')">
+            <span>Tất cả trạng thái</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'ALL'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Active'" (click)="selectStatusFilter('Active')">
+            <span>Active</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Active'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Upcoming'" (click)="selectStatusFilter('Upcoming')">
+            <span>Upcoming</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Upcoming'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Paused'" (click)="selectStatusFilter('Paused')">
+            <span>Paused</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Paused'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedStatus === 'Ended'" (click)="selectStatusFilter('Ended')">
+            <span>Ended</span>
+            <app-icon name="Check" size="14" *ngIf="selectedStatus === 'Ended'"></app-icon>
+          </button>
+        </div>
+      </div>
 
-      <select class="admin-select" [(ngModel)]="selectedDiscountType" aria-label="Lọc theo loại giảm">
-        <option value="ALL">Tất cả loại giảm</option>
-        <option value="PERCENT">Giảm theo % (Phần trăm)</option>
-        <option value="FIXED_AMOUNT">Giảm số tiền cố định (₫)</option>
-      </select>
+      <!-- Dropdown Lọc Loại giảm -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedDiscountType !== 'ALL'"
+          (click)="toggleDiscountTypeDropdown($event)">
+          <span class="dropdown-label">{{ selectedDiscountTypeLabel }}</span>
+          <app-icon name="ChevronDown" size="14"></app-icon>
+        </button>
+        <div class="dropdown-menu" *ngIf="isDiscountTypeDropdownOpen">
+          <button type="button" class="dropdown-item" [class.selected]="selectedDiscountType === 'ALL'" (click)="selectDiscountTypeFilter('ALL')">
+            <span>Tất cả loại giảm</span>
+            <app-icon name="Check" size="14" *ngIf="selectedDiscountType === 'ALL'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedDiscountType === 'PERCENT'" (click)="selectDiscountTypeFilter('PERCENT')">
+            <span>Giảm theo % (Phần trăm)</span>
+            <app-icon name="Check" size="14" *ngIf="selectedDiscountType === 'PERCENT'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedDiscountType === 'FIXED_AMOUNT'" (click)="selectDiscountTypeFilter('FIXED_AMOUNT')">
+            <span>Giảm số tiền cố định (₫)</span>
+            <app-icon name="Check" size="14" *ngIf="selectedDiscountType === 'FIXED_AMOUNT'"></app-icon>
+          </button>
+        </div>
+      </div>
 
-      <select class="admin-select" [(ngModel)]="selectedScope" aria-label="Lọc theo phạm vi">
-        <option value="ALL">Tất cả phạm vi</option>
-        <option value="ALL">Toàn bộ sản phẩm</option>
-        <option value="CATEGORY">Theo danh mục</option>
-      </select>
+      <!-- Dropdown Lọc Phạm vi -->
+      <div class="custom-dropdown">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="selectedScope !== 'ALL'"
+          (click)="toggleScopeDropdown($event)">
+          <span class="dropdown-label">{{ selectedScopeLabel }}</span>
+          <app-icon name="ChevronDown" size="14"></app-icon>
+        </button>
+        <div class="dropdown-menu" *ngIf="isScopeDropdownOpen">
+          <button type="button" class="dropdown-item" [class.selected]="selectedScope === 'ALL'" (click)="selectScopeFilter('ALL')">
+            <span>Tất cả phạm vi</span>
+            <app-icon name="Check" size="14" *ngIf="selectedScope === 'ALL'"></app-icon>
+          </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedScope === 'CATEGORY'" (click)="selectScopeFilter('CATEGORY')">
+            <span>Theo danh mục</span>
+            <app-icon name="Check" size="14" *ngIf="selectedScope === 'CATEGORY'"></app-icon>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -121,7 +183,7 @@
             <th class="col-progress">Tiến độ sử dụng</th>
             <th class="col-dates">Thời hạn áp dụng</th>
             <th class="col-status">Trạng thái</th>
-            <th class="col-actions">Thao tác</th>
+            <th class="col-actions"></th>
           </tr>
         </thead>
         <tbody>
@@ -174,13 +236,13 @@
             <td class="col-condition">
               <div class="condition-cell">
                 <div class="condition-order-min">
-                  <span *ngIf="record.minOrderValue > 0">Đơn từ <strong>{{ formatCurrency(record.minOrderValue) }}</strong></span>
+                  <span *ngIf="record.minOrderValue > 0">Đơn từ {{ formatCurrency(record.minOrderValue) }}</span>
                   <span *ngIf="record.minOrderValue === 0" class="text-free">Không giới hạn đơn</span>
                 </div>
                 <div class="condition-badges">
                   <span class="scope-tag" *ngIf="record.scope === 'ALL'">Toàn bộ sản phẩm</span>
                   <span class="scope-tag category-tag" *ngIf="record.scope === 'CATEGORY'" [title]="record.categoryScopeName">
-                    📁 {{ record.categoryScopeName }}
+                    {{ record.categoryScopeName }}
                   </span>
                 </div>
               </div>
@@ -191,7 +253,7 @@
               <div class="progress-cell">
                 <div class="progress-meta">
                   <span class="progress-counts">
-                    <strong>{{ record.usedCount }}</strong> / {{ record.usageLimit }} lượt
+                    {{ record.usedCount }} / {{ record.usageLimit }} lượt
                   </span>
                   <span class="progress-pct">{{ getUsagePercent(record.usedCount, record.usageLimit) }}%</span>
                 </div>
@@ -286,7 +348,7 @@
 
   <!-- MODAL: Tạo / Chỉnh sửa Voucher -->
   <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
-    <div class="modal-card modal-voucher" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="isEditing ? 'Chỉnh sửa voucher' : 'Tạo voucher mới'">
+    <div class="modal-card modal-voucher" (click)="$event.stopPropagation(); onModalCardClick($event)" role="dialog" aria-modal="true" [attr.aria-label]="isEditing ? 'Chỉnh sửa voucher' : 'Tạo voucher mới'">
       <!-- Modal Header -->
       <header class="modal-header">
         <div class="modal-header-info">
@@ -295,7 +357,7 @@
           </div>
           <div>
             <h2 class="modal-title">{{ isEditing ? 'Chỉnh sửa Voucher' : 'Tạo Voucher Mới' }}</h2>
-            <p class="modal-subtitle">Điền đầy đủ thông tin ưu đãi, quy định hạn mức và phạm vi áp dụng.</p>
+            
           </div>
         </div>
         <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Đóng cửa sổ">
@@ -308,25 +370,18 @@
         <form (ngSubmit)="saveVoucher()" #voucherForm="ngForm">
           <!-- Mã voucher -->
           <div class="form-group">
-            <label class="form-label required">Mã voucher (In hoa, không dấu cách)</label>
-            <div class="code-input-row">
-              <div class="input-with-icon">
-                <app-icon name="Tag" size="16" class="field-icon"></app-icon>
-                <input
-                  type="text"
-                  class="admin-input uppercase-input"
-                  [value]="formData.code"
-                  (input)="onCodeInput($event)"
-                  placeholder="Ví dụ: WELCOME10, DCORVIP2026"
-                  maxlength="50"
-                  required />
-              </div>
-              <button type="button" class="admin-btn admin-btn-secondary btn-generate-code" (click)="applyRandomCode()">
-                <app-icon name="RefreshCw" size="15"></app-icon>
-                <span>Tạo mã ngẫu nhiên</span>
-              </button>
+            <label class="form-label required">Mã voucher</label>
+            <div class="input-with-icon">
+              <app-icon name="Tag" size="16" class="field-icon"></app-icon>
+              <input
+                type="text"
+                class="admin-input uppercase-input"
+                [value]="formData.code"
+                (input)="onCodeInput($event)"
+                placeholder=""
+                maxlength="50"
+                required />
             </div>
-            <span class="field-hint">Mã sẽ được tự động chuyển thành chữ in hoa và xóa khoảng trắng thừa.</span>
           </div>
 
           <!-- Loại giảm giá: Radio Selector -->
@@ -344,7 +399,6 @@
                     <app-icon name="Percent" size="16"></app-icon>
                     <span>Giảm theo phần trăm (%)</span>
                   </div>
-                  <span class="radio-desc">Giảm theo tỷ lệ % giá trị đơn, có thể đặt trần tối đa.</span>
                 </div>
               </label>
 
@@ -359,7 +413,6 @@
                     <span class="currency-badge-sm">₫</span>
                     <span>Giảm số tiền cố định (₫)</span>
                   </div>
-                  <span class="radio-desc">Trừ trực tiếp số tiền cố định vào tổng đơn hàng.</span>
                 </div>
               </label>
             </div>
@@ -397,11 +450,10 @@
                   name="maxDiscountCap"
                   [(ngModel)]="formData.maxDiscountCap"
                   (input)="onMaxDiscountCapInput($event)"
-                  placeholder="Ví dụ: 2000000 (tối đa 100.000.000₫)"
+                  placeholder=""
                   min="0"
                   max="100000000" />
               </div>
-              <span class="field-hint">Tối đa 100.000.000₫. Để trống nếu không giới hạn trần giảm tối đa.</span>
             </div>
 
             <!-- Đơn hàng tối thiểu khi giảm số tiền cố định -->
@@ -415,7 +467,7 @@
                   name="minOrderValue"
                   [(ngModel)]="formData.minOrderValue"
                   (input)="onMinOrderValueInput($event)"
-                  placeholder="0 = Không yêu cầu đơn tối thiểu"
+                  placeholder=""
                   min="0"
                   max="500000000" />
               </div>
@@ -433,29 +485,60 @@
                 name="minOrderValuePercent"
                 [(ngModel)]="formData.minOrderValue"
                 (input)="onMinOrderValueInput($event)"
-                placeholder="0 = Không yêu cầu đơn tối thiểu"
+                placeholder=""
                 min="0"
                 max="500000000" />
             </div>
-            <span class="field-hint">Nhập 0 nếu cho phép áp dụng cho mọi giá trị đơn hàng.</span>
           </div>
 
           <!-- Phạm vi áp dụng -->
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label required">Phạm vi áp dụng</label>
-              <select class="admin-select full-width" name="scope" [(ngModel)]="formData.scope">
-                <option value="ALL">Toàn bộ sản phẩm trên hệ thống</option>
-                <option value="CATEGORY">Theo danh mục sản phẩm cụ thể</option>
-              </select>
+              <div class="custom-dropdown modal-custom-dropdown">
+                <button 
+                  type="button" 
+                  class="dropdown-trigger-btn modal-dropdown-trigger" 
+                  (click)="toggleModalScopeDropdown($event)">
+                  <span class="dropdown-label">{{ modalScopeLabel }}</span>
+                  <app-icon name="ChevronDown" size="14"></app-icon>
+                </button>
+                <div class="dropdown-menu modal-dropdown-menu" *ngIf="isModalScopeDropdownOpen">
+                  <button type="button" class="dropdown-item" [class.selected]="formData.scope === 'ALL'" (click)="selectModalScope('ALL')">
+                    <span>Toàn bộ sản phẩm trên hệ thống</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.scope === 'ALL'"></app-icon>
+                  </button>
+                  <button type="button" class="dropdown-item" [class.selected]="formData.scope === 'CATEGORY'" (click)="selectModalScope('CATEGORY')">
+                    <span>Theo danh mục sản phẩm cụ thể</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.scope === 'CATEGORY'"></app-icon>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Danh mục cụ thể nếu scope === 'CATEGORY' -->
             <div class="form-group" *ngIf="formData.scope === 'CATEGORY'">
               <label class="form-label required">Chọn danh mục áp dụng</label>
-              <select class="admin-select full-width" name="categoryScopeName" [(ngModel)]="formData.categoryScopeName">
-                <option *ngFor="let cat of CATEGORIES" [value]="cat">{{ cat }}</option>
-              </select>
+              <div class="custom-dropdown modal-custom-dropdown">
+                <button 
+                  type="button" 
+                  class="dropdown-trigger-btn modal-dropdown-trigger" 
+                  (click)="toggleModalCategoryDropdown($event)">
+                  <span class="dropdown-label">{{ modalCategoryLabel }}</span>
+                  <app-icon name="ChevronDown" size="14"></app-icon>
+                </button>
+                <div class="dropdown-menu modal-dropdown-menu" *ngIf="isModalCategoryDropdownOpen">
+                  <button 
+                    type="button" 
+                    class="dropdown-item" 
+                    *ngFor="let cat of CATEGORIES"
+                    [class.selected]="formData.categoryScopeName === cat"
+                    (click)="selectModalCategory(cat)">
+                    <span>{{ cat }}</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.categoryScopeName === cat"></app-icon>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -472,7 +555,7 @@
                 min="1"
                 max="1000000"
                 required />
-              <span class="field-hint">Tối đa 1.000.000 lượt. Tự động ngắt khi đủ lượt.</span>
+              
             </div>
 
             <div class="form-group">
@@ -486,7 +569,7 @@
                 min="1"
                 max="100"
                 required />
-              <span class="field-hint">Mặc định: 1 lượt/khách hàng (tối đa 100).</span>
+              
             </div>
           </div>
 

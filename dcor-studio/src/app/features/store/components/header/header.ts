@@ -1,4 +1,4 @@
-import { IconComponent } from '../../../../shared/components/icon/icon';
+﻿import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, HostListener, OnInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
@@ -43,6 +43,7 @@ interface StoreCategory {
 export class Header implements OnInit, OnDestroy {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   @ViewChild('shopNavItem') shopNavItem!: ElementRef<HTMLElement>;
+  @ViewChild('guestDropdownWrapper') guestDropdownWrapper?: ElementRef<HTMLElement>;
 
   theme = 'light';
   isLoggedIn = false;
@@ -341,12 +342,12 @@ export class Header implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (this.shopMenuOpen && !this.shopNavItem?.nativeElement?.contains(event.target as Node)) {
+    const target = event.target as HTMLElement | null;
+    if (this.shopMenuOpen && !this.shopNavItem?.nativeElement?.contains(target)) {
       this.closeShopMenu();
     }
-    const target = event.target as HTMLElement;
     if (target && !target.closest('.guest-dropdown-wrapper')) {
-      this.isGuestMenuOpen = false;
+      this.closeGuestUserMenu();
     }
     if (target && !target.closest('.user-dropdown-wrapper')) {
       this.closeUserMenu();

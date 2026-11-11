@@ -948,40 +948,40 @@
         </div>
 
         <div class="card-body">
-          <div class="form-row">
+          <div class="form-row form-row-stacked">
             <div class="form-label-group">
               <label class="form-label">Tên tiêu đề doanh nghiệp trên phiếu</label>
               <span class="form-help">Hiển thị ở dòng đầu tiên của phiếu in.</span>
             </div>
             <div class="form-input-group full-width">
-              <input type="text" [(ngModel)]="printSettings.companyHeader" class="setting-input" />
+              <input type="text" [(ngModel)]="printSettings.companyHeader" class="setting-input full-width" placeholder="Ví dụ: DCOR STUDIO - NỘI THẤT CAO CẤP" />
             </div>
           </div>
 
-          <div class="form-row">
+          <div class="form-row form-row-stacked">
             <div class="form-label-group">
               <label class="form-label">Địa chỉ xuất phiếu / Showroom chính</label>
             </div>
             <div class="form-input-group full-width">
-              <input type="text" [(ngModel)]="printSettings.companyAddress" class="setting-input" />
+              <input type="text" [(ngModel)]="printSettings.companyAddress" class="setting-input full-width" placeholder="Ví dụ: 123 Đường Song Hành, Thảo Điền, TP. Thủ Đức" />
             </div>
           </div>
 
-          <div class="form-row">
+          <div class="form-row form-row-stacked">
             <div class="form-label-group">
               <label class="form-label">Hotline hỗ trợ kỹ thuật</label>
             </div>
             <div class="form-input-group full-width">
-              <input type="text" [(ngModel)]="printSettings.supportHotline" class="setting-input" />
+              <input type="text" [(ngModel)]="printSettings.supportHotline" class="setting-input full-width" placeholder="Ví dụ: 0988 112 233" />
             </div>
           </div>
 
-          <div class="form-row">
+          <div class="form-row form-row-stacked">
             <div class="form-label-group">
               <label class="form-label">Lời cảm ơn & Cam kết bảo hành chân trang</label>
             </div>
             <div class="form-input-group full-width">
-              <textarea rows="3" [(ngModel)]="printSettings.printFooterNote" class="setting-textarea"></textarea>
+              <textarea rows="3" [(ngModel)]="printSettings.printFooterNote" class="setting-textarea" placeholder="Nội dung lời cảm ơn hoặc cam kết..."></textarea>
             </div>
           </div>
 
@@ -1204,6 +1204,51 @@
         >
           <lucide-angular [img]="icons.Save" size="15"></lucide-angular>
           <span>Lưu & Chuyển tab</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN ĐẶT LẠI TAB VỀ MẶC ĐỊNH (Thay thế confirm popup) -->
+  <div 
+    *ngIf="showResetModal" 
+    class="modal-backdrop" 
+    style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(2px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;"
+    (click)="closeResetModal()"
+  >
+    <div 
+      class="modal-content" 
+      style="background: var(--bg-primary, #ffffff); width: 100%; max-width: 440px; border-radius: 14px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); overflow: hidden; animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);"
+      (click)="$event.stopPropagation()"
+    >
+      <div style="padding: 24px 24px 16px 24px; text-align: center;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(118, 83, 55, 0.1); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px;">
+          <lucide-angular [img]="icons.RotateCcw" size="26"></lucide-angular>
+        </div>
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0;">
+          Đặt lại cấu hình về mặc định
+        </h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          Bạn có chắc chắn muốn đặt lại toàn bộ các thông số trong tab 
+          <strong style="color: var(--text-primary);">"{{ pendingResetTabName }}"</strong> 
+          về giá trị mặc định ban đầu không?
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 10px; padding: 16px 24px 20px 24px; background: var(--bg-secondary); border-top: 1px solid var(--border-color);">
+        <button 
+          type="button" 
+          (click)="closeResetModal()"
+          style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13.5px; font-weight: 600; cursor: pointer;"
+        >
+          Hủy bỏ
+        </button>
+        <button 
+          type="button" 
+          (click)="confirmResetTab()"
+          style="flex: 1; padding: 10px 16px; border-radius: 8px; border: none; background: var(--accent, #765337); color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
+        >
+          <span>Đồng ý đặt lại</span>
         </button>
       </div>
     </div>

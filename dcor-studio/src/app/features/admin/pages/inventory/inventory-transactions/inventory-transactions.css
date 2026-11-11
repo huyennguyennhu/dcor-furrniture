@@ -274,6 +274,80 @@
 }
 
 /* Type Pills (Nhập kho & Xuất kho) */
+/* Segment Bar cho Nhập / Xuất Kho */
+.transaction-type-segment-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 2px;
+}
+
+.segment-tabs-container {
+  display: inline-flex;
+  background: var(--bg-secondary, #f1f5f9);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  gap: 4px;
+}
+
+.segment-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.segment-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.segment-tab-btn.active {
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.segment-tab-btn.import-tab.active {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+}
+
+.segment-tab-btn.export-tab.active {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+}
+
+.segment-count-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.segment-tab-btn.active .segment-count-badge {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.segment-tab-btn.import-tab.active .segment-count-badge,
+.segment-tab-btn.export-tab.active .segment-count-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
 .type-filter-group {
   display: flex;
   align-items: center;

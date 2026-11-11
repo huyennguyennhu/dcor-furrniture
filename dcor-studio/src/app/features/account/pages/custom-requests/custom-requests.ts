@@ -107,6 +107,7 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
 
   requests: CustomRequest[] = [];
   searchQuery = '';
+  activeTab: 'ALL' | 'CONSULTING' | 'QUOTED' | 'PROCESSING' | 'CANCELLED' = 'ALL';
   copyFeedback = '';
 
   isLoggedIn = false;
@@ -392,9 +393,51 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
     this.isPhoneVerified = false;
   }
 
+  
+  switchTab(tab: 'ALL' | 'CONSULTING' | 'QUOTED' | 'PROCESSING' | 'CANCELLED'): void {
+    this.activeTab = tab;
+  }
+
+  getTabCount(tab: string): number {
+    if (tab === 'ALL') return this.requests.length;
+    if (tab === 'CONSULTING') {
+      return this.requests.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'CONSULTING').length;
+    }
+    if (tab === 'QUOTED') {
+      return this.requests.filter(r => 
+        r.status === 'QUOTED' || 
+        r.status === 'AWAITING_CONTRACT' || 
+        r.status === 'CONTRACT_SIGNED' || 
+        r.status === 'AWAITING_PAYMENT'
+      ).length;
+    }
+    if (tab === 'PROCESSING') {
+      return this.requests.filter(r => r.status === 'PROCESSING').length;
+    }
+    if (tab === 'CANCELLED') {
+      return this.requests.filter(r => r.status === 'CANCELLED').length;
+    }
+    return 0;
+  }
+
   // --- DANH SÁCH YÊU CẦU MAY ĐO (Không lọc theo tab, chỉ tìm kiếm theo từ khóa) ---
   get filteredRequests(): CustomRequest[] {
     let result = [...this.requests];
+
+    if (this.activeTab === 'CONSULTING') {
+      result = result.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'CONSULTING');
+    } else if (this.activeTab === 'QUOTED') {
+      result = result.filter(r => 
+        r.status === 'QUOTED' || 
+        r.status === 'AWAITING_CONTRACT' || 
+        r.status === 'CONTRACT_SIGNED' || 
+        r.status === 'AWAITING_PAYMENT'
+      );
+    } else if (this.activeTab === 'PROCESSING') {
+      result = result.filter(r => r.status === 'PROCESSING');
+    } else if (this.activeTab === 'CANCELLED') {
+      result = result.filter(r => r.status === 'CANCELLED');
+    }
 
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase().trim();

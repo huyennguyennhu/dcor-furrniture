@@ -20,16 +20,29 @@ const serializeBigInt = (obj: any): any => {
  */
 export const autoCancelExpiredOrders = async (): Promise<void> => {
   try {
+    const now = new Date();
     const expiredThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const expiredOrders = await prisma.order.findMany({
       where: {
-        status: 'PENDING',
-        createdAt: { lt: expiredThreshold },
-        paymentStatus: 'UNPAID',
+        status: { in: ['PENDING'] },
+        paymentStatus: { not: 'PAID' },
         OR: [
-          { totalAmount: { gt: BigInt(50000000) } }, // Đơn giá trị lớn trên 50 triệu chờ đặt cọc
-          { paymentMethod: 'BANK_TRANSFER' } // Đơn chuyển khoản ngân hàng
+          {
+            expiresAt: {
+              not: null,
+              lte: now
+            }
+          },
+          {
+            createdAt: { lt: expiredThreshold },
+            OR: [
+              { totalAmount: { gt: BigInt(50000000) } },
+              { isHighValue: true },
+              { isDepositRequired: true },
+              { paymentMethod: 'BANK_TRANSFER' }
+            ]
+          }
         ]
       },
       select: { id: true, orderNumber: true },
@@ -45,7 +58,8 @@ export const autoCancelExpiredOrders = async (): Promise<void> => {
         where: { id: { in: expiredIds } },
         data: {
           status: 'CANCELLED',
-          cancelledAt: new Date(),
+          cancelledAt: now,
+          cancelledBy: 'SYSTEM',
           cancelReason
         }
       });
@@ -60,6 +74,7 @@ export const autoCancelExpiredOrders = async (): Promise<void> => {
           notes: 'Hệ thống tự động hủy do quá hạn 24 giờ kể từ khi đặt hàng nhưng chưa nhận được tiền đặt cọc hoặc thanh toán chuyển khoản.'
         }))
       }).catch(() => {});
+      console.log(`[SYSTEM] Đã tự động hủy ${expiredOrders.length} đơn hàng quá hạn.`);
     }
   } catch (err) {
     console.warn('Lỗi khi kiểm tra autoCancelExpiredOrders:', err);
@@ -97,7 +112,7 @@ export const autoCompleteExpiredDeliveredOrders = async (): Promise<void> => {
           status: 'COMPLETED',
           fromStatus: 'DELIVERED',
           actorType: 'SYSTEM',
-          notes: 'Hệ thống tự động chuyển sang Hoàn tất sau 5 phút kể từ khi shipper báo giao hàng.'
+          notes: 'Hệ thống tự động chuyển sang Hoàn tất sau 3 ngày kể từ khi giao hàng thành công.'
         }))
       }).catch(() => {});
     }
@@ -301,7 +316,13 @@ export const orderController = {
           province: province ? String(province).trim() : 'TP. Hồ Chí Minh',
           district: district ? String(district).trim() : null,
           ward: ward ? String(ward).trim() : null,
-          detailAddress: detailAddress ? String(detailAddress).trim() : address.trim(),
+          detailAddress: (() => {
+            let d = detailAddress ? String(detailAddress).trim() : address.trim();
+            if (province && d.toLowerCase().includes(String(province).toLowerCase())) {
+              d = d.split(',')[0].trim();
+            }
+            return d;
+          })(),
           companyName: invoice?.companyName ? String(invoice.companyName).trim() : null,
           taxCode: invoice?.taxCode ? String(invoice.taxCode).trim() : null,
           isGift: !!isGift,
@@ -431,7 +452,8 @@ export const orderController = {
 
       if (statusFilter && statusFilter !== 'ALL') {
         if (statusFilter === 'WAITING_DEPOSIT' || statusFilter === 'WAITING_PAYMENT') {
-          whereClause.paymentStatus = { not: 'PAID' };
+          whereClause.paymentStatus = 'UNPAID';
+          whereClause.depositPaid = BigInt(0);
           whereClause.status = { not: 'CANCELLED' };
           whereClause.AND = [
             {
@@ -475,18 +497,51 @@ export const orderController = {
       }
 
       const formatted = filteredOrders.map(o => {
-        const isHighValue = o.totalAmount > BigInt(50000000);
+        const isHighValue = o.totalAmount > BigInt(50000000) || !!o.isHighValue;
+        const isBankTransfer = o.paymentMethod === 'BANK_TRANSFER' || (o.paymentMethod as any) === 'BANKING';
+        const requiresDepositOrPayment = isHighValue || isBankTransfer || !!o.isDepositRequired;
 
-        // Kiểm tra xem đơn hàng DELIVERED có đang trong khoảng thời gian chờ khách xác nhận (5 phút) hay không
+        const rawExpiresAt = o.expiresAt || (requiresDepositOrPayment ? new Date(new Date(o.createdAt).getTime() + 24 * 60 * 60 * 1000) : null);
+
+        let isExpired = false;
+        let isExpiringSoon = false;
+        let remainingExpirySeconds = 0;
+
+        const oIsPaidOrDeposited = o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIAL' || Number(o.depositPaid || 0) > 0;
+        if (rawExpiresAt && (o.status as any) !== 'CANCELLED' && !oIsPaidOrDeposited) {
+          const diffMs = new Date(rawExpiresAt).getTime() - Date.now();
+          if (diffMs <= 0) {
+            isExpired = true;
+            (o as any).status = 'CANCELLED';
+            prisma.order.update({
+              where: { id: o.id },
+              data: {
+                status: 'CANCELLED',
+                cancelledAt: new Date(),
+                cancelledBy: 'SYSTEM',
+                cancelReason: 'Hệ thống tự động hủy do quá hạn đặt cọc / chuyển khoản trong vòng 24 giờ.'
+              }
+            }).catch(() => {});
+          } else {
+            remainingExpirySeconds = Math.floor(diffMs / 1000);
+            if (diffMs <= 30 * 60 * 1000) {
+              isExpiringSoon = true;
+            }
+          }
+        }
+
         const isDeliveredWaiting = (o.status === 'DELIVERED') && o.deliveredAt && (Date.now() - new Date(o.deliveredAt).getTime() < 5 * 60 * 1000);
         const remainingConfirmSeconds = isDeliveredWaiting && o.deliveredAt
           ? Math.max(0, Math.floor((5 * 60 * 1000 - (Date.now() - new Date(o.deliveredAt).getTime())) / 1000))
           : 0;
 
+        const isPaidOrDeposited = o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIAL' || Number(o.depositPaid || 0) > 0;
         let displayStatus = 'Chờ xác nhận';
-        if (isHighValue && o.paymentStatus !== 'PAID' && o.status !== 'CANCELLED') {
+        if ((o.status as any) === 'CANCELLED') {
+          displayStatus = 'Đã hủy';
+        } else if (isHighValue && !isPaidOrDeposited && o.status === 'PENDING') {
           displayStatus = 'Chờ đặt cọc';
-        } else if ((o.paymentMethod === 'BANK_TRANSFER' || (o.paymentMethod as any) === 'BANKING') && o.paymentStatus !== 'PAID' && o.status === 'PENDING') {
+        } else if (isBankTransfer && !isPaidOrDeposited && o.status === 'PENDING') {
           displayStatus = 'Chờ thanh toán';
         } else if (o.status === 'CONFIRMED') {
           displayStatus = 'Đã xác nhận';
@@ -498,8 +553,6 @@ export const orderController = {
           displayStatus = isDeliveredWaiting ? 'Đang giao (Shipper báo đã giao)' : 'Đã giao hàng (Hoàn tất)';
         } else if ((o.status as any) === 'COMPLETED') {
           displayStatus = 'Đã giao hàng (Hoàn tất)';
-        } else if (o.status === 'CANCELLED') {
-          displayStatus = 'Đã hủy';
         } else if (o.status === 'RETURNED') {
           displayStatus = 'Đổi trả';
         }
@@ -516,7 +569,10 @@ export const orderController = {
           updatedAt: o.updatedAt,
           isDeliveredWaitingConfirm: !!isDeliveredWaiting,
           remainingConfirmSeconds,
-          expiresAt: o.expiresAt || ((isHighValue || o.paymentMethod === 'BANK_TRANSFER') ? new Date(new Date(o.createdAt).getTime() + 24 * 60 * 60 * 1000) : null),
+          expiresAt: rawExpiresAt,
+          isExpired,
+          isExpiringSoon,
+          remainingExpirySeconds,
           cancelledAt: o.cancelledAt,
           total: Number(o.totalAmount),
           totalAmount: Number(o.totalAmount),
@@ -526,7 +582,14 @@ export const orderController = {
           status: o.status,
           displayStatus,
           paymentMethod: o.paymentMethod,
-          paymentStatus: o.paymentStatus,
+          paymentStatus: (() => {
+            if (o.paymentMethod === 'BANK_TRANSFER' && o.paymentStatus === 'UNPAID') {
+              if (['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED'].includes(o.status)) {
+                return isHighValue ? 'PARTIAL' : 'PAID';
+              }
+            }
+            return o.paymentStatus;
+          })(),
           isHighValue,
           depositAmount: isHighValue ? Math.round(Number(o.totalAmount) * 0.3) : 0,
           items: o.items.length || 1,
@@ -1044,7 +1107,25 @@ export const orderController = {
       }
 
       const isHighValue = order.totalAmount > BigInt(50000000);
-      const fullAddr = [order.detailAddress, order.ward, order.district, order.province].filter(Boolean).join(', ');
+      const rawTokens = [order.detailAddress, order.ward, order.district, order.province].filter(Boolean).join(', ').split(',').map(s => s.trim()).filter(Boolean);
+      const seenTokens = new Set<string>();
+      const uniqueAddrParts: string[] = [];
+      for (const tok of rawTokens) {
+        if (!seenTokens.has(tok.toLowerCase())) {
+          seenTokens.add(tok.toLowerCase());
+          uniqueAddrParts.push(tok);
+        }
+      }
+      const fullAddr = uniqueAddrParts.join(', ');
+
+      const effectivePaymentStatus = (() => {
+        if (order.paymentMethod === 'BANK_TRANSFER' && order.paymentStatus === 'UNPAID') {
+          if (['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED'].includes(order.status)) {
+            return isHighValue ? 'PARTIAL' : 'PAID';
+          }
+        }
+        return order.paymentStatus;
+      })();
 
       res.json(serializeBigInt({
         id: order.orderNumber,
@@ -1061,15 +1142,15 @@ export const orderController = {
         promoCode: order.promoCode,
         status: order.status,
         paymentMethod: order.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản' : (order.paymentMethod === 'COD' ? 'Tiền mặt' : (order.paymentMethod === 'VNPAY' ? 'VNPAY' : 'Thẻ tín dụng')),
-        paymentStatus: order.paymentStatus,
+        paymentStatus: effectivePaymentStatus,
         isHighValue,
         depositAmount: isHighValue ? Math.round(Number(order.totalAmount) * 0.3) : 0,
-        paidAmount: order.paymentStatus === 'PAID'
+        paidAmount: effectivePaymentStatus === 'PAID'
           ? Number(order.totalAmount)
-          : (order.paymentStatus === 'PARTIAL' ? Math.round(Number(order.totalAmount) * 0.3) : 0),
-        remainingAmount: order.paymentStatus === 'PAID'
+          : (effectivePaymentStatus === 'PARTIAL' ? Math.round(Number(order.totalAmount) * 0.3) : 0),
+        remainingAmount: effectivePaymentStatus === 'PAID'
           ? 0
-          : (order.paymentStatus === 'PARTIAL' ? Number(order.totalAmount) - Math.round(Number(order.totalAmount) * 0.3) : Number(order.totalAmount)),
+          : (effectivePaymentStatus === 'PARTIAL' ? Number(order.totalAmount) - Math.round(Number(order.totalAmount) * 0.3) : Number(order.totalAmount)),
         customerName: order.receiverName,
         phone: order.phone,
         email: order.email || order.customer?.email || '',
@@ -1114,11 +1195,16 @@ export const orderController = {
     }
   },
 
-  // PUT /api/admin/orders/:id/status - Cập nhật trạng thái đơn hàng
+  // PUT /api/admin/orders/:id/status & /api/store/orders/:orderNumber/status - Cập nhật trạng thái đơn hàng (Đồng bộ)
   updateAdminOrderStatus: async (req: Request, res: Response): Promise<void> => {
     try {
-      const idOrNumber = String(req.params.id);
+      const idOrNumber = String(req.params.id || req.params.orderNumber);
       const { status, notes, actorName } = req.body;
+
+      if (!status) {
+        res.status(400).json({ message: 'Vui lòng cung cấp trạng thái cần chuyển.' });
+        return;
+      }
 
       const order = await prisma.order.findFirst({
         where: {
@@ -1132,13 +1218,44 @@ export const orderController = {
       }
 
       const updateData: any = { status };
-      if (status === 'SHIPPED') updateData.shippedAt = new Date();
-      if (status === 'DELIVERED') {
-        updateData.deliveredAt = new Date();
+      const now = new Date();
+
+      if (status === 'PENDING') {
+        updateData.cancelledAt = null;
+        updateData.cancelReason = null;
+        updateData.deliveredAt = null;
+        updateData.shippedAt = null;
+      } else if (status === 'CONFIRMED' || status === 'PROCESSING') {
+        updateData.cancelledAt = null;
+        updateData.cancelReason = null;
+        if (order.paymentMethod === 'BANK_TRANSFER' && order.paymentStatus === 'UNPAID') {
+          updateData.paymentStatus = (order.totalAmount > BigInt(50000000)) ? 'PARTIAL' : 'PAID';
+          updateData.paidAt = now;
+        }
+      } else if (status === 'SHIPPED') {
+        updateData.shippedAt = now;
+        updateData.cancelledAt = null;
+        updateData.cancelReason = null;
+        if (order.paymentMethod === 'BANK_TRANSFER' && order.paymentStatus === 'UNPAID') {
+          updateData.paymentStatus = (order.totalAmount > BigInt(50000000)) ? 'PARTIAL' : 'PAID';
+          updateData.paidAt = now;
+        }
+      } else if (status === 'DELIVERED') {
+        updateData.deliveredAt = now;
         updateData.paymentStatus = 'PAID';
-        updateData.paidAt = new Date();
+        updateData.paidAt = now;
+        updateData.cancelledAt = null;
+        updateData.cancelReason = null;
+      } else if (status === 'COMPLETED') {
+        updateData.deliveredAt = order.deliveredAt || now;
+        updateData.paymentStatus = 'PAID';
+        updateData.paidAt = order.paidAt || now;
+        updateData.cancelledAt = null;
+        updateData.cancelReason = null;
+      } else if (status === 'CANCELLED') {
+        updateData.cancelledAt = now;
+        updateData.cancelReason = notes || 'Hủy đơn thử nghiệm qua thanh test';
       }
-      if (status === 'CANCELLED') updateData.cancelledAt = new Date();
 
       const updated = await prisma.order.update({
         where: { id: order.id },
@@ -1151,7 +1268,7 @@ export const orderController = {
           status,
           fromStatus: order.status,
           actorType: 'STAFF',
-          notes: notes || `Admin (${actorName || 'Quản trị viên'}) chuyển trạng thái đơn hàng sang ${status}`
+          notes: notes || `Đồng bộ trạng thái (${actorName || 'Thanh test Admin'}) sang ${status}`
         }
       });
 

@@ -318,7 +318,7 @@
         </button>
 
         <!-- Icon tài khoản cá nhân cho khách vãng lai (Hover giữ popup, di chuột vào trong chọn thoải mái) -->
-        <div class="user-dropdown-wrapper guest-dropdown-wrapper">
+        <div #guestDropdownWrapper class="user-dropdown-wrapper guest-dropdown-wrapper">
           <button class="icon-btn header-user-btn" (click)="toggleGuestUserMenu()"
             (mouseenter)="onGuestIconMouseEnter()" (mouseleave)="onGuestIconMouseLeave()"
             title="Tài khoản cá nhân">
@@ -334,12 +334,9 @@
               </button>
             </div>
             <ul>
-              <li><a routerLink="/account/profile" class="user-menu-item" (click)="closeGuestUserMenu()">Hồ sơ cá
-                  nhân</a></li>
-              <li><a routerLink="/account/orders" class="user-menu-item" (click)="closeGuestUserMenu()">Đơn hàng của
-                  tôi</a></li>
-              <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="closeGuestUserMenu()">Sản phẩm yêu
-                  thích</a></li>
+              <li><a routerLink="/account/profile" class="user-menu-item" (click)="closeGuestUserMenu()">Hồ sơ cá nhân</a></li>
+              <li><a routerLink="/account/orders" class="user-menu-item" (click)="closeGuestUserMenu()">Đơn hàng của tôi</a></li>
+              <li><a routerLink="/account/wishlist" class="user-menu-item" (click)="closeGuestUserMenu()">Sản phẩm yêu thích</a></li>
             </ul>
           </div>
         </div>

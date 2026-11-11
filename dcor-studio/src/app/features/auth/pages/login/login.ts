@@ -10,14 +10,6 @@ import { AuthService, formatAuthError } from '../../../../core/services/auth.ser
 
 export type AuthViewMode = 'LOGIN' | 'FORGOT_PHONE' | 'FORGOT_RESET';
 
-export interface PasswordStrength {
-  score: number;
-  label: string;
-  percent: number;
-  barClass: string;
-  textClass: string;
-}
-
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -180,45 +172,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   get isResetFormValid(): boolean {
     return this.isNewPasswordFormatValid && this.isConfirmNewPasswordValid;
-  }
-
-  get newPasswordStrength(): PasswordStrength {
-    if (!this.newPassword) {
-      return { score: 0, label: '', percent: 0, barClass: '', textClass: '' };
-    }
-
-    const hasLetter = /[a-zA-Z]/.test(this.newPassword);
-    const hasNumber = /\d/.test(this.newPassword);
-    const hasUpper = /[A-Z]/.test(this.newPassword);
-    const hasSpecial = /[^A-Za-z0-9]/.test(this.newPassword);
-
-    if (this.newPassword.length < 8 || !hasLetter || !hasNumber) {
-      return {
-        score: 1,
-        label: 'Yếu (Cần ít nhất 8 ký tự, gồm chữ và số)',
-        percent: 33,
-        barClass: 'bg-red-500',
-        textClass: 'text-red-500'
-      };
-    }
-
-    if (this.newPassword.length >= 10 && hasUpper && (hasSpecial || this.newPassword.length >= 12)) {
-      return {
-        score: 3,
-        label: 'Mạnh',
-        percent: 100,
-        barClass: 'bg-emerald-600',
-        textClass: 'text-emerald-600'
-      };
-    }
-
-    return {
-      score: 2,
-      label: 'Trung bình',
-      percent: 66,
-      barClass: 'bg-amber-500',
-      textClass: 'text-amber-500'
-    };
   }
 
   get formattedLockTime(): string {

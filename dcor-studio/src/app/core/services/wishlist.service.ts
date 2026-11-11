@@ -3,14 +3,18 @@ import { BehaviorSubject, Observable, map } from 'rxjs';
 
 export interface WishlistItem {
   id?: string;
-  productId: string;
-  name: string;
-  price: number;
+  productId?: string;
+  name?: string;
+  price?: number;
   originalPrice?: number;
   image?: string;
+  images?: string[];
+  cardImages?: string[];
   categoryName?: string;
+  category?: any;
   variantId?: string;
   inStock?: boolean;
+  [key: string]: any;
 }
 
 const LEGACY_STORAGE_KEY = 'dcor_wishlist';
@@ -121,12 +125,13 @@ export class WishlistService {
     }
   }
 
-  private getId(item: any): string {
-    return typeof item === 'string' ? item : item?.productId || item?.id || '';
+  public getId(item: any): string {
+    if (!item) return '';
+    return typeof item === 'string' ? item : (item.id || item.productId || '');
   }
 
   public get currentWishlist(): any[] {
-    return this.wishlistSubject.value;
+    return this.wishlistSubject.value || [];
   }
 
   public isWishlisted(productId: string): boolean {
@@ -138,16 +143,21 @@ export class WishlistService {
     return this.isWishlisted(productId);
   }
 
-  public toggle(productId: string): boolean {
-    if (!productId) return false;
+  public toggle(productOrId: any): boolean {
+    if (!productOrId) return false;
+    const pid = this.getId(productOrId);
+    if (!pid) return false;
+
     let list = [...this.currentWishlist];
     let added = false;
 
-    if (this.isWishlisted(productId)) {
-      list = list.filter(item => this.getId(item) !== productId);
+    if (this.isWishlisted(pid)) {
+      list = list.filter(item => this.getId(item) !== pid);
       added = false;
     } else {
-      list.push(productId);
+      // Lưu trọn vẹn thông tin sản phẩm (nếu là object) để các trang như Wishlist có đủ dữ liệu render ngay
+      const itemToSave = typeof productOrId === 'object' ? { ...productOrId, id: pid, productId: pid } : pid;
+      list.push(itemToSave);
       added = true;
     }
 
@@ -159,7 +169,8 @@ export class WishlistService {
   public add(item: any): void {
     const pid = this.getId(item);
     if (!pid || this.isWishlisted(pid)) return;
-    const list = [...this.currentWishlist, item];
+    const itemToSave = typeof item === 'object' ? { ...item, id: pid, productId: pid } : pid;
+    const list = [...this.currentWishlist, itemToSave];
     this.saveToStorage(list);
     this.wishlistSubject.next(list);
   }

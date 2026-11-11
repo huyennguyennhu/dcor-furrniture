@@ -10,6 +10,7 @@ import {
   BotScript,
   ScriptTestResult,
   ConversationListResponse,
+  ChatSummary,
 } from '../models/chat-admin.model';
 
 /**
@@ -57,6 +58,15 @@ export class ChatAdminService {
       }
       return throwError(() => err);
     });
+  }
+
+  /**
+   * Thống kê tổng quan hội thoại CSKH: {total, waiting, mine, unread, resolved}
+   */
+  public getSummary(): Observable<ChatSummary> {
+    return this.http
+      .get<ChatSummary>(`${this.baseUrl}/summary`)
+      .pipe(this.catchAuthErrors('Không thể lấy dữ liệu thống kê hội thoại.'));
   }
 
   /**

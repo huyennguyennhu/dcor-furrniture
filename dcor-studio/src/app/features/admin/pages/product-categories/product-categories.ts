@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -888,6 +888,32 @@ export class ProductCategoriesComponent implements OnInit {
     return this.allCategories.filter(c => c.type === currentType && !c.parentId && c.id !== this.formData.id);
   }
 
+  // Custom Dropdown cho Modal Thêm/Sửa Danh mục
+  isModalParentDropdownOpen = false;
+
+  get selectedParentLabel(): string {
+    if (!this.formData.parentId) {
+      return '-- Không có (Danh mục gốc cấp 1) --';
+    }
+    const found = this.availableParentCategories.find(p => p.id === this.formData.parentId);
+    return found ? found.name : '-- Không có (Danh mục gốc cấp 1) --';
+  }
+
+  toggleModalParentDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    this.isModalParentDropdownOpen = !this.isModalParentDropdownOpen;
+  }
+
+  selectModalParent(parentId: string | null) {
+    this.formData.parentId = parentId;
+    this.isModalParentDropdownOpen = false;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.isModalParentDropdownOpen = false;
+  }
+
   get activeGroupLabel(): string {
     return this.topLevelTab === 'main' ? 'Danh mục chính' : 'Danh mục phụ';
   }
@@ -939,6 +965,7 @@ export class ProductCategoriesComponent implements OnInit {
   openAddModal() {
     this.modalMode = 'add';
     this.isSlugManuallyEdited = false;
+    this.isModalParentDropdownOpen = false;
     this.formErrors = {};
 
     const currentType = this.topLevelTab === 'main' ? 'main' : 'sub';
@@ -962,6 +989,7 @@ export class ProductCategoriesComponent implements OnInit {
     event.stopPropagation();
     this.modalMode = 'edit';
     this.isSlugManuallyEdited = true;
+    this.isModalParentDropdownOpen = false;
     this.formErrors = {};
 
     this.formData = {

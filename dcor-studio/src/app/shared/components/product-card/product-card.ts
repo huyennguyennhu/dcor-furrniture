@@ -55,6 +55,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
 
   // Social / Actions State
   isWishlisted = false;
+  isConfirmRemoveWishlistOpen = false;
   isInCompare = false;
   isCompareDisabled = false;
   compareTooltip = 'Thêm vào so sánh';
@@ -401,7 +402,43 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     e.stopPropagation();
     e.preventDefault();
     if (!this.productId) return;
-    this.wishlistService.toggle(this.productId);
+
+    // Nếu đang trong danh sách yêu thích -> Bật popup xác nhận trước khi bỏ
+    if (this.isWishlisted) {
+      this.isConfirmRemoveWishlistOpen = true;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    // Nếu chưa có -> Thêm ngay vào yêu thích
+    const prodToSave = this.product ? { ...this.product, id: this.productId, productId: this.productId } : {
+      id: this.productId,
+      productId: this.productId,
+      name: this.displayName,
+      price: this.currentPrice,
+      originalPrice: this.originalPrice,
+      images: this.cardImages,
+      cardImages: this.cardImages,
+      category: this.categoryName
+    };
+    this.wishlistService.toggle(prodToSave);
+  }
+
+  confirmRemoveWishlist(e: Event) {
+    e.stopPropagation();
+    e.preventDefault();
+    if (this.productId) {
+      this.wishlistService.remove(this.productId);
+    }
+    this.isConfirmRemoveWishlistOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  cancelRemoveWishlist(e: Event) {
+    e.stopPropagation();
+    e.preventDefault();
+    this.isConfirmRemoveWishlistOpen = false;
+    this.cdr.markForCheck();
   }
 
   // --- COMPARE ---

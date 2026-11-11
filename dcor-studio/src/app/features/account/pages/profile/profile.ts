@@ -446,6 +446,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.customerService.getProfile().subscribe({
         next: (res) => {
+          const existingAvatar = this.formAvatarUrl || this.profile?.avatarUrl;
+          if (!res.avatarUrl && existingAvatar) {
+            res.avatarUrl = existingAvatar;
+          }
           this.profile = res;
           this.formFullName = res.fullName || '';
           this.formEmail = res.email || '';

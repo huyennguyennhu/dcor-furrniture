@@ -38,7 +38,7 @@
         [title]="isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
         (click)="toggleWishlist($event)">
         <app-icon name="Heart" size="16"
-          [color]="isWishlisted ? '#b45309' : '#4b5563'"
+          [color]="isWishlisted ? '#dc2626' : '#4b5563'"
           [filled]="isWishlisted"></app-icon>
       </button>
     </div>
@@ -115,3 +115,24 @@
   </div>
 
 </div>
+
+  <!-- Popup xác nhận bỏ yêu thích (DCor UI Style Guide chuẩn) -->
+  <div *ngIf="isConfirmRemoveWishlistOpen" class="wishlist-confirm-modal-overlay" (click)="cancelRemoveWishlist($event)">
+    <div class="wishlist-confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon-box">
+        <app-icon name="Heart" size="24" color="#C42326" [filled]="true"></app-icon>
+      </div>
+      <h3 class="confirm-modal-title">Bỏ khỏi mục yêu thích?</h3>
+      <p class="confirm-modal-desc">
+        Bạn có chắc muốn bỏ sản phẩm <strong>"{{ displayName }}"</strong> khỏi danh sách yêu thích?
+      </p>
+      <div class="confirm-actions-row">
+        <button type="button" class="btn-cancel-remove" (click)="cancelRemoveWishlist($event)">
+          Giữ lại
+        </button>
+        <button type="button" class="btn-confirm-remove" (click)="confirmRemoveWishlist($event)">
+          Xác nhận bỏ
+        </button>
+      </div>
+    </div>
+  </div>

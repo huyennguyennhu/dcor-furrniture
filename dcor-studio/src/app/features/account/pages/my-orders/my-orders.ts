@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { LucideAngularModule, Search, Check, AlertCircle, Package, AlertTriangle, Clock, Image as ImageIcon, Plus, X, ChevronDown, Eye, Sparkles } from 'lucide-angular';
+import { LucideAngularModule, Search, MapPin, CreditCard, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image as ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy } from 'lucide-angular';
+import { OrderReviewModalComponent, ReviewModalItem } from '../../../../shared/components/order-review-modal/order-review-modal';
 import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { OrderService, OrderSummary, OrderDetail } from '../../../../core/services/order.service';
@@ -13,12 +14,12 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-my-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent, GuestPhoneBannerComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent, GuestPhoneBannerComponent, OrderReviewModalComponent],
   templateUrl: './my-orders.html',
   styleUrls: ['./my-orders.css']
 })
 export class MyOrdersComponent implements OnInit, OnDestroy {
-  readonly icons = { Search, Check, AlertCircle, Package, AlertTriangle, Clock, Image: ImageIcon, Plus, X, ChevronDown, Eye, Sparkles };
+  readonly icons = { MapPin, CreditCard, Search, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image: ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy };
 
   activeTab = 'ALL';
   searchQuery = '';
@@ -48,9 +49,11 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   // Chi tiết đơn hàng
   selectedOrder: OrderDetail | null = null;
   isDetailDrawerOpen = false;
+  isDeliveryPaymentExpanded = false;
   isLoadingDetail = false;
   remainingCountdown = '';
   isOrderExpired = false;
+  notifiedExpiringOrderNumbers = new Set<string>();
   private timerInterval: any = null;
   private autoConfirmCheckInterval: any = null;
   pendingOrderNumberToOpen: string | null = null;
@@ -76,6 +79,8 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   reviewRating = 5;
   reviewComment = '';
   reviewHoverRating = 0;
+  reviewModalOrderNumber = '';
+  reviewModalItems: ReviewModalItem[] = [];
 
   // Modal Yêu cầu đổi trả
   isReturnModalOpen = false;
@@ -180,14 +185,32 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
 
     // Khởi tạo interval 1s để cập nhật đếm ngược 5 phút cho các đơn đang chờ nhận hàng
     this.autoConfirmCheckInterval = setInterval(() => {
-      let hasWaiting = false;
+      let needsFilterUpdate = false;
       for (const o of this.rawOrders) {
         if (this.isDeliveredWaitingConfirm(o)) {
-          hasWaiting = true;
-          break;
+          needsFilterUpdate = true;
+        }
+
+        // Tự động quét và xử lý đơn quá hạn hoặc sắp hết hạn
+        if (o.status !== 'CANCELLED' && this.isAwaitingPaymentOrDeposit(o)) {
+          const remSecs = this.getRemainingExpirySeconds(o);
+          if (remSecs <= 0) {
+            o.status = 'CANCELLED';
+            o.displayStatus = 'Đã hủy';
+            o.cancelReason = 'Hệ thống tự động hủy do quá hạn đặt cọc / chuyển khoản trong vòng 24 giờ.';
+            needsFilterUpdate = true;
+            this.showToast(`Đơn hàng #${o.orderNumber} đã tự động bị hủy do quá hạn thanh toán.`, 'error');
+          } else if (remSecs <= 1800) {
+            needsFilterUpdate = true;
+            if (!this.notifiedExpiringOrderNumbers.has(o.orderNumber)) {
+              this.notifiedExpiringOrderNumbers.add(o.orderNumber);
+              const mins = Math.max(1, Math.ceil(remSecs / 60));
+              this.showToast(`⚠️ Đơn hàng #${o.orderNumber} sắp bị hệ thống tự động hủy sau ${mins} phút nữa nếu chưa hoàn tất thanh toán!`, 'error');
+            }
+          }
         }
       }
-      if (hasWaiting) {
+      if (needsFilterUpdate) {
         this.applyFilter();
         this.cdr.markForCheck();
       }
@@ -218,6 +241,20 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
         next: (data) => {
           this.rawOrders = data || [];
           this.mergeLocalPlacedOrders();
+
+          // Tự động kiểm tra đơn quá hạn và thông báo cảnh báo đơn sắp hết hạn <= 30 phút
+          for (const o of this.rawOrders) {
+            if (o.status !== 'CANCELLED' && this.isOrderExpiredCheck(o)) {
+              o.status = 'CANCELLED';
+              o.displayStatus = 'Đã hủy';
+              o.cancelReason = o.cancelReason || 'Hệ thống tự động hủy do quá hạn đặt cọc / chuyển khoản trong vòng 24 giờ.';
+            } else if (this.isOrderExpiringSoon(o) && !this.notifiedExpiringOrderNumbers.has(o.orderNumber)) {
+              this.notifiedExpiringOrderNumbers.add(o.orderNumber);
+              const mins = Math.max(1, Math.ceil(this.getRemainingExpirySeconds(o) / 60));
+              this.showToast(`⚠️ Đơn hàng #${o.orderNumber} sắp bị hệ thống tự động hủy sau ${mins} phút nữa nếu chưa hoàn tất thanh toán!`, 'error');
+            }
+          }
+
           this.applyFilter();
           this.isLoading = false;
           if (this.pendingOrderNumberToOpen && (!this.selectedOrder || this.selectedOrder.orderNumber !== this.pendingOrderNumberToOpen)) {
@@ -287,6 +324,44 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
               quantity: item.items || 1
             }
           });
+        } else {
+          const matched = this.rawOrders.find(o => o.orderNumber === orderNumber);
+          if (matched) {
+            if (item.paymentStatus && item.paymentStatus !== 'UNPAID') {
+              matched.paymentStatus = item.paymentStatus;
+            }
+            if (item.depositPaid !== undefined && item.depositPaid > 0) {
+              (matched as any).depositPaid = item.depositPaid;
+            }
+            if (item.statusKey && item.statusKey !== 'PENDING_PAYMENT') {
+              matched.status = item.statusKey;
+            }
+          }
+        }
+      }
+
+      // Đồng bộ từ kho Admin (dcor_orders_v2_store) nếu đã được Admin xác nhận thanh toán/cọc
+      const adminStoreRaw = localStorage.getItem('dcor_orders_v2_store');
+      if (adminStoreRaw) {
+        const adminOrders = JSON.parse(adminStoreRaw);
+        if (Array.isArray(adminOrders)) {
+          for (const ao of adminOrders) {
+            const matched = this.rawOrders.find(o => o.orderNumber === ao.orderNumber || o.id === ao.id);
+            if (matched) {
+              if (ao.paymentStatus && (ao.paymentStatus === 'PAID' || ao.paymentStatus === 'PARTIAL')) {
+                matched.paymentStatus = ao.paymentStatus;
+              }
+              if (ao.depositPaid !== undefined && ao.depositPaid > 0) {
+                (matched as any).depositPaid = ao.depositPaid;
+              }
+              if (ao.paymentHoldReason) {
+                (matched as any).paymentHoldReason = ao.paymentHoldReason;
+              }
+              if (ao.status && ao.status !== matched.status) {
+                matched.status = ao.status;
+              }
+            }
+          }
         }
       }
     } catch (_) {}
@@ -317,19 +392,16 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
 
     if (key === 'WAITING_PAYMENT' || key === 'WAITING_DEPOSIT') {
       return this.rawOrders.filter(o => {
-        if (o.status === 'CANCELLED') return false;
-        const isDeposit = o.isHighValue && o.paymentStatus !== 'PAID';
-        const isBankTransfer = (o.paymentMethod === 'BANK_TRANSFER' || o.paymentMethod === 'BANKING') && o.paymentStatus !== 'PAID';
-        return isDeposit || isBankTransfer;
+        if (o.status !== 'PENDING' && o.status !== 'WAITING_PAYMENT' && (o.status as any) !== 'WAITING_DEPOSIT') return false;
+        if (o.status === 'CANCELLED' || this.isOrderExpiredCheck(o)) return false;
+        return this.isAwaitingPaymentOrDeposit(o);
       }).length;
     }
 
     if (key === 'PENDING') {
       return this.rawOrders.filter(o => {
-        if (o.status !== 'PENDING') return false;
-        const isDeposit = o.isHighValue && o.paymentStatus !== 'PAID';
-        const isBankTransfer = (o.paymentMethod === 'BANK_TRANSFER' || o.paymentMethod === 'BANKING') && o.paymentStatus !== 'PAID';
-        return !isDeposit && !isBankTransfer;
+        if (o.status !== 'PENDING' || this.isOrderExpiredCheck(o)) return false;
+        return !this.isAwaitingPaymentOrDeposit(o);
       }).length;
     }
 
@@ -353,22 +425,17 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     // 1. Lọc theo Tab trạng thái
     if (this.activeTab !== 'ALL') {
       if (this.activeTab === 'WAITING_PAYMENT' || this.activeTab === 'WAITING_DEPOSIT') {
-        // Tab Chờ thanh toán: gồm 2 loại đơn:
-        // + Đơn chuyển khoản: phương thức BANK_TRANSFER/BANKING và chưa thanh toán
-        // + Đơn chờ đặt cọc: đơn giá trị cao (>50tr) hoặc có đặt cọc chưa thanh toán
+        // Tab Chờ thanh toán / Chờ đặt cọc: chỉ gồm đơn đang ở giai đoạn PENDING/WAITING_PAYMENT chưa thanh toán cọc
         list = list.filter(o => {
-          if (o.status === 'CANCELLED') return false;
-          const isDeposit = o.isHighValue && o.paymentStatus !== 'PAID';
-          const isBankTransfer = (o.paymentMethod === 'BANK_TRANSFER' || o.paymentMethod === 'BANKING') && o.paymentStatus !== 'PAID';
-          return isDeposit || isBankTransfer;
+          if (o.status !== 'PENDING' && o.status !== 'WAITING_PAYMENT' && (o.status as any) !== 'WAITING_DEPOSIT') return false;
+          if (this.isOrderExpiredCheck(o)) return false;
+          return this.isAwaitingPaymentOrDeposit(o);
         });
       } else if (this.activeTab === 'PENDING') {
-        // Tab Chờ xác nhận: đơn PENDING nhưng không thuộc diện Chờ đặt cọc hay Chờ chuyển khoản
+        // Tab Chờ xác nhận: đơn PENDING đã hoàn tất cọc/chuyển khoản hoặc là đơn COD
         list = list.filter(o => {
-          if (o.status !== 'PENDING') return false;
-          const isDeposit = o.isHighValue && o.paymentStatus !== 'PAID';
-          const isBankTransfer = (o.paymentMethod === 'BANK_TRANSFER' || o.paymentMethod === 'BANKING') && o.paymentStatus !== 'PAID';
-          return !isDeposit && !isBankTransfer;
+          if (o.status !== 'PENDING' || this.isOrderExpiredCheck(o)) return false;
+          return !this.isAwaitingPaymentOrDeposit(o);
         });
       } else if (this.activeTab === 'SHIPPED') {
         // Tab Đang giao: gồm đơn SHIPPED VÀ đơn DELIVERED nhưng chưa quá 5 phút (đang chờ khách bấm "Đã nhận hàng")
@@ -376,8 +443,11 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
       } else if (this.activeTab === 'DELIVERED') {
         // Tab Hoàn tất: gồm đơn COMPLETED VÀ đơn DELIVERED đã quá 5 phút (tự động hoàn tất) hoặc đã bấm Đã nhận hàng
         list = list.filter(o => (o.status === 'COMPLETED' || o.status === 'DELIVERED') && !this.isDeliveredWaitingConfirm(o));
+      } else if (this.activeTab === 'PROCESSING') {
+        // Tab Đang chuẩn bị: gồm cả đơn đã xác nhận (CONFIRMED) và đang gia công/chuẩn bị (PROCESSING)
+        list = list.filter(o => o.status === 'CONFIRMED' || o.status === 'PROCESSING');
       } else {
-        list = list.filter(o => o.status === this.activeTab);
+        if (this.activeTab === 'CANCELLED') { list = list.filter(o => o.status === 'CANCELLED' || this.isOrderExpiredCheck(o)); } else { list = list.filter(o => o.status === this.activeTab); }
       }
     }
 
@@ -403,17 +473,19 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
    */
   getOrderDisplayStatus(order: OrderSummary | OrderDetail | null | undefined): string {
     if (!order) return '';
-    if (order.status === 'CANCELLED') return 'Đã hủy';
+    if (order.status === 'CANCELLED' || this.isOrderExpiredCheck(order)) return 'Đã hủy';
     if (order.status === 'RETURNED') return 'Đổi trả';
 
-    // 1. Đơn chờ đặt cọc (đơn giá trị cao >50tr hoặc cần đặt cọc)
-    if (order.isHighValue && order.paymentStatus !== 'PAID') {
+    const isPaidOrDeposited = order.paymentStatus === 'PAID' || order.paymentStatus === 'PARTIAL' || (Number((order as any).depositPaid || 0) > 0);
+
+    // 1. Đơn chờ đặt cọc (chỉ khi đơn ở giai đoạn PENDING và CHƯA cọc/thanh toán)
+    if (order.isHighValue && !isPaidOrDeposited && (order.status === 'PENDING' || order.status === 'WAITING_PAYMENT' || (order.status as any) === 'WAITING_DEPOSIT')) {
       return 'Chờ đặt cọc';
     }
 
-    // 2. Đơn chuyển khoản: phương thức BANK_TRANSFER/BANKING và chưa thanh toán
+    // 2. Đơn chuyển khoản: phương thức BANK_TRANSFER/BANKING và CHƯA thanh toán
     const isBankTransfer = order.paymentMethod === 'BANK_TRANSFER' || order.paymentMethod === 'BANKING';
-    if (isBankTransfer && order.paymentStatus !== 'PAID' && (order.status === 'PENDING' || order.status === 'WAITING_PAYMENT')) {
+    if (isBankTransfer && !isPaidOrDeposited && (order.status === 'PENDING' || order.status === 'WAITING_PAYMENT')) {
       return 'Chờ thanh toán';
     }
 
@@ -448,7 +520,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
    */
   canCancelOrder(order: OrderSummary | OrderDetail | null | undefined): boolean {
     if (!order) return false;
-    if (order.status === 'CANCELLED' || order.status === 'DELIVERED' || (order.status as any) === 'COMPLETED' || order.status === 'SHIPPED' || order.status === 'PROCESSING') {
+    if (order.status === 'CANCELLED' || this.isOrderExpiredCheck(order) || order.status === 'DELIVERED' || (order.status as any) === 'COMPLETED' || order.status === 'SHIPPED' || order.status === 'PROCESSING') {
       return false;
     }
     const display = this.getOrderDisplayStatus(order);
@@ -460,6 +532,16 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
    * Chỉ những đơn hàng ĐÃ HOÀN TẤT (đã bấm Đã nhận hàng hoặc tự động sau 5 phút)
    * trong vòng 7 ngày mới được đổi trả.
    */
+  
+  /**
+   * Kiểm tra xem đơn hàng đã hoàn tất hay chưa
+   */
+  isOrderCompleted(order: OrderSummary | OrderDetail | null | undefined): boolean {
+    if (!order) return false;
+    if (this.isDeliveredWaitingConfirm(order)) return false;
+    return order.status === 'DELIVERED' || (order.status as any) === 'COMPLETED';
+  }
+
   isEligibleForReturn(order: OrderSummary | OrderDetail | null | undefined): boolean {
     if (!order) return false;
     // Nếu đơn còn trong 5 phút chờ bấm nhận hàng thì CHƯA được yêu cầu đổi trả
@@ -484,7 +566,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     const rawDelivered = (order as any).deliveredAt || (order as any).updatedAt;
     if (!rawDelivered) return false;
     const diffMs = Date.now() - new Date(rawDelivered).getTime();
-    return diffMs >= 0 && diffMs < 5 * 60 * 1000;
+    return diffMs >= 0 && diffMs < 3 * 24 * 60 * 60 * 1000; // 3 ngày
   }
 
   /**
@@ -494,7 +576,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     if (!this.isDeliveredWaitingConfirm(order)) return 0;
     const rawDelivered = (order as any).deliveredAt || (order as any).updatedAt;
     const diffMs = Date.now() - new Date(rawDelivered).getTime();
-    return Math.max(0, Math.floor((5 * 60 * 1000 - diffMs) / 1000));
+    return Math.max(0, Math.floor((3 * 24 * 60 * 60 * 1000 - diffMs) / 1000));
   }
 
   formatCountdown(seconds: number): string {
@@ -623,13 +705,70 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
    * 1. Đơn chờ đặt cọc (isHighValue, paymentStatus !== 'PAID' && paymentStatus !== 'PARTIAL')
    * 2. Đơn chuyển khoản ngân hàng (paymentMethod === 'BANK_TRANSFER' || BANKING, paymentStatus !== 'PAID')
    */
+  
+  /**
+   * Kiểm tra xem đơn hàng đã quá hạn thanh toán/đặt cọc chưa
+   */
+  isOrderExpiredCheck(order: OrderSummary | OrderDetail | null | undefined): boolean {
+    if (!order) return false;
+    if (order.status === 'CANCELLED' || order.isExpired) return true;
+    if (this.isAwaitingPaymentOrDeposit(order)) {
+      const expiry = this.getExpiryDate(order);
+      if (expiry && expiry.getTime() <= Date.now()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Kiểm tra đơn hàng sắp hết hạn tự động hủy trong vòng 30 phút
+   */
+  isOrderExpiringSoon(order: OrderSummary | OrderDetail | null | undefined): boolean {
+    if (!order) return false;
+    if (order.status === 'CANCELLED' || this.isOrderExpiredCheck(order)) return false;
+    if (!this.isAwaitingPaymentOrDeposit(order)) return false;
+    const rem = this.getRemainingExpirySeconds(order);
+    return rem > 0 && rem <= 1800; // <= 30 phút
+  }
+
+  /**
+   * Lấy số giây còn lại trước khi hết hạn
+   */
+  getRemainingExpirySeconds(order: OrderSummary | OrderDetail | null | undefined): number {
+    if (!order) return 0;
+    const expiry = this.getExpiryDate(order);
+    if (!expiry) return 0;
+    return Math.max(0, Math.floor((expiry.getTime() - Date.now()) / 1000));
+  }
+
+  /**
+   * Định dạng thời gian còn lại hiển thị (VD: 25 phút 10 giây)
+   */
+  getRemainingExpiryTimeFormatted(order: OrderSummary | OrderDetail | null | undefined): string {
+    const totalSecs = this.getRemainingExpirySeconds(order);
+    if (totalSecs <= 0) return '00:00 (Đã hết hạn)';
+    const minutes = Math.floor(totalSecs / 60);
+    const seconds = totalSecs % 60;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    if (minutes > 0) {
+      return `${minutes} phút ${pad(seconds)} giây`;
+    }
+    return `${seconds} giây`;
+  }
+
   isAwaitingPaymentOrDeposit(order: OrderSummary | OrderDetail | null | undefined): boolean {
     if (!order) return false;
-    if (order.status === 'CANCELLED' || order.status === 'DELIVERED' || order.status === 'SHIPPED' || order.status === 'PROCESSING') {
+    if (order.status !== 'PENDING' && order.status !== 'WAITING_PAYMENT' && (order.status as any) !== 'WAITING_DEPOSIT') {
       return false;
     }
-    const isDeposit = order.isHighValue && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'PARTIAL';
-    const isBankTransfer = (order.paymentMethod === 'BANK_TRANSFER' || (order.paymentMethod as any) === 'BANKING') && order.paymentStatus !== 'PAID';
+    // Nếu đã cọc hoặc đã thanh toán (PAID hoặc PARTIAL hoặc depositPaid > 0) thì không còn chờ thanh toán / cọc nữa
+    const isPaidOrDeposited = order.paymentStatus === 'PAID' || order.paymentStatus === 'PARTIAL' || (Number((order as any).depositPaid || 0) > 0);
+    if (isPaidOrDeposited) {
+      return false;
+    }
+    const isDeposit = order.isHighValue;
+    const isBankTransfer = order.paymentMethod === 'BANK_TRANSFER' || (order.paymentMethod as any) === 'BANKING';
     return isDeposit || isBankTransfer;
   }
 
@@ -703,6 +842,22 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
+  getPaymentAmount(order: OrderDetail): number {
+    if (!order) return 0;
+    if (order.isHighValue) {
+      return order.depositAmount || Math.round(order.totalAmount * 0.3);
+    }
+    return order.totalAmount;
+  }
+
+  getPaymentQrUrl(order: OrderDetail): string {
+    if (!order) return '';
+    const amount = this.getPaymentAmount(order);
+    const memo = encodeURIComponent('DCOR ' + order.orderNumber);
+    const accName = encodeURIComponent('CONG TY TNHH NOI THAT DCOR VIET NAM');
+    return 'https://img.vietqr.io/image/mbbank-0988888888-compact2.png?amount=' + amount + '&addInfo=' + memo + '&accountName=' + accName;
+  }
+
   copyToClipboard(text: string, label: string): void {
     if (!text) return;
     if (navigator?.clipboard?.writeText) {
@@ -727,6 +882,85 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   // Xem chi tiết đơn
+  toggleDeliveryPayment(): void {
+    this.isDeliveryPaymentExpanded = !this.isDeliveryPaymentExpanded;
+    this.cdr.markForCheck();
+  }
+
+  formatShippingAddress(order: any): string {
+    if (!order) return '';
+    const detail = (order.detailAddress || order.address || '').trim();
+    const ward = (order.ward || '').trim();
+    const district = (order.district || '').trim();
+    const province = (order.province || '').trim();
+
+    // Tách các thành phần và chuẩn hóa
+    const rawTokens = [detail, ward, district, province]
+      .filter(Boolean)
+      .join(', ')
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    // Loại bỏ các phân đoạn trùng lặp giữ nguyên thứ tự xuất hiện đầu tiên
+    const seen = new Set<string>();
+    const uniqueTokens: string[] = [];
+    for (const token of rawTokens) {
+      const lower = token.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        uniqueTokens.push(token);
+      }
+    }
+    return uniqueTokens.join(', ');
+  }
+
+  getPaymentStatusText(order: any): string {
+    if (!order) return 'Chưa thanh toán';
+    const status = order.status;
+    const paymentStatus = order.paymentStatus;
+    const isBank = order.paymentMethod === 'BANK_TRANSFER' || (order.paymentMethod as any) === 'BANKING' || (order.paymentMethod as any) === 'Chuyển khoản';
+    const isCOD = order.paymentMethod === 'COD' || (order.paymentMethod as any) === 'Tiền mặt';
+
+    // 1. Nếu là COD: chỉ có 'Chưa thanh toán' hoặc 'Đã thanh toán' (khi đã giao/hoàn tất)
+    if (isCOD) {
+      if (paymentStatus === 'PAID' || status === 'DELIVERED' || status === 'COMPLETED') {
+        return 'Đã thanh toán';
+      }
+      return 'Chưa thanh toán';
+    }
+
+    // 2. Đã thanh toán nếu paymentStatus === 'PAID' hoặc đơn đã giao thành công / hoàn tất
+    if (paymentStatus === 'PAID' || status === 'DELIVERED' || status === 'COMPLETED') {
+      return 'Đã thanh toán';
+    }
+
+    // 3. Nếu là đơn chuyển khoản:
+    if (isBank) {
+      // Khi đã qua bước duyệt (CONFIRMED, PROCESSING, SHIPPED) -> đã xác nhận chuyển khoản
+      if (['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED'].includes(status)) {
+        if (order.isHighValue && paymentStatus !== 'PAID') {
+          return 'Đã thanh toán cọc (30%)';
+        }
+        return 'Đã thanh toán';
+      }
+      if (paymentStatus === 'PARTIAL') {
+        return 'Đã thanh toán cọc (30%)';
+      }
+      return 'Chưa thanh toán';
+    }
+
+    if (paymentStatus === 'PARTIAL') return 'Đã thanh toán cọc (30%)';
+    return paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán';
+  }
+
+  getPaymentStatusClass(order: any): string {
+    const text = this.getPaymentStatusText(order);
+    if (text === 'Đã thanh toán' || text.includes('Đã thanh toán đủ')) return 'paid';
+    if (text.includes('cọc')) return 'partial';
+    return 'unpaid';
+  }
+
   openOrderDetail(order: OrderSummary): void {
     if (!order) return;
     this.openOrderDetailByNumber(order.orderNumber, order);
@@ -736,6 +970,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   openOrderDetailByNumber(orderNumber: string, fallbackSummary?: OrderSummary): void {
     if (!orderNumber) return;
     this.isDetailDrawerOpen = true;
+    this.isDeliveryPaymentExpanded = false;
     this.isLoadingDetail = true;
     this.remainingCountdown = '';
     this.isOrderExpired = false;
@@ -883,10 +1118,71 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   // Đánh giá sản phẩm
   openReviewModal(order: OrderSummary | OrderDetail, event?: Event): void {
     if (event) event.stopPropagation();
+    if (!order) return;
+
+    this.reviewModalOrderNumber = order.orderNumber;
     this.targetOrderForReview = order;
-    this.reviewRating = 5;
-    this.reviewComment = '';
-    this.isReviewModalOpen = true;
+
+    const rawItems: any[] = (order as any).items && Array.isArray((order as any).items) 
+      ? (order as any).items 
+      : ((order as any).allItems || []);
+
+    if (rawItems.length > 0) {
+      this.reviewModalItems = rawItems.map(it => ({
+        orderItemId: it.id || it.orderItemId,
+        productId: it.productId,
+        productName: it.productName,
+        productImage: it.imageUrl || it.productImage,
+        variantDescription: it.variantDescription,
+        price: it.price,
+        quantity: it.quantity
+      }));
+      this.isReviewModalOpen = true;
+      this.cdr.markForCheck();
+    } else {
+      this.orderService.getOrderDetail(order.orderNumber).subscribe({
+        next: (detail: any) => {
+          this.reviewModalItems = (detail?.items || []).map((it: any) => ({
+            orderItemId: it.id,
+            productId: it.productId,
+            productName: it.productName,
+            productImage: it.imageUrl,
+            variantDescription: it.variantDescription,
+            price: it.price,
+            quantity: it.quantity
+          }));
+          this.isReviewModalOpen = true;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          const first = (order as any).firstItem;
+          if (first) {
+            this.reviewModalItems = [{
+              orderItemId: '',
+              productId: '',
+              productName: first.productName,
+              productImage: first.imageUrl,
+              variantDescription: first.variantDescription,
+              price: first.price,
+              quantity: first.quantity
+            }];
+          }
+          this.isReviewModalOpen = true;
+          this.cdr.markForCheck();
+        }
+      });
+    }
+  }
+
+  closeReviewModal(): void {
+    this.isReviewModalOpen = false;
+    this.reviewModalItems = [];
+    this.reviewModalOrderNumber = '';
+  }
+
+  onReviewSubmitted(): void {
+    this.showToast('Gửi đánh giá đơn hàng thành công! Cảm ơn bạn đã đóng góp ý kiến.', 'success');
+    this.loadOrders();
     this.cdr.markForCheck();
   }
 
@@ -1067,7 +1363,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
       this.showToast('Vui lòng chọn đơn hàng.', 'error');
       return;
     }
-    this.executeStatusChange(order.orderNumber, 'COMPLETED', 'Tua nhanh 5 phút: Hệ thống tự động chuyển sang Hoàn tất');
+    this.executeStatusChange(order.orderNumber, 'COMPLETED', 'Tua nhanh 3 ngày: Hệ thống tự động chuyển sang Hoàn tất');
   }
 
   testAdvanceStatus(): void {
@@ -1111,6 +1407,22 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
         this.isTestingStatus = false;
         const statusLabel = this.getStatusDisplayTitle(targetStatus);
 
+        // Cập nhật ngay trong memory để UI đổi trạng thái tức thì
+        const matchRaw = this.rawOrders.find(o => o.orderNumber === orderNumber);
+        if (matchRaw) {
+          matchRaw.status = targetStatus;
+          matchRaw.displayStatus = statusLabel;
+          if (targetStatus === 'DELIVERED' || targetStatus === 'COMPLETED') {
+            matchRaw.paymentStatus = 'PAID';
+            matchRaw.deliveredAt = new Date();
+          } else if (targetStatus === 'CONFIRMED' || targetStatus === 'PROCESSING' || targetStatus === 'SHIPPED') {
+            if (matchRaw.paymentMethod === 'BANK_TRANSFER' || (matchRaw.paymentMethod as any) === 'BANKING') {
+              matchRaw.paymentStatus = matchRaw.isHighValue ? 'PARTIAL' : 'PAID';
+            }
+          }
+        }
+        this.applyFilter();
+
         // Cập nhật ngay trong cache localStorage nếu đơn này được lưu local
         try {
           const local = JSON.parse(localStorage.getItem('dcor_placed_orders') || '[]');
@@ -1118,6 +1430,13 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
           if (item) {
             item.statusKey = targetStatus;
             item.status = statusLabel;
+            if (targetStatus === 'DELIVERED' || targetStatus === 'COMPLETED') {
+              item.paymentStatus = 'PAID';
+            } else if (targetStatus === 'CONFIRMED' || targetStatus === 'PROCESSING' || targetStatus === 'SHIPPED') {
+              if (item.paymentMethod === 'BANK_TRANSFER' || item.paymentMethod === 'BANKING') {
+                item.paymentStatus = item.isHighValue ? 'PARTIAL' : 'PAID';
+              }
+            }
             localStorage.setItem('dcor_placed_orders', JSON.stringify(local));
           }
         } catch (_) {}

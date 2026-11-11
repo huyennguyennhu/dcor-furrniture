@@ -556,7 +556,7 @@ export class OrdersService {
     const qty = params.item.quantity || 1;
     const price = params.item.price || 0;
     const lineTotal = price * qty;
-    const isHighValue = lineTotal >= 50000000;
+    const isHighValue = lineTotal > 50000000;
 
     const newOrder: OrderV2 = {
       id: params.orderNumber,
@@ -874,7 +874,25 @@ export class OrdersService {
 
     this.save(orders);
 
-    this.http.patch(`${this.apiUrl}/${orderId}/deposit`, { amount: depositAmount, staffName }).subscribe({
+    // Đồng bộ ngay sang dcor_placed_orders trong localStorage nếu có
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const localPlacedRaw = localStorage.getItem('dcor_placed_orders');
+        if (localPlacedRaw) {
+          const localPlaced = JSON.parse(localPlacedRaw);
+          const item = localPlaced.find((it: any) => it.id === orderId || it.orderNumber === orderId || it.id === order.orderNumber || it.orderNumber === order.orderNumber);
+          if (item) {
+            item.paymentStatus = type === 'FULL' ? 'PAID' : 'PARTIAL';
+            item.status = 'Chờ xác nhận';
+            item.statusKey = 'PENDING';
+            item.depositPaid = order.depositPaid;
+            localStorage.setItem('dcor_placed_orders', JSON.stringify(localPlaced));
+          }
+        }
+      } catch (_) {}
+    }
+
+    this.http.patch(`${this.apiUrl}/${orderId}/deposit`, { type, amount: depositAmount, staffName }).subscribe({
       error: (e) => console.error('Lỗi đồng bộ cọc lên database:', e)
     });
 

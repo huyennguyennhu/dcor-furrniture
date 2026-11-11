@@ -115,6 +115,7 @@
         (ngModelChange)="onSearchChange()" 
         placeholder="Tìm theo tên, SĐT, Email, ID..." 
         class="filter-search-input" 
+        maxlength="100"
       />
       <button *ngIf="search" (click)="clearSearch()" class="search-clear-btn" title="Xóa tìm kiếm">
         <lucide-angular [img]="icons.X" size="14"></lucide-angular>
@@ -131,7 +132,6 @@
         title="Chọn trạng thái hoạt động"
       >
         <div class="trigger-label">
-          <lucide-angular [img]="icons.Activity" size="15" class="trigger-icon"></lucide-angular>
           <span class="truncate-label">{{ statusFilter }}</span>
         </div>
         <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showStatusDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
@@ -164,7 +164,6 @@
         title="Chọn hạng thành viên"
       >
         <div class="trigger-label">
-          <lucide-angular [img]="icons.Star" size="15" class="trigger-icon"></lucide-angular>
           <span class="truncate-label">{{ membershipFilter }}</span>
         </div>
         <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showMembershipDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
@@ -178,10 +177,10 @@
           [class.selected]="membershipFilter === opt"
         >
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span *ngIf="opt === 'Vàng'" style="width: 8px; height: 8px; border-radius: 50%; background: #eab308;"></span>
-            <span *ngIf="opt === 'Bạc'" style="width: 8px; height: 8px; border-radius: 50%; background: #94a3b8;"></span>
-            <span *ngIf="opt === 'Đồng'" style="width: 8px; height: 8px; border-radius: 50%; background: #d97706;"></span>
-            <span *ngIf="opt === 'B2B Partner'" style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span>
+            <span *ngIf="opt === 'Vàng'" style="width: 8px; height: 8px; border-radius: 50%; background: #b45309;"></span>
+            <span *ngIf="opt === 'Bạc'" style="width: 8px; height: 8px; border-radius: 50%; background: #475569;"></span>
+            <span *ngIf="opt === 'Đồng'" style="width: 8px; height: 8px; border-radius: 50%; background: #9a3412;"></span>
+            <span *ngIf="opt === 'B2B Partner'" style="width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span>
             <span>{{ opt }}</span>
           </div>
           <lucide-angular *ngIf="membershipFilter === opt" [img]="icons.Check" size="14" class="text-accent"></lucide-angular>
@@ -199,7 +198,6 @@
         title="Chọn mức chi tiêu"
       >
         <div class="trigger-label">
-          <lucide-angular [img]="icons.DollarSign" size="15" class="trigger-icon"></lucide-angular>
           <span class="truncate-label">{{ spendingFilter }}</span>
         </div>
         <lucide-angular [img]="icons.ChevronDown" size="14" [style.transform]="showSpendingDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></lucide-angular>
@@ -237,25 +235,7 @@
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
-            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; border-top-left-radius: 11px; user-select: none;">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('name')" title="Sắp xếp theo Khách hàng (A-Z / Z-A)">
-                <span>Khách hàng</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'name' || sortDirection === 'asc'" 
-                       class="sort-triangle up" 
-                       [class.active]="sortColumn === 'name' && sortDirection === 'asc'" 
-                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
-                    <path d="M12 5L4 19h16z"/>
-                  </svg>
-                  <svg *ngIf="sortColumn !== 'name' || sortDirection === 'desc'" 
-                       class="sort-triangle down" 
-                       [class.active]="sortColumn === 'name' && sortDirection === 'desc'" 
-                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
-                    <path d="M12 19L4 5h16z"/>
-                  </svg>
-                </span>
-              </div>
-            </th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; border-top-left-radius: 11px; white-space: nowrap;">Khách hàng</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Liên hệ</th>
             <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('createdAt')" title="Sắp xếp theo Ngày đăng ký (Mới / Cũ)">
@@ -346,11 +326,22 @@
 
             <!-- Col 4: Hạng thành viên -->
             <td style="padding: 16px; white-space: nowrap;">
-              <div style="display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600;" [ngStyle]="{'color': getMembershipColor(item.membership)}">
-                <lucide-angular [img]="icons.Star" size="14"></lucide-angular>
+              <span [ngStyle]="{
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'gap': '5px',
+                'font-size': '12.5px',
+                'font-weight': '600',
+                'padding': '4px 10px',
+                'border-radius': '6px',
+                'color': getMembershipBadgeMeta(item.membership).color,
+                'background': getMembershipBadgeMeta(item.membership).bg,
+                'border': '1px solid ' + getMembershipBadgeMeta(item.membership).border
+              }">
+                <lucide-angular [img]="icons.Star" size="13"></lucide-angular>
                 <span>{{ item.membership }}</span>
-              </div>
-              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ item.points | number }} điểm</div>
+              </span>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px; padding-left: 2px;">{{ item.points | number }} điểm</div>
             </td>
 
             <!-- Col 5: Tổng chi tiêu -->

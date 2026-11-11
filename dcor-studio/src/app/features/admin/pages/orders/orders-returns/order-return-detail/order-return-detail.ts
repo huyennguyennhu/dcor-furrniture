@@ -92,7 +92,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Hệ thống',
           title: 'Kiểm tra thời hạn đổi trả',
           desc: 'Ngày đặt: 19/10/2026 10:30 - Ngày yêu cầu đổi trả: 21/10/2026 08:30 → <strong class="time-highlight">1 Ngày (22 giờ)</strong>',
-          checked: true
+          checked: false
         },
         {
           id: 'auto_sku_valid',
@@ -100,7 +100,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Hệ thống',
           title: 'Kiểm tra tính hợp lệ của SKU',
           desc: 'Mã khi mua: <strong>SKU-SAL-3S-LUX</strong> → Mã khi yêu cầu trả: <strong>SKU-SAL-3S-LUX</strong>',
-          checked: true
+          checked: false
         },
         {
           id: 'auto_attachments',
@@ -108,7 +108,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Hệ thống',
           title: 'Kiểm tra tệp đính kèm bắt buộc',
           desc: 'Đã đính kèm: <strong>6</strong> hình ảnh/video',
-          checked: true
+          checked: false
         }
       ]
     },
@@ -122,7 +122,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'CSKH',
           title: 'Thẩm định nội dung hình ảnh/video',
           desc: 'Nhân viên CSKH xem xét trực quan bằng chứng (video khui hàng, góc lỗi nội thất) để quyết định chấp nhận hay từ chối yêu cầu.',
-          checked: true
+          checked: false
         },
         {
           id: 'auto_inventory',
@@ -130,7 +130,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Hệ thống',
           title: 'Kiểm tra tồn kho khả dụng',
           desc: 'Sản phẩm: Salamanca 3 seater lounge sofa - Bản da nỉ cao cấp (Nâu trầm Walnut Luxury)\nTồn kho: <strong class="stock-highlight">12 sản phẩm</strong> khả dụng (Kho Trung Tâm)',
-          checked: true
+          checked: false
         },
         {
           id: 'auto_calc_refund',
@@ -138,7 +138,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Hệ thống',
           title: 'Tự động tính toán số tiền hoàn trả',
           desc: 'Số tiền hoàn: <strong class="refund-highlight">24.500.000 ₫</strong>',
-          checked: true
+          checked: false
         }
       ]
     },
@@ -152,7 +152,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Thủ kho',
           title: 'Kiểm tra thực tế SKU tại kho',
           desc: 'Thủ kho đối chiếu mã sản phẩm gửi về với hệ thống để phòng tránh tình trạng tráo đổi hàng cũ/hàng ngoài.',
-          checked: true
+          checked: false
         },
         {
           id: 'manual_qc_intact',
@@ -160,7 +160,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Kỹ thuật QC',
           title: 'Kiểm tra tình trạng nguyên vẹn (QC)',
           desc: 'Thủ kho đánh giá cảm quan bề mặt (gỗ, da, phụ kiện) xem đúng lỗi như khách phản hồi hay do tác động sử dụng sai cách.',
-          checked: true
+          checked: false
         },
         {
           id: 'manual_accessories',
@@ -168,7 +168,7 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
           sourceTag: 'Thủ kho',
           title: 'Kiểm tra linh phụ kiện và quà tặng kèm',
           desc: 'Kiểm đếm thực tế các chi tiết rời (ốc vít, chân ghế, hướng dẫn lắp đặt, quà khuyến mãi đi kèm) trong thùng hàng trả về.',
-          checked: true
+          checked: false
         }
       ]
     }
@@ -262,7 +262,6 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
     { name: 'CSKH Minh Phúc', role: 'Chuyên viên CSKH', avatar: 'MP', dept: 'Bộ phận CSKH' },
     { name: 'Kỹ thuật viên Trịnh Văn Bách', role: 'Thẩm định viên QC', avatar: 'VB', dept: 'Kỹ thuật & Thẩm định' },
     { name: 'Thủ kho Hoàng Sơn', role: 'Thủ kho & Điều phối', avatar: 'HS', dept: 'Kho vận DCOR' },
-    { name: 'Kế toán Bích Ngọc', role: 'Kế toán thanh toán', avatar: 'BN', dept: 'Tài chính - Kế toán' },
     { name: 'Chưa phân công', role: 'Chờ chỉ định', avatar: '?', dept: 'Hệ thống' }
   ];
 

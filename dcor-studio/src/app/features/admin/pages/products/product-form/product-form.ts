@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -128,6 +128,124 @@ export class ProductFormComponent implements OnInit {
   selectedParentCategoryId = '';
   categorySearchQuery = '';
   isCategoryDropdownOpen = false;
+  // Custom Dropdown Open States (giống trang products)
+  isParentCatDropdownOpen = false;
+  isChildCatDropdownOpen = false;
+  isCollectionDropdownOpen = false;
+  isStyleDropdownOpen = false;
+  isStatusDropdownOpen = false;
+
+  get selectedParentCatLabel(): string {
+    if (!this.selectedParentCategoryId) return '-- Chọn danh mục cha --';
+    const found = this.categories.find(c => c.id === this.selectedParentCategoryId);
+    return found ? found.name : '-- Chọn danh mục cha --';
+  }
+
+  get selectedChildCatLabel(): string {
+    const primaryId = this.formData.classification.primaryCategoryId;
+    if (!primaryId) return '-- Chọn danh mục con --';
+    if (primaryId === this.selectedParentCategoryId) return '-- Mặc định (nhóm chính) --';
+    const found = this.childCategories.find(c => c.id === primaryId);
+    return found ? found.name : '-- Chọn danh mục con --';
+  }
+
+  get selectedCollectionLabel(): string {
+    const colId = this.formData.classification.collectionId;
+    if (!colId) return '-- Không thuộc bộ sưu tập nào --';
+    const found = this.collections.find(c => c.id === colId);
+    return found ? found.name : '-- Không thuộc bộ sưu tập nào --';
+  }
+
+  get selectedStyleLabel(): string {
+    const stId = this.formData.classification.styleId;
+    if (!stId) return '-- Chọn phong cách thiết kế --';
+    const found = this.styles.find(s => s.id === stId);
+    return found ? found.name : '-- Chọn phong cách thiết kế --';
+  }
+
+  get selectedStatusLabel(): string {
+    const st = this.formData.publication.status;
+    if (st === 'Đang bán') return 'Đang bán (Hiển thị trực tuyến trên Store)';
+    if (st === 'Nháp') return 'Bản nháp (Lưu tạm trong hệ thống quản trị)';
+    if (st === 'Đã ẩn') return 'Đã ẩn (Tạm khóa không bán cho khách hàng)';
+    return st || 'Chọn trạng thái';
+  }
+
+  closeAllFormDropdowns() {
+    this.isParentCatDropdownOpen = false;
+    this.isChildCatDropdownOpen = false;
+    this.isCollectionDropdownOpen = false;
+    this.isStyleDropdownOpen = false;
+    this.isStatusDropdownOpen = false;
+  }
+
+  toggleParentCatDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isParentCatDropdownOpen;
+    this.closeAllFormDropdowns();
+    this.isParentCatDropdownOpen = !curr;
+  }
+
+  selectParentCat(catId: string) {
+    this.selectedParentCategoryId = catId;
+    this.onParentCategoryChange();
+    this.isParentCatDropdownOpen = false;
+  }
+
+  toggleChildCatDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isChildCatDropdownOpen;
+    this.closeAllFormDropdowns();
+    this.isChildCatDropdownOpen = !curr;
+  }
+
+  selectChildCat(subId: string) {
+    this.formData.classification.primaryCategoryId = subId;
+    this.clearError('category');
+    this.isChildCatDropdownOpen = false;
+  }
+
+  toggleCollectionDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isCollectionDropdownOpen;
+    this.closeAllFormDropdowns();
+    this.isCollectionDropdownOpen = !curr;
+  }
+
+  selectCollection(colId: string) {
+    this.formData.classification.collectionId = colId;
+    this.isCollectionDropdownOpen = false;
+  }
+
+  toggleStyleDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isStyleDropdownOpen;
+    this.closeAllFormDropdowns();
+    this.isStyleDropdownOpen = !curr;
+  }
+
+  selectStyle(styleId: string) {
+    this.formData.classification.styleId = styleId;
+    this.isStyleDropdownOpen = false;
+  }
+
+  toggleStatusDropdown(e?: Event) {
+    if (e) e.stopPropagation();
+    const curr = this.isStatusDropdownOpen;
+    this.closeAllFormDropdowns();
+    this.isStatusDropdownOpen = !curr;
+  }
+
+  selectStatus(status: 'Đang bán' | 'Nháp' | 'Đã ẩn') {
+    this.formData.publication.status = status;
+    this.formData.publication.isPublished = status === 'Đang bán';
+    this.isStatusDropdownOpen = false;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.closeAllFormDropdowns();
+  }
 
   get parentCategories(): CategoryOptionItem[] {
     return this.categories.filter(c => !c.parentId);

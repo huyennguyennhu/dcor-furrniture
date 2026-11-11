@@ -22,21 +22,20 @@ router.use((req: AuthRequest, res: Response, next: NextFunction): void => {
   next();
 });
 
-// 1. Quản lý danh sách hội thoại (Nhóm đọc: 'view')
+// 1. Thống kê tổng quan hội thoại (Summary: {total, waiting, mine, unread, resolved})
+router.get('/summary', requirePermission('chat', 'view'), chatAdminController.getSummary);
+
+// 2. Quản lý danh sách hội thoại (Nhóm đọc: 'view')
 router.get('/conversations', requirePermission('chat', 'view'), chatAdminController.getConversations);
 router.get('/conversations/:id', requirePermission('chat', 'view'), chatAdminController.getConversationDetail);
 router.get('/conversations/:id/messages', requirePermission('chat', 'view'), chatAdminController.getConversationMessages);
 
-// 2. Thao tác hội thoại (State machine & Handoff) (Nhóm ghi: 'edit')
+// 3. Thao tác hội thoại (State machine & Handoff) (Nhóm ghi: 'edit')
 router.post('/conversations/:id/claim', requirePermission('chat', 'edit'), chatAdminController.claimConversation);
-router.post('/conversations/:id/transfer', requirePermission('chat', 'edit'), chatAdminController.transferConversation);
 router.post('/conversations/:id/return-to-bot', requirePermission('chat', 'edit'), chatAdminController.returnToBot);
 router.post('/conversations/:id/close', requirePermission('chat', 'edit'), chatAdminController.closeConversation);
 router.post('/conversations/:id/reopen', requirePermission('chat', 'edit'), chatAdminController.reopenConversation);
 router.put('/conversations/:id/note', requirePermission('chat', 'edit'), chatAdminController.updateInternalNote);
-
-// 3. Danh sách nhân sự có thể tiếp nhận hội thoại (Nhóm đọc: 'view')
-router.get('/staff', requirePermission('chat', 'view'), chatAdminController.getAvailableStaff);
 
 // 4. Quản lý Kịch bản Bot (Scripts: Nhóm đọc 'view', Nhóm ghi 'edit')
 router.get('/scripts', requirePermission('chat', 'view'), chatAdminController.getScripts);

@@ -262,26 +262,13 @@ export class CustomersComponent implements OnInit {
   }
 
   onCardFilter(type: 'ALL' | 'NEW' | 'B2B' | 'VIP'): void {
-    if (this.activeCardFilter === type && type !== 'ALL') {
-      this.activeCardFilter = 'ALL';
+    this.activeCardFilter = type;
+    if (type === 'ALL') {
       this.membershipFilter = 'Tất cả hạng thành viên';
       this.labelFilter = 'Nhãn nội bộ';
-    } else {
-      this.activeCardFilter = type;
-      if (type === 'ALL') {
-        this.membershipFilter = 'Tất cả hạng thành viên';
-        this.labelFilter = 'Nhãn nội bộ';
-        this.statusFilter = 'Tất cả trạng thái';
-        this.spendingFilter = 'Tổng chi tiêu';
-        this.search = '';
-      } else if (type === 'NEW') {
-        this.sortColumn = 'createdAt';
-        this.sortDirection = 'desc';
-      } else if (type === 'B2B') {
-        this.membershipFilter = 'B2B Partner';
-      } else if (type === 'VIP') {
-        this.labelFilter = 'VIP';
-      }
+      this.statusFilter = 'Tất cả trạng thái';
+      this.spendingFilter = 'Tổng chi tiêu';
+      this.search = '';
     }
     this.applyFilters();
   }
@@ -440,7 +427,18 @@ export class CustomersComponent implements OnInit {
       if (this.spendingFilter === '10 - 50 Triệu') matchSpending = c.totalSpent >= 10000000 && c.totalSpent <= 50000000;
       if (this.spendingFilter === '> 50 Triệu') matchSpending = c.totalSpent > 50000000;
 
-      return matchSearch && matchStatus && matchMembership && matchLabel && matchSpending;
+      // Lọc theo KPI Card đang chọn
+      let matchCard = true;
+      if (this.activeCardFilter === 'NEW') {
+        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        matchCard = c.createdAtTimestamp >= thirtyDaysAgo;
+      } else if (this.activeCardFilter === 'B2B') {
+        matchCard = c.type === 'B2B' || c.membership === 'B2B Partner';
+      } else if (this.activeCardFilter === 'VIP') {
+        matchCard = c.labels.includes('VIP') || c.membership === 'Vàng' || c.membership === 'B2B Partner';
+      }
+
+      return matchSearch && matchStatus && matchMembership && matchLabel && matchSpending && matchCard;
     });
 
     this.sortedAndFiltered = [...this.filtered].sort((a, b) => {
@@ -538,10 +536,27 @@ export class CustomersComponent implements OnInit {
   }
 
   getMembershipColor(membership: string) {
-    if (membership === 'Kim Cương') return '#8B5CF6';
-    if (membership === 'Vàng') return '#F59E0B';
-    if (membership === 'Bạc') return '#9CA3AF';
-    if (membership === 'Đồng') return '#D97706';
-    return '#3B82F6';
+    if (membership === 'Kim Cương') return '#7c3aed';
+    if (membership === 'Vàng') return '#b45309';
+    if (membership === 'Bạc') return '#475569';
+    if (membership === 'Đồng') return '#9a3412';
+    return '#2563eb';
+  }
+
+  getMembershipBadgeMeta(membership: string) {
+    if (membership === 'Vàng') {
+      return { color: '#b45309', bg: '#fef3c7', border: '#fde68a' };
+    }
+    if (membership === 'Bạc') {
+      return { color: '#475569', bg: '#f1f5f9', border: '#e2e8f0' };
+    }
+    if (membership === 'Đồng') {
+      return { color: '#9a3412', bg: '#ffedd5', border: '#fed7aa' };
+    }
+    if (membership === 'Kim Cương') {
+      return { color: '#7c3aed', bg: '#f3e8ff', border: '#e9d5ff' };
+    }
+    // B2B Partner / Khác
+    return { color: '#1d4ed8', bg: '#eff6ff', border: '#dbeafe' };
   }
 }

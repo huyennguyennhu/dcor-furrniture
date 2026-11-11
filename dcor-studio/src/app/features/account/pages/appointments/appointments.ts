@@ -14,6 +14,7 @@ import {
   MapPin, 
   X, 
   AlertTriangle, 
+  AlertCircle,
   UserRound, 
   Phone, 
   Mail, 
@@ -60,6 +61,7 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     MapPin,
     X,
     AlertTriangle,
+    AlertCircle,
     UserRound,
     Phone,
     Mail,
@@ -184,6 +186,8 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   rescheduleAvailableSlots: string[] = [];
   isRescheduling = false;
   rescheduleError = '';
+  rescheduleDateConflict = '';
+  existingRescheduleAppointmentOnDate: CustomerAppointment | null = null;
 
   // Cancel Confirmation Modal (Hủy hẹn trước khi admin duyệt)
   isCancelModalOpen = false;
@@ -193,6 +197,7 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   cancelError = '';
 
   minDate = '';
+  maxDate = '';
 
   private sub = new Subscription();
 
@@ -204,15 +209,63 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef
   ) {}
 
+  getLocalDateString(d: Date = new Date()): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  isSlotPast(slot: string, dateStr?: string): boolean {
+    const targetDate = dateStr || this.bookingForm.date;
+    if (!targetDate) return false;
+
+    const todayStr = this.getLocalDateString(new Date());
+    if (targetDate < todayStr) return true;
+    if (targetDate > todayStr) return false;
+
+    // targetDate === todayStr: So sánh với giờ phút thực tế hiện tại
+    const [startPart] = slot.split(' - ');
+    if (!startPart) return false;
+    const [h, m] = startPart.split(':').map(Number);
+    const now = new Date();
+    const currentH = now.getHours();
+    const currentM = now.getMinutes();
+
+    return h < currentH || (h === currentH && m <= currentM);
+  }
+
+  areAllSlotsPastForDate(dateStr: string): boolean {
+    return this.masterTimeSlots.every(slot => this.isSlotPast(slot, dateStr));
+  }
+
+  initBookingDates(): void {
+    const today = new Date();
+    const todayStr = this.getLocalDateString(today);
+
+    // Nếu hôm nay tất cả khung giờ đều đã trôi qua so với giờ thực tế (ví dụ đêm muộn sau 19h)
+    if (this.areAllSlotsPastForDate(todayStr)) {
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = this.getLocalDateString(tomorrow);
+      this.minDate = tomorrowStr;
+      this.bookingForm.date = tomorrowStr;
+    } else {
+      this.minDate = todayStr;
+      this.bookingForm.date = todayStr;
+    }
+
+    const max = new Date();
+    max.setDate(today.getDate() + 30);
+    this.maxDate = this.getLocalDateString(max);
+  }
+
   ngOnInit(): void {
     try {
       localStorage.removeItem('dcor_cache_appointments');
     } catch (_) {}
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    this.minDate = tomorrow.toISOString().split('T')[0];
-    this.bookingForm.date = this.minDate;
+    this.initBookingDates();
 
     this.isLoggedIn = this.authService.isAuthenticated();
     this.isPhoneVerified = this.authService.isGuestVerified();
@@ -354,12 +407,43 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     return this.appointments.filter(a => a.status === key).length;
   }
 
+  
+  getAppointmentDay(dateStr: string | Date | undefined): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? '' : String(d.getDate()).padStart(2, '0');
+  }
+
+  getAppointmentMonth(dateStr: string | Date | undefined): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? '' : `THÁNG ${d.getMonth() + 1}`;
+  }
+
+  getAppointmentWeekday(dateStr: string | Date | undefined): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    return days[d.getDay()] || '';
+  }
+
+  triggerDatePicker(dateInput?: HTMLInputElement): void {
+    if (dateInput && typeof (dateInput as any).showPicker === 'function') {
+      try {
+        (dateInput as any).showPicker();
+      } catch (_) {
+        dateInput.focus();
+      }
+    }
+  }
+
   openBookingModal(): void {
     this.prefillUserInfo();
+    this.initBookingDates();
     this.bookingForm.appointmentType = 'SHOWROOM';
     this.bookingForm.showroomAddress = 'Tại Showroom DCor';
-    this.bookingForm.date = this.minDate;
-    this.bookingForm.timeSlot = this.masterTimeSlots[0];
+    this.bookingForm.timeSlot = '';
     this.bookingForm.spaceType = 'Phòng khách';
     this.bookingForm.budget = '100 - 250 triệu';
     this.bookingForm.notes = '';
@@ -387,13 +471,20 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   }
 
   selectTimeSlot(slot: string): void {
-    if (this.isSlotBooked(slot)) return;
+    if (this.isSlotDisabled(slot)) return;
     this.bookingForm.timeSlot = slot;
     delete this.fieldErrors['timeSlot'];
   }
 
   isSlotBooked(slot: string): boolean {
-    return this.bookedSlots.includes(slot);
+    if (this.bookedSlots && this.bookedSlots.includes(slot)) return true;
+    if (this.existingAppointmentOnDate && this.existingAppointmentOnDate.timeSlot === slot) return true;
+    if (this.appointments && this.appointments.some(a => a.status !== 'CANCELLED' && a.date === this.bookingForm.date && a.timeSlot === slot)) return true;
+    return false;
+  }
+
+  isSlotDisabled(slot: string): boolean {
+    return this.isSlotBooked(slot) || this.isSlotPast(slot) || this.customerHasAppointmentOnDate;
   }
 
   checkAvailability(): void {
@@ -421,9 +512,16 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (res) => {
         this.bookedSlots = res.bookedSlots || [];
-        this.availableTimeSlots = this.masterTimeSlots.filter(slot => !this.bookedSlots.includes(slot));
+        // Nếu khách này đã có lịch hẹn ngày này, đảm bảo khung giờ đó nằm trong bookedSlots để khóa lại
+        if (this.existingAppointmentOnDate && !this.bookedSlots.includes(this.existingAppointmentOnDate.timeSlot)) {
+          this.bookedSlots.push(this.existingAppointmentOnDate.timeSlot);
+        }
 
-        if (this.availableTimeSlots.length > 0 && !this.availableTimeSlots.includes(this.bookingForm.timeSlot)) {
+        this.availableTimeSlots = this.masterTimeSlots.filter(slot => !this.isSlotBooked(slot) && !this.isSlotPast(slot));
+
+        if (this.customerHasAppointmentOnDate) {
+          this.bookingForm.timeSlot = '';
+        } else if (this.availableTimeSlots.length > 0 && (!this.bookingForm.timeSlot || this.isSlotDisabled(this.bookingForm.timeSlot))) {
           this.bookingForm.timeSlot = this.availableTimeSlots[0];
         } else if (this.availableTimeSlots.length === 0) {
           this.bookingForm.timeSlot = '';
@@ -432,7 +530,14 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: () => {
-        this.availableTimeSlots = [...this.masterTimeSlots];
+        this.bookedSlots = [];
+        if (this.existingAppointmentOnDate) {
+          this.bookedSlots.push(this.existingAppointmentOnDate.timeSlot);
+        }
+        this.availableTimeSlots = this.masterTimeSlots.filter(slot => !this.isSlotBooked(slot) && !this.isSlotPast(slot));
+        if (this.customerHasAppointmentOnDate) {
+          this.bookingForm.timeSlot = '';
+        }
         this.isLoadingSlots = false;
         this.cdr.markForCheck();
       }
@@ -466,6 +571,9 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     if (!this.bookingForm.date) {
       this.fieldErrors['date'] = 'Vui lòng chọn ngày hẹn.';
       isValid = false;
+    } else if (this.bookingForm.date < this.getLocalDateString()) {
+      this.fieldErrors['date'] = 'Không thể chọn ngày trong quá khứ.';
+      isValid = false;
     } else if (this.isDateLockedSelected) {
       this.fieldErrors['date'] = 'Ngày này đang tạm nghỉ. Vui lòng chọn ngày khác.';
       isValid = false;
@@ -473,6 +581,9 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
 
     if (!this.bookingForm.timeSlot) {
       this.fieldErrors['timeSlot'] = 'Vui lòng chọn một khung giờ còn trống.';
+      isValid = false;
+    } else if (this.isSlotPast(this.bookingForm.timeSlot)) {
+      this.fieldErrors['timeSlot'] = 'Khung giờ này đã trôi qua so với thời gian hiện tại. Vui lòng chọn khung giờ khác.';
       isValid = false;
     }
 
@@ -576,6 +687,8 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     this.rescheduleTimeSlot = apt.timeSlot;
     this.rescheduleNotes = apt.notes || '';
     this.rescheduleError = '';
+    this.rescheduleDateConflict = '';
+    this.existingRescheduleAppointmentOnDate = null;
     this.isRescheduleModalOpen = true;
     this.checkRescheduleAvailability();
     this.cdr.markForCheck();
@@ -585,17 +698,49 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     this.isRescheduleModalOpen = false;
     this.reschedulingAppointment = null;
     this.rescheduleError = '';
+    this.rescheduleDateConflict = '';
+    this.existingRescheduleAppointmentOnDate = null;
   }
 
   onRescheduleDateChange(): void {
+    this.rescheduleDateConflict = '';
+    this.existingRescheduleAppointmentOnDate = null;
+    if (!this.rescheduleDate || !this.reschedulingAppointment) return;
+
+    // Kiểm tra khách đã có lịch hẹn KHÁC vào ngày mới chưa
+    const otherAppt = this.appointments.find(a => 
+      a.id !== this.reschedulingAppointment?.id &&
+      a.status !== 'CANCELLED' &&
+      a.date === this.rescheduleDate
+    );
+    if (otherAppt) {
+      this.existingRescheduleAppointmentOnDate = otherAppt;
+      this.rescheduleDateConflict = `Bạn đã có lịch hẹn vào ngày ${this.rescheduleDate} (${otherAppt.timeSlot}). Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày.`;
+    }
+
     this.checkRescheduleAvailability();
   }
 
   selectRescheduleSlot(slot: string): void {
-    if (this.rescheduleBookedSlots.includes(slot) && slot !== this.reschedulingAppointment?.timeSlot) {
-      return;
-    }
+    if (this.isRescheduleSlotDisabled(slot)) return;
     this.rescheduleTimeSlot = slot;
+  }
+
+  isRescheduleSlotBooked(slot: string): boolean {
+    if (this.rescheduleDate === this.reschedulingAppointment?.date && slot === this.reschedulingAppointment?.timeSlot) {
+      return false;
+    }
+    if (this.rescheduleBookedSlots && this.rescheduleBookedSlots.includes(slot)) {
+      return true;
+    }
+    if (this.existingRescheduleAppointmentOnDate && this.existingRescheduleAppointmentOnDate.timeSlot === slot) {
+      return true;
+    }
+    return false;
+  }
+
+  isRescheduleSlotDisabled(slot: string): boolean {
+    return this.isRescheduleSlotBooked(slot) || this.isSlotPast(slot, this.rescheduleDate) || !!this.rescheduleDateConflict;
   }
 
   checkRescheduleAvailability(): void {
@@ -614,7 +759,7 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
           return true;
         });
 
-        this.rescheduleAvailableSlots = this.masterTimeSlots.filter(s => !this.rescheduleBookedSlots.includes(s));
+        this.rescheduleAvailableSlots = this.masterTimeSlots.filter(s => !this.rescheduleBookedSlots.includes(s) && !this.isSlotPast(s, this.rescheduleDate));
         this.cdr.markForCheck();
       },
       error: () => {

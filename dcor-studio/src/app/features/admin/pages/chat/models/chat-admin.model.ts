@@ -23,6 +23,7 @@ export interface ChatConversation {
   lastMessageAt: string | Date;
   lastMessagePreview: string;
   customerId?: string | null;
+  customerType?: 'MEMBER' | 'GUEST';
   internalNote?: string | null;
   createdAt: string | Date;
   closedAt?: string | Date | null;
@@ -111,14 +112,32 @@ export interface WorkingHoursSetting {
   days: number[];
 }
 
+export interface ChatSummary {
+  total: number;
+  waiting: number;
+  mine: number;
+  unread: number;
+  resolved: number;
+}
+
 export interface ChatSettings {
   workingHours?: WorkingHoursSetting;
   greeting?: string;
+  greetingGuest?: string;
+  greetingAuth?: string;
+  loginPromptMessage?: string;
   offlineMessage?: string;
   handoffMessage?: string;
   fallbackMessages?: string[];
   hotline?: string;
   address?: string;
+  timezone?: string;
+}
+
+export interface ConversationCounts {
+  all: number;
+  waiting: number;
+  unanswered: number;
 }
 
 export interface ConversationListResponse {
@@ -127,5 +146,6 @@ export interface ConversationListResponse {
   page: number;
   pageSize: number;
   totalPages: number;
+  counts?: ConversationCounts;
 }
 

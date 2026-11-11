@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 import {
   Activity,
   AlertCircle,
@@ -40,6 +40,7 @@ import {
   Layers,
   Leaf,
   ListIndentDecrease,
+  ListRestart,
   LockKeyhole,
   LogOut,
   Mail,
@@ -111,6 +112,7 @@ import {
   CornerDownLeft,
   CornerDownRight,
   Reply,
+  ArrowDownCircle,
   RotateCcw,
   ShieldAlert,
   Code,
@@ -159,6 +161,7 @@ const ICONS = {
   Layers,
   Leaf,
   ListIndentDecrease,
+  ListRestart,
   LockKeyhole,
   LogOut,
   Mail,
@@ -229,6 +232,7 @@ const ICONS = {
   CornerDownLeft,
   CornerDownRight,
   Reply,
+  ArrowDownCircle,
   RotateCcw,
   ShieldAlert,
   Code,

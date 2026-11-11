@@ -13,9 +13,9 @@ export class ConsoleSmsProvider implements ISmsProvider {
   name = 'Console';
 
   async sendOtp(phone: string, otp: string): Promise<SmsSendResult> {
-    // Không log OTP ở production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[SMS Dev - ${phone}] Mã OTP xác thực DCor của bạn là: ${otp}. Mã có hiệu lực trong 90 giây.`);
+    // Chỉ log OTP khi biến môi trường EXPOSE_DEV_OTP được bật và không phải production
+    if (process.env.NODE_ENV !== 'production' && process.env.EXPOSE_DEV_OTP === 'true') {
+      console.info(`[SMS Dev - ${phone}] Mã OTP xác thực DCor của bạn là: ${otp}. Mã có hiệu lực trong 90 giây.`);
     }
     return {
       success: true,

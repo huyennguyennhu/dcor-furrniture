@@ -1,76 +1,105 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { LucideAngularModule, Check, Heart, ShoppingCart } from 'lucide-angular';
+import { LucideAngularModule, Heart, Sparkles, ShoppingBag } from 'lucide-angular';
 import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
-import { WishlistService, WishlistItem } from '../../../../core/services/wishlist.service';
-import { CartService } from '../../../../core/services/cart.service';
+import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
+import { WishlistService } from '../../../../core/services/wishlist.service';
+import { ProductService } from '../../../../core/services/product.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-wishlist',
   standalone: true,
-  imports: [CommonModule, RouterModule, LucideAngularModule, AccountSidebarComponent],
+  imports: [CommonModule, RouterModule, LucideAngularModule, AccountSidebarComponent, ProductCardComponent],
   templateUrl: './wishlist.html',
   styleUrls: ['./wishlist.css']
 })
 export class WishlistComponent implements OnInit, OnDestroy {
-  readonly icons = { Check, Heart, ShoppingCart };
+  readonly icons = { Heart, Sparkles, ShoppingBag };
 
-  wishlistItems: WishlistItem[] = [];
-  toastMessage = '';
+  wishlistProducts: any[] = [];
+  isLoading = true;
   private sub = new Subscription();
 
   constructor(
     private wishlistService: WishlistService,
-    private cartService: CartService
+    private productService: ProductService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.loadWishlistProducts();
+
+    // Tự động đồng bộ thời gian thực khi danh sách yêu thích thay đổi
     this.sub.add(
-      this.wishlistService.wishlist$.subscribe(items => {
-        this.wishlistItems = items;
+      this.wishlistService.wishlist$.subscribe(() => {
+        this.loadWishlistProducts();
       })
     );
   }
 
-  formatCurrency(val: number): string {
-    return (val || 0).toLocaleString('vi-VN') + ' ₫';
-  }
+  async loadWishlistProducts(): Promise<void> {
+    const rawList = this.wishlistService.currentWishlist || [];
+    if (rawList.length === 0) {
+      this.wishlistProducts = [];
+      this.isLoading = false;
+      this.cdr.markForCheck();
+      return;
+    }
 
-  removeFromWishlist(item: WishlistItem, event?: Event): void {
-    if (event) event.stopPropagation();
-    this.wishlistService.removeFromWishlist(item.productId);
-    this.showToast(`Đã bỏ "${item.name}" khỏi danh sách yêu thích.`);
-  }
-
-  addToCart(item: WishlistItem, event?: Event): void {
-    if (event) event.stopPropagation();
-    this.cartService.addToCart(
-      item.variantId || 'default',
-      1,
-      null,
-      {
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        image: item.image
+    try {
+      // 1. Lấy toàn bộ sản phẩm thực tế từ ProductService để card có đầy đủ thông tin chuẩn 100%
+      const allProducts = await this.productService.getProducts();
+      const productMap = new Map<string, any>();
+      for (const p of allProducts) {
+        if (p.id) productMap.set(p.id, p);
+        if (p.slug) productMap.set(p.slug, p);
       }
-    ).subscribe({
-      next: () => {
-        this.showToast(`Đã thêm "${item.name}" vào giỏ hàng!`);
-      },
-      error: () => {
-        this.showToast(`Không thể thêm vào giỏ hàng. Vui lòng thử lại.`);
-      }
-    });
+
+      this.wishlistProducts = rawList.map(item => {
+        const id = this.wishlistService.getId(item);
+        const catalogProd = productMap.get(id);
+        if (catalogProd) {
+          return catalogProd;
+        }
+        // Nếu không tìm thấy trong catalog (ví dụ data cũ hoặc mock): fallback dùng chính object đã lưu
+        if (typeof item === 'object') {
+          return {
+            ...item,
+            id: id,
+            productId: id,
+            name: item.name || item.title || ('Sản phẩm #' + id.slice(0, 8)),
+            price: item.price || item.basePrice || 0,
+            cardImages: item.cardImages || item.images || (item.image ? [item.image] : [])
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    } catch (err) {
+      // Fallback nếu không có kết nối mạng: dùng các object đã lưu trong localStorage
+      this.wishlistProducts = rawList.map(item => {
+        if (typeof item === 'object') {
+          const id = this.wishlistService.getId(item);
+          return {
+            ...item,
+            id,
+            productId: id,
+            name: item.name || item.title || ('Sản phẩm #' + id.slice(0, 8)),
+            price: item.price || 0,
+            cardImages: item.cardImages || item.images || (item.image ? [item.image] : [])
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    } finally {
+      this.isLoading = false;
+      this.cdr.markForCheck();
+    }
   }
 
-  showToast(message: string): void {
-    this.toastMessage = message;
-    setTimeout(() => {
-      this.toastMessage = '';
-    }, 3500);
+  trackByProductId(index: number, item: any): string {
+    return item?.id || item?.productId || index.toString();
   }
 
   ngOnDestroy(): void {

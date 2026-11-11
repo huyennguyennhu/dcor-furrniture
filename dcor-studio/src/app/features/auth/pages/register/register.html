@@ -79,9 +79,6 @@
               placeholder="VD: 0912345678" 
               autocomplete="tel"
             />
-            <button *ngIf="phone" type="button" class="input-clear-btn" (click)="phone = ''" aria-label="Xóa">
-              <app-icon name="X" size="16"></app-icon>
-            </button>
           </div>
           <span *ngIf="phone && !isPhoneValid" class="field-error-hint">
             Số điện thoại phải gồm 10 chữ số (đầu số 03, 05, 07, 08, 09)
@@ -110,16 +107,9 @@
             </button>
           </div>
 
-          <!-- Password Strength Indicator -->
-          <div *ngIf="password" class="password-strength-box">
-            <div class="strength-bar-track">
-              <div class="strength-bar-fill" 
-                   [ngClass]="passwordStrength.barClass" 
-                   [style.width.%]="passwordStrength.percent"></div>
-            </div>
-            <div class="strength-info">
-              <span class="strength-text">Độ mạnh: <strong [ngClass]="passwordStrength.textClass">{{ passwordStrength.label }}</strong></span>
-            </div>
+          <!-- Password Hint Line -->
+          <div *ngIf="password" class="password-hint" [ngClass]="isPasswordFormatValid ? 'is-valid' : 'is-invalid'">
+            Tối thiểu 8 ký tự, gồm chữ và số
           </div>
         </div>
 

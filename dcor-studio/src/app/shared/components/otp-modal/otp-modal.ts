@@ -7,7 +7,8 @@ import {
   OnChanges,
   OnDestroy,
   SimpleChanges,
-  ChangeDetectorRef
+  ChangeDetectorRef,
+  isDevMode
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -152,6 +153,10 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
 
   get canConfirm(): boolean {
     return this.isComplete && !this.loading && !this.isExpired;
+  }
+
+  get isDevModeWithoutOtp(): boolean {
+    return isDevMode() && !this.demoOtp;
   }
 
   resetState(): void {

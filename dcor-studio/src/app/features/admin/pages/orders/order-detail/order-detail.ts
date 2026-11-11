@@ -1057,6 +1057,12 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     return false;
   }
 
+  get isDeliveredOrCompleted(): boolean {
+    if (!this.order) return false;
+    if (['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(this.order.status)) return true;
+    return this.activeViewingStep >= 4;
+  }
+
   // Khóa checkbox QC sau khi đã nhấn xác nhận Xuất kho ở bước Sẵn sàng xuất (từ SHIPPED trở đi) hoặc đơn hoàn tất/hủy
   get isQcLocked(): boolean {
     if (!this.order) return true;

@@ -159,51 +159,66 @@
     </div>
   </div>
 
-  <!-- Filter & Search Toolbar -->
-  <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; flex-wrap: wrap;">
-    <!-- Type Pills: Nhập kho & Xuất kho -->
-    <div class="type-filter-group">
+  <!-- Type Tabs (Nhập kho - Xuất kho nổi bật rõ ràng phía trên thanh tìm kiếm) -->
+  <div class="transaction-type-segment-bar">
+    <div class="segment-tabs-container">
+      <button 
+        type="button" 
+        (click)="setTypeFilter('all')"
+        class="segment-tab-btn"
+        [class.active]="typeFilter === 'all'"
+      >
+        <lucide-angular [img]="icons.Layers" size="16"></lucide-angular>
+        <span>Tất cả lệnh kho</span>
+        <span class="segment-count-badge">{{ data.length }}</span>
+      </button>
+
       <button 
         type="button" 
         (click)="setTypeFilter('import')"
-        class="type-filter-btn import"
+        class="segment-tab-btn import-tab"
         [class.active]="typeFilter === 'import'"
         title="Lọc các phiếu nhập kho"
       >
-        <lucide-angular [img]="icons.ArrowDownRight" size="15" [style.color]="typeFilter === 'import' ? '#ffffff' : '#059669'"></lucide-angular>
+        <lucide-angular [img]="icons.ArrowDownRight" size="16"></lucide-angular>
         <span>Nhập kho</span>
-        <span class="type-filter-badge">({{ importCount }})</span>
+        <span class="segment-count-badge">{{ importCount }}</span>
       </button>
 
       <button 
         type="button" 
         (click)="setTypeFilter('export')"
-        class="type-filter-btn export"
+        class="segment-tab-btn export-tab"
         [class.active]="typeFilter === 'export'"
         title="Lọc các phiếu xuất kho"
       >
-        <lucide-angular [img]="icons.ArrowUpRight" size="15" [style.color]="typeFilter === 'export' ? '#ffffff' : '#dc2626'"></lucide-angular>
+        <lucide-angular [img]="icons.ArrowUpRight" size="16"></lucide-angular>
         <span>Xuất kho</span>
-        <span class="type-filter-badge">({{ exportCount }})</span>
+        <span class="segment-count-badge">{{ exportCount }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; flex-wrap: wrap;">
+    <!-- Search Box -->
+    <div class="filter-search-box" style="flex: 1; min-width: 250px;">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        (ngModelChange)="currentPage = 1"
+        placeholder="Tìm mã phiếu, tham chiếu, hàng hóa..." 
+        class="filter-search-input" 
+        maxlength="100"
+      />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; currentPage = 1" class="search-clear-btn" title="Xóa tìm kiếm">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
       </button>
     </div>
 
     <!-- Filter Controls -->
-    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; flex-wrap: wrap;">
-      <!-- Search Box -->
-      <div class="filter-search-box" style="flex: 1; min-width: 200px;">
-        <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
-        <input 
-          type="text" 
-          [(ngModel)]="searchTerm" 
-          (ngModelChange)="currentPage = 1"
-          placeholder="Tìm mã phiếu, tham chiếu, hàng hóa..." 
-          class="filter-search-input" 
-        />
-        <button *ngIf="searchTerm" (click)="searchTerm = ''; currentPage = 1" class="search-clear-btn" title="Xóa tìm kiếm">
-          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
-        </button>
-      </div>
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
 
       <!-- Dropdown Chi nhánh/Kho -->
       <div class="filter-dropdown-wrapper location-filter-wrapper">
@@ -317,22 +332,10 @@
           </th>
           -->
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('code')" title="Sắp xếp theo Mã phiếu">
-              <span>Mã phiếu</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'code' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'code' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'code' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'code' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+            Mã phiếu
           </th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('type')" title="Sắp xếp theo Loại phiếu">
-              <span>Loại phiếu</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'type' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'type' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'type' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'type' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+            Loại phiếu
           </th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
             <div class="th-sort-wrapper" (click)="toggleColumnSort('date')" title="Sắp xếp theo Thời gian">
@@ -344,13 +347,7 @@
             </div>
           </th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('reason')" title="Sắp xếp theo Lý do">
-              <span>Lý do & Tham chiếu</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'reason' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'reason' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'reason' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'reason' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+            Lý do & Tham chiếu
           </th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap;">
             <div class="th-sort-wrapper" (click)="toggleColumnSort('quantity')" title="Sắp xếp theo Số lượng" style="justify-content: center;">
@@ -371,13 +368,7 @@
             </div>
           </th>
           <th style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái">
-              <span>Trạng thái</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+            Trạng thái
           </th>
           <th style="padding: 12px 14px; width: 60px; text-align: center;"></th>
         </tr>

@@ -1,0 +1,809 @@
+/* ==========================================================================
+   DCor UI Style Guide - Order Review Modal (Chuẩn hóa Token & Nhận diện thương hiệu)
+   Tokens:
+   - Primary: #765337 | Primary Hover: #BC5F13 | Pressed: #3F2C1B
+   - Accent: #BC5F13 | Sub-bg: #FFF3E3 | Page: #FCF8F3
+   - Warning: #F2BF3D | Danger: #C42326 | Success: #00A30B
+   - Text: #0A0A0A | Text Secondary: #616161
+   - Radius: Control 8px | Card 12px | Modal 16px | Pill 999px
+   - Font: "Poppins", sans-serif
+   ========================================================================== */
+
+/* BACKDROP OVERLAY */
+.review-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay, rgba(10, 10, 10, 0.48));
+  backdrop-filter: blur(4px);
+  z-index: var(--z-modal, 400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeInModal 0.2s cubic-bezier(0.2, 0, 0, 1);
+  box-sizing: border-box;
+  font-family: var(--font-body, "Poppins", sans-serif);
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* MODAL CONTAINER */
+.review-modal-container {
+  background: var(--color-surface, #FFFFFF);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  border-radius: var(--radius-modal, 16px);
+  box-shadow: var(--shadow-overlay, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+  border: 1px solid rgba(118, 83, 55, 0.12);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  animation: slideUpModal 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes slideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* MODAL HEADER */
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(188, 95, 19, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-sub-bg, #FFF3E3);
+}
+
+.header-titles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+  margin: 0;
+  font-family: var(--font-heading, "Poppins", sans-serif);
+}
+
+.order-badge {
+  background: #FFFFFF;
+  color: var(--color-primary, #765337);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid rgba(118, 83, 55, 0.25);
+  font-family: var(--font-body, "Poppins", sans-serif);
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary, #616161);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-close:hover {
+  background: rgba(118, 83, 55, 0.1);
+  color: var(--color-text, #0A0A0A);
+}
+
+/* ALERT BANNERS */
+.alert-banner {
+  margin: 12px 24px 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-control, 8px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-family: var(--font-body, "Poppins", sans-serif);
+}
+
+.alert-success {
+  background: var(--color-success-bg, #E9F8E9);
+  color: var(--color-success, #00A30B);
+  border: 1px solid #C2ECC2;
+}
+
+.alert-error {
+  background: var(--color-danger-bg, #FFE8E8);
+  color: var(--color-danger, #C42326);
+  border: 1px solid #FFA39E;
+}
+
+.alert-icon {
+  flex-shrink: 0;
+}
+
+/* MODAL BODY */
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--color-page, #FCF8F3);
+}
+
+/* PRODUCT REVIEW CARD */
+.product-review-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-card, 12px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--shadow-card, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.product-review-card:hover {
+  border-color: rgba(188, 95, 19, 0.35);
+  box-shadow: 0 4px 12px rgba(118, 83, 55, 0.06);
+}
+
+/* PRODUCT INFO HEADER */
+.product-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border-subtle, #EDEDED);
+}
+
+.product-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-control, 8px);
+  overflow: hidden;
+  background: var(--color-surface-subtle, #F5F5F5);
+  flex-shrink: 0;
+  border: 1px solid var(--color-border, #E0E0E0);
+}
+
+.product-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-img-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #757575);
+}
+
+.product-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+  margin: 0 0 4px;
+  line-height: 1.4;
+  font-family: var(--font-heading, "Poppins", sans-serif);
+}
+
+.product-variant {
+  font-size: 13px;
+  color: var(--color-text-secondary, #616161);
+  margin: 0;
+}
+
+.product-variant span {
+  color: var(--color-text, #0A0A0A);
+  font-weight: 500;
+}
+
+/* SECTION LABELS */
+.section-label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+  margin-bottom: 8px;
+  font-family: var(--font-body, "Poppins", sans-serif);
+}
+
+/* 5-STAR RATING SYSTEM: Khi được chọn lấp đầy vàng #F2BF3D, khi không chọn chỉ có viền xám */
+.star-rating-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap; /* Bắt buộc luôn nằm trên 1 dòng duy nhất trên desktop */
+  min-height: 30px;
+}
+
+.stars-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.star-btn:hover {
+  transform: scale(1.18);
+}
+
+/* Ngôi sao CHƯA chọn: Kích thước 22px gọn gàng, viền xám rỗng ruột */
+.star-svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: #CBD5E1;
+  stroke-width: 1.8px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.15s ease;
+}
+
+.star-btn:hover .star-svg {
+  stroke: #F2BF3D;
+}
+
+/* Ngôi sao ĐƯỢC CHỌN: Lấp đầy hoàn toàn bằng màu vàng #F2BF3D */
+.star-btn.active .star-svg,
+.star-svg.filled {
+  fill: #F2BF3D !important;
+  stroke: #F2BF3D !important;
+  filter: drop-shadow(0 2px 5px rgba(242, 191, 61, 0.4));
+}
+
+/* Fallback deep selector */
+:host ::ng-deep .star-btn.active svg,
+:host ::ng-deep .star-btn.active svg path,
+:host ::ng-deep .star-btn.active svg polygon {
+  fill: #F2BF3D !important;
+  stroke: #F2BF3D !important;
+}
+
+.rating-sentiment-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-primary, #765337);
+  background: var(--color-sub-bg, #FFF3E3);
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(118, 83, 55, 0.2);
+  font-family: var(--font-body, "Poppins", sans-serif);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+/* COMMENT TEXTAREA */
+.comment-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-control, 8px);
+  font-size: 14px;
+  font-family: var(--font-body, "Poppins", sans-serif);
+  color: var(--color-text, #0A0A0A);
+  background: #FFFFFF;
+  resize: vertical;
+  line-height: 1.5;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.comment-textarea:focus {
+  outline: none;
+  border-color: var(--color-focus, #BC5F13);
+  box-shadow: 0 0 0 3px rgba(188, 95, 19, 0.15);
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.char-count {
+  font-size: 12px;
+  color: var(--color-text-muted, #757575);
+}
+
+/* MEDIA ATTACHMENTS (CAMERA & UPLOAD) */
+.media-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.media-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.image-count-hint {
+  font-size: 12.5px;
+  color: var(--color-text-secondary, #616161);
+}
+
+.media-actions-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* NÚT CHỤP ẢNH & TẢI ẢNH (DCor Secondary Button Style) */
+.btn-media-action {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-control, 8px);
+  border: 1.5px solid var(--color-primary, #765337);
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-primary, #765337);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: var(--font-body, "Poppins", sans-serif);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-media-action:hover:not(:disabled) {
+  background: var(--color-sub-bg, #FFF3E3);
+  border-color: var(--color-primary-hover, #BC5F13);
+  color: var(--color-primary-hover, #BC5F13);
+  transform: translateY(-1px);
+}
+
+.btn-media-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--color-border, #E0E0E0);
+  color: var(--color-text-muted, #757575);
+}
+
+.btn-upload-file {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-upload-file input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* UPLOADING SPINNER */
+.uploading-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-accent, #BC5F13);
+  font-weight: 500;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(188, 95, 19, 0.2);
+  border-top-color: var(--color-accent, #BC5F13);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* PREVIEWS GRID */
+.image-previews-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.image-preview-item {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-control, 8px);
+  overflow: hidden;
+  border: 1.5px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface-subtle, #F5F5F5);
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.btn-remove-img {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(10, 10, 10, 0.65);
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-remove-img:hover {
+  background: var(--color-danger, #C42326);
+  transform: scale(1.1);
+}
+
+/* MODAL FOOTER */
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.btn-cancel {
+  height: var(--control-md, 44px);
+  padding: 0 20px;
+  border-radius: var(--radius-control, 8px);
+  border: 1.5px solid var(--color-border, #E0E0E0);
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #0A0A0A);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-body, "Poppins", sans-serif);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel:hover {
+  background: var(--color-surface-subtle, #F5F5F5);
+  border-color: #BDBDBD;
+}
+
+/* NÚT GỬI ĐÁNH GIÁ (DCor Primary Button Style) */
+.btn-submit {
+  height: var(--control-md, 44px);
+  padding: 0 24px;
+  border-radius: var(--radius-control, 8px);
+  border: none;
+  background: var(--color-primary, #765337);
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-body, "Poppins", sans-serif);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: var(--color-primary-hover, #BC5F13);
+  box-shadow: 0 4px 10px rgba(188, 95, 19, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-submit:active:not(:disabled) {
+  background: var(--color-primary-pressed, #3F2C1B);
+  transform: translateY(0);
+}
+
+.btn-submit:disabled {
+  background: var(--color-surface-muted, #EDEDED);
+  color: var(--color-text-muted, #757575);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* CAMERA STREAM OVERLAY */
+.camera-stream-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.88);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.camera-box {
+  width: 100%;
+  max-width: 520px;
+  background: #18181B;
+  border-radius: var(--radius-modal, 16px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-overlay, 0 25px 50px -12px rgba(0, 0, 0, 0.5));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.camera-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #27272A;
+  color: #FFFFFF;
+  font-family: var(--font-body, "Poppins", sans-serif);
+}
+
+.camera-title {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.camera-close-btn {
+  background: transparent;
+  border: none;
+  color: #A1A1AA;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-control, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-close-btn:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000000;
+  overflow: hidden;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-actions-bar {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #27272A;
+}
+
+.btn-snap-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 4px solid #52525B;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+}
+
+.btn-snap-photo:active {
+  transform: scale(0.92);
+}
+
+.snap-inner-circle {
+  width: 100%;
+  height: 100%;
+  background: var(--color-danger, #C42326);
+  border-radius: 50%;
+}
+
+.snap-hint {
+  font-size: 12px;
+  color: #A1A1AA;
+  font-family: var(--font-body, "Poppins", sans-serif);
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .review-modal-container {
+    max-height: 95vh;
+  }
+  .modal-header {
+    padding: 14px 16px;
+  }
+  .modal-body {
+    padding: 16px;
+    gap: 16px;
+  }
+  .modal-footer {
+    padding: 12px 16px;
+  }
+  .star-rating-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+
+/* ======================================================== */
+/* ANONYMOUS SETTING CARD (Format chuyên nghiệp chuẩn DCor)  */
+/* ======================================================== */
+.anonymous-setting-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: var(--radius-card, 12px);
+  padding: 14px 18px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  margin-top: 4px;
+}
+
+.anonymous-setting-card:hover {
+  border-color: rgba(118, 83, 55, 0.35);
+  background: #FFFDF9;
+}
+
+.anonymous-toggle-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+}
+
+.custom-checkbox-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.custom-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.custom-checkbox-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.custom-checkbox-box.checked,
+.custom-checkbox-input:checked + .custom-checkbox-box {
+  background: var(--color-primary, #765337);
+  border-color: var(--color-primary, #765337);
+  box-shadow: 0 2px 4px rgba(118, 83, 55, 0.25);
+}
+
+.check-tick-icon {
+  color: #FFFFFF;
+  stroke-width: 3px;
+}
+
+.anonymous-text-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.anonymous-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.anonymous-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text, #0A0A0A);
+}
+
+.anonymous-privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-sub-bg, #FFF3E3);
+  color: var(--color-primary, #765337);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(118, 83, 55, 0.2);
+}
+
+.anonymous-desc {
+  font-size: 12.5px;
+  color: var(--color-text-secondary, #616161);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.anonymous-desc strong {
+  color: var(--color-primary, #765337);
+}

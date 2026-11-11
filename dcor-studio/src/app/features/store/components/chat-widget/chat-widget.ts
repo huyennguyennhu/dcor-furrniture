@@ -18,9 +18,9 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ChatSocketService, CHAT_UI_OPEN_KEY } from './chat-socket.service';
 import {
   ChatMessage,
-  ProductCardItem,
-  OrderCardMeta,
   ProductCardsMeta,
+  OrderCardMeta,
+  LinkMeta,
 } from './chat-widget.model';
 
 interface TextSegment {
@@ -51,12 +51,6 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
   // Trạng thái thanh so sánh nổi
   public isDockActive = signal(false);
 
-  // Form đăng ký thông tin khách vãng lai
-  public guestName = signal('');
-  public guestPhone = signal('');
-  public guestFormError = signal<string | null>(null);
-  public isSubmittingInit = signal(false);
-
   // Form nhập tin nhắn
   public inputContent = signal('');
   public selectedImageFile = signal<File | null>(null);
@@ -68,14 +62,19 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
   public showNewMessagesButton = signal(false);
   private isUserNearBottom = true;
 
-  // Tập hợp các ID tin nhắn đã được bấm Quick Reply (để vô hiệu hóa)
+  // Tập hợp các ID tin nhắn đã được bấm Quick Reply
   public usedQuickReplyMessageIds = signal<Set<string>>(new Set());
 
-  // Popup xác nhận kết thúc trò chuyện
-  public showEndConfirm = signal(false);
+  // Hộp xác nhận dạng lớp phủ (Overlay) khi bấm icon thùng rác
+  public showResetConfirm = signal(false);
+
+  // Nhắc nhở đăng nhập cục bộ khi khách vãng lai bấm nút ảnh
+  public showGuestUploadLoginPrompt = signal(false);
 
   // Listeners
   private storageEventListener?: (e: Event) => void;
+  private focusEventListener?: () => void;
+  private lastKnownAuthToken: string | null = null;
 
   // Computed properties
   public currentUser = computed(() => this.authService.getCurrentUser());
@@ -112,11 +111,11 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     if (conv.mode === 'WAITING_STAFF') {
       return 'Chuyên viên sẽ phản hồi bạn trong giây lát';
     }
-    return 'Tự động giải đáp 24/7';
+    return 'Hỗ trợ khách hàng 24/7';
   });
 
   constructor() {
-    // Tự động cuộn xuống cuối khi có tin nhắn mới nếu người dùng đang ở đáy
+    // Tự động cuộn xuống cuối khi có tin nhắn mới
     effect(() => {
       const msgs = this.chatService.messages();
       if (msgs.length > 0) {
@@ -141,78 +140,106 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.checkDockState();
+    this.lastKnownAuthToken = this.authService.getToken();
 
     if (typeof window !== 'undefined') {
       this.storageEventListener = () => {
         this.checkDockState();
+        this.checkAuthStatusTransition();
       };
       window.addEventListener('dcor_compare_updated', this.storageEventListener);
       window.addEventListener('storage', this.storageEventListener);
 
-      // Khôi phục trạng thái mở/đóng UI từ sessionStorage
+      this.focusEventListener = () => {
+        this.checkAuthStatusTransition();
+      };
+      window.addEventListener('focus', this.focusEventListener);
+
       try {
         const savedOpenState = sessionStorage.getItem(CHAT_UI_OPEN_KEY);
         if (savedOpenState === 'true') {
           this.isOpen.set(true);
           this.chatService.setWindowOpen(true);
         }
-      } catch {
-        // Bỏ qua
-      }
+      } catch {}
     }
 
-    // Tải hoặc khôi phục phiên chat
+    // Khởi tạo phiên
     await this.initSession();
   }
 
   ngOnDestroy() {
-    if (typeof window !== 'undefined' && this.storageEventListener) {
-      window.removeEventListener('dcor_compare_updated', this.storageEventListener);
-      window.removeEventListener('storage', this.storageEventListener);
+    if (typeof window !== 'undefined') {
+      if (this.storageEventListener) {
+        window.removeEventListener('dcor_compare_updated', this.storageEventListener);
+        window.removeEventListener('storage', this.storageEventListener);
+      }
+      if (this.focusEventListener) {
+        window.removeEventListener('focus', this.focusEventListener);
+      }
     }
   }
 
   @HostListener('window:keydown.escape')
   onEscapePressed() {
+    if (this.showResetConfirm()) {
+      this.showResetConfirm.set(false);
+      return;
+    }
     if (this.isOpen()) {
       this.closeChat();
     }
   }
 
   /**
+   * Theo dõi trạng thái đăng nhập đổi từ guest -> đã đăng nhập hoặc ngược lại
+   */
+  private checkAuthStatusTransition() {
+    const currentToken = this.authService.getToken();
+
+    // 1. Trường hợp vừa đăng nhập thành công (từ null sang có token)
+    if (!this.lastKnownAuthToken && currentToken) {
+      this.lastKnownAuthToken = currentToken;
+      // Gọi claim conversation
+      this.chatService.claimConversation();
+      return;
+    }
+
+    // 2. Trường hợp đăng xuất (từ có token sang null):
+    // "Khi đăng xuất: ngắt socket, xóa toàn bộ khóa chat khỏi storage, đóng cửa sổ và về lời chào guest mới"
+    if (this.lastKnownAuthToken && !currentToken) {
+      this.lastKnownAuthToken = null;
+      this.chatService.disconnect();
+      this.chatService.clearAllChatStorage();
+      this.closeChat();
+      this.chatService.resetToFreshState();
+      return;
+    }
+
+    this.lastKnownAuthToken = currentToken;
+  }
+
+  /**
    * Khởi tạo hoặc khôi phục phiên chat
    */
   private async initSession() {
-    const isAuth = this.authService.isAuthenticated();
-    const guestSession = this.chatService.getGuestSession();
+    // 1. Luôn tải lời chào (GET /api/chat/greeting: text + nút gợi ý, theo trạng thái đăng nhập)
+    await this.chatService.fetchGreeting();
 
-    if (isAuth || guestSession) {
-      // Kết nối socket
+    // 2. Thử khôi phục hội thoại cũ qua REST (nếu có sẵn)
+    const conv = await this.chatService.fetchMeConversation();
+    if (conv) {
       this.chatService.connect();
-
-      // Gọi REST API lấy thông tin hội thoại hiện tại
-      const conv = await this.chatService.fetchMeConversation();
-      if (conv) {
-        // Tải 30 tin nhắn mới nhất
-        await this.chatService.fetchMessages(conv.id, undefined, 30);
-        setTimeout(() => this.scrollToBottom('instant'), 100);
-      } else if (isAuth) {
-        // Nếu đã đăng nhập nhưng chưa có hội thoại, tự động tạo hội thoại với tên và sđt của tài khoản
-        const user = this.authService.getCurrentUser();
-        if (user && user.phone) {
-          try {
-            await this.chatService.initGuestConversation(user.fullName, user.phone);
-          } catch {
-            // Sẽ hiển thị form nếu khởi tạo tự động chưa thành công
-          }
-        }
+      await this.chatService.fetchMessages(conv.id, undefined, 30);
+      setTimeout(() => this.scrollToBottom('instant'), 100);
+    } else {
+      // Chưa có hội thoại, kiểm tra nếu khách vừa đăng nhập sau handoff
+      if (this.authService.isAuthenticated() && this.chatService.hasPendingHandoff()) {
+        await this.chatService.claimConversation();
       }
     }
   }
 
-  /**
-   * Chuyển đổi trạng thái mở / đóng cửa sổ chat
-   */
   public toggleChat() {
     if (this.isOpen()) {
       this.closeChat();
@@ -226,8 +253,11 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     this.chatService.setWindowOpen(true);
     try {
       sessionStorage.setItem(CHAT_UI_OPEN_KEY, 'true');
-    } catch {
-      // Bỏ qua
+    } catch {}
+
+    // Kiểm tra nếu chưa nạp greeting thì nạp lại
+    if (!this.chatService.initialGreeting()) {
+      this.chatService.fetchGreeting();
     }
 
     setTimeout(() => {
@@ -241,87 +271,32 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     this.chatService.setWindowOpen(false);
     try {
       sessionStorage.setItem(CHAT_UI_OPEN_KEY, 'false');
-    } catch {
-      // Bỏ qua
-    }
+    } catch {}
   }
 
   /**
-   * Bắt đầu trò chuyện từ form khách vãng lai
+   * Bấm nút thùng rác: Mở hộp xác nhận
    */
-  public async submitGuestInit() {
-    const name = this.guestName().trim();
-    const phone = this.guestPhone().trim();
+  public openResetConfirm() {
+    this.showResetConfirm.set(true);
+  }
 
-    if (!name) {
-      this.guestFormError.set('Vui lòng nhập họ và tên của bạn.');
-      return;
-    }
-
-    // Kiểm tra số điện thoại Việt Nam (10 số, bắt đầu bằng 03, 05, 07, 08, 09)
-    const phoneRegex = /^(03|05|07|08|09)[0-9]{8}$/;
-    if (!phoneRegex.test(phone)) {
-      this.guestFormError.set('Số điện thoại không hợp lệ. Vui lòng nhập SĐT Việt Nam 10 chữ số (đầu số 03, 05, 07, 08, 09).');
-      return;
-    }
-
-    this.guestFormError.set(null);
-    this.isSubmittingInit.set(true);
-
-    try {
-      await this.chatService.initGuestConversation(name, phone);
-      setTimeout(() => {
-        this.scrollToBottom('instant');
-        this.focusInput();
-      }, 100);
-    } catch (err: any) {
-      this.guestFormError.set(err?.message || 'Không thể bắt đầu cuộc trò chuyện. Vui lòng thử lại.');
-    } finally {
-      this.isSubmittingInit.set(false);
-    }
+  public closeResetConfirm() {
+    this.showResetConfirm.set(false);
   }
 
   /**
-   * Bắt đầu cuộc trò chuyện mới sau khi đã kết thúc
+   * Xác nhận làm mới cuộc trò chuyện:
+   * Gọi DELETE /api/chat/conversations/:id, xóa bong bóng, xóa phiên lưu của khách,
+   * trả về trạng thái lời chào mới.
    */
-  public async startNewConversation() {
-    this.showEndConfirm.set(false);
-    this.guestFormError.set(null);
-
-    if (this.authService.isAuthenticated()) {
-      const user = this.authService.getCurrentUser();
-      const name = user?.fullName || 'Khách hàng';
-      const phone = user?.phone || '';
-      this.isSubmittingInit.set(true);
-      try {
-        await this.chatService.initGuestConversation(name, phone);
-        setTimeout(() => {
-          this.scrollToBottom('instant');
-          this.focusInput();
-        }, 150);
-      } catch (err: any) {
-        this.chatService.setError(err?.message || 'Không thể bắt đầu cuộc trò chuyện mới.');
-      } finally {
-        this.isSubmittingInit.set(false);
-      }
+  public async confirmResetConversation() {
+    this.showResetConfirm.set(false);
+    const conv = this.chatService.currentConversation();
+    if (conv?.id) {
+      await this.chatService.deleteConversation(conv.id);
     } else {
-      const conv = this.chatService.currentConversation();
-      if (conv?.guestName) this.guestName.set(conv.guestName);
-      if (conv?.guestPhone) this.guestPhone.set(conv.guestPhone);
-      this.chatService.resetConversation();
-    }
-  }
-
-  /**
-   * Kết thúc cuộc trò chuyện
-   */
-  public async confirmEndConversation() {
-    this.showEndConfirm.set(false);
-    try {
-      await this.chatService.closeCurrentConversation();
-      setTimeout(() => this.scrollToBottom('smooth'), 100);
-    } catch (err: any) {
-      this.chatService.setError(err?.message || 'Không thể kết thúc cuộc trò chuyện.');
+      this.chatService.resetToFreshState();
     }
   }
 
@@ -341,11 +316,17 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Nếu khách vãng lai gửi ảnh: từ chối và hiện LOGIN_CTA
+    if (imageFile && !this.authService.isAuthenticated()) {
+      this.removeSelectedImage();
+      this.showGuestUploadLoginPrompt.set(true);
+      return;
+    }
+
     this.isSending.set(true);
     let uploadedImageUrl: string | undefined = undefined;
 
     try {
-      // 1. Tải ảnh lên nếu có
       if (imageFile) {
         this.isUploadingImage.set(true);
         uploadedImageUrl = await this.chatService.uploadImage(imageFile);
@@ -353,10 +334,8 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
         this.selectedImagePreview.set(null);
       }
 
-      // 2. Gửi qua socket
       this.chatService.sendMessage(content, uploadedImageUrl);
 
-      // 3. Xóa ô nhập
       this.inputContent.set('');
       if (this.messageTextarea) {
         this.messageTextarea.nativeElement.style.height = 'auto';
@@ -383,7 +362,7 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Tự co giãn chiều cao textarea theo nội dung nhập
+   * Tự co giãn chiều cao textarea (tối đa 4 dòng ~ 96px)
    */
   public onTextareaInput(event: Event) {
     const target = event.target as HTMLTextAreaElement;
@@ -394,17 +373,23 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     this.handleInputChange();
   }
 
-  /**
-   * Thông báo đang gõ phím
-   */
   public handleInputChange() {
     const hasContent = this.inputContent().trim().length > 0;
     this.chatService.sendTyping(hasContent);
   }
 
   /**
-   * Xử lý chọn tệp ảnh
+   * Xử lý khi bấm nút icon đính kèm ảnh:
+   * Nếu là khách vãng lai: không mở chọn tệp, hiện bong bóng nhắc đăng nhập
    */
+  public triggerFileInput() {
+    if (!this.authService.isAuthenticated()) {
+      this.showGuestUploadLoginPrompt.set(true);
+      return;
+    }
+    this.fileInput?.nativeElement.click();
+  }
+
   public onFileSelected(event: Event) {
     const target = event.target as HTMLInputElement;
     const files = target.files;
@@ -425,17 +410,12 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     };
     reader.readAsDataURL(file);
 
-    // Reset input để có thể chọn lại cùng file
     target.value = '';
   }
 
   public removeSelectedImage() {
     this.selectedImageFile.set(null);
     this.selectedImagePreview.set(null);
-  }
-
-  public triggerFileInput() {
-    this.fileInput?.nativeElement.click();
   }
 
   /**
@@ -448,22 +428,53 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     used.add(messageId);
     this.usedQuickReplyMessageIds.set(used);
 
+    // Nếu payload là đường dẫn (ví dụ /explore)
+    if (payload.startsWith('/')) {
+      this.router.navigateByUrl(payload);
+      return;
+    }
+
     this.chatService.selectQuickReply(payload);
     setTimeout(() => this.scrollToBottom('smooth'), 100);
   }
 
   /**
-   * Thử gửi lại tin nhắn lỗi
+   * Bấm nút [Đăng nhập] từ thẻ LOGIN_CTA:
+   * Điều hướng /login?returnUrl=<trang hiện tại> và ghi nhớ pendingHandoff
    */
+  public navigateToLogin() {
+    this.chatService.setPendingHandoff(true);
+    const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
+    this.router.navigate(['/login'], { queryParams: { returnUrl } });
+  }
+
+  /**
+   * Bấm nút 'Đặt lịch tư vấn tại Showroom' (BOOKING_CTA):
+   * Tìm trigger mở modal showroom tư vấn nếu đang ở trang có modal (home, product-detail),
+   * nếu không thì điều hướng sang trang đặt lịch (/account/appointments hoặc /consultation)
+   */
+  public handleBookingCta() {
+    // 1. Thử kích hoạt nút/trigger mở modal showroom tư vấn đã có trên DOM mà không sửa code
+    if (typeof document !== 'undefined') {
+      const showroomBtn = document.querySelector<HTMLElement>(
+        '[data-open-showroom-modal], .open-showroom-btn, .btn-consultation-trigger'
+      );
+      if (showroomBtn) {
+        showroomBtn.click();
+        return;
+      }
+    }
+
+    // 2. Điều hướng tới route đặt lịch tư vấn tương đương trong dự án
+    this.router.navigate(['/account/appointments']);
+  }
+
   public retryMessage(clientMessageId: string | null | undefined) {
     if (clientMessageId) {
       this.chatService.retryMessage(clientMessageId);
     }
   }
 
-  /**
-   * Cuộn danh sách tin nhắn
-   */
   public onScroll(event: Event) {
     const el = event.target as HTMLDivElement;
     const threshold = 100;
@@ -474,7 +485,6 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
       this.showNewMessagesButton.set(false);
     }
 
-    // Khi cuộn lên đầu (scrollTop <= 30), chỉ tải thêm tin cũ khi danh sách đã đủ dài để cuộn
     const isScrollable = el.scrollHeight > el.clientHeight + 20;
     if (isScrollable && el.scrollTop <= 30 && this.chatService.hasMoreHistory() && !this.chatService.isLoadingHistory()) {
       const convId = this.chatService.currentConversation()?.id;
@@ -510,9 +520,6 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-  /**
-   * Phân tách chuỗi tin nhắn thành text và liên kết an toàn
-   */
   public parseMessageContent(text: string): TextSegment[] {
     if (!text) return [];
 
@@ -548,9 +555,6 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     return segments;
   }
 
-  /**
-   * Định dạng giờ gửi tin nhắn (HH:mm)
-   */
   public formatTime(dateVal: Date | string | undefined): string {
     if (!dateVal) return '';
     try {
@@ -561,24 +565,15 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Kiểm tra xem 2 tin nhắn liên tiếp có cùng người gửi không
-   */
   public isSameSender(curr: ChatMessage, prev: ChatMessage | null): boolean {
     if (!prev) return false;
     return curr.senderType === prev.senderType && curr.senderName === prev.senderName;
   }
 
-  /**
-   * Chuyển hướng xem sản phẩm
-   */
   public viewProduct(productId: string) {
     this.router.navigate(['/products', productId]);
   }
 
-  /**
-   * Kiểm tra trạng thái floating compare dock
-   */
   private checkDockState() {
     if (typeof localStorage === 'undefined') return;
     try {
@@ -590,19 +585,34 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Ép kiểu meta sản phẩm
-   */
+  public asLinkMeta(meta: any): LinkMeta | null {
+    if (meta && meta.type === 'LINK' && meta.url) {
+      return meta as LinkMeta;
+    }
+    return null;
+  }
+
+  public isInternalUrl(url: string | undefined): boolean {
+    if (!url) return false;
+    return url.startsWith('/') && !url.startsWith('//');
+  }
+
+  public handleLinkClick(url: string | undefined): void {
+    if (!url) return;
+    if (this.isInternalUrl(url)) {
+      this.router.navigateByUrl(url);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   public asProductCards(meta: any): ProductCardsMeta | null {
-    if (meta && meta.type === 'PRODUCT_CARDS' && Array.isArray(meta.products)) {
+    if (meta && (meta.type === 'PRODUCT_CARDS' || meta.type === 'SOFA_HOT_CARDS') && Array.isArray(meta.products)) {
       return meta as ProductCardsMeta;
     }
     return null;
   }
 
-  /**
-   * Ép kiểu meta đơn hàng
-   */
   public asOrderCard(meta: any): OrderCardMeta | null {
     if (meta && meta.type === 'ORDER_CARD') {
       return meta as OrderCardMeta;
@@ -610,9 +620,14 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  /**
-   * Màu sắc badge trạng thái đơn hàng
-   */
+  public isBookingCta(meta: any): boolean {
+    return meta && meta.type === 'BOOKING_CTA';
+  }
+
+  public isLoginCta(meta: any): boolean {
+    return meta && meta.type === 'LOGIN_CTA';
+  }
+
   public getOrderStatusClass(status: string): string {
     switch (status) {
       case 'DELIVERED':
@@ -628,4 +643,3 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     }
   }
 }
-
