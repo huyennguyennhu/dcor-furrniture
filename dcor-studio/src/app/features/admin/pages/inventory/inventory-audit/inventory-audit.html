@@ -292,13 +292,7 @@
               </button>
             </th> -->
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('code')" title="Sắp xếp theo Mã kiểm kê">
-                <span>Mã kiểm kê</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'code' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'code' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'code' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'code' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+              Mã kiểm kê
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('date')" title="Sắp xếp theo Ngày tạo">
@@ -310,22 +304,10 @@
               </div>
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('location')" title="Sắp xếp theo Chi nhánh / Kho">
-                <span>Chi nhánh / Kho</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'location' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'location' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'location' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'location' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+              Chi nhánh / Kho
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('creator')" title="Sắp xếp theo Người thực hiện">
-                <span>Người thực hiện</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'creator' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'creator' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'creator' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'creator' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+              Người thực hiện
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('totalItems')" title="Sắp xếp theo Số mặt hàng" style="justify-content: center;">
@@ -346,13 +328,7 @@
               </div>
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái">
-                <span>Trạng thái</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+              Trạng thái
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;"></th>
           </tr>
@@ -926,29 +902,27 @@
           <div class="audit-table-scroll">
             <table class="audit-table">
               <colgroup>
-                <col style="width: 50%; min-width: 180px;">
-                <col style="width: 50%; min-width: 180px;">
-                <col style="width: 60px;">
-                <col style="width: 80px;">
-                <col *ngIf="isCountingMode" style="width: 100px;">
-                <col *ngIf="isCountingMode" style="width: 105px;">
-                <col *ngIf="isCountingMode" style="width: 85px;">
-                <col *ngIf="isCountingMode" style="width: 110px;">
-                <col *ngIf="isCountingMode" style="width: 170px;">
+                <col style="min-width: 170px;">
+                <col style="min-width: 170px;">
+                <col style="width: 75px;">
+                <col *ngIf="isCountingMode" style="width: 90px;">
+                <col *ngIf="isCountingMode" style="width: 95px;">
+                <col *ngIf="isCountingMode" style="width: 80px;">
+                <col *ngIf="isCountingMode" style="width: 125px;">
+                <col *ngIf="isCountingMode" style="min-width: 190px;">
                 <col *ngIf="canEditInitialFields" style="width: 44px;">
               </colgroup>
               <thead>
                 <tr>
-                  <th style="min-width: 180px;">Sản phẩm</th>
-                  <th style="min-width: 180px;">Biến thể / SKU</th>
-                  <th style="width: 60px; text-align: center;">ĐVT</th>
-                  <th style="width: 80px; text-align: center;">Tồn HT</th>
+                  <th style="min-width: 170px;">Sản phẩm</th>
+                  <th style="min-width: 170px;">Biến thể / SKU</th>
+                  <th style="width: 75px; text-align: center;">Tồn HT</th>
                   <ng-container *ngIf="isCountingMode">
-                    <th class="col-center" style="width: 100px; text-align: center !important; padding: 11px 4px;">Tồn đếm</th>
-                    <th class="col-center" style="width: 105px; text-align: center !important; padding: 11px 4px;" title="Số lượng hàng phát hiện bị hư hỏng / vỡ / lỗi">SL hư hỏng</th>
-                    <th class="col-center" style="width: 85px; text-align: center !important;">Chênh lệch</th>
-                    <th style="width: 110px; text-align: right;">Giá trị lệch</th>
-                    <th style="width: 170px; text-align: left;">Lý do chênh lệch</th>
+                    <th class="col-center" style="width: 90px; text-align: center !important; padding: 11px 4px;">Tồn đếm</th>
+                    <th class="col-center" style="width: 95px; text-align: center !important; padding: 11px 4px;" title="Số lượng hàng phát hiện bị hư hỏng / vỡ / lỗi">SL hư hỏng</th>
+                    <th class="col-center" style="width: 80px; text-align: center !important;">Chênh lệch</th>
+                    <th style="width: 125px; text-align: right; padding-right: 12px;">Giá trị lệch</th>
+                    <th style="min-width: 190px; text-align: left;">Lý do chênh lệch</th>
                   </ng-container>
                   <th *ngIf="canEditInitialFields" style="width: 44px; text-align: center;"></th>
                 </tr>
@@ -1127,12 +1101,7 @@
                       </ng-container>
                     </td>
 
-                    <!-- 3. Đơn vị tính (ĐVT) -->
-                    <td style="text-align: center; font-size: 13px; color: var(--text-secondary);">
-                      {{ row.unit || 'Cái' }}
-                    </td>
-
-                    <!-- 4. Tồn HT (Read-only) -->
+                    <!-- 3. Tồn HT (Read-only) -->
                     <td style="text-align: center; font-weight: 700; color: var(--text-primary);">
                       {{ (modalWarehouseId && row.systemStock !== '') ? row.systemStock : (row.systemStock || 0) }}
                     </td>

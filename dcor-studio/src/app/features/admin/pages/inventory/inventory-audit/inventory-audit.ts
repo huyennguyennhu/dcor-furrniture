@@ -172,11 +172,7 @@ export class InventoryAuditComponent implements OnInit, OnDestroy {
   }
 
   setCardStatusFilter(status: string) {
-    if (this.selectedStatusFilter === status) {
-      this.selectedStatusFilter = 'Tất cả trạng thái';
-    } else {
-      this.selectedStatusFilter = status;
-    }
+    this.selectedStatusFilter = status;
     this.filterData();
   }
 

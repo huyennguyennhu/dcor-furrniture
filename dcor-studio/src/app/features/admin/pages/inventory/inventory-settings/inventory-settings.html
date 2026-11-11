@@ -185,60 +185,12 @@
       <table class="settings-data-table warehouse-table">
         <thead>
           <tr>
-            <th class="col-wh-code">
-              <div class="th-sort-wrapper" (click)="toggleWhSort('code')" title="Sắp xếp theo Mã kho">
-                <span>Mã kho</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="whSortColumn !== 'code' || whSortDirection === 'asc'" class="sort-triangle up" [class.active]="whSortColumn === 'code' && whSortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="whSortColumn !== 'code' || whSortDirection === 'desc'" class="sort-triangle down" [class.active]="whSortColumn === 'code' && whSortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
-            </th>
-            <th class="col-wh-name">
-              <div class="th-sort-wrapper" (click)="toggleWhSort('name')" title="Sắp xếp theo Tên kho">
-                <span>Tên kho & Chi nhánh</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="whSortColumn !== 'name' || whSortDirection === 'asc'" class="sort-triangle up" [class.active]="whSortColumn === 'name' && whSortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="whSortColumn !== 'name' || whSortDirection === 'desc'" class="sort-triangle down" [class.active]="whSortColumn === 'name' && whSortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
-            </th>
-            <th class="col-wh-type">
-              <div class="th-sort-wrapper" (click)="toggleWhSort('type')" title="Sắp xếp theo Phân loại">
-                <span>Phân loại</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="whSortColumn !== 'type' || whSortDirection === 'asc'" class="sort-triangle up" [class.active]="whSortColumn === 'type' && whSortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="whSortColumn !== 'type' || whSortDirection === 'desc'" class="sort-triangle down" [class.active]="whSortColumn === 'type' && whSortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
-            </th>
-            <th class="col-wh-address">
-              <div class="th-sort-wrapper" (click)="toggleWhSort('address')" title="Sắp xếp theo Địa chỉ">
-                <span>Địa chỉ</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="whSortColumn !== 'address' || whSortDirection === 'asc'" class="sort-triangle up" [class.active]="whSortColumn === 'address' && whSortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="whSortColumn !== 'address' || whSortDirection === 'desc'" class="sort-triangle down" [class.active]="whSortColumn === 'address' && whSortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
-            </th>
-            <th class="col-wh-manager">
-              <div class="th-sort-wrapper" (click)="toggleWhSort('manager')" title="Sắp xếp theo Thủ kho">
-                <span>Thủ kho & SĐT</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="whSortColumn !== 'manager' || whSortDirection === 'asc'" class="sort-triangle up" [class.active]="whSortColumn === 'manager' && whSortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="whSortColumn !== 'manager' || whSortDirection === 'desc'" class="sort-triangle down" [class.active]="whSortColumn === 'manager' && whSortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
-            </th>
-            <th class="col-wh-status">
-              <div class="th-sort-wrapper" (click)="toggleWhSort('status')" title="Sắp xếp theo Trạng thái">
-                <span>Trạng thái</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="whSortColumn !== 'status' || whSortDirection === 'asc'" class="sort-triangle up" [class.active]="whSortColumn === 'status' && whSortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="whSortColumn !== 'status' || whSortDirection === 'desc'" class="sort-triangle down" [class.active]="whSortColumn === 'status' && whSortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
-            </th>
+            <th class="col-wh-code">Mã kho</th>
+            <th class="col-wh-name">Tên kho & Chi nhánh</th>
+            <th class="col-wh-type">Phân loại</th>
+            <th class="col-wh-address">Địa chỉ</th>
+            <th class="col-wh-manager">Thủ kho & SĐT</th>
+            <th class="col-wh-status">Trạng thái</th>
             <th class="col-wh-actions">Thao tác</th>
           </tr>
         </thead>

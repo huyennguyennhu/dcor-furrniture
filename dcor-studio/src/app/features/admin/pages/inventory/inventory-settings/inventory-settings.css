@@ -383,12 +383,16 @@
 
 .vat-table th.col-vat-name,
 .vat-table td.col-vat-name {
-  width: 200px;
+  width: 250px;
+  min-width: 200px;
+  white-space: normal;
 }
 
 .vat-table th.col-vat-rate,
 .vat-table td.col-vat-rate {
-  width: 105px;
+  width: 120px;
+  min-width: 110px;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -514,18 +518,23 @@
 }
 
 .tax-rate-pill {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 
 .tax-rate-pill.highlight {
-  background: #f59e0b;
-  color: #ffffff;
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
 }
 
 .default-badge {

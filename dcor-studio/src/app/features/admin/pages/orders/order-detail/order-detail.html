@@ -705,18 +705,18 @@
       </div>
 
       <!-- MAP TRACKING CARD: Bản đồ Lộ trình & Giám sát Giao hàng Thời gian thực (Tương tự Shopee/Grab tracking) -->
-      <!-- Hiển thị trong trạng thái Đang vận chuyển SHIPPED, Giao thất bại, Đã giao hàng DELIVERED (hoặc khi đang xem bước 3 hoặc 4) -->
-      <div class="v2-card live-map-tracking-card" *ngIf="['SHIPPED', 'FAILED_DELIVERY', 'DELIVERED'].includes(order.status) || (order.status !== 'PENDING' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING' && (activeViewingStep === 3 || activeViewingStep === 4))">
+      <!-- Hiển thị trong trạng thái Đang vận chuyển SHIPPED, Giao thất bại, Đã giao hàng DELIVERED, Hoàn tất COMPLETED (hoặc khi đang xem bước 3, 4 hoặc 5) -->
+      <div class="v2-card live-map-tracking-card" *ngIf="['SHIPPED', 'FAILED_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(order.status) || (order.status !== 'PENDING' && order.status !== 'CONFIRMED' && order.status !== 'PROCESSING' && (activeViewingStep === 3 || activeViewingStep === 4 || activeViewingStep === 5))">
         <div class="v2-card-header" style="align-items: flex-start;">
           <div class="card-title-group" style="align-items: flex-start;">
-            <lucide-angular [img]="icons.MapPin" size="18" [class.text-accent]="order.status !== 'DELIVERED'" [class.text-success]="order.status === 'DELIVERED'" style="margin-top: 3px; flex-shrink: 0;"></lucide-angular>
+            <lucide-angular [img]="icons.MapPin" size="18" [class.text-accent]="!isDeliveredOrCompleted" [class.text-success]="isDeliveredOrCompleted" style="margin-top: 3px; flex-shrink: 0;"></lucide-angular>
             <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
-              <h3>{{ order.status === 'DELIVERED' ? 'Bản đồ & Lộ trình Bàn giao' : 'Bản đồ Giám sát Vận chuyển' }}</h3>
-              <span class="live-pulse-badge" *ngIf="order.status !== 'DELIVERED'">
+              <h3>{{ isDeliveredOrCompleted ? 'Bản đồ & Lộ trình Bàn giao' : 'Bản đồ Giám sát Vận chuyển' }}</h3>
+              <span class="live-pulse-badge" *ngIf="!isDeliveredOrCompleted">
                 <span class="pulse-beacon"></span>
                 <span>Đang lưu thông (Live GPS)</span>
               </span>
-              <span class="live-pulse-badge badge-delivered" *ngIf="order.status === 'DELIVERED'">
+              <span class="live-pulse-badge badge-delivered" *ngIf="isDeliveredOrCompleted">
                 <lucide-angular [img]="icons.CheckCircle2" size="13"></lucide-angular>
                 <span>Đã giao hàng thành công</span>
               </span>
@@ -757,8 +757,8 @@
                 <!-- Kênh rạch / Sông uốn lượn phong cách TP.HCM -->
                 <path d="M 0,280 C 180,260 260,340 420,310 C 580,280 680,340 800,320 L 800,360 L 0,360 Z" fill="url(#riverGrad)" opacity="0.6" />
 
-                <!-- Khi DELIVERED: Tuyến đường hoàn chỉnh 100% nối từ kho tới tận nhà khách (Xanh lá hoàn tất) -->
-                <path *ngIf="order.status === 'DELIVERED'"
+                <!-- Khi DELIVERED / COMPLETED: Tuyến đường hoàn chỉnh 100% nối từ kho tới tận nhà khách (Xanh lá hoàn tất) -->
+                <path *ngIf="isDeliveredOrCompleted"
                       d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170 C 580,160 620,100 680,90" 
                       fill="none" 
                       stroke="#16A34A" 
@@ -766,7 +766,7 @@
                       stroke-linecap="round" />
 
                 <!-- Khi đang SHIPPED hoặc FAILED_DELIVERY -->
-                <ng-container *ngIf="order.status !== 'DELIVERED'">
+                <ng-container *ngIf="!isDeliveredOrCompleted">
                   <!-- Tuyến đường thực tế xe tải đã đi qua (Cam đậm nổi bật) -->
                   <path d="M 120,240 C 180,200 240,140 340,140 C 420,140 460,180 520,170" 
                         fill="none" 
@@ -794,30 +794,30 @@
               </div>
 
               <!-- MARKER 2: Xe tải / Shipper LIVE GPS -->
-              <div class="map-pin-marker live-truck-pin" [style.left]="order.status === 'DELIVERED' ? '79%' : '65%'" [style.top]="order.status === 'DELIVERED' ? '30%' : '47%'">
+              <div class="map-pin-marker live-truck-pin" [style.left]="isDeliveredOrCompleted ? '79%' : '65%'" [style.top]="isDeliveredOrCompleted ? '30%' : '47%'">
                 <!-- Tooltip thông tin tài xế lơ lửng -->
-                <div class="truck-floating-card" [class.card-delivered]="order.status === 'DELIVERED'">
+                <div class="truck-floating-card" [class.card-delivered]="isDeliveredOrCompleted">
                   <div class="floating-header">
-                    <span class="live-dot-mini" *ngIf="order.status !== 'DELIVERED'"></span>
-                    <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.CheckCircle2" size="13" class="text-success"></lucide-angular>
+                    <span class="live-dot-mini" *ngIf="!isDeliveredOrCompleted"></span>
+                    <lucide-angular *ngIf="isDeliveredOrCompleted" [img]="icons.CheckCircle2" size="13" class="text-success"></lucide-angular>
                     <strong>{{ order.delivery.driverName || 'Nguyễn Văn Tài' }} (Xe tải)</strong>
                   </div>
-                  <div class="floating-sub" *ngIf="order.status !== 'DELIVERED'">
+                  <div class="floating-sub" *ngIf="!isDeliveredOrCompleted">
                     Cách điểm nhận: <strong>2.8 km</strong> • ~20 phút nữa đến
                   </div>
-                  <div class="floating-sub" *ngIf="order.status === 'DELIVERED'" style="color: #15803D; font-weight: 600;">
+                  <div class="floating-sub" *ngIf="isDeliveredOrCompleted" style="color: #15803D; font-weight: 600;">
                     Đã bàn giao kiện hàng tận nơi
                   </div>
                 </div>
 
                 <!-- Radar Pulse Ripple Animation -->
-                <div class="radar-pulse-ring" [class.ring-delivered]="order.status === 'DELIVERED'"></div>
-                <div class="radar-pulse-ring delay-1" [class.ring-delivered]="order.status === 'DELIVERED'"></div>
+                <div class="radar-pulse-ring" [class.ring-delivered]="isDeliveredOrCompleted"></div>
+                <div class="radar-pulse-ring delay-1" [class.ring-delivered]="isDeliveredOrCompleted"></div>
 
                 <!-- Truck Circle Icon -->
-                <div class="truck-icon-circle" [class.truck-delivered]="order.status === 'DELIVERED'">
-                  <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Truck" size="18"></lucide-angular>
-                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="18"></lucide-angular>
+                <div class="truck-icon-circle" [class.truck-delivered]="isDeliveredOrCompleted">
+                  <lucide-angular *ngIf="!isDeliveredOrCompleted" [img]="icons.Truck" size="18"></lucide-angular>
+                  <lucide-angular *ngIf="isDeliveredOrCompleted" [img]="icons.Check" size="18"></lucide-angular>
                 </div>
               </div>
 
@@ -848,25 +848,25 @@
           <!-- THÔNG BÁO VỊ TRÍ & ĐIỀU PHỐI (Live Telemetry & Driver Control Panel) -->
           <div class="telemetry-grid">
             <div class="tele-card">
-              <span class="tele-label">{{ order.status === 'DELIVERED' ? 'Địa chỉ giao hàng thành công' : 'Vị trí hiện tại của xe' }}</span>
+              <span class="tele-label">{{ isDeliveredOrCompleted ? 'Địa chỉ giao hàng thành công' : 'Vị trí hiện tại của xe' }}</span>
               <div class="tele-val">
-                <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Navigation" size="15" class="text-accent"></lucide-angular>
-                <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.MapPin" size="15" class="text-success"></lucide-angular>
-                <span>{{ order.status === 'DELIVERED' ? (order.address || 'Đã giao tới địa chỉ khách') : 'Đường Nguyễn Hữu Thọ, P. Tân Hưng, Q.7' }}</span>
+                <lucide-angular *ngIf="!isDeliveredOrCompleted" [img]="icons.Navigation" size="15" class="text-accent"></lucide-angular>
+                <lucide-angular *ngIf="isDeliveredOrCompleted" [img]="icons.MapPin" size="15" class="text-success"></lucide-angular>
+                <span>{{ isDeliveredOrCompleted ? (order.address || 'Đã giao tới địa chỉ khách') : 'Đường Nguyễn Hữu Thọ, P. Tân Hưng, Q.7' }}</span>
               </div>
-              <div class="tele-sub" *ngIf="order.status !== 'DELIVERED'">Cập nhật GPS: {{ lastGpsUpdate }}</div>
-              <div class="tele-sub font-semibold" *ngIf="order.status === 'DELIVERED'" style="color: #15803D;">Biên bản bàn giao: Khách hàng đã ký nhận điện tử</div>
+              <div class="tele-sub" *ngIf="!isDeliveredOrCompleted">Cập nhật GPS: {{ lastGpsUpdate }}</div>
+              <div class="tele-sub font-semibold" *ngIf="isDeliveredOrCompleted" style="color: #15803D;">Biên bản bàn giao: Khách hàng đã ký nhận điện tử</div>
             </div>
 
             <div class="tele-card">
-              <span class="tele-label">{{ order.status === 'DELIVERED' ? 'Trạng thái giao nhận' : 'Khoảng cách & Thời gian (ETA)' }}</span>
-              <div class="tele-val" [class.text-accent]="order.status !== 'DELIVERED'" [class.text-success]="order.status === 'DELIVERED'" style="font-weight: 700;">
-                <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.Clock" size="15"></lucide-angular>
-                <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
-                <span>{{ order.status === 'DELIVERED' ? 'Giao thành công (0 km còn lại)' : 'Còn 2.8 km (khoảng 20 - 30 phút)' }}</span>
+              <span class="tele-label">{{ isDeliveredOrCompleted ? 'Trạng thái giao nhận' : 'Khoảng cách & Thời gian (ETA)' }}</span>
+              <div class="tele-val" [class.text-accent]="!isDeliveredOrCompleted" [class.text-success]="isDeliveredOrCompleted" style="font-weight: 700;">
+                <lucide-angular *ngIf="!isDeliveredOrCompleted" [img]="icons.Clock" size="15"></lucide-angular>
+                <lucide-angular *ngIf="isDeliveredOrCompleted" [img]="icons.CheckCircle2" size="15"></lucide-angular>
+                <span>{{ isDeliveredOrCompleted ? 'Giao thành công (0 km còn lại)' : 'Còn 2.8 km (khoảng 20 - 30 phút)' }}</span>
               </div>
-              <div class="tele-sub" *ngIf="order.status !== 'DELIVERED'">Tốc độ xe: 32 km/h • Giao thông thông thoáng</div>
-              <div class="tele-sub font-semibold" *ngIf="order.status === 'DELIVERED'">Thời gian hoàn tất: {{ getDeliveredTime() }}</div>
+              <div class="tele-sub" *ngIf="!isDeliveredOrCompleted">Tốc độ xe: 32 km/h • Giao thông thông thoáng</div>
+              <div class="tele-sub font-semibold" *ngIf="isDeliveredOrCompleted">Thời gian hoàn tất: {{ getDeliveredTime() }}</div>
             </div>
           </div>
 
@@ -897,7 +897,7 @@
                 <div class="milestone-v-icon">
                   <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
                 </div>
-                <div class="milestone-v-line" [class.completed]="order.status === 'DELIVERED'"></div>
+                <div class="milestone-v-line" [class.completed]="isDeliveredOrCompleted"></div>
               </div>
               <div class="milestone-v-content">
                 <span class="m-v-title">2. Xe lưu thông trên đường</span>
@@ -909,40 +909,40 @@
             <div class="milestone-v-step" 
                  [class.active]="order.status === 'SHIPPED'"
                  [class.failed]="order.status === 'FAILED_DELIVERY'"
-                 [class.completed]="order.status === 'DELIVERED'">
+                 [class.completed]="isDeliveredOrCompleted">
               <div class="milestone-v-left">
                 <div class="milestone-v-icon" [class.pulse-active]="order.status === 'SHIPPED'">
                   <lucide-angular *ngIf="order.status === 'SHIPPED'" [img]="icons.Truck" size="14"></lucide-angular>
                   <lucide-angular *ngIf="order.status === 'FAILED_DELIVERY'" [img]="icons.AlertTriangle" size="14" class="text-danger"></lucide-angular>
-                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="13"></lucide-angular>
+                  <lucide-angular *ngIf="isDeliveredOrCompleted" [img]="icons.Check" size="13"></lucide-angular>
                 </div>
-                <div class="milestone-v-line" [class.completed]="order.status === 'DELIVERED'"></div>
+                <div class="milestone-v-line" [class.completed]="isDeliveredOrCompleted"></div>
               </div>
               <div class="milestone-v-content">
                 <div class="m-v-title-row">
                   <span class="m-v-title" *ngIf="order.status === 'FAILED_DELIVERY'" style="color: #DC2626;">3. Giao thất bại (Lần {{ order.delivery.failedAttempts || 1 }})</span>
                   <span class="m-v-title" *ngIf="order.status === 'SHIPPED'">3. Đang giao chặng cuối</span>
-                  <span class="m-v-title" *ngIf="order.status === 'DELIVERED'">3. Đã tới nhà khách</span>
+                  <span class="m-v-title" *ngIf="isDeliveredOrCompleted">3. Đã tới nhà khách</span>
                 </div>
                 <div class="m-v-time-row">
                   <span class="m-v-time" *ngIf="order.status === 'FAILED_DELIVERY'" style="color: #DC2626; font-weight: 600;">Lý do: "{{ order.delivery.failureReason || 'Khách bận, hẹn giao lại' }}" • Hẹn giao lại</span>
                   <span class="m-v-time text-accent font-semibold" *ngIf="order.status === 'SHIPPED'">Dự kiến: khoảng 20 - 30 phút • Còn 2.8 km</span>
-                  <span class="m-v-time font-semibold" *ngIf="order.status === 'DELIVERED'">Đã đến nơi giao nhận</span>
+                  <span class="m-v-time font-semibold" *ngIf="isDeliveredOrCompleted">Đã đến nơi giao nhận</span>
                 </div>
               </div>
             </div>
 
             <!-- Chặng 4: Bàn giao & Ký nhận -->
-            <div class="milestone-v-step" [class.completed]="order.status === 'DELIVERED'" [class.pending]="order.status !== 'DELIVERED'">
+            <div class="milestone-v-step" [class.completed]="isDeliveredOrCompleted" [class.pending]="!isDeliveredOrCompleted">
               <div class="milestone-v-left">
                 <div class="milestone-v-icon">
-                  <lucide-angular *ngIf="order.status === 'DELIVERED'" [img]="icons.Check" size="13"></lucide-angular>
-                  <lucide-angular *ngIf="order.status !== 'DELIVERED'" [img]="icons.MapPin" size="13"></lucide-angular>
+                  <lucide-angular *ngIf="isDeliveredOrCompleted" [img]="icons.Check" size="13"></lucide-angular>
+                  <lucide-angular *ngIf="!isDeliveredOrCompleted" [img]="icons.MapPin" size="13"></lucide-angular>
                 </div>
               </div>
               <div class="milestone-v-content">
                 <span class="m-v-title">4. Bàn giao & Ký nhận</span>
-                <span class="m-v-time" *ngIf="order.status === 'DELIVERED'">Khách hàng đã nhận hàng và ký biên bản hoàn tất</span>
+                <span class="m-v-time" *ngIf="isDeliveredOrCompleted">Khách hàng đã nhận hàng và ký biên bản hoàn tất</span>
                 <span class="m-v-time" *ngIf="order.status === 'FAILED_DELIVERY'">Chờ điều phối xếp lịch giao lại lần {{ (order.delivery.failedAttempts || 1) + 1 }}</span>
                 <span class="m-v-time" *ngIf="order.status === 'SHIPPED'">Chờ khách nhận và thanh toán (nếu có thu COD)</span>
               </div>

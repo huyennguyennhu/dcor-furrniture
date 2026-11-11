@@ -68,7 +68,7 @@
       </div>
       <div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Tổng đơn hàng</div>
-        <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">{{ customer.ordersCount }} đơn</div>
+        <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">{{ (customer.ordersCount !== undefined && customer.ordersCount !== null) ? customer.ordersCount : (customer.orders.length || 0) }} đơn</div>
       </div>
     </div>
 
@@ -190,4 +190,48 @@
 <div *ngIf="!customer && !isLoading" style="padding: 60px; text-align: center;">
   <h3>Không tìm thấy thông tin khách hàng</h3>
   <button (click)="goBack()" class="admin-btn admin-btn-primary" style="margin-top: 16px;">Quay lại danh sách</button>
+</div>
+
+<!-- Modal xác nhận đổi trạng thái tài khoản (Thay thế confirm mặc định) -->
+<div *ngIf="showStatusModal && customer" 
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;"
+     (click)="closeStatusModal()">
+  <div style="background: var(--bg-primary, #ffffff); width: 100%; max-width: 440px; border-radius: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid var(--border-color); overflow: hidden; animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);"
+       (click)="$event.stopPropagation()">
+    
+    <!-- Modal Header & Icon -->
+    <div style="padding: 24px 24px 16px 24px; text-align: center;">
+      <div [style.background]="customer.status === 'Khóa' ? '#ecfdf5' : '#fef2f2'"
+           [style.color]="customer.status === 'Khóa' ? '#059669' : '#dc2626'"
+           style="width: 56px; height: 56px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px;">
+        <lucide-angular [img]="customer.status === 'Khóa' ? icons.CheckCircle2 : icons.ShieldAlert" size="28"></lucide-angular>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0;">
+        {{ customer.status === 'Khóa' ? 'Xác nhận mở khóa tài khoản' : 'Xác nhận khóa tài khoản' }}
+      </h3>
+      <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+        Bạn có chắc muốn chuyển trạng thái tài khoản của khách hàng 
+        <strong style="color: var(--text-primary);">{{ customer.name }}</strong> 
+        thành <strong [style.color]="customer.status === 'Khóa' ? '#059669' : '#dc2626'">"{{ customer.status === 'Khóa' ? 'Hoạt động' : 'Khóa' }}"</strong> không?
+      </p>
+    </div>
+
+    <!-- Modal Actions -->
+    <div style="display: flex; gap: 10px; padding: 16px 24px 24px 24px; background: var(--bg-secondary); border-top: 1px solid var(--border-color);">
+      <button type="button" 
+              (click)="closeStatusModal()"
+              [disabled]="isUpdatingStatus"
+              style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13.5px; font-weight: 600; cursor: pointer;">
+        Hủy bỏ
+      </button>
+      <button type="button" 
+              (click)="confirmToggleStatus()"
+              [disabled]="isUpdatingStatus"
+              [style.background]="customer.status === 'Khóa' ? '#059669' : '#dc2626'"
+              style="flex: 1; padding: 10px 16px; border-radius: 8px; border: none; color: #ffffff; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <span *ngIf="isUpdatingStatus">Đang xử lý...</span>
+        <span *ngIf="!isUpdatingStatus">{{ customer.status === 'Khóa' ? 'Mở khóa ngay' : 'Khóa tài khoản' }}</span>
+      </button>
+    </div>
+  </div>
 </div>

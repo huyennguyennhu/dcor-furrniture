@@ -337,13 +337,7 @@
           <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
             <th style="padding: 16px 8px; width: 44px; text-align: center; border-top-left-radius: 11px;"></th>
             <th *ngIf="columnVisibility['product']" style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('product')" title="Sắp xếp theo Sản phẩm">
-                <span>Sản phẩm</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'product' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'product' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'product' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'product' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+              Sản phẩm
             </th>
             <th *ngIf="columnVisibility['physicalStock']" style="padding: 16px 12px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; width: 105px;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('physicalStock')" title="Sắp xếp theo Tồn thực tế" style="justify-content: center;">
@@ -373,22 +367,10 @@
               </div>
             </th>
             <th *ngIf="columnVisibility['threshold']" style="padding: 16px 12px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; width: 90px;">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('threshold')" title="Sắp xếp theo Cảnh báo" style="justify-content: center;">
-                <span>Cảnh báo</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'threshold' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'threshold' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'threshold' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'threshold' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+              Cảnh báo
             </th>
             <th *ngIf="columnVisibility['status']" style="padding: 16px 12px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap; width: 110px;">
-              <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái" style="justify-content: center;">
-                <span>Trạng thái</span>
-                <span class="sort-arrows-inline">
-                  <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                  <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-                </span>
-              </div>
+              Trạng thái
             </th>
             <th style="padding: 16px 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 48px; text-align: center; position: relative; z-index: 100;">
               <div class="column-settings-container" style="position: relative; display: inline-flex; align-items: center; justify-content: center; z-index: 100;">

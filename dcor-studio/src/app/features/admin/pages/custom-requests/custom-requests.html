@@ -165,9 +165,18 @@
   <!-- Table List of Custom Requests -->
   <div class="table-container">
     <table class="admin-data-table" *ngIf="filteredRequests.length > 0; else emptyStateTpl">
+      <colgroup>
+        <col class="col-code" style="width: 130px;">
+        <col class="col-customer" style="width: 170px;">
+        <col class="col-product" style="width: 250px;">
+        <col class="col-material" style="width: 180px;">
+        <col class="col-price" style="width: 150px;">
+        <col class="col-status" style="width: 200px;">
+        <col class="col-actions" style="width: 240px;">
+      </colgroup>
       <thead>
         <tr>
-          <th>
+          <th class="col-code">
             <div class="th-sort-wrapper" (click)="toggleColumnSort('code')" title="Sắp xếp theo Mã & Ngày tạo">
               <span>Mã & Ngày tạo</span>
               <span class="sort-arrows-inline">
@@ -176,34 +185,16 @@
               </span>
             </div>
           </th>
-          <th>
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('customer')" title="Sắp xếp theo Khách hàng">
-              <span>Khách hàng</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'customer' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'customer' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'customer' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'customer' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+          <th class="col-customer">
+            <span>Khách hàng</span>
           </th>
-          <th>
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('product')" title="Sắp xếp theo Mẫu sản phẩm">
-              <span>Mẫu & Kích thước may đo</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'product' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'product' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'product' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'product' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+          <th class="col-product">
+            <span>Mẫu & Kích thước may đo</span>
           </th>
-          <th>
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('material')" title="Sắp xếp theo Màu sắc & Chất liệu">
-              <span>Màu sắc & Chất liệu</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'material' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'material' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'material' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'material' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+          <th class="col-material">
+            <span>Màu sắc & Chất liệu</span>
           </th>
-          <th>
+          <th class="col-price">
             <div class="th-sort-wrapper" (click)="toggleColumnSort('price')" title="Sắp xếp theo Báo giá">
               <span>Báo giá & Bản vẽ 3D</span>
               <span class="sort-arrows-inline">
@@ -212,28 +203,22 @@
               </span>
             </div>
           </th>
-          <th>
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái">
-              <span>Trạng thái (Admin / Khách)</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+          <th class="col-status">
+            <span>Trạng thái (Admin / Khách)</span>
           </th>
-          <th style="text-align: right;">Thao tác xử lý</th>
+          <th class="col-actions" style="text-align: right;">Thao tác xử lý</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let req of filteredRequests">
           <!-- Mã & Ngày -->
-          <td>
+          <td class="col-code">
             <div class="code-badge">{{ req.code }}</div>
             <div class="time-sub">{{ req.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
           </td>
 
           <!-- Khách hàng -->
-          <td>
+          <td class="col-customer">
             <div class="customer-name-cell">{{ req.customerName }}</div>
             <a [href]="'tel:' + req.customerPhone" class="customer-phone-link">
               <lucide-angular [img]="icons.PhoneCall" size="12"></lucide-angular>
@@ -243,7 +228,7 @@
           </td>
 
           <!-- Mẫu & Kích thước -->
-          <td>
+          <td class="col-product">
             <div class="product-mini-cell">
               <img [src]="req.productImage || 'assets/placeholder.png'" class="mini-thumb" />
               <div>
@@ -260,7 +245,7 @@
           </td>
 
           <!-- Màu sắc & Chất liệu -->
-          <td>
+          <td class="col-material">
             <div class="color-spec-cell">
               <span class="swatch-mini" [style.background]="req.colorHex || '#8B4513'"></span>
               <span>{{ req.colorName || 'Tùy chọn' }}</span>
@@ -273,7 +258,7 @@
           </td>
 
           <!-- Báo giá & 3D -->
-          <td>
+          <td class="col-price">
             <div *ngIf="req.quotedPrice; else noQuoteTpl">
               <div class="quote-val">{{ req.quotedPrice | number }} đ</div>
               <div class="deposit-val" *ngIf="req.quotedDeposit">Cọc: {{ req.quotedDeposit | number }} đ</div>
@@ -287,7 +272,7 @@
           </td>
 
           <!-- Trạng thái -->
-          <td>
+          <td class="col-status">
             <div 
               class="status-chip"
               [style.color]="getStatusMeta(req.status).color"
@@ -302,7 +287,7 @@
           </td>
 
           <!-- Thao tác hành vi theo user specification -->
-          <td style="text-align: right;">
+          <td class="col-actions" style="text-align: right;">
             <div class="action-buttons-wrap">
               <!-- PENDING_REVIEW -> Nhận khảo sát -->
               <button 

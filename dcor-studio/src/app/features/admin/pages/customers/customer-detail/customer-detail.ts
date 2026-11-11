@@ -62,6 +62,8 @@ export class CustomerDetailComponent implements OnInit {
   customerId = '';
   customer: CustomerDetail | null = null;
   isLoading = false;
+  showStatusModal = false;
+  isUpdatingStatus = false;
 
   constructor(
     private route: ActivatedRoute, 
@@ -94,17 +96,30 @@ export class CustomerDetailComponent implements OnInit {
 
   toggleStatus() {
     if (!this.customer) return;
+    this.showStatusModal = true;
+  }
+
+  confirmToggleStatus() {
+    if (!this.customer || this.isUpdatingStatus) return;
     const newStatus = this.customer.status === 'Khóa' ? 'Hoạt động' : 'Khóa';
-    if (confirm(`Bạn có chắc muốn chuyển trạng thái tài khoản của khách hàng thành "${newStatus}" không?`)) {
-      this.http.put(`${environment.apiUrl}/admin/customers/${this.customerId}/status`, { status: newStatus }).subscribe({
-        next: () => {
-          this.loadCustomerDetail();
-        },
-        error: (err) => {
-          alert(err.error?.message || 'Không thể cập nhật trạng thái.');
-        }
-      });
-    }
+    this.isUpdatingStatus = true;
+    this.http.put(`${environment.apiUrl}/admin/customers/${this.customerId}/status`, { status: newStatus }).subscribe({
+      next: () => {
+        this.isUpdatingStatus = false;
+        this.showStatusModal = false;
+        this.loadCustomerDetail();
+      },
+      error: (err) => {
+        this.isUpdatingStatus = false;
+        console.error('Không thể cập nhật trạng thái:', err);
+        alert(err.error?.message || 'Không thể cập nhật trạng thái.');
+      }
+    });
+  }
+
+  closeStatusModal() {
+    if (this.isUpdatingStatus) return;
+    this.showStatusModal = false;
   }
 
   goBack() {

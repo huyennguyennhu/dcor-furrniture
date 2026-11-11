@@ -116,6 +116,10 @@ export class OrdersSettingsComponent implements OnInit {
   activeTab: number = 1;
   isLoading: boolean = false;
 
+  // Modal xác nhận reset tab về mặc định
+  showResetModal: boolean = false;
+  pendingResetTabName: string = '';
+
   // Toast notification
   showToast: boolean = false;
   toastMessage: string = '';
@@ -535,29 +539,37 @@ export class OrdersSettingsComponent implements OnInit {
   }
 
   resetTabToDefault(): void {
-    const tabName = this.getTabName(this.activeTab);
-    if (confirm(`Bạn có chắc chắn muốn đặt lại các thông số trong tab "${tabName}" về mặc định?`)) {
-      switch (this.activeTab) {
-        case 1:
-          this.workflowSettings = { ...this.DEFAULT_WORKFLOW };
-          break;
-        case 2:
-          this.shippingSettings = { ...this.DEFAULT_SHIPPING };
-          break;
-        case 3:
-          this.returnsSettings = { ...this.DEFAULT_RETURNS };
-          this.returnReasons = JSON.parse(JSON.stringify(this.DEFAULT_RETURN_REASONS));
-          break;
-        case 4:
-          this.warrantySettings = { ...this.DEFAULT_WARRANTY };
-          this.warrantyTerms = JSON.parse(JSON.stringify(this.DEFAULT_WARRANTY_TERMS));
-          break;
-        case 5:
-          this.printSettings = { ...this.DEFAULT_PRINT };
-          break;
-      }
-      this.triggerToast(`Đã đặt lại tab "${tabName}" về mặc định!`, 'Nhấn "Lưu cài đặt" để áp dụng chính thức.', 'info');
+    this.pendingResetTabName = this.getTabName(this.activeTab);
+    this.showResetModal = true;
+  }
+
+  confirmResetTab(): void {
+    const tabName = this.pendingResetTabName || this.getTabName(this.activeTab);
+    switch (this.activeTab) {
+      case 1:
+        this.workflowSettings = { ...this.DEFAULT_WORKFLOW };
+        break;
+      case 2:
+        this.shippingSettings = { ...this.DEFAULT_SHIPPING };
+        break;
+      case 3:
+        this.returnsSettings = { ...this.DEFAULT_RETURNS };
+        this.returnReasons = JSON.parse(JSON.stringify(this.DEFAULT_RETURN_REASONS));
+        break;
+      case 4:
+        this.warrantySettings = { ...this.DEFAULT_WARRANTY };
+        this.warrantyTerms = JSON.parse(JSON.stringify(this.DEFAULT_WARRANTY_TERMS));
+        break;
+      case 5:
+        this.printSettings = { ...this.DEFAULT_PRINT };
+        break;
     }
+    this.showResetModal = false;
+    this.triggerToast(`Đã đặt lại tab "${tabName}" về mặc định!`, 'Nhấn "Lưu cài đặt" để áp dụng chính thức.', 'info');
+  }
+
+  closeResetModal(): void {
+    this.showResetModal = false;
   }
 
   // --- CURRENCY & NUMBER INPUT HELPERS ---
@@ -644,10 +656,13 @@ export class OrdersSettingsComponent implements OnInit {
     return Math.max(0, value).toLocaleString('vi-VN');
   }
 
-  onCurrencyInput(targetObj: any, key: string, event: Event): void {
+  onCurrencyInput(targetObj: any, key: string, event: Event, maxVal: number = 50000000): void {
     const input = event.target as HTMLInputElement;
     const raw = input.value.replace(/\D/g, '');
-    const num = raw ? Math.max(0, parseInt(raw, 10)) : 0;
+    let num = raw ? Math.max(0, parseInt(raw, 10)) : 0;
+    if (maxVal && num > maxVal) {
+      num = maxVal;
+    }
     targetObj[key] = num;
     input.value = num > 0 ? num.toLocaleString('vi-VN') : '';
   }
