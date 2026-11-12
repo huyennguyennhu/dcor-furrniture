@@ -1,7 +1,7 @@
 <div class="blog-page">
   <div class="blog-container">
 
-    <!-- 1. BREADCRUMB (Nằm dưới header, không dính, không chồng) -->
+    <!-- 1. BREADCRUMB (Nhỏ gọn, tinh tế phía trên) -->
     <nav aria-label="Breadcrumb" class="blog-breadcrumb">
       <a routerLink="/" class="blog-breadcrumb-link">
         <span>Trang chủ</span>
@@ -10,121 +10,26 @@
       <span class="blog-breadcrumb-current">Blog</span>
     </nav>
 
-    <!-- 2. HERO: NHÃN VIÊN THUỐC, TIÊU ĐỀ, MÔ TẢ -->
-    <header class="blog-hero">
-      <div class="blog-hero-badge">
-        <app-icon name="Sparkles" size="13" color="var(--color-accent)"></app-icon>
-        <span>DCor Magazine &amp; Stories</span>
-      </div>
-      <h1 class="blog-hero-title">Blog và Cảm hứng</h1>
-      <p class="blog-hero-desc">
-        Nơi hội tụ những ý tưởng thiết kế nội thất đương đại, bí quyết bài trí không gian sống sang trọng và những câu
-        chuyện kiến trúc đầy cảm hứng.
-      </p>
-    </header>
-
-    <!-- 3. THANH LỌC & TÌM KIẾM (MỘT HÀNG TRONG KHUNG VIỀN BO TRÒN) -->
-    <section class="blog-filter-bar">
-      <div class="blog-filter-row">
-
-        <!-- Ô Tìm kiếm (Icon + Input, flex 1) -->
-        <div class="blog-search-box">
-          <span class="blog-search-icon">
-            <app-icon name="Search" size="18"></app-icon>
-          </span>
-          <input type="text" [ngModel]="searchQuery()" (ngModelChange)="onSearchInput($event)"
-            placeholder="Tìm kiếm bài viết, xu hướng, phong cách..." class="blog-search-input"
-            aria-label="Tìm kiếm bài viết" />
-          @if (searchQuery()) {
-          <button type="button" (click)="clearSearch()" class="blog-search-clear" aria-label="Xóa nội dung tìm kiếm">
-            <app-icon name="X" size="16"></app-icon>
-          </button>
-          }
-        </div>
-
-        <!-- Dropdown danh mục (Rộng khoảng 220px, có mũi tên) -->
-        <div class="blog-category-dropdown">
-          <button type="button" (click)="toggleDropdown()" class="blog-dropdown-trigger" aria-haspopup="listbox"
-            [attr.aria-expanded]="isDropdownOpen()" aria-label="Lọc theo danh mục bài viết">
-            <div class="blog-dropdown-label">
-              <app-icon name="Layers" size="16" color="var(--color-primary)"></app-icon>
-              <span>{{ selectedCategoryName() }}</span>
-            </div>
-            <app-icon [name]="isDropdownOpen() ? 'ChevronUp' : 'ChevronDown'" size="16"></app-icon>
-          </button>
-
-          <!-- Danh sách thả xuống không bị cắt -->
-          @if (isDropdownOpen()) {
-          <div class="blog-dropdown-menu" role="listbox">
-            <button type="button" (click)="selectCategory('')" class="blog-dropdown-item"
-              [class.is-active]="selectedCategorySlug() === ''">
-              <span>Tất cả danh mục</span>
-              <span class="blog-count-badge">{{ totalPostsCount() }}</span>
-            </button>
-
-            @for (cat of categories(); track cat.id) {
-            <button type="button" (click)="selectCategory(cat.slug)" class="blog-dropdown-item"
-              [class.is-active]="selectedCategorySlug() === cat.slug">
-              <span>{{ cat.name }}</span>
-              <span class="blog-count-badge">{{ cat.postCount }}</span>
-            </button>
-            }
-          </div>
-          }
-        </div>
-
-      </div>
-
-      <!-- Hàng chip đang lọc -->
-      @if (selectedTag() || selectedCategorySlug() || searchQuery()) {
-      <div class="blog-active-filters">
-        <span class="blog-filter-label">Đang lọc:</span>
-
-        @if (selectedCategorySlug()) {
-        <span class="blog-filter-chip">
-          <span>Danh mục: {{ selectedCategoryName() }}</span>
-          <button type="button" (click)="selectCategory('')" aria-label="Xóa lọc danh mục" class="blog-chip-remove">
-            <app-icon name="X" size="13"></app-icon>
-          </button>
-        </span>
-        }
-
-        @if (selectedTag()) {
-        <span class="blog-filter-chip">
-          <span>Thẻ: #{{ selectedTag() }}</span>
-          <button type="button" (click)="clearTag()" aria-label="Xóa lọc thẻ" class="blog-chip-remove">
-            <app-icon name="X" size="13"></app-icon>
-          </button>
-        </span>
-        }
-
-        @if (searchQuery()) {
-        <span class="blog-filter-chip">
-          <span>Từ khóa: "{{ searchQuery() }}"</span>
-          <button type="button" (click)="clearSearch()" aria-label="Xóa tìm kiếm" class="blog-chip-remove">
-            <app-icon name="X" size="13"></app-icon>
-          </button>
-        </span>
-        }
-
-        <button type="button" (click)="clearAllFilters()" class="blog-clear-all-btn">
-          Xóa tất cả bộ lọc
-        </button>
-      </div>
-      }
-    </section>
-
-    <!-- 4. TRẠNG THÁI TẢI (SKELETON) -->
+    <!-- 2. SKELETON KHI ĐANG TẢI DỮ LIỆU -->
     @if (isLoading()) {
     <div class="blog-skeleton-hero"></div>
-    <div class="blog-grid">
-      @for (n of [1, 2, 3, 4, 5, 6]; track n) {
-      <div class="blog-skeleton-card"></div>
+    <div class="blog-skeleton-heading-row">
+      <div class="skeleton-title-box"></div>
+      <div class="skeleton-pills-box"></div>
+    </div>
+    <div class="blog-cards-grid">
+      @for (n of [1, 2, 3]; track n) {
+      <div class="blog-skeleton-card">
+        <div class="skeleton-card-img"></div>
+        <div class="skeleton-line line-1"></div>
+        <div class="skeleton-line line-2"></div>
+        <div class="skeleton-line line-3"></div>
+      </div>
       }
     </div>
     }
 
-    <!-- 5. TRẠNG THÁI LỖI -->
+    <!-- 3. TRẠNG THÁI LỖI -->
     @if (!isLoading() && errorMessage()) {
     <div class="blog-state-box is-error">
       <div class="blog-state-icon">
@@ -139,7 +44,7 @@
     </div>
     }
 
-    <!-- 6. TRẠNG THÁI RỖNG -->
+    <!-- 4. TRẠNG THÁI RỖNG -->
     @if (!isLoading() && !errorMessage() && posts().length === 0) {
     <div class="blog-state-box">
       <div class="blog-state-icon">
@@ -147,7 +52,7 @@
       </div>
       <h3 class="blog-state-title">Không tìm thấy bài viết nào</h3>
       <p class="blog-state-desc">
-        Rất tiếc, không có bài viết nào phù hợp với bộ lọc hiện tại của bạn. Thử tìm với từ khóa khác hoặc quay lại danh
+        Rất tiếc, không có bài viết nào phù hợp với bộ lọc hiện tại của bạn. Thử chọn chuyên mục khác hoặc quay lại danh
         mục đầy đủ.
       </p>
       <button type="button" (click)="clearAllFilters()" class="blog-btn-action">
@@ -156,178 +61,125 @@
     </div>
     }
 
-    <!-- 7. DANH SÁCH BÀI VIẾT THỰC TẾ -->
+    <!-- 5. NỘI DUNG BLOG THỰC TẾ -->
     @if (!isLoading() && !errorMessage() && posts().length > 0) {
 
-    <!-- BÀI NỔI BẬT: THẺ NGANG (ẢNH TRÁI ~55%, NỘI DUNG PHẢI) -->
+    <!-- HERO BANNER: BÀI VIẾT MỚI NHẤT / NỔI BẬT NHẤT -->
     @if (featuredPost(); as hero) {
-    <article class="blog-featured-card">
-      <div class="blog-featured-grid">
+    <section class="blog-hero-banner" [routerLink]="['/blog', hero.slug]">
+      <!-- Ảnh nền Hero -->
+      <img
+        [src]="hero.coverImageUrl || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1600&auto=format&fit=crop&q=80'"
+        [alt]="hero.title" class="hero-bg-img" />
 
-        <!-- Ảnh trái 55%, aspect 16/10, cover, bo góc, không tràn khung -->
-        <div class="blog-featured-media">
-          <a [routerLink]="['/blog', hero.slug]" class="blog-featured-img-wrap">
-            @if (hero.coverImageUrl) {
-            <img [src]="hero.coverImageUrl" [alt]="hero.title" class="blog-featured-img" />
-            } @else {
-            <div class="blog-featured-placeholder">
-              <app-icon name="Newspaper" size="56"></app-icon>
-            </div>
-            }
-          </a>
-          <div class="blog-featured-badges">
-            <span class="blog-badge-highlight">Nổi bật</span>
-            <span class="blog-badge-cat">{{ hero.category.name }}</span>
-          </div>
+      <!-- Lớp phủ Gradient đen mờ nghệ thuật -->
+      <div class="hero-gradient-overlay"></div>
+
+      <!-- Khối nội dung phía dưới -->
+      <div class="hero-content-wrap">
+        <div class="hero-text-col">
+          <div class="hero-tag-badge">FEATURED · BÀI VIẾT NỔI BẬT</div>
+          <h1 class="hero-main-title">{{ hero.title }}</h1>
+          <p class="hero-desc-excerpt">{{ hero.excerpt }}</p>
         </div>
 
-        <!-- Nội dung phải -->
-        <div class="blog-featured-content">
-          <div>
-            <div class="blog-meta-row">
-              <span class="blog-meta-item">
-                <app-icon name="Calendar" size="14"></app-icon>
-                <span>{{ formatDate(hero.publishedAt) }}</span>
-              </span>
-              <span class="blog-meta-dot">•</span>
-              <span class="blog-meta-item">
-                <app-icon name="Clock" size="14"></app-icon>
-                <span>{{ hero.readingMinutes }} phút đọc</span>
-              </span>
-            </div>
-
-            <h2 class="blog-featured-title">
-              <a [routerLink]="['/blog', hero.slug]">{{ hero.title }}</a>
-            </h2>
-
-            <p class="blog-featured-excerpt">
-              {{ hero.excerpt }}
-            </p>
-
-            <!-- Tags -->
-            @if (hero.tags && hero.tags.length > 0) {
-            <div class="blog-tags-list">
-              @for (t of hero.tags.slice(0, 3); track t) {
-              <button type="button" (click)="selectTag(t)" class="blog-tag-btn">
-                #{{ t }}
-              </button>
-              }
-            </div>
-            }
-          </div>
-
-          <div class="blog-featured-footer">
-            <span class="blog-author-info">Bởi {{ hero.authorName }}</span>
-            <a [routerLink]="['/blog', hero.slug]" class="blog-read-btn">
-              <span>Đọc bài viết</span>
-              <app-icon name="ArrowRight" size="15"></app-icon>
-            </a>
-          </div>
+        <div class="hero-action-col">
+          <span class="hero-circle-btn" aria-label="Xem bài viết chi tiết">
+            <app-icon name="ArrowRight" size="22" color="#ffffff"></app-icon>
+          </span>
         </div>
-
-      </div>
-    </article>
-    }
-
-    <!-- LƯỚI THẺ BÀI VIẾT (3 CỘT >=1100PX, 2 CỘT >=640PX, 1 CỘT MOBILE) -->
-    @if (gridPosts().length > 0) {
-    <section>
-      <div class="blog-section-header">
-        <h2 class="blog-section-title">
-          <app-icon name="Sparkles" size="18" color="var(--color-accent)"></app-icon>
-          <span>Các bài viết mới nhất</span>
-        </h2>
-        <span class="blog-section-count">Tổng cộng {{ total() }} bài viết</span>
-      </div>
-
-      <div class="blog-grid">
-        @for (post of gridPosts(); track post.id) {
-        <article class="blog-card">
-
-          <div>
-            <!-- Ảnh aspect 4/3, cover -->
-            <div class="blog-card-media">
-              <a [routerLink]="['/blog', post.slug]" class="blog-card-img-link">
-                @if (post.coverImageUrl) {
-                <img [src]="post.coverImageUrl" [alt]="post.title" class="blog-card-img" />
-                } @else {
-                <div class="blog-featured-placeholder">
-                  <app-icon name="Newspaper" size="40"></app-icon>
-                </div>
-                }
-              </a>
-              <span class="blog-card-cat-badge">{{ post.category.name }}</span>
-            </div>
-
-            <!-- Thân thẻ -->
-            <div class="blog-card-body">
-              <div class="blog-meta-row">
-                <span class="blog-meta-item">
-                  <app-icon name="Calendar" size="13"></app-icon>
-                  <span>{{ formatDate(post.publishedAt) }}</span>
-                </span>
-                <span class="blog-meta-dot">•</span>
-                <span class="blog-meta-item">
-                  <app-icon name="Clock" size="13"></app-icon>
-                  <span>{{ post.readingMinutes }} phút</span>
-                </span>
-              </div>
-
-              <!-- Tiêu đề tối đa 2 dòng -->
-              <h3 class="blog-card-title">
-                <a [routerLink]="['/blog', post.slug]">{{ post.title }}</a>
-              </h3>
-
-              <!-- Tóm tắt tối đa 3 dòng -->
-              <p class="blog-card-excerpt">
-                {{ post.excerpt }}
-              </p>
-
-              <!-- Tags -->
-              @if (post.tags && post.tags.length > 0) {
-              <div class="blog-tags-list">
-                @for (tag of post.tags.slice(0, 3); track tag) {
-                <button type="button" (click)="selectTag(tag)" class="blog-tag-btn">
-                  #{{ tag }}
-                </button>
-                }
-              </div>
-              }
-            </div>
-          </div>
-
-          <!-- Footer thẻ -->
-          <div class="blog-card-footer">
-            <span class="blog-card-author">{{ post.authorName }}</span>
-            <a [routerLink]="['/blog', post.slug]" class="blog-card-more-link">
-              <span>Chi tiết</span>
-              <app-icon name="ArrowRight" size="13"></app-icon>
-            </a>
-          </div>
-
-        </article>
-        }
       </div>
     </section>
     }
 
-    <!-- 8. NÚT 'XEM THÊM' GIỮA TRANG -->
-    @if (hasMore()) {
-    <div class="blog-load-more-wrap">
-      <p class="blog-load-more-counter">
-        Đang hiển thị {{ posts().length }} trên tổng số {{ total() }} bài viết
-      </p>
-      <button type="button" (click)="loadMore()" [disabled]="isLoadingMore()" class="blog-load-more-btn">
-        @if (isLoadingMore()) {
-        <app-icon name="RefreshCw" size="16" class="spin-icon"></app-icon>
-        <span>Đang tải thêm...</span>
-        } @else {
-        <span>Xem thêm bài viết</span>
-        <app-icon name="ChevronDown" size="16"></app-icon>
+    <!-- TIÊU ĐỀ "BÀI VIẾT GẦN ĐÂY" & BỘ LỌC CHUYÊN MỤC BÊN CẠNH -->
+    <section class="recent-posts-section">
+      <div class="recent-posts-header">
+        <!-- Tiêu đề bên trái -->
+        <div class="section-title-wrap">
+          <h2 class="recent-posts-title">
+            Bài viết mới nhất
+          </h2>
+        </div>
+
+        <!-- Bộ lọc chuyên mục bên cạnh (chips / pills) -->
+        <div class="categories-filter-bar">
+          <!-- Nút Tất cả -->
+          <button type="button" class="filter-pill-btn" [class.active]="selectedCategorySlug() === ''"
+            (click)="selectCategory('')">
+            Tất cả
+          </button>
+
+          <!-- Từng chuyên mục từ database -->
+          @for (cat of categories(); track cat.id) {
+          <button type="button" class="filter-pill-btn" [class.active]="selectedCategorySlug() === cat.slug"
+            (click)="selectCategory(cat.slug)">
+            {{ cat.name }}
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- LƯỚI THẺ BÀI VIẾT (3 CỘT ĐỀU ĐẶN) -->
+      @if (gridPosts().length > 0) {
+      <div class="blog-cards-grid">
+        @for (post of gridPosts(); track post.id) {
+        <article class="blog-card-item" [routerLink]="['/blog', post.slug]">
+          <!-- Hình ảnh bài viết có bo góc -->
+          <div class="card-media-box">
+            <img
+              [src]="post.coverImageUrl || 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&auto=format&fit=crop&q=80'"
+              [alt]="post.title" class="card-img" />
+          </div>
+
+          <!-- Tiêu đề 2 dòng -->
+          <h3 class="card-item-title" [title]="post.title">
+            {{ post.title }}
+          </h3>
+
+          <!-- Tóm tắt nội dung 2 dòng -->
+          <p class="card-item-excerpt">
+            {{ post.excerpt }}
+          </p>
+
+          <!-- Hàng thông tin tác giả: Avatar tròn + Tên tác giả • Ngày đăng -->
+          <div class="card-author-meta">
+            <div class="author-avatar-wrap">
+              <img [src]="getAuthorAvatar(post.authorName)" [alt]="post.authorName" class="author-avatar-img"
+                (error)="onAvatarError($event, post.authorName)" />
+              <span class="avatar-initial" style="display: none;">{{ (post.authorName || 'D').charAt(0).toUpperCase()
+                }}</span>
+            </div>
+            <span class="author-name-text">{{ post.authorName || 'Ban biên tập DCor' }}</span>
+            <span class="author-meta-dot">•</span>
+            <span class="post-date-text">{{ formatBlogDate(post.publishedAt) }}</span>
+          </div>
+        </article>
         }
-      </button>
-    </div>
-    }
+      </div>
+      } @else {
+      <!-- Khi chỉ có 1 bài viết trong chuyên mục (chính là bài hero) -->
+      <div class="single-post-note">
+        <p>Đang hiển thị bài viết mới nhất trong chuyên mục <strong>{{ selectedCategoryName() }}</strong> ở banner phía
+          trên.</p>
+      </div>
+      }
+
+      <!-- NÚT XEM THÊM (NẾU CÒN BÀI VIẾT) -->
+      @if (hasMore()) {
+      <div class="blog-load-more-container">
+        <button type="button" (click)="loadMore()" [disabled]="isLoadingMore()" class="btn-load-more-stylish">
+          @if (isLoadingMore()) {
+          <app-icon name="RefreshCw" size="16" class="spin-animation"></app-icon>
+          <span>Đang tải thêm...</span>
+          } @else {
+          <span>Xem thêm bài viết</span>
+          <app-icon name="ArrowRight" size="16"></app-icon>
+          }
+        </button>
+      </div>
+      }
+    </section>
 
     }
 

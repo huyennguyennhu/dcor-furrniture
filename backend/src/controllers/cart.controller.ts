@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { promotionController } from './promotion.controller';
 
 export const cartController = {
   // Lấy giỏ hàng của Customer
@@ -79,14 +80,40 @@ export const cartController = {
           }
         }
 
-        // Tính giá và giảm giá
+        // Tính giá và giảm giá (từ chiến dịch khuyến mãi hoặc trường discountValue)
         const rawPrice = item.variant.price || item.variant.product.basePrice || 0;
-        const discountVal = item.variant.product.discountValue || 0;
-        const discountType = item.variant.product.discountType;
+        let discountVal = item.variant.product.discountValue || 0;
+        let discountType = item.variant.product.discountType || 'PERCENT';
         let finalPrice = rawPrice;
         let originalPrice = rawPrice;
 
-        if (discountVal > 0) {
+        const activeCampaigns = promotionController.getActiveCampaignsHelper();
+        const p = item.variant.product;
+        const pName = (p.name || '').toLowerCase().trim();
+        const pId = String(p.id || '').toLowerCase().trim();
+        const pSlug = String(p.slug || '').toLowerCase().trim();
+
+        if (activeCampaigns.length > 0) {
+          for (const camp of activeCampaigns) {
+            if (!camp.items || !Array.isArray(camp.items)) continue;
+            for (const it of camp.items) {
+              const itId = String(it.productId || '').toLowerCase().trim();
+              const itName = String(it.productName || '').toLowerCase().trim();
+              const isMatch = (itId && (itId === pId || itId === pSlug || itId === item.variantId)) ||
+                (itName && pName && (itName === pName || pName.includes(itName) || itName.includes(pName)));
+              if (isMatch) {
+                discountVal = it.discountPercent || camp.discountValue || 0;
+                discountType = camp.discountType === 'FIXED' ? 'AMOUNT' : 'PERCENT';
+                originalPrice = it.originalPrice || rawPrice;
+                finalPrice = it.salePrice || (discountType === 'AMOUNT' ? Math.max(0, originalPrice - camp.discountValue) : Math.round(originalPrice * (100 - discountVal) / 100));
+                break;
+              }
+            }
+            if (finalPrice < rawPrice) break;
+          }
+        }
+
+        if (finalPrice === rawPrice && discountVal > 0) {
           if (discountType === 'PERCENT') {
             finalPrice = Math.round(rawPrice * (100 - discountVal) / 100);
           } else {

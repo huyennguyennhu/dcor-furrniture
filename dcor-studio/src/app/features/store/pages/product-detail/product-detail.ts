@@ -9,6 +9,7 @@ import { IconComponent } from '../../../../shared/components/icon/icon';
 import { CartService } from '../../../../core/services/cart.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
+import { PromotionService } from '../../../../core/services/promotion.service';
 import { environment } from '../../../../../environments/environment';
 
 export interface AttributeOption {
@@ -251,6 +252,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
 
   // Sticky Mobile Buy Bar
   showStickyMobileBar = false;
+  private campaignSub?: Subscription;
 
   constructor(
     private route: ActivatedRoute,
@@ -259,7 +261,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     private wishlistService: WishlistService,
     private cdr: ChangeDetectorRef,
     private productService: ProductService,
-    public compareService: CompareService
+    public compareService: CompareService,
+    private promotionService: PromotionService
   ) { }
 
   ngOnInit() {
@@ -289,11 +292,19 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
       this.compareList = list || [];
       this.cdr.detectChanges();
     });
+
+    this.campaignSub = this.promotionService.activeCampaigns$.subscribe(() => {
+      if (this.product) {
+        this.updateVariantData();
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   ngOnDestroy() {
     this.wishlistSub?.unsubscribe();
     this.compareSub?.unsubscribe();
+    this.campaignSub?.unsubscribe();
     if (this.flashSaleInterval) clearInterval(this.flashSaleInterval);
     if (this.toastTimer) clearTimeout(this.toastTimer);
     if (this.copyTimer) clearTimeout(this.copyTimer);
@@ -691,29 +702,38 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     // SKU
     this.currentSku = v?.sku || prod?.slug || 'DCOR-PREMIUM';
 
-    // Pricing & Discount
+    // Pricing & Discount: Kiểm tra chiến dịch khuyến mãi hoặc trường discountValue
     const basePrice = v?.price || prod?.basePrice || prod?.prices?.[0]?.price || 0;
-    this.hasFlashSale = Boolean(prod?.discountValue && prod.discountValue > 0);
+    const campDisc = this.promotionService.getDiscountForProduct(prod || { id: this.productId, name: this.product?.name || '', basePrice });
 
-    if (this.hasFlashSale) {
-      if (prod.discountType === 'PERCENT') {
-        this.discountPercent = prod.discountValue;
-        this.currentPrice = Math.round(basePrice * (1 - prod.discountValue / 100));
-        this.originalPrice = basePrice;
-      } else if (prod.discountType === 'AMOUNT') {
-        this.currentPrice = Math.max(0, basePrice - prod.discountValue);
-        this.originalPrice = basePrice;
-        this.discountPercent = Math.round((prod.discountValue / basePrice) * 100);
-      } else {
-        // Fallback percentage
-        this.discountPercent = prod.discountValue;
-        this.currentPrice = Math.round(basePrice * (1 - prod.discountValue / 100));
-        this.originalPrice = basePrice;
-      }
+    if (campDisc) {
+      this.hasFlashSale = true;
+      this.discountPercent = campDisc.discountPercent;
+      this.currentPrice = campDisc.salePrice;
+      this.originalPrice = campDisc.originalPrice || basePrice;
     } else {
-      this.currentPrice = basePrice;
-      this.originalPrice = null;
-      this.discountPercent = 0;
+      this.hasFlashSale = Boolean(prod?.discountValue && prod.discountValue > 0);
+
+      if (this.hasFlashSale) {
+        if (prod.discountType === 'PERCENT') {
+          this.discountPercent = prod.discountValue;
+          this.currentPrice = prod.salePrice || Math.round(basePrice * (1 - prod.discountValue / 100));
+          this.originalPrice = prod.originalPrice || basePrice;
+        } else if (prod.discountType === 'AMOUNT') {
+          this.currentPrice = prod.salePrice || Math.max(0, basePrice - prod.discountValue);
+          this.originalPrice = prod.originalPrice || basePrice;
+          this.discountPercent = Math.round((prod.discountValue / basePrice) * 100);
+        } else {
+          // Fallback percentage
+          this.discountPercent = prod.discountValue;
+          this.currentPrice = prod.salePrice || Math.round(basePrice * (1 - prod.discountValue / 100));
+          this.originalPrice = prod.originalPrice || basePrice;
+        }
+      } else {
+        this.currentPrice = basePrice;
+        this.originalPrice = null;
+        this.discountPercent = 0;
+      }
     }
 
     // Stock

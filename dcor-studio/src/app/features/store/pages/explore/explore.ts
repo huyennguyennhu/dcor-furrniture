@@ -15,11 +15,13 @@ import {
   matchProductMaterial 
 } from '../../../../core/services/category-classification.service';
 import { QuickViewDrawerComponent } from '../../../../shared/components/quick-view-drawer/quick-view-drawer';
+import { QuickViewService } from '../../../../core/services/quick-view.service';
 import { ProductCompareModalComponent } from '../../../../shared/components/product-compare-modal/product-compare-modal';
 import { Subscription } from 'rxjs';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
 import { CompareService } from '../../../../core/services/compare.service';
+import { PromotionService } from '../../../../core/services/promotion.service';
 import { LucideAngularModule, Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star, SlidersHorizontal, X } from 'lucide-angular';
 
 import { environment } from '../../../../../environments/environment';
@@ -34,7 +36,7 @@ const INITIAL_FILTER_STATE: FilterState = {
   materials: [],
   colors: [],
   minRating: undefined,
-  priceRange: [0, 100000000]
+  priceRange: [0, 0]
 };
 
 @Component({
@@ -47,7 +49,6 @@ const INITIAL_FILTER_STATE: FilterState = {
     FormsModule, 
     CustomSelect, 
     SidebarFilterComponent, 
-    QuickViewDrawerComponent, 
     ProductCompareModalComponent,
     LucideAngularModule
   ],
@@ -58,6 +59,12 @@ export class ExploreComponent implements OnInit, OnDestroy {
   icons = { Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star, SlidersHorizontal, X };
 
   products: CatalogProduct[] = [];
+  filteredProducts: CatalogProduct[] = [];
+  paginatedProducts: CatalogProduct[] = [];
+  totalPages = 1;
+  dynamicMinPrice = 0;
+  dynamicMaxPrice = 100000000;
+  ratingCounts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0 };
   rawCategories: ProductCategory[] = [];
   isLoading = true;
   
@@ -81,6 +88,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     } else if (!val || val === 'default') {
       this.priceSortOrder = '';
     }
+    this.updateFilteredProducts();
   }
 
   quickViewProduct: CatalogProduct | null = null;
@@ -89,7 +97,12 @@ export class ExploreComponent implements OnInit, OnDestroy {
   wishlist: string[] = [];
   private wishlistSub?: Subscription;
   private compareSub?: Subscription;
+  private campaignSub?: Subscription;
   compareList: CatalogProduct[] = [];
+  get remainingPlaceholderSlots(): number[] {
+    const count = Math.max(0, 5 - (this.compareList?.length || 0));
+    return Array(count).fill(0);
+  }
   isCompareModalOpen = false;
   showClearCompareConfirmModal = false;
   compareToastMessage: string | null = null;
@@ -115,7 +128,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     count += (this.filters.materials?.length || 0);
     count += (this.filters.colors?.length || 0);
     if (this.filters.minRating !== undefined) count++;
-    if (this.filters.priceRange && (this.filters.priceRange[0] > 0 || this.filters.priceRange[1] < this.dynamicMaxPrice)) count++;
+    if (this.filters.priceRange && (this.filters.priceRange[0] > this.dynamicMinPrice || this.filters.priceRange[1] < this.dynamicMaxPrice)) count++;
     return count;
   }
 
@@ -139,7 +152,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
     private wishlistService: WishlistService,
     private productService: ProductService,
     public compareService: CompareService,
-    private categoryClassificationService: CategoryClassificationService
+    private categoryClassificationService: CategoryClassificationService,
+    private quickViewService: QuickViewService,
+    private promotionService: PromotionService
   ) {}
 
   @HostListener('window:scroll', [])
@@ -174,6 +189,14 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.compareSub = this.compareService.compareList$.subscribe(list => {
       this.compareList = (list as any[]) || [];
       this.cdr.detectChanges();
+    });
+
+    this.campaignSub = this.promotionService.activeCampaigns$.subscribe(() => {
+      if (this.products && this.products.length > 0) {
+        this.recalculateProductDiscounts();
+        this.updateFilteredProducts();
+        this.cdr.detectChanges();
+      }
     });
 
     const savedState = this.getSavedExploreState();
@@ -288,16 +311,35 @@ export class ExploreComponent implements OnInit, OnDestroy {
         const rawProducts = productsData;
         
         this.products = rawProducts.map((p: any) => {
-          // Tính toán giá và giá khuyến mãi
-          const basePrice = p.basePrice || 0;
+          // Tính toán giá và giá khuyến mãi (từ chiến dịch khuyến mãi hoặc trường discountValue)
+          const basePrice = Number(p.basePrice) || (p.price ? Number(p.price) : 0) || (p.prices?.[0]?.price ? Number(p.prices[0].price) : 0);
           let lowestPrice = basePrice;
-          if (p.discountValue) {
+          const campDisc = this.promotionService.getDiscountForProduct(p);
+          let finalDiscountValue = p.discountValue;
+          let finalDiscountType = p.discountType;
+          let finalOriginalPrice = p.originalPrice;
+
+          if (campDisc) {
+            finalDiscountValue = campDisc.discountPercent;
+            finalDiscountType = campDisc.discountType;
+            lowestPrice = campDisc.salePrice;
+            finalOriginalPrice = campDisc.originalPrice || basePrice;
+          } else if (p.discountValue) {
             if (p.discountType === 'PERCENT') {
-              lowestPrice = Math.round(basePrice * (100 - p.discountValue) / 100);
+              lowestPrice = p.salePrice || Math.round(basePrice * (100 - p.discountValue) / 100);
             } else {
-              lowestPrice = Math.max(0, basePrice - p.discountValue);
+              lowestPrice = p.salePrice || Math.max(0, basePrice - p.discountValue);
             }
           }
+
+          const isOnSale = Boolean(campDisc || (finalDiscountValue && finalDiscountValue > 0));
+          const discountBadgeText = campDisc ? campDisc.badgeText : (finalDiscountValue ? (finalDiscountType === 'PERCENT' ? `-${finalDiscountValue}%` : 'SALE') : '');
+          const currentPrice = lowestPrice;
+          const formattedCurrentPrice = new Intl.NumberFormat('vi-VN').format(currentPrice) + ' đ';
+          const origPriceVal = finalOriginalPrice || basePrice;
+          const formattedOriginalPrice = (isOnSale && origPriceVal > currentPrice)
+            ? new Intl.NumberFormat('vi-VN').format(origPriceVal) + ' đ'
+            : null;
 
           // Trích xuất chất liệu từ description trong DB
           const materialsList: string[] = [];
@@ -412,13 +454,27 @@ export class ExploreComponent implements OnInit, OnDestroy {
                 vImages.unshift(pMain);
               }
 
+              const rawPrice = (v.price !== undefined && v.price !== null && Number(v.price) > 0) ? Number(v.price) : basePrice;
+              let calculatedPrice = rawPrice;
+              if (campDisc) {
+                calculatedPrice = campDisc.salePrice;
+              } else if (finalDiscountValue && finalDiscountValue > 0) {
+                if (finalDiscountType === 'PERCENT') {
+                  calculatedPrice = Math.round(rawPrice * (100 - finalDiscountValue) / 100);
+                } else {
+                  calculatedPrice = Math.max(0, rawPrice - finalDiscountValue);
+                }
+              }
+
               colorSwatches.push({
                 id: v.id || `v-${vIdx}`,
                 name: colorInfo.name,
                 rawName: v.name,
                 hex: colorInfo.hex,
                 images: vImages,
-                price: v.price
+                price: rawPrice,
+                calculatedPrice: calculatedPrice,
+                formattedPrice: new Intl.NumberFormat('vi-VN').format(calculatedPrice) + ' đ'
               });
             }
           });
@@ -432,7 +488,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
               rawName: 'Tiêu chuẩn',
               hex: defaultColor.hex,
               images: finalImages,
-              price: basePrice
+              price: basePrice,
+              calculatedPrice: currentPrice,
+              formattedPrice: formattedCurrentPrice
             });
           }
 
@@ -456,12 +514,19 @@ export class ExploreComponent implements OnInit, OnDestroy {
             lowestPrices: lowestPrice < basePrice ? [{ price: lowestPrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(lowestPrice) + ' đ', currency: 'VND' }] : [],
             isBestSeller: p.isBestSeller || false,
             isNew: p.isNew || false,
-            discountValue: p.discountValue,
-            discountType: p.discountType,
+            discountValue: finalDiscountValue,
+            discountType: finalDiscountType,
+            originalPrice: origPriceVal,
             variants: p.variants || [],
             rating: p.rating || 4.9,
             reviewCount: p.reviewCount || 128,
-            createdAt: p.createdAt
+            createdAt: p.createdAt,
+            isOnSale,
+            discountBadgeText,
+            currentPrice,
+            formattedCurrentPrice,
+            formattedOriginalPrice,
+            basePrice
           };
         });
 
@@ -474,6 +539,15 @@ export class ExploreComponent implements OnInit, OnDestroy {
 
         this.generateDynamicFilters(this.products);
         this.syncSelectedVariantsWithColorFilter();
+        this.computeDynamicPriceRange();
+        this.computeRatingCounts();
+        if (!this.filters.priceRange || (this.filters.priceRange[0] === 0 && (this.filters.priceRange[1] === 0 || this.filters.priceRange[1] === 100000000))) {
+          this.filters = {
+            ...this.filters,
+            priceRange: [this.dynamicMinPrice, this.dynamicMaxPrice]
+          };
+        }
+        this.updateFilteredProducts();
 
         // Phục hồi danh sách so sánh từ liên kết chia sẻ URL (?compare=id1,id2,...)
         if (this.pendingCompareParam) {
@@ -546,17 +620,97 @@ export class ExploreComponent implements OnInit, OnDestroy {
     };
   }
 
-  // Data đánh giá thật: Tính số lượng sản phẩm thực tế theo số sao
-  get ratingCounts(): Record<number, number> {
+  // Data đánh giá thật: Tính số lượng sản phẩm thực tế theo số sao (lưu cache O(1))
+  computeRatingCounts() {
     const counts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0 };
-    this.products.forEach(p => {
-      const r = p.rating || 4.9;
-      if (r >= 4.9) counts[5]++;
-      else if (r >= 4.0) counts[4]++;
-      else if (r >= 3.0) counts[3]++;
-      else counts[2]++;
-    });
-    return counts;
+    if (this.products) {
+      this.products.forEach(p => {
+        const r = p.rating || 4.9;
+        if (r >= 4.9) counts[5]++;
+        else if (r >= 4.0) counts[4]++;
+        else if (r >= 3.0) counts[3]++;
+        else counts[2]++;
+      });
+    }
+    this.ratingCounts = counts;
+  }
+
+  // Tính toán khoảng giá cực tiểu / cực đại thực tế từ toàn bộ sản phẩm trong DB (lưu cache O(1))
+  computeDynamicPriceRange() {
+    if (!this.products || this.products.length === 0) {
+      this.dynamicMinPrice = 0;
+      this.dynamicMaxPrice = 100000000;
+      return;
+    }
+    let min = Infinity;
+    let max = 0;
+    for (const prod of this.products) {
+      const p = prod.currentPrice ?? (prod.prices?.[0]?.price || 0);
+      if (p > 0 && p < min) min = p;
+      if (p > max) max = p;
+      if (prod.colorSwatches && prod.colorSwatches.length > 0) {
+        for (const sw of prod.colorSwatches) {
+          const sp = sw.calculatedPrice ?? sw.price ?? p;
+          if (sp > 0 && sp < min) min = sp;
+          if (sp > max) max = sp;
+        }
+      }
+    }
+    this.dynamicMinPrice = min === Infinity ? 0 : min;
+    this.dynamicMaxPrice = max > 0 ? max : 100000000;
+  }
+
+  // Tái tính toán giá trị khuyến mãi khi danh sách chiến dịch thay đổi
+  recalculateProductDiscounts(): void {
+    if (!this.products || this.products.length === 0) return;
+    for (const prod of this.products) {
+      const basePrice = Number(prod.basePrice) || (prod.prices?.[0]?.price || 0);
+      let lowestPrice = basePrice;
+      const campDisc = this.promotionService.getDiscountForProduct(prod);
+      let finalDiscountValue = prod.discountValue;
+      let finalDiscountType = prod.discountType;
+      let finalOriginalPrice = prod.originalPrice || basePrice;
+
+      if (campDisc) {
+        finalDiscountValue = campDisc.discountPercent;
+        finalDiscountType = campDisc.discountType;
+        lowestPrice = campDisc.salePrice;
+        finalOriginalPrice = campDisc.originalPrice || basePrice;
+      } else if (prod.discountValue) {
+        if (prod.discountType === 'PERCENT') {
+          lowestPrice = Math.round(basePrice * (100 - prod.discountValue) / 100);
+        } else {
+          lowestPrice = Math.max(0, basePrice - prod.discountValue);
+        }
+      }
+
+      prod.isOnSale = Boolean(campDisc || (finalDiscountValue && finalDiscountValue > 0));
+      prod.discountBadgeText = campDisc ? campDisc.badgeText : (finalDiscountValue ? (finalDiscountType === 'PERCENT' ? `-${finalDiscountValue}%` : 'SALE') : '');
+      prod.currentPrice = lowestPrice;
+      prod.formattedCurrentPrice = new Intl.NumberFormat('vi-VN').format(lowestPrice) + ' đ';
+      prod.originalPrice = finalOriginalPrice;
+      prod.formattedOriginalPrice = (prod.isOnSale && finalOriginalPrice > lowestPrice)
+        ? new Intl.NumberFormat('vi-VN').format(finalOriginalPrice) + ' đ'
+        : null;
+
+      if (prod.colorSwatches) {
+        for (const sw of prod.colorSwatches) {
+          const rawPrice = (sw.price !== undefined && sw.price !== null && Number(sw.price) > 0) ? Number(sw.price) : basePrice;
+          let calculatedPrice = rawPrice;
+          if (campDisc) {
+            calculatedPrice = campDisc.salePrice;
+          } else if (finalDiscountValue && finalDiscountValue > 0) {
+            if (finalDiscountType === 'PERCENT') {
+              calculatedPrice = Math.round(rawPrice * (100 - finalDiscountValue) / 100);
+            } else {
+              calculatedPrice = Math.max(0, rawPrice - finalDiscountValue);
+            }
+          }
+          sw.calculatedPrice = calculatedPrice;
+          sw.formattedPrice = new Intl.NumberFormat('vi-VN').format(calculatedPrice) + ' đ';
+        }
+      }
+    }
   }
 
   // Tiêu đề Banner động theo danh mục chính / phòng / bộ sưu tập / phong cách
@@ -591,11 +745,23 @@ export class ExploreComponent implements OnInit, OnDestroy {
            ((this.filters.materials?.length || 0) > 0) ||
            (this.filters.colors.length > 0) ||
            (this.filters.minRating !== undefined) ||
-           (this.filters.priceRange[0] > 0 || this.filters.priceRange[1] < this.dynamicMaxPrice);
+           (Boolean(this.filters.priceRange) && (this.filters.priceRange[0] > this.dynamicMinPrice || this.filters.priceRange[1] < this.dynamicMaxPrice));
   }
 
-  get filteredExceptPrice(): CatalogProduct[] {
-    return this.products.filter(prod => {
+  // Cập nhật danh sách sản phẩm sau lọc & sắp xếp (chạy 1 lần khi bộ lọc thay đổi, KHÔNG chạy lặp lại trong Change Detection)
+  updateFilteredProducts(): void {
+    if (!this.products || this.products.length === 0) {
+      this.filteredProducts = [];
+      this.totalPages = 1;
+      this.updatePaginatedProducts();
+      return;
+    }
+
+    const min = this.filters.priceRange?.[0] ?? this.dynamicMinPrice;
+    const max = this.filters.priceRange?.[1] ?? this.dynamicMaxPrice;
+    const isPriceFiltered = min > this.dynamicMinPrice || max < this.dynamicMaxPrice;
+
+    let list = this.products.filter(prod => {
       // 1. Lọc theo danh mục chính từ Database (parentId == null hoặc slug)
       if (this.filters.categories.length > 0) {
         const matchesCategory = this.filters.categories.some(selectedCatSlug => {
@@ -655,17 +821,17 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (!matchesMaterial) return false;
       }
 
-      // 4. Lọc theo đánh giá thật
+      // 6. Lọc theo đánh giá thật: Khớp chuẩn xác theo phân khúc đánh giá thực tế của sản phẩm
       if (this.filters.minRating !== undefined) {
-        const min = this.filters.minRating;
+        const star = this.filters.minRating;
         const prodRating = prod.rating || 4.9;
-        if (min === 5 && prodRating < 4.9) return false;
-        if (min === 4 && prodRating < 4.0) return false;
-        if (min === 3 && prodRating < 3.0) return false;
-        if (min === 2 && prodRating < 2.0) return false;
+        if (star === 5 && prodRating < 4.9) return false;
+        if (star === 4 && (prodRating < 4.0 || prodRating >= 4.9)) return false;
+        if (star === 3 && (prodRating < 3.0 || prodRating >= 4.0)) return false;
+        if (star === 2 && prodRating >= 3.0) return false;
       }
 
-      // 5. Lọc theo chất liệu (nếu có)
+      // 7. Lọc theo chất liệu (nếu có từ refinementMaterials)
       if (this.filters.materials && this.filters.materials.length > 0) {
         const selectedMats = this.filters.materials;
         const matchesMaterial = prod.refinementMaterials?.some(m => 
@@ -674,7 +840,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (!matchesMaterial) return false;
       }
 
-      // 6. Lọc nghiêm ngặt theo màu sắc: Chỉ hiển thị sản phẩm thực sự có biến thể màu được chọn, sản phẩm không có màu này sẽ bị ẩn
+      // 8. Lọc nghiêm ngặt theo màu sắc: Chỉ hiển thị sản phẩm thực sự có biến thể màu được chọn
       if (this.filters.colors.length > 0) {
         const matchesColor = this.filters.colors.some(cSlug => {
           return Boolean(prod.colorSwatches && prod.colorSwatches.some(sw => this.isColorSlugMatch(cSlug, sw)));
@@ -682,34 +848,42 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (!matchesColor) return false;
       }
 
-      // 7. Lọc theo từ khóa tìm kiếm
+      // 9. Lọc theo từ khóa tìm kiếm
       if (this.searchQuery) {
         const q = this.searchQuery.toLowerCase();
         const text = `${prod.name} ${prod.category} ${prod.description}`.toLowerCase();
         if (!text.includes(q)) return false;
       }
 
-      return true;
-    });
-  }
+      // 10. Kiểm tra khoảng giá
+      const currentPrice = this.getProductPriceVal(prod);
+      if (currentPrice >= min && currentPrice <= max) {
+        return true;
+      }
 
-  get filteredProducts(): CatalogProduct[] {
-    const min = this.filters.priceRange[0] || 0;
-    const max = this.filters.priceRange[1] ?? this.dynamicMaxPrice;
-    let list = this.filteredExceptPrice.filter(prod => {
-      const price = this.getProductPriceVal(prod);
-      return price >= min && price <= max;
+      if (isPriceFiltered && prod.colorSwatches && prod.colorSwatches.length > 1) {
+        const matchingSwatch = prod.colorSwatches.find(sw => {
+          const swPrice = sw.calculatedPrice ?? this.getSwatchPrice(sw, prod);
+          return swPrice >= min && swPrice <= max;
+        });
+        if (matchingSwatch) {
+          this.selectedVariantMap[prod.productId] = matchingSwatch;
+          return true;
+        }
+      }
+
+      return false;
     });
 
-    // 1. Áp dụng tiêu chí lọc "Đang khuyến mãi": ưu tiên lọc các sản phẩm đang có sale
+    // Tiêu chí lọc "Đang khuyến mãi"
     if (this.sortCriterion === 'sale') {
-      const onSaleList = list.filter(prod => this.isOnSale(prod));
+      const onSaleList = list.filter(prod => Boolean(prod.isOnSale));
       if (onSaleList.length > 0) {
         list = onSaleList;
       }
     }
 
-    // 2. Sắp xếp danh sách kết hợp giữa tiêu chí chính và sắp xếp theo giá
+    // Sắp xếp
     if (this.priceSortOrder === 'price-asc') {
       list.sort((a, b) => {
         const diff = this.getProductPriceVal(a) - this.getProductPriceVal(b);
@@ -743,7 +917,6 @@ export class ExploreComponent implements OnInit, OnDestroy {
         return 0;
       });
     } else {
-      // Mặc định (không sắp xếp giá): sắp xếp theo tiêu chí đã chọn
       if (this.sortCriterion === 'featured') {
         list.sort((a, b) => {
           if (a.isBestSeller && !b.isBestSeller) return -1;
@@ -761,63 +934,76 @@ export class ExploreComponent implements OnInit, OnDestroy {
       }
     }
 
-    return list;
+    this.filteredProducts = list;
+    this.totalPages = Math.ceil(this.filteredProducts.length / this.itemsPerPage) || 1;
+    this.updatePaginatedProducts();
   }
 
-  get paginatedProducts(): CatalogProduct[] {
-    return this.filteredProducts.slice(0, this.currentPage * this.itemsPerPage);
+  updatePaginatedProducts(): void {
+    this.paginatedProducts = this.filteredProducts.slice(0, this.currentPage * this.itemsPerPage);
   }
 
-  get totalPages(): number {
-    return Math.ceil(this.filteredProducts.length / this.itemsPerPage);
+  calculateDiscountedPrice(rawPrice: number, prod: CatalogProduct): number {
+    if (!rawPrice || rawPrice <= 0) return 0;
+    if (prod.isOnSale && prod.currentPrice !== undefined && (rawPrice === prod.basePrice || !prod.basePrice)) {
+      return prod.currentPrice;
+    }
+    const camp = this.promotionService.getDiscountForProduct(prod);
+    if (camp) {
+      return camp.salePrice;
+    }
+    if (prod.discountValue && prod.discountValue > 0) {
+      if (prod.discountType === 'PERCENT') {
+        return Math.round(rawPrice * (100 - prod.discountValue) / 100);
+      } else {
+        return Math.max(0, rawPrice - prod.discountValue);
+      }
+    }
+    return rawPrice;
   }
 
-  get dynamicMaxPrice(): number {
-    return 100000000;
+  getSwatchPrice(swatch: ProductColorSwatch | undefined, prod: CatalogProduct): number {
+    if (swatch && swatch.calculatedPrice !== undefined) {
+      return swatch.calculatedPrice;
+    }
+    const raw = (swatch && swatch.price && swatch.price > 0) ? swatch.price : (prod.basePrice || prod.prices?.[0]?.price || 0);
+    return this.calculateDiscountedPrice(raw, prod);
   }
 
   getProductPriceVal(prod: CatalogProduct): number {
-    if (prod.lowestPrices && prod.lowestPrices.length > 0) {
-      return prod.lowestPrices[0].price;
+    const selected = this.getSelectedSwatch(prod);
+    if (selected && selected.calculatedPrice !== undefined) {
+      return selected.calculatedPrice;
     }
-    return prod.prices?.[0]?.price ?? 0;
+    return prod.currentPrice ?? (prod.prices?.[0]?.price || 0);
   }
 
   getProductPriceFormatted(prod: CatalogProduct): string {
     const selected = this.getSelectedSwatch(prod);
-    if (selected && selected.price) {
-      let pPrice = selected.price;
-      if (prod.discountValue) {
-        if (prod.discountType === 'PERCENT') {
-          pPrice = Math.round(selected.price * (100 - prod.discountValue) / 100);
-        } else {
-          pPrice = Math.max(0, selected.price - prod.discountValue);
-        }
-      }
-      return new Intl.NumberFormat('vi-VN').format(pPrice) + ' đ';
+    if (selected && selected.formattedPrice) {
+      return selected.formattedPrice;
     }
-    if (prod.lowestPrices && prod.lowestPrices.length > 0) {
-      return prod.lowestPrices[0].formattedPrice;
-    }
-    return prod.prices?.[0]?.formattedPrice ?? 'Liên hệ';
+    return prod.formattedCurrentPrice ?? (prod.prices?.[0]?.formattedPrice ?? 'Liên hệ');
   }
 
   getOriginalPriceFormatted(prod: CatalogProduct): string | null {
-    const selected = this.getSelectedSwatch(prod);
-    if (selected && selected.price && prod.discountValue) {
-      return new Intl.NumberFormat('vi-VN').format(selected.price) + ' đ';
-    }
-    if (prod.lowestPrices && prod.lowestPrices.length > 0) {
-      return prod.prices?.[0]?.formattedPrice ?? null;
-    }
-    return null;
+    return prod.formattedOriginalPrice ?? null;
   }
 
   isOnSale(prod: CatalogProduct): boolean {
-    return Boolean(
-      (prod.discountValue && prod.discountValue > 0) ||
-      (prod.lowestPrices && prod.lowestPrices.length > 0 && prod.lowestPrices[0].price < (prod.prices?.[0]?.price ?? 0))
-    );
+    return Boolean(prod.isOnSale);
+  }
+
+  getDiscountBadgeText(prod: CatalogProduct): string {
+    return prod.discountBadgeText || '';
+  }
+
+  trackByProductId(index: number, item: CatalogProduct): string {
+    return item.productId || item.id || `prod-${index}`;
+  }
+
+  trackBySwatchId(index: number, item: ProductColorSwatch): string {
+    return item.id || `sw-${index}`;
   }
 
   getCategoryLabel(catKey: string): string {
@@ -856,25 +1042,47 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   removeCategory(cat: string) {
-    this.filters.categories = this.filters.categories.filter(c => c !== cat);
+    this.filters = {
+      ...this.filters,
+      categories: this.filters.categories.filter(c => c !== cat)
+    };
     this.currentPage = 1;
+    this.updateFilteredProducts();
     this.scrollToTop();
   }
 
   removeFilterTag(key: 'rooms' | 'collections' | 'styles' | 'materials' | 'colors', val: string) {
     if (this.filters[key]) {
-      this.filters[key] = (this.filters[key] as string[]).filter(item => item !== val);
+      this.filters = {
+        ...this.filters,
+        [key]: (this.filters[key] as string[]).filter(item => item !== val)
+      };
     }
     if (key === 'colors') {
       this.syncSelectedVariantsWithColorFilter();
     }
     this.currentPage = 1;
+    this.updateFilteredProducts();
     this.scrollToTop();
   }
 
   resetPrice() {
-    this.filters.priceRange = [0, this.dynamicMaxPrice];
+    this.filters = {
+      ...this.filters,
+      priceRange: [this.dynamicMinPrice, this.dynamicMaxPrice]
+    };
     this.currentPage = 1;
+    this.updateFilteredProducts();
+    this.scrollToTop();
+  }
+
+  removeRatingFilter() {
+    this.filters = {
+      ...this.filters,
+      minRating: undefined
+    };
+    this.currentPage = 1;
+    this.updateFilteredProducts();
     this.scrollToTop();
   }
 
@@ -886,6 +1094,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       this.syncSelectedVariantsWithColorFilter();
     }
     this.currentPage = 1;
+    this.updateFilteredProducts();
     this.scrollToTop();
   }
 
@@ -900,6 +1109,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       this.sortCriterion = criterion;
     }
     this.currentPage = 1;
+    this.updateFilteredProducts();
     this.scrollToTop();
   }
 
@@ -910,6 +1120,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       this.priceSortOrder = '';
     }
     this.currentPage = 1;
+    this.updateFilteredProducts();
     this.scrollToTop();
   }
 
@@ -924,21 +1135,25 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   clearAllFilters() {
-    this.filters = { ...INITIAL_FILTER_STATE };
-    this.filters.categories = [];
-    this.filters.rooms = [];
-    this.filters.collections = [];
-    this.filters.styles = [];
-    this.filters.materials = [];
-    this.filters.colors = [];
-    this.filters.minRating = undefined;
+    this.filters = {
+      categories: [],
+      rooms: [],
+      collections: [],
+      styles: [],
+      materials: [],
+      colors: [],
+      minRating: undefined,
+      priceRange: [this.dynamicMinPrice, this.dynamicMaxPrice]
+    };
     this.syncSelectedVariantsWithColorFilter();
     this.currentPage = 1;
+    this.updateFilteredProducts();
     this.scrollToTop();
   }
 
   loadMore() {
     this.currentPage++;
+    this.updatePaginatedProducts();
   }
 
   isInWishlist(productId?: string): boolean {
@@ -1152,7 +1367,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       prod.images = selected.images;
     }
     this.quickViewProduct = prod;
-    this.isQuickViewOpen = true;
+    this.quickViewService.open(prod);
   }
 
   handleProductClick(productId: string) {
@@ -1280,6 +1495,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
       return prod.colorSwatches || [];
     }
     const active = this.getSelectedSwatch(prod);
+    const activeId = active?.id || prod.colorSwatches[0]?.id;
+    if ((prod as any)._cachedVisibleSwatches && (prod as any)._cachedActiveSwatchId === activeId) {
+      return (prod as any)._cachedVisibleSwatches;
+    }
     const swatches = [...prod.colorSwatches];
     if (active) {
       const idx = swatches.findIndex(s => s.id === active.id);
@@ -1288,7 +1507,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
         swatches.unshift(activeSw);
       }
     }
-    return swatches.slice(0, 5);
+    const visible = swatches.slice(0, 5);
+    (prod as any)._cachedVisibleSwatches = visible;
+    (prod as any)._cachedActiveSwatchId = activeId;
+    return visible;
   }
 
   getCardImages(prod: CatalogProduct): string[] {
@@ -1425,6 +1647,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     }
     this.wishlistSub?.unsubscribe();
     this.compareSub?.unsubscribe();
+    this.campaignSub?.unsubscribe();
     this.sub.unsubscribe();
     Object.keys(this.hoverTimerMap).forEach(id => clearInterval(this.hoverTimerMap[id]));
     Object.keys(this.mouseDebounceMap).forEach(id => clearTimeout(this.mouseDebounceMap[id]));

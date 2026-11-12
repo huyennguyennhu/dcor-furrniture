@@ -6,7 +6,7 @@
 .checkout-page-container {
   min-height: 85vh;
   padding: 40px 0 80px;
-  background-color: var(--color-sub-bg, #FCF8F3);
+  background-color: #faf9f6;
 }
 
 /* --- Header --- */

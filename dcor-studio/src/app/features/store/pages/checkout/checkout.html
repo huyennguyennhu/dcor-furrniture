@@ -3,7 +3,7 @@
 
     <!-- BƯỚC 1: TRANG THANH TOÁN & ĐẶT HÀNG (A) -->
     <ng-container *ngIf="currentStep === 'checkout'">
-      
+
       <!-- Page Header -->
       <div class="checkout-header">
         <div class="checkout-breadcrumbs">
@@ -13,7 +13,6 @@
           </a>
         </div>
         <div class="header-main-title">
-          <span class="sub-eyebrow">DCor Furniture</span>
           <h1 class="main-title">Thanh toán & Đặt hàng</h1>
         </div>
       </div>
@@ -63,11 +62,8 @@
                     <lucide-angular [img]="icons.Check" size="12"></lucide-angular>
                     <span>Đã xác thực</span>
                   </span>
-                  <span 
-                    *ngIf="isPhoneOtpRequired(phone)" 
-                    class="verify-badge unverified" 
-                    (click)="$event.stopPropagation(); sendOtp()" 
-                    style="cursor:pointer;" 
+                  <span *ngIf="isPhoneOtpRequired(phone)" class="verify-badge unverified"
+                    (click)="$event.stopPropagation(); sendOtp()" style="cursor:pointer;"
                     title="Nhấn để gửi mã xác thực OTP ngay">
                     Chưa xác thực SĐT • Xác thực ngay
                   </span>
@@ -109,33 +105,31 @@
             <!-- Ghi chú giao hàng -->
             <div class="form-group full-width" style="margin-top: 18px;">
               <label for="shippingNotes">Ghi chú giao hàng (tùy chọn)</label>
-              <textarea 
-                id="shippingNotes" 
-                name="shippingNotes"
-                [(ngModel)]="shippingNotes" 
-                rows="2" 
+              <textarea id="shippingNotes" name="shippingNotes" [(ngModel)]="shippingNotes" rows="2"
                 placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến 15 phút, nhà có thang máy..."
                 class="custom-textarea"></textarea>
             </div>
 
-              <!-- TÙY CHỌN: CÓ HIỂN THỊ GIÁ TIỀN TRÊN KIỆN HÀNG HAY KHÔNG -->
-              <div class="gift-order-wrapper full-width">
-                <div class="gift-switch-card">
-                  <div class="gift-switch-info">
-                    <div class="gift-icon-badge">
-                      <lucide-angular [img]="icons.FileText" size="20" color="#765337"></lucide-angular>
-                    </div>
-                    <div class="gift-switch-texts">
-                      <span class="gift-title">Hiển thị giá tiền trên kiện hàng</span>
-                      <p class="gift-desc">Bật để in chi tiết số tiền lên phiếu giao hàng; tắt nếu bạn muốn bảo mật giá trị đơn hàng với người nhận.</p>
-                    </div>
+            <!-- TÙY CHỌN: CÓ HIỂN THỊ GIÁ TIỀN TRÊN KIỆN HÀNG HAY KHÔNG -->
+            <div class="gift-order-wrapper full-width">
+              <div class="gift-switch-card">
+                <div class="gift-switch-info">
+                  <div class="gift-icon-badge">
+                    <lucide-angular [img]="icons.FileText" size="20" color="#765337"></lucide-angular>
                   </div>
-                  <label class="toggle-switch">
-                    <input type="checkbox" [(ngModel)]="showPriceOnInvoice" name="showPriceOnInvoice" (change)="onPriceVisibilityToggle()" />
-                    <span class="toggle-slider"></span>
-                  </label>
+                  <div class="gift-switch-texts">
+                    <span class="gift-title">Hiển thị giá tiền trên kiện hàng</span>
+                    <p class="gift-desc">Bật để in chi tiết số tiền lên phiếu giao hàng; tắt nếu bạn muốn bảo mật giá
+                      trị đơn hàng với người nhận.</p>
+                  </div>
                 </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [(ngModel)]="showPriceOnInvoice" name="showPriceOnInvoice"
+                    (change)="onPriceVisibilityToggle()" />
+                  <span class="toggle-slider"></span>
+                </label>
               </div>
+            </div>
 
           </div>
 
@@ -153,16 +147,15 @@
               <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
               <div>
                 <strong>Đơn hàng giá trị cao ({{ formatCurrency(totalAmount) }}):</strong>
-                <span> Không áp dụng hình thức COD. Quý khách vui lòng chọn chuyển khoản ngân hàng (áp dụng thanh toán đặt cọc trong 24h).</span>
+                <span> Không áp dụng hình thức COD. Quý khách vui lòng chọn chuyển khoản ngân hàng (áp dụng thanh toán
+                  đặt cọc trong 24h).</span>
               </div>
             </div>
 
             <div class="payment-options-list">
-              
+
               <!-- 1. Chuyển khoản ngân hàng / Quét mã QR -->
-              <div 
-                class="payment-option-card"
-                [class.active]="paymentMethod === 'BANK_TRANSFER'"
+              <div class="payment-option-card" [class.active]="paymentMethod === 'BANK_TRANSFER'"
                 (click)="selectPaymentMethod('BANK_TRANSFER')">
                 <div class="opt-radio-col">
                   <div class="custom-radio-circle" [class.selected]="paymentMethod === 'BANK_TRANSFER'">
@@ -198,20 +191,19 @@
                   <!-- Nếu chưa có dữ liệu nạp vào thì hiển thị hướng dẫn quy trình -->
                   <div *ngIf="paymentMethod === 'BANK_TRANSFER' && !storeBankInfo" class="bank-notice-box">
                     <p class="notice-desc">
-                      Sau khi quý khách bấm <b>"Xác nhận Đặt hàng"</b>, hệ thống sẽ cung cấp thông tin tài khoản chính thức và cú pháp thanh toán tương ứng với mã đơn hàng của quý khách.
+                      Sau khi quý khách bấm <b>"Xác nhận Đặt hàng"</b>, hệ thống sẽ cung cấp thông tin tài khoản chính
+                      thức và cú pháp thanh toán tương ứng với mã đơn hàng của quý khách.
                     </p>
                   </div>
                 </div>
               </div>
 
               <!-- 2. Thanh toán khi nhận hàng (COD) -->
-              <div 
-                class="payment-option-card"
-                [class.active]="paymentMethod === 'COD'"
-                [class.disabled]="isHighValueOrder"
-                (click)="selectPaymentMethod('COD')">
+              <div class="payment-option-card" [class.active]="paymentMethod === 'COD'"
+                [class.disabled]="isHighValueOrder" (click)="selectPaymentMethod('COD')">
                 <div class="opt-radio-col">
-                  <div class="custom-radio-circle" [class.selected]="paymentMethod === 'COD'" [class.disabled]="isHighValueOrder">
+                  <div class="custom-radio-circle" [class.selected]="paymentMethod === 'COD'"
+                    [class.disabled]="isHighValueOrder">
                     <div class="radio-inner-dot" *ngIf="paymentMethod === 'COD'"></div>
                   </div>
                 </div>
@@ -253,53 +245,31 @@
               <div class="form-fields-grid">
                 <div class="form-group full-width">
                   <label for="companyName">Tên công ty / Doanh nghiệp <span class="req">*</span></label>
-                  <input 
-                    type="text" 
-                    id="companyName" 
-                    name="companyName"
-                    [(ngModel)]="companyName" 
-                    [class.is-invalid]="errors.companyName"
-                    placeholder="Công ty TNHH / Cổ phần..."
+                  <input type="text" id="companyName" name="companyName" [(ngModel)]="companyName"
+                    [class.is-invalid]="errors.companyName" placeholder="Công ty TNHH / Cổ phần..."
                     class="custom-input" />
                   <span *ngIf="errors.companyName" class="field-error-text">{{ errors.companyName }}</span>
                 </div>
 
                 <div class="form-group">
                   <label for="taxCode">Mã số thuế (MST) <span class="req">*</span></label>
-                  <input 
-                    type="text" 
-                    id="taxCode" 
-                    name="taxCode"
-                    [(ngModel)]="taxCode" 
-                    [class.is-invalid]="errors.taxCode"
-                    placeholder="Ví dụ: 0101234567"
-                    class="custom-input" />
+                  <input type="text" id="taxCode" name="taxCode" [(ngModel)]="taxCode"
+                    [class.is-invalid]="errors.taxCode" placeholder="Ví dụ: 0101234567" class="custom-input" />
                   <span *ngIf="errors.taxCode" class="field-error-text">{{ errors.taxCode }}</span>
                 </div>
 
                 <div class="form-group">
                   <label for="invoiceEmail">Email nhận hóa đơn điện tử <span class="req">*</span></label>
-                  <input 
-                    type="email" 
-                    id="invoiceEmail" 
-                    name="invoiceEmail"
-                    [(ngModel)]="invoiceEmail" 
-                    (blur)="onInvoiceEmailBlur()"
-                    [class.is-invalid]="errors.invoiceEmail"
-                    placeholder="ketoan@congty.com"
-                    class="custom-input" />
+                  <input type="email" id="invoiceEmail" name="invoiceEmail" [(ngModel)]="invoiceEmail"
+                    (blur)="onInvoiceEmailBlur()" [class.is-invalid]="errors.invoiceEmail"
+                    placeholder="ketoan@congty.com" class="custom-input" />
                   <span *ngIf="errors.invoiceEmail" class="field-error-text">{{ errors.invoiceEmail }}</span>
                 </div>
 
                 <div class="form-group full-width">
                   <label for="companyAddress">Địa chỉ theo giấy phép kinh doanh <span class="req">*</span></label>
-                  <input 
-                    type="text" 
-                    id="companyAddress" 
-                    name="companyAddress"
-                    [(ngModel)]="companyAddress" 
-                    [class.is-invalid]="errors.companyAddress"
-                    placeholder="Địa chỉ trụ sở đăng ký kinh doanh"
+                  <input type="text" id="companyAddress" name="companyAddress" [(ngModel)]="companyAddress"
+                    [class.is-invalid]="errors.companyAddress" placeholder="Địa chỉ trụ sở đăng ký kinh doanh"
                     class="custom-input" />
                   <span *ngIf="errors.companyAddress" class="field-error-text">{{ errors.companyAddress }}</span>
                 </div>
@@ -312,7 +282,7 @@
         <!-- CỘT PHẢI: TÓM TẮT ĐƠN HÀNG & MÃ GIẢM GIÁ (STICKY) -->
         <div class="checkout-sidebar-col">
           <div class="order-summary-card">
-            
+
             <div class="summary-card-header">
               <h3>Đơn hàng của bạn</h3>
               <a routerLink="/explore" class="edit-cart-link">Thêm sản phẩm</a>
@@ -322,7 +292,9 @@
             <div class="summary-items-list">
               <div *ngFor="let item of checkoutItems" class="summary-item-row">
                 <div class="summary-item-thumb">
-                  <img [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop'" [alt]="item.name" />
+                  <img
+                    [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop'"
+                    [alt]="item.name" />
                   <span class="item-qty-badge">{{ item.quantity }}</span>
                 </div>
                 <div class="summary-item-info">
@@ -332,7 +304,8 @@
                       {{ tag.value }}{{ !isLast ? ' · ' : '' }}
                     </span>
                   </div>
-                  <div class="item-variant-text" *ngIf="(!item.variantTags || item.variantTags.length === 0) && item.variantName">
+                  <div class="item-variant-text"
+                    *ngIf="(!item.variantTags || item.variantTags.length === 0) && item.variantName">
                     {{ item.variantName }}
                   </div>
                   <div class="item-price">{{ formatCurrency(item.price * item.quantity) }}</div>
@@ -346,18 +319,11 @@
                 <lucide-angular [img]="icons.Tag" size="15" color="#765337"></lucide-angular>
                 <span>Mã ưu đãi / Voucher</span>
               </label>
-              
+
               <div class="voucher-input-group">
-                <input 
-                  type="text" 
-                  [(ngModel)]="voucherInput" 
-                  name="voucherInput"
-                  placeholder="Nhập mã ưu đãi" 
+                <input type="text" [(ngModel)]="voucherInput" name="voucherInput" placeholder="Nhập mã ưu đãi"
                   class="voucher-input" />
-                <button 
-                  type="button" 
-                  class="btn-apply-voucher" 
-                  (click)="applyVoucherCode()"
+                <button type="button" class="btn-apply-voucher" (click)="applyVoucherCode()"
                   [disabled]="isCheckingVoucher">
                   {{ isCheckingVoucher ? 'Đang kiểm tra...' : 'Áp dụng' }}
                 </button>
@@ -422,16 +388,14 @@
                   <span>{{ formatCurrency(remainingAmount) }}</span>
                 </div>
                 <small class="deposit-note">
-                  * Kỹ thuật viên DCor sẽ liên hệ và giao hàng, lắp đặt hoàn thiện trước khi quý khách thanh toán phần còn lại.
+                  * Kỹ thuật viên DCor sẽ liên hệ và giao hàng, lắp đặt hoàn thiện trước khi quý khách thanh toán phần
+                  còn lại.
                 </small>
               </div>
             </div>
 
             <!-- Nút Đặt hàng -->
-            <button 
-              type="submit" 
-              class="btn-submit-order" 
-              [disabled]="isSubmittingOrder || checkoutItems.length === 0">
+            <button type="submit" class="btn-submit-order" [disabled]="isSubmittingOrder || checkoutItems.length === 0">
               <span *ngIf="!isSubmittingOrder">
                 Đặt hàng
               </span>
@@ -463,7 +427,7 @@
     <!-- BƯỚC 2: TRANG ĐẶT HÀNG THÀNH CÔNG (B) -->
     <ng-container *ngIf="currentStep === 'success' && createdOrder">
       <div class="order-success-view">
-        
+
         <!-- Header Thành công -->
         <div class="success-hero-box">
           <div class="success-icon-animated">
@@ -487,7 +451,7 @@
         <!-- Chi tiết tóm tắt đơn hàng thành công -->
         <div class="success-details-card">
           <div class="details-section-title">Thông tin giao nhận & Thanh toán</div>
-          
+
           <div class="details-info-grid">
             <div class="info-block">
               <span class="info-label">Người nhận hàng:</span>
@@ -519,7 +483,8 @@
               <span class="info-label">Tổng giá trị đơn hàng:</span>
               <span class="info-val total-money">{{ formatCurrency(createdOrder.totalAmount) }}</span>
               <span *ngIf="createdOrder.depositAmount" class="deposit-meta">
-                (Khoản cọc 30%: <b>{{ formatCurrency(createdOrder.depositAmount) }}</b> · Còn lại: <b>{{ formatCurrency(createdOrder.remainingAmount || 0) }}</b>)
+                (Khoản cọc 30%: <b>{{ formatCurrency(createdOrder.depositAmount) }}</b> · Còn lại: <b>{{
+                  formatCurrency(createdOrder.remainingAmount || 0) }}</b>)
               </span>
             </div>
 
@@ -541,7 +506,9 @@
             <div class="items-header">Sản phẩm trong đơn ({{ createdOrder.items.length }})</div>
             <div class="purchased-items-list">
               <div *ngFor="let item of createdOrder.items" class="purchased-item-row">
-                <img [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&auto=format&fit=crop'" [alt]="item.name" />
+                <img
+                  [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&auto=format&fit=crop'"
+                  [alt]="item.name" />
                 <div class="item-name-block">
                   <div class="item-name">{{ item.name }}</div>
                   <div class="item-variant" *ngIf="item.variantName">{{ item.variantName }}</div>
@@ -563,7 +530,8 @@
             </div>
             <div>
               <h3>Tạo tài khoản DCor để theo dõi tiến độ đơn hàng</h3>
-              <p>Thông tin của bạn đã được điền sẵn từ đơn hàng. Chỉ cần tạo mật khẩu để tích lũy điểm thưởng và quản lý bảo hành.</p>
+              <p>Thông tin của bạn đã được điền sẵn từ đơn hàng. Chỉ cần tạo mật khẩu để tích lũy điểm thưởng và quản lý
+                bảo hành.</p>
             </div>
           </div>
 
@@ -571,16 +539,10 @@
             <div class="guest-inputs">
               <input type="text" [value]="createdOrder.receiverName" disabled class="custom-input disabled" />
               <input type="text" [value]="createdOrder.phone" disabled class="custom-input disabled" />
-              <input 
-                type="password" 
-                [(ngModel)]="registerPassword" 
-                placeholder="Tạo mật khẩu (tối thiểu 6 ký tự)" 
+              <input type="password" [(ngModel)]="registerPassword" placeholder="Tạo mật khẩu (tối thiểu 6 ký tự)"
                 class="custom-input" />
             </div>
-            <button 
-              type="button" 
-              class="btn-register-guest" 
-              (click)="handleRegisterGuest()" 
+            <button type="button" class="btn-register-guest" (click)="handleRegisterGuest()"
               [disabled]="isRegisteringGuest">
               {{ isRegisteringGuest ? 'Đang tạo tài khoản...' : 'Kích hoạt tài khoản ngay' }}
             </button>
@@ -600,7 +562,7 @@
               <strong>Lưu địa chỉ nhận hàng vào sổ địa chỉ tài khoản?</strong>
             </div>
             <p>Lần mua sắm tiếp theo của bạn sẽ nhanh chóng hơn mà không cần nhập lại địa chỉ này.</p>
-            
+
             <div class="dont-ask-checkbox">
               <input type="checkbox" id="dontAsk" [(ngModel)]="dontAskSaveGoogleAddress" />
               <label for="dontAsk">Không nhắc lại lần sau</label>
@@ -650,18 +612,13 @@
 
     <!-- Tabs chuyển đổi: Sổ địa chỉ vs Thêm địa chỉ mới -->
     <div class="address-modal-tabs">
-      <button
-        type="button"
-        class="addr-tab-btn"
-        [class.active]="addressModalMode === 'select'"
+      <button type="button" class="addr-tab-btn" [class.active]="addressModalMode === 'select'"
         (click)="addressModalMode = 'select'">
         <span>Sổ địa chỉ</span>
-        <span *ngIf="isLoggedIn && savedAddresses.length > 0" class="tab-count-badge">({{ savedAddresses.length }})</span>
+        <span *ngIf="isLoggedIn && savedAddresses.length > 0" class="tab-count-badge">({{ savedAddresses.length
+          }})</span>
       </button>
-      <button
-        type="button"
-        class="addr-tab-btn"
-        [class.active]="addressModalMode === 'add'"
+      <button type="button" class="addr-tab-btn" [class.active]="addressModalMode === 'add'"
         (click)="addressModalMode = 'add'; newAddressError = ''; initNewAddressForm()">
         <lucide-angular [img]="icons.Plus" size="14"></lucide-angular>
         <span>Thêm địa chỉ mới</span>
@@ -670,27 +627,19 @@
 
     <!-- TAB 1: SỔ ĐỊA CHỈ (CHỌN ĐỊA CHỈ HOẶC TRA CỨU) -->
     <div *ngIf="addressModalMode === 'select'" class="modal-body address-select-tab-body">
-      
+
       <!-- PHÂN LOẠI 1: KHÁCH VÃNG LAI (CHƯA ĐĂNG NHẬP) -->
       <div *ngIf="!isLoggedIn" class="guest-search-section">
         <div class="guest-search-intro">
           <lucide-angular [img]="icons.Smartphone" size="16" color="#765337"></lucide-angular>
           <span>Tra cứu các địa chỉ bạn đã từng đặt hàng qua Số điện thoại:</span>
         </div>
-        
+
         <div class="guest-lookup-row">
-          <input
-            type="tel"
-            [(ngModel)]="guestPhoneLookup"
-            name="guestPhoneLookup"
-            placeholder="Tra cứu địa chỉ qua số điện thoại..."
-            class="custom-input"
+          <input type="tel" [(ngModel)]="guestPhoneLookup" name="guestPhoneLookup"
+            placeholder="Tra cứu địa chỉ qua số điện thoại..." class="custom-input"
             (keyup.enter)="lookupGuestAddress()" />
-          <button
-            type="button"
-            class="btn-lookup-phone"
-            (click)="lookupGuestAddress()"
-            [disabled]="isLookingUpAddress">
+          <button type="button" class="btn-lookup-phone" (click)="lookupGuestAddress()" [disabled]="isLookingUpAddress">
             <lucide-angular *ngIf="!isLookingUpAddress" [img]="icons.Search" size="14"></lucide-angular>
             <span>{{ isLookingUpAddress ? 'Đang tìm...' : 'Tra cứu' }}</span>
           </button>
@@ -704,11 +653,8 @@
         <!-- Kết quả tra cứu qua SĐT -->
         <div *ngIf="guestFoundAddresses.length > 0" class="lookup-results-list">
           <div class="list-section-title">Địa chỉ tìm thấy qua SĐT {{ guestPhoneLookup }}:</div>
-          <div
-            *ngFor="let addr of guestFoundAddresses"
-            class="saved-addr-card"
-            [class.selected]="selectedAddressId === addr.id || address === addr.address"
-            (click)="selectAddress(addr)">
+          <div *ngFor="let addr of guestFoundAddresses" class="saved-addr-card"
+            [class.selected]="selectedAddressId === addr.id || address === addr.address" (click)="selectAddress(addr)">
             <div class="addr-card-top">
               <strong>{{ addr.receiverName }}</strong>
               <span class="addr-phone">{{ addr.phone }}</span>
@@ -722,7 +668,8 @@
 
         <!-- Nếu chưa tìm hoặc không có kết quả: nút thêm địa chỉ mới -->
         <div *ngIf="guestFoundAddresses.length === 0 && !isLookingUpAddress" class="guest-no-lookup-box">
-          <p>Nếu bạn chưa từng đặt hàng tại DCor, vui lòng bấm <strong>"+ Thêm địa chỉ mới"</strong> để điền thông tin người nhận.</p>
+          <p>Nếu bạn chưa từng đặt hàng tại DCor, vui lòng bấm <strong>"+ Thêm địa chỉ mới"</strong> để điền thông tin
+            người nhận.</p>
           <button type="button" class="btn-switch-add" (click)="addressModalMode = 'add'; initNewAddressForm()">
             + Điền thông tin người nhận mới
           </button>
@@ -732,18 +679,17 @@
       <!-- PHÂN LOẠI 2: TÀI KHOẢN ĐÃ ĐĂNG NHẬP (HIỂN THỊ SỔ ĐỊA CHỈ TRỰC TIẾP) -->
       <div *ngIf="isLoggedIn" class="user-addresses-section">
         <div class="user-phone-badge-row">
-          <span>Các địa chỉ trong tài khoản của bạn<strong *ngIf="currentUser?.phone && !currentUser?.phone.startsWith('GOOG_')">: {{ currentUser?.phone }}</strong></span>
+          <span>Các địa chỉ trong tài khoản của bạn<strong
+              *ngIf="currentUser?.phone && !currentUser?.phone.startsWith('GOOG_')">: {{ currentUser?.phone
+              }}</strong></span>
           <button type="button" class="btn-add-inline" (click)="addressModalMode = 'add'; initNewAddressForm()">
             + Thêm mới
           </button>
         </div>
 
         <div *ngIf="savedAddresses.length > 0" class="saved-address-list">
-          <div
-            *ngFor="let addr of savedAddresses"
-            class="saved-addr-card"
-            [class.selected]="selectedAddressId === addr.id || address === addr.address"
-            (click)="selectAddress(addr)">
+          <div *ngFor="let addr of savedAddresses" class="saved-addr-card"
+            [class.selected]="selectedAddressId === addr.id || address === addr.address" (click)="selectAddress(addr)">
             <div class="addr-card-top">
               <div class="addr-name-wrap">
                 <strong>{{ addr.receiverName }}</strong>
@@ -773,15 +719,9 @@
         <!-- Họ và tên -->
         <div class="form-group" [class.has-error]="newAddressErrors.receiverName">
           <label>Họ và tên người nhận <span class="req">*</span></label>
-          <input 
-            type="text" 
-            [(ngModel)]="newAddress.receiverName" 
-            (blur)="onNewAddressReceiverNameBlur()"
-            (input)="onNewAddressReceiverNameInput()"
-            [class.is-invalid]="newAddressErrors.receiverName"
-            name="naReceiverName" 
-            placeholder="Ví dụ: Nguyễn Văn A" 
-            class="custom-input" />
+          <input type="text" [(ngModel)]="newAddress.receiverName" (blur)="onNewAddressReceiverNameBlur()"
+            (input)="onNewAddressReceiverNameInput()" [class.is-invalid]="newAddressErrors.receiverName"
+            name="naReceiverName" placeholder="Ví dụ: Nguyễn Văn A" class="custom-input" />
           <div *ngIf="newAddressErrors.receiverName" class="field-error-text">
             <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
             <span>{{ newAddressErrors.receiverName }}</span>
@@ -802,22 +742,12 @@
           </div>
 
           <div class="phone-input-wrap">
-            <input 
-              type="tel" 
-              id="naPhone" 
-              name="naPhone" 
-              [(ngModel)]="newAddress.phone" 
-              (input)="onNewAddressPhoneInput()"
-              (blur)="onNewAddressPhoneBlur()"
-              [class.is-invalid]="newAddressErrors.phone || newAddressErrors.otp"
-              placeholder="Ví dụ: 0912345678" 
+            <input type="tel" id="naPhone" name="naPhone" [(ngModel)]="newAddress.phone"
+              (input)="onNewAddressPhoneInput()" (blur)="onNewAddressPhoneBlur()"
+              [class.is-invalid]="newAddressErrors.phone || newAddressErrors.otp" placeholder="Ví dụ: 0912345678"
               class="custom-input" />
-            
-            <button 
-              *ngIf="isPhoneOtpRequired(newAddress.phone)" 
-              type="button" 
-              class="btn-send-otp" 
-              (click)="sendOtp()"
+
+            <button *ngIf="isPhoneOtpRequired(newAddress.phone)" type="button" class="btn-send-otp" (click)="sendOtp()"
               [disabled]="isSendingOtp">
               {{ isSendingOtp ? 'Đang gửi...' : 'Xác thực OTP' }}
             </button>
@@ -831,7 +761,8 @@
             <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
             <span>{{ newAddressErrors.otp }}</span>
           </div>
-          <small *ngIf="isPhoneOtpRequired(newAddress.phone) && !newAddressErrors.phone && !newAddressErrors.otp" class="hint-text" style="display:block;margin-top:4px;">
+          <small *ngIf="isPhoneOtpRequired(newAddress.phone) && !newAddressErrors.phone && !newAddressErrors.otp"
+            class="hint-text" style="display:block;margin-top:4px;">
             * Bắt buộc xác thực OTP để đảm bảo đơn hàng được xác nhận chuẩn xác.
           </small>
         </div>
@@ -839,15 +770,9 @@
         <!-- Email nhận thông báo -->
         <div class="form-group full-width" [class.has-error]="newAddressErrors.email">
           <label>Email nhận thông báo đơn (tùy chọn)</label>
-          <input 
-            type="email" 
-            [(ngModel)]="newAddress.email" 
-            (blur)="onNewAddressEmailBlur()"
-            (input)="onNewAddressEmailBlur()"
-            [class.is-invalid]="newAddressErrors.email"
-            name="naEmail" 
-            placeholder="hoten@gmail.com" 
-            class="custom-input" />
+          <input type="email" [(ngModel)]="newAddress.email" (blur)="onNewAddressEmailBlur()"
+            (input)="onNewAddressEmailBlur()" [class.is-invalid]="newAddressErrors.email" name="naEmail"
+            placeholder="hoten@gmail.com" class="custom-input" />
           <div *ngIf="newAddressErrors.email" class="field-error-text">
             <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
             <span>{{ newAddressErrors.email }}</span>
@@ -857,12 +782,8 @@
         <!-- Tỉnh / Thành phố -->
         <div class="form-group" [class.has-error]="newAddressErrors.province">
           <label>Tỉnh / Thành phố <span class="req">*</span></label>
-          <select 
-            [(ngModel)]="newAddress.province" 
-            (change)="onNewAddressProvinceChange()"
-            [class.is-invalid]="newAddressErrors.province"
-            name="naProvince" 
-            class="custom-select">
+          <select [(ngModel)]="newAddress.province" (change)="onNewAddressProvinceChange()"
+            [class.is-invalid]="newAddressErrors.province" name="naProvince" class="custom-select">
             <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
           </select>
           <div *ngIf="newAddressErrors.province" class="field-error-text">
@@ -874,10 +795,7 @@
         <!-- Quận / Huyện -->
         <div class="form-group" *ngIf="newAddressDistricts.length > 0">
           <label>Quận / Huyện / Thị xã <span class="req">*</span></label>
-          <select 
-            [(ngModel)]="newAddress.district" 
-            (change)="onNewAddressDistrictChange()"
-            name="naDistrict" 
+          <select [(ngModel)]="newAddress.district" (change)="onNewAddressDistrictChange()" name="naDistrict"
             class="custom-select">
             <option value="" disabled>-- Chọn Quận / Huyện --</option>
             <option *ngFor="let d of newAddressDistricts" [value]="d">{{ d }}</option>
@@ -887,12 +805,8 @@
         <!-- Phường / Xã -->
         <div class="form-group" [class.has-error]="newAddressErrors.ward">
           <label>Phường / Xã / Thị trấn <span class="req">*</span></label>
-          <select 
-            [(ngModel)]="newAddress.ward" 
-            (change)="onNewAddressWardChange()"
-            [class.is-invalid]="newAddressErrors.ward"
-            name="naWard" 
-            class="custom-select">
+          <select [(ngModel)]="newAddress.ward" (change)="onNewAddressWardChange()"
+            [class.is-invalid]="newAddressErrors.ward" name="naWard" class="custom-select">
             <option value="" disabled>-- Chọn Phường / Xã --</option>
             <option *ngFor="let w of newAddressWards" [value]="w">{{ w }}</option>
           </select>
@@ -905,15 +819,9 @@
         <!-- Số nhà, tên đường -->
         <div class="form-group full-width" [class.has-error]="newAddressErrors.detail">
           <label>Số nhà, tên đường cụ thể <span class="req">*</span></label>
-          <input 
-            type="text" 
-            [(ngModel)]="newAddress.detail" 
-            (blur)="onNewAddressDetailBlur()"
-            (input)="onNewAddressDetailInput()"
-            [class.is-invalid]="newAddressErrors.detail"
-            name="naDetail" 
-            placeholder="Ví dụ: 123 Nguyễn Huệ, Tòa nhà A, Căn hộ 402" 
-            class="custom-input" />
+          <input type="text" [(ngModel)]="newAddress.detail" (blur)="onNewAddressDetailBlur()"
+            (input)="onNewAddressDetailInput()" [class.is-invalid]="newAddressErrors.detail" name="naDetail"
+            placeholder="Ví dụ: 123 Nguyễn Huệ, Tòa nhà A, Căn hộ 402" class="custom-input" />
           <div *ngIf="newAddressErrors.detail" class="field-error-text">
             <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
             <span>{{ newAddressErrors.detail }}</span>
@@ -935,24 +843,18 @@
     <!-- Modal Footer -->
     <div class="modal-footer">
       <ng-container *ngIf="addressModalMode === 'select'">
-        <button type="button" class="btn-modal-add-addr" (click)="addressModalMode = 'add'; newAddressError = ''; initNewAddressForm()">
+        <button type="button" class="btn-modal-add-addr"
+          (click)="addressModalMode = 'add'; newAddressError = ''; initNewAddressForm()">
           + Thêm địa chỉ mới
         </button>
         <button type="button" class="btn-modal-close" (click)="isAddressModalOpen = false">Đóng</button>
       </ng-container>
 
       <ng-container *ngIf="addressModalMode === 'add'">
-        <button
-          type="button"
-          class="btn-modal-save-addr"
-          (click)="submitNewAddress()"
-          [disabled]="isSavingNewAddress">
+        <button type="button" class="btn-modal-save-addr" (click)="submitNewAddress()" [disabled]="isSavingNewAddress">
           {{ isSavingNewAddress ? 'Đang lưu...' : 'Xác nhận & Sử dụng địa chỉ này' }}
         </button>
-        <button
-          type="button"
-          class="btn-modal-close"
-          (click)="addressModalMode = 'select'">
+        <button type="button" class="btn-modal-close" (click)="addressModalMode = 'select'">
           Quay lại sổ địa chỉ
         </button>
       </ng-container>
@@ -982,12 +884,7 @@
       </div>
 
       <div class="otp-input-wrap">
-        <input 
-          type="text" 
-          maxlength="6" 
-          [(ngModel)]="otpCode" 
-          placeholder="Nhập 6 số OTP" 
-          class="otp-large-input" />
+        <input type="text" maxlength="6" [(ngModel)]="otpCode" placeholder="Nhập 6 số OTP" class="otp-large-input" />
       </div>
 
       <div *ngIf="otpErrorMessage" class="otp-error-msg">
@@ -997,7 +894,8 @@
 
       <div class="otp-timer-row">
         <span *ngIf="otpCountdown > 0">Gửi lại mã sau: <b>{{ otpCountdown }}s</b></span>
-        <button *ngIf="otpCountdown === 0" type="button" class="btn-resend-otp" (click)="sendOtp()">Gửi lại mã OTP</button>
+        <button *ngIf="otpCountdown === 0" type="button" class="btn-resend-otp" (click)="sendOtp()">Gửi lại mã
+          OTP</button>
       </div>
     </div>
 
@@ -1011,17 +909,18 @@
 <!-- ============================================================
      POPUP: HỎI LƯU SỐ ĐIỆN THOẠI VÀO HỒ SƠ CÁ NHÂN (THEO YÊU CẦU)
      ============================================================ -->
-<div *ngIf="showSavePhonePromptModal" class="modal-backdrop-overlay save-phone-prompt-overlay" (click)="dismissSavePhonePrompt()">
+<div *ngIf="showSavePhonePromptModal" class="modal-backdrop-overlay save-phone-prompt-overlay"
+  (click)="dismissSavePhonePrompt()">
   <div class="save-phone-modal-box" (click)="$event.stopPropagation()">
     <div class="save-phone-icon-badge">
       <lucide-angular [img]="icons.Smartphone" size="26" color="#765337"></lucide-angular>
     </div>
-    
+
     <h3 class="save-phone-title">Lưu số điện thoại vào hồ sơ cá nhân?</h3>
-    
+
     <p class="save-phone-desc">
       Số điện thoại <strong>{{ phoneToSaveToProfile }}</strong> vừa được xác thực thành công.
-      <br/>
+      <br />
       Bạn có muốn lưu số điện thoại này vào hồ sơ cá nhân để sau này dùng để đăng nhập hay không?
     </p>
 
@@ -1037,19 +936,13 @@
     </div>
 
     <div class="save-phone-actions">
-      <button 
-        type="button" 
-        class="btn-confirm-save-phone" 
-        (click)="confirmSavePhoneToProfile()"
+      <button type="button" class="btn-confirm-save-phone" (click)="confirmSavePhoneToProfile()"
         [disabled]="isSavingPhoneToProfile">
         <lucide-angular *ngIf="!isSavingPhoneToProfile" [img]="icons.Check" size="16"></lucide-angular>
         <span>{{ isSavingPhoneToProfile ? 'Đang lưu vào hồ sơ...' : 'Lưu vào hồ sơ cá nhân' }}</span>
       </button>
 
-      <button 
-        type="button" 
-        class="btn-dismiss-save-phone" 
-        (click)="dismissSavePhonePrompt()"
+      <button type="button" class="btn-dismiss-save-phone" (click)="dismissSavePhonePrompt()"
         [disabled]="isSavingPhoneToProfile">
         Để lần sau
       </button>
@@ -1133,7 +1026,9 @@
      POPUP 2: BẠN ĐÃ ĐẶT HÀNG THÀNH CÔNG, XEM ĐƠN HÀNG CỦA BẠN
      ============================================================ -->
 <div *ngIf="showSuccessModal" class="modal-backdrop-overlay" (click)="closeSuccessModal()">
-  <div class="success-popup-box" [class.has-bank-transfer]="createdOrder?.paymentMethod === 'BANK_TRANSFER' || isHighValueOrder" (click)="$event.stopPropagation()">
+  <div class="success-popup-box"
+    [class.has-bank-transfer]="createdOrder?.paymentMethod === 'BANK_TRANSFER' || isHighValueOrder"
+    (click)="$event.stopPropagation()">
     <button type="button" class="modal-close-btn success-close-btn" (click)="closeSuccessModal()" title="Đóng">
       <lucide-angular [img]="icons.X" size="18"></lucide-angular>
     </button>
@@ -1144,13 +1039,15 @@
       </div>
 
       <h3 class="success-popup-title">Bạn đã đặt hàng thành công</h3>
-      
+
       <p class="success-popup-desc">
-        Cảm ơn quý khách <b>{{ createdOrder?.receiverName }}</b> đã tin tưởng DCor Furniture. Mã đơn hàng của quý khách là <b class="order-id-tag">#{{ createdOrder?.orderNumber }}</b>.
+        Cảm ơn quý khách <b>{{ createdOrder?.receiverName }}</b> đã tin tưởng DCor Furniture. Mã đơn hàng của quý khách
+        là <b class="order-id-tag">#{{ createdOrder?.orderNumber }}</b>.
       </p>
 
       <!-- KHỐI THANH TOÁN CHUYỂN KHOẢN (HIỂN THỊ KHI ĐƠN CẦN CHUYỂN KHOẢN HOẶC ĐẶT CỌC) -->
-      <div *ngIf="createdOrder?.paymentMethod === 'BANK_TRANSFER' || isHighValueOrder" class="checkout-success-payment-container">
+      <div *ngIf="createdOrder?.paymentMethod === 'BANK_TRANSFER' || isHighValueOrder"
+        class="checkout-success-payment-container">
         <div class="payment-two-col-layout">
           <!-- Cột 1 (Khung trái): Mã QR lớn hơn + Ngân hàng, Tên, Số TK -->
           <div class="payment-qr-col">
@@ -1161,9 +1058,7 @@
               </div>
 
               <div class="qr-image-wrapper">
-                <img src="assets/img/qr-payment-sample.svg" 
-                     alt="Mã QR thanh toán giả lập" 
-                     class="qr-code-img" />
+                <img src="assets/img/qr-payment-sample.svg" alt="Mã QR thanh toán giả lập" class="qr-code-img" />
               </div>
               <span class="qr-guide-text">Mở App Ngân hàng quét mã</span>
 
@@ -1197,14 +1092,17 @@
             <!-- Hộp Số tiền cần chuyển (dạng xếp dọc) -->
             <div class="payment-amount-box-vertical">
               <div class="pay-amount-meta">
-                <span class="pay-amount-label">Số tiền cần {{ isHighValueOrder ? 'đặt cọc (30%)' : 'thanh toán' }}</span>
+                <span class="pay-amount-label">Số tiền cần {{ isHighValueOrder ? 'đặt cọc (30%)' : 'thanh toán'
+                  }}</span>
                 <span class="pay-amount-sub">
-                  {{ isHighValueOrder ? '(Tổng đơn: ' + formatCurrency(createdOrder?.totalAmount || 0) + ')' : '(Thanh toán 100% đơn hàng)' }}
+                  {{ isHighValueOrder ? '(Tổng đơn: ' + formatCurrency(createdOrder?.totalAmount || 0) + ')' : '(Thanh
+                  toán 100% đơn hàng)' }}
                 </span>
               </div>
               <div class="pay-amount-value-wrap">
                 <strong class="pay-amount-value">
-                  {{ formatCurrency(isHighValueOrder ? (createdOrder?.depositAmount || depositAmount) : (createdOrder?.totalAmount || totalAmount)) }}
+                  {{ formatCurrency(isHighValueOrder ? (createdOrder?.depositAmount || depositAmount) :
+                  (createdOrder?.totalAmount || totalAmount)) }}
                 </strong>
               </div>
             </div>
@@ -1218,9 +1116,11 @@
               <div class="memo-code-display">
                 <span class="memo-code">DCOR {{ createdOrder?.orderNumber }}</span>
               </div>
-              <button type="button" class="luxury-copy-btn primary-copy-btn memo-copy-btn-block" (click)="copyToClipboard('DCOR ' + createdOrder?.orderNumber, 'Nội dung chuyển khoản')">
+              <button type="button" class="luxury-copy-btn primary-copy-btn memo-copy-btn-block"
+                (click)="copyToClipboard('DCOR ' + createdOrder?.orderNumber, 'Nội dung chuyển khoản')">
                 <lucide-angular [img]="icons.Copy" size="14"></lucide-angular>
-                <span>{{ copiedFields['Nội dung chuyển khoản'] ? 'Đã sao chép nội dung!' : 'Sao chép nội dung chuyển khoản' }}</span>
+                <span>{{ copiedFields['Nội dung chuyển khoản'] ? 'Đã sao chép nội dung!' : 'Sao chép nội dung chuyển
+                  khoản' }}</span>
               </button>
             </div>
 
@@ -1228,7 +1128,8 @@
             <div class="bank-instructions-box bank-instructions-compact">
               <div class="instruction-row">
                 <lucide-angular [img]="icons.Check" size="13" class="inst-icon success-icon"></lucide-angular>
-                <span>Vui lòng nhập <strong>chính xác nội dung chuyển khoản</strong> để hệ thống tự động xác nhận đơn.</span>
+                <span>Vui lòng nhập <strong>chính xác nội dung chuyển khoản</strong> để hệ thống tự động xác nhận
+                  đơn.</span>
               </div>
               <div class="instruction-row">
                 <lucide-angular [img]="icons.Sparkles" size="13" class="inst-icon primary-icon"></lucide-angular>
@@ -1236,7 +1137,8 @@
               </div>
               <div class="instruction-row">
                 <lucide-angular [img]="icons.Clock" size="13" class="inst-icon warn-icon"></lucide-angular>
-                <span>Sau khi nhận tiền, DCor sẽ chuyển trạng thái <strong>Đang gia công & chuẩn bị</strong> trong 1 - 3 phút.</span>
+                <span>Sau khi nhận tiền, DCor sẽ chuyển trạng thái <strong>Đang gia công & chuẩn bị</strong> trong 1 - 3
+                  phút.</span>
               </div>
             </div>
           </div>

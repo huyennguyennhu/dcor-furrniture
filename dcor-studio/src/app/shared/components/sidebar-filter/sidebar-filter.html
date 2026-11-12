@@ -110,13 +110,13 @@
           <div class="dual-range-wrapper">
             <div class="slider-track-bar"></div>
             <div class="slider-range-highlight" [style.left.%]="minPercent" [style.right.%]="100 - maxPercent"></div>
-            <input type="range" [min]="0" [max]="dynamicMaxPrice" [step]="500000" [(ngModel)]="localMinPrice"
+            <input type="range" [min]="dynamicMinPrice" [max]="dynamicMaxPrice" [step]="priceStep" [(ngModel)]="localMinPrice"
               (input)="onMinSliderInput()" (change)="handlePriceChangeEnd()" (touchend)="handlePriceChangeEnd()"
-              [style.z-index]="localMinPrice > (dynamicMaxPrice / 2) ? 5 : 3" class="range-input range-input-min"
+              [style.z-index]="localMinPrice > ((dynamicMaxPrice + dynamicMinPrice) / 2) ? 5 : 3" class="range-input range-input-min"
               aria-label="Giá tối thiểu">
-            <input type="range" [min]="0" [max]="dynamicMaxPrice" [step]="500000" [(ngModel)]="localMaxPrice"
+            <input type="range" [min]="dynamicMinPrice" [max]="dynamicMaxPrice" [step]="priceStep" [(ngModel)]="localMaxPrice"
               (input)="onMaxSliderInput()" (change)="handlePriceChangeEnd()" (touchend)="handlePriceChangeEnd()"
-              [style.z-index]="localMinPrice > (dynamicMaxPrice / 2) ? 3 : 5" class="range-input range-input-max"
+              [style.z-index]="localMinPrice > ((dynamicMaxPrice + dynamicMinPrice) / 2) ? 3 : 5" class="range-input range-input-max"
               aria-label="Giá tối đa">
           </div>
 
@@ -127,7 +127,7 @@
               <div class="price-input-box">
                 <input type="text" class="price-manual-input" [value]="formatPriceOnlyNumber(localMinPrice)"
                   (focus)="onInputFocus($event)" (blur)="onMinInputBlur($event)"
-                  (keydown.enter)="onMinInputEnter($event)" placeholder="0">
+                  (keydown.enter)="onMinInputEnter($event)" [placeholder]="formatPriceOnlyNumber(dynamicMinPrice)">
                 <span class="price-currency-suffix">đ</span>
               </div>
             </div>
@@ -139,7 +139,7 @@
               <div class="price-input-box">
                 <input type="text" class="price-manual-input" [value]="formatPriceOnlyNumber(localMaxPrice)"
                   (focus)="onInputFocus($event)" (blur)="onMaxInputBlur($event)"
-                  (keydown.enter)="onMaxInputEnter($event)" placeholder="100.000.000">
+                  (keydown.enter)="onMaxInputEnter($event)" [placeholder]="formatPriceOnlyNumber(dynamicMaxPrice)">
                 <span class="price-currency-suffix">đ</span>
               </div>
             </div>

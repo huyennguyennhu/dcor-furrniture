@@ -28,6 +28,21 @@
   margin-bottom: 40px;
 }
 
+.landing-logo-img {
+  height: 60px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
+  transition: transform 0.2s ease;
+}
+
+.landing-logo-img:hover {
+  transform: scale(1.05);
+}
+
 .logo-circle {
   width: 64px;
   height: 64px;

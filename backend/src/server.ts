@@ -39,12 +39,15 @@ import { initChatSocket } from './services/chat.socket';
 import { initChatDatabase } from './lib/init-chat-db';
 import customerRoutes from './routes/customer.routes';
 import promotionRoutes from './routes/promotion.routes';
+import { promotionController } from './controllers/promotion.controller';
 import blogRoutes from './routes/blog.routes';
 import blogAdminRoutes from './routes/blog-admin.routes';
 import { initBlogDatabase } from './lib/init-blog-db';
 import { databaseCleanupService } from './services/cleanup.service';
 import reviewRoutes from './routes/review.routes';
 import { initReviewDatabase } from './lib/init-review-db';
+import { publicApiRateLimiter } from './middleware/rate-limit.middleware';
+
 
 // Fix Prisma BigInt serialization in Express JSON response
 (BigInt.prototype as any).toJSON = function () {
@@ -148,7 +151,7 @@ app.use('/api/admin/categories', categoryRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // API danh mục sản phẩm từ database thực
-app.get('/api/categories', async (req, res) => {
+app.get('/api/categories', publicApiRateLimiter, async (req, res) => {
   try {
     const cached = memoryCache.get<any[]>(CACHE_KEYS.CATEGORIES_LIST, 30 * 60 * 1000);
     if (cached) {
@@ -230,7 +233,7 @@ export function invalidateProductCache() {
 }
 
 // API danh sách sản phẩm (Hiệu năng cao: In-memory join & cache)
-app.get('/api/products', async (req, res) => {
+app.get('/api/products', publicApiRateLimiter, async (req, res) => {
   try {
     const { categoryId, categorySlug } = req.query;
     const cacheKey = categoryId
@@ -285,24 +288,32 @@ app.get('/api/products', async (req, res) => {
       console.log('[API] /api/products fetching from DB...');
       console.time('[API] products query');
       
-      // Tải song song: Products và Variants được tối ưu trường dữ liệu
-      const [products, variants] = await Promise.all([
-        withDbRetry(() => prisma.product.findMany({
-          where: whereClause,
-          orderBy: { createdAt: 'desc' }
-        })),
-        withDbRetry(() => prisma.productVariant.findMany({
-          where: { isActive: true },
-          select: {
-            id: true,
-            productId: true,
-            name: true,
-            price: true,
-            stock: true,
-            optionValues: true
-          }
-        }))
-      ]);
+      // 1. Tải danh sách sản phẩm theo bộ lọc
+      const products = await withDbRetry(() => prisma.product.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' }
+      }));
+
+      const productIds = products.map(p => p.id);
+
+      // 2. Tối ưu hóa: Chỉ lấy biến thể thuộc các sản phẩm trên (tận dụng Composite Index [productId, isActive])
+      // Ngăn chặn hoàn toàn việc tải hàng chục nghìn biến thể của toàn bộ database vào RAM
+      const variants = productIds.length > 0
+        ? await withDbRetry(() => prisma.productVariant.findMany({
+            where: {
+              productId: { in: productIds },
+              isActive: true
+            },
+            select: {
+              id: true,
+              productId: true,
+              name: true,
+              price: true,
+              stock: true,
+              optionValues: true
+            }
+          }))
+        : [];
 
       console.timeEnd('[API] products query');
 
@@ -320,6 +331,7 @@ app.get('/api/products', async (req, res) => {
         });
       }
 
+      const activeCampaigns = promotionController.getActiveCampaignsHelper();
       const enrichedProducts = products.map(p => {
         let rating = 4.9;
         let reviewCount = 128;
@@ -345,8 +357,48 @@ app.get('/api/products', async (req, res) => {
           }
         }
 
+        // Tự động đối chiếu sản phẩm với các chiến dịch khuyến mãi đang diễn ra
+        let discountValue = p.discountValue || 0;
+        let discountType = p.discountType || 'PERCENT';
+        let campaignName: string | undefined = undefined;
+        let salePrice: number | undefined = undefined;
+        let originalPrice: number | undefined = undefined;
+
+        if (activeCampaigns.length > 0) {
+          const pName = (p.name || '').toLowerCase().trim();
+          const pId = String(p.id || '').toLowerCase().trim();
+          const pSlug = String(p.slug || '').toLowerCase().trim();
+          const pVariants = varMap.get(p.id) || [];
+
+          for (const camp of activeCampaigns) {
+            if (!camp.items || !Array.isArray(camp.items)) continue;
+            for (const it of camp.items) {
+              const itId = String(it.productId || '').toLowerCase().trim();
+              const itName = String(it.productName || '').toLowerCase().trim();
+
+              const isMatch = (itId && (itId === pId || itId === pSlug || pVariants.some((v: any) => String(v.id || '').toLowerCase() === itId))) ||
+                (itName && pName && (itName === pName || pName.includes(itName) || itName.includes(pName)));
+
+              if (isMatch) {
+                discountValue = it.discountPercent || camp.discountValue || 0;
+                discountType = camp.discountType === 'FIXED' ? 'AMOUNT' : 'PERCENT';
+                campaignName = camp.name;
+                originalPrice = it.originalPrice || p.basePrice;
+                salePrice = it.salePrice || (discountType === 'AMOUNT' ? Math.max(0, originalPrice - camp.discountValue) : Math.round(originalPrice * (100 - discountValue) / 100));
+                break;
+              }
+            }
+            if (campaignName) break;
+          }
+        }
+
         return {
           ...p,
+          discountValue: discountValue > 0 ? discountValue : p.discountValue,
+          discountType: discountValue > 0 ? discountType : p.discountType,
+          campaignName,
+          salePrice,
+          originalPrice,
           category: catMap.get(p.categoryId) || null,
           variants: varMap.get(p.id) || [],
           rating,
@@ -377,7 +429,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-app.get('/api/products/:id', async (req, res) => {
+app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
   try {
     const cacheKey = `product_detail_${req.params.id}`;
     const cached = memoryCache.get<any>(cacheKey, 5 * 60 * 1000);
@@ -406,8 +458,9 @@ app.get('/api/products/:id', async (req, res) => {
         }
       };
 
-      let product = await withDbRetry(() => prisma.product.findUnique({
-        where: { id: req.params.id },
+      const paramId = String(req.params.id);
+      let product: any = await withDbRetry(() => prisma.product.findUnique({
+        where: { id: paramId },
         include: {
           category: {
             include: {
@@ -420,7 +473,7 @@ app.get('/api/products/:id', async (req, res) => {
 
       if (!product) {
         product = await withDbRetry(() => prisma.product.findUnique({
-          where: { slug: req.params.id },
+          where: { slug: paramId },
           include: {
             category: {
               include: {
@@ -490,8 +543,49 @@ app.get('/api/products/:id', async (req, res) => {
         }
       }
 
+      // Tự động đối chiếu sản phẩm với các chiến dịch khuyến mãi đang diễn ra
+      let discountValue = product.discountValue || 0;
+      let discountType = product.discountType || 'PERCENT';
+      let campaignName: string | undefined = undefined;
+      let salePrice: number | undefined = undefined;
+      let originalPrice: number | undefined = undefined;
+
+      const activeCampaigns = promotionController.getActiveCampaignsHelper();
+      if (activeCampaigns.length > 0) {
+        const pName = (product.name || '').toLowerCase().trim();
+        const pId = String(product.id || '').toLowerCase().trim();
+        const pSlug = String(product.slug || '').toLowerCase().trim();
+
+        const pVariants = product.variants || [];
+        for (const camp of activeCampaigns) {
+          if (!camp.items || !Array.isArray(camp.items)) continue;
+          for (const it of camp.items) {
+            const itId = String(it.productId || '').toLowerCase().trim();
+            const itName = String(it.productName || '').toLowerCase().trim();
+
+            const isMatch = (itId && (itId === pId || itId === pSlug || pVariants.some((v: any) => String(v.id || '').toLowerCase() === itId))) ||
+              (itName && pName && (itName === pName || pName.includes(itName) || itName.includes(pName)));
+
+            if (isMatch) {
+              discountValue = it.discountPercent || camp.discountValue || 0;
+              discountType = camp.discountType === 'FIXED' ? 'AMOUNT' : 'PERCENT';
+              campaignName = camp.name;
+              originalPrice = it.originalPrice || product.basePrice;
+              salePrice = it.salePrice || (discountType === 'AMOUNT' ? Math.max(0, originalPrice - camp.discountValue) : Math.round(originalPrice * (100 - discountValue) / 100));
+              break;
+            }
+          }
+          if (campaignName) break;
+        }
+      }
+
       const responseData = {
         ...product,
+        discountValue: discountValue > 0 ? discountValue : product.discountValue,
+        discountType: discountValue > 0 ? discountType : product.discountType,
+        campaignName,
+        salePrice,
+        originalPrice,
         rating,
         reviewCount,
         description_vi: descVi,
@@ -854,11 +948,8 @@ server.listen(port, () => {
   autoCancelExpiredOrders().catch(e => console.warn('Init autoCancelExpiredOrders error:', e));
   autoCompleteExpiredDeliveredOrders().catch(e => console.warn('Init autoCompleteExpiredDeliveredOrders error:', e));
 
-  // Định kỳ tự động quét hủy đơn quá hạn và hoàn tất đơn đã giao mỗi 30 giây
-  setInterval(() => {
-    autoCancelExpiredOrders().catch(e => console.warn('Interval autoCancelExpiredOrders error:', e));
-    autoCompleteExpiredDeliveredOrders().catch(e => console.warn('Interval autoCompleteExpiredDeliveredOrders error:', e));
-  }, 30 * 1000);
+  // Tiến trình định kỳ quét hủy đơn quá hạn và hoàn tất đơn đã giao chạy an toàn trong worker 5 phút
+  // tại order.controller.ts (có cờ khóa luồng isOrderCleanupInProgress chống tranh chấp connection pool).
   console.log(`Server is running on http://localhost:${port}`);
 
   // Tự động dọn dẹp dữ liệu rác định kỳ mỗi 12 giờ bảo vệ dung lượng 500MB (chống Read-Only)

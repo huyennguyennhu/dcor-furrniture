@@ -101,13 +101,6 @@
           </div>
 
           <div class="detail-actions-group">
-            <button type="button" (click)="toggleLike()" class="btn-like" [class.is-liked]="isLiked()"
-              [attr.aria-label]="isLiked() ? 'Bỏ thích bài viết' : 'Thích bài viết'">
-              <app-icon name="Heart" size="16" [filled]="isLiked()"
-                [color]="isLiked() ? 'var(--color-danger, #c42326)' : 'currentColor'"></app-icon>
-              <span>{{ likesCount() }}</span>
-            </button>
-
             <button type="button" (click)="copyShareLink()" class="btn-share" aria-label="Chia sẻ bài viết">
               <app-icon name="Share2" size="16"></app-icon>
               <span>Chia sẻ</span>
@@ -213,100 +206,10 @@
           }
 
           @case ('products') {
-          <div class="article-products-block">
-            @if (block.title) {
-            <h4 class="article-products-title">
-              <app-icon name="ShoppingBag" size="18" color="var(--color-primary, #765337)"></app-icon>
-              <span>{{ block.title }}</span>
-            </h4>
-            }
-            @let matchedProds = getProductsForBlock(block.productIds);
-            @if (matchedProds.length > 0) {
-            <div class="article-products-grid">
-              @for (prod of matchedProds; track prod.id) {
-              <a [routerLink]="['/products', prod.id]" class="article-product-card">
-                <img [src]="prod.image || ''" [alt]="prod.name" class="article-prod-img">
-                <div class="article-prod-info">
-                  <h5 class="article-prod-name">{{ prod.name }}</h5>
-                  <p class="article-prod-price">{{ formatVnd(prod.price) }}</p>
-                </div>
-              </a>
-              }
-            </div>
-            }
-          </div>
+          <!-- Sản phẩm liên quan được hiển thị theo chuẩn pdp-related-section bên dưới -->
           }
           }
           }
-
-          <!-- KHU VỰC BÌNH LUẬN CÓ KHUNG -->
-          <section class="detail-comments-section" id="comments-section">
-            <h3 class="detail-comments-title">
-              <app-icon name="MessageCircle" size="20" color="var(--color-primary, #765337)"></app-icon>
-              <span>Bình luận ({{ post()!.commentCount || comments().length }})</span>
-            </h3>
-
-            <!-- Ô nhập bình luận -->
-            <div class="comment-input-box">
-              @if (isAuthenticated()) {
-              <textarea [(ngModel)]="commentContent" maxlength="500"
-                placeholder="Viết cảm nghĩ của bạn về bài viết (tối đa 500 ký tự)..."
-                class="comment-textarea"></textarea>
-              <div class="comment-input-footer">
-                <span class="comment-char-counter">{{ commentContent().length }} / 500 ký tự</span>
-                <button type="button" (click)="submitComment()"
-                  [disabled]="isSubmittingComment() || !commentContent().trim() || commentContent().length > 500"
-                  class="btn-submit-comment">
-                  <app-icon name="Send" size="14"></app-icon>
-                  <span>{{ isSubmittingComment() ? 'Đang gửi...' : 'Gửi bình luận' }}</span>
-                </button>
-              </div>
-              } @else {
-              <div style="text-align: center; padding: 12px 0;">
-                <p style="font-size: 13.5px; color: var(--color-text-secondary, #616161); margin: 0 0 12px;">
-                  Vui lòng đăng nhập để gửi bình luận.
-                </p>
-                <a [routerLink]="['/login']" [queryParams]="{ returnUrl: currentUrl() }"
-                  style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; background: var(--color-primary, #765337); color: #fff; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">
-                  <app-icon name="UserRound" size="14"></app-icon>
-                  <span>Đăng nhập</span>
-                </a>
-              </div>
-              }
-            </div>
-
-            <!-- Danh sách bình luận -->
-            @if (comments().length === 0) {
-            <p
-              style="text-align: center; color: var(--color-text-muted, #757575); font-size: 13.5px; padding: 16px 0; margin: 0;">
-              Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ!
-            </p>
-            } @else {
-            @for (c of comments(); track c.id) {
-            <div class="comment-item">
-              <div class="comment-header">
-                <div class="comment-user">
-                  <div class="comment-avatar">
-                    {{ (c.authorName || 'K').charAt(0).toUpperCase() }}
-                  </div>
-                  <div>
-                    <span class="comment-name">{{ c.authorName }}</span>
-                    <span class="comment-time">{{ formatDateTime(c.createdAt) }}</span>
-                  </div>
-                </div>
-                @if (c.isMine) {
-                <button type="button" (click)="openDeleteCommentModal(c.id)" class="btn-del-comment"
-                  title="Xóa bình luận">
-                  <app-icon name="Trash2" size="14"></app-icon>
-                  <span>Xóa</span>
-                </button>
-                }
-              </div>
-              <p class="comment-body">{{ c.content }}</p>
-            </div>
-            }
-            }
-          </section>
 
         </div>
 
@@ -332,6 +235,34 @@
         </aside>
 
       </div>
+
+      <!-- SẢN PHẨM LIÊN QUAN (CHUẨN PDP RELATED SECTION: 1 HÀNG 4 SẢN PHẨM & XEM THÊM XỔ XUỐNG) -->
+      @if (articleProducts().length > 0) {
+      <section class="pdp-related-section" id="pdp-related-section">
+        <div class="section-header-row">
+          <div>
+            <h2 class="section-heading">{{ articleProductsTitle() }}</h2>
+          </div>
+        </div>
+
+        <!-- Lưới sản phẩm (Mặc định 1 hàng 4 sản phẩm trên Desktop) -->
+        <div class="related-products-grid">
+          <app-product-card *ngFor="let item of displayedRelatedProducts()" [product]="item">
+          </app-product-card>
+        </div>
+
+        <!-- Nút xem thêm / thu gọn dạng xổ xuống -->
+        @if (articleProducts().length > RELATED_ROW_SIZE) {
+        <div class="related-expand-wrap">
+          <button type="button" class="btn-toggle-related" (click)="toggleRelatedExpansion()">
+            <span>{{ isRelatedExpanded() ? 'Thu gọn' : 'Xem thêm' }}</span>
+            <app-icon name="ChevronDown" size="16" class="toggle-related-icon"
+              [class.rotated]="isRelatedExpanded()"></app-icon>
+          </button>
+        </div>
+        }
+      </section>
+      }
 
       <!-- BÀI VIẾT LIÊN QUAN (3 BÀI) -->
       @if (post()!.related && post()!.related.length > 0) {
@@ -366,25 +297,6 @@
 
   </div>
 </div>
-
-<!-- MODAL XÁC NHẬN XÓA BÌNH LUẬN -->
-<app-modal [isOpen]="isDeleteModalOpen()" [title]="'Xác nhận xóa bình luận'" [hasFooter]="true"
-  (close)="closeDeleteModal()">
-  <p style="font-size: 14px; line-height: 1.6; color: var(--color-text-secondary, #616161); margin: 0;">
-    Bạn có chắc chắn muốn xóa bình luận này không? Thao tác này không thể hoàn tác.
-  </p>
-
-  <div footer style="display: flex; align-items: center; gap: 12px;">
-    <button type="button" (click)="closeDeleteModal()"
-      style="padding: 8px 16px; border: 1px solid var(--color-border, #e0e0e0); background: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-      Hủy
-    </button>
-    <button type="button" (click)="executeDeleteComment()" [disabled]="isDeletingComment()"
-      style="padding: 8px 16px; border: none; background: var(--color-danger, #c42326); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-      {{ isDeletingComment() ? 'Đang xóa...' : 'Xóa bình luận' }}
-    </button>
-  </div>
-</app-modal>
 
 <!-- LIGHTBOX XEM ẢNH -->
 @if (lightboxUrl()) {

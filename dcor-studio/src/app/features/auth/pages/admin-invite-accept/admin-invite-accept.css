@@ -41,6 +41,27 @@
   margin-bottom: 28px;
 }
 
+.invite-brand-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  text-decoration: none;
+}
+
+.invite-logo-img {
+  height: 48px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.invite-brand-link:hover .invite-logo-img {
+  transform: scale(1.04);
+}
+
 .logo-circle {
   width: 52px;
   height: 52px;

@@ -44,70 +44,116 @@ export const CATEGORIES_CATALOG: { category: string; products: { name: string; v
   {
     category: 'Sofa & Ghế Phòng Khách',
     products: [
-      { name: 'Sofa Góc Chữ L DCor Nordic', variant: 'Vải Nỉ Be Xám Cao Cấp', price: 18500000 },
-      { name: 'Bàn Trà Mặt Đá Ceramic DCor Elegance', variant: 'Mặt Đá Trắng Vân Mây Khung Vàng', price: 6200000 },
-      { name: 'Ghế Thư Giãn DCor Lounge Leather', variant: 'Da Bò Ý Nhập Khẩu Màu Nâu Cigar', price: 9800000 }
+      { name: 'Modena sofa with resting unit', variant: 'Vải Nỉ Be Xám Cao Cấp', price: 42900000 },
+      { name: 'Indivi sofa with chaise longue left', variant: 'Vải Nỉ Xám Chuẩn Đan Mạch', price: 38900000 },
+      { name: 'Bolzano 3-seater', variant: 'Vải Nỉ Sang Trọng', price: 36000000 },
+      { name: 'Carmo corner sofa', variant: 'Module Góc Chữ L Hiện Đại', price: 49000000 }
     ]
   },
   {
-    category: 'Bàn Ghế Ăn & Bếp',
+    category: 'Bàn Trà & Bàn Ăn',
     products: [
-      { name: 'Bộ Bàn Ghế Ăn DCor Walnut 6 Ghế', variant: 'Gỗ Óc Chó Tự Nhiên Bắc Mỹ', price: 28000000 },
-      { name: 'Cụm Đèn Thả Bàn Ăn DCor Glow Brass', variant: 'Kim Loại Mạ Đồng Xước', price: 3800000 }
+      { name: 'Santiago extendable dining table', variant: 'Mặt Gỗ Sồi Dark Oak Tự Nhiên', price: 32500000 },
+      { name: 'Madrid coffee table', variant: 'Mặt Bàn Ceramic Cao Cấp', price: 21290000 },
+      { name: 'Expose side table', variant: 'Kim Loại Matt Black Sơn Tĩnh Điện', price: 12500000 },
+      { name: 'Expose coffee table', variant: 'Bàn Trà Kính & Gỗ', price: 15500000 }
     ]
   },
   {
-    category: 'Giường & Phòng Ngủ',
+    category: 'Ghế Ăn & Ghế Thư Giãn',
     products: [
-      { name: 'Giường Ngủ Bọc Nệm DCor King Bed', variant: 'Vải Nhung Xám Khói 1m8 x 2m', price: 21000000 },
-      { name: 'Tủ Kệ Tivi Treo Tường DCor Minimalist', variant: 'Gỗ Sồi Tự Nhiên Màu Hạt Dẻ', price: 7500000 }
+      { name: 'Hamilton dining chair', variant: 'Chân Kim Loại Đen Mờ', price: 8500000 },
+      { name: 'Princeton dining chair', variant: 'Nệm Êm Vải Cao Cấp', price: 9200000 },
+      { name: 'Imola armchair with swivel function', variant: 'Chân Xoay Da Bò Ý Thượng Hạng', price: 25000000 },
+      { name: 'Adelaide barstool', variant: 'Ghế Quầy Bar Bắc Âu', price: 7800000 }
     ]
   },
   {
-    category: 'Đèn & Thảm Decor',
+    category: 'Giường Ngủ & Tủ Kệ',
     products: [
-      { name: 'Thảm Trải Sàn Lông Tuyết DCor Living', variant: 'Họa Tiết Bắc Âu 2m x 2.8m', price: 4500000 }
+      { name: 'Taylor sleeper W160xL200cm', variant: 'Giường Sofa Đa Năng 1m6 x 2m', price: 31000000 },
+      { name: 'Calgary storage with drawer', variant: 'Tủ Kệ Trang Trí Gỗ Tự Nhiên', price: 44990000 }
     ]
   }
 ];
 
-const DEFAULT_CAMPAIGNS: CampaignItem[] = [
+export const DEFAULT_CAMPAIGNS: CampaignItem[] = [
   {
     id: 'CAMP-001',
     name: 'Đại Tiệc Mùa Hè',
-    description: 'Giảm 30% toàn bộ bộ sưu tập Sofa & Bàn trà',
+    description: 'Giảm 30% toàn bộ bộ sưu tập Sofa & Bàn trà cao cấp',
     channel: 'TOÀN HỆ THỐNG',
     showroomTargets: [],
     discountType: 'PERCENT',
     discountValue: 30,
-    startDateTime: '2026-10-20',
-    endDateTime: '2026-10-31',
+    startDateTime: '2026-10-01',
+    endDateTime: '2026-12-31',
     status: 'Ongoing',
-    productsCount: 3,
+    productsCount: 8,
     totalRevenue: 345000000,
     items: [
       {
-        productId: 'P-SOFA-01',
-        productName: 'Sofa Góc Chữ L DCor Nordic',
+        productId: '0ac754a3-6ae2-4d1f-8443-f26a2abd67b6',
+        productName: 'Modena sofa with resting unit',
         variantName: 'Vải Nỉ Be Xám Cao Cấp',
-        originalPrice: 18500000,
-        salePrice: 12950000,
+        originalPrice: 42900000,
+        salePrice: 30030000,
         discountPercent: 30
       },
       {
-        productId: 'P-TABLE-02',
-        productName: 'Bàn Trà Mặt Đá Ceramic DCor Elegance',
-        variantName: 'Mặt Đá Trắng Vân Mây Khung Vàng',
-        originalPrice: 6200000,
-        salePrice: 4340000,
+        productId: 'dc89e306-17aa-4384-9482-56d299cda075',
+        productName: 'Indivi sofa with chaise longue left',
+        variantName: 'Vải Nỉ Xám Chuẩn Đan Mạch',
+        originalPrice: 38900000,
+        salePrice: 27230000,
         discountPercent: 30
       },
       {
-        productId: 'P-CHAIR-03',
-        productName: 'Ghế Thư Giãn DCor Lounge Leather',
-        variantName: 'Da Bò Ý Nhập Khẩu Màu Nâu Cigar',
-        originalPrice: 9800000,
-        salePrice: 6860000,
+        productId: '5925064e-e082-433c-bbc3-666330ac4e44',
+        productName: 'Santiago extendable dining table',
+        variantName: 'Mặt Gỗ Sồi Dark Oak Tự Nhiên',
+        originalPrice: 32500000,
+        salePrice: 22750000,
+        discountPercent: 30
+      },
+      {
+        productId: '9134eb25-b351-4bfe-af5f-29e103536a47',
+        productName: 'Expose side table',
+        variantName: 'Kim Loại Matt Black Sơn Tĩnh Điện',
+        originalPrice: 12500000,
+        salePrice: 8750000,
+        discountPercent: 30
+      },
+      {
+        productId: 'd1faee79-dfef-48b6-8efa-8d9d85224a16',
+        productName: 'Madrid coffee table',
+        variantName: 'Mặt Bàn Ceramic Cao Cấp',
+        originalPrice: 21290000,
+        salePrice: 14903000,
+        discountPercent: 30
+      },
+      {
+        productId: '3dd3ea15-db17-448a-8ba0-2d46cc96c6a9',
+        productName: 'Bolzano 3-seater',
+        variantName: 'Vải Nỉ Sang Trọng',
+        originalPrice: 36000000,
+        salePrice: 25200000,
+        discountPercent: 30
+      },
+      {
+        productId: 'cfcd7eef-bcf4-4265-bbcd-e3bf26ae3b4c',
+        productName: 'Carmo corner sofa',
+        variantName: 'Module Góc Chữ L Hiện Đại',
+        originalPrice: 49000000,
+        salePrice: 34300000,
+        discountPercent: 30
+      },
+      {
+        productId: 'da5d42bf-9ed4-4f7c-a6ce-095241145aae',
+        productName: 'Expose coffee table',
+        variantName: 'Bàn Trà Kính & Gỗ',
+        originalPrice: 15500000,
+        salePrice: 10850000,
         discountPercent: 30
       }
     ]
@@ -115,7 +161,7 @@ const DEFAULT_CAMPAIGNS: CampaignItem[] = [
   {
     id: 'CAMP-002',
     name: 'Khai Trương Showroom',
-    description: 'Ưu đãi 20% bàn ghế ăn & phòng bếp',
+    description: 'Ưu đãi 20% bàn ghế ăn & phòng khách',
     channel: 'TẠI SHOWROOM',
     showroomTargets: [
       'Showroom Q1 TP.HCM (Hai Bà Trưng)',
@@ -123,26 +169,42 @@ const DEFAULT_CAMPAIGNS: CampaignItem[] = [
     ],
     discountType: 'PERCENT',
     discountValue: 20,
-    startDateTime: '2026-10-18',
-    endDateTime: '2026-10-28',
+    startDateTime: '2026-10-01',
+    endDateTime: '2026-12-31',
     status: 'Ongoing',
-    productsCount: 2,
+    productsCount: 4,
     totalRevenue: 512000000,
     items: [
       {
-        productId: 'P-DINING-01',
-        productName: 'Bộ Bàn Ghế Ăn DCor Walnut 6 Ghế',
-        variantName: 'Gỗ Óc Chó Tự Nhiên Bắc Mỹ',
-        originalPrice: 28000000,
-        salePrice: 22400000,
+        productId: 'a280e186-e170-4ad1-acc6-967426bb2b7e',
+        productName: 'Hamilton dining chair',
+        variantName: 'Chân Kim Loại Đen Mờ',
+        originalPrice: 8500000,
+        salePrice: 6800000,
         discountPercent: 20
       },
       {
-        productId: 'P-LAMP-02',
-        productName: 'Cụm Đèn Thả Bàn Ăn DCor Glow Brass',
-        variantName: 'Kim Loại Mạ Đồng Xước',
-        originalPrice: 3800000,
-        salePrice: 3040000,
+        productId: 'e436fd65-b60b-4f7a-abdc-2dd384bec890',
+        productName: 'Princeton dining chair',
+        variantName: 'Nệm Êm Vải Cao Cấp',
+        originalPrice: 9200000,
+        salePrice: 7360000,
+        discountPercent: 20
+      },
+      {
+        productId: 'a7b41332-c263-4f0d-b708-530f75d19517',
+        productName: 'Imola armchair with swivel function',
+        variantName: 'Chân Xoay Da Bò Ý Thượng Hạng',
+        originalPrice: 25000000,
+        salePrice: 20000000,
+        discountPercent: 20
+      },
+      {
+        productId: '3b0023d3-815e-487a-b3e1-4493c78a9cd3',
+        productName: 'Adelaide barstool',
+        variantName: 'Ghế Quầy Bar Bắc Âu',
+        originalPrice: 7800000,
+        salePrice: 6240000,
         discountPercent: 20
       }
     ]
@@ -150,32 +212,32 @@ const DEFAULT_CAMPAIGNS: CampaignItem[] = [
   {
     id: 'CAMP-003',
     name: 'Tri Ân Khách Hàng Online',
-    description: 'Giảm thẳng 3.000.000₫ giường & tủ kệ',
+    description: 'Giảm 15% giường ngủ & tủ kệ cao cấp',
     channel: 'ONLINE',
     showroomTargets: [],
-    discountType: 'FIXED',
-    discountValue: 3000000,
+    discountType: 'PERCENT',
+    discountValue: 15,
     startDateTime: '2026-11-01',
-    endDateTime: '2026-11-15',
-    status: 'Upcoming',
+    endDateTime: '2026-12-31',
+    status: 'Ongoing',
     productsCount: 2,
     totalRevenue: 0,
     items: [
       {
-        productId: 'P-BED-02',
-        productName: 'Giường Ngủ Bọc Nệm DCor King Bed',
-        variantName: 'Vải Nhung Xám Khói 1m8 x 2m',
-        originalPrice: 21000000,
-        salePrice: 18000000,
-        discountPercent: 14
+        productId: 'f2d1fc04-8036-4e62-862e-7a302109cdc7',
+        productName: 'Taylor sleeper W160xL200cm',
+        variantName: 'Giường Sofa Đa Năng 1m6 x 2m',
+        originalPrice: 31000000,
+        salePrice: 26350000,
+        discountPercent: 15
       },
       {
-        productId: 'P-TV-01',
-        productName: 'Tủ Kệ Tivi Treo Tường DCor Minimalist',
-        variantName: 'Gỗ Sồi Tự Nhiên Màu Hạt Dẻ',
-        originalPrice: 7500000,
-        salePrice: 4500000,
-        discountPercent: 40
+        productId: 'a6167ea5-8422-4caa-84cc-032b6b24ac97',
+        productName: 'Calgary storage with drawer',
+        variantName: 'Tủ Kệ Trang Trí Gỗ Tự Nhiên',
+        originalPrice: 44990000,
+        salePrice: 38241500,
+        discountPercent: 15
       }
     ]
   }
@@ -452,12 +514,7 @@ export class CampaignsComponent implements OnInit {
     });
     this.allAvailableProducts = prods;
 
-    fetch(`${environment.apiUrl}/admin/products?limit=100`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      }
-    })
+    fetch(`${environment.apiUrl}/products`)
       .then(res => res.ok ? res.json() : [])
       .then((data: any[]) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -478,7 +535,7 @@ export class CampaignsComponent implements OnInit {
                 };
                 catMap.get(catName)!.push(item);
                 fetchedProds.push({
-                  id: String(v.id || p.id),
+                  id: String(p.id),
                   name: p.name,
                   variant: item.variant,
                   price: item.price,
@@ -524,7 +581,25 @@ export class CampaignsComponent implements OnInit {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        this.records = JSON.parse(raw);
+        // Tự động nâng cấp nếu phát hiện dữ liệu mock cũ (P-SOFA-01 hoặc DCor Nordic hoặc 2026-10-31)
+        if (raw.includes('P-SOFA-01') || raw.includes('DCor Nordic') || raw.includes('2026-10-31')) {
+          this.records = [...DEFAULT_CAMPAIGNS];
+          this.saveToStorage();
+        } else {
+          this.records = JSON.parse(raw);
+          const today = new Date().toISOString().split('T')[0];
+          let hadMigration = false;
+          this.records.forEach(c => {
+            if (c.id && c.id.startsWith('CAMP-00') && c.endDateTime < today) {
+              c.endDateTime = '2026-12-31';
+              c.status = 'Ongoing';
+              hadMigration = true;
+            }
+          });
+          if (hadMigration) {
+            this.saveToStorage();
+          }
+        }
       } else {
         this.records = [...DEFAULT_CAMPAIGNS];
         this.saveToStorage();
@@ -537,6 +612,19 @@ export class CampaignsComponent implements OnInit {
   saveToStorage(): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dcor_campaigns_updated', { detail: this.records }));
+      }
+      // Đồng bộ ngầm với backend API
+      if (typeof fetch !== 'undefined') {
+        for (const camp of this.records) {
+          fetch(`${environment.apiUrl}/admin/promotions/campaigns`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(camp)
+          }).catch(() => {});
+        }
+      }
     } catch (e) {
       console.warn('Storage save error:', e);
     }
@@ -1140,8 +1228,12 @@ export class CampaignsComponent implements OnInit {
   confirmDelete(): void {
     if (!this.campaignToDelete) return;
     const name = this.campaignToDelete.name;
+    const deletedId = this.campaignToDelete.id;
     this.records = this.records.filter(c => c.id !== this.campaignToDelete?.id);
     this.saveToStorage();
+    if (typeof fetch !== 'undefined') {
+      fetch(`${environment.apiUrl}/admin/promotions/campaigns/${deletedId}`, { method: 'DELETE' }).catch(() => {});
+    }
     this.campaignToDelete = null;
     this.showToast(`Đã xóa đợt giảm giá "${name}"`, 'success');
   }

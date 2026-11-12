@@ -17,6 +17,11 @@ export class FloatingCompareDockComponent implements OnInit, OnDestroy {
   isCompareModalOpen = false;
   showClearCompareConfirmModal = false;
 
+  get remainingPlaceholderSlots(): number[] {
+    const count = Math.max(0, 5 - (this.compareList?.length || 0));
+    return Array(count).fill(0);
+  }
+
   toastMessage: string | null = null;
   toastType: 'success' | 'warning' | 'info' = 'info';
   private toastTimer: any = null;

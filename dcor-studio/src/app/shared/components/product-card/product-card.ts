@@ -6,6 +6,8 @@ import { CatalogProduct, ProductColorSwatch } from '../../models/catalog.model';
 import { IconComponent } from '../icon/icon';
 import { WishlistService } from '../../../core/services/wishlist.service';
 import { CompareService } from '../../../core/services/compare.service';
+import { QuickViewService } from '../../../core/services/quick-view.service';
+import { PromotionService } from '../../../core/services/promotion.service';
 
 const COMPARE_STORAGE_KEY = 'dcor_compare_items';
 
@@ -65,13 +67,17 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   reviewCount = 128;
 
   private wishlistSub?: Subscription;
+  private campaignSub?: Subscription;
   private compareUpdateListener?: () => void;
+  private campaignUpdateListener?: () => void;
 
   constructor(
     private router: Router,
     private wishlistService: WishlistService,
     private cdr: ChangeDetectorRef,
-    public compareService: CompareService
+    public compareService: CompareService,
+    private quickViewService: QuickViewService,
+    private promotionService: PromotionService
   ) {}
 
   ngOnInit() {
@@ -79,11 +85,21 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     this.initWishlist();
     this.initCompareState();
 
+    this.campaignSub = this.promotionService.activeCampaigns$.subscribe(() => {
+      this.normalizeProduct();
+      this.cdr.markForCheck();
+    });
+
     if (typeof window !== 'undefined') {
       this.compareUpdateListener = () => {
         this.checkCompareState();
       };
+      this.campaignUpdateListener = () => {
+        this.normalizeProduct();
+        this.cdr.markForCheck();
+      };
       window.addEventListener('dcor_compare_updated', this.compareUpdateListener);
+      window.addEventListener('dcor_campaigns_updated', this.campaignUpdateListener);
       window.addEventListener('storage', this.compareUpdateListener);
     }
   }
@@ -99,9 +115,15 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   ngOnDestroy() {
     this.clearHoverTimer();
     this.wishlistSub?.unsubscribe();
-    if (typeof window !== 'undefined' && this.compareUpdateListener) {
-      window.removeEventListener('dcor_compare_updated', this.compareUpdateListener);
-      window.removeEventListener('storage', this.compareUpdateListener);
+    this.campaignSub?.unsubscribe();
+    if (typeof window !== 'undefined') {
+      if (this.compareUpdateListener) {
+        window.removeEventListener('dcor_compare_updated', this.compareUpdateListener);
+        window.removeEventListener('storage', this.compareUpdateListener);
+      }
+      if (this.campaignUpdateListener) {
+        window.removeEventListener('dcor_campaigns_updated', this.campaignUpdateListener);
+      }
     }
   }
 
@@ -115,31 +137,39 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     this.displayName = p.shortDescription_vi || p.shortDescription || p.name || 'Sản phẩm DCOR';
     this.categoryName = this.extractCategoryName(p);
 
-    // Pricing
+    // Pricing: Kiểm tra khuyến mãi từ Chiến dịch (Campaigns) hoặc trường discountValue có sẵn
     const base = (p.basePrice !== undefined) ? p.basePrice : (p.prices?.[0]?.price || p.price || 0);
-    const discVal = p.discountValue ?? (p.discountPercent ?? 0);
-    const discType = p.discountType || 'PERCENT';
+    const campaignDisc = this.promotionService.getDiscountForProduct(p);
 
-    this.isOnSale = Boolean(discVal && discVal > 0);
-
-    if (this.isOnSale) {
-      if (discType === 'PERCENT') {
-        this.currentPrice = Math.round(base * (100 - discVal) / 100);
-        this.originalPrice = base;
-        this.discountBadgeText = `-${discVal}%`;
-      } else {
-        this.currentPrice = Math.max(0, base - discVal);
-        this.originalPrice = base;
-        this.discountBadgeText = 'SALE';
-      }
+    if (campaignDisc) {
+      this.isOnSale = true;
+      this.discountBadgeText = campaignDisc.badgeText;
+      this.currentPrice = campaignDisc.salePrice;
+      this.originalPrice = campaignDisc.originalPrice || base;
     } else {
-      this.currentPrice = base;
-      this.originalPrice = null;
-      this.discountBadgeText = p.isNew ? 'MỚI' : '';
+      const discVal = p.discountValue ?? (p.discountPercent ?? 0);
+      const discType = p.discountType || 'PERCENT';
+      this.isOnSale = Boolean(discVal && discVal > 0);
+
+      if (this.isOnSale) {
+        if (discType === 'PERCENT') {
+          this.currentPrice = p.salePrice || Math.round(base * (100 - discVal) / 100);
+          this.originalPrice = p.originalPrice || base;
+          this.discountBadgeText = `-${discVal}%`;
+        } else {
+          this.currentPrice = p.salePrice || Math.max(0, base - discVal);
+          this.originalPrice = p.originalPrice || base;
+          this.discountBadgeText = 'SALE';
+        }
+      } else {
+        this.currentPrice = base;
+        this.originalPrice = null;
+        this.discountBadgeText = p.isNew ? 'MỚI' : '';
+      }
     }
 
     this.formattedCurrentPrice = this.formatCurrency(this.currentPrice);
-    this.formattedOriginalPrice = this.originalPrice ? this.formatCurrency(this.originalPrice) : '';
+    this.formattedOriginalPrice = (this.originalPrice && this.originalPrice > this.currentPrice) ? this.formatCurrency(this.originalPrice) : '';
 
     // Ratings
     this.ratingVal = p.rating || 4.9;
@@ -369,7 +399,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     if (this.quickView.observed) {
       this.quickView.emit(this.product);
     } else {
-      this.onCardClick();
+      this.quickViewService.open(this.product);
     }
   }
 
@@ -378,10 +408,8 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     e.preventDefault();
     if (this.buy.observed) {
       this.buy.emit(this.product);
-    } else if (this.quickView.observed) {
-      this.quickView.emit(this.product);
     } else {
-      this.onCardClick();
+      this.quickViewService.open(this.product);
     }
   }
 

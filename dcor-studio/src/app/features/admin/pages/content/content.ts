@@ -76,7 +76,7 @@ export class ContentComponent implements OnInit, OnDestroy {
     categoryName: string;
     author: string;
     authorAvatar: string;
-    status: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'HIDDEN';
+    status: 'DRAFT' | 'PUBLISHED' | 'HIDDEN';
     scheduledAt: string;
     publishedAt?: string;
     excerpt: string;
@@ -87,6 +87,10 @@ export class ContentComponent implements OnInit, OnDestroy {
     seoDescription: string;
     relatedProductIds: string[];
   } = this.getEmptyArticleForm();
+
+  // Delete Confirmation Modal State
+  isDeleteConfirmOpen = false;
+  articleToDelete: BlogArticle | null = null;
 
   // Related Products Search State
   productSearchQuery = '';
@@ -191,10 +195,6 @@ export class ContentComponent implements OnInit, OnDestroy {
 
   get publishedCount(): number {
     return this.articles.filter(a => a.status === 'PUBLISHED').length;
-  }
-
-  get scheduledCount(): number {
-    return this.articles.filter(a => a.status === 'SCHEDULED').length;
   }
 
   get draftCount(): number {
@@ -344,7 +344,6 @@ export class ContentComponent implements OnInit, OnDestroy {
       author: this.articleForm.author.trim() || 'DCor Studio',
       authorAvatar: this.articleForm.authorAvatar.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
       status: this.articleForm.status,
-      scheduledAt: this.articleForm.status === 'SCHEDULED' && this.articleForm.scheduledAt ? new Date(this.articleForm.scheduledAt).toISOString() : undefined,
       publishedAt: this.articleForm.status === 'PUBLISHED' ? (this.articleForm.publishedAt || new Date().toISOString()) : undefined,
       excerpt: this.articleForm.excerpt.trim(),
       content: this.articleForm.content.trim(),
@@ -356,15 +355,56 @@ export class ContentComponent implements OnInit, OnDestroy {
 
     this.blogService.saveArticle(payload);
     this.isEditorOpen = false;
-    this.showToast(this.editorMode === 'create' ? 'Đã thêm bài viết mới thành công!' : 'Đã cập nhật bài viết thành công!', 'success');
+
+    let msg = 'Đã cập nhật bài viết thành công!';
+    if (this.articleForm.status === 'DRAFT') {
+      msg = 'Đã lưu bài viết ở trạng thái Bản nháp!';
+    } else if (this.editorMode === 'create' && this.articleForm.status === 'PUBLISHED') {
+      msg = 'Đã đăng bài viết thành công!';
+    }
+    this.showToast(msg, 'success');
+  }
+
+  saveArticleAsDraft(): void {
+    this.articleForm.status = 'DRAFT';
+    this.saveArticle();
+  }
+
+  publishOrUpdateArticle(): void {
+    if (this.articleForm.status === 'DRAFT') {
+      this.articleForm.status = 'PUBLISHED';
+    }
+    if (this.articleForm.status === 'PUBLISHED' && !this.articleForm.publishedAt) {
+      this.articleForm.publishedAt = new Date().toISOString();
+    }
+    this.saveArticle();
+  }
+
+  requestDeleteCurrentArticle(): void {
+    if (!this.articleForm.id) return;
+    this.articleToDelete = this.articles.find(a => a.id === this.articleForm.id) || null;
+    this.isDeleteConfirmOpen = true;
+  }
+
+  confirmDeleteArticle(art: BlogArticle): void {
+    this.articleToDelete = art;
+    this.isDeleteConfirmOpen = true;
+  }
+
+  executeDeleteArticle(): void {
+    const id = this.articleToDelete?.id || this.articleForm.id;
+    if (id) {
+      this.blogService.deleteArticle(id);
+      this.selectedArticleIds.delete(id);
+      this.showToast('Đã xóa bài viết thành công!', 'info');
+    }
+    this.isDeleteConfirmOpen = false;
+    this.isEditorOpen = false;
+    this.articleToDelete = null;
   }
 
   deleteArticle(art: BlogArticle): void {
-    if (confirm(`Bạn có chắc chắn muốn xóa bài viết "${art.title}"?`)) {
-      this.blogService.deleteArticle(art.id);
-      this.selectedArticleIds.delete(art.id);
-      this.showToast('Đã xóa bài viết thành công!', 'info');
-    }
+    this.confirmDeleteArticle(art);
   }
 
   toggleArticleVisibility(art: BlogArticle): void {
@@ -958,9 +998,9 @@ export class ContentComponent implements OnInit, OnDestroy {
       coverImage: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=80',
       categoryId: '',
       categoryName: '',
-      author: 'KTS. DCor Studio',
+      author: 'Ban biên tập DCor',
       authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      status: 'PUBLISHED' as const,
+      status: 'DRAFT' as const,
       scheduledAt: '',
       excerpt: '',
       content: '',

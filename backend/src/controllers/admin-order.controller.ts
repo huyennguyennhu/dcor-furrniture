@@ -196,7 +196,9 @@ export const adminOrderController = {
   // 1. Lấy danh sách đơn hàng thực tế
   getOrders: async (req: Request, res: Response): Promise<void> => {
     try {
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string, 10) || 300), 1000);
       const orders = await prisma.order.findMany({
+        take: limit,
         include: {
           items: {
             select: {

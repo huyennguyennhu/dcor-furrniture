@@ -15,7 +15,7 @@
           <button type="button" class="thumb-remove" (click)="removeCompare(item.productId || item.id)"
             title="Bỏ chọn">&times;</button>
         </div>
-        <div class="thumb-placeholder" *ngIf="compareList.length < 5"
+        <div class="thumb-placeholder" *ngFor="let _ of remainingPlaceholderSlots"
           title="Chọn thêm sản phẩm cùng danh mục để so sánh">+</div>
       </div>
     </div>

@@ -52,6 +52,7 @@ export class SidebarFilterComponent implements OnChanges {
   @Input() allProducts: any[] = [];
   @Input() dynamicFilters: any = {};
   @Input() validFilters: any = {};
+  @Input() dynamicMinPrice = 0;
   @Input() dynamicMaxPrice = 100000000;
   @Input() productCount = 0;
   @Input() ratingCounts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0 };
@@ -88,13 +89,23 @@ export class SidebarFilterComponent implements OnChanges {
   localMaxPrice = 100000000;
 
   get minPercent(): number {
-    if (!this.dynamicMaxPrice) return 0;
-    return Math.min(100, Math.max(0, (this.localMinPrice / this.dynamicMaxPrice) * 100));
+    const range = this.dynamicMaxPrice - this.dynamicMinPrice;
+    if (range <= 0) return 0;
+    return Math.min(100, Math.max(0, ((this.localMinPrice - this.dynamicMinPrice) / range) * 100));
   }
 
   get maxPercent(): number {
-    if (!this.dynamicMaxPrice) return 100;
-    return Math.min(100, Math.max(0, (this.localMaxPrice / this.dynamicMaxPrice) * 100));
+    const range = this.dynamicMaxPrice - this.dynamicMinPrice;
+    if (range <= 0) return 100;
+    return Math.min(100, Math.max(0, ((this.localMaxPrice - this.dynamicMinPrice) / range) * 100));
+  }
+
+  get priceStep(): number {
+    const range = this.dynamicMaxPrice - this.dynamicMinPrice;
+    if (range > 50000000) return 500000;
+    if (range > 10000000) return 100000;
+    if (range > 1000000) return 50000;
+    return 10000;
   }
 
   constructor(private categoryClassificationService: CategoryClassificationService) {}
@@ -103,11 +114,11 @@ export class SidebarFilterComponent implements OnChanges {
     if (changes['rawCategories'] || changes['allProducts'] || changes['dynamicFilters'] || changes['validFilters']) {
       this.initFilters();
     }
-    if (changes['filters']) {
-      const min = this.filters.priceRange?.[0] ?? 0;
-      const max = this.filters.priceRange?.[1] ?? this.dynamicMaxPrice;
-      this.localMinPrice = Math.max(0, Math.min(min, this.dynamicMaxPrice));
-      this.localMaxPrice = Math.max(0, Math.min(max, this.dynamicMaxPrice));
+    if (changes['dynamicMinPrice'] || changes['dynamicMaxPrice'] || changes['filters']) {
+      const min = this.filters?.priceRange?.[0] ?? this.dynamicMinPrice;
+      const max = this.filters?.priceRange?.[1] ?? this.dynamicMaxPrice;
+      this.localMinPrice = Math.max(this.dynamicMinPrice, Math.min(min, this.dynamicMaxPrice));
+      this.localMaxPrice = Math.max(this.dynamicMinPrice, Math.min(max, this.dynamicMaxPrice));
       if (this.localMinPrice > this.localMaxPrice) {
         this.localMinPrice = this.localMaxPrice;
       }
@@ -300,7 +311,7 @@ export class SidebarFilterComponent implements OnChanges {
 
   onMinInputBlur(event: any) {
     const val = this.parsePriceInput(event.target.value);
-    const clamped = Math.max(0, Math.min(val, this.dynamicMaxPrice));
+    const clamped = Math.max(this.dynamicMinPrice, Math.min(val, this.dynamicMaxPrice));
     this.localMinPrice = clamped;
     if (this.localMinPrice > this.localMaxPrice) {
       this.localMaxPrice = this.localMinPrice;
@@ -315,7 +326,7 @@ export class SidebarFilterComponent implements OnChanges {
 
   onMaxInputBlur(event: any) {
     const val = this.parsePriceInput(event.target.value);
-    const clamped = Math.max(0, Math.min(val, this.dynamicMaxPrice));
+    const clamped = Math.max(this.dynamicMinPrice, Math.min(val, this.dynamicMaxPrice));
     this.localMaxPrice = clamped;
     if (this.localMaxPrice < this.localMinPrice) {
       this.localMinPrice = this.localMaxPrice;

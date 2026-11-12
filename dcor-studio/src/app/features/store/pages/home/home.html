@@ -340,10 +340,13 @@
 
       <div class="styling-tips-grid">
         <!-- Cột trái: Bài viết nổi bật chính -->
-        <article class="styling-card featured-styling-card">
-          <a [routerLink]="['/blog']" class="featured-card-link" aria-label="Modern Interior Trends">
+        <article class="styling-card featured-styling-card" *ngIf="featuredBlog">
+          <a [routerLink]="['/blog', featuredBlog.slug]" class="featured-card-link" [attr.aria-label]="featuredBlog.title">
             <div class="featured-card-bg">
-              <img src="/assets/img/blog_featured_sofa.jpg" alt="Modern Interior Trends" class="featured-card-img"
+              <img [src]="featuredBlog.coverImageUrl || '/assets/img/blog_featured_sofa.jpg'"
+                [alt]="featuredBlog.title"
+                (error)="onBlogImgError($event, '/assets/img/blog_featured_sofa.jpg')"
+                class="featured-card-img"
                 loading="lazy" />
               <div class="featured-card-overlay"></div>
             </div>
@@ -351,13 +354,13 @@
             <div class="featured-card-content">
               <div class="styling-meta-row">
                 <span class="styling-meta-date">
-                  June 22, 2026
+                  {{ formatBlogDate(featuredBlog.publishedAt) }}
                 </span>
                 <span class="styling-meta-bullet">•</span>
-                <span class="styling-meta-cat">Uncategorized</span>
+                <span class="styling-meta-cat">{{ featuredBlog.category?.name || 'Xu hướng' }}</span>
               </div>
 
-              <h3 class="featured-card-title">Modern Interior Trends</h3>
+              <h3 class="featured-card-title">{{ featuredBlog.title }}</h3>
 
               <div class="styling-readmore-row">
                 <span class="readmore-text">Xem chi tiết</span>
@@ -374,60 +377,27 @@
         </article>
 
         <!-- Cột phải: 2 bài viết nhỏ xếp chồng -->
-        <div class="styling-side-column">
-          <!-- Bài viết nhỏ 1: Home Styling Tips -->
-          <article class="styling-card side-styling-card">
-            <a [routerLink]="['/blog']" class="side-card-link" aria-label="Home Styling Tips">
+        <div class="styling-side-column" *ngIf="sideBlogs && sideBlogs.length > 0">
+          <article class="styling-card side-styling-card" *ngFor="let blog of sideBlogs; let i = index">
+            <a [routerLink]="['/blog', blog.slug]" class="side-card-link" [attr.aria-label]="blog.title">
               <div class="side-card-visual">
-                <img src="/assets/img/blog_dining_table.jpg" alt="Home Styling Tips" class="side-card-img"
+                <img [src]="blog.coverImageUrl || (i === 0 ? '/assets/img/blog_dining_table.jpg' : '/assets/img/blog_care_guide.jpg')"
+                  [alt]="blog.title"
+                  (error)="onBlogImgError($event, i === 0 ? '/assets/img/blog_dining_table.jpg' : '/assets/img/blog_care_guide.jpg')"
+                  class="side-card-img"
                   loading="lazy" />
               </div>
 
               <div class="side-card-content">
                 <div class="styling-meta-row dark-meta">
                   <span class="styling-meta-date">
-                    June 22, 2026
+                    {{ formatBlogDate(blog.publishedAt) }}
                   </span>
                   <span class="styling-meta-bullet">•</span>
-                  <span class="styling-meta-cat">Uncategorized</span>
+                  <span class="styling-meta-cat">{{ blog.category?.name || (i === 0 ? 'Mẹo không gian' : 'Chăm sóc nội thất') }}</span>
                 </div>
 
-                <h3 class="side-card-title">Home Styling Tips</h3>
-
-                <div class="side-card-divider"></div>
-
-                <div class="styling-readmore-row dark-readmore">
-                  <span class="readmore-text">Xem chi tiết</span>
-                  <span class="readmore-icon-badge">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                      stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="7" y1="17" x2="17" y2="7"></line>
-                      <polyline points="7 7 17 7 17 17"></polyline>
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            </a>
-          </article>
-
-          <!-- Bài viết nhỏ 2: Furniture Care Guides -->
-          <article class="styling-card side-styling-card">
-            <a [routerLink]="['/blog']" class="side-card-link" aria-label="Furniture Care Guides">
-              <div class="side-card-visual">
-                <img src="/assets/img/blog_care_guide.jpg" alt="Furniture Care Guides" class="side-card-img"
-                  loading="lazy" />
-              </div>
-
-              <div class="side-card-content">
-                <div class="styling-meta-row dark-meta">
-                  <span class="styling-meta-date">
-                    June 22, 2026
-                  </span>
-                  <span class="styling-meta-bullet">•</span>
-                  <span class="styling-meta-cat">Uncategorized</span>
-                </div>
-
-                <h3 class="side-card-title">Furniture Care Guides</h3>
+                <h3 class="side-card-title">{{ blog.title }}</h3>
 
                 <div class="side-card-divider"></div>
 

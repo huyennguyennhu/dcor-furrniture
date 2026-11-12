@@ -2,11 +2,15 @@ import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, NgZone, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
 import { ProductService } from '../../../../core/services/product.service';
 import { ShowroomConsultationModalComponent } from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
 import { WishlistService } from '../../../../core/services/wishlist.service';
+import { PromotionService } from '../../../../core/services/promotion.service';
+import { BlogService } from '../blog/services/blog.service';
+import { BlogPostSummary } from '../blog/models/blog.model';
 import { environment } from '../../../../../environments/environment';
 
 // Data from lib/collections
@@ -388,8 +392,70 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private productService: ProductService,
     private wishlistService: WishlistService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private promotionService: PromotionService,
+    private blogService: BlogService
   ) { }
+
+  // Blog section state (Góc Cảm Hứng)
+  featuredBlog: BlogPostSummary | null = null;
+  sideBlogs: BlogPostSummary[] = [];
+  isLoadingBlogs = false;
+  private blogSub?: Subscription;
+
+  private readonly FALLBACK_BLOGS: BlogPostSummary[] = [
+    {
+      id: 'fallback-1',
+      slug: 'kien-tao-khong-gian-song-duong-dai',
+      title: 'Kiến Tạo Không Gian Sống Đương Đại: Góc Nhìn & Triết Lý Từ Giám Đốc Thiết Kế DCor',
+      excerpt: 'Khám phá cách thức phối hợp chất liệu gỗ sồi tự nhiên, da bò Ý Mastrotto cùng ánh sáng gián tiếp để định hình vẻ đẹp sang trọng, ấm cúng trong từng góc nhà.',
+      coverImageUrl: '/assets/img/modern_luxury.jpg',
+      category: {
+        name: 'Xu hướng',
+        slug: 'xu-huong'
+      },
+      tags: ['thiết kế đương đại', 'xu hướng 2024'],
+      authorName: 'Trần Minh Quân',
+      publishedAt: '2026-11-10T08:00:00.000Z',
+      likesCount: 42,
+      commentCount: 5,
+      readingMinutes: 4
+    },
+    {
+      id: 'fallback-2',
+      slug: 'nghe-thuat-bo-tri-ban-an-chung-cu',
+      title: 'Nghệ Thuật Bố Trí Bàn Ăn Cho Căn Hộ Chung Cư: Tối Ưu Không Gian & Kết Nối Gia Đình',
+      excerpt: 'Bí quyết chọn kích thước bàn ăn mở rộng thông minh và bố trí ánh sáng ấm cúng cho không gian căn hộ.',
+      coverImageUrl: '/assets/room_img/phong_an.png',
+      category: {
+        name: 'Mẹo không gian',
+        slug: 'meo-khong-gian'
+      },
+      tags: ['mẹo bố trí', 'phòng ăn'],
+      authorName: 'Nguyễn Bích Ngọc',
+      publishedAt: '2026-11-08T09:30:00.000Z',
+      likesCount: 38,
+      commentCount: 3,
+      readingMinutes: 5
+    },
+    {
+      id: 'fallback-3',
+      slug: 'bi-quyet-ve-sinh-sofa-da-that',
+      title: 'Bí Quyết Vệ Sinh & Bảo Dưỡng Sofa Da Thật Luôn Mềm Mại Như Mới Mua',
+      excerpt: 'Hướng dẫn chi tiết quy trình vệ sinh sofa da định kỳ, xử lý vết bẩn cứng đầu mà không làm hỏng bề mặt da.',
+      coverImageUrl: '/assets/img/blog_care_guide.jpg',
+      category: {
+        name: 'Chăm sóc nội thất',
+        slug: 'cham-soc-noi-that'
+      },
+      tags: ['bảo dưỡng sofa', 'chăm sóc nội thất'],
+      authorName: 'Đặng Quốc Huy',
+      publishedAt: '2026-11-06T14:15:00.000Z',
+      likesCount: 29,
+      commentCount: 4,
+      readingMinutes: 4
+    }
+  ];
 
   isInWishlist(productId?: string): boolean {
     return !!productId && this.wishlistService.isWishlisted(productId);
@@ -425,6 +491,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   saleProducts: CatalogProduct[] = [];
   newestProducts: CatalogProduct[] = [];
+  private campaignSub?: Subscription;
 
   SUB_CATEGORY_STYLES = SUB_CATEGORY_STYLES;
   STYLE_COLLECTIONS = STYLE_COLLECTIONS;
@@ -524,8 +591,15 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.fetchProducts();
+    this.fetchBlogs();
     this.startCategoryAutoPlay();
     this.startReviewAutoPlay();
+
+    this.campaignSub = this.promotionService.activeCampaigns$.subscribe(() => {
+      if (this.products.length > 0) {
+        this.fetchProducts();
+      }
+    });
   }
 
   ngAfterViewInit(): void {
@@ -534,6 +608,60 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopCategoryAutoPlay();
     this.stopReviewAutoPlay();
+    this.campaignSub?.unsubscribe();
+    this.blogSub?.unsubscribe();
+  }
+
+  fetchBlogs(): void {
+    this.isLoadingBlogs = true;
+    this.initFallbackBlogs();
+
+    this.blogSub = this.blogService.getPosts({ pageSize: 3 }).subscribe({
+      next: (res) => {
+        if (res && res.items && res.items.length > 0) {
+          this.featuredBlog = res.items[0];
+          this.sideBlogs = res.items.slice(1, 3);
+          if (this.sideBlogs.length < 2) {
+            const fallbackRemain = this.FALLBACK_BLOGS.slice(res.items.length);
+            this.sideBlogs = [...this.sideBlogs, ...fallbackRemain].slice(0, 2);
+          }
+        }
+        this.isLoadingBlogs = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.warn('Không thể tải bài viết blog từ backend, sử dụng dữ liệu dự phòng:', err);
+        this.initFallbackBlogs();
+        this.isLoadingBlogs = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private initFallbackBlogs(): void {
+    this.featuredBlog = this.FALLBACK_BLOGS[0];
+    this.sideBlogs = this.FALLBACK_BLOGS.slice(1, 3);
+  }
+
+  formatBlogDate(dateStr?: string | Date | null): string {
+    if (!dateStr) return 'Mới đăng';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'Mới đăng';
+      const day = d.getDate();
+      const month = d.getMonth() + 1;
+      const year = d.getFullYear();
+      return `${day} Tháng ${month}, ${year}`;
+    } catch {
+      return 'Mới đăng';
+    }
+  }
+
+  onBlogImgError(event: Event, fallbackUrl: string = '/assets/img/modern_luxury.jpg'): void {
+    const target = event.target as HTMLImageElement;
+    if (target && target.src !== fallbackUrl) {
+      target.src = fallbackUrl;
+    }
   }
 
   async fetchProducts() {
@@ -555,25 +683,37 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         return 'Phụ Kiện';
       }
 
-      this.products = rawProducts.map((p: any) => ({
-        ...p,
-        productId: p.id || p.productId,
-        slug: p.slug || '',
-        variantUrl: p.slug || p.id || '',
-        shortDescription: p.name || p.shortDescription || '',
-        shortDescription_vi: p.name || p.shortDescription_vi || '',
-        category: getParentCategory(p.category?.name || (typeof p.category === 'string' ? p.category : '')),
-        description: p.description || p.description_vi,
-        refinementMaterials: p.description ? [p.description] : (p.refinementMaterials || []),
-        refinementMaterials_vi: p.description ? [p.description] : (p.refinementMaterials_vi || []),
-        refinementColors: p.refinementColors || [],
-        images: p.images || [],
-        prices: p.prices || [{ price: p.basePrice || 0, formattedPrice: new Intl.NumberFormat('vi-VN').format(p.basePrice || 0) + ' ₫', currency: 'VND' }],
-        lowestPrices: p.discountValue ? [{ price: (p.basePrice || 0) - p.discountValue, formattedPrice: new Intl.NumberFormat('vi-VN').format((p.basePrice || 0) - p.discountValue) + ' ₫', currency: 'VND' }] : (p.lowestPrices || []),
-        isBestSeller: p.isBestSeller || false,
-        isNew: p.isNew || false,
-        createdAt: p.createdAt
-      }));
+      this.products = rawProducts.map((p: any) => {
+        const base = Number(p.basePrice) || (p.prices?.[0]?.price || p.price || 0);
+        const campDisc = this.promotionService.getDiscountForProduct(p);
+        const hasDiscount = campDisc || (p.discountValue && p.discountValue > 0);
+        const salePrice = campDisc ? campDisc.salePrice : (p.salePrice || (p.discountType === 'PERCENT' ? Math.round(base * (100 - p.discountValue) / 100) : Math.max(0, base - p.discountValue)));
+        const originalPrice = campDisc ? campDisc.originalPrice : (p.originalPrice || base);
+        const discountVal = campDisc ? campDisc.discountPercent : p.discountValue;
+
+        return {
+          ...p,
+          productId: p.id || p.productId,
+          slug: p.slug || '',
+          variantUrl: p.slug || p.id || '',
+          shortDescription: p.name || p.shortDescription || '',
+          shortDescription_vi: p.name || p.shortDescription_vi || '',
+          category: getParentCategory(p.category?.name || (typeof p.category === 'string' ? p.category : '')),
+          description: p.description || p.description_vi,
+          refinementMaterials: p.description ? [p.description] : (p.refinementMaterials || []),
+          refinementMaterials_vi: p.description ? [p.description] : (p.refinementMaterials_vi || []),
+          refinementColors: p.refinementColors || [],
+          images: p.images || [],
+          prices: [{ price: base, formattedPrice: new Intl.NumberFormat('vi-VN').format(base) + ' ₫', currency: 'VND' }],
+          lowestPrices: hasDiscount ? [{ price: salePrice, formattedPrice: new Intl.NumberFormat('vi-VN').format(salePrice) + ' ₫', currency: 'VND' }] : [],
+          discountValue: discountVal,
+          discountType: campDisc ? campDisc.discountType : p.discountType,
+          originalPrice: originalPrice,
+          isBestSeller: p.isBestSeller || false,
+          isNew: p.isNew || false,
+          createdAt: p.createdAt
+        };
+      });
 
       this.saleProducts = this.products.filter(p => this.isOnSale(p)).slice(0, 8);
       this.newestProducts = this.products.slice(0, 8);
@@ -625,6 +765,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isOnSale(prod: CatalogProduct): boolean {
+    if (this.promotionService.getDiscountForProduct(prod)) return true;
     const base = (prod as any).basePrice ?? prod.prices?.[0]?.price ?? 0;
     const low = prod.lowestPrices?.[0]?.price ?? ((prod as any).discountValue ? base - (prod as any).discountValue : 0);
     return (low > 0 && low < base) || Boolean((prod as any).discountValue && (prod as any).discountValue > 0);

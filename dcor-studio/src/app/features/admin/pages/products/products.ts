@@ -51,6 +51,10 @@ export interface ProductListItem {
   baseSku: string; // SKU tổng, readonly
   categoryName: string;
   categoryId: string;
+  parentCategoryId?: string;
+  parentCategoryName?: string;
+  parentCategorySlug?: string;
+  majorCategoryKey?: string;
   priceRange: { min: number; max: number };
   totalVariants: number;
   totalAvailableStock: number;
@@ -652,16 +656,18 @@ export class ProductsComponent implements OnInit {
   isStockDropdownOpen = false;
   isSortDropdownOpen = false;
 
-  // Danh mục động
-  categories: Array<{ id: string; name: string }> = [
+  // Danh mục động (Chỉ lọc danh mục chính: Tables, Sofas, Chairs, Beds, Storage...)
+  categories: Array<{ id: string; name: string; slug?: string; childIds?: string[] }> = [
     { id: 'ALL', name: 'Tất cả danh mục' },
-    { id: 'cat-sofa', name: 'Sofa & Ghế bành' },
-    { id: 'cat-table', name: 'Bàn trà & Bàn góc' },
-    { id: 'cat-bed', name: 'Phòng ngủ' },
-    { id: 'cat-dining', name: 'Bàn ăn & Ghế ăn' },
-    { id: 'cat-storage', name: 'Kệ & Tủ lưu trữ' },
-    { id: 'cat-lighting', name: 'Đèn & Ánh sáng' },
-    { id: 'cat-decor', name: 'Phụ kiện & Thảm' }
+    { id: 'a8ee5c87-3e71-4052-b61c-92bf543c41c1', name: 'Tables', slug: 'tables-3' },
+    { id: '735a03d0-26dc-4441-bd7d-9c565b66cbb4', name: 'Sofas', slug: 'sofas-1' },
+    { id: '3639f69e-452a-48c0-b032-d7f3bd8ce14a', name: 'Chairs', slug: 'chairs-2' },
+    { id: 'd492b7b7-8624-48f1-8caa-e7592d144630', name: 'Storage', slug: 'storage-4' },
+    { id: 'cf9a6a0b-482d-45b3-b75f-4505c2a8f102', name: 'Beds', slug: 'beds-5' },
+    { id: '1cd91a18-e854-46e6-9184-81586245a80a', name: 'Lamps', slug: 'lamps-7' },
+    { id: '4401c13a-85f9-4668-806f-20ab07f69cb4', name: 'Rugs', slug: 'rugs-8' },
+    { id: '3aab992e-8c1d-4840-97ef-16e886b26167', name: 'Accessories', slug: 'accessories-9' },
+    { id: 'e5c2232d-fc4b-4e8d-bd99-514ed2446882', name: 'Outdoor', slug: 'outdoor-furniture-6' }
   ];
 
   // Bulk actions
@@ -720,6 +726,24 @@ export class ProductsComponent implements OnInit {
     return this.adminAuthService.hasPermission('products', 'delete');
   }
 
+  getMajorCategoryKey(
+    name: string = '',
+    catName: string = '',
+    parentCatName: string = '',
+    catSlug: string = '',
+    parentSlug: string = ''
+  ): string {
+    const text = `${name} ${catName} ${parentCatName} ${catSlug} ${parentSlug}`.toLowerCase();
+    if (text.includes('sofa') || text.includes('ghế bành') || text.includes('couch') || text.includes('armchair')) return 'sofas';
+    if (text.includes('table') || text.includes('desk') || text.includes('bàn')) return 'tables';
+    if (text.includes('chair') || text.includes('stool') || text.includes('bench') || text.includes('ghế')) return 'chairs';
+    if (text.includes('bed') || text.includes('giường') || text.includes('nệm') || text.includes('mattress') || text.includes('phòng ngủ')) return 'beds';
+    if (text.includes('storage') || text.includes('tủ') || text.includes('kệ') || text.includes('cabinet') || text.includes('drawer') || text.includes('shelf') || text.includes('sideboard')) return 'storage';
+    if (text.includes('rug') || text.includes('thảm')) return 'rugs';
+    if (text.includes('lamp') || text.includes('đèn') || text.includes('light')) return 'lamps';
+    return 'other';
+  }
+
   ngOnInit() {
     this.loadProducts();
   }
@@ -729,29 +753,42 @@ export class ProductsComponent implements OnInit {
     this.isLoading = true;
     this.cdr.detectChanges();
     
-    // 1. Tải danh mục ngầm
+    // 1. Tải danh mục ngầm (CHỈ LẤY DANH MỤC CHÍNH: Tables, Sofas, Chairs...)
     this.http.get<any>(`${environment.apiUrl}/admin/categories`).subscribe({
       next: (catsRes) => {
         const catsData = catsRes?.tree || (Array.isArray(catsRes) ? catsRes : []);
         if (Array.isArray(catsData) && catsData.length > 0) {
-          const dbCats: Array<{ id: string; name: string }> = [];
+          const dbCats: Array<{ id: string; name: string; slug: string; childIds: string[] }> = [];
           catsData.forEach((parentCat: any) => {
-            dbCats.push({ id: parentCat.slug || parentCat.id, name: parentCat.name });
+            const childIds: string[] = [
+              String(parentCat.id).toLowerCase(),
+              String(parentCat.slug || '').toLowerCase()
+            ];
             if (Array.isArray(parentCat.children)) {
               parentCat.children.forEach((child: any) => {
-                dbCats.push({ id: child.slug || child.id, name: `— ${child.name}` });
+                if (child.id) childIds.push(String(child.id).toLowerCase());
+                if (child.slug) childIds.push(String(child.slug).toLowerCase());
               });
             }
+
+            dbCats.push({
+              id: parentCat.id,
+              name: parentCat.name,
+              slug: parentCat.slug || '',
+              childIds: childIds
+            });
+            // Tuyệt đối không thêm parentCat.children vào danh sách dropdown (chỉ lọc theo danh mục chính)
           });
-          this.categories = [{ id: 'ALL', name: 'Tất cả danh mục' }, ...dbCats];
+          this.categories = [{ id: 'ALL', name: 'Tất cả danh mục', slug: 'all', childIds: [] }, ...dbCats];
+          this.applyFilters();
           this.cdr.detectChanges();
         }
       },
       error: () => {}
     });
 
-    // 2. Tải sản phẩm trực tiếp từ API backend qua HttpClient (phân trang 50 sản phẩm nhanh)
-    this.http.get<any[]>(`${environment.apiUrl}/admin/products?page=1&limit=50`).subscribe({
+    // 2. Tải toàn bộ sản phẩm trực tiếp từ API backend (limit=500 để hiển thị đầy đủ 214+ sản phẩm)
+    this.http.get<any[]>(`${environment.apiUrl}/admin/products?limit=500`).subscribe({
       next: (prodsData) => {
         if (Array.isArray(prodsData) && prodsData.length > 0) {
           const apiProducts: ProductListItem[] = prodsData.map((p: any, idx: number) => {
@@ -784,8 +821,22 @@ export class ProductsComponent implements OnInit {
               return sum + v.branchStocks.reduce((bSum, b) => bSum + b.stock, 0);
             }, 0);
 
-            const catName = (p.category && p.category.name) ? p.category.name : (typeof p.category === 'string' ? p.category : 'Khác');
-            const catId = (p.category && (p.category.slug || p.category.id)) ? (p.category.slug || p.category.id) : 'cat-other';
+            const cat = p.category;
+            const catName = (cat && cat.name) ? cat.name : (typeof p.category === 'string' ? p.category : 'Khác');
+            const catId = (cat && cat.id) ? cat.id : (cat?.slug || 'cat-other');
+            
+            let parentCat = cat && cat.parent ? cat.parent : (cat && !cat.parentId ? cat : null);
+            if (!parentCat && cat && cat.parentId) {
+              const foundInCats = this.categories.find(c => c.id === cat.parentId);
+              if (foundInCats) {
+                parentCat = foundInCats;
+              }
+            }
+
+            const parentCatId = parentCat ? parentCat.id : '';
+            const parentCatName = parentCat ? parentCat.name : '';
+            const parentCatSlug = parentCat ? parentCat.slug : '';
+
             const baseSku = (p.variants && p.variants[0]?.sku) ? p.variants[0].sku : `DCOR-${String(p.slug || idx).toUpperCase().substring(0, 10)}`;
 
             let coverImg = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
@@ -801,6 +852,10 @@ export class ProductsComponent implements OnInit {
               baseSku: baseSku,
               categoryName: catName,
               categoryId: catId,
+              parentCategoryId: parentCatId,
+              parentCategoryName: parentCatName,
+              parentCategorySlug: parentCatSlug,
+              majorCategoryKey: (parentCatName || catName).toLowerCase(),
               priceRange: { min: minPrice, max: maxPrice },
               totalVariants: mappedVariants.length || 1,
               totalAvailableStock: totalStock,
@@ -816,7 +871,10 @@ export class ProductsComponent implements OnInit {
 
           this.allProducts = apiProducts;
         } else {
-          this.allProducts = [...INITIAL_PRODUCTS];
+          this.allProducts = INITIAL_PRODUCTS.map(ip => ({
+            ...ip,
+            majorCategoryKey: this.getMajorCategoryKey(ip.name, ip.categoryName, '', ip.categoryId)
+          }));
         }
         this.isLoading = false;
         this.applyFilters();
@@ -824,7 +882,10 @@ export class ProductsComponent implements OnInit {
       },
       error: (err) => {
         console.warn('Không thể tải từ backend, dùng dữ liệu dự phòng:', err);
-        this.allProducts = [...INITIAL_PRODUCTS];
+        this.allProducts = INITIAL_PRODUCTS.map(ip => ({
+          ...ip,
+          majorCategoryKey: this.getMajorCategoryKey(ip.name, ip.categoryName, '', ip.categoryId)
+        }));
         this.isLoading = false;
         this.applyFilters();
         this.cdr.detectChanges();
@@ -908,9 +969,62 @@ export class ProductsComponent implements OnInit {
       });
     }
 
-    // 3. Lọc theo Danh mục
+    // 3. Lọc theo Danh mục chính (Tables, Sofas, Chairs, Beds, Storage...)
     if (this.selectedCategory !== 'ALL') {
-      result = result.filter(p => p.categoryId === this.selectedCategory || p.categoryName === this.selectedCategory);
+      const selectedCat = this.categories.find(c => c.id === this.selectedCategory);
+      const targetId = String(this.selectedCategory).toLowerCase();
+      const targetSlug = String(selectedCat?.slug || '').toLowerCase();
+      const targetName = String(selectedCat?.name || '').trim().toLowerCase();
+      const targetChildIds = (selectedCat?.childIds || []).map(id => String(id).toLowerCase());
+
+      result = result.filter(p => {
+        const pParentId = String(p.parentCategoryId || '').toLowerCase();
+        const pCatId = String(p.categoryId || '').toLowerCase();
+        const pParentName = String(p.parentCategoryName || '').trim().toLowerCase();
+        const pCatName = String(p.categoryName || '').trim().toLowerCase();
+        const pParentSlug = String(p.parentCategorySlug || '').toLowerCase();
+
+        // 1. So khớp ID danh mục cha (parentCategoryId) chính xác
+        if (pParentId && (pParentId === targetId || (targetSlug && pParentId === targetSlug))) {
+          return true;
+        }
+
+        // 2. So khớp ID danh mục trực tiếp (categoryId) chính xác
+        if (pCatId === targetId || (targetSlug && pCatId === targetSlug)) {
+          return true;
+        }
+
+        // 3. So khớp qua danh sách ID/Slug của các danh mục con trực thuộc
+        if (targetChildIds.length > 0) {
+          if (pCatId && targetChildIds.includes(pCatId)) return true;
+          if (pParentId && targetChildIds.includes(pParentId)) return true;
+        }
+
+        // 4. So khớp CHÍNH XÁC tên danh mục cha (Tuyệt đối KHÔNG dùng .includes để tránh Bedside tables bị dính vào Beds)
+        if (pParentName && targetName && pParentName === targetName) {
+          return true;
+        }
+
+        // 5. So khớp slug danh mục cha chính xác
+        if (targetSlug && pParentSlug && pParentSlug === targetSlug) {
+          return true;
+        }
+
+        // 6. Trường hợp đặc biệt: sản phẩm gán trực tiếp danh mục cha (không có parent, tên trùng exact)
+        if (!pParentName && pCatName && targetName && pCatName === targetName) {
+          return true;
+        }
+
+        // 7. Hỗ trợ dữ liệu mock fallback (prod-xxx) khi offline
+        if (p.id.startsWith('prod-')) {
+          const catKey = (p.majorCategoryKey || '').toLowerCase();
+          if (catKey && (targetSlug.startsWith(catKey) || targetName.toLowerCase().startsWith(catKey))) {
+            return true;
+          }
+        }
+
+        return false;
+      });
     }
 
     // 4. Lọc theo Tồn kho
@@ -1640,6 +1754,7 @@ export class ProductsComponent implements OnInit {
   selectCategory(catId: string) {
     this.selectedCategory = catId;
     this.isCategoryDropdownOpen = false;
+    this.currentPage = 1;
     this.applyFilters();
   }
 
@@ -1658,6 +1773,7 @@ export class ProductsComponent implements OnInit {
   selectStockFilter(filter: StockFilter) {
     this.selectedStockFilter = filter;
     this.isStockDropdownOpen = false;
+    this.currentPage = 1;
     this.applyFilters();
   }
 
@@ -1715,6 +1831,7 @@ export class ProductsComponent implements OnInit {
   selectSort(option: SortOption) {
     this.sortBy = option;
     this.isSortDropdownOpen = false;
+    this.currentPage = 1;
     this.applyFilters();
   }
 

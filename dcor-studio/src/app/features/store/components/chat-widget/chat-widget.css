@@ -5,15 +5,15 @@
 /* 1. BONG BÓNG NỔI (TRIGGER BUBBLE) */
 .chat-bubble-trigger {
   position: fixed;
-  bottom: 80px;
+  bottom: 24px;
   right: 24px;
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background-color: var(--color-primary, #765337);
   color: #ffffff;
   border: none;
-  box-shadow: 0 6px 20px rgba(118, 83, 55, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,17 +24,30 @@
 }
 
 .chat-bubble-trigger:hover {
-  background-color: var(--color-primary-hover, #BC5F13);
-  transform: translateY(-3px) scale(1.04);
-  box-shadow: 0 8px 24px rgba(188, 95, 19, 0.45);
+  background-color: var(--color-primary-hover, #9A461E);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(154, 70, 30, 0.35);
 }
 
 .chat-bubble-trigger:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0);
 }
 
 .chat-bubble-trigger.dock-active {
-  bottom: 144px;
+  bottom: 84px;
+}
+
+@media (max-width: 768px) {
+  .chat-bubble-trigger {
+    bottom: 20px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .chat-bubble-trigger.dock-active {
+    bottom: 88px;
+  }
 }
 
 .chat-bubble-hidden {
@@ -56,17 +69,17 @@
 /* Chấm đỏ số tin chưa đọc */
 .chat-unread-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -3px;
+  right: -3px;
   background-color: var(--color-danger, #C42326);
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  min-width: 20px;
-  height: 20px;
-  line-height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
   text-align: center;
   box-shadow: 0 2px 6px rgba(196, 35, 38, 0.4);
   animation: pulseBadge 2s infinite;

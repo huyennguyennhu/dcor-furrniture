@@ -242,7 +242,7 @@ export const designController = {
       if (taggedProductIds.length > 0 || taggedProductNames.length > 0) {
         const uniqueIds = Array.from(new Set(taggedProductIds));
         const uniqueNames = Array.from(new Set(taggedProductNames));
-        const prods: any[] = await withDbRetry(() =>
+        const prods: any[] = (await withDbRetry<any>(() =>
           (prisma as any).product.findMany({
             where: {
               OR: [
@@ -252,7 +252,7 @@ export const designController = {
             },
             select: { id: true, name: true, images: true }
           })
-        ).catch(() => []);
+        ).catch(() => [])) || [];
 
         for (const pr of (prods || [])) {
           let img: string | null = null;

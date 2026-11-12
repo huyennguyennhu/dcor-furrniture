@@ -25,6 +25,8 @@ export interface ProductColorSwatch {
   hex: string;
   images: string[];
   price?: number;
+  calculatedPrice?: number;
+  formattedPrice?: string;
 }
 
 export interface CatalogProduct {
@@ -55,6 +57,13 @@ export interface CatalogProduct {
   discountValue?: number;
   discountType?: string;
   isSale?: boolean;
+  isOnSale?: boolean;
+  discountBadgeText?: string;
+  currentPrice?: number;
+  formattedCurrentPrice?: string;
+  originalPrice?: number;
+  formattedOriginalPrice?: string | null;
+  basePrice?: number;
   dimensions?: { width: number; depth: number };
   rating?: number;
   reviewCount?: number;

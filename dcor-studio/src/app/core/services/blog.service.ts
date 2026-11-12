@@ -12,7 +12,7 @@ export interface BlogArticle {
   categoryName: string;
   author: string;
   authorAvatar?: string;
-  status: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'HIDDEN';
+  status: 'DRAFT' | 'PUBLISHED' | 'HIDDEN';
   publishedAt?: string;
   scheduledAt?: string;
   createdAt: string;
@@ -255,7 +255,7 @@ export class BlogService {
       seoDescription: article.seoDescription?.trim() || article.excerpt?.trim() || '',
       status: article.status || 'DRAFT',
       publishedAt: article.status === 'PUBLISHED' ? (article.publishedAt || now) : null,
-      scheduledAt: article.status === 'SCHEDULED' ? article.scheduledAt : null,
+      scheduledAt: null,
       productIds: article.relatedProductIds || [],
       relatedProductIds: article.relatedProductIds || [],
       author: article.author?.trim() || 'Ban biên tập DCor'
@@ -352,7 +352,7 @@ export class BlogService {
       authorAvatar: article.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
       status: article.status || 'DRAFT',
       publishedAt: article.status === 'PUBLISHED' ? (article.publishedAt || now) : undefined,
-      scheduledAt: article.status === 'SCHEDULED' ? article.scheduledAt : undefined,
+      scheduledAt: undefined,
       createdAt: article.createdAt || now,
       updatedAt: now,
       views: article.views || 0,

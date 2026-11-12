@@ -63,8 +63,26 @@ class DatabaseCleanupService {
         console.warn('[Cleanup] Lưu ý khi dọn AuditLogs:', err?.message || err);
       }
 
+      // 4. Xóa các hội thoại chat vãng lai (khách không đăng nhập) đã đóng quá 60 ngày
+      let oldGuestChats = 0;
+      try {
+        const chatCutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+        const chatRes = await withDbRetry(() =>
+          prisma.chatConversation.deleteMany({
+            where: {
+              customerId: null,
+              status: 'CLOSED',
+              updatedAt: { lt: chatCutoff }
+            }
+          })
+        );
+        oldGuestChats = chatRes.count;
+      } catch (err: any) {
+        console.warn('[Cleanup] Lưu ý khi dọn ChatConversation cũ:', err?.message || err);
+      }
+
       console.log(
-        `[Cleanup] ✅ Hoàn tất dọn dẹp: Đã xóa ${expiredOtps} OTP hết hạn, ${expiredSessions} phiên đăng nhập hết hạn, ${oldAuditLogs} nhật ký cũ.`
+        `[Cleanup] ✅ Hoàn tất dọn dẹp: Đã xóa ${expiredOtps} OTP hết hạn, ${expiredSessions} phiên đăng nhập hết hạn, ${oldAuditLogs} nhật ký cũ, ${oldGuestChats} hội thoại chat vãng lai cũ.`
       );
     } catch (error) {
       console.error('[Cleanup] ❌ Lỗi trong tiến trình dọn dẹp database:', error);

@@ -233,4 +233,41 @@ export class BlogComponent implements OnInit, OnDestroy {
       return '';
     }
   }
+
+  formatBlogDate(dateString?: string | null): string {
+    if (!dateString) return '';
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return '';
+      const day = d.getDate();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day} Th${month} ${year}`;
+    } catch {
+      return '';
+    }
+  }
+
+  getAuthorAvatar(authorName?: string): string {
+    if (!authorName) return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
+    const hash = authorName.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const avatars = [
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&auto=format&fit=crop&q=80'
+    ];
+    return avatars[hash % avatars.length];
+  }
+
+  onAvatarError(event: Event, authorName?: string): void {
+    const target = event.target as HTMLElement;
+    if (target && target.parentElement) {
+      target.style.display = 'none';
+      const initialSpan = target.parentElement.querySelector('.avatar-initial') as HTMLElement;
+      if (initialSpan) initialSpan.style.display = 'flex';
+    }
+  }
 }

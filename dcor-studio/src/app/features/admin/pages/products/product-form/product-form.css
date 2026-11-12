@@ -101,9 +101,20 @@
   font-weight: 600;
 }
 
-.pill-active { background-color: #E9F8E9; color: #00A30B; }
-.pill-draft { background-color: #EDEDED; color: #555555; }
-.pill-hidden { background-color: #FFF0EB; color: #D9381E; }
+.pill-active {
+  background-color: #E9F8E9;
+  color: #00A30B;
+}
+
+.pill-draft {
+  background-color: #EDEDED;
+  color: #555555;
+}
+
+.pill-hidden {
+  background-color: #FFF0EB;
+  color: #D9381E;
+}
 
 .header-right {
   display: flex;
@@ -235,8 +246,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .panel-section-title {
@@ -691,9 +709,21 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-4px); }
-  40%, 80% { transform: translateX(4px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 .attr-card-header {
@@ -866,7 +896,8 @@
 }
 
 .bulk-title-sub {
-  display: none; /* Ẩn dòng sub để khung lớn không bị phình to gấp đôi chiều cao nút */
+  display: none;
+  /* Ẩn dòng sub để khung lớn không bị phình to gấp đôi chiều cao nút */
 }
 
 .bulk-inputs-flex {
@@ -1065,8 +1096,13 @@
   font-size: 11.5px;
 }
 
-.font-mono { font-family: monospace; }
-.font-bold { font-weight: 700; }
+.font-mono {
+  font-family: monospace;
+}
+
+.font-bold {
+  font-weight: 700;
+}
 
 .table-sub-price {
   font-size: 10px;
@@ -1372,8 +1408,10 @@
 .dim-input-wrap .form-control {
   height: 34px !important;
   font-size: 13px !important;
-  padding-right: 48px !important; /* Dành khoảng trống bên phải cho đơn vị tính */
-  -moz-appearance: textfield; /* Firefox */
+  padding-right: 48px !important;
+  /* Dành khoảng trống bên phải cho đơn vị tính */
+  -moz-appearance: textfield;
+  /* Firefox */
 }
 
 /* Ẩn spinner mũi tên tăng giảm của Chrome, Safari, Edge, Opera */
@@ -1431,14 +1469,14 @@
   background-color: white;
   transition: 0.2s;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.switch-toggle input:checked + .slider {
+.switch-toggle input:checked+.slider {
   background-color: #00A30B;
 }
 
-.switch-toggle input:checked + .slider:before {
+.switch-toggle input:checked+.slider:before {
   transform: translateX(14px);
 }
 
@@ -1569,21 +1607,52 @@
 }
 
 @keyframes toastSlide {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.toast-success { border-left: 4px solid #00A30B; color: #00A30B; }
-.toast-success .toast-text { color: #2B2621; }
+.toast-success {
+  border-left: 4px solid #00A30B;
+  color: #00A30B;
+}
 
-.toast-warning { border-left: 4px solid #F2BF3D; color: #B58000; }
-.toast-warning .toast-text { color: #2B2621; }
+.toast-success .toast-text {
+  color: #2B2621;
+}
 
-.toast-error { border-left: 4px solid #C42326; color: #C42326; }
-.toast-error .toast-text { color: #2B2621; }
+.toast-warning {
+  border-left: 4px solid #F2BF3D;
+  color: #B58000;
+}
 
-.toast-info { border-left: 4px solid #765337; color: #765337; }
-.toast-info .toast-text { color: #2B2621; }
+.toast-warning .toast-text {
+  color: #2B2621;
+}
+
+.toast-error {
+  border-left: 4px solid #C42326;
+  color: #C42326;
+}
+
+.toast-error .toast-text {
+  color: #2B2621;
+}
+
+.toast-info {
+  border-left: 4px solid #765337;
+  color: #765337;
+}
+
+.toast-info .toast-text {
+  color: #2B2621;
+}
 
 .toast-dismiss-btn {
   border: none;
@@ -1600,12 +1669,15 @@
   .attributes-grid {
     grid-template-columns: 1fr;
   }
+
   .dimension-inputs-row {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
+
   .span-2 {
     grid-column: span 1;
   }
@@ -1617,7 +1689,9 @@
     gap: 12px;
     padding: 12px 16px;
   }
-  .footer-left, .footer-right {
+
+  .footer-left,
+  .footer-right {
     width: 100%;
     justify-content: space-between;
   }
@@ -1943,10 +2017,12 @@ select.form-control option {
   gap: 16px 20px;
   margin-top: 14px;
 }
+
 .tag-selector-group {
   gap: 8px;
   margin-top: 4px;
 }
+
 .tag-checkbox-pill {
   padding: 6px 12px;
   font-size: 12.5px;
@@ -1955,19 +2031,21 @@ select.form-control option {
 /* BUG-17: v2-form-header styling */
 .v2-form-header {
   display: flex;
-  flex-direction: column;
   gap: 8px;
   padding-bottom: 6px;
 }
+
 .header-title-group {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .v2-header-nav {
   display: flex;
   align-items: center;
 }
+
 .v2-btn-back {
   display: inline-flex;
   align-items: center;
@@ -1981,10 +2059,12 @@ select.form-control option {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .v2-btn-back:hover {
   color: #765337;
   transform: translateX(-3px);
 }
+
 .v2-header-main {
   display: flex;
   align-items: center;
@@ -2000,6 +2080,7 @@ select.form-control option {
   gap: 8px;
   margin-top: 10px;
 }
+
 .quick-add-input {
   max-width: 320px;
 }
@@ -2012,6 +2093,7 @@ select.form-control option {
   flex: 1;
   min-width: 260px;
 }
+
 .tag-inline-input {
   height: 34px !important;
   font-size: 12.5px !important;
@@ -2020,6 +2102,7 @@ select.form-control option {
   border-radius: 6px !important;
   background: #FFFFFF !important;
 }
+
 .btn-add-tag-sm {
   height: 34px !important;
   padding: 0 14px !important;
@@ -2029,6 +2112,7 @@ select.form-control option {
   align-items: center !important;
   justify-content: center !important;
 }
+
 .attr-name-input {
   height: 34px !important;
   font-size: 13px !important;
@@ -2105,13 +2189,25 @@ select.form-control option {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 /* Button Loading Spinner */
@@ -2123,8 +2219,11 @@ select.form-control option {
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Nút đang tải và bị khóa */

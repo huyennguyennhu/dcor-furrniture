@@ -333,13 +333,30 @@
 }
 
 .explore-sidebar-col {
+  position: -webkit-sticky;
   position: sticky;
-  top: 90px;
+  top: 76px;
+  z-index: 20;
   display: block;
+}
+
+.explore-sidebar-sticky {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 76px;
+  z-index: 20;
 }
 
 .sidebar-scrollable-body {
   overflow: visible;
+}
+
+.sidebar-skeleton {
+  background: #ffffff;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 16px;
+  padding: 20px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 /* ==========================================================================
@@ -677,15 +694,15 @@
 }
 
 .badge-hotdeal {
-  background-color: #dc2626;
-  color: #ffffff;
+  background-color: #FFE8E8;
+  border: 1px solid #C42326;
+  color: #C42326;
   font-size: 10px;
   font-weight: 700;
   padding: 8px 10px;
   border-radius: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
 }
 
 .badge-new {
@@ -1115,6 +1132,7 @@
   justify-content: center;
   color: #9ca3af;
   font-size: 18px;
+  flex-shrink: 0;
 }
 
 .dock-right {
@@ -1236,15 +1254,15 @@
    ========================================================================== */
 .btn-back-to-top {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  width: 46px;
-  height: 46px;
+  bottom: 78px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #765337;
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1253,7 +1271,7 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(16px) scale(0.9);
+  transform: translateY(12px);
   transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     background 0.25s ease,
@@ -1266,37 +1284,34 @@
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 }
 
 .btn-back-to-top:hover {
-  background: #b45309;
-  border-color: #b45309;
-  transform: translateY(-4px) scale(1.06);
-  box-shadow: 0 8px 24px rgba(180, 83, 9, 0.38);
+  background: #9A461E;
+  border-color: #9A461E;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(154, 70, 30, 0.35);
 }
 
 .btn-back-to-top:active {
-  transform: translateY(-1px) scale(0.96);
-  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.25);
+  transform: translateY(0);
 }
 
-@media (max-width: 900px) {
-  .btn-back-to-top.dock-active {
-    bottom: 92px;
-  }
+.btn-back-to-top.dock-active {
+  bottom: 138px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .btn-back-to-top {
-    bottom: 20px;
-    right: 20px;
-    width: 42px;
-    height: 42px;
+    bottom: 70px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
   }
 
   .btn-back-to-top.dock-active {
-    bottom: 96px;
+    bottom: 138px;
   }
 }
 

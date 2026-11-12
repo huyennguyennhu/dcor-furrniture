@@ -14,6 +14,13 @@
   <!-- Thanh So Sánh Nổi Toàn Cục (Đồng bộ giữa Explore và Product Detail) -->
   <app-floating-compare-dock></app-floating-compare-dock>
 
+  <!-- Drawer Xem Nhanh Sản Phẩm Toàn Cục (Global Quick View Drawer) -->
+  <app-quick-view-drawer
+    [product]="(quickViewService.product$ | async)"
+    [isOpen]="(quickViewService.isOpen$ | async) ?? false"
+    (onClose)="quickViewService.close()">
+  </app-quick-view-drawer>
+
   <!-- Khung Chat Trực Tuyến Hỗ Trợ Khách Hàng -->
   <app-chat-widget />
 </div>

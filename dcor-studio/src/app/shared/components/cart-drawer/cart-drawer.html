@@ -550,7 +550,10 @@
 
               <!-- Hàng 2: Giá 1 sản phẩm (không đổi dù tăng số lượng) & Bộ tăng giảm số lượng -->
               <div class="item-price-qty-row">
-                <span class="unit-price-display">{{ formatCurrency(item.price) }}</span>
+                <div class="unit-price-wrap">
+                  <span class="unit-price-display">{{ formatCurrency(item.price) }}</span>
+                  <span *ngIf="item.originalPrice && item.originalPrice > item.price" class="unit-original-price">{{ formatCurrency(item.originalPrice) }}</span>
+                </div>
 
                 <div class="quantity-control">
                   <button

@@ -21,10 +21,12 @@ export const productController = {
     try {
       const { search, categoryId, status } = req.query;
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = req.query.limit !== undefined 
-        ? Math.min(100, Math.max(1, parseInt(req.query.limit as string))) 
-        : 40;
-      const skip = (page - 1) * limit;
+      const limitParam = req.query.limit as string | undefined;
+      const isUnlimited = limitParam === 'all' || limitParam === '-1';
+      const limit = isUnlimited 
+        ? 1000 
+        : (limitParam !== undefined ? Math.min(1000, Math.max(1, parseInt(limitParam))) : 500);
+      const skip = isUnlimited ? 0 : (page - 1) * limit;
 
       const cacheKey = `admin_products_p${page}_l${limit}_c${categoryId || 'all'}_s${status || 'all'}_q${search || ''}`;
       const cached = memoryCache.get<any[]>(cacheKey, 300000);
@@ -66,7 +68,7 @@ export const productController = {
               name: true,
               slug: true,
               parentId: true,
-              parent: { select: { id: true, name: true } }
+              parent: { select: { id: true, name: true, slug: true } }
             }
           },
           variants: {

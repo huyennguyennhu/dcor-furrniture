@@ -65,15 +65,21 @@
             <button type="button" class="pill-close" (click)="removeFilterTag('colors', col)">&times;</button>
           </span>
 
+          <!-- Rating Pill -->
+          <span *ngIf="filters.minRating !== undefined" class="active-pill">
+            {{ filters.minRating }} sao
+            <button type="button" class="pill-close" (click)="removeRatingFilter()">&times;</button>
+          </span>
+
           <!-- Price Pill -->
-          <span *ngIf="filters.priceRange[0] > 0 || filters.priceRange[1] < dynamicMaxPrice" class="active-pill">
-            <ng-container *ngIf="filters.priceRange[0] > 0 && filters.priceRange[1] < dynamicMaxPrice">
+          <span *ngIf="filters.priceRange && (filters.priceRange[0] > dynamicMinPrice || filters.priceRange[1] < dynamicMaxPrice)" class="active-pill">
+            <ng-container *ngIf="filters.priceRange[0] > dynamicMinPrice && filters.priceRange[1] < dynamicMaxPrice">
               {{ formatPriceShort(filters.priceRange[0]) }} - {{ formatPriceShort(filters.priceRange[1]) }}
             </ng-container>
-            <ng-container *ngIf="filters.priceRange[0] > 0 && filters.priceRange[1] >= dynamicMaxPrice">
+            <ng-container *ngIf="filters.priceRange[0] > dynamicMinPrice && filters.priceRange[1] >= dynamicMaxPrice">
               &ge; {{ formatPriceShort(filters.priceRange[0]) }}
             </ng-container>
-            <ng-container *ngIf="filters.priceRange[0] <= 0 && filters.priceRange[1] < dynamicMaxPrice">
+            <ng-container *ngIf="filters.priceRange[0] <= dynamicMinPrice && filters.priceRange[1] < dynamicMaxPrice">
               &le; {{ formatPriceShort(filters.priceRange[1]) }}
             </ng-container>
             <button type="button" class="pill-close" (click)="resetPrice()">&times;</button>
@@ -165,9 +171,9 @@
             <div style="height: 120px; background: #f5f5f5; border-radius: 8px;"></div>
           </div>
 
-          <div *ngIf="!isLoading">
+          <div *ngIf="!isLoading" class="explore-sidebar-sticky">
             <app-sidebar-filter [filters]="filters" [rawCategories]="rawCategories" [dynamicFilters]="dynamicFilters"
-              [dynamicMaxPrice]="dynamicMaxPrice" [productCount]="filteredProducts.length" [ratingCounts]="ratingCounts"
+              [dynamicMinPrice]="dynamicMinPrice" [dynamicMaxPrice]="dynamicMaxPrice" [productCount]="filteredProducts.length" [ratingCounts]="ratingCounts"
               (onFilterChange)="onFilterChange($event)">
             </app-sidebar-filter>
           </div>
@@ -201,7 +207,7 @@
 
         <!-- Products Grid (3 cột theo mẫu) -->
         <div *ngIf="!isLoading && paginatedProducts.length > 0" class="products-grid-3col">
-          <div *ngFor="let prod of paginatedProducts" class="product-item-card"
+          <div *ngFor="let prod of paginatedProducts; trackBy: trackByProductId" class="product-item-card"
             [class.is-hovered]="hoveredCardId === prod.productId" [id]="'product-' + prod.productId"
             (mouseenter)="onCardMouseEnter(prod)" (mouseleave)="onCardMouseLeave(prod)"
             (click)="handleProductClick(prod.productId)">
@@ -212,7 +218,7 @@
               <!-- Badge Sale / Mới -->
               <div class="card-badge-wrap">
                 <span *ngIf="isOnSale(prod)" class="badge-hotdeal">
-                  HOT DEAL {{ prod.discountType === 'PERCENT' ? '-' + prod.discountValue + '%' : 'SALE' }}
+                  HOT DEAL {{ getDiscountBadgeText(prod) }}
                 </span>
                 <span *ngIf="!isOnSale(prod) && prod.isNew" class="badge-new">
                   MỚI
@@ -252,7 +258,7 @@
               <!-- Hàng biến thể màu sắc & Đánh giá -->
               <div class="meta-row">
                 <div class="swatches-preview" *ngIf="prod.colorSwatches && prod.colorSwatches.length > 0">
-                  <button type="button" *ngFor="let sw of getVisibleSwatches(prod)" class="swatch-btn"
+                  <button type="button" *ngFor="let sw of getVisibleSwatches(prod); trackBy: trackBySwatchId" class="swatch-btn"
                     [class.active]="isSwatchActive(prod, sw)" [title]="sw.name" [style.background-color]="sw.hex"
                     (mouseenter)="selectCardSwatch($event, prod, sw)" (click)="selectCardSwatch($event, prod, sw)">
                   </button>
@@ -268,7 +274,7 @@
                 </div>
                 <div class="rating-badge">
                   <lucide-angular [img]="icons.Star" size="13" class="star-gold"></lucide-angular>
-                  <span class="rating-val">4.9</span>
+                  <span class="rating-val">{{ (prod.rating || 4.9).toFixed(1) }}</span>
                   <span class="rating-total">({{ prod.reviewCount || 128 }})</span>
                 </div>
               </div>
@@ -327,7 +333,7 @@
             <button type="button" class="thumb-remove" (click)="removeCompare(item.productId)"
               title="Bỏ chọn">&times;</button>
           </div>
-          <div class="thumb-placeholder" *ngIf="compareList.length < 5"
+          <div class="thumb-placeholder" *ngFor="let _ of remainingPlaceholderSlots"
             title="Chọn thêm sản phẩm cùng danh mục để so sánh">+</div>
         </div>
       </div>
@@ -356,9 +362,7 @@
   </div>
 </div>
 
-<!-- Quick View Drawer Modal -->
-<app-quick-view-drawer [product]="quickViewProduct" [isOpen]="isQuickViewOpen"
-  (onClose)="isQuickViewOpen = false"></app-quick-view-drawer>
+
 
 <!-- Popup To Bảng So Sánh Sản Phẩm -->
 <app-product-compare-modal [isOpen]="isCompareModalOpen" [products]="compareList" (onClose)="closeCompareModal()"

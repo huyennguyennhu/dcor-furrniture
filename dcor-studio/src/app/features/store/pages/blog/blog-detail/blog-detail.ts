@@ -13,8 +13,9 @@ import { FormsModule } from '@angular/forms';
 import { Title, Meta } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { IconComponent } from '../../../../../shared/components/icon/icon';
-import { Modal } from '../../../../../shared/components/modal/modal';
+import { ProductCardComponent } from '../../../../../shared/components/product-card/product-card';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { QuickViewService } from '../../../../../core/services/quick-view.service';
 import { BlogService, slugifyText } from '../services/blog.service';
 import {
   BlogPostDetail,
@@ -29,7 +30,7 @@ import {
 @Component({
   selector: 'app-blog-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, IconComponent, Modal],
+  imports: [CommonModule, RouterLink, FormsModule, IconComponent, ProductCardComponent],
   templateUrl: './blog-detail.html',
   styleUrls: ['./blog-detail.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -39,6 +40,7 @@ export class BlogDetailComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly blogService = inject(BlogService);
   private readonly authService = inject(AuthService);
+  public readonly quickViewService = inject(QuickViewService);
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
 
@@ -89,6 +91,78 @@ export class BlogDetailComponent implements OnInit, OnDestroy {
   // Computed
   readonly isAuthenticated = computed<boolean>(() => this.authService.isAuthenticated());
   readonly currentUrl = computed<string>(() => this.router.url);
+
+  // Sản phẩm liên quan (1 hàng 4 sản phẩm & xem thêm xổ xuống giống PDP)
+  readonly RELATED_ROW_SIZE = 4;
+  readonly isRelatedExpanded = signal<boolean>(false);
+
+  readonly articleProducts = computed<any[]>(() => {
+    const p = this.post();
+    if (!p) return [];
+    let list: BlogProduct[] = [];
+    if (Array.isArray(p.products) && p.products.length > 0) {
+      list = p.products;
+    } else {
+      const prodBlocks = (p.blocks || []).filter(b => b.type === 'products') as any[];
+      const ids = prodBlocks.flatMap(b => b.productIds || []);
+      list = this.getProductsForBlock(ids);
+    }
+
+    return list.map(item => ({
+      ...item,
+      productId: item.id,
+      slug: (item as any).slug || item.id,
+      displayName: item.name,
+      shortDescription: item.name,
+      price: item.price,
+      basePrice: item.price,
+      images: item.image ? [item.image] : [],
+      cardImages: item.image ? [item.image] : [],
+      category: 'Nội thất DCor'
+    }));
+  });
+
+  readonly articleProductsTitle = computed<string>(() => {
+    const p = this.post();
+    if (!p) return 'Sản phẩm liên quan';
+    const prodBlock = (p.blocks || []).find(b => b.type === 'products') as any;
+    return prodBlock?.title || 'Sản phẩm liên quan';
+  });
+
+  readonly displayedRelatedProducts = computed<any[]>(() => {
+    const prods = this.articleProducts();
+    if (this.isRelatedExpanded()) {
+      return prods;
+    }
+    return prods.slice(0, this.RELATED_ROW_SIZE);
+  });
+
+  toggleRelatedExpansion(): void {
+    this.isRelatedExpanded.update(v => !v);
+    if (!this.isRelatedExpanded() && typeof document !== 'undefined') {
+      const el = document.getElementById('pdp-related-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  onQuickViewClick(event: Event, prod: any): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const catalogProd: any = {
+      id: prod.productId || prod.id,
+      productId: prod.productId || prod.id,
+      name: prod.displayName || prod.name,
+      shortDescription: prod.shortDescription || prod.name,
+      price: prod.price,
+      basePrice: prod.basePrice || prod.price,
+      images: prod.images || (prod.image ? [prod.image] : []),
+      image: prod.image || prod.images?.[0],
+      cardImages: prod.cardImages || (prod.image ? [prod.image] : [])
+    };
+    this.quickViewService.open(catalogProd);
+  }
 
   ngOnInit(): void {
     this.sub = this.route.paramMap.subscribe(params => {

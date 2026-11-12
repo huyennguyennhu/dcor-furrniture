@@ -6,6 +6,8 @@ import { Footer } from '../footer/footer';
 import { IconComponent } from '../../../../shared/components/icon/icon';
 import { ChatWidgetComponent } from '../chat-widget/chat-widget';
 import { FloatingCompareDockComponent } from '../../../../shared/components/floating-compare-dock/floating-compare-dock';
+import { QuickViewDrawerComponent } from '../../../../shared/components/quick-view-drawer/quick-view-drawer';
+import { QuickViewService } from '../../../../core/services/quick-view.service';
 import { CompareService } from '../../../../core/services/compare.service';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
@@ -13,7 +15,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-store-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header, Footer, IconComponent, FloatingCompareDockComponent, ChatWidgetComponent],
+  imports: [CommonModule, RouterModule, Header, Footer, IconComponent, FloatingCompareDockComponent, ChatWidgetComponent, QuickViewDrawerComponent],
   templateUrl: './store-layout.html',
   styleUrls: ['./store-layout.css']
 })
@@ -28,7 +30,8 @@ export class StoreLayout implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private compareService: CompareService
+    private compareService: CompareService,
+    public quickViewService: QuickViewService
   ) {
     this.isHomePage = this.router.url === '/' || this.router.url === '';
 

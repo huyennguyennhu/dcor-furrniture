@@ -879,11 +879,6 @@
   font-weight: 500;
 }
 
-.group-selected-val {
-  color: #1c1917;
-  font-weight: 700;
-}
-
 /* Ô màu / hình ảnh chất liệu Swatch (1 hàng hiển thị tối đa 12 màu) */
 .color-swatches-grid {
   display: flex;
@@ -983,14 +978,6 @@
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);
-}
-
-.group-selected-val {
-  font-size: 14px;
-  font-weight: 600;
-  color: #9A461E;
-  margin-left: 6px;
-  transition: color 0.15s ease;
 }
 
 /* Nút chọn Kích thước & Chất liệu (Pills) */

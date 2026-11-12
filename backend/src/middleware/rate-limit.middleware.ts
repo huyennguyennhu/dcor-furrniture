@@ -77,3 +77,12 @@ export const otpRateLimiter = createRateLimiter({
   message: 'Bạn đã yêu cầu gửi mã xác thực OTP quá nhiều lần. Vui lòng thử lại sau 15 phút.'
 });
 
+// Giới hạn 120 yêu cầu / IP / 1 phút cho các API công khai (sản phẩm, danh mục, blog)
+// Rất thoải mái cho người dùng lướt web và chuyển trang nhanh, nhưng chặn triệt để bot cào dữ liệu hoặc spam F5
+export const publicApiRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 120,
+  message: 'Hệ thống đang ghi nhận lưu lượng truy cập cao từ thiết bị của bạn. Vui lòng thử lại sau giây lát.'
+});
+
+

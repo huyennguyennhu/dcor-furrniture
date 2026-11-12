@@ -8,6 +8,7 @@ import { CatalogProduct } from '../../models/catalog.model';
 import { IconComponent } from '../icon/icon';
 import { CartService } from '../../../core/services/cart.service';
 import { WishlistService } from '../../../core/services/wishlist.service';
+import { PromotionService } from '../../../core/services/promotion.service';
 import { environment } from '../../../../environments/environment';
 
 export interface AttributeOption {
@@ -105,7 +106,8 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     private cdr: ChangeDetectorRef,
     private cartService: CartService,
     private wishlistService: WishlistService,
-    private router: Router
+    private router: Router,
+    private promotionService: PromotionService
   ) {}
 
   ngOnInit() {
@@ -126,6 +128,8 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
       } else {
         this.closeDrawer();
       }
+    } else if (changes['product'] && this.isOpen) {
+      this.openDrawer();
     }
   }
 
@@ -453,42 +457,53 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     return parts.join(' × ');
   }
 
+  optimizeImageUrl(url: string, width = 800): string {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('res.cloudinary.com')) {
+      if (url.includes('/image/fetch/') && !url.includes('w_')) {
+        return url.replace('/image/fetch/', `/image/fetch/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+      if (url.includes('/image/upload/') && !url.includes('w_')) {
+        return url.replace('/image/upload/', `/image/upload/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+    }
+    return url;
+  }
+
+  getThumbUrl(url: string): string {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('/image/fetch/')) {
+      return url.replace(/\/image\/fetch\/([^/]+\/)?/, '/image/fetch/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    if (url.includes('/image/upload/')) {
+      return url.replace(/\/image\/upload\/([^/]+\/)?/, '/image/upload/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    return url;
+  }
+
   private extractRealImages(prod: any, currentVariant: any): string[] {
     const list: string[] = [];
-    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('assets.boconcept.com');
+    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('dsasf753c');
 
-    // 1. Ảnh của biến thể đang chọn
+    // 1. Ảnh của biến thể đang chọn (ưu tiên hàng đầu)
     const vImgs = currentVariant?.images || currentVariant?.optionValues?.images || [];
     if (Array.isArray(vImgs)) {
       vImgs.filter(isClean).forEach(img => {
-        if (!list.includes(img)) list.push(img);
+        const opt = this.optimizeImageUrl(img, 800);
+        if (!list.includes(opt)) list.push(opt);
       });
     }
 
-    // 2. Ảnh của sản phẩm chính
+    // 2. Ảnh của sản phẩm chính (bổ sung các góc còn lại)
     const pImgs = prod?.images || [];
     if (Array.isArray(pImgs)) {
       pImgs.filter(isClean).forEach(img => {
-        if (!list.includes(img)) list.push(img);
+        const opt = this.optimizeImageUrl(img, 800);
+        if (!list.includes(opt)) list.push(opt);
       });
     }
 
-    // 3. Ảnh từ các biến thể khác của sản phẩm này (để có đầy đủ góc nhìn)
-    const allVariants = prod?.variants || [];
-    if (Array.isArray(allVariants)) {
-      for (const otherV of allVariants) {
-        const oImgs = otherV.images || otherV.optionValues?.images || [];
-        if (Array.isArray(oImgs)) {
-          oImgs.filter(isClean).forEach(img => {
-            if (list.length < 6 && !list.includes(img)) {
-              list.push(img);
-            }
-          });
-        }
-      }
-    }
-
-    return list;
+    return list.length > 0 ? list : ['/assets/img/furniture-placeholder.svg'];
   }
 
   toggleDropdown(groupId: string, e: Event) {
@@ -504,7 +519,7 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     e.stopPropagation();
     this.openDropdownGroupId = null;
     this.selectedAttributes[groupId] = optionId;
-    this.resolveVariantFromSelections(groupId, optionId);
+    this.matchVariantFromSelection();
   }
 
   getSelectedOption(group: ProductAttributeGroup): AttributeOption | undefined {
@@ -536,83 +551,125 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     return str;
   }
 
-  private findMatchingVariant(attrs: Record<string, string>): any | null {
-    const variants: any[] = this.activeProduct?.variants || [];
-    if (variants.length === 0) return null;
+  isVariantMatchOption(v: any, group: ProductAttributeGroup, opt: AttributeOption): boolean {
+    if (!v || !opt) return false;
+    const optIdLower = (opt.id || '').toLowerCase();
+    const optNameLower = (opt.name || '').toLowerCase();
+    const vNameLower = (v.name || '').toLowerCase();
+    const vSkuLower = (v.sku || '').toLowerCase();
+    const groupId = group.groupId;
 
-    // 1. Thử khớp chính xác theo optionValues hoặc theo tên biến thể
-    const exact = variants.find(v => {
-      const vNameLower = (v.name || '').toLowerCase();
-      return Object.keys(attrs).every(gid => {
-        const selVal = attrs[gid];
-        const vVal = v.optionValues?.[gid];
-        if (vVal !== undefined && vVal !== null) {
-          return String(vVal) === String(selVal);
-        }
-        const group = this.attributeGroups.find(g => g.groupId === gid);
-        const opt = group?.options.find(o => o.id === selVal);
-        if (!opt) return true;
-        return vNameLower.includes(opt.name.toLowerCase());
-      });
-    });
-    if (exact) return exact;
+    // 1. Kiểm tra trực tiếp trong optionValues theo groupId
+    const optVal = v.optionValues?.[groupId];
+    if (optVal !== undefined && optVal !== null) {
+      const optValStr = String(optVal).toLowerCase();
+      if (optValStr === optIdLower || optValStr === optNameLower) return true;
+    }
 
-    // 2. Tính điểm tương đồng cao nhất nếu không có biến thể khớp 100% tất cả tiêu chí
-    let bestMatch: any = null;
-    let maxScore = -1;
+    // 1b. Nếu là sub-group (_sub_0, _sub_1), kiểm tra parent groupId
+    const parentGroupId = groupId.replace(/_sub_\d+$/, '');
+    const parentOptVal = v.optionValues?.[parentGroupId];
+    if (parentOptVal !== undefined && parentOptVal !== null) {
+      const pStr = String(parentOptVal).toLowerCase();
+      if (pStr === optIdLower || pStr === optNameLower) return true;
+    }
 
-    for (const v of variants) {
-      let score = 0;
-      const vNameLower = (v.name || '').toLowerCase();
-      for (const gid of Object.keys(attrs)) {
-        const selVal = attrs[gid];
-        const vVal = v.optionValues?.[gid];
-        if (vVal !== undefined && vVal !== null && String(vVal) === String(selVal)) {
-          score += 2;
-        } else {
-          const group = this.attributeGroups.find(g => g.groupId === gid);
-          const opt = group?.options.find(o => o.id === selVal);
-          if (opt && vNameLower.includes(opt.name.toLowerCase())) {
-            score += 1;
+    // 2. Kiểm tra trong optionValues.attributes
+    const nestedVal = v.optionValues?.attributes?.[groupId] || v.optionValues?.attributes?.[parentGroupId];
+    if (nestedVal !== undefined && nestedVal !== null) {
+      const nestedStr = String(nestedVal).toLowerCase();
+      if (nestedStr === optIdLower || nestedStr === optNameLower) return true;
+    }
+
+    // 3. Khớp theo tên biến thể (v.name chứa opt.name hoặc ngược lại)
+    if (optNameLower && (vNameLower.includes(optNameLower) || optNameLower.includes(vNameLower))) {
+      return true;
+    }
+
+    // 4. Khớp theo các phần của tên biến thể (nếu có chia dấu /)
+    const vParts = this.parseVariantToParts(v.name || '');
+    if (vParts.some(p => p.toLowerCase() === optNameLower || p.toLowerCase() === optIdLower)) {
+      return true;
+    }
+
+    // 5. Khớp theo SKU (nếu mã optionId nằm trong SKU của biến thể)
+    if (optIdLower && optIdLower.length >= 3 && vSkuLower.includes(optIdLower)) {
+      return true;
+    }
+
+    // 6. Khớp trong optionValues (color, size, material)
+    if (v.optionValues) {
+      for (const key of ['color', 'size', 'material', 'finish']) {
+        const val = v.optionValues[key];
+        if (typeof val === 'string' && val.trim() && val !== 'Tiêu chuẩn' && val !== 'Mặc định') {
+          const valLower = val.toLowerCase();
+          if (valLower === optIdLower || valLower === optNameLower || optNameLower.includes(valLower)) {
+            return true;
           }
         }
       }
-      if (score > maxScore) {
-        maxScore = score;
+    }
+
+    return false;
+  }
+
+  private matchVariantFromSelection() {
+    const rawVariants: any[] = this.activeProduct?.variants || [];
+    if (rawVariants.length === 0) return;
+
+    let bestMatch = rawVariants[0];
+    let highestScore = -1;
+
+    for (const v of rawVariants) {
+      let score = 0;
+
+      for (const group of this.attributeGroups) {
+        const selValId = this.selectedAttributes[group.groupId];
+        if (!selValId) continue;
+
+        const selectedOpt = group.options.find(o => o.id === selValId);
+        if (selectedOpt && this.isVariantMatchOption(v, group, selectedOpt)) {
+          score += 10;
+        } else {
+          const optVal = v.optionValues?.[group.groupId];
+          if (optVal !== undefined && String(optVal) === selValId) {
+            score += 10;
+          }
+        }
+      }
+
+      // Ưu tiên biến thể còn hàng
+      const avail = (v.stock ?? 0) - (v.reservedStock ?? 0);
+      if (avail > 0) score += 2;
+
+      if (score > highestScore) {
+        highestScore = score;
         bestMatch = v;
       }
     }
 
-    return bestMatch || variants[0];
-  }
+    this.matchedVariant = bestMatch;
+    this.selectedVariantId = bestMatch?.id || '';
 
-  private resolveVariantFromSelections(changedGroupId: string, changedOptionId: string) {
-    const variants: any[] = this.activeProduct?.variants || [];
-    if (variants.length === 0) return;
-
-    let matched = this.findMatchingVariant(this.selectedAttributes);
-
-    if (matched) {
-      this.matchedVariant = matched;
-      this.selectedVariantId = matched.id;
-
-      // Đồng bộ lại tất cả dropdown khác theo variant tìm được
-      const vNameLower = (matched.name || '').toLowerCase();
+    // Cập nhật lại các dropdown theo bestMatch
+    if (bestMatch) {
+      const vNameLower = (bestMatch.name || '').toLowerCase();
       for (const g of this.attributeGroups) {
-        const vVal = matched.optionValues?.[g.groupId];
+        const vVal = bestMatch.optionValues?.[g.groupId];
         if (vVal !== undefined && vVal !== null && g.options.some(o => o.id === String(vVal))) {
           this.selectedAttributes[g.groupId] = String(vVal);
         } else {
-          const matchingOpt = g.options.find(o => vNameLower.includes(o.name.toLowerCase()));
+          const matchingOpt = g.options.find(o => this.isVariantMatchOption(bestMatch, g, o))
+            || g.options.find(o => vNameLower.includes(o.name.toLowerCase()));
           if (matchingOpt) {
             this.selectedAttributes[g.groupId] = matchingOpt.id;
           }
         }
       }
-
-      this.updateDataForVariant();
-      this.cdr.detectChanges();
     }
+
+    this.updateDataForVariant();
+    this.cdr.detectChanges();
   }
 
   @HostListener('document:click', ['$event'])
@@ -728,6 +785,10 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
 
   get currentPrice(): number {
     const raw = this.matchedVariant ? this.matchedVariant.price : (this.activeProduct?.basePrice || 0);
+    const campDisc = this.promotionService.getDiscountForProduct(this.activeProduct);
+    if (campDisc) {
+      return campDisc.salePrice;
+    }
     const disc = this.activeProduct?.discountValue;
     const type = this.activeProduct?.discountType;
     if (disc && disc > 0) {
@@ -740,21 +801,29 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   get originalPrice(): number | null {
+    const campDisc = this.promotionService.getDiscountForProduct(this.activeProduct);
+    if (campDisc) {
+      return campDisc.originalPrice;
+    }
     const disc = this.activeProduct?.discountValue;
     if (disc && disc > 0) {
       return this.matchedVariant ? this.matchedVariant.price : this.activeProduct?.basePrice;
     }
-    return null; // Chỉ hiển thị giá gạch ngang khi DB thật có discountValue > 0
+    return null;
   }
 
   get discountPercent(): number | null {
+    const campDisc = this.promotionService.getDiscountForProduct(this.activeProduct);
+    if (campDisc) {
+      return campDisc.discountPercent;
+    }
     const disc = this.activeProduct?.discountValue;
     if (disc && disc > 0) {
       if (this.activeProduct?.discountType === 'PERCENT') return disc;
       const base = this.originalPrice || 1;
       return Math.round((disc / base) * 100);
     }
-    return null; // Chỉ hiển thị badge HOT DEAL khi DB thật có discountValue > 0
+    return null;
   }
 
   formatPrice(num: number | null | undefined): string {

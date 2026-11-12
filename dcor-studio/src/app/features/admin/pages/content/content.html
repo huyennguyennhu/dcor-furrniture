@@ -7,25 +7,21 @@
         Quản lý bài viết & nội dung
       </h1>
       <p class="page-subtitle">
-        Quản lý bài viết Blog, cẩm nang kiến thức nội thất, chuyên mục và banner tiếp thị (FR8-A-01, FR8-A-02)
+        Quản lý bài viết Blog
       </p>
     </div>
     <div class="admin-page-actions">
-      <a routerLink="/blog" target="_blank" class="admin-btn admin-btn-secondary" style="text-decoration: none;">
+      <button class="btn-outline" (click)="openCategoryModal()">
+        <app-icon name="Layers" [size]="16"></app-icon>
+        <span>Thêm chuyên mục</span>
+      </button>
+      <a routerLink="/blog" target="_blank" class="btn-outline" style="text-decoration: none;">
         <app-icon name="ExternalLink" [size]="16"></app-icon>
         <span>Xem Blog khách hàng</span>
       </a>
-      <button *ngIf="currentTab === 'articles'" class="admin-btn admin-btn-primary" (click)="openNewArticleModal()">
+      <button class="btn-primary" (click)="openNewArticleModal()">
         <app-icon name="Plus" [size]="16"></app-icon>
-        <span>+ Thêm bài viết mới</span>
-      </button>
-      <button *ngIf="currentTab === 'categories'" class="admin-btn admin-btn-primary" (click)="openCategoryModal()">
-        <app-icon name="Plus" [size]="16"></app-icon>
-        <span>+ Thêm chuyên mục</span>
-      </button>
-      <button *ngIf="currentTab === 'banners'" class="admin-btn admin-btn-primary" (click)="openBannerModal()">
-        <app-icon name="Plus" [size]="16"></app-icon>
-        <span>+ Thêm banner mới</span>
+        <span>Thêm bài viết mới</span>
       </button>
     </div>
   </header>
@@ -49,16 +45,6 @@
       <div class="stat-info">
         <span class="stat-label">Đang hiển thị</span>
         <span class="stat-value">{{ publishedCount }}</span>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon-wrap scheduled">
-        <app-icon name="Clock" [size]="20"></app-icon>
-      </div>
-      <div class="stat-info">
-        <span class="stat-label">Đã lên lịch</span>
-        <span class="stat-value">{{ scheduledCount }}</span>
       </div>
     </div>
 
@@ -93,7 +79,7 @@
     </div>
   </div>
 
-  <!-- 3. Navigation Tabs -->
+  <!-- 3. Navigation Tabs: Bài Viết & Chuyên Mục -->
   <nav class="content-tabs-bar">
     <button
       class="tab-btn"
@@ -114,20 +100,10 @@
       Chuyên Mục Bài Viết
       <span class="tab-badge">{{ categories.length }}</span>
     </button>
-
-    <button
-      class="tab-btn"
-      [class.active]="currentTab === 'banners'"
-      (click)="currentTab = 'banners'"
-    >
-      <app-icon name="Image" [size]="16"></app-icon>
-      Banner Quảng Cáo
-      <span class="tab-badge">{{ banners.length }}</span>
-    </button>
   </nav>
 
   <!-- ========================================================================= -->
-  <!-- TAB 1: ARTICLES LIST (FR8-A-01, FR8-A-02)                                  -->
+  <!-- TAB 1: ARTICLES LIST                                                      -->
   <!-- ========================================================================= -->
   <section *ngIf="currentTab === 'articles'" class="tab-content-pane">
     <!-- Filter Toolbar -->
@@ -136,21 +112,12 @@
         <!-- Search Box -->
         <div class="search-input-wrap">
           <app-icon name="Search" [size]="16" class="search-icon"></app-icon>
-          <input
-            type="text"
-            class="search-field"
-            placeholder="Tìm theo tiêu đề, tác giả, hashtag..."
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="currentPage = 1"
-          />
+          <input type="text" class="search-field" placeholder="Tìm theo tiêu đề, hashtag..."
+            [(ngModel)]="searchQuery" (ngModelChange)="currentPage = 1" />
         </div>
 
         <!-- Category Filter -->
-        <select
-          class="filter-select"
-          [(ngModel)]="selectedCategory"
-          (ngModelChange)="currentPage = 1"
-        >
+        <select class="filter-select" [(ngModel)]="selectedCategory" (ngModelChange)="currentPage = 1">
           <option value="ALL">Tất cả chuyên mục ({{ articles.length }})</option>
           <option *ngFor="let cat of categories" [value]="cat.id">
             {{ cat.name }} ({{ cat.articleCount }})
@@ -158,14 +125,9 @@
         </select>
 
         <!-- Status Filter -->
-        <select
-          class="filter-select"
-          [(ngModel)]="selectedStatus"
-          (ngModelChange)="currentPage = 1"
-        >
+        <select class="filter-select" [(ngModel)]="selectedStatus" (ngModelChange)="currentPage = 1">
           <option value="ALL">Tất cả trạng thái</option>
           <option value="PUBLISHED">Đang hiển thị ({{ publishedCount }})</option>
-          <option value="SCHEDULED">Đã lên lịch ({{ scheduledCount }})</option>
           <option value="DRAFT">Bản nháp ({{ draftCount }})</option>
           <option value="HIDDEN">Đã ẩn ({{ hiddenCount }})</option>
         </select>
@@ -179,11 +141,8 @@
         </select>
 
         <!-- Reset Button -->
-        <button
-          *ngIf="searchQuery || selectedCategory !== 'ALL' || selectedStatus !== 'ALL'"
-          class="btn-reset-filter"
-          (click)="resetFilters()"
-        >
+        <button *ngIf="searchQuery || selectedCategory !== 'ALL' || selectedStatus !== 'ALL'" class="btn-reset-filter"
+          (click)="resetFilters()">
           Đặt lại bộ lọc
         </button>
       </div>
@@ -215,7 +174,8 @@
           <app-icon name="Trash2" [size]="14"></app-icon>
           Xóa đã chọn
         </button>
-        <button class="bulk-btn" (click)="selectedArticleIds.clear()" style="background: transparent; border: none; color: #71717a;">
+        <button class="bulk-btn" (click)="selectedArticleIds.clear()"
+          style="background: transparent; border: none; color: #71717a;">
           Bỏ chọn
         </button>
       </div>
@@ -227,20 +187,16 @@
         <thead>
           <tr>
             <th style="width: 44px; text-align: center;">
-              <input
-                type="checkbox"
-                class="row-checkbox"
-                [checked]="isAllCurrentPageSelected()"
-                (change)="toggleSelectAll($event)"
-              />
+              <input type="checkbox" class="row-checkbox" [checked]="isAllCurrentPageSelected()"
+                (change)="toggleSelectAll($event)" />
             </th>
-            <th style="min-width: 320px;">Bài Viết Blog</th>
-            <th style="min-width: 160px;">Chuyên Mục</th>
-            <th style="min-width: 160px;">Tác Giả</th>
-            <th style="min-width: 150px;">Ngày Xuất Bản</th>
+            <th style="width: 76px; text-align: center;">Ảnh</th>
+            <th style="min-width: 280px;">Tên Bài Viết</th>
+            <th style="min-width: 150px;">Chuyên Mục</th>
+            <th style="min-width: 180px;">Hashtag</th>
+            <th style="min-width: 140px;">Ngày Xuất Bản</th>
             <th style="min-width: 130px; text-align: center;">Trạng Thái</th>
-            <th style="min-width: 110px; text-align: center;">Lượt Xem</th>
-            <th style="width: 140px; text-align: right;">Thao Tác</th>
+            <th style="width: 110px; text-align: center;">Thao Tác</th>
           </tr>
         </thead>
         <tbody>
@@ -249,8 +205,10 @@
             <td colspan="8">
               <div class="empty-state-box">
                 <app-icon name="FileText" [size]="48" class="empty-icon"></app-icon>
-                <p class="empty-text">{{ articles.length === 0 ? 'Chưa có bài viết nào' : 'Không tìm thấy bài viết nào phù hợp' }}</p>
-                <p class="empty-subtext">{{ articles.length === 0 ? 'Bấm nút "+ Thêm bài viết mới" ở trên để bắt đầu soạn bài viết.' : 'Thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc trạng thái khác.' }}</p>
+                <p class="empty-text">{{ articles.length === 0 ? 'Chưa có bài viết nào' : 'Không tìm thấy bài viết nào
+                  phù hợp' }}</p>
+                <p class="empty-subtext">{{ articles.length === 0 ? 'Bấm nút "Thêm bài viết mới" ở trên để bắt đầu soạn
+                  bài viết.' : 'Thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc trạng thái khác.' }}</p>
               </div>
             </td>
           </tr>
@@ -259,139 +217,74 @@
           <tr *ngFor="let art of paginatedArticles" [class.selected]="isArticleSelected(art.id)">
             <!-- Checkbox -->
             <td style="text-align: center;">
-              <input
-                type="checkbox"
-                class="row-checkbox"
-                [checked]="isArticleSelected(art.id)"
-                (change)="toggleSelectArticle(art.id)"
-              />
+              <input type="checkbox" class="row-checkbox" [checked]="isArticleSelected(art.id)"
+                (change)="toggleSelectArticle(art.id)" />
             </td>
 
-            <!-- Article Info & Thumbnail -->
-            <td>
-              <div class="article-cell-content">
-                <div class="article-thumbnail-box" (click)="openPreview(art)">
-                  <img [src]="art.coverImage" [alt]="art.title" class="article-thumbnail" />
-                  <span *ngIf="art.relatedProductIds && art.relatedProductIds.length > 0" class="thumbnail-badge" title="Có sản phẩm liên quan">
-                    <app-icon name="ShoppingCart" [size]="10"></app-icon>
-                    {{ art.relatedProductIds.length }}
-                  </span>
-                </div>
-                <div class="article-details">
-                  <h4 class="article-title" (click)="openEditArticleModal(art)" [title]="art.title">
-                    {{ art.title }}
-                  </h4>
-                  <div class="article-meta-row">
-                    <span class="article-slug" [title]="art.slug">/{{ art.slug }}</span>
-                    <span *ngIf="art.relatedProductIds && art.relatedProductIds.length > 0" class="related-prod-count">
-                      &bull; {{ art.relatedProductIds.length }} SP liên quan
-                    </span>
-                  </div>
-                  <!-- Tags -->
-                  <div *ngIf="art.tags && art.tags.length > 0" class="article-tags-list">
-                    <span *ngFor="let tag of art.tags.slice(0, 3)" class="tag-chip">
-                      #{{ tag }}
-                    </span>
-                    <span *ngIf="art.tags.length > 3" class="tag-chip-more">
-                      +{{ art.tags.length - 3 }}
-                    </span>
-                  </div>
-                </div>
+            <!-- 1. Ảnh nhỏ -->
+            <td style="text-align: center;">
+              <div class="article-thumb-mini" (click)="openEditArticleModal(art)" title="Chỉnh sửa bài viết">
+                <img [src]="art.coverImage || '/assets/room_img/phong_khach.jpg'" [alt]="art.title" class="table-thumb-img" />
               </div>
             </td>
 
-            <!-- Category -->
+            <!-- 2. Tên bài viết -->
+            <td>
+              <h4 class="article-title" (click)="openEditArticleModal(art)" [title]="art.title">
+                {{ art.title }}
+              </h4>
+            </td>
+
+            <!-- 3. Chuyên mục -->
             <td>
               <span class="category-badge">
                 {{ art.categoryName }}
               </span>
             </td>
 
-            <!-- Author -->
+            <!-- 4. Hashtag -->
             <td>
-              <div class="author-cell">
-                <img
-                  [src]="art.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'"
-                  [alt]="art.author"
-                  class="author-avatar"
-                />
-                <span class="author-name">{{ art.author }}</span>
+              <div *ngIf="art.tags && art.tags.length > 0" class="article-tags-list">
+                <span *ngFor="let tag of art.tags" class="tag-chip">
+                  #{{ tag }}
+                </span>
+              </div>
+              <span *ngIf="!art.tags || art.tags.length === 0" style="color: #a1a1aa; font-size: 13px;">—</span>
+            </td>
+
+            <!-- 5. Ngày xuất bản -->
+            <td>
+              <div class="date-published">
+                <span>{{ formatDate(art.publishedAt || art.createdAt) }}</span>
               </div>
             </td>
 
-            <!-- Publish / Schedule Date -->
-            <td>
-              <div class="date-cell">
-                <div *ngIf="art.status === 'SCHEDULED'" class="date-scheduled">
-                  <app-icon name="Clock" [size]="13"></app-icon>
-                  <span>{{ formatDate(art.scheduledAt) }}</span>
-                </div>
-                <div *ngIf="art.status !== 'SCHEDULED'" class="date-published">
-                  <span>{{ formatDate(art.publishedAt || art.createdAt) }}</span>
-                </div>
-              </div>
-            </td>
-
-            <!-- Status Pill -->
+            <!-- 6. Trạng thái -->
             <td style="text-align: center;">
-              <span
-                class="status-pill"
-                [class.published]="art.status === 'PUBLISHED'"
-                [class.scheduled]="art.status === 'SCHEDULED'"
-                [class.draft]="art.status === 'DRAFT'"
-                [class.hidden]="art.status === 'HIDDEN'"
-              >
+              <span class="status-pill" [class.published]="art.status === 'PUBLISHED'"
+                [class.draft]="art.status === 'DRAFT'" [class.hidden]="art.status === 'HIDDEN'">
                 <span class="status-dot"></span>
                 {{
-                  art.status === 'PUBLISHED' ? 'Hiện' :
-                  art.status === 'SCHEDULED' ? 'Đã lên lịch' :
-                  art.status === 'DRAFT' ? 'Nháp' : 'Ẩn'
+                art.status === 'PUBLISHED' ? 'Đang hiển thị' :
+                art.status === 'DRAFT' ? 'Bản nháp' : 'Đã ẩn'
                 }}
               </span>
             </td>
 
-            <!-- Views -->
-            <td style="text-align: center; font-weight: 600; color: #3f3f46;">
-              {{ art.views | number }}
-            </td>
-
-            <!-- Actions (Sửa, Ẩn/Hiện, Xóa) -->
-            <td>
-              <div class="row-actions">
-                <!-- Preview Button -->
-                <button
-                  class="btn-icon-action"
-                  title="Xem nhanh bài viết"
-                  (click)="openPreview(art)"
-                >
-                  <app-icon name="Eye" [size]="15"></app-icon>
-                </button>
-
-                <!-- Edit Button -->
-                <button
-                  class="btn-icon-action btn-action-edit"
-                  title="Sửa bài viết (Rich Text & Sản phẩm)"
-                  (click)="openEditArticleModal(art)"
-                >
+            <!-- 7. Thao tác: Chỉ có Chỉnh sửa & Ẩn bài -->
+            <td style="text-align: center;">
+              <div class="row-actions justify-center">
+                <!-- Chỉnh sửa -->
+                <button class="btn-icon-action btn-action-edit" title="Chỉnh sửa bài viết"
+                  (click)="openEditArticleModal(art)">
                   <app-icon name="Pencil" [size]="15"></app-icon>
                 </button>
 
-                <!-- Toggle Hide/Show Button -->
-                <button
-                  class="btn-icon-action btn-action-toggle"
+                <!-- Ẩn bài / Hiện bài -->
+                <button class="btn-icon-action btn-action-toggle"
                   [title]="art.status === 'PUBLISHED' ? 'Ẩn bài viết khỏi website' : 'Hiển thị bài viết'"
-                  (click)="toggleArticleVisibility(art)"
-                >
-                  <app-icon [name]="art.status === 'PUBLISHED' ? 'EyeOff' : 'Check'" [size]="15"></app-icon>
-                </button>
-
-                <!-- Delete Button -->
-                <button
-                  class="btn-icon-action btn-action-delete"
-                  title="Xóa bài viết"
-                  (click)="deleteArticle(art)"
-                >
-                  <app-icon name="Trash2" [size]="15"></app-icon>
+                  (click)="toggleArticleVisibility(art)">
+                  <app-icon [name]="art.status === 'PUBLISHED' ? 'EyeOff' : 'Eye'" [size]="15"></app-icon>
                 </button>
               </div>
             </td>
@@ -404,25 +297,18 @@
         <div>
           Hiển thị
           <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> -
-          <strong>{{ (currentPage * pageSize) > filteredArticles.length ? filteredArticles.length : (currentPage * pageSize) }}</strong>
+          <strong>{{ (currentPage * pageSize) > filteredArticles.length ? filteredArticles.length : (currentPage *
+            pageSize) }}</strong>
           trên tổng số <strong>{{ filteredArticles.length }}</strong> bài viết
         </div>
         <div class="pagination-controls">
-          <button
-            class="btn-page"
-            [disabled]="currentPage === 1"
-            (click)="goToPage(currentPage - 1)"
-          >
+          <button class="btn-page" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
             Trang trước
           </button>
           <span style="font-weight: 600; padding: 0 8px;">
             {{ currentPage }} / {{ totalPages }}
           </span>
-          <button
-            class="btn-page"
-            [disabled]="currentPage >= totalPages"
-            (click)="goToPage(currentPage + 1)"
-          >
+          <button class="btn-page" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
             Trang sau
           </button>
         </div>
@@ -439,9 +325,6 @@
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #18181b;">
           Danh Mục Chuyên Mục Blog
         </h3>
-        <span style="font-size: 13px; color: #71717a;">
-          Tổ chức bài viết theo các nhóm nội dung như Xu hướng, Kiến thức vật liệu, Cẩm nang phong thủy.
-        </span>
       </div>
       <div>
         <button class="btn-primary" (click)="openCategoryModal()">
@@ -486,36 +369,23 @@
               </span>
             </td>
             <td style="text-align: center;">
-              <span
-                class="status-pill"
-                [class.published]="cat.status === 'ACTIVE'"
-                [class.hidden]="cat.status === 'HIDDEN'"
-              >
+              <span class="status-pill" [class.published]="cat.status === 'ACTIVE'"
+                [class.hidden]="cat.status === 'HIDDEN'">
                 <span class="status-dot"></span>
                 {{ cat.status === 'ACTIVE' ? 'Hoạt động' : 'Đã ẩn' }}
               </span>
             </td>
             <td>
               <div class="row-actions">
-                <button
-                  class="btn-icon-action btn-action-edit"
-                  title="Sửa chuyên mục"
-                  (click)="openCategoryModal(cat)"
-                >
+                <button class="btn-icon-action btn-action-edit" title="Sửa chuyên mục" (click)="openCategoryModal(cat)">
                   <app-icon name="Pencil" [size]="15"></app-icon>
                 </button>
-                <button
-                  class="btn-icon-action btn-action-toggle"
+                <button class="btn-icon-action btn-action-toggle"
                   [title]="cat.status === 'ACTIVE' ? 'Ẩn chuyên mục' : 'Hiện chuyên mục'"
-                  (click)="toggleCategoryStatus(cat)"
-                >
+                  (click)="toggleCategoryStatus(cat)">
                   <app-icon [name]="cat.status === 'ACTIVE' ? 'EyeOff' : 'Check'" [size]="15"></app-icon>
                 </button>
-                <button
-                  class="btn-icon-action btn-action-delete"
-                  title="Xóa chuyên mục"
-                  (click)="deleteCategory(cat)"
-                >
+                <button class="btn-icon-action btn-action-delete" title="Xóa chuyên mục" (click)="deleteCategory(cat)">
                   <app-icon name="Trash2" [size]="15"></app-icon>
                 </button>
               </div>
@@ -563,7 +433,8 @@
         <tbody>
           <tr *ngFor="let b of banners">
             <td>
-              <img [src]="b.imageUrl" [alt]="b.title" style="width: 110px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #e4e4e7;" />
+              <img [src]="b.imageUrl" [alt]="b.title"
+                style="width: 110px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #e4e4e7;" />
             </td>
             <td>
               <strong style="color: #18181b; font-size: 13.5px;">{{ b.title }}</strong>
@@ -571,8 +442,8 @@
             <td>
               <span class="category-badge">
                 {{
-                  b.position === 'HOME_HERO' ? 'Trang chủ (Hero)' :
-                  b.position === 'BLOG_SIDEBAR' ? 'Sidebar Blog' : 'Bộ sưu tập'
+                b.position === 'HOME_HERO' ? 'Trang chủ (Hero)' :
+                b.position === 'BLOG_SIDEBAR' ? 'Sidebar Blog' : 'Bộ sưu tập'
                 }}
               </span>
             </td>
@@ -588,36 +459,23 @@
               <span *ngIf="!b.startDate && !b.endDate">Liên tục</span>
             </td>
             <td style="text-align: center;">
-              <span
-                class="status-pill"
-                [class.published]="b.status === 'ACTIVE'"
-                [class.hidden]="b.status === 'INACTIVE'"
-              >
+              <span class="status-pill" [class.published]="b.status === 'ACTIVE'"
+                [class.hidden]="b.status === 'INACTIVE'">
                 <span class="status-dot"></span>
                 {{ b.status === 'ACTIVE' ? 'Đang chạy' : 'Tạm dừng' }}
               </span>
             </td>
             <td>
               <div class="row-actions">
-                <button
-                  class="btn-icon-action btn-action-edit"
-                  title="Sửa banner"
-                  (click)="openBannerModal(b)"
-                >
+                <button class="btn-icon-action btn-action-edit" title="Sửa banner" (click)="openBannerModal(b)">
                   <app-icon name="Pencil" [size]="15"></app-icon>
                 </button>
-                <button
-                  class="btn-icon-action btn-action-toggle"
+                <button class="btn-icon-action btn-action-toggle"
                   [title]="b.status === 'ACTIVE' ? 'Tạm dừng banner' : 'Kích hoạt banner'"
-                  (click)="toggleBannerStatus(b)"
-                >
+                  (click)="toggleBannerStatus(b)">
                   <app-icon [name]="b.status === 'ACTIVE' ? 'EyeOff' : 'Check'" [size]="15"></app-icon>
                 </button>
-                <button
-                  class="btn-icon-action btn-action-delete"
-                  title="Xóa banner"
-                  (click)="deleteBanner(b)"
-                >
+                <button class="btn-icon-action btn-action-delete" title="Xóa banner" (click)="deleteBanner(b)">
                   <app-icon name="Trash2" [size]="15"></app-icon>
                 </button>
               </div>
@@ -654,31 +512,16 @@
           <div class="editor-section-card">
             <div class="form-group">
               <label class="form-label">Tiêu Đề Bài Viết <span class="req">*</span></label>
-              <input
-                type="text"
-                class="form-input-lg"
-                placeholder="Nhập tiêu đề bài viết hấp dẫn..."
-                [(ngModel)]="articleForm.title"
-                (ngModelChange)="onTitleChange()"
-              />
+              <input type="text" class="form-input-lg" placeholder="Nhập tiêu đề bài viết hấp dẫn..."
+                [(ngModel)]="articleForm.title" (ngModelChange)="onTitleChange()" />
             </div>
 
             <div class="slug-row">
               <span style="font-weight: 600;">Đường dẫn (Slug):</span>
               <span style="color: #a1a1aa;">https://dcor.vn/blog/</span>
-              <input
-                type="text"
-                class="slug-input"
-                [(ngModel)]="articleForm.slug"
-                placeholder="duong-dan-bai-viet"
-              />
-              <button
-                type="button"
-                class="btn-outline"
-                style="padding: 2px 8px; font-size: 11px;"
-                (click)="regenerateSlug()"
-                title="Tạo lại slug tự động từ tiêu đề"
-              >
+              <input type="text" class="slug-input" [(ngModel)]="articleForm.slug" placeholder="duong-dan-bai-viet" />
+              <button type="button" class="btn-outline" style="padding: 2px 8px; font-size: 11px;"
+                (click)="regenerateSlug()" title="Tạo lại slug tự động từ tiêu đề">
                 Tạo lại slug
               </button>
             </div>
@@ -689,14 +532,12 @@
             <div class="form-group">
               <label class="form-label">
                 Đoạn Tóm Tắt (Sapo / Excerpt)
-                <span style="font-weight: normal; color: #71717a; font-size: 12px;">(Hiển thị ở đầu bài viết và thẻ xem trước)</span>
+                <span style="font-weight: normal; color: #71717a; font-size: 12px;">(Hiển thị ở đầu bài viết và thẻ xem
+                  trước)</span>
               </label>
-              <textarea
-                class="form-textarea"
-                rows="3"
+              <textarea class="form-textarea" rows="3"
                 placeholder="Mô tả ngắn gọn nội dung bài viết trong 2-3 câu ngắn..."
-                [(ngModel)]="articleForm.excerpt"
-              ></textarea>
+                [(ngModel)]="articleForm.excerpt"></textarea>
             </div>
           </div>
 
@@ -707,33 +548,18 @@
                 Nội Dung Chi Tiết Bài Viết <span class="req">*</span>
               </label>
               <div class="editor-mode-tabs">
-                <button
-                  type="button"
-                  class="mode-tab-btn"
-                  [class.active]="editorActiveTab === 'write'"
-                  (click)="setEditorActiveTab('write')"
-                  title="Soạn thảo hiển thị chữ và định dạng trực quan (WYSIWYG)"
-                >
+                <button type="button" class="mode-tab-btn" [class.active]="editorActiveTab === 'write'"
+                  (click)="setEditorActiveTab('write')" title="Soạn thảo hiển thị chữ và định dạng trực quan (WYSIWYG)">
                   <app-icon name="Pencil" [size]="13"></app-icon>
                   Soạn Thảo Trực Quan
                 </button>
-                <button
-                  type="button"
-                  class="mode-tab-btn"
-                  [class.active]="editorActiveTab === 'code'"
-                  (click)="setEditorActiveTab('code')"
-                  title="Xem và chỉnh sửa mã nguồn HTML"
-                >
+                <button type="button" class="mode-tab-btn" [class.active]="editorActiveTab === 'code'"
+                  (click)="setEditorActiveTab('code')" title="Xem và chỉnh sửa mã nguồn HTML">
                   <app-icon name="Code" [size]="13"></app-icon>
                   Mã Nguồn HTML
                 </button>
-                <button
-                  type="button"
-                  class="mode-tab-btn"
-                  [class.active]="editorActiveTab === 'preview'"
-                  (click)="setEditorActiveTab('preview')"
-                  title="Xem trước bài viết thực tế"
-                >
+                <button type="button" class="mode-tab-btn" [class.active]="editorActiveTab === 'preview'"
+                  (click)="setEditorActiveTab('preview')" title="Xem trước bài viết thực tế">
                   <app-icon name="Eye" [size]="13"></app-icon>
                   Xem Trước
                 </button>
@@ -753,12 +579,8 @@
               </button>
 
               <!-- 3. Chỉnh cỡ chữ (Font Size Selector) -->
-              <select
-                class="tool-select-size"
-                [(ngModel)]="selectedFontSize"
-                (change)="applyFontSize(selectedFontSize)"
-                title="Chọn cỡ chữ cho đoạn văn bản"
-              >
+              <select class="tool-select-size" [(ngModel)]="selectedFontSize" (change)="applyFontSize(selectedFontSize)"
+                title="Chọn cỡ chữ cho đoạn văn bản">
                 <option value="">Cỡ chữ</option>
                 <option value="13px">13px - Nhỏ</option>
                 <option value="15px">15px - Tiêu chuẩn</option>
@@ -782,17 +604,20 @@
               <div class="tool-divider"></div>
 
               <!-- 6. “” (Quote) -->
-              <button type="button" class="tool-btn" title="Trích dẫn ấn tượng (Quote)" (click)="formatBlock('blockquote')">
+              <button type="button" class="tool-btn" title="Trích dẫn ấn tượng (Quote)"
+                (click)="formatBlock('blockquote')">
                 &ldquo;&rdquo;
               </button>
 
               <!-- 7. •– (Unordered List) -->
-              <button type="button" class="tool-btn" title="Danh sách gạch đầu dòng" (click)="formatDoc('insertUnorderedList')">
+              <button type="button" class="tool-btn" title="Danh sách gạch đầu dòng"
+                (click)="formatDoc('insertUnorderedList')">
                 &bull;&ndash;
               </button>
 
               <!-- 8. 1.2. (Ordered List) -->
-              <button type="button" class="tool-btn" title="Danh sách đánh số thứ tự" (click)="formatDoc('insertOrderedList')">
+              <button type="button" class="tool-btn" title="Danh sách đánh số thứ tự"
+                (click)="formatDoc('insertOrderedList')">
                 1.2.
               </button>
 
@@ -804,43 +629,33 @@
               </button>
 
               <!-- 10. Ảnh -->
-              <button type="button" class="tool-btn" title="Tải ảnh từ máy hoặc nhúng link ảnh" (click)="openInsertImageModal()">
+              <button type="button" class="tool-btn" title="Tải ảnh từ máy hoặc nhúng link ảnh"
+                (click)="openInsertImageModal()">
                 Ảnh
               </button>
 
               <!-- 11. Video -->
-              <button type="button" class="tool-btn" title="Tải video hoặc nhúng Video YouTube / Iframe" (click)="openInsertVideoModal()">
+              <button type="button" class="tool-btn" title="Tải video hoặc nhúng Video YouTube / Iframe"
+                (click)="openInsertVideoModal()">
                 Video
               </button>
             </div>
 
             <!-- WYSIWYG Content Editable Area (Shows Normal Text, NOT Raw HTML) -->
-            <div
-              #editorContent
-              *ngIf="editorActiveTab === 'write'"
-              class="editor-content-area wysiwyg-content"
-              contenteditable="true"
-              (input)="onEditorInput()"
-              (blur)="syncFromEditor()"
-              data-placeholder="Bắt đầu viết nội dung bài viết tại đây. Chữ và định dạng hiển thị trực quan..."
-            ></div>
+            <div #editorContent *ngIf="editorActiveTab === 'write'" class="editor-content-area wysiwyg-content"
+              contenteditable="true" (input)="onEditorInput()" (blur)="syncFromEditor()"
+              data-placeholder="Bắt đầu viết nội dung bài viết tại đây. Chữ và định dạng hiển thị trực quan..."></div>
 
             <!-- Raw HTML Code Area (For Power Users) -->
-            <textarea
-              *ngIf="editorActiveTab === 'code'"
-              class="editor-content-area code-content"
+            <textarea *ngIf="editorActiveTab === 'code'" class="editor-content-area code-content"
               style="width: 100%; box-sizing: border-box; resize: vertical; min-height: 320px; font-family: 'Consolas', 'Monaco', monospace; font-size: 13.5px; background: #1e1e2e; color: #f8fafc;"
-              placeholder="Chỉnh sửa mã HTML trực tiếp..."
-              [(ngModel)]="articleForm.content"
-            ></textarea>
+              placeholder="Chỉnh sửa mã HTML trực tiếp..." [(ngModel)]="articleForm.content"></textarea>
 
             <!-- Live HTML Preview Area -->
-            <div
-              *ngIf="editorActiveTab === 'preview'"
-              class="editor-content-area preview-content"
+            <div *ngIf="editorActiveTab === 'preview'" class="editor-content-area preview-content"
               style="background: #ffffff; min-height: 320px;"
-              [innerHTML]="articleForm.content || '<p style=\'color: #a1a1aa; font-style: italic;\'>Chưa có nội dung để xem trước...</p>'"
-            ></div>
+              [innerHTML]="articleForm.content || '<p style=\'color: #a1a1aa; font-style: italic;\'>Chưa có nội dung để xem trước...</p>'">
+            </div>
           </div>
 
           <!-- SEO Optimization Card (FR8-A-01) -->
@@ -852,30 +667,25 @@
 
             <div class="form-group">
               <label class="form-label">SEO Meta Title (Tiêu đề tìm kiếm)</label>
-              <input
-                type="text"
-                class="form-input"
-                placeholder="Tiêu đề hiển thị trên kết quả tìm kiếm Google..."
-                [(ngModel)]="articleForm.seoTitle"
-              />
+              <input type="text" class="form-input" placeholder="Tiêu đề hiển thị trên kết quả tìm kiếm Google..."
+                [(ngModel)]="articleForm.seoTitle" />
             </div>
 
             <div class="form-group">
               <label class="form-label">SEO Meta Description (Mô tả tìm kiếm)</label>
-              <textarea
-                class="form-textarea"
-                rows="2"
+              <textarea class="form-textarea" rows="2"
                 placeholder="Mô tả tóm lược từ 120-160 ký tự giúp tăng tỷ lệ click..."
-                [(ngModel)]="articleForm.seoDescription"
-              ></textarea>
+                [(ngModel)]="articleForm.seoDescription"></textarea>
             </div>
 
             <!-- Live Google SERP Snippet Preview -->
             <div class="serp-preview-box">
               <div class="serp-url">https://dcor.vn &rsaquo; blog &rsaquo; {{ articleForm.slug || 'bai-viet' }}</div>
-              <div class="serp-title">{{ articleForm.seoTitle || articleForm.title || 'Tiêu đề bài viết hiển thị trên Google' }}</div>
+              <div class="serp-title">{{ articleForm.seoTitle || articleForm.title || 'Tiêu đề bài viết hiển thị trên
+                Google' }}</div>
               <div class="serp-desc">
-                {{ articleForm.seoDescription || articleForm.excerpt || 'Khám phá bài viết nội thất độc quyền từ thương hiệu DCor Luxury...' }}
+                {{ articleForm.seoDescription || articleForm.excerpt || 'Khám phá bài viết nội thất độc quyền từ thương
+                hiệu DCor Luxury...' }}
               </div>
             </div>
           </div>
@@ -893,31 +703,19 @@
             <div class="form-group">
               <label class="form-label">Trạng thái bài viết</label>
               <select class="form-input" [(ngModel)]="articleForm.status">
-                <option value="PUBLISHED">Hiện (Xuất bản công khai)</option>
-                <option value="SCHEDULED">Đã lên lịch (Hẹn giờ đăng)</option>
-                <option value="DRAFT">Bản nháp (Chưa công bố)</option>
-                <option value="HIDDEN">Ẩn (Tạm ngưng hiển thị)</option>
+                <option value="PUBLISHED">Đang hiển thị</option>
+                <option value="DRAFT">Bản nháp (Đã lưu, chưa đăng)</option>
+                <option value="HIDDEN">Đã ẩn</option>
               </select>
             </div>
 
-            <!-- Scheduled Date Time Picker if SCHEDULED -->
-            <div *ngIf="articleForm.status === 'SCHEDULED'" class="form-group" style="background: #eff6ff; padding: 12px; border-radius: 8px; border: 1px solid #bfdbfe;">
-              <label class="form-label" style="color: #1e40af;">
-                <app-icon name="CalendarDays" [size]="14"></app-icon>
-                Thời Gian Lên Lịch Xuất Bản
-              </label>
-              <input
-                type="datetime-local"
-                class="form-input"
-                [(ngModel)]="articleForm.scheduledAt"
-              />
-              <span style="font-size: 11px; color: #3b82f6; margin-top: 4px;">
-                Bài viết sẽ tự động chuyển sang trạng thái HIỆN khi đến thời điểm này.
-              </span>
-            </div>
-
             <div class="form-group">
-              <label class="form-label">Chuyên Mục Bài Viết <span class="req">*</span></label>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin: 0;">Chuyên Mục Bài Viết <span class="req">*</span></label>
+                <button type="button" (click)="openCategoryModal()" title="Tạo thêm chuyên mục mới" style="font-size: 12px; color: #BC5F13; background: none; border: none; cursor: pointer; font-weight: 600;">
+                  + Thêm chuyên mục
+                </button>
+              </div>
               <select class="form-input" [(ngModel)]="articleForm.categoryId">
                 <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
               </select>
@@ -925,12 +723,8 @@
 
             <div class="form-group">
               <label class="form-label">Tác Giả</label>
-              <input
-                type="text"
-                class="form-input"
-                placeholder="Tên tác giả hoặc kiến trúc sư..."
-                [(ngModel)]="articleForm.author"
-              />
+              <input type="text" class="form-input" placeholder="Tên tác giả hoặc kiến trúc sư..."
+                [(ngModel)]="articleForm.author" />
             </div>
           </div>
 
@@ -943,44 +737,27 @@
 
             <!-- Cover Image Preview -->
             <div class="cover-preview-box">
-              <img
-                *ngIf="articleForm.coverImage"
-                [src]="articleForm.coverImage"
-                alt="Ảnh bìa"
-                class="cover-preview-img"
-              />
+              <img *ngIf="articleForm.coverImage" [src]="articleForm.coverImage" alt="Ảnh bìa"
+                class="cover-preview-img" />
               <div *ngIf="!articleForm.coverImage" class="cover-empty-placeholder">
                 <app-icon name="Image" [size]="24" color="#a1a1aa"></app-icon>
                 <span>Chưa có ảnh bìa</span>
               </div>
-              <button
-                *ngIf="articleForm.coverImage"
-                type="button"
-                class="btn-clear-cover"
-                (click)="clearCoverImage()"
-                title="Xóa ảnh bìa hiện tại"
-              >
+              <button *ngIf="articleForm.coverImage" type="button" class="btn-clear-cover" (click)="clearCoverImage()"
+                title="Xóa ảnh bìa hiện tại">
                 &times; Xóa ảnh
               </button>
             </div>
 
             <!-- Choose Source Mode: Upload vs Embed URL -->
             <div class="cover-source-tabs">
-              <button
-                type="button"
-                class="source-tab-btn"
-                [class.active]="coverSourceMode === 'upload'"
-                (click)="coverSourceMode = 'upload'"
-              >
+              <button type="button" class="source-tab-btn" [class.active]="coverSourceMode === 'upload'"
+                (click)="coverSourceMode = 'upload'">
                 <app-icon name="Upload" [size]="13"></app-icon>
                 Tải ảnh từ máy
               </button>
-              <button
-                type="button"
-                class="source-tab-btn"
-                [class.active]="coverSourceMode === 'url'"
-                (click)="coverSourceMode = 'url'"
-              >
+              <button type="button" class="source-tab-btn" [class.active]="coverSourceMode === 'url'"
+                (click)="coverSourceMode = 'url'">
                 <app-icon name="Link" [size]="13"></app-icon>
                 Nhúng link ảnh (URL)
               </button>
@@ -988,13 +765,8 @@
 
             <!-- Upload Zone -->
             <div *ngIf="coverSourceMode === 'upload'" class="cover-upload-zone" (click)="coverFileInput.click()">
-              <input
-                type="file"
-                #coverFileInput
-                accept="image/*"
-                (change)="onCoverFileSelected($event)"
-                style="display: none;"
-              />
+              <input type="file" #coverFileInput accept="image/*" (change)="onCoverFileSelected($event)"
+                style="display: none;" />
               <app-icon name="Upload" [size]="22" color="#765337"></app-icon>
               <span class="upload-zone-text">Nhấn để chọn ảnh từ máy</span>
               <span class="upload-zone-sub">Hỗ trợ định dạng JPG, PNG, WEBP</span>
@@ -1002,25 +774,16 @@
 
             <!-- URL Embed Input -->
             <div *ngIf="coverSourceMode === 'url'" class="form-group" style="margin-top: 10px;">
-              <input
-                type="text"
-                class="form-input"
-                placeholder="Dán đường dẫn ảnh (https://...)"
-                [(ngModel)]="articleForm.coverImage"
-              />
+              <input type="text" class="form-input" placeholder="Dán đường dẫn ảnh (https://...)"
+                [(ngModel)]="articleForm.coverImage" />
             </div>
 
             <!-- Sample Preset Covers -->
             <div style="margin-top: 12px;">
               <span style="font-size: 11.5px; color: #71717a; font-weight: 500;">Hoặc chọn nhanh ảnh mẫu:</span>
               <div class="sample-covers-row">
-                <button
-                  type="button"
-                  *ngFor="let img of presetCovers"
-                  class="sample-thumb-btn"
-                  (click)="setCoverImage(img)"
-                  title="Chọn ảnh mẫu này"
-                >
+                <button type="button" *ngFor="let img of presetCovers" class="sample-thumb-btn"
+                  (click)="setCoverImage(img)" title="Chọn ảnh mẫu này">
                   <img [src]="img" alt="Preset" />
                 </button>
               </div>
@@ -1039,13 +802,8 @@
                 #{{ tag }}
                 <button type="button" class="tag-remove-btn" (click)="removeTag(idx)">&times;</button>
               </span>
-              <input
-                type="text"
-                class="tag-text-input"
-                placeholder="Thêm tag (nhấn Enter)..."
-                [(ngModel)]="articleForm.newTagInput"
-                (keydown.enter)="$event.preventDefault(); addTagFromInput()"
-              />
+              <input type="text" class="tag-text-input" placeholder="Thêm tag (nhấn Enter)..."
+                [(ngModel)]="articleForm.newTagInput" (keydown.enter)="$event.preventDefault(); addTagFromInput()" />
             </div>
           </div>
 
@@ -1053,7 +811,7 @@
           <div class="sidebar-box">
             <h4 class="sidebar-box-title" style="color: #765337;">
               <app-icon name="ShoppingCart" [size]="16"></app-icon>
-              Gán Sản Phẩm Được Gắn Thẻ (FR8-A-02)
+              Gán Sản Phẩm Được Gắn Thẻ
             </h4>
             <p style="font-size: 12px; color: #71717a; margin-top: -6px; margin-bottom: 12px; line-height: 1.4;">
               Tìm kiếm sản phẩm theo Tên hoặc mã SKU để gắn thẻ vào bài viết.
@@ -1063,40 +821,26 @@
             <div class="product-search-dropdown-wrap">
               <div class="search-input-wrap" style="max-width: 100%; min-width: auto; width: 100%;">
                 <app-icon name="Search" [size]="15" class="search-icon"></app-icon>
-                <input
-                  type="text"
-                  class="search-field"
-                  placeholder="Tìm theo Tên sản phẩm hoặc mã SKU..."
-                  [(ngModel)]="productSearchQuery"
-                  (focus)="showProductSearchResults = true"
-                  (input)="showProductSearchResults = true"
-                />
-                <button
-                  *ngIf="productSearchQuery"
-                  type="button"
-                  class="btn-clear-search-mini"
-                  (click)="productSearchQuery = ''; showProductSearchResults = true"
-                  title="Xóa tìm kiếm"
-                >
+                <input type="text" class="search-field" placeholder="Tìm theo Tên sản phẩm hoặc mã SKU..."
+                  [(ngModel)]="productSearchQuery" (focus)="showProductSearchResults = true"
+                  (input)="showProductSearchResults = true" />
+                <button *ngIf="productSearchQuery" type="button" class="btn-clear-search-mini"
+                  (click)="productSearchQuery = ''; showProductSearchResults = true" title="Xóa tìm kiếm">
                   &times;
                 </button>
               </div>
 
               <!-- Search Results Dropdown List -->
-              <div
-                *ngIf="showProductSearchResults"
-                class="product-search-results-list"
-              >
+              <div *ngIf="showProductSearchResults" class="product-search-results-list">
                 <div class="search-results-header">
-                  <span>{{ productSearchQuery ? 'Kết quả tìm cho: "' + productSearchQuery + '"' : 'Sản phẩm khả dụng:' }}</span>
-                  <button type="button" class="btn-close-results" (click)="showProductSearchResults = false" title="Đóng danh sách">&times;</button>
+                  <span>{{ productSearchQuery ? 'Kết quả tìm cho: "' + productSearchQuery + '"' : 'Sản phẩm khả dụng:'
+                    }}</span>
+                  <button type="button" class="btn-close-results" (click)="showProductSearchResults = false"
+                    title="Đóng danh sách">&times;</button>
                 </div>
 
-                <div
-                  *ngFor="let prod of productSearchResults"
-                  class="product-search-item"
-                  (click)="addRelatedProduct(prod)"
-                >
+                <div *ngFor="let prod of productSearchResults" class="product-search-item"
+                  (click)="addRelatedProduct(prod)">
                   <div class="prod-item-left">
                     <img [src]="prod.imageUrl" [alt]="prod.name" class="prod-item-img" />
                     <div class="prod-item-meta">
@@ -1133,15 +877,14 @@
                 </span>
               </div>
 
-              <div *ngIf="articleForm.relatedProductIds.length === 0" style="padding: 18px 12px; text-align: center; background: #fbfbfb; border: 1px dashed #d4d4d8; border-radius: 8px; color: #71717a; font-size: 12px;">
+              <div *ngIf="articleForm.relatedProductIds.length === 0"
+                style="padding: 18px 12px; text-align: center; background: #fbfbfb; border: 1px dashed #d4d4d8; border-radius: 8px; color: #71717a; font-size: 12px;">
                 Chưa gán sản phẩm nào. Hãy tìm kiếm sản phẩm phía trên để gắn vào chân bài viết.
               </div>
 
               <div class="selected-products-list" *ngIf="articleForm.relatedProductIds.length > 0">
-                <div
-                  *ngFor="let p of getAssociatedProducts(articleForm.relatedProductIds); let idx = index"
-                  class="selected-product-card"
-                >
+                <div *ngFor="let p of getAssociatedProducts(articleForm.relatedProductIds); let idx = index"
+                  class="selected-product-card">
                   <!-- Rank Badge -->
                   <span class="order-rank-badge">#{{ idx + 1 }}</span>
 
@@ -1159,30 +902,17 @@
 
                   <!-- Reorder & Remove Actions -->
                   <div class="prod-reorder-actions">
-                    <button
-                      type="button"
-                      class="btn-order-arrow"
-                      [disabled]="idx === 0"
-                      (click)="moveProductUp(idx)"
-                      title="Di chuyển lên trên"
-                    >
+                    <button type="button" class="btn-order-arrow" [disabled]="idx === 0" (click)="moveProductUp(idx)"
+                      title="Di chuyển lên trên">
                       <app-icon name="ChevronUp" [size]="14"></app-icon>
                     </button>
-                    <button
-                      type="button"
-                      class="btn-order-arrow"
-                      [disabled]="idx === articleForm.relatedProductIds.length - 1"
-                      (click)="moveProductDown(idx)"
-                      title="Di chuyển xuống dưới"
-                    >
+                    <button type="button" class="btn-order-arrow"
+                      [disabled]="idx === articleForm.relatedProductIds.length - 1" (click)="moveProductDown(idx)"
+                      title="Di chuyển xuống dưới">
                       <app-icon name="ChevronDown" [size]="14"></app-icon>
                     </button>
-                    <button
-                      type="button"
-                      class="btn-order-remove"
-                      (click)="removeRelatedProduct(p.id)"
-                      title="Xóa khỏi danh sách gán"
-                    >
+                    <button type="button" class="btn-order-remove" (click)="removeRelatedProduct(p.id)"
+                      title="Xóa khỏi danh sách gán">
                       &times;
                     </button>
                   </div>
@@ -1195,12 +925,50 @@
 
       <!-- Modal Footer -->
       <div class="editor-modal-footer">
-        <button type="button" class="btn-outline" (click)="isEditorOpen = false">
+        <div class="footer-left-actions">
+          <button *ngIf="editorMode === 'edit'" type="button" class="btn-delete-article" (click)="requestDeleteCurrentArticle()">
+            <app-icon name="Trash2" [size]="15"></app-icon>
+            <span>Xóa Bài Viết</span>
+          </button>
+        </div>
+        <div class="footer-right-actions">
+          <button type="button" class="btn-outline" (click)="isEditorOpen = false">
+            Hủy Bỏ
+          </button>
+          <button type="button" class="btn-secondary" (click)="saveArticleAsDraft()">
+            <app-icon name="FileText" [size]="15"></app-icon>
+            <span>Lưu Bản Nháp</span>
+          </button>
+          <button type="button" class="btn-primary" (click)="publishOrUpdateArticle()">
+            <app-icon name="Check" [size]="16"></app-icon>
+            <span>{{ editorMode === 'create' ? 'Đăng Bài Viết' : 'Cập Nhật Thay Đổi' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: XÁC NHẬN XÓA BÀI VIẾT (CONFIRM DELETE MODAL)                        -->
+  <!-- ========================================================================= -->
+  <div *ngIf="isDeleteConfirmOpen" class="delete-confirm-overlay" (click)="isDeleteConfirmOpen = false">
+    <div class="delete-confirm-box" (click)="$event.stopPropagation()">
+      <div class="delete-confirm-icon">
+        <app-icon name="AlertTriangle" [size]="32" color="#dc2626"></app-icon>
+      </div>
+      <h3 class="delete-confirm-title">Xác Nhận Xóa Bài Viết</h3>
+      <p class="delete-confirm-desc">
+        Bạn có chắc chắn muốn xóa bài viết
+        <strong class="delete-target-title">"{{ articleToDelete?.title || articleForm.title }}"</strong>?
+        <br />Hành động này sẽ xóa vĩnh viễn dữ liệu bài viết và không thể hoàn tác.
+      </p>
+      <div class="delete-confirm-actions">
+        <button type="button" class="btn-outline" (click)="isDeleteConfirmOpen = false">
           Hủy Bỏ
         </button>
-        <button type="button" class="btn-primary" (click)="saveArticle()">
-          <app-icon name="Check" [size]="16"></app-icon>
-          {{ editorMode === 'create' ? 'Xuất Bản / Lưu Bài Viết' : 'Cập Nhật Thay Đổi' }}
+        <button type="button" class="btn-danger-confirm" (click)="executeDeleteArticle()">
+          <app-icon name="Trash2" [size]="16"></app-icon>
+          <span>Chắc Chắn Xóa</span>
         </button>
       </div>
     </div>
@@ -1221,43 +989,52 @@
 
       <div class="editor-modal-body" style="grid-template-columns: 1fr; padding: 24px 32px;">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-          <img [src]="previewArticle.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'" class="author-avatar" style="width: 40px; height: 40px;" />
+          <img
+            [src]="previewArticle.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'"
+            class="author-avatar" style="width: 40px; height: 40px;" />
           <div>
             <div style="font-weight: 600; font-size: 14px;">{{ previewArticle.author }}</div>
-            <div style="font-size: 12px; color: #71717a;">{{ formatDate(previewArticle.publishedAt || previewArticle.createdAt) }} &bull; {{ previewArticle.views }} lượt xem</div>
+            <div style="font-size: 12px; color: #71717a;">{{ formatDate(previewArticle.publishedAt ||
+              previewArticle.createdAt) }} &bull; {{ previewArticle.views }} lượt xem</div>
           </div>
         </div>
 
         <!-- Cover Image -->
-        <img [src]="previewArticle.coverImage" [alt]="previewArticle.title" style="width: 100%; max-height: 420px; object-fit: cover; border-radius: 12px; margin-bottom: 20px;" />
+        <img [src]="previewArticle.coverImage" [alt]="previewArticle.title"
+          style="width: 100%; max-height: 420px; object-fit: cover; border-radius: 12px; margin-bottom: 20px;" />
 
         <!-- Excerpt -->
-        <p *ngIf="previewArticle.excerpt" style="font-size: 16px; font-weight: 500; color: #475569; font-style: italic; border-left: 4px solid var(--color-primary); padding-left: 16px; margin-bottom: 24px; line-height: 1.6;">
+        <p *ngIf="previewArticle.excerpt"
+          style="font-size: 16px; font-weight: 500; color: #475569; font-style: italic; border-left: 4px solid var(--color-primary); padding-left: 16px; margin-bottom: 24px; line-height: 1.6;">
           {{ previewArticle.excerpt }}
         </p>
 
         <!-- Main Content -->
-        <div class="editor-content-area" style="border: none; padding: 0; min-height: auto;" [innerHTML]="previewArticle.content"></div>
+        <div class="editor-content-area" style="border: none; padding: 0; min-height: auto;"
+          [innerHTML]="previewArticle.content"></div>
 
         <!-- Tags -->
-        <div *ngIf="previewArticle.tags && previewArticle.tags.length > 0" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; padding-top: 16px; border-top: 1px solid #e4e4e7;">
+        <div *ngIf="previewArticle.tags && previewArticle.tags.length > 0"
+          style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; padding-top: 16px; border-top: 1px solid #e4e4e7;">
           <span *ngFor="let t of previewArticle.tags" class="tag-badge">#{{ t }}</span>
         </div>
 
         <!-- CLIENT-FACING RELATED PRODUCTS BLOCK AT THE BOTTOM (FR8-A-02) -->
-        <div *ngIf="previewArticle.relatedProductIds && previewArticle.relatedProductIds.length > 0" style="margin-top: 36px; padding-top: 24px; border-top: 2px solid #FAF7F2;">
-          <h3 style="font-family: var(--font-heading, 'Poppins'); font-size: 18px; font-weight: 700; color: #18181b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <div *ngIf="previewArticle.relatedProductIds && previewArticle.relatedProductIds.length > 0"
+          style="margin-top: 36px; padding-top: 24px; border-top: 2px solid #FAF7F2;">
+          <h3
+            style="font-family: var(--font-heading, 'Poppins'); font-size: 18px; font-weight: 700; color: #18181b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
             <app-icon name="ShoppingCart" [size]="18" color="#765337"></app-icon>
             Sản Phẩm Được Nhắc Đến Trong Bài Viết
           </h3>
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
-            <div
-              *ngFor="let p of getAssociatedProducts(previewArticle.relatedProductIds)"
-              style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 10px; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);"
-            >
-              <img [src]="p.imageUrl" [alt]="p.name" style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px;" />
+            <div *ngFor="let p of getAssociatedProducts(previewArticle.relatedProductIds)"
+              style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 10px; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+              <img [src]="p.imageUrl" [alt]="p.name"
+                style="width: 100%; height: 140px; object-fit: cover; border-radius: 6px;" />
               <div style="font-size: 13px; font-weight: 600; color: #18181b; line-height: 1.3;">{{ p.name }}</div>
-              <div style="font-size: 14px; font-weight: 700; color: #BC5F13; margin-top: auto;">{{ formatCurrency(p.price) }}</div>
+              <div style="font-size: 14px; font-weight: 700; color: #BC5F13; margin-top: auto;">{{
+                formatCurrency(p.price) }}</div>
             </div>
           </div>
         </div>
@@ -1289,43 +1066,25 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">Tên Chuyên Mục <span class="req">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="Ví dụ: Xu hướng thiết kế 2026..."
-            [(ngModel)]="categoryForm.name"
-            (ngModelChange)="onCategoryNameChange()"
-          />
+          <input type="text" class="form-input" placeholder="Ví dụ: Xu hướng thiết kế 2026..."
+            [(ngModel)]="categoryForm.name" (ngModelChange)="onCategoryNameChange()" />
         </div>
 
         <div class="form-group">
           <label class="form-label">Đường Dẫn Slug</label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="xu-huong-thiet-ke-2026"
-            [(ngModel)]="categoryForm.slug"
-          />
+          <input type="text" class="form-input" placeholder="xu-huong-thiet-ke-2026" [(ngModel)]="categoryForm.slug" />
         </div>
 
         <div class="form-group">
           <label class="form-label">Mô Tả Chuyên Mục</label>
-          <textarea
-            class="form-textarea"
-            rows="3"
-            placeholder="Mô tả tóm tắt nội dung của chuyên mục này..."
-            [(ngModel)]="categoryForm.description"
-          ></textarea>
+          <textarea class="form-textarea" rows="3" placeholder="Mô tả tóm tắt nội dung của chuyên mục này..."
+            [(ngModel)]="categoryForm.description"></textarea>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
             <label class="form-label">Thứ Tự Sắp Xếp</label>
-            <input
-              type="number"
-              class="form-input"
-              [(ngModel)]="categoryForm.sortOrder"
-            />
+            <input type="number" class="form-input" [(ngModel)]="categoryForm.sortOrder" />
           </div>
           <div class="form-group">
             <label class="form-label">Trạng Thái</label>
@@ -1360,12 +1119,8 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">Tiêu Đề Banner <span class="req">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="Ví dụ: BST Sofa Da Bò Ý Thu Đông 2026..."
-            [(ngModel)]="bannerForm.title"
-          />
+          <input type="text" class="form-input" placeholder="Ví dụ: BST Sofa Da Bò Ý Thu Đông 2026..."
+            [(ngModel)]="bannerForm.title" />
         </div>
 
         <div class="form-group">
@@ -1379,26 +1134,17 @@
 
         <div class="form-group">
           <label class="form-label">URL Hình Ảnh Banner <span class="req">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="https://..."
-            [(ngModel)]="bannerForm.imageUrl"
-          />
+          <input type="text" class="form-input" placeholder="https://..." [(ngModel)]="bannerForm.imageUrl" />
         </div>
 
-        <div *ngIf="bannerForm.imageUrl" style="height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #e4e4e7;">
+        <div *ngIf="bannerForm.imageUrl"
+          style="height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #e4e4e7;">
           <img [src]="bannerForm.imageUrl" alt="Banner Preview" style="width: 100%; height: 100%; object-fit: cover;" />
         </div>
 
         <div class="form-group">
           <label class="form-label">Đường Dẫn Liên Kết Khi Click</label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="/explore?category=sofa"
-            [(ngModel)]="bannerForm.linkUrl"
-          />
+          <input type="text" class="form-input" placeholder="/explore?category=sofa" [(ngModel)]="bannerForm.linkUrl" />
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -1446,21 +1192,13 @@
       <div class="dialog-body">
         <!-- Source Toggle -->
         <div class="cover-source-tabs" style="margin-bottom: 8px;">
-          <button
-            type="button"
-            class="source-tab-btn"
-            [class.active]="imageInsertForm.mode === 'upload'"
-            (click)="imageInsertForm.mode = 'upload'"
-          >
+          <button type="button" class="source-tab-btn" [class.active]="imageInsertForm.mode === 'upload'"
+            (click)="imageInsertForm.mode = 'upload'">
             <app-icon name="Upload" [size]="14"></app-icon>
             Tải ảnh từ máy tính
           </button>
-          <button
-            type="button"
-            class="source-tab-btn"
-            [class.active]="imageInsertForm.mode === 'url'"
-            (click)="imageInsertForm.mode = 'url'"
-          >
+          <button type="button" class="source-tab-btn" [class.active]="imageInsertForm.mode === 'url'"
+            (click)="imageInsertForm.mode = 'url'">
             <app-icon name="Link" [size]="14"></app-icon>
             Nhúng liên kết ảnh (URL)
           </button>
@@ -1469,47 +1207,39 @@
         <!-- Mode Upload -->
         <div *ngIf="imageInsertForm.mode === 'upload'">
           <div class="cover-upload-zone" (click)="modalImageInput.click()" style="padding: 24px 16px;">
-            <input
-              type="file"
-              #modalImageInput
-              accept="image/*"
-              (change)="onArticleImageFileSelected($event)"
-              style="display: none;"
-            />
+            <input type="file" #modalImageInput accept="image/*" (change)="onArticleImageFileSelected($event)"
+              style="display: none;" />
             <app-icon name="Upload" [size]="26" color="#765337"></app-icon>
-            <span class="upload-zone-text" style="font-size: 13.5px; font-weight: 600;">Nhấn để chọn tệp ảnh từ máy</span>
+            <span class="upload-zone-text" style="font-size: 13.5px; font-weight: 600;">Nhấn để chọn tệp ảnh từ
+              máy</span>
             <span class="upload-zone-sub">Hỗ trợ JPG, PNG, WEBP, GIF</span>
           </div>
 
           <!-- Preview chosen image -->
           <div *ngIf="imageInsertForm.previewUrl" style="margin-top: 12px; text-align: center;">
-            <img [src]="imageInsertForm.previewUrl" alt="Preview" style="max-height: 160px; max-width: 100%; border-radius: 8px; border: 1px solid #e4e4e7;" />
+            <img [src]="imageInsertForm.previewUrl" alt="Preview"
+              style="max-height: 160px; max-width: 100%; border-radius: 8px; border: 1px solid #e4e4e7;" />
           </div>
         </div>
 
         <!-- Mode URL -->
         <div *ngIf="imageInsertForm.mode === 'url'" class="form-group">
           <label class="form-label">Đường dẫn URL ảnh <span class="req">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="https://images.unsplash.com/photo-..."
-            [(ngModel)]="imageInsertForm.url"
-          />
+          <input type="text" class="form-input" placeholder="https://images.unsplash.com/photo-..."
+            [(ngModel)]="imageInsertForm.url" />
           <div *ngIf="imageInsertForm.url" style="margin-top: 10px; text-align: center;">
-            <img [src]="imageInsertForm.url" alt="URL Preview" style="max-height: 160px; max-width: 100%; border-radius: 8px; border: 1px solid #e4e4e7;" (error)="$any($event.target).style.display='none'" />
+            <img [src]="imageInsertForm.url" alt="URL Preview"
+              style="max-height: 160px; max-width: 100%; border-radius: 8px; border: 1px solid #e4e4e7;"
+              (error)="$any($event.target).style.display='none'" />
           </div>
         </div>
 
         <!-- Caption -->
         <div class="form-group" style="margin-top: 10px;">
-          <label class="form-label">Chú thích ảnh (Caption) <span style="font-weight: normal; color: #71717a;">(Tùy chọn)</span></label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="Ví dụ: Không gian phòng khách phong cách Ý hiện đại..."
-            [(ngModel)]="imageInsertForm.caption"
-          />
+          <label class="form-label">Chú thích ảnh (Caption) <span style="font-weight: normal; color: #71717a;">(Tùy
+              chọn)</span></label>
+          <input type="text" class="form-input" placeholder="Ví dụ: Không gian phòng khách phong cách Ý hiện đại..."
+            [(ngModel)]="imageInsertForm.caption" />
         </div>
       </div>
 
@@ -1539,21 +1269,13 @@
       <div class="dialog-body">
         <!-- Source Toggle -->
         <div class="cover-source-tabs" style="margin-bottom: 8px;">
-          <button
-            type="button"
-            class="source-tab-btn"
-            [class.active]="videoInsertForm.mode === 'embed'"
-            (click)="videoInsertForm.mode = 'embed'"
-          >
+          <button type="button" class="source-tab-btn" [class.active]="videoInsertForm.mode === 'embed'"
+            (click)="videoInsertForm.mode = 'embed'">
             <app-icon name="Link" [size]="14"></app-icon>
             Nhúng link YouTube / Iframe
           </button>
-          <button
-            type="button"
-            class="source-tab-btn"
-            [class.active]="videoInsertForm.mode === 'upload'"
-            (click)="videoInsertForm.mode = 'upload'"
-          >
+          <button type="button" class="source-tab-btn" [class.active]="videoInsertForm.mode === 'upload'"
+            (click)="videoInsertForm.mode = 'upload'">
             <app-icon name="Upload" [size]="14"></app-icon>
             Tải video từ máy tính
           </button>
@@ -1562,12 +1284,9 @@
         <!-- Mode Embed -->
         <div *ngIf="videoInsertForm.mode === 'embed'" class="form-group">
           <label class="form-label">Link YouTube hoặc mã nhúng Iframe <span class="req">*</span></label>
-          <textarea
-            class="form-textarea"
-            rows="3"
+          <textarea class="form-textarea" rows="3"
             placeholder="Dán link YouTube (https://www.youtube.com/watch?v=... hoặc https://youtu.be/...) hoặc mã &lt;iframe...&gt;"
-            [(ngModel)]="videoInsertForm.urlOrCode"
-          ></textarea>
+            [(ngModel)]="videoInsertForm.urlOrCode"></textarea>
           <span style="font-size: 11.5px; color: #71717a; margin-top: 4px;">
             Hệ thống sẽ tự động căn chỉnh video theo tỷ lệ 16:9 sắc nét, chống tràn viền tuyệt đối.
           </span>
@@ -1576,21 +1295,18 @@
         <!-- Mode Upload Video -->
         <div *ngIf="videoInsertForm.mode === 'upload'">
           <div class="cover-upload-zone" (click)="modalVideoInput.click()" style="padding: 24px 16px;">
-            <input
-              type="file"
-              #modalVideoInput
-              accept="video/mp4,video/webm"
-              (change)="onArticleVideoFileSelected($event)"
-              style="display: none;"
-            />
+            <input type="file" #modalVideoInput accept="video/mp4,video/webm"
+              (change)="onArticleVideoFileSelected($event)" style="display: none;" />
             <app-icon name="Upload" [size]="26" color="#765337"></app-icon>
             <span class="upload-zone-text" style="font-size: 13.5px; font-weight: 600;">Nhấn để chọn video từ máy</span>
             <span class="upload-zone-sub">Hỗ trợ tệp định dạng MP4, WEBM</span>
           </div>
 
           <!-- Video preview -->
-          <div *ngIf="videoInsertForm.videoFileUrl" style="margin-top: 12px; border-radius: 8px; overflow: hidden; background: #000;">
-            <video controls [src]="videoInsertForm.videoFileUrl" style="width: 100%; max-height: 200px; display: block;"></video>
+          <div *ngIf="videoInsertForm.videoFileUrl"
+            style="margin-top: 12px; border-radius: 8px; overflow: hidden; background: #000;">
+            <video controls [src]="videoInsertForm.videoFileUrl"
+              style="width: 100%; max-height: 200px; display: block;"></video>
           </div>
         </div>
       </div>
@@ -1621,22 +1337,14 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">Địa chỉ liên kết URL <span class="req">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="https://..."
-            [(ngModel)]="linkInsertForm.url"
-          />
+          <input type="text" class="form-input" placeholder="https://..." [(ngModel)]="linkInsertForm.url" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Văn bản hiển thị <span style="font-weight: normal; color: #71717a;">(Nếu đã bôi đen chữ thì tự động điền)</span></label>
-          <input
-            type="text"
-            class="form-input"
-            placeholder="Nhập tên chữ hiển thị liên kết..."
-            [(ngModel)]="linkInsertForm.text"
-          />
+          <label class="form-label">Văn bản hiển thị <span style="font-weight: normal; color: #71717a;">(Nếu đã bôi đen
+              chữ thì tự động điền)</span></label>
+          <input type="text" class="form-input" placeholder="Nhập tên chữ hiển thị liên kết..."
+            [(ngModel)]="linkInsertForm.text" />
         </div>
       </div>
 
