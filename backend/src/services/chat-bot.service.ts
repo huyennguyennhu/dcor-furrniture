@@ -234,45 +234,44 @@ export class ChatBotService {
     const fallbackCount = conversation.fallbackCount || 0;
     const isCustomerLoggedIn = Boolean(conversation.customerId);
 
-    // 1. KHÁCH VÃNG LAI GỬI ẢNH:
-    // Theo yêu cầu mục 4: "KHÁCH VÃNG LAI gửi ảnh (server từ chối tin có imageUrl của guest) hoặc bấm 'Gặp nhân viên':
-    // bot trả 'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!' kèm meta {type:'LOGIN_CTA'}, mode giữ BOT, botState.pendingHandoff = true."
-    if (imageUrl && !isCustomerLoggedIn) {
-      botState.pendingHandoff = true;
-      return {
-        reply:
-          'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!',
-        meta: { type: 'LOGIN_CTA' },
-        quickReplies: [{ label: '🔐 Đăng nhập ngay', payload: 'dang_nhap' }],
-        needsHandoff: false,
-        newFallbackCount: fallbackCount,
-        updatedBotState: botState,
-      };
-    }
-
-    // Nếu KHÁCH ĐÃ ĐĂNG NHẬP gửi ảnh:
-    if (imageUrl && isCustomerLoggedIn) {
-      const business = this.isBusinessOpen(settings['workingHours']);
-      if (business.isOpen) {
+    // 1. XỬ LÝ KHI NGƯỜI DÙNG GỬI ẢNH:
+    if (imageUrl) {
+      if (isCustomerLoggedIn) {
+        const business = this.isBusinessOpen(settings['workingHours']);
+        if (business.isOpen) {
+          return {
+            reply:
+              'DCor đã tiếp nhận hình ảnh từ bạn và đang kết nối chuyên viên tư vấn để kiểm tra trực quan. Bạn vui lòng giữ kết nối trong ít phút nhé!',
+            needsHandoff: true,
+            systemMessage: 'Khách hàng gửi hình ảnh bản phối/mặt bằng cần chuyên viên hỗ trợ trực quan.',
+            newFallbackCount: fallbackCount,
+            updatedBotState: botState,
+          };
+        } else {
+          const offlineReply = this.replaceVariables(
+            settings['offlineMessage'] ||
+            'Hiện tại đội ngũ CSKH đang ngoài giờ trực ({{hours}}). Bạn có thể để lại nội dung cần hỗ trợ, DCor sẽ ưu tiên liên hệ phản hồi vào đầu giờ sáng mai nhé!',
+            settings
+          );
+          return {
+            reply: offlineReply,
+            needsHandoff: true,
+            systemMessage: 'Khách hàng gửi hình ảnh ngoài giờ trực của chuyên viên CSKH.',
+            newFallbackCount: fallbackCount,
+            updatedBotState: botState,
+          };
+        }
+      } else {
+        // Khách vãng lai gửi ảnh: Bot phản hồi tiếp nhận ảnh và hướng dẫn đăng nhập nếu muốn kết nối nhân viên
         return {
           reply:
-            'DCor đã tiếp nhận hình ảnh từ bạn và đang kết nối chuyên viên tư vấn để kiểm tra trực quan. Bạn vui lòng giữ kết nối trong ít phút nhé!',
-          needsHandoff: true,
-          systemMessage: 'Khách hàng gửi hình ảnh bản phối/mặt bằng cần chuyên viên hỗ trợ trực quan.',
-          newFallbackCount: fallbackCount,
-          updatedBotState: botState,
-        };
-      } else {
-        const offlineReply = this.replaceVariables(
-          settings['offlineMessage'] ||
-          'Hiện tại đội ngũ CSKH đang ngoài giờ trực ({{hours}}). Bạn có thể để lại nội dung cần hỗ trợ, DCor sẽ ưu tiên liên hệ phản hồi vào đầu giờ sáng mai nhé!',
-          settings
-        );
-        return {
-          reply: offlineReply,
-          needsHandoff: true,
-          systemMessage: 'Khách hàng gửi hình ảnh ngoài giờ trực của chuyên viên CSKH.',
-          newFallbackCount: fallbackCount,
+            'DCor đã nhận được hình ảnh của bạn! Bạn cần tư vấn thêm về mẫu mã, kích thước hay phối màu cho sản phẩm này? (Nếu muốn lưu mẫu và kết nối trực tiếp với chuyên viên tư vấn may đo, bạn có thể đăng nhập tài khoản nhé).',
+          quickReplies: [
+            { label: '📐 Tư vấn kích thước & chất liệu', payload: 'may đo riêng' },
+            { label: '🔐 Đăng nhập để gặp chuyên viên', payload: 'dang_nhap' },
+          ],
+          needsHandoff: false,
+          newFallbackCount: 0,
           updatedBotState: botState,
         };
       }
@@ -280,6 +279,37 @@ export class ChatBotService {
 
     // 2. Ý ĐỊNH CHUYỂN NHÂN VIÊN VÀ KHIẾU NẠI CÓ ƯU TIÊN CAO NHẤT VÀ ĐƯỢC XÉT TRƯỚC
     const normalizedInput = normalizeChatText(userContent);
+
+    // Xử lý khi khách bấm nút chọn: "Tiếp tục chat với Trợ lý AI"
+    if (normalizedInput === 'tiep tuc chat bot' || normalizedInput.includes('tiep tuc chat voi tro ly ai') || normalizedInput.includes('quay lai chat bot')) {
+      delete botState.pendingHandoff;
+      return {
+        reply: 'Trợ lý AI DCor sẵn sàng tiếp tục đồng hành cùng bạn! Bạn đang cần tìm hiểu về mẫu sản phẩm nào hoặc cần hỗ trợ gì tiếp theo ạ?',
+        quickReplies: [
+          { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+          { label: '📐 Tư vấn may đo riêng', payload: 'may đo riêng' },
+          { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+        ],
+        needsHandoff: false,
+        newFallbackCount: 0,
+        updatedBotState: botState,
+      };
+    }
+
+    // Xử lý khi khách bấm nút chọn: "Để lại tin nhắn chờ nhân viên"
+    if (normalizedInput === 'xac nhan cho nhan vien' || normalizedInput.includes('de lai tin nhan cho nhan vien')) {
+      return {
+        reply: 'DCor đã ghi nhận yêu cầu của bạn vào hàng đợi ưu tiên. Bạn có thể để lại câu hỏi hoặc yêu cầu cụ thể tại đây, chuyên viên tư vấn sẽ liên hệ phản hồi ngay khi bắt đầu ca trực nhé!',
+        needsHandoff: true,
+        systemMessage: 'Khách hàng xác nhận để lại tin nhắn chờ chuyên viên tư vấn sau giờ làm.',
+        newFallbackCount: 0,
+        updatedBotState: botState,
+        quickReplies: [
+          { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
+        ],
+      };
+    }
+
     const wantsHandoff = isHandoffRequest(userContent);
 
     if (wantsHandoff) {
@@ -316,6 +346,7 @@ export class ChatBotService {
           newFallbackCount: 0,
           updatedBotState: botState,
           quickReplies: [
+            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
             { label: '📞 Hotline 1900 1234', payload: 'hotline' },
             { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
           ],
@@ -328,13 +359,14 @@ export class ChatBotService {
         );
         return {
           reply: offlineText,
-          needsHandoff: true, // Vẫn ghi nhận hội thoại cho nhân viên
-          systemMessage: 'Khách hàng liên hệ ngoài giờ trực CSKH.',
+          needsHandoff: false, // Ngoài giờ làm việc: mặc định không treo vào WAITING_STAFF trừ khi khách bấm xác nhận đợi
+          systemMessage: 'Khách hàng hỏi gặp nhân viên ngoài giờ trực CSKH.',
           newFallbackCount: 0,
           updatedBotState: botState,
           quickReplies: [
+            { label: '🛎️ Để lại tin nhắn chờ nhân viên', payload: 'xac_nhan_cho_nhan_vien' },
+            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
             { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
-            { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
           ],
         };
       }

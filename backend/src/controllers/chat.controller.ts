@@ -517,6 +517,9 @@ export const chatController = {
 
       const updateData: any = {
         status: 'OPEN',
+        mode: 'BOT',
+        assignedStaffId: null,
+        needsHuman: false,
         fallbackCount: 0,
         botState,
       };

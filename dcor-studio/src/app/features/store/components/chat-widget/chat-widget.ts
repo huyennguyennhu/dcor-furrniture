@@ -316,13 +316,6 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Nếu khách vãng lai gửi ảnh: từ chối và hiện LOGIN_CTA
-    if (imageFile && !this.authService.isAuthenticated()) {
-      this.removeSelectedImage();
-      this.showGuestUploadLoginPrompt.set(true);
-      return;
-    }
-
     this.isSending.set(true);
     let uploadedImageUrl: string | undefined = undefined;
 
@@ -383,10 +376,6 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
    * Nếu là khách vãng lai: không mở chọn tệp, hiện bong bóng nhắc đăng nhập
    */
   public triggerFileInput() {
-    if (!this.authService.isAuthenticated()) {
-      this.showGuestUploadLoginPrompt.set(true);
-      return;
-    }
     this.fileInput?.nativeElement.click();
   }
 
