@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { CatalogProduct, ProductColorSwatch } from '../../models/catalog.model';
 import { IconComponent } from '../icon/icon';
 import { CartService } from '../../../core/services/cart.service';
+import { formatDiscountBadgeText } from '../../../core/services/promotion.service';
 import { environment } from '../../../../environments/environment';
 
 export interface AttributeOption {
@@ -519,6 +520,11 @@ export class ProductCompareModalComponent implements OnInit, OnChanges {
 
   formatPrice(price: number): string {
     return new Intl.NumberFormat('vi-VN').format(price) + ' đ';
+  }
+
+  getDiscountBadgeText(prod: CatalogProduct): string {
+    if (prod.discountBadgeText) return prod.discountBadgeText;
+    return formatDiscountBadgeText(prod.discountType || 'PERCENT', prod.discountValue);
   }
 
   // 3. Đánh giá

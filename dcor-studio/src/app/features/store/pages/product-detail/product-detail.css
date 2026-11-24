@@ -323,33 +323,38 @@
   left: 16px;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
   z-index: 3;
 }
 
 .badge-tag {
   display: inline-block;
-  padding: 4px 10px;
-  font-size: 11px;
+  padding: 8px 10px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  border-radius: 6px;
-  letter-spacing: 0.04em;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .badge-new {
-  background: #18181b;
-  color: #ffffff;
+  background-color: rgba(254, 249, 195, 0.65);
+  border: 1px solid #CA8A04;
+  color: #CA8A04;
 }
 
 .badge-bestseller {
-  background: #d97706;
-  color: #ffffff;
+  background-color: rgba(255, 237, 213, 0.6);
+  border: 1px solid #C2410C;
+  color: #C2410C;
 }
 
 .badge-discount {
-  background: #dc2626;
-  color: #ffffff;
+  background-color: rgba(255, 232, 232, 0.5);
+  border: 1px solid #C42326;
+  color: #C42326;
 }
 
 /* Nút kích hoạt Lightbox */
@@ -797,13 +802,16 @@
 }
 
 .pdp-discount-pill {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  padding: 2px 8px;
-  border-radius: 20px;
+  color: #C42326;
+  background-color: rgba(255, 232, 232, 0.5);
+  border: 1px solid #C42326;
+  padding: 6px 10px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .pdp-stock-status {
@@ -929,10 +937,12 @@
   overflow: hidden;
   box-sizing: border-box;
   position: relative;
+  background-color: #8B5A2B;
 }
 
 .swatch-color-circle.has-image {
   background-size: cover;
+  background-color: #8B5A2B;
 }
 
 .swatch-check-icon {

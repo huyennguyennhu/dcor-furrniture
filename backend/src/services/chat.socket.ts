@@ -33,6 +33,82 @@ export function normalizeConversationOutput<T extends { status?: string; mode?: 
 // Bộ đếm giới hạn tốc độ tin nhắn: 20 tin / phút mỗi socket
 const socketMessageTimestamps = new Map<string, number[]>();
 
+// Quản lý bộ đếm thời gian tự động hoàn trả về Bot nếu nhân viên không phản hồi sau 5 phút (300.000 ms)
+const waitingStaffTimers = new Map<string, NodeJS.Timeout>();
+
+export function clearWaitingStaffTimer(conversationId: string) {
+  const existingTimer = waitingStaffTimers.get(conversationId);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+    waitingStaffTimers.delete(conversationId);
+  }
+}
+
+export function startWaitingStaffTimer(conversationId: string, timeoutMs: number = 5 * 60 * 1000) {
+  clearWaitingStaffTimer(conversationId);
+
+  const timer = setTimeout(async () => {
+    try {
+      waitingStaffTimers.delete(conversationId);
+
+      const conv = await prisma.chatConversation.findUnique({
+        where: { id: conversationId },
+      });
+
+      // Chỉ revert về BOT nếu cuộc trò chuyện vẫn đang ở trạng thái WAITING_STAFF
+      if (conv && conv.mode === 'WAITING_STAFF') {
+        const timeoutMsgContent =
+          'Hiện tại đội ngũ chuyên viên tư vấn đang bận hỗ trợ các khách hàng khác. Trợ lý AI DCor đã quay lại để tiếp tục hỗ trợ bạn ngay!';
+
+        const sysMsg = await prisma.chatMessage.create({
+          data: {
+            conversationId,
+            senderType: 'SYSTEM',
+            senderName: 'Hệ thống DCor',
+            content: timeoutMsgContent,
+          },
+        });
+
+        const botGreetingMsg = await prisma.chatMessage.create({
+          data: {
+            conversationId,
+            senderType: 'BOT',
+            senderName: 'Trợ lý AI DCor',
+            content: 'Mình có thể giúp gì cho bạn về các mẫu thiết kế, đặt lịch showroom hay kiểm tra thông tin đơn hàng?',
+            quickReplies: [
+              { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
+              { label: '📐 Tư vấn may đo riêng', payload: 'may đo riêng' },
+              { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
+            ],
+          },
+        });
+
+        await prisma.chatConversation.update({
+          where: { id: conversationId },
+          data: {
+            mode: 'BOT',
+            needsHuman: false,
+            assignedStaffId: null,
+            lastMessageAt: new Date(),
+            lastMessagePreview: botGreetingMsg.content.slice(0, 100),
+          },
+        });
+
+        if (io) {
+          io.to(`conv:${conversationId}`).emit('chat:message', sysMsg);
+          io.to(`conv:${conversationId}`).emit('chat:message', botGreetingMsg);
+        }
+
+        await broadcastConversationUpdate(conversationId);
+      }
+    } catch (err) {
+      console.error(`Lỗi khi xử lý timeout WAITING_STAFF cho conversation ${conversationId}:`, err);
+    }
+  }, timeoutMs);
+
+  waitingStaffTimers.set(conversationId, timer);
+}
+
 export function getIO(): Server {
   if (!io) {
     throw new Error('Socket.io chưa được khởi tạo! Vui lòng gọi initChatSocket(server) trước.');
@@ -122,6 +198,18 @@ export async function getOrCreateConversation(params: {
     // 2. Tạo mới với token
     const guestToken = params.guestTokenHash ? null : crypto.randomBytes(32).toString('hex');
     const guestTokenHash = params.guestTokenHash || (guestToken ? hashGuestToken(guestToken) : null);
+
+    // Nếu là khách vãng lai và chưa có tên tùy chỉnh: Tự động đánh số Khách vãng lai 1, Khách vãng lai 2,...
+    if (!params.customerId && (!params.name || !params.name.trim() || params.name === 'Khách vãng lai')) {
+      try {
+        const guestCount = await prisma.chatConversation.count({
+          where: { customerId: null },
+        });
+        finalName = `Khách vãng lai ${guestCount + 1}`;
+      } catch (_) {
+        finalName = 'Khách vãng lai';
+      }
+    }
 
     let conversation: any = null;
     let isExisting = false;
@@ -219,10 +307,10 @@ export async function broadcastConversationUpdate(conversationId: string) {
       assignedStaffName = staff?.fullName || null;
     }
 
-    // Hiển thị Khách vãng lai #<4 ký tự cuối id> nếu không có tên
+    // Hiển thị tên khách hoặc Khách vãng lai
     const displayName = safeConv.guestName && safeConv.guestName.trim()
       ? safeConv.guestName
-      : `Khách vãng lai #${safeConv.id.slice(-4)}`;
+      : 'Khách vãng lai';
 
     const payload = {
       id: safeConv.id,
@@ -435,9 +523,9 @@ export function initChatSocket(httpServer: HttpServer): Server {
         socket.emit('chat:init:success', result);
 
         if (io && !isExisting) {
-          const displayName = conversation.guestName && conversation.guestName !== 'Khách vãng lai'
+          const displayName = conversation.guestName && conversation.guestName.trim()
             ? conversation.guestName
-            : `Khách vãng lai #${conversation.id.slice(-4)}`;
+            : 'Khách vãng lai';
           io.to('staff').emit('staff:conversation:new', {
             id: conversation.id,
             guestName: displayName,
@@ -485,47 +573,8 @@ export function initChatSocket(httpServer: HttpServer): Server {
           return;
         }
 
-        // C. KIỂM TRA ẢNH:
-        // Nếu là khách vãng lai (không có customerId) gửi ảnh:
-        // Server từ chối tin có imageUrl của guest
-        const isCustomerLoggedIn = Boolean(socket.data.customerId);
-        if (imageUrl && !isCustomerLoggedIn) {
-          // Từ chối không lưu ảnh và gửi phản hồi LOGIN_CTA
-          socket.emit('chat:error', {
-            code: 'REQUIRE_LOGIN',
-            message: 'Vui lòng đăng nhập để gửi hình ảnh bản phối cho chuyên viên tư vấn.',
-          });
-
-          // Nếu có conversationId, gửi bot reply LOGIN_CTA
-          if (conversationId) {
-            const botReplyMsg = await prisma.chatMessage.create({
-              data: {
-                conversationId,
-                senderType: 'BOT',
-                senderName: 'Trợ lý AI DCor',
-                content:
-                  'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!',
-                meta: { type: 'LOGIN_CTA' },
-                quickReplies: [{ label: '🔐 Đăng nhập ngay', payload: 'dang_nhap' }],
-              },
-            });
-            await prisma.chatConversation.update({
-              where: { id: conversationId },
-              data: {
-                botState: { pendingHandoff: true },
-                lastMessageAt: new Date(),
-                lastMessagePreview: botReplyMsg.content.slice(0, 100),
-              },
-            });
-            if (io) {
-              io.to(`conv:${conversationId}`).emit('chat:message', botReplyMsg);
-            }
-          }
-          return;
-        }
-
-        if (imageUrl && !imageUrl.startsWith('https://')) {
-          socket.emit('chat:error', { message: 'URL hình ảnh không hợp lệ (phải bắt đầu bằng https://).' });
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+          socket.emit('chat:error', { message: 'URL hình ảnh không hợp lệ.' });
           return;
         }
 
@@ -630,6 +679,26 @@ export function initChatSocket(httpServer: HttpServer): Server {
             await broadcastConversationUpdate(convId);
 
             // G. Xử lý phản hồi tự động nếu mode là BOT (Bot trả lời 24/7)
+            // Nếu khách chủ động chọn payload quay lại Bot: chuyển mode về BOT ngay lập tức
+            const normalizedText = (content || '').trim().toLowerCase();
+            if (
+              normalizedText === 'tiep_tuc_chat_bot' ||
+              normalizedText === 'tiep tuc chat bot' ||
+              normalizedText.includes('tiep tuc chat voi tro ly ai') ||
+              normalizedText.includes('quay lai chat bot')
+            ) {
+              clearWaitingStaffTimer(convId);
+              conv = await prisma.chatConversation.update({
+                where: { id: convId },
+                data: {
+                  mode: 'BOT',
+                  needsHuman: false,
+                  assignedStaffId: null,
+                },
+              });
+              await broadcastConversationUpdate(convId);
+            }
+
             // Nếu mode là STAFF hoặc WAITING_STAFF: Bot không can thiệp
             if (conv.mode === 'STAFF' || conv.mode === 'WAITING_STAFF') {
               return;
@@ -689,6 +758,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
             if (botResult.needsHandoff) {
               updateData.mode = 'WAITING_STAFF';
               updateData.needsHuman = true;
+              startWaitingStaffTimer(convId, 5 * 60 * 1000); // Đếm ngược 5 phút tự động về Bot nếu staff không tiếp nhận
             }
 
             await prisma.chatConversation.update({
@@ -842,6 +912,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
             updateData.mode = 'STAFF';
             updateData.assignedStaffId = staff.id;
             updateData.needsHuman = false;
+            clearWaitingStaffTimer(conversationId);
           }
 
           await prisma.chatConversation.update({
@@ -883,6 +954,7 @@ export function initChatSocket(httpServer: HttpServer): Server {
         }
 
         const staff = socket.data.staffUser;
+        clearWaitingStaffTimer(conversationId);
         const updated = await prisma.chatConversation.update({
           where: { id: conversationId },
           data: {

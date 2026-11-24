@@ -714,6 +714,9 @@ export class ChatSocketService {
     this.typingIndicator.set(null);
     this.setPendingHandoff(false);
 
+    // Tải lại thông tin hội thoại mới nhất (để cập nhật mode = 'BOT')
+    await this.fetchMeConversation();
+
     // Tải lại lịch sử (sẽ rỗng vì backend lọc tin createdAt > customerClearedAt)
     await this.fetchMessages(conversationId, undefined, 30);
 

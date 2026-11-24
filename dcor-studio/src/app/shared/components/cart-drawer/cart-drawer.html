@@ -500,7 +500,6 @@
                 [checked]="isItemSelected(item)"
                 (change)="toggleSelectItem(item)"
                 title="Chọn sản phẩm này" />
-              <lucide-angular [img]="icons.Building2" size="15" class="item-brand-icon"></lucide-angular>
               <a class="item-card-name" [routerLink]="['/products', item.productId]" (click)="closeDrawer()" [title]="item.name">
                 {{ item.name }}
               </a>

@@ -359,7 +359,7 @@
 .custom-input {
   width: 100%;
   padding: 10px 14px;
-  font-size: 0.88rem;
+  font-size: 0.75rem;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   background: #ffffff;
@@ -382,7 +382,7 @@
 .custom-textarea {
   width: 100%;
   padding: 10px 14px;
-  font-size: 0.88rem;
+  font-size: 0.75rem;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   background: #ffffff;
@@ -406,7 +406,7 @@
 }
 
 .field-hint-text {
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   color: #6b7280;
   line-height: 1.4;
 }
@@ -520,6 +520,156 @@
   white-space: nowrap;
 }
 
+/* Color & Material Swatches Grid (Đồng bộ với logic trang Chi tiết sản phẩm) */
+.color-swatches-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0 6px 0;
+  max-width: 100%;
+}
+
+.color-swatch-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.color-swatch-btn:hover {
+  border-color: #a8a29e;
+}
+
+.color-swatch-btn.active {
+  border-color: #765337;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.swatch-color-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
+  background-color: #8B5A2B;
+}
+
+.swatch-color-circle.has-image {
+  background-size: cover;
+  background-color: #8B5A2B;
+}
+
+.swatch-check-icon {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.swatch-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #1c1917;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  z-index: 60;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  max-width: 250px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.swatch-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1c1917 transparent transparent transparent;
+}
+
+.color-swatch-btn:hover .swatch-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Pills Grid (Đồng bộ chuẩn giao diện theo variant-group-card ở trang Chi tiết sản phẩm) */
+.pills-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #d6d3d1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #44403c;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.pill-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.pill-btn:hover {
+  border-color: #a8a29e;
+  background: #fbfbf9;
+  transform: translateY(-1px);
+}
+
+.pill-btn.active {
+  border-color: #765337;
+  background: #fff8f5;
+  color: #765337;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px #765337;
+}
+
 /* Chips selectors */
 .chips-selector-wrap {
   display: flex;
@@ -564,6 +714,59 @@
   color: #ffffff;
   border-color: #765337;
   box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25);
+}
+
+/* Nút tùy chọn Khác (Áp dụng đồng bộ cho cả swatch grid, pills grid, và ngân sách) */
+.spec-chip.chip-other,
+.pill-btn.pill-other {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spec-chip.chip-other:hover,
+.pill-btn.pill-other:hover {
+  border-color: #765337;
+  color: #765337;
+  background: #fffbeb;
+  transform: translateY(-1px);
+}
+
+.spec-chip.chip-other.active,
+.pill-btn.pill-other.active {
+  border: 1.5px solid #765337;
+  background: #765337;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.3);
+}
+
+.other-input-wrap {
+  margin-top: 8px;
+  animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .custom-spec-input {

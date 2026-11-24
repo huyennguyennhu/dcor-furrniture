@@ -1,5 +1,6 @@
 import { Component, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { formatDiscountBadgeText } from '../../../core/services/promotion.service';
 
 @Component({
   selector: 'app-hover-image-slider',
@@ -49,11 +50,7 @@ export class HoverImageSlider implements OnDestroy {
   }
 
   get formattedDiscount(): string {
-    if (!this.discountType || !this.discountValue) return 'Sale';
-    if (this.discountType === 'PERCENTAGE') {
-      return `Giảm ${this.discountValue}%`;
-    } else {
-      return `Giảm ${new Intl.NumberFormat('vi-VN').format(this.discountValue)}đ`;
-    }
+    const formatted = formatDiscountBadgeText(this.discountType, this.discountValue);
+    return formatted ? `HOT DEAL ${formatted}` : 'HOT DEAL';
   }
 }

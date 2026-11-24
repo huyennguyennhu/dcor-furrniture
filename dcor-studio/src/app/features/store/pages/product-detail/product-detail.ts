@@ -9,7 +9,7 @@ import { IconComponent } from '../../../../shared/components/icon/icon';
 import { CartService } from '../../../../core/services/cart.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
-import { PromotionService } from '../../../../core/services/promotion.service';
+import { PromotionService, formatDiscountBadgeText } from '../../../../core/services/promotion.service';
 import { environment } from '../../../../../environments/environment';
 
 export interface AttributeOption {
@@ -151,6 +151,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
   currentPrice = 0;
   originalPrice: number | null = null;
   discountPercent = 0;
+  discountBadgeText = '';
+  discountSaveText = '';
   maxStock = 0;
   quantity = 1;
   quantityError = '';
@@ -709,6 +711,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     if (campDisc) {
       this.hasFlashSale = true;
       this.discountPercent = campDisc.discountPercent;
+      this.discountBadgeText = campDisc.badgeText;
+      this.discountSaveText = campDisc.badgeText.replace(/^-/, '');
       this.currentPrice = campDisc.salePrice;
       this.originalPrice = campDisc.originalPrice || basePrice;
     } else {
@@ -717,15 +721,21 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
       if (this.hasFlashSale) {
         if (prod.discountType === 'PERCENT') {
           this.discountPercent = prod.discountValue;
+          this.discountBadgeText = formatDiscountBadgeText('PERCENT', prod.discountValue);
+          this.discountSaveText = this.discountBadgeText.replace(/^-/, '');
           this.currentPrice = prod.salePrice || Math.round(basePrice * (1 - prod.discountValue / 100));
           this.originalPrice = prod.originalPrice || basePrice;
-        } else if (prod.discountType === 'AMOUNT') {
+        } else if (prod.discountType === 'AMOUNT' || prod.discountType === 'FIXED' || prod.discountType === 'FIXED_AMOUNT') {
           this.currentPrice = prod.salePrice || Math.max(0, basePrice - prod.discountValue);
           this.originalPrice = prod.originalPrice || basePrice;
-          this.discountPercent = Math.round((prod.discountValue / basePrice) * 100);
+          this.discountPercent = basePrice > 0 ? Math.round((prod.discountValue / basePrice) * 100) : 0;
+          this.discountBadgeText = formatDiscountBadgeText('AMOUNT', prod.discountValue);
+          this.discountSaveText = this.discountBadgeText.replace(/^-/, '');
         } else {
           // Fallback percentage
           this.discountPercent = prod.discountValue;
+          this.discountBadgeText = formatDiscountBadgeText('PERCENT', prod.discountValue);
+          this.discountSaveText = this.discountBadgeText.replace(/^-/, '');
           this.currentPrice = prod.salePrice || Math.round(basePrice * (1 - prod.discountValue / 100));
           this.originalPrice = prod.originalPrice || basePrice;
         }
@@ -733,6 +743,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
         this.currentPrice = basePrice;
         this.originalPrice = null;
         this.discountPercent = 0;
+        this.discountBadgeText = '';
+        this.discountSaveText = '';
       }
     }
 
@@ -958,6 +970,17 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     if (opt.image) return false;
     const hex = (opt.hexColor || this.detectColor(opt.name)?.hex || '').toLowerCase();
     return hex === '#ffffff' || hex === '#f3f4f6' || hex === '#f8f8f8' || hex === '#d8c8b8';
+  }
+
+  getSwatchBgColor(opt: AttributeOption): string {
+    if (opt.image) {
+      return '#8B5A2B';
+    }
+    const color = opt.hexColor || this.detectColor(opt.name)?.hex;
+    if (!color || color.toLowerCase() === 'red') {
+      return '#8B5A2B';
+    }
+    return color;
   }
 
   // --- QUẢN LÝ THU GỌN / XEM THÊM KHI THUỘC TÍNH CÓ NHIỀU OPTIONS ---

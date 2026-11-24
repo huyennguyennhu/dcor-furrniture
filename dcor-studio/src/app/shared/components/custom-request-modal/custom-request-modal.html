@@ -4,13 +4,9 @@
     <!-- MODAL HEADER -->
     <div class="drawer-header">
       <div class="header-main-info">
-        <div class="header-icon-badge">
-          <lucide-angular [img]="icons.Sparkles" size="22" color="#b45309"></lucide-angular>
-        </div>
         <div class="header-titles">
-          <h3>Đặt hàng theo yêu cầu</h3>
+          <h3>Tùy chỉnh theo yêu cầu</h3>
           <div class="header-product-snippet" *ngIf="product">
-            <img [src]="productThumbnail" [alt]="productName" class="product-mini-thumb" />
             <div class="product-mini-info">
               <span class="product-mini-name">{{ productName }}</span>
               <span class="product-mini-sku">SKU: {{ productSku }}</span>
@@ -45,7 +41,6 @@
             <div class="section-badge-num">1</div>
             <div class="section-header-text">
               <h4>Thông tin liên hệ</h4>
-              <p>Thông tin người yêu cầu để Kiến trúc sư DCOR liên hệ tư vấn và gửi hồ sơ báo giá</p>
             </div>
           </div>
 
@@ -79,11 +74,12 @@
               <div class="form-field-group full-width">
                 <label for="cEmail">Email</label>
                 <input type="email" id="cEmail" [(ngModel)]="email" (input)="onEmailInput()"
-                  (blur)="onBlurField('email')" name="email" placeholder="Ví dụ: hoten@gmail.com (không bắt buộc)" class="custom-input"
-                  [class.is-invalid]="formErrors['email']" />
+                  (blur)="onBlurField('email')" name="email" placeholder="Ví dụ: hoten@gmail.com (không bắt buộc)"
+                  class="custom-input" [class.is-invalid]="formErrors['email']" />
                 <span class="field-error-text" *ngIf="formErrors['email']">{{ formErrors['email'] }}</span>
                 <span class="field-hint-text">
-                  DCor sẽ gửi hồ sơ kỹ thuật, bản vẽ 3D và phụ lục vật liệu chi tiết về hòm thư này (nếu có cung cấp email).
+                  DCor sẽ gửi hồ sơ kỹ thuật, bản vẽ 3D và phụ lục vật liệu chi tiết về hòm thư này (nếu có cung cấp
+                  email).
                 </span>
               </div>
             </div>
@@ -98,7 +94,6 @@
             <div class="section-badge-num">2</div>
             <div class="section-header-text">
               <h4>Thông số kỹ thuật & Tùy biến sản phẩm</h4>
-              <p>Đối chiếu thông số tiêu chuẩn và tùy chỉnh các thuộc tính sẵn có của sản phẩm</p>
             </div>
           </div>
 
@@ -145,7 +140,8 @@
               <div class="chips-selector-wrap" *ngIf="dimensionSizeOptions.length > 0">
                 <button type="button" *ngFor="let sOpt of dimensionSizeOptions" class="spec-chip"
                   [class.active]="selectedDimensionOptionId === sOpt.id" (click)="selectDimensionChip(sOpt)">
-                  <lucide-angular [img]="icons.Check" size="12" *ngIf="selectedDimensionOptionId === sOpt.id"></lucide-angular>
+                  <lucide-angular [img]="icons.Check" size="12"
+                    *ngIf="selectedDimensionOptionId === sOpt.id"></lucide-angular>
                   <span>{{ sOpt.name }}</span>
                 </button>
               </div>
@@ -154,9 +150,9 @@
                 [placeholder]="'Nhập kích thước may đo mong muốn (VD: ' + (originalDimensions || '260 x 95 x 85 cm') + ')'"
                 class="custom-input" />
               <input type="text" [(ngModel)]="customDimensionNote" name="customDimensionNote"
-                placeholder="Ghi chú chi tiết kích thước (VD: Hạ thấp 5cm, bo góc cạnh bàn...)"
-                class="custom-input custom-spec-input" />
-              <span class="field-hint-text">Ghi chú kích thước theo cm hoặc mm để đội ngũ kỹ thuật ra phôi chính xác.</span>
+                placeholder="Hạ thấp 5cm, bo góc cạnh bàn..." class="custom-input custom-spec-input" />
+              <span class="field-hint-text">Ghi chú kích thước theo cm hoặc mm để đội ngũ kỹ thuật ra phôi chính
+                xác.</span>
             </div>
 
             <!-- 2. Danh sách thuộc tính thực tế của sản phẩm (Chỉ cho phép custom thuộc tính mà sản phẩm có) -->
@@ -164,28 +160,72 @@
               <div class="form-field-group">
                 <div class="field-label-row">
                   <label>
-                    <lucide-angular [img]="attr.type === 'color' ? icons.Palette : icons.Layers" size="15" color="#765337"></lucide-angular>
-                    <span>Tùy biến {{ attr.label }}</span>
+                    <lucide-angular [img]="attr.type === 'color' ? icons.Palette : icons.Layers" size="15"
+                      color="#765337"></lucide-angular>
+                    <span>{{ attr.label }}</span>
                   </label>
-                  <span class="field-current-tag">Gốc: {{ attr.originalValue }}</span>
                 </div>
 
-                <!-- Chips các lựa chọn thực tế của sản phẩm này -->
-                <div class="chips-selector-wrap" *ngIf="attr.options.length > 0">
-                  <button type="button" *ngFor="let opt of attr.options" class="spec-chip"
-                    [class.active]="attr.selectedOptionId === opt.id" (click)="selectAttributeOption(attr, opt)"
-                    [title]="opt.name">
-                    <span class="swatch-dot" *ngIf="attr.type === 'color' || opt.hexColor"
-                      [style.background-color]="opt.hexColor || detectColor(opt.name).hex"></span>
-                    <lucide-angular [img]="icons.Check" size="12" *ngIf="attr.selectedOptionId === opt.id"></lucide-angular>
-                    <span>{{ opt.name }}</span>
+                <!-- Trường hợp 1: Nhóm Màu sắc / Chất liệu có hình ảnh swatch texture (Hiển thị ô swatch dạng tròn giống trang Chi tiết sản phẩm) -->
+                <div class="color-swatches-grid" *ngIf="isVisualAttribute(attr) && attr.options.length > 0">
+                  <ng-container *ngFor="let opt of attr.options">
+                    <button type="button" class="color-swatch-btn" [class.active]="attr.selectedOptionId === opt.id"
+                      (click)="selectAttributeOption(attr, opt)"
+                      (mouseenter)="onOptionMouseEnter(attr.groupId, opt.name)"
+                      (mouseleave)="onOptionMouseLeave(attr.groupId)" [title]="opt.name" [attr.aria-label]="opt.name">
+                      <span class="swatch-color-circle" [class.has-image]="!!opt.image"
+                        [style.background-color]="getSwatchBgColor(opt)"
+                        [style.background-image]="opt.image ? 'url(' + opt.image + ')' : 'none'">
+                        <lucide-angular *ngIf="attr.selectedOptionId === opt.id" [img]="icons.Check" size="14"
+                          class="swatch-check-icon"
+                          [color]="isBrightColor(opt) ? '#1c1917' : '#ffffff'"></lucide-angular>
+                      </span>
+                      <span class="swatch-tooltip">{{ opt.name }}</span>
+                    </button>
+                  </ng-container>
+
+                  <!-- Nút tùy chọn Khác trong swatch grid -->
+                  <button type="button" class="spec-chip chip-other"
+                    [class.active]="attr.selectedOptionId === 'custom_other'" (click)="selectOtherOption(attr)"
+                    (mouseenter)="onOptionMouseEnter(attr.groupId, 'Khác (Theo yêu cầu riêng)')"
+                    (mouseleave)="onOptionMouseLeave(attr.groupId)"
+                    title="Yêu cầu màu sắc / chất liệu riêng ngoài danh mục">
+                    <lucide-angular [img]="icons.Check" size="12"
+                      *ngIf="attr.selectedOptionId === 'custom_other'"></lucide-angular>
+                    <lucide-angular [img]="icons.Plus" size="12"
+                      *ngIf="attr.selectedOptionId !== 'custom_other'"></lucide-angular>
+                    <span>Khác</span>
                   </button>
                 </div>
 
-                <!-- Ô nhập yêu cầu custom riêng cho thuộc tính này -->
-                <input type="text" [(ngModel)]="attr.customNote" [name]="'customNote_' + attr.groupId"
-                  [placeholder]="'Hoặc nhập yêu cầu riêng cho ' + attr.label + ' (VD: ' + (attr.type === 'color' ? 'Mã màu sơn / vải riêng, gam màu Pantone...' : 'Vật liệu nhập khẩu riêng, độ bóng / nhám...') + ')'"
-                  class="custom-input custom-spec-input" />
+                <!-- Trường hợp 2: Nhóm dạng chữ không có hình (Hiển thị dạng pills-grid material-pills-grid giống trang Chi tiết sản phẩm) -->
+                <div class="pills-grid material-pills-grid" *ngIf="!isVisualAttribute(attr) && attr.options.length > 0">
+                  <button type="button" *ngFor="let opt of attr.options" class="pill-btn material-pill-btn"
+                    [class.active]="attr.selectedOptionId === opt.id" (click)="selectAttributeOption(attr, opt)"
+                    (mouseenter)="onOptionMouseEnter(attr.groupId, opt.name)"
+                    (mouseleave)="onOptionMouseLeave(attr.groupId)" [title]="opt.name">
+                    <span>{{ opt.name }}</span>
+                  </button>
+
+                  <!-- Nút tùy chọn Khác trong pills grid (đồng bộ giao diện spec-chip chip-other) -->
+                  <button type="button" class="spec-chip chip-other pill-other"
+                    [class.active]="attr.selectedOptionId === 'custom_other'" (click)="selectOtherOption(attr)"
+                    (mouseenter)="onOptionMouseEnter(attr.groupId, 'Khác (Theo yêu cầu riêng)')"
+                    (mouseleave)="onOptionMouseLeave(attr.groupId)" title="Yêu cầu tùy chọn riêng ngoài danh mục">
+                    <lucide-angular [img]="icons.Check" size="12"
+                      *ngIf="attr.selectedOptionId === 'custom_other'"></lucide-angular>
+                    <lucide-angular [img]="icons.Plus" size="12"
+                      *ngIf="attr.selectedOptionId !== 'custom_other'"></lucide-angular>
+                    <span>Khác</span>
+                  </button>
+                </div>
+
+                <!-- Ô nhập yêu cầu may đo riêng cho thuộc tính này: ẨN MẶC ĐỊNH, CHỈ HIỆN KHI CHỌN "KHÁC" -->
+                <div class="other-input-wrap" *ngIf="attr.selectedOptionId === 'custom_other'">
+                  <input type="text" [(ngModel)]="attr.customNote" [name]="'customNote_' + attr.groupId"
+                    [placeholder]="'Nhập yêu cầu riêng cho ' + attr.label " class="custom-input custom-spec-input"
+                    autofocus />
+                </div>
               </div>
             </ng-container>
 
@@ -207,7 +247,8 @@
                   <lucide-angular [img]="icons.Coins" size="15" color="#765337"></lucide-angular>
                   <span>Khoảng ngân sách dự kiến <span class="req">*</span></span>
                 </label>
-                <span class="field-current-tag" *ngIf="productPrice > 0">Giá niêm yết: {{ productPrice | number:'1.0-0' }} VNĐ</span>
+                <span class="field-current-tag" *ngIf="productPrice > 0">Giá niêm yết: {{ productPrice | number:'1.0-0'
+                  }} VNĐ</span>
               </div>
 
               <!-- Chips khoảng giá động theo giá sản phẩm -->
@@ -215,18 +256,29 @@
                 <button type="button" *ngFor="let b of dynamicBudgetRanges" class="spec-chip"
                   [class.active]="selectedBudgetRange === b.value" (click)="selectBudgetChip(b.value)"
                   [title]="b.hint || ''">
+                  <lucide-angular [img]="icons.Check" size="12"
+                    *ngIf="selectedBudgetRange === b.value"></lucide-angular>
                   <span>{{ b.label }}</span>
+                </button>
+
+                <!-- Nút tùy chọn Khác trong ngân sách -->
+                <button type="button" class="spec-chip chip-other" [class.active]="selectedBudgetRange === 'other'"
+                  (click)="selectOtherBudget()" title="Nhập số tiền ngân sách dự kiến riêng">
+                  <lucide-angular [img]="icons.Check" size="12"
+                    *ngIf="selectedBudgetRange === 'other'"></lucide-angular>
+                  <lucide-angular [img]="icons.Plus" size="12" *ngIf="selectedBudgetRange !== 'other'"></lucide-angular>
+                  <span>Khác</span>
                 </button>
               </div>
 
-              <div class="budget-input-wrap">
+              <!-- Ô nhập số tiền ngân sách: CHỈ HIỂN THỊ KHI NHẤN "KHÁC" -->
+              <div class="budget-input-wrap other-input-wrap" *ngIf="selectedBudgetRange === 'other'">
                 <input type="text" [value]="estimatedBudget" (input)="formatBudgetInput($event)"
-                  (blur)="onBlurField('budget')" placeholder="Hoặc nhập số tiền dự kiến chính xác (VD: 35.000.000)"
-                  class="custom-input" [class.is-invalid]="formErrors['budget']" />
+                  (blur)="onBlurField('budget')" placeholder="Nhập số tiền dự kiến chính xác (VD: 35.000.000)"
+                  class="custom-input" [class.is-invalid]="formErrors['budget']" autofocus />
                 <span class="currency-suffix">VNĐ</span>
               </div>
               <span class="field-error-text" *ngIf="formErrors['budget']">{{ formErrors['budget'] }}</span>
-              <span class="field-hint-text">Ngân sách dự kiến giúp KTS DCOR đề xuất phương án may đo và vật liệu tối ưu nhất.</span>
             </div>
 
           </div>
@@ -240,7 +292,6 @@
             <div class="section-badge-num">3</div>
             <div class="section-header-text">
               <h4>Tệp tư liệu & Mẫu thiết kế tham khảo</h4>
-              <p>Tải lên bản phác thảo mặt bằng, hình ảnh phối cảnh 3D hoặc mẫu vân gỗ, màu vải thực tế</p>
             </div>
           </div>
 
@@ -323,7 +374,8 @@
           </div>
           <div class="sum-line" *ngIf="hasDimensions && (requestedDimensions || customDimensionNote)">
             <span class="sum-label">Kích thước may đo:</span>
-            <strong class="sum-val">{{ requestedDimensions || originalDimensions }} {{ customDimensionNote ? '(' + customDimensionNote + ')' : '' }}</strong>
+            <strong class="sum-val">{{ requestedDimensions || originalDimensions }} {{ customDimensionNote ? '(' +
+              customDimensionNote + ')' : '' }}</strong>
           </div>
           <ng-container *ngFor="let attr of activeCustomAttributes">
             <div class="sum-line" *ngIf="attr.selectedOptionName !== attr.originalValue || attr.customNote">
@@ -334,9 +386,10 @@
               </strong>
             </div>
           </ng-container>
-          <div class="sum-line" *ngIf="estimatedBudget || selectedBudgetRange">
+          <div class="sum-line" *ngIf="selectedBudgetRange">
             <span class="sum-label">Dự toán ngân sách:</span>
-            <strong class="sum-val">{{ estimatedBudget ? estimatedBudget + ' VNĐ' : selectedBudgetRange }}</strong>
+            <strong class="sum-val">{{ selectedBudgetRange === 'other' ? (estimatedBudget ? estimatedBudget + ' VNĐ' :
+              'Khác (Chờ báo giá)') : selectedBudgetRange }}</strong>
           </div>
           <div class="sum-line" *ngIf="uploadedFiles.length > 0">
             <span class="sum-label">Tài liệu tham khảo đính kèm:</span>

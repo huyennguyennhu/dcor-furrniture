@@ -220,8 +220,8 @@
                 <span *ngIf="isOnSale(prod)" class="badge-hotdeal">
                   HOT DEAL {{ getDiscountBadgeText(prod) }}
                 </span>
-                <span *ngIf="!isOnSale(prod) && prod.isNew" class="badge-new">
-                  MỚI
+                <span *ngIf="prod.isNew" class="badge-new">
+                  NEW
                 </span>
               </div>
 

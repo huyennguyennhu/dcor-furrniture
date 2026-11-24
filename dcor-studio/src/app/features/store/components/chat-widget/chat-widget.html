@@ -123,6 +123,24 @@
         </div>
       }
 
+      <!-- DẢI THÔNG BÁO ĐANG CHỜ NHÂN VIÊN VỚI NÚT HỦY ĐỂ QUAY LẠI BOT -->
+      @if (chatService.currentConversation()?.mode === 'WAITING_STAFF') {
+        <div class="chat-banner chat-banner-waiting">
+          <div class="chat-banner-waiting-text">
+            <app-icon name="Clock" size="14" color="#765337"></app-icon>
+            <span>Đang chờ nhân viên hỗ trợ...</span>
+          </div>
+          <button
+            type="button"
+            class="chat-banner-revert-btn"
+            (click)="chatService.selectQuickReply('tiep_tuc_chat_bot')"
+            title="Quay lại trò chuyện với Trợ lý AI"
+          >
+            Chat với AI
+          </button>
+        </div>
+      }
+
       <!-- DẢI THÔNG BÁO MẤT KẾT NỐI -->
       @if (!chatService.isConnected() && chatService.isReconnecting()) {
         <div class="chat-banner chat-banner-reconnect">

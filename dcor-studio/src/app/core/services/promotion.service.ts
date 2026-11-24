@@ -38,6 +38,28 @@ export interface ActiveProductDiscount {
   badgeText: string;
 }
 
+/**
+ * Định dạng nhãn giảm giá thống nhất toàn cửa hàng:
+ * - Giảm theo số tiền cố định (FIXED / AMOUNT / FIXED_AMOUNT): -500k, -1.000k (hoặc -500đ nếu < 1.000đ)
+ * - Giảm theo phần trăm (PERCENT / PERCENTAGE): -30%
+ */
+export function formatDiscountBadgeText(
+  discountType?: string | null,
+  discountValue?: number | null
+): string {
+  const val = Number(discountValue || 0);
+  if (!val || val <= 0) return '';
+  const type = String(discountType || 'PERCENT').toUpperCase();
+  if (type === 'FIXED' || type === 'AMOUNT' || type === 'FIXED_AMOUNT') {
+    if (val >= 1000) {
+      const kVal = Math.round(val / 1000);
+      return `-${new Intl.NumberFormat('vi-VN').format(kVal)}k`;
+    }
+    return `-${new Intl.NumberFormat('vi-VN').format(Math.round(val))}đ`;
+  }
+  return `-${Math.round(val)}%`;
+}
+
 export const FALLBACK_CAMPAIGNS: any[] = [
   {
     id: 'CAMP-001',
@@ -377,26 +399,36 @@ export class PromotionService {
         }
 
         if (isMatch) {
-          const discountPercent = Number(it.discountPercent) || Number(camp.discountValue) || 0;
+          const isFixed = camp.discountType === 'FIXED' || camp.discountType === 'AMOUNT' || camp.discountType === 'FIXED_AMOUNT';
           const origPrice = Number(it.originalPrice) || basePrice;
           let salePrice = Number(it.salePrice);
+          let discountValue = 0;
+          let discountPercent = 0;
 
-          if (!salePrice || salePrice >= origPrice) {
-            if (camp.discountType === 'FIXED') {
-              salePrice = Math.max(0, origPrice - Number(camp.discountValue || 0));
-            } else {
+          if (isFixed) {
+            const campFixedVal = Number(camp.discountValue || 0);
+            if (!salePrice || salePrice >= origPrice) {
+              salePrice = Math.max(0, origPrice - campFixedVal);
+            }
+            discountValue = origPrice > salePrice ? (origPrice - salePrice) : campFixedVal;
+            discountPercent = origPrice > 0 ? Math.round((discountValue / origPrice) * 100) : 0;
+          } else {
+            discountPercent = Number(it.discountPercent) || Number(camp.discountValue) || 0;
+            discountValue = discountPercent;
+            if (!salePrice || salePrice >= origPrice) {
               salePrice = Math.round(origPrice * (100 - discountPercent) / 100);
             }
           }
 
-          const badgeText = discountPercent > 0 ? `-${discountPercent}%` : 'SALE';
+          const normalizedType: 'PERCENT' | 'AMOUNT' = isFixed ? 'AMOUNT' : 'PERCENT';
+          const badgeText = formatDiscountBadgeText(normalizedType, discountValue) || 'SALE';
 
           const result: ActiveProductDiscount = {
             campaignId: camp.id,
             campaignName: camp.name,
             discountPercent,
-            discountValue: discountPercent,
-            discountType: camp.discountType === 'FIXED' ? 'AMOUNT' : 'PERCENT',
+            discountValue,
+            discountType: normalizedType,
             salePrice,
             originalPrice: origPrice,
             badgeText

@@ -10,12 +10,12 @@
   <div class="card-image-box" (mousemove)="onImageMouseMove($event)">
 
     <!-- Badge Khuyến mãi / Hàng mới -->
-    <div class="card-badge-wrap" *ngIf="discountBadgeText">
+    <div class="card-badge-wrap" *ngIf="isOnSale || isNew">
       <span *ngIf="isOnSale" class="badge-hotdeal">
         HOT DEAL {{ discountBadgeText }}
       </span>
-      <span *ngIf="!isOnSale && discountBadgeText" class="badge-new">
-        {{ discountBadgeText }}
+      <span *ngIf="isNew" class="badge-new">
+        NEW
       </span>
     </div>
 

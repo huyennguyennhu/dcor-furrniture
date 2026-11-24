@@ -197,11 +197,11 @@ export const chatAdminController = {
         const conv = normalizeConversationOutput(rawConv);
         const { guestTokenHash: _, messages: _msgs, ...rest } = conv as any;
 
-        // Định dạng hiển thị 'Khách vãng lai #<4 ký tự cuối id>' khi không có tên hoặc rỗng
+        // Định dạng hiển thị tên khách hoặc Khách vãng lai
         const displayName =
           conv.guestName && conv.guestName.trim()
             ? conv.guestName.trim()
-            : `Khách vãng lai #${conv.id.slice(-4)}`;
+            : 'Khách vãng lai';
 
         // Không bao giờ hiển thị SĐT dạng GOOG_... hoặc nếu rỗng
         let displayPhone = conv.guestPhone || '';
@@ -307,7 +307,7 @@ export const chatAdminController = {
       const displayName =
         safeOutputConv.guestName && safeOutputConv.guestName.trim()
           ? safeOutputConv.guestName.trim()
-          : `Khách vãng lai #${safeOutputConv.id.slice(-4)}`;
+          : 'Khách vãng lai';
 
       let displayPhone = safeOutputConv.guestPhone || '';
       if (displayPhone.startsWith('GOOG_')) {

@@ -31,12 +31,14 @@
 
       <!-- Ảnh sản phẩm chính kèm Badge & Nút Yêu thích chuẩn product-item-card -->
       <div class="main-image-card">
-        <span *ngIf="discountPercent" class="badge-hotdeal">
-          HOT DEAL -{{ discountPercent }}%
-        </span>
-        <span *ngIf="!discountPercent && activeProduct.isNew" class="badge-new">
-          MỚI
-        </span>
+        <div class="qv-badge-wrap" *ngIf="discountBadgeText || activeProduct.isNew">
+          <span *ngIf="discountBadgeText" class="badge-hotdeal">
+            HOT DEAL {{ discountBadgeText }}
+          </span>
+          <span *ngIf="activeProduct.isNew" class="badge-new">
+            NEW
+          </span>
+        </div>
 
         <!-- Nút Yêu thích chuẩn CSS .round-action-btn.wishlist-btn -->
         <button type="button" class="round-action-btn wishlist-btn" [class.active]="isWishlisted" 

@@ -20,11 +20,11 @@
     <span *ngIf="onSale" class="badge-tag badge-sale">
       {{ formattedDiscount }}
     </span>
+    <span *ngIf="isNew" class="badge-tag badge-new">
+      NEW
+    </span>
     <span *ngIf="!onSale && isBestSeller" class="badge-tag badge-bestseller">
       Bán chạy
-    </span>
-    <span *ngIf="!onSale && !isBestSeller && isNew" class="badge-tag badge-new">
-      Mới
     </span>
   </div>
 </div>

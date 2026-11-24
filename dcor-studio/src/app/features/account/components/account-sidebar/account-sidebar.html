@@ -18,10 +18,8 @@
     </div>
 
     <!-- Member Tier Badge (Hover hiển thị dòng tích lũy điểm) -->
-    <div *ngIf="isLoggedIn" 
-         class="tier-badge has-tooltip" 
-         [ngClass]="profile?.memberBadge?.toLowerCase() || 'bronze'"
-         title="Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor">
+    <div *ngIf="isLoggedIn" class="tier-badge has-tooltip" [ngClass]="profile?.memberBadge?.toLowerCase() || 'bronze'"
+      title="Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor">
       <span class="tier-icon">★</span>
       <span class="tier-text">Hạng {{ profile?.memberTier || 'Đồng' }}</span>
       <span class="tier-points">{{ (profile?.rewardPoints || 0) | number }} điểm</span>
@@ -60,10 +58,7 @@
     </a>
 
     <!-- 4. Đánh giá đơn hàng -->
-    <a 
-      routerLink="/account/reviews" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/reviews" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.Star" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Đánh giá đơn hàng</span>
@@ -71,67 +66,42 @@
     </a>
 
     <!-- 5. Yêu cầu đổi trả -->
-    <a 
-      routerLink="/account/returns" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/returns" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.RefreshCw" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Yêu cầu đổi trả</span>
     </a>
 
     <!-- 6. Bảo hành sản phẩm -->
-    <a 
-      routerLink="/account/warranty" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/warranty" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.ShieldCheck" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Bảo hành sản phẩm</span>
     </a>
 
     <!-- 7. Sản phẩm yêu thích -->
-    <a 
-      routerLink="/account/wishlist" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/wishlist" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.Heart" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Sản phẩm yêu thích</span>
     </a>
 
     <!-- 8. Lịch hẹn tư vấn -->
-    <a 
-      routerLink="/account/appointments" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <a routerLink="/account/appointments" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.CalendarDays" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Lịch hẹn tư vấn</span>
     </a>
 
-    <!-- 9. Đơn Custom -->
-    <a 
-      routerLink="/account/custom-requests" 
-      routerLinkActive="active" 
-      [routerLinkActiveOptions]="{ exact: false }"
+    <!-- 9. Đơn may đo & Custom -->
+    <a routerLink="/account/custom-requests" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }"
       class="nav-item">
       <lucide-angular [img]="icons.Pencil" size="18" class="nav-icon"></lucide-angular>
       <span class="nav-label">Đơn Custom</span>
     </a>
 
-    <!-- 10. Thiết kế của tôi -->
-    <a 
-      routerLink="/community" 
-      [queryParams]="{ tab: 'my-hub', sub: 'saved' }" 
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: false }"
-      class="nav-item">
-      <lucide-angular [img]="icons.Layers" size="18" class="nav-icon"></lucide-angular>
-      <span class="nav-label">Thiết kế của tôi</span>
-    </a>
 
-    <!-- 11. Thông báo (Chỉ hiện cho tài khoản đăng nhập) -->
+    <!-- 10. Thông báo (Chỉ hiện cho tài khoản đăng nhập) -->
     <a *ngIf="isLoggedIn" routerLink="/account/notifications" routerLinkActive="active"
       [routerLinkActiveOptions]="{ exact: false }" class="nav-item">
       <lucide-angular [img]="icons.Bell" size="18" class="nav-icon"></lucide-angular>
