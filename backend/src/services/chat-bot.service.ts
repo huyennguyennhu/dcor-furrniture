@@ -305,7 +305,7 @@ export class ChatBotService {
         newFallbackCount: 0,
         updatedBotState: botState,
         quickReplies: [
-          { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
+          { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'Tiếp tục chat với Trợ lý AI' },
         ],
       };
     }
@@ -346,7 +346,7 @@ export class ChatBotService {
           newFallbackCount: 0,
           updatedBotState: botState,
           quickReplies: [
-            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
+            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'Tiếp tục chat với Trợ lý AI' },
             { label: '📞 Hotline 1900 1234', payload: 'hotline' },
             { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
           ],
@@ -364,8 +364,8 @@ export class ChatBotService {
           newFallbackCount: 0,
           updatedBotState: botState,
           quickReplies: [
-            { label: '🛎️ Để lại tin nhắn chờ nhân viên', payload: 'xac_nhan_cho_nhan_vien' },
-            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
+            { label: '🛎️ Để lại tin nhắn chờ nhân viên', payload: 'Để lại tin nhắn chờ nhân viên' },
+            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'Tiếp tục chat với Trợ lý AI' },
             { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
           ],
         };
