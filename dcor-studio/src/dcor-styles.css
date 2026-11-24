@@ -1171,40 +1171,41 @@ nav ul a:hover {
 }
 
 .badge-tag {
-  padding: 4px 10px;
-  font-size: 11px;
+  display: inline-block;
+  padding: 8px 10px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  border-radius: 6px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1.5px solid currentColor;
-  background: rgba(0, 0, 0, 0.05);
+  letter-spacing: 0.5px;
+  line-height: 1;
+  border-radius: 10px;
+  border: 1px solid currentColor;
+  background-color: rgba(0, 0, 0, 0.05);
   /* Default fallback */
 }
 
 .badge-tag.badge-sale {
-  color: #FF3B30;
-  /* Vibrant Red */
-  background: rgba(255, 59, 48, 0.2);
+  color: #C42326;
+  border-color: #C42326;
+  background-color: rgba(255, 232, 232, 0.5);
 }
 
 .badge-tag.badge-bestseller {
-  color: #E67E22;
-  /* Strong Orange */
-  background: rgba(230, 126, 34, 0.15);
+  color: #C2410C;
+  border-color: #C2410C;
+  background-color: rgba(255, 237, 213, 0.6);
 }
 
 .badge-tag.badge-new {
-  color: #059669;
-  /* Strong Green */
-  background: rgba(5, 150, 105, 0.15);
+  color: #CA8A04;
+  border-color: #CA8A04;
+  background-color: rgba(254, 249, 195, 0.65);
 }
 
 .badge-tag.badge-custom {
-  background: rgba(var(--accent-rgb), 0.2);
+  background-color: rgba(var(--accent-rgb), 0.12);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent);
 }
 
 .card-details {

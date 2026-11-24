@@ -219,6 +219,26 @@ async function getCategoryMap(): Promise<Map<string, any>> {
 let cachedProductsList: any[] | null = null;
 let lastProductsCacheTime = 0;
 
+// In-memory cache for top 5 newest active product IDs
+let cachedNewestProductIds: Set<string> | null = null;
+let lastNewestIdsCacheTime = 0;
+
+async function getNewestProductIds(limit = 5): Promise<Set<string>> {
+  const now = Date.now();
+  if (cachedNewestProductIds && (now - lastNewestIdsCacheTime < 300000)) {
+    return cachedNewestProductIds;
+  }
+  const newest = await withDbRetry(() => prisma.product.findMany({
+    where: { isActive: true, deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: { id: true }
+  }));
+  cachedNewestProductIds = new Set(newest.map(p => p.id));
+  lastNewestIdsCacheTime = Date.now();
+  return cachedNewestProductIds;
+}
+
 // Single-Flight deduplication maps để chống Cache Stampede / Thundering Herd khi cache hết hạn
 const inFlightProductsQueryMap = new Map<string, Promise<any[]>>();
 const inFlightProductDetailMap = new Map<string, Promise<any>>();
@@ -228,6 +248,8 @@ export function invalidateProductCache() {
   lastProductsCacheTime = 0;
   cachedCategoryMap = null;
   lastCategoryCacheTime = 0;
+  cachedNewestProductIds = null;
+  lastNewestIdsCacheTime = 0;
   inFlightProductsQueryMap.clear();
   inFlightProductDetailMap.clear();
 }
@@ -331,6 +353,15 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
         });
       }
 
+      const newestIds = isFullCatalog
+        ? new Set(products.slice(0, 5).map(p => p.id))
+        : await getNewestProductIds(5);
+
+      if (isFullCatalog) {
+        cachedNewestProductIds = newestIds;
+        lastNewestIdsCacheTime = Date.now();
+      }
+
       const activeCampaigns = promotionController.getActiveCampaignsHelper();
       const enrichedProducts = products.map(p => {
         let rating = 4.9;
@@ -380,11 +411,23 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
                 (itName && pName && (itName === pName || pName.includes(itName) || itName.includes(pName)));
 
               if (isMatch) {
-                discountValue = it.discountPercent || camp.discountValue || 0;
-                discountType = camp.discountType === 'FIXED' ? 'AMOUNT' : 'PERCENT';
+                const campType = String(camp.discountType || '').toUpperCase();
+                const isFixed = campType === 'FIXED' || campType === 'AMOUNT' || campType === 'FIXED_AMOUNT';
+                discountType = isFixed ? 'AMOUNT' : 'PERCENT';
                 campaignName = camp.name;
-                originalPrice = it.originalPrice || p.basePrice;
-                salePrice = it.salePrice || (discountType === 'AMOUNT' ? Math.max(0, originalPrice - camp.discountValue) : Math.round(originalPrice * (100 - discountValue) / 100));
+                const origPrice = Number(it.originalPrice || p.basePrice || 0);
+                originalPrice = origPrice;
+                if (isFixed) {
+                  const campFixedVal = Number(camp.discountValue || 0);
+                  const computedSale = it.salePrice && Number(it.salePrice) < origPrice
+                    ? Number(it.salePrice)
+                    : Math.max(0, origPrice - campFixedVal);
+                  salePrice = computedSale;
+                  discountValue = origPrice > computedSale ? (origPrice - computedSale) : campFixedVal;
+                } else {
+                  discountValue = Number(it.discountPercent || camp.discountValue || 0);
+                  salePrice = it.salePrice || Math.round(origPrice * (100 - discountValue) / 100);
+                }
                 break;
               }
             }
@@ -394,6 +437,7 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
 
         return {
           ...p,
+          isNew: newestIds.has(p.id),
           discountValue: discountValue > 0 ? discountValue : p.discountValue,
           discountType: discountValue > 0 ? discountType : p.discountType,
           campaignName,
@@ -567,11 +611,23 @@ app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
               (itName && pName && (itName === pName || pName.includes(itName) || itName.includes(pName)));
 
             if (isMatch) {
-              discountValue = it.discountPercent || camp.discountValue || 0;
-              discountType = camp.discountType === 'FIXED' ? 'AMOUNT' : 'PERCENT';
+              const campType = String(camp.discountType || '').toUpperCase();
+              const isFixed = campType === 'FIXED' || campType === 'AMOUNT' || campType === 'FIXED_AMOUNT';
+              discountType = isFixed ? 'AMOUNT' : 'PERCENT';
               campaignName = camp.name;
-              originalPrice = it.originalPrice || product.basePrice;
-              salePrice = it.salePrice || (discountType === 'AMOUNT' ? Math.max(0, originalPrice - camp.discountValue) : Math.round(originalPrice * (100 - discountValue) / 100));
+              const origPrice = Number(it.originalPrice || product.basePrice || 0);
+              originalPrice = origPrice;
+              if (isFixed) {
+                const campFixedVal = Number(camp.discountValue || 0);
+                const computedSale = it.salePrice && Number(it.salePrice) < origPrice
+                  ? Number(it.salePrice)
+                  : Math.max(0, origPrice - campFixedVal);
+                salePrice = computedSale;
+                discountValue = origPrice > computedSale ? (origPrice - computedSale) : campFixedVal;
+              } else {
+                discountValue = Number(it.discountPercent || camp.discountValue || 0);
+                salePrice = it.salePrice || Math.round(origPrice * (100 - discountValue) / 100);
+              }
               break;
             }
           }
@@ -579,8 +635,11 @@ app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
         }
       }
 
+      const newestIds = await getNewestProductIds(5);
+
       const responseData = {
         ...product,
+        isNew: newestIds.has(product.id),
         discountValue: discountValue > 0 ? discountValue : product.discountValue,
         discountType: discountValue > 0 ? discountType : product.discountType,
         campaignName,

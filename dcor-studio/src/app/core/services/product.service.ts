@@ -7,12 +7,31 @@ import { environment } from '../../../environments/environment';
 export class ProductService {
   private productsCache: any[] | null = null;
   private productsPromise: Promise<any[]> | null = null;
+  private newestProductIds = new Set<string>();
 
   private categoriesCache: any[] | null = null;
   private categoriesPromise: Promise<any[]> | null = null;
 
   private productDetailCache = new Map<string, any>();
   private productDetailPromises = new Map<string, Promise<any>>();
+
+  /**
+   * Đánh dấu tự động 5 sản phẩm được tạo gần nhất (isNew = true)
+   */
+  private applyNewestFlags(products: any[]): any[] {
+    if (!Array.isArray(products) || products.length === 0) return products;
+    const sorted = [...products]
+      .map((p, idx) => ({ p, idx, ts: p.createdAt ? new Date(p.createdAt).getTime() : 0 }))
+      .sort((a, b) => (b.ts - a.ts) || (a.idx - b.idx));
+    const topFiveIds = new Set<string>(
+      sorted.slice(0, 5).map(item => String(item.p.id || item.p.productId || '')).filter(Boolean)
+    );
+    this.newestProductIds = topFiveIds;
+    return products.map(p => ({
+      ...p,
+      isNew: topFiveIds.has(String(p.id || p.productId || ''))
+    }));
+  }
 
   /**
    * Lấy danh sách toàn bộ sản phẩm với bộ nhớ đệm (client-side in-memory cache)
@@ -34,7 +53,8 @@ export class ProductService {
           throw new Error(`HTTP ${res.status}: Không thể tải danh sách sản phẩm`);
         }
         const data = await res.json();
-        const products = Array.isArray(data) ? data : (data.data || data.products || []);
+        const rawProducts = Array.isArray(data) ? data : (data.data || data.products || []);
+        const products = this.applyNewestFlags(rawProducts);
         this.productsCache = products;
         return products;
       } catch (err) {
@@ -96,6 +116,9 @@ export class ProductService {
           throw new Error(`HTTP ${res.status}: Không thể tải thông tin sản phẩm`);
         }
         const data = await res.json();
+        if (this.newestProductIds.size > 0 && data) {
+          data.isNew = this.newestProductIds.has(String(data.id || ''));
+        }
         this.productDetailCache.set(id, data);
         if (data.id) this.productDetailCache.set(data.id, data);
         if (data.slug) this.productDetailCache.set(data.slug, data);
@@ -116,6 +139,7 @@ export class ProductService {
   clearCache(): void {
     this.productsCache = null;
     this.productsPromise = null;
+    this.newestProductIds.clear();
     this.categoriesCache = null;
     this.categoriesPromise = null;
     this.productDetailCache.clear();

@@ -31,7 +31,8 @@ import {
   ShieldCheck,
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  Plus
 } from 'lucide-angular';
 import { environment } from '../../../../environments/environment';
 
@@ -98,7 +99,8 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
     ShieldCheck,
     ExternalLink,
     ChevronRight,
-    Info
+    Info,
+    Plus
   };
 
   // User State
@@ -323,6 +325,7 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
         const currentOpt = (g.options || []).find((o: any) => o.id === selId) || g.options?.[0];
         const originalValue = currentOpt ? currentOpt.name : (variant?.name || 'Tiêu chuẩn');
         const originalOptionId = currentOpt ? currentOpt.id : '';
+        const isRealColorGroup = type === 'color';
 
         this.activeCustomAttributes.push({
           groupId: g.groupId,
@@ -330,12 +333,16 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
           type,
           originalValue,
           originalOptionId,
-          options: (g.options || []).map((o: any) => ({
-            id: String(o.id),
-            name: o.name,
-            hexColor: o.hexColor || this.detectColor(o.name).hex,
-            image: o.image || null
-          })),
+          options: (g.options || []).map((o: any) => {
+            const hasRealImg = typeof o.image === 'string' && o.image.startsWith('http');
+            const hasRealUrl = typeof o.imageUrl === 'string' && o.imageUrl.startsWith('http');
+            return {
+              id: String(o.id),
+              name: o.name,
+              hexColor: o.hexColor || (isRealColorGroup ? this.detectColor(o.name).hex : null),
+              image: hasRealImg ? o.image : (hasRealUrl ? o.imageUrl : null)
+            };
+          }),
           selectedOptionId: originalOptionId,
           selectedOptionName: originalValue,
           customNote: ''
@@ -345,12 +352,18 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       // Fallback nếu attributeGroups chưa được truyền từ component cha
       for (const attr of prod.configOptions.attributes) {
         if (attr.groupId === 'vaConfigurationSize' || attr.groupId === 'vaMattressSize') continue;
-        const opts = (attr.options || []).map((o: any) => ({
-          id: String(o.id),
-          name: o.name,
-          hexColor: o.hexColor || this.detectColor(o.name).hex,
-          image: o.image || null
-        }));
+        const attrType = this.determineAttributeType({ groupId: attr.groupId, label: attr.groupName || '' });
+        const isColor = attrType === 'color';
+        const opts = (attr.options || []).map((o: any) => {
+          const hasRealImg = typeof o.image === 'string' && o.image.startsWith('http');
+          const hasRealUrl = typeof o.imageUrl === 'string' && o.imageUrl.startsWith('http');
+          return {
+            id: String(o.id),
+            name: o.name,
+            hexColor: o.hexColor || (isColor ? this.detectColor(o.name).hex : null),
+            image: hasRealImg ? o.image : (hasRealUrl ? o.imageUrl : null)
+          };
+        });
         const originalValue = opts[0]?.name || 'Tiêu chuẩn';
         this.activeCustomAttributes.push({
           groupId: attr.groupId,
@@ -519,6 +532,46 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
   }
 
   // --- FORM INTERACTIONS ---
+  hoveredOption: Record<string, string | null> = {};
+
+  onOptionMouseEnter(groupId: string, name: string) {
+    this.hoveredOption[groupId] = name;
+  }
+
+  onOptionMouseLeave(groupId: string) {
+    this.hoveredOption[groupId] = null;
+  }
+
+  getHoveredOrSelectedName(attr: CustomAttributeItem): string {
+    return this.hoveredOption[attr.groupId] || (attr.selectedOptionId === 'custom_other' ? 'Khác' : (attr.selectedOptionName || ''));
+  }
+
+  isVisualAttribute(attr: CustomAttributeItem): boolean {
+    if (attr.type === 'size') return false;
+    // Chỉ hiển thị dạng vòng tròn swatch nếu có hình ảnh swatch texture thực tế
+    if (attr.options?.some(o => !!o.image)) return true;
+    // Hoặc nếu là nhóm màu sắc có mã màu hex thực tế
+    if (attr.type === 'color' && attr.options?.some(o => !!o.hexColor && o.hexColor !== '#d1d5db' && o.hexColor !== 'transparent')) return true;
+    return false;
+  }
+
+  isBrightColor(opt: any): boolean {
+    if (opt.image) return false;
+    const hex = (opt.hexColor || this.detectColor(opt.name)?.hex || '').toLowerCase();
+    return hex === '#ffffff' || hex === '#f3f4f6' || hex === '#f8f8f8' || hex === '#d8c8b8' || hex === '#fafafa';
+  }
+
+  getSwatchBgColor(opt: any): string {
+    if (opt.image) {
+      return '#8B5A2B';
+    }
+    const color = opt.hexColor || this.detectColor(opt.name)?.hex;
+    if (!color || color.toLowerCase() === 'red') {
+      return '#8B5A2B';
+    }
+    return color;
+  }
+
   selectAttributeOption(attr: CustomAttributeItem, opt: any) {
     if (attr.selectedOptionId === opt.id) {
       attr.selectedOptionId = attr.originalOptionId;
@@ -527,6 +580,11 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       attr.selectedOptionId = opt.id;
       attr.selectedOptionName = opt.name;
     }
+  }
+
+  selectOtherOption(attr: CustomAttributeItem) {
+    attr.selectedOptionId = 'custom_other';
+    attr.selectedOptionName = 'Khác';
   }
 
   selectDimensionChip(opt: any) {
@@ -544,8 +602,15 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       this.selectedBudgetRange = '';
     } else {
       this.selectedBudgetRange = range;
+      this.estimatedBudget = '';
       delete this.formErrors['budget'];
     }
+  }
+
+  selectOtherBudget() {
+    this.selectedBudgetRange = 'other';
+    this.estimatedBudget = '';
+    delete this.formErrors['budget'];
   }
 
   formatBudgetInput(event: any) {
@@ -811,8 +876,10 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       this.formErrors['email'] = 'Email không đúng định dạng (VD: hoten@gmail.com).';
     }
 
-    if (!this.selectedBudgetRange && !this.estimatedBudget.trim()) {
-      this.formErrors['budget'] = 'Vui lòng chọn hoặc nhập khoảng ngân sách dự kiến.';
+    if (!this.selectedBudgetRange) {
+      this.formErrors['budget'] = 'Vui lòng chọn khoảng ngân sách dự kiến hoặc chọn Khác để nhập số tiền.';
+    } else if (this.selectedBudgetRange === 'other' && !this.estimatedBudget.trim()) {
+      this.formErrors['budget'] = 'Vui lòng nhập số tiền ngân sách dự kiến chính xác.';
     }
 
     return Object.keys(this.formErrors).length === 0;
@@ -827,7 +894,10 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
     if (this.email.trim() && !emailRegex.test(this.email.trim())) {
       return true;
     }
-    if (!this.selectedBudgetRange && !this.estimatedBudget.trim()) {
+    if (!this.selectedBudgetRange) {
+      return true;
+    }
+    if (this.selectedBudgetRange === 'other' && !this.estimatedBudget.trim()) {
       return true;
     }
     if (!this.isPhoneVerified) {
@@ -882,8 +952,12 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
         customDimensionNote: this.customDimensionNote.trim(),
         attributes: customizedAttributes,
         requirementDetails: this.requirementDetails.trim(),
-        budgetRange: this.selectedBudgetRange,
-        estimatedBudget: this.estimatedBudget.trim()
+        budgetRange: this.selectedBudgetRange === 'other'
+          ? (this.estimatedBudget.trim() ? `${this.estimatedBudget.trim()} VNĐ` : 'Khác')
+          : this.selectedBudgetRange,
+        estimatedBudget: this.selectedBudgetRange === 'other'
+          ? this.estimatedBudget.trim()
+          : (this.estimatedBudget.trim() || this.selectedBudgetRange)
       },
       // Tương thích ngược với các trường cũ
       specifications: {
@@ -894,8 +968,12 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
         selectedColor: this.activeCustomAttributes.find(a => a.type === 'color')?.selectedOptionName || '',
         customColorNote: this.activeCustomAttributes.find(a => a.type === 'color')?.customNote || '',
         requirementDetails: this.requirementDetails.trim(),
-        budgetRange: this.selectedBudgetRange,
-        estimatedBudget: this.estimatedBudget.trim()
+        budgetRange: this.selectedBudgetRange === 'other'
+          ? (this.estimatedBudget.trim() ? `${this.estimatedBudget.trim()} VNĐ` : 'Khác')
+          : this.selectedBudgetRange,
+        estimatedBudget: this.selectedBudgetRange === 'other'
+          ? this.estimatedBudget.trim()
+          : (this.estimatedBudget.trim() || this.selectedBudgetRange)
       },
       attachments: this.uploadedFiles.map(f => ({
         id: f.id,

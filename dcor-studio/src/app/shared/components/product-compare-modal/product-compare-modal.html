@@ -64,8 +64,8 @@
                 <!-- Ảnh sản phẩm theo biến thể đang chọn -->
                 <div class="compare-col-img-box">
                   <img [src]="getColumnImage(prod)" [alt]="prod.name" class="compare-col-img">
-                  <span *ngIf="prod.discountValue" class="compare-sale-tag">
-                    -{{ prod.discountType === 'PERCENT' ? prod.discountValue + '%' : 'SALE' }}
+                  <span *ngIf="getDiscountBadgeText(prod)" class="compare-sale-tag">
+                    {{ getDiscountBadgeText(prod) }}
                   </span>
                 </div>
 

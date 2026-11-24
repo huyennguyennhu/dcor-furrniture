@@ -21,7 +21,7 @@ import { Subscription } from 'rxjs';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
 import { CompareService } from '../../../../core/services/compare.service';
-import { PromotionService } from '../../../../core/services/promotion.service';
+import { PromotionService, formatDiscountBadgeText } from '../../../../core/services/promotion.service';
 import { LucideAngularModule, Heart, Share2, Eye, Scale, ShoppingCart, ChevronDown, Check, Star, SlidersHorizontal, X } from 'lucide-angular';
 
 import { environment } from '../../../../../environments/environment';
@@ -320,7 +320,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
           let finalOriginalPrice = p.originalPrice;
 
           if (campDisc) {
-            finalDiscountValue = campDisc.discountPercent;
+            finalDiscountValue = campDisc.discountValue;
             finalDiscountType = campDisc.discountType;
             lowestPrice = campDisc.salePrice;
             finalOriginalPrice = campDisc.originalPrice || basePrice;
@@ -333,7 +333,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
           }
 
           const isOnSale = Boolean(campDisc || (finalDiscountValue && finalDiscountValue > 0));
-          const discountBadgeText = campDisc ? campDisc.badgeText : (finalDiscountValue ? (finalDiscountType === 'PERCENT' ? `-${finalDiscountValue}%` : 'SALE') : '');
+          const discountBadgeText = campDisc
+            ? campDisc.badgeText
+            : formatDiscountBadgeText(finalDiscountType, finalDiscountValue);
           const currentPrice = lowestPrice;
           const formattedCurrentPrice = new Intl.NumberFormat('vi-VN').format(currentPrice) + ' đ';
           const origPriceVal = finalOriginalPrice || basePrice;
@@ -672,7 +674,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       let finalOriginalPrice = prod.originalPrice || basePrice;
 
       if (campDisc) {
-        finalDiscountValue = campDisc.discountPercent;
+        finalDiscountValue = campDisc.discountValue;
         finalDiscountType = campDisc.discountType;
         lowestPrice = campDisc.salePrice;
         finalOriginalPrice = campDisc.originalPrice || basePrice;
@@ -685,7 +687,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
       }
 
       prod.isOnSale = Boolean(campDisc || (finalDiscountValue && finalDiscountValue > 0));
-      prod.discountBadgeText = campDisc ? campDisc.badgeText : (finalDiscountValue ? (finalDiscountType === 'PERCENT' ? `-${finalDiscountValue}%` : 'SALE') : '');
+      prod.discountBadgeText = campDisc
+        ? campDisc.badgeText
+        : formatDiscountBadgeText(finalDiscountType, finalDiscountValue);
       prod.currentPrice = lowestPrice;
       prod.formattedCurrentPrice = new Intl.NumberFormat('vi-VN').format(lowestPrice) + ' đ';
       prod.originalPrice = finalOriginalPrice;

@@ -24,8 +24,7 @@ import {
   Undo2,
   Sparkles,
   Truck,
-  Pencil,
-  Building2
+  Pencil
 } from 'lucide-angular';
 
 
@@ -82,8 +81,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     Undo2,
     Sparkles,
     Truck,
-    Pencil,
-    Building2
+    Pencil
   };
 
   // Cache biến thể sản phẩm theo productId để tải nhanh tức thì

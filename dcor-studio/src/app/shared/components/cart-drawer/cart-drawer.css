@@ -276,10 +276,6 @@
   min-width: 0;
   cursor: pointer;
 }
-.item-brand-icon {
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
 .item-card-name {
   font-size: 13px;
   font-weight: 600;

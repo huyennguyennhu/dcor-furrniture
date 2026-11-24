@@ -7,7 +7,7 @@ import { IconComponent } from '../icon/icon';
 import { WishlistService } from '../../../core/services/wishlist.service';
 import { CompareService } from '../../../core/services/compare.service';
 import { QuickViewService } from '../../../core/services/quick-view.service';
-import { PromotionService } from '../../../core/services/promotion.service';
+import { PromotionService, formatDiscountBadgeText } from '../../../core/services/promotion.service';
 
 const COMPARE_STORAGE_KEY = 'dcor_compare_items';
 
@@ -37,8 +37,9 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   displayName = '';
   categoryName = '';
   
-  // Pricing
+  // Pricing & Badges
   isOnSale = false;
+  isNew = false;
   discountBadgeText = '';
   currentPrice = 0;
   originalPrice: number | null = null;
@@ -138,6 +139,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     this.categoryName = this.extractCategoryName(p);
 
     // Pricing: Kiểm tra khuyến mãi từ Chiến dịch (Campaigns) hoặc trường discountValue có sẵn
+    this.isNew = Boolean(p.isNew);
     const base = (p.basePrice !== undefined) ? p.basePrice : (p.prices?.[0]?.price || p.price || 0);
     const campaignDisc = this.promotionService.getDiscountForProduct(p);
 
@@ -155,16 +157,16 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
         if (discType === 'PERCENT') {
           this.currentPrice = p.salePrice || Math.round(base * (100 - discVal) / 100);
           this.originalPrice = p.originalPrice || base;
-          this.discountBadgeText = `-${discVal}%`;
+          this.discountBadgeText = formatDiscountBadgeText('PERCENT', discVal);
         } else {
           this.currentPrice = p.salePrice || Math.max(0, base - discVal);
           this.originalPrice = p.originalPrice || base;
-          this.discountBadgeText = 'SALE';
+          this.discountBadgeText = formatDiscountBadgeText(discType, discVal);
         }
       } else {
         this.currentPrice = base;
         this.originalPrice = null;
-        this.discountBadgeText = p.isNew ? 'MỚI' : '';
+        this.discountBadgeText = '';
       }
     }
 

@@ -47,9 +47,9 @@
 
           <!-- Badges góc trên -->
           <div class="pdp-badges-group">
-            <span *ngIf="product.isNew" class="badge-tag badge-new">MỚI</span>
+            <span *ngIf="product.isNew" class="badge-tag badge-new">NEW</span>
             <span *ngIf="product.isBestSeller" class="badge-tag badge-bestseller">BÁN CHẠY</span>
-            <span *ngIf="discountPercent > 0" class="badge-tag badge-discount">-{{ discountPercent }}%</span>
+            <span *ngIf="discountBadgeText" class="badge-tag badge-discount">{{ discountBadgeText }}</span>
           </div>
 
           <!-- Nút phóng to Lightbox -->
@@ -171,7 +171,7 @@
           <div class="price-wrap">
             <span class="pdp-price-current">{{ formatPrice(currentPrice) }}</span>
             <span *ngIf="originalPrice" class="pdp-price-original">{{ formatPrice(originalPrice) }}</span>
-            <span *ngIf="discountPercent > 0" class="pdp-discount-pill">Tiết kiệm {{ discountPercent }}%</span>
+            <span *ngIf="discountSaveText" class="pdp-discount-pill">Tiết kiệm {{ discountSaveText }}</span>
           </div>
 
           <!-- Tình trạng tồn kho -->
@@ -197,7 +197,7 @@
                   (mouseleave)="onOptionMouseLeave(group.groupId)" [title]="formatOptionDisplayName(opt.name, group)"
                   [attr.aria-label]="opt.name">
                   <span class="swatch-color-circle" [class.has-image]="!!opt.image"
-                    [style.background-color]="opt.hexColor || (detectColor(opt.name)?.hex || '#d1d5db')"
+                    [style.background-color]="getSwatchBgColor(opt)"
                     [style.background-image]="opt.image ? 'url(' + opt.image + ')' : 'none'">
                     <app-icon *ngIf="selectedAttributes[group.groupId] === opt.id" name="Check" size="14"
                       class="swatch-check-icon" [color]="isBrightColor(opt) ? '#1c1917' : '#ffffff'"></app-icon>

@@ -8,7 +8,7 @@ import { CatalogProduct } from '../../models/catalog.model';
 import { IconComponent } from '../icon/icon';
 import { CartService } from '../../../core/services/cart.service';
 import { WishlistService } from '../../../core/services/wishlist.service';
-import { PromotionService } from '../../../core/services/promotion.service';
+import { PromotionService, formatDiscountBadgeText } from '../../../core/services/promotion.service';
 import { environment } from '../../../../environments/environment';
 
 export interface AttributeOption {
@@ -152,6 +152,7 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
           this.fullProduct = {
             ...this.product,
             ...data,
+            isNew: this.product?.isNew !== undefined ? Boolean(this.product.isNew) : Boolean(data.isNew),
             productId: data.id || targetId,
             name: data.name || this.product?.name,
             shortDescription: data.name || this.product?.shortDescription,
@@ -824,6 +825,18 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
       return Math.round((disc / base) * 100);
     }
     return null;
+  }
+
+  get discountBadgeText(): string {
+    const campDisc = this.promotionService.getDiscountForProduct(this.activeProduct);
+    if (campDisc) {
+      return campDisc.badgeText;
+    }
+    const disc = this.activeProduct?.discountValue;
+    if (disc && disc > 0) {
+      return formatDiscountBadgeText(this.activeProduct?.discountType || 'PERCENT', disc);
+    }
+    return '';
   }
 
   formatPrice(num: number | null | undefined): string {

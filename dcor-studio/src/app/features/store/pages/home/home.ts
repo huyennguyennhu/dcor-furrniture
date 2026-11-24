@@ -689,7 +689,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         const hasDiscount = campDisc || (p.discountValue && p.discountValue > 0);
         const salePrice = campDisc ? campDisc.salePrice : (p.salePrice || (p.discountType === 'PERCENT' ? Math.round(base * (100 - p.discountValue) / 100) : Math.max(0, base - p.discountValue)));
         const originalPrice = campDisc ? campDisc.originalPrice : (p.originalPrice || base);
-        const discountVal = campDisc ? campDisc.discountPercent : p.discountValue;
+        const discountVal = campDisc ? campDisc.discountValue : p.discountValue;
 
         return {
           ...p,
