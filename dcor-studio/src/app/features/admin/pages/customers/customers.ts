@@ -31,7 +31,7 @@ export interface Customer {
   phone: string;
   email: string;
   type: 'Cá nhân' | 'B2B';
-  membership: 'Vàng' | 'Bạc' | 'Đồng' | 'B2B Partner';
+  membership: 'Kim Cương' | 'Vàng' | 'Bạc' | 'Đồng' | 'B2B Partner';
   ordersCount: number;
   totalSpent: number;
   points: number;
@@ -84,7 +84,7 @@ export class CustomersComponent implements OnInit {
 
   membershipFilter = 'Tất cả hạng thành viên';
   showMembershipDropdown = false;
-  memberships = ['Tất cả hạng thành viên', 'Vàng', 'Bạc', 'Đồng', 'B2B Partner'];
+  memberships = ['Tất cả hạng thành viên', 'Kim Cương', 'Vàng', 'Bạc', 'Đồng', 'B2B Partner'];
 
   spendingFilter = 'Tổng chi tiêu';
   showSpendingDropdown = false;
@@ -173,13 +173,15 @@ export class CustomersComponent implements OnInit {
   mapBackendCustomer(c: BackendCustomer): Customer {
     const spent = Number(c.totalSpent) || 0;
     
-    // Tính phân hạng thành viên dựa trên loại & chi tiêu tích lũy
-    let membership: 'Vàng' | 'Bạc' | 'Đồng' | 'B2B Partner' = 'Đồng';
+    // Tính phân hạng thành viên dựa trên loại & chi tiêu tích lũy theo chuẩn DCor
+    let membership: 'Kim Cương' | 'Vàng' | 'Bạc' | 'Đồng' | 'B2B Partner' = 'Đồng';
     if (c.type === 'B2B' || (c.companyName && c.companyName.trim() !== '')) {
       membership = 'B2B Partner';
-    } else if (spent >= 150000000) {
+    } else if (spent >= 100000000) {
+      membership = 'Kim Cương';
+    } else if (spent >= 50000000) {
       membership = 'Vàng';
-    } else if (spent >= 40000000) {
+    } else if (spent >= 15000000) {
       membership = 'Bạc';
     } else {
       membership = 'Đồng';
@@ -251,7 +253,7 @@ export class CustomersComponent implements OnInit {
     const newCount = this.customers.filter(c => c.createdAtTimestamp >= thirtyDaysAgo).length;
 
     const b2bCount = this.customers.filter(c => c.type === 'B2B' || c.membership === 'B2B Partner').length;
-    const vipCount = this.customers.filter(c => c.labels.includes('VIP') || c.membership === 'Vàng' || c.membership === 'B2B Partner').length;
+    const vipCount = this.customers.filter(c => c.labels.includes('VIP') || c.membership === 'Kim Cương' || c.membership === 'Vàng' || c.membership === 'B2B Partner').length;
 
     this.kpi = {
       totalCustomers: total,
@@ -435,7 +437,7 @@ export class CustomersComponent implements OnInit {
       } else if (this.activeCardFilter === 'B2B') {
         matchCard = c.type === 'B2B' || c.membership === 'B2B Partner';
       } else if (this.activeCardFilter === 'VIP') {
-        matchCard = c.labels.includes('VIP') || c.membership === 'Vàng' || c.membership === 'B2B Partner';
+        matchCard = c.labels.includes('VIP') || c.membership === 'Kim Cương' || c.membership === 'Vàng' || c.membership === 'B2B Partner';
       }
 
       return matchSearch && matchStatus && matchMembership && matchLabel && matchSpending && matchCard;

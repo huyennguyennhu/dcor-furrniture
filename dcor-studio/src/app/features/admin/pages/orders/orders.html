@@ -281,7 +281,8 @@
 
   <!-- Orders Table -->
   <div class="v2-table-wrapper">
-    <table class="v2-table">
+    <div class="table-responsive">
+      <table class="v2-table">
       <thead>
         <tr>
           <th style="width: 130px;">
@@ -427,6 +428,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
 
     <!-- Pagination Footer (Matching Inventory / Tổng quan kho) -->
     <div *ngIf="totalItems > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color, #e5e7eb); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary, #ffffff); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">

@@ -114,6 +114,48 @@ const DEFAULT_SAMPLE_STAFF: StaffAccount[] = [
     status: 'Chờ kích hoạt',
     lastLogin: 'Chưa từng',
     createdAt: '2026-03-01'
+  },
+  {
+    id: 'staff-7',
+    name: 'KTS. Lê Nam',
+    email: 'nam.le@dcor.vn',
+    phone: '0908 111 222',
+    role: 'Kiến trúc sư',
+    roles: ['Kiến trúc sư'],
+    branchId: 'ALL',
+    branchName: 'Showroom Quận 1 & Xưởng May Đo',
+    assignedBranches: ['ALL'],
+    status: 'Đã kích hoạt',
+    lastLogin: 'Hôm nay',
+    createdAt: '2026-01-10'
+  },
+  {
+    id: 'staff-8',
+    name: 'KTS. Lê Hoàng',
+    email: 'hoang.le@dcor.vn',
+    phone: '0908 222 333',
+    role: 'Kiến trúc sư',
+    roles: ['Kiến trúc sư'],
+    branchId: 'ALL',
+    branchName: 'Showroom Thủ Đức & Xưởng Mộc',
+    assignedBranches: ['ALL'],
+    status: 'Đã kích hoạt',
+    lastLogin: 'Hôm nay',
+    createdAt: '2026-01-12'
+  },
+  {
+    id: 'staff-9',
+    name: 'KTS. Trần Minh',
+    email: 'minh.tran@dcor.vn',
+    phone: '0908 333 444',
+    role: 'Kiến trúc sư',
+    roles: ['Kiến trúc sư'],
+    branchId: 'ALL',
+    branchName: 'Showroom Hà Nội',
+    assignedBranches: ['ALL'],
+    status: 'Đã kích hoạt',
+    lastLogin: 'Hôm qua',
+    createdAt: '2026-01-15'
   }
 ];
 

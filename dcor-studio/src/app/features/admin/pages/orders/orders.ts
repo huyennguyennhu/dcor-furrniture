@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
@@ -192,13 +192,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
   constructor(
     private ordersService: OrdersService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.ordersService.fetchOrders();
     this.sub = this.ordersService.orders$.subscribe(orders => {
       this.orders = orders;
+      this.cdr.markForCheck();
     });
 
     this.route.queryParams.subscribe(params => {
@@ -225,6 +227,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
         this.searchQuery = params['q'] || params['search'] || params['customer'] || params['phone'] || '';
       }
       this.currentPage = 1;
+      this.cdr.markForCheck();
     });
   }
 
@@ -306,7 +309,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
     // Filter by Payment Status
     if (this.selectedPayment !== 'ALL') {
       if (this.selectedPayment === 'AWAITING_PAYMENT' || this.selectedPayment === 'AWAITING_DEPOSIT') {
-        list = list.filter(o => o.paymentHoldReason === this.selectedPayment);
+        list = list.filter(o => 
+          o.paymentHoldReason === this.selectedPayment ||
+          (this.selectedPayment === 'AWAITING_DEPOSIT' && (o.isHighValue || o.isDepositRequired) && o.status === 'PENDING' && o.paymentStatus !== 'PAID')
+        );
       } else {
         list = list.filter(o => o.paymentStatus === this.selectedPayment);
       }

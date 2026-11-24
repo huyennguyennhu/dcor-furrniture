@@ -1,0 +1,21 @@
+{
+  "browser": "chrome",
+  "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "headless": true,
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "screenshotSettings": {
+    "fullPage": true,
+    "format": "png",
+    "annotation": {
+      "boxColor": "#EF4444",
+      "boxThickness": 3,
+      "badgeBgColor": "#EF4444",
+      "badgeTextColor": "#FFFFFF",
+      "fontFamily": "Segoe UI"
+    }
+  }
+}
+

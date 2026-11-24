@@ -27,6 +27,7 @@ export const routes: Routes = [
       { path: 'products/:id', loadComponent: () => import('./features/admin/pages/products/product-form/product-form').then(m => m.ProductFormComponent) },
       { path: 'orders', loadComponent: () => import('./features/admin/pages/orders/orders').then(m => m.OrdersComponent) },
       { path: 'custom-requests', loadComponent: () => import('./features/admin/pages/custom-requests/custom-requests').then(m => m.AdminCustomRequestsComponent) },
+      { path: 'custom-requests/:id', loadComponent: () => import('./features/admin/pages/custom-requests/custom-request-detail/custom-request-detail').then(m => m.AdminCustomRequestDetailComponent) },
       { path: 'orders/returns', loadComponent: () => import('./features/admin/pages/orders/orders-returns/orders-returns').then(m => m.OrdersReturnsComponent) },
       { path: 'orders/returns/:id', loadComponent: () => import('./features/admin/pages/orders/orders-returns/order-return-detail/order-return-detail').then(m => m.OrderReturnDetailComponent) },
       { path: 'orders/warranty', loadComponent: () => import('./features/admin/pages/orders/orders-warranty/orders-warranty').then(m => m.OrdersWarrantyComponent) },
@@ -59,6 +60,7 @@ export const routes: Routes = [
       { path: 'designs/posts', loadComponent: () => import('./features/admin/pages/designs/design-posts/design-posts').then(m => m.DesignPostsComponent) },
       { path: 'staff', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
       { path: 'staff/accounts', loadComponent: () => import('./features/admin/pages/staff/staff-accounts/staff-accounts').then(m => m.StaffAccountsComponent) },
+      { path: 'staff/roles', loadComponent: () => import('./features/admin/pages/staff/staff-roles/staff-roles').then(m => m.StaffRolesComponent) },
       { path: 'staff/shifts', redirectTo: 'staff/accounts', pathMatch: 'full' },
       { path: 'staff/my-shifts', redirectTo: 'staff/accounts', pathMatch: 'full' },
       { path: 'staff/showroom-shifts', redirectTo: 'staff/accounts', pathMatch: 'full' },
@@ -130,3 +132,4 @@ export const routes: Routes = [
   // Fallback
   { path: '**', redirectTo: '' }
 ];
+ 

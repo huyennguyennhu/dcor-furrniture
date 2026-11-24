@@ -100,8 +100,12 @@ export const reviewController = {
           `, customerId || '', customerPhone || '');
           existingReviews = Array.isArray(rawReviews) ? rawReviews : [];
         }
-      } catch (dbErr) {
-        console.warn('Lỗi query bảng Review (có thể bảng mới khởi tạo):', dbErr);
+      } catch (dbErr: any) {
+        if (dbErr?.message?.includes('does not exist') || dbErr?.meta?.code === '42P01') {
+          import('../lib/init-review-db').then(m => m.initReviewDatabase().catch(() => {}));
+        } else {
+          console.warn('Lỗi query bảng Review:', dbErr?.message || dbErr);
+        }
         existingReviews = [];
       }
 

@@ -71,7 +71,7 @@ export const ABOUT_SECTIONS: ContentSection[] = [
       `Danh mục nội thất trực tuyến (/explore): Tìm kiếm nhanh, lọc theo danh mục, khoảng giá, màu sắc, chất liệu và tính năng so sánh tối đa ${MAX_COMPARE_PRODUCTS} sản phẩm trong cùng danh mục.`,
       'Công cụ Thiết kế không gian 3D (/custom-design): Chọn bản mẫu hoặc tải ảnh thật mặt bằng, kéo thả sản phẩm nội thất DCor và xuất ảnh thiết kế PNG về máy.',
       'Chuyên trang Cộng đồng (/community): Đăng tải hình ảnh góc nhà thực tế hoặc bản thiết kế 3D, gắn thẻ sản phẩm DCor, chia sẻ cảm hứng và tương tác cùng các thành viên.',
-      'Dịch vụ đặt làm thiết kế riêng (Custom Furniture): Gửi yêu cầu may đo, nhận báo giá chi tiết trong vòng 24 giờ, xem dự thảo hợp đồng điện tử và theo dõi tiến độ sản xuất tại mục "Quản lý yêu cầu tùy chỉnh" (/account/custom-requests).'
+      'Dịch vụ đặt làm thiết kế riêng (Custom Furniture): Gửi yêu cầu Custom, nhận báo giá chi tiết trong vòng 24 giờ, xem dự thảo hợp đồng điện tử và theo dõi tiến độ sản xuất tại mục "Quản lý yêu cầu tùy chỉnh" (/account/custom-requests).'
     ]
   },
   {

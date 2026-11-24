@@ -539,7 +539,7 @@ export class ProductCategoriesComponent implements OnInit {
 
   allCategories: CategoryItem[] = [...INITIAL_CATEGORIES];
   filteredCategories: CategoryItem[] = [];
-  isLoading = false;
+  isLoading = true;
 
   // Phân trang danh mục (10 danh mục / trang)
   currentPage = 1;

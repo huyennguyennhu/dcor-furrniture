@@ -1,86 +1,13 @@
 <div class="reports-container">
       
-  <!-- 1. Page Header & Toolbar -->
+  <!-- 1. Page Header & Actions -->
   <div class="overview-header-row">
     <div>
       <h1 class="overview-page-title">Tổng quan điều hành</h1>
       <p class="overview-page-subtitle">Báo cáo doanh thu thuần, tiến độ xử lý đơn hàng và hiệu suất kênh bán hàng toàn hệ thống DCOR.</p>
     </div>
     
-    <!-- Toolbar Controls -->
-    <div #filterRef class="overview-toolbar">
-      
-      <!-- Checkbox So sánh kỳ trước (Giữ nguyên tính năng & phong cách) -->
-      <button 
-        type="button"
-        (click)="toggleCompare()" 
-        class="compare-toggle-btn"
-        [class.active]="compare"
-      >
-        <lucide-angular *ngIf="compare" [img]="icons.CheckSquare" size="16" class="check-icon"></lucide-angular>
-        <lucide-angular *ngIf="!compare" [img]="icons.Square" size="16" class="check-icon"></lucide-angular>
-        <span>So sánh kỳ trước</span>
-      </button>
-      
-      <!-- Dropdown Showroom & Kênh Bán Hàng (Chuẩn Dropdown) -->
-      <div class="filter-dropdown-wrapper showroom-filter-wrapper">
-        <button 
-          type="button" 
-          title="Chọn showroom / chi nhánh" 
-          class="filter-trigger-btn"
-          [class.active]="showroom !== 'all'"
-          (click)="toggleDropdown('showroom', $event)"
-        >
-          <div class="trigger-label">
-            <lucide-angular [img]="icons.MapPin" size="15" class="trigger-icon"></lucide-angular>
-            <span class="truncate-label">{{ SHOWROOM_LABELS[showroom] }}</span>
-          </div>
-          <app-icon name="ChevronDown" size="14" [style.transform]="showShowroomDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
-        </button>
-        <div *ngIf="showShowroomDropdown" class="filter-menu-dropdown" style="right: 0; left: auto;" (mousedown)="$event.stopPropagation()">
-          <div *ngFor="let key of showroomKeys" 
-               (click)="setShowroom(key)" 
-               class="filter-menu-item" 
-               [class.selected]="showroom === key">
-            <span>{{ SHOWROOM_LABELS[key] }}</span>
-            <lucide-angular *ngIf="showroom === key" [img]="icons.Check" size="14"></lucide-angular>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Custom Date Inputs -->
-      <div *ngIf="timeRange === 'custom'" class="custom-date-inputs">
-        <input type="date" value="2026-10-01" />
-        <span class="date-sep">-</span>
-        <input type="date" value="2026-11-03" />
-      </div>
-      
-      <!-- Dropdown Thời Gian (Chuẩn Dropdown) -->
-      <div class="filter-dropdown-wrapper time-filter-wrapper">
-        <button 
-          type="button" 
-          title="Chọn khoảng thời gian" 
-          class="filter-trigger-btn"
-          [class.active]="timeRange !== '7_days'"
-          (click)="toggleDropdown('time', $event)"
-        >
-          <div class="trigger-label">
-            <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
-            <span class="truncate-label">{{ TIME_LABELS[timeRange] }}</span>
-          </div>
-          <app-icon name="ChevronDown" size="14" [style.transform]="showTimeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
-        </button>
-        <div *ngIf="showTimeDropdown" class="filter-menu-dropdown" style="right: 0; left: auto;" (mousedown)="$event.stopPropagation()">
-          <div *ngFor="let key of timeLabelKeys" 
-               (click)="setTimeRange(key)" 
-               class="filter-menu-item" 
-               [class.selected]="timeRange === key">
-            <span>{{ TIME_LABELS[key] }}</span>
-            <lucide-angular *ngIf="timeRange === key" [img]="icons.Check" size="14"></lucide-angular>
-          </div>
-        </div>
-      </div>
-      
+    <div class="header-action-group">
       <!-- Nút Xuất Báo Cáo CSV -->
       <button 
         type="button"
@@ -90,6 +17,81 @@
         <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
         <span>Xuất báo cáo</span>
       </button>
+    </div>
+  </div>
+    
+  <!-- 2. Filter Toolbar Box (Bộ lọc chuẩn phong cách DCOR Luxury) -->
+  <div #filterRef class="overview-toolbar-box">
+    
+    <!-- Checkbox So sánh kỳ trước (Giữ nguyên tính năng & phong cách) -->
+    <button 
+      type="button"
+      (click)="toggleCompare()" 
+      class="compare-toggle-btn"
+      [class.active]="compare"
+    >
+      <lucide-angular *ngIf="compare" [img]="icons.CheckSquare" size="16" class="check-icon"></lucide-angular>
+      <lucide-angular *ngIf="!compare" [img]="icons.Square" size="16" class="check-icon"></lucide-angular>
+      <span>So sánh kỳ trước</span>
+    </button>
+    
+    <!-- Dropdown Showroom & Kênh Bán Hàng (Chuẩn Dropdown) -->
+    <div class="filter-dropdown-wrapper showroom-filter-wrapper">
+      <button 
+        type="button" 
+        title="Chọn showroom / chi nhánh" 
+        class="filter-trigger-btn"
+        [class.active]="showroom !== 'all'"
+        (click)="toggleDropdown('showroom', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.MapPin" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ SHOWROOM_LABELS[showroom] }}</span>
+        </div>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showShowroomDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showShowroomDropdown" class="filter-menu-dropdown" style="right: 0; left: auto;" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let key of showroomKeys" 
+             (click)="setShowroom(key)" 
+             class="filter-menu-item" 
+             [class.selected]="showroom === key">
+          <span>{{ SHOWROOM_LABELS[key] }}</span>
+          <lucide-angular *ngIf="showroom === key" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Custom Date Inputs -->
+    <div *ngIf="timeRange === 'custom'" class="custom-date-inputs">
+      <input type="date" value="2026-10-01" />
+      <span class="date-sep">-</span>
+      <input type="date" value="2026-11-03" />
+    </div>
+    
+    <!-- Dropdown Thời Gian (Chuẩn Dropdown) -->
+    <div class="filter-dropdown-wrapper time-filter-wrapper">
+      <button 
+        type="button" 
+        title="Chọn khoảng thời gian" 
+        class="filter-trigger-btn"
+        [class.active]="timeRange !== '7_days'"
+        (click)="toggleDropdown('time', $event)"
+      >
+        <div class="trigger-label">
+          <lucide-angular [img]="icons.Calendar" size="15" class="trigger-icon"></lucide-angular>
+          <span class="truncate-label">{{ TIME_LABELS[timeRange] }}</span>
+        </div>
+        <app-icon name="ChevronDown" size="14" [style.transform]="showTimeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+      </button>
+      <div *ngIf="showTimeDropdown" class="filter-menu-dropdown" style="right: 0; left: auto;" (mousedown)="$event.stopPropagation()">
+        <div *ngFor="let key of timeLabelKeys" 
+             (click)="setTimeRange(key)" 
+             class="filter-menu-item" 
+             [class.selected]="timeRange === key">
+          <span>{{ TIME_LABELS[key] }}</span>
+          <lucide-angular *ngIf="timeRange === key" [img]="icons.Check" size="14"></lucide-angular>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -277,7 +279,7 @@
         <div class="card-header-flex">
           <div>
             <h3 class="card-title">Trạng thái đơn hàng</h3>
-            <p class="card-subtitle">Cơ cấu xử lý vòng đời 90 đơn hàng</p>
+            <p class="card-subtitle">Cơ cấu xử lý vòng đời {{ kpi.totalOrders }} đơn hàng trong kỳ</p>
           </div>
         </div>
         
@@ -450,8 +452,8 @@
                        [title]="'Xem chi tiết khách hàng ' + cus.name">
                       {{ cus.name }}
                     </a>
-                    <span class="tier-pill" [ngClass]="cus.badgeClass || 'badge-diamond'">
-                      {{ cus.tier || 'Kim Cương' }}
+                    <span class="tier-pill" [ngClass]="cus.badgeClass || 'badge-member'">
+                      {{ cus.tier || 'Thành viên' }}
                     </span>
                   </div>
                   <div class="item-secondary-info">{{ cus.phone }} • Mua gần nhất: {{ cus.lastOrderDate }}</div>

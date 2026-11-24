@@ -177,6 +177,7 @@
           [class.selected]="membershipFilter === opt"
         >
           <div style="display: flex; align-items: center; gap: 8px;">
+            <span *ngIf="opt === 'Kim Cương'" style="width: 8px; height: 8px; border-radius: 50%; background: #7c3aed;"></span>
             <span *ngIf="opt === 'Vàng'" style="width: 8px; height: 8px; border-radius: 50%; background: #b45309;"></span>
             <span *ngIf="opt === 'Bạc'" style="width: 8px; height: 8px; border-radius: 50%; background: #475569;"></span>
             <span *ngIf="opt === 'Đồng'" style="width: 8px; height: 8px; border-radius: 50%; background: #9a3412;"></span>
@@ -230,11 +231,11 @@
   </div>
 
   <!-- Data Table (Đồng bộ chuẩn 100% từ Tổng quan kho) -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: visible; position: relative;">
-    <div style="width: 100%; overflow: visible;">
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+  <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; position: relative;">
+    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table style="width: 100%; min-width: 1100px; border-collapse: collapse; text-align: left;">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+          <tr style="border-bottom: 1px solid var(--border-color); background: #ffffff;">
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; border-top-left-radius: 11px; white-space: nowrap;">Khách hàng</th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Liên hệ</th>
             <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
@@ -296,8 +297,8 @@
           <ng-container *ngIf="!isLoading">
           <tr *ngFor="let item of paginatedCustomers" 
               (click)="goToDetail(item.id)"
-              style="border-bottom: 1px solid var(--border-color); cursor: pointer;"
-              onmouseover="this.style.background='#F3E5D3'" 
+              style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s ease;"
+              onmouseover="this.style.background='#F9FAFB'" 
               onmouseout="this.style.background='transparent'">
             
             <!-- Col 1: Khách hàng -->
@@ -380,15 +381,15 @@
                 <lucide-angular [img]="icons.MoreHorizontal" size="18"></lucide-angular>
               </button>
 
-              <div *ngIf="activeActionMenu === item.id" class="action-menu-container" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: absolute; right: 0; top: 40px; z-index: 50; display: flex; flex-direction: column; min-width: 150px;">
-                <div (click)="goToDetail(item.id)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+              <div *ngIf="activeActionMenu === item.id" class="action-menu-container" style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: absolute; right: 0; top: 40px; z-index: 50; display: flex; flex-direction: column; min-width: 150px;">
+                <div (click)="goToDetail(item.id)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='transparent'">
                   <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular> Xem chi tiết
                 </div>
-                <div (click)="handleAction('label', item.id, $event)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                <div (click)="handleAction('label', item.id, $event)" style="padding: 8px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); white-space: nowrap; border-radius: 4px;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='transparent'">
                   <lucide-angular [img]="icons.Tag" size="14"></lucide-angular> Gắn/Gỡ nhãn
                 </div>
                 <div style="height: 1px; background: var(--border-color); margin: 4px 0;"></div>
-                <button (click)="handleAction('toggleStatus', item.id, $event)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: #ef4444; white-space: nowrap; border-radius: 4px; width: 100%;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                <button (click)="handleAction('toggleStatus', item.id, $event)" style="padding: 8px 12px; text-align: left; background: none; border: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: #ef4444; white-space: nowrap; border-radius: 4px; width: 100%;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='transparent'">
                   <lucide-angular [img]="icons.Lock" size="14"></lucide-angular> {{ item.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa' }}
                 </button>
               </div>

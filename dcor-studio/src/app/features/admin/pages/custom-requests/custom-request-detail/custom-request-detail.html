@@ -1,0 +1,1721 @@
+<div class="custom-request-detail-container" *ngIf="request; else notFound">
+
+  <!-- Floating Toast Notification -->
+  <div *ngIf="showToast" 
+    class="v2-toast"
+    (mouseenter)="pauseToastTimer()"
+    (mouseleave)="resumeToastTimer()"
+    [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'"
+    [class.toast-info]="toastType === 'info'"
+  >
+    <div class="v2-toast-inner">
+      <div class="v2-toast-icon">
+        <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'error'" [img]="icons.XCircle" size="20"></lucide-angular>
+        <lucide-angular *ngIf="toastType === 'info'" [img]="icons.Clock" size="20"></lucide-angular>
+      </div>
+      <div class="v2-toast-content">
+        <div class="v2-toast-title">{{ toastTitle }}</div>
+        <div class="v2-toast-msg">{{ toastMessage }}</div>
+      </div>
+      <button type="button" class="v2-toast-close" (click)="closeToast()">
+        <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+      </button>
+    </div>
+  </div>
+
+  <!-- Top Navigation & Header Bar (Theo chuẩn Order Detail) -->
+  <header class="v2-detail-header">
+    <div class="v2-header-nav">
+      <button type="button" class="v2-btn-back" (click)="goBack()" title="Quay lại danh sách đơn custom">
+        <lucide-angular [img]="icons.ArrowLeft" size="15"></lucide-angular>
+        <span>Trở về danh sách đơn custom</span>
+      </button>
+    </div>
+
+    <div class="v2-header-main">
+      <div class="order-meta-title">
+        <div class="title-with-tags">
+          <h1>Yêu cầu Custom #{{ request.code }}</h1>
+          
+          <!-- Chip trạng thái quy trình -->
+          <span 
+            class="status-chip-header"
+            [style.color]="getStatusMeta(request.status).color"
+            [style.background]="getStatusMeta(request.status).bgColor"
+            [style.borderColor]="getStatusMeta(request.status).borderColor">
+            <span class="dot-indicator" [style.background]="getStatusMeta(request.status).color"></span>
+            {{ getStatusMeta(request.status).adminLabel }}
+          </span>
+
+          <!-- Badge Đơn hàng liên kết -->
+          <a *ngIf="request.generatedOrderNumber" 
+             (click)="goToOrder(request.generatedOrderNumber)"
+             class="linked-order-pill"
+             title="Nhấp để xem đơn hàng chính thức">
+            <lucide-angular [img]="icons.Package" size="13"></lucide-angular>
+            <span>Đơn hàng: {{ request.generatedOrderNumber }}</span>
+            <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+          </a>
+
+          <!-- Badge Bảo hành -->
+          <a *ngIf="request.status === 'COMPLETED' || request.warrantyCode"
+             (click)="goToWarranty(request.warrantyCode)"
+             class="warranty-header-pill"
+             title="Hồ sơ Bảo hành chính hãng 5 năm">
+            <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
+            <span>Bảo hành: {{ request.warrantyCode || 'BH-DCOR-2026' }}</span>
+            <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+          </a>
+        </div>
+
+        <div class="order-sub-meta">
+          <span>Thời gian gửi: <strong>{{ formatDate(request.createdAt) }}</strong></span>
+          <span class="dot">•</span>
+          <span>KTS phụ trách: <strong>{{ request.assignedStaff || 'Chưa phân công' }}</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 8-Step Stepper Timeline (Tham khảo khối Stepper trang Chi tiết đơn hàng) -->
+  <div class="v2-stepper-card" [class.stepper-card-cancelled]="request.status === 'CANCELLED'">
+
+    <!-- TRƯỜNG HỢP HỒ SƠ HỦY: 2 BƯỚC CĂN GIỮA -->
+    <div class="stepper-track stepper-track-cancelled" *ngIf="request.status === 'CANCELLED'">
+      <div class="stepper-step step-cancelled-prev">
+        <div class="step-circle step-circle-confirmation">
+          <span>1</span>
+        </div>
+        <div class="step-label">Tiếp nhận</div>
+        <div class="step-sub">Khách gửi yêu cầu</div>
+      </div>
+
+      <div class="step-line line-cancelled"></div>
+
+      <div class="stepper-step step-active-cancelled">
+        <div class="step-circle step-circle-cancelled">
+          <lucide-angular [img]="icons.X" size="16"></lucide-angular>
+        </div>
+        <div class="step-label text-cancelled">Đã hủy hồ sơ</div>
+        <div class="step-sub text-cancelled-sub">{{ request.cancelReason || 'Hủy theo yêu cầu' }}</div>
+      </div>
+    </div>
+
+    <!-- TRƯỜNG HỢP HOẠT ĐỘNG: TIẾN TRÌNH 8 BƯỚC CHUẨN MAY ĐO NỘI THẤT -->
+    <div class="stepper-track" *ngIf="request.status !== 'CANCELLED'">
+      <ng-container *ngFor="let step of WORKFLOW_STEPS; let i = index">
+        <div class="stepper-step"
+          [class.step-done]="isStepDone(i)"
+          [class.step-active]="isStepActive(i)"
+          [class.step-viewing]="isStepViewing(i)"
+          [class.step-completed]="i === 7 && request.status === 'COMPLETED'"
+          (click)="onStepClick(i)"
+          [title]="getStepTooltip(i)"
+        >
+          <div class="step-circle" [class.circle-completed]="i === 7 && request.status === 'COMPLETED'">
+            <lucide-angular *ngIf="isStepDone(i) || (i === 7 && request.status === 'COMPLETED')" [img]="icons.Check" size="15"></lucide-angular>
+            <span *ngIf="!isStepDone(i) && !(i === 7 && request.status === 'COMPLETED')">{{ i + 1 }}</span>
+          </div>
+          <div class="step-label" [class.text-completed]="i === 7 && request.status === 'COMPLETED'">
+            {{ step.name }}
+          </div>
+          <div class="step-sub">
+            {{ step.sub }}
+          </div>
+          <div class="step-viewing-dot-wrap">
+            <span class="step-viewing-dot" *ngIf="isStepViewing(i)"></span>
+          </div>
+        </div>
+
+        <div class="step-line" *ngIf="i < WORKFLOW_STEPS.length - 1" [class.line-done]="isLineDone(i)"></div>
+      </ng-container>
+    </div>
+
+    <!-- Branch Indicator nếu hồ sơ bị Hủy -->
+    <div class="stepper-branch-pill branch-cancelled" *ngIf="request.status === 'CANCELLED'">
+      <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
+      <span>Trạng thái kết thúc: <strong>ĐÃ HỦY HỒ SƠ</strong> — Lý do: "{{ request.cancelReason || 'Khách thay đổi kế hoạch' }}".</span>
+    </div>
+  </div>
+
+  <!-- MAIN 2-COLUMN LAYOUT (Khối nội dung chính chia cột chuẩn Dcor Studio) -->
+  <div class="v2-content-grid">
+
+    <!-- LEFT COLUMN: Thông tin sản phẩm may đo, Báo giá & Hợp đồng, Tiến độ QC, Nhật ký tác nghiệp -->
+    <div class="v2-col-left">
+
+      <!-- CARD 1: PHIẾU YÊU CẦU CUSTOM TỪ WEBSITE (TOÀN BỘ DỮ LIỆU TỪ FORM KHÁCH GỬI) -->
+      <section class="v2-card">
+        <div class="v2-card-header" 
+             [class.v2-card-header-toggle]="isCardCollapsible()" 
+             [class.is-collapsed]="isCardCollapsible() && !isCustomCardExpanded" 
+             (click)="isCardCollapsible() ? toggleCustomCard() : null" 
+             [attr.role]="isCardCollapsible() ? 'button' : null" 
+             [attr.tabindex]="isCardCollapsible() ? 0 : null" 
+             [title]="isCardCollapsible() ? 'Bấm để mở rộng / thu gọn Phiếu Yêu Cầu Custom' : ''">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Package" size="18" class="text-accent"></lucide-angular>
+            <h3>Phiếu Yêu Cầu Custom</h3>
+          </div>
+          <div class="card-header-toggle-icon" *ngIf="isCardCollapsible()">
+            <lucide-angular 
+              [img]="icons.ChevronDown" 
+              size="18" 
+              [style.transform]="isCustomCardExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'" 
+              style="transition: transform 0.2s ease; display: inline-flex; align-items: center; justify-content: center;">
+            </lucide-angular>
+          </div>
+        </div>
+
+        <div class="custom-specs-container" *ngIf="!isCardCollapsible() || isCustomCardExpanded">
+          <!-- 1. SẢN PHẨM GỐC THAM CHIẾU -->
+          <div class="product-banner-row">
+            <div class="product-thumb-box" *ngIf="request.productImage">
+              <img [src]="request.productImage" [alt]="request.productName" class="product-thumb-img" />
+            </div>
+            <div class="product-names">
+              <div class="prod-headline-row">
+                <h4 class="prod-headline">{{ request.productName }}</h4>
+                <span class="prod-base-price" *ngIf="request.basePrice">
+                  Giá niêm yết gốc: <strong>{{ request.basePrice | number:'1.0-0' }} đ</strong>
+                </span>
+              </div>
+              <span class="prod-subcode" *ngIf="request.productSku">SKU: {{ request.productSku }}</span>
+            </div>
+          </div>
+
+
+
+          <!-- 3. CÁC THUỘC TÍNH TÙY BIẾN CHI TIẾT TỪ FORM (CUSTOM ATTRIBUTES) -->
+          <div class="custom-attributes-list" *ngIf="request.customizedAttributes && request.customizedAttributes.length > 0; else fallbackSpecsGrid">
+            <div class="attr-row-card" *ngFor="let attr of request.customizedAttributes">
+              <div class="attr-left">
+                <span class="attr-title">{{ attr.label }}</span>
+                <span class="attr-original" *ngIf="attr.originalValue">Gốc: {{ attr.originalValue }}</span>
+              </div>
+              <div class="attr-center">
+                <span class="attr-color-dot" *ngIf="attr.hexColor" [style.background]="attr.hexColor"></span>
+                <strong class="attr-selected">{{ attr.selectedOptionName }}</strong>
+                <span class="attr-changed-pill" *ngIf="attr.isChanged">Tùy biến</span>
+              </div>
+              <div class="attr-right" *ngIf="attr.customNote">
+                <span class="attr-note-lbl">Yêu cầu riêng từ khách:</span>
+                <p class="attr-note-text">"{{ attr.customNote }}"</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fallback: Grid thông số nếu không có customizedAttributes -->
+          <ng-template #fallbackSpecsGrid>
+            <div class="specs-grid">
+              <!-- Kích thước -->
+              <div class="spec-item">
+                <div class="spec-icon-box"><lucide-angular [img]="icons.Ruler" size="16"></lucide-angular></div>
+                <div class="spec-details">
+                  <span class="spec-lbl">Kích thước đo đạc (Dài x Rộng x Cao)</span>
+                  <strong class="spec-val">{{ request.length || '—' }} x {{ request.width || '—' }} x {{ request.height || '—' }} cm</strong>
+                </div>
+              </div>
+
+              <!-- Chất liệu bề mặt -->
+              <div class="spec-item">
+                <div class="spec-icon-box"><lucide-angular [img]="icons.Layers" size="16"></lucide-angular></div>
+                <div class="spec-details">
+                  <span class="spec-lbl">Chất liệu bề mặt & đệm mút</span>
+                  <strong class="spec-val">{{ request.material || 'Theo tiêu chuẩn Studio' }}</strong>
+                </div>
+              </div>
+
+              <!-- Màu sắc chỉ định -->
+              <div class="spec-item">
+                <div class="spec-icon-box"><lucide-angular [img]="icons.Palette" size="16"></lucide-angular></div>
+                <div class="spec-details">
+                  <span class="spec-lbl">Màu sắc chỉ định</span>
+                  <div class="color-val-wrapper">
+                    <span class="color-dot-swatch" [style.background]="request.colorHex || '#8B4513'"></span>
+                    <strong class="spec-val">{{ request.colorName || 'Màu theo catalogue' }}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Khung chân -->
+              <div class="spec-item">
+                <div class="spec-icon-box"><lucide-angular [img]="icons.Building2" size="16"></lucide-angular></div>
+                <div class="spec-details">
+                  <span class="spec-lbl">Khung xương & Chân đế</span>
+                  <strong class="spec-val">{{ request.legMaterial || 'Gỗ tự nhiên tẩm sấy / Inox mạ Titan' }}</strong>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+
+          <!-- 4. KHOẢNG GIÁ CHẤP NHẬN TRẢ & KẾ HOẠCH MONG MUỐN TỪ KHÁCH HÀNG -->
+          <div class="customer-plan-grid">
+            <!-- Khoảng giá chấp nhận trả -->
+            <div class="plan-card plan-budget">
+              <div class="plan-icon-badge badge-budget">
+                <lucide-angular [img]="icons.DollarSign" size="18"></lucide-angular>
+              </div>
+              <div class="plan-info">
+                <span class="plan-label">Khoảng giá chấp nhận trả (Ngân sách dự kiến)</span>
+                <strong class="plan-val val-budget">{{ request.budgetRange || (request.estimatedBudget ? (formatVND(+request.estimatedBudget)) : '22.000.000 đ - 26.000.000 đ') }}</strong>
+                <span class="plan-sub">Mức chi trả dự kiến từ form khách gửi</span>
+              </div>
+            </div>
+
+            <!-- Lịch hẹn khảo sát mong muốn -->
+            <div class="plan-card plan-survey">
+              <div class="plan-icon-badge badge-survey">
+                <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
+              </div>
+              <div class="plan-info">
+                <span class="plan-label">Lịch hẹn khảo sát mong muốn</span>
+                <strong class="plan-val val-survey">{{ request.preferredSurveyTime || 'Thứ 7 tuần này (09:00 - 11:30 sáng)' }}</strong>
+                <span class="plan-sub">KTS liên hệ xác nhận trước khi đến</span>
+              </div>
+            </div>
+
+            <!-- Tiến độ mong muốn nhận hàng -->
+            <div class="plan-card plan-delivery">
+              <div class="plan-icon-badge badge-delivery">
+                <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
+              </div>
+              <div class="plan-info">
+                <span class="plan-label">Tiến độ mong muốn nhận hàng</span>
+                <strong class="plan-val val-delivery">{{ request.expectedDeliveryDate || 'Trước 25/11/2026 (khoảng 20 ngày)' }}</strong>
+                <span class="plan-sub">Thời hạn bàn giao & lắp đặt</span>
+              </div>
+            </div>
+
+            <!-- Không gian bố trí -->
+            <div class="plan-card plan-space">
+              <div class="plan-icon-badge badge-space">
+                <lucide-angular [img]="icons.Building2" size="18"></lucide-angular>
+              </div>
+              <div class="plan-info">
+                <span class="plan-label">Khu vực / Không gian bố trí</span>
+                <strong class="plan-val val-space">{{ request.roomSpace || 'Phòng khách căn hộ chung cư' }}</strong>
+                <span class="plan-sub">Vị trí lắp đặt mặt bằng thực tế</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. GHI CHÚ VỀ KHÔNG GIAN & YÊU CẦU ĐẶC BIỆT TỪ KHÁCH HÀNG -->
+          <div class="spec-notes-box" *ngIf="request.requirementDetails || request.notes">
+            <span class="note-title">
+              <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
+              Ghi chú thêm về không gian & yêu cầu đặc biệt từ khách hàng:
+            </span>
+            <p class="note-body">"{{ request.requirementDetails || request.notes }}"</p>
+          </div>
+
+          <!-- 6. MẪU THIẾT KẾ THAM KHẢO TỪ KHÁCH HÀNG -->
+          <div class="ref-gallery-section" *ngIf="(request.attachments && request.attachments.length > 0) || (request.referenceImages && request.referenceImages.length > 0)">
+            <span class="ref-gallery-title">
+              <lucide-angular [img]="icons.Image" size="15"></lucide-angular>
+              Mẫu thiết kế do khách đính kèm ({{ (request.attachments?.length || request.referenceImages?.length) }} tệp)
+            </span>
+
+            <!-- Nếu có attachments đầy đủ tên & size -->
+            <div class="attachments-grid" *ngIf="request.attachments && request.attachments.length > 0">
+              <a *ngFor="let att of request.attachments" [href]="att.previewUrl" target="_blank" class="att-card" [title]="att.name + ' - Nhấp để xem'">
+                <div class="att-thumb">
+                  <img [src]="att.previewUrl" [alt]="att.name" loading="lazy" />
+                  <div class="att-hover-icon"><lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular></div>
+                </div>
+                <div class="att-info">
+                  <span class="att-name">{{ att.name }}</span>
+                  <span class="att-size">{{ att.size }}</span>
+                </div>
+              </a>
+            </div>
+
+            <!-- Fallback: Reference Images -->
+            <div class="ref-images-grid" *ngIf="(!request.attachments || request.attachments.length === 0) && request.referenceImages">
+              <a *ngFor="let img of request.referenceImages" [href]="img" target="_blank" class="ref-img-card" title="Xem ảnh kích thước đầy đủ (mở tab mới)">
+                <img [src]="img" alt="Hình ảnh tham khảo do khách gửi" loading="lazy" />
+                <div class="ref-img-hover-overlay"><lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular></div>
+              </a>
+            </div>
+          </div>
+
+          <!-- 7. BẢN VẼ PHỐI CẢNH 3D (CHỈ HIỂN THỊ KHI ĐÃ CÓ BẢN VẼ 3D - TỪ BƯỚC 3 QUOTED TRỞ ĐI) -->
+          <div class="drawing-3d-box" *ngIf="request.drawing3dUrl && request.status !== 'PENDING_REVIEW' && request.status !== 'CONSULTING'">
+            <div class="drawing-3d-left">
+              <div class="drawing-icon">
+                <lucide-angular [img]="icons.Eye" size="18"></lucide-angular>
+              </div>
+              <div>
+                <strong>Bản vẽ phối cảnh 3D & Bóc tách kỹ thuật</strong>
+                <p>KTS đã hoàn thiện phối cảnh không gian nội thất thực tế theo tỷ lệ 1:1.</p>
+              </div>
+            </div>
+            <a [href]="request.drawing3dUrl" target="_blank" class="btn-view-3d">
+              <span>Xem bản vẽ 3D</span>
+              <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 2: TÁC NGHIỆP KHẢO SÁT & ĐO ĐẠC MẶT BẰNG (CHỈ HIỂN THỊ TỪ BƯỚC 2 TRỞ ĐI) -->
+      <section class="v2-card" *ngIf="isSurveyCardVisible()">
+        <div class="v2-card-header" 
+             [class.v2-card-header-toggle]="isSurveyCardCollapsible()" 
+             [class.is-collapsed]="isSurveyCardCollapsible() && !isSurveyCardExpanded" 
+             (click)="isSurveyCardCollapsible() ? toggleSurveyCard() : null" 
+             [attr.role]="isSurveyCardCollapsible() ? 'button' : null" 
+             [attr.tabindex]="isSurveyCardCollapsible() ? 0 : null" 
+             [title]="isSurveyCardCollapsible() ? 'Bấm để mở rộng / thu gọn Hồ sơ Khảo sát & Đo đạc' : ''">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Ruler" size="18" class="text-accent"></lucide-angular>
+            <h3>Tác Nghiệp Khảo Sát & Đo Đạc Mặt Bằng Hiện Trạng</h3>
+          </div>
+          <div class="card-header-toggle-icon" *ngIf="isSurveyCardCollapsible()">
+            <lucide-angular 
+              [img]="icons.ChevronDown" 
+              size="18" 
+              [style.transform]="isSurveyCardExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'" 
+              style="transition: transform 0.2s ease; display: inline-flex; align-items: center; justify-content: center;">
+            </lucide-angular>
+          </div>
+        </div>
+        <div class="survey-card-body" *ngIf="!isSurveyCardCollapsible() || isSurveyCardExpanded">
+          <div class="survey-grid">
+            <div class="survey-item">
+              <span class="survey-lbl">Kiến trúc sư phụ trách khảo sát:</span>
+              <strong class="survey-val">{{ request.assignedStaff || 'KTS. Lê Nam (DCor Studio)' }}</strong>
+            </div>
+            <div class="survey-item">
+              <span class="survey-lbl">Thời gian khảo sát đo đạc:</span>
+              <strong class="survey-val">{{ request.preferredSurveyTime || 'Thứ 7 tuần này (09:00 - 11:30 sáng)' }}</strong>
+            </div>
+            <div class="survey-item full-width">
+              <span class="survey-lbl">Địa chỉ đo đạc thực tế:</span>
+              <strong class="survey-val">{{ request.customerAddress || 'Chưa cung cấp địa chỉ' }}</strong>
+            </div>
+          </div>
+
+          <!-- TRƯỜNG HỢP 1: BƯỚC 2 ĐANG LÀ BƯỚC TÁC NGHIỆP HIỆN TẠI (getCurrentStepIndex() === 1) -> CHO PHÉP NHẬP / UPLOAD / LƯU -->
+          <div class="survey-record-section" *ngIf="getCurrentStepIndex() === 1">
+            <div class="survey-record-header">
+              <div class="record-title-wrap">
+                <span class="record-title">Kết quả đo đạc & Biên bản khảo sát thực tế</span>
+                <span class="record-subtitle">KTS có thể ghi chú trực tiếp hoặc đính kèm tệp hồ sơ / bản vẽ phác thảo</span>
+              </div>
+              
+              <!-- Tab chuyển đổi lựa chọn: Note hoặc Upload File -->
+              <div class="survey-mode-tabs">
+                <button 
+                  type="button" 
+                  class="mode-tab-btn" 
+                  [class.active]="surveyInputMode === 'NOTE'" 
+                  (click)="setSurveyInputMode('NOTE')">
+                  <lucide-angular [img]="icons.Pencil" size="13"></lucide-angular>
+                  <span>Ghi chú</span>
+                </button>
+                <button 
+                  type="button" 
+                  class="mode-tab-btn" 
+                  [class.active]="surveyInputMode === 'FILE'" 
+                  (click)="setSurveyInputMode('FILE')">
+                  <lucide-angular [img]="icons.Upload" size="13"></lucide-angular>
+                  <span>Tải lên file</span>
+                  <span class="file-badge" *ngIf="surveyUploadedFile">1</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- CHẾ ĐỘ 1: NHẬP GHI CHÚ TRỰC TIẾP -->
+            <div class="survey-mode-content" *ngIf="surveyInputMode === 'NOTE'">
+              <div class="survey-textarea-box">
+                <textarea 
+                  [(ngModel)]="surveyNoteText" 
+                  rows="4" 
+                  class="survey-textarea" 
+                  placeholder="Nhập thông số kích thước đo thực tế (Dài x Rộng x Cao cm), hiện trạng tường, ổ cắm âm, vật liệu hoặc yêu cầu điều chỉnh từ gia chủ...">
+                </textarea>
+                <div class="textarea-hint">
+                  <span>💡 Ghi chú đo đạc này sẽ được lưu trữ và đồng bộ với bộ phận bóc tách 3D & sản xuất.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- CHẾ ĐỘ 2: UPLOAD FILE GHI CHÚ / BẢN VẼ -->
+            <div class="survey-mode-content" *ngIf="surveyInputMode === 'FILE'">
+              <!-- Nếu chưa có file -->
+              <div class="survey-dropzone" *ngIf="!surveyUploadedFile" (click)="surveyFileInput.click()">
+                <input 
+                  type="file" 
+                  #surveyFileInput 
+                  (change)="onSurveyFileSelected($event)" 
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp" 
+                  style="display: none;" 
+                />
+                <div class="dropzone-icon">
+                  <lucide-angular [img]="icons.Upload" size="24"></lucide-angular>
+                </div>
+                <div class="dropzone-text">
+                  <strong>Bấm để chọn file hoặc kéo thả file ghi chú vào đây</strong>
+                  <p>Hỗ trợ PDF, Word, Excel, ảnh chụp biên bản vẽ tay PNG, JPG (Tối đa 25MB)</p>
+                </div>
+              </div>
+
+              <!-- Nếu đã có file -->
+              <div class="survey-file-card" *ngIf="surveyUploadedFile">
+                <div class="file-card-left">
+                  <div class="file-icon-badge">
+                    <lucide-angular [img]="icons.FileText" size="20"></lucide-angular>
+                  </div>
+                  <div class="file-info-text">
+                    <span class="file-name" [title]="surveyUploadedFile.name">{{ surveyUploadedFile.name }}</span>
+                    <span class="file-meta">{{ surveyUploadedFile.size }} • Tệp ghi chú khảo sát đo đạc</span>
+                  </div>
+                </div>
+                <div class="file-card-actions">
+                  <a [href]="surveyUploadedFile.url" target="_blank" class="btn-file-action view" title="Xem / Tải về file">
+                    <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+                    <span>Xem tệp</span>
+                  </a>
+                  <button type="button" class="btn-file-action delete" (click)="removeSurveyFile()" title="Gỡ file này">
+                    <lucide-angular [img]="icons.Trash2" size="13"></lucide-angular>
+                    <span>Gỡ bỏ</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nút Lưu biên bản khảo sát -->
+            <div class="survey-save-row">
+              <button 
+                type="button" 
+                class="btn-save-survey-record" 
+                [class.btn-saved-success]="isSavedSurveyRecord"
+                (click)="saveSurveyRecord()" 
+                [disabled]="!surveyNoteText.trim() && !surveyUploadedFile">
+                <lucide-angular [img]="isSavedSurveyRecord ? icons.Check : icons.ClipboardCheck" size="14"></lucide-angular>
+                <span>{{ isSavedSurveyRecord ? 'Đã lưu thành công ✓' : 'Lưu kết quả đo đạc' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- TRƯỜNG HỢP 2: ĐÃ QUA BƯỚC 2 (getCurrentStepIndex() > 1, VÍ DỤ ĐANG Ở BƯỚC 3 TRỞ ĐI VÀ QUAY VỀ XEM BƯỚC 2) -> READ-ONLY HOÀN TOÀN KHÔNG CÓ BẤT KỲ NÚT NÀO -->
+          <div class="survey-record-readonly-section" *ngIf="getCurrentStepIndex() > 1">
+            <div class="readonly-title-wrap">
+              <span class="record-title">Kết quả đo đạc & Biên bản khảo sát thực tế</span>
+              <span class="record-subtitle">Hồ sơ đo đạc chính thức đã được KTS xác nhận lưu trữ</span>
+            </div>
+
+            <div class="readonly-note-box" *ngIf="request.surveyNotes">
+              <span class="readonly-lbl">Ghi chú đo đạc thực tế:</span>
+              <p class="readonly-note-content">{{ request.surveyNotes }}</p>
+            </div>
+
+            <div class="readonly-file-card" *ngIf="request.surveyAttachment">
+              <div class="file-card-left">
+                <div class="file-icon-badge">
+                  <lucide-angular [img]="icons.FileText" size="18"></lucide-angular>
+                </div>
+                <div class="file-info-text">
+                  <span class="file-name" [title]="request.surveyAttachment.name">{{ request.surveyAttachment.name }}</span>
+                  <span class="file-meta">{{ request.surveyAttachment.size }} • Tệp ghi chú khảo sát đính kèm</span>
+                </div>
+              </div>
+              <a [href]="request.surveyAttachment.previewUrl" target="_blank" class="btn-file-action view" title="Xem / Tải về file">
+                <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+                <span>Xem tệp</span>
+              </a>
+            </div>
+
+            <div class="readonly-empty-note" *ngIf="!request.surveyNotes && !request.surveyAttachment">
+              <p>KTS đã hoàn thành công tác khảo sát & đo đạc hiện trạng thực tế tại công trình.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 3: DỰ TOÁN BÁO GIÁ & PHỐI CẢNH 3D (CHỈ HIỂN THỊ TỪ BƯỚC 3 TRỞ ĐI) -->
+      <section class="v2-card" *ngIf="isQuoteCardVisible()">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.DollarSign" size="18" class="text-accent"></lucide-angular>
+            <h3>Tác Nghiệp Báo Giá Dự Toán & Phối Cảnh 3D</h3>
+          </div>
+          <span class="quote-date-tag" *ngIf="request.quotedAt">Ngày báo giá: {{ formatDate(request.quotedAt) }}</span>
+        </div>
+
+        <div class="pricing-card-body">
+          <!-- TRƯỜNG HỢP 1: BƯỚC 3 ĐANG LÀ BƯỚC TÁC NGHIỆP HIỆN TẠI (getCurrentStepIndex() === 2) -> NHẬP GIÁ & TẢI TỆP 3D -->
+          <div class="quote-work-section" *ngIf="getCurrentStepIndex() === 2">
+            <!-- 1. BẢNG ĐỊNH MỨC DỰ TOÁN CHI PHÍ MAY ĐO CHUẨN DOANH NGHIỆP -->
+            <div class="quote-inputs-grid">
+              <div class="quote-input-field">
+                <label class="q-label">
+                  <span>Đơn giá dự toán may đo tổng thể (VNĐ)</span>
+                  <span class="required-mark">*</span>
+                </label>
+                <div class="q-input-wrap">
+                  <input 
+                    type="number" 
+                    class="q-input" 
+                    [(ngModel)]="quoteForm.quotedPrice" 
+                    (input)="updateQuoteDeposit()" 
+                    placeholder="VD: 24500000" 
+                    min="0"
+                  />
+                  <span class="q-currency">VNĐ</span>
+                </div>
+                <span class="q-hint" *ngIf="quoteForm.quotedPrice && quoteForm.quotedPrice > 0">
+                  Bằng chữ: <strong>{{ formatVND(quoteForm.quotedPrice) }}</strong> (Đã tính hoàn thiện vật liệu & nhân công)
+                </span>
+                <span class="q-hint text-muted" *ngIf="!quoteForm.quotedPrice || quoteForm.quotedPrice <= 0">
+                  Chưa nhập đơn giá dự toán cho đơn may đo này
+                </span>
+              </div>
+
+              <!-- Khối khoảng giá đề xuất từ khách hàng -->
+              <div class="quote-customer-budget-box">
+                <div class="q-budget-head">
+                  <div class="q-budget-icon-badge">
+                    <lucide-angular [img]="icons.DollarSign" size="16"></lucide-angular>
+                  </div>
+                  <div class="q-budget-title-wrap">
+                    <span class="q-budget-label">Khoảng giá khách hàng đề xuất</span>
+                    <span class="q-budget-sub">Ngân sách dự kiến khi gửi yêu cầu</span>
+                  </div>
+                </div>
+                <div class="q-budget-body">
+                  <strong class="q-budget-val">{{ request.budgetRange || (request.estimatedBudget ? formatVND(+request.estimatedBudget) : '22.000.000 đ - 26.000.000 đ') }}</strong>
+                  <span class="q-budget-hint">💡 Căn cứ để KTS cân đối định mức vật tư và báo giá phù hợp</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ghi chú giải trình vật liệu -->
+            <div class="quote-notes-field">
+              <label class="q-label">Ghi chú giải trình vật liệu & định mức sản xuất</label>
+              <textarea 
+                class="q-textarea" 
+                [(ngModel)]="quoteForm.notes" 
+                rows="2" 
+                placeholder="Nhập chi tiết tiêu chuẩn da/vải nỉ, kết cấu khung xương sấy khô, đệm mút D40 và phụ kiện may đo..."
+              ></textarea>
+            </div>
+
+            <!-- 2. HỒ SƠ PHỐI CẢNH 3D & BẢN VẼ KỸ THUẬT -->
+            <div class="quote-3d-section">
+              <div class="quote-3d-header">
+                <div class="record-title-wrap">
+                  <span class="record-title">Tệp Phối Cảnh 3D <span class="required-mark">*</span></span>
+                  <span class="record-subtitle">Bắt buộc tải lên tệp phối cảnh 3D hoặc nhập liên kết bản vẽ trực tuyến</span>
+                </div>
+
+                <div class="survey-mode-tabs">
+                  <button 
+                    type="button" 
+                    class="mode-tab-btn" 
+                    [class.active]="quote3dInputMode === 'FILE'" 
+                    (click)="setQuote3dMode('FILE')">
+                    <lucide-angular [img]="icons.Upload" size="13"></lucide-angular>
+                    <span>Tải lên file 3D</span>
+                    <span class="file-badge" *ngIf="quoteUploadedFile">1</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="mode-tab-btn" 
+                    [class.active]="quote3dInputMode === 'URL'" 
+                    (click)="setQuote3dMode('URL')">
+                    <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+                    <span>Link trực tuyến</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tab File: Upload Dropzone hoặc File Card -->
+              <div class="survey-mode-content" *ngIf="quote3dInputMode === 'FILE'">
+                <div class="survey-dropzone" *ngIf="!quoteUploadedFile" (click)="quote3dFileInput.click()">
+                  <input 
+                    type="file" 
+                    #quote3dFileInput 
+                    (change)="onQuote3dFileSelected($event)" 
+                    accept=".obj,.fbx,.skp,.max,.dwg,.pdf,.png,.jpg,.jpeg,.webp" 
+                    style="display: none;" 
+                  />
+                  <div class="dropzone-icon">
+                    <lucide-angular [img]="icons.Upload" size="24"></lucide-angular>
+                  </div>
+                  <div class="dropzone-text">
+                    <strong>Bấm để chọn file hoặc kéo thả tệp phối cảnh 3D vào đây</strong>
+                    <p>Hỗ trợ SKP, 3DS Max, DWG, PDF render hoặc ảnh phối cảnh chất lượng cao PNG/JPG (Tối đa 50MB)</p>
+                  </div>
+                </div>
+
+                <div class="survey-file-card" *ngIf="quoteUploadedFile">
+                  <div class="file-card-left">
+                    <div class="file-icon-badge">
+                      <lucide-angular [img]="icons.Package" size="20"></lucide-angular>
+                    </div>
+                    <div class="file-info-text">
+                      <span class="file-name" [title]="quoteUploadedFile.name">{{ quoteUploadedFile.name }}</span>
+                      <span class="file-meta">{{ quoteUploadedFile.size }} • Tệp phối cảnh 3D may đo</span>
+                    </div>
+                  </div>
+                  <div class="file-card-actions">
+                    <a [href]="quoteUploadedFile.url" target="_blank" class="btn-file-action view" title="Xem / Tải về file">
+                      <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+                      <span>Xem tệp</span>
+                    </a>
+                    <button type="button" class="btn-file-action delete" (click)="removeQuote3dFile()" title="Gỡ file này">
+                      <lucide-angular [img]="icons.Trash2" size="13"></lucide-angular>
+                      <span>Gỡ bỏ</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab URL: Nhập link 3D trực tuyến -->
+              <div class="survey-mode-content" *ngIf="quote3dInputMode === 'URL'">
+                <div class="survey-textarea-box">
+                  <div class="q-input-wrap">
+                    <input 
+                      type="text" 
+                      class="q-input" 
+                      [(ngModel)]="quoteForm.drawing3dUrl" 
+                      placeholder="https://cloud.dcor.vn/renders/project-3d-sofa.skp hoặc link Google Drive/Sketchfab..." 
+                    />
+                  </div>
+                  <div class="textarea-hint">
+                    <span>💡 Khách hàng có thể truy cập link 3D để xem phối cảnh xoay 360 độ hoặc tải bản vẽ kỹ thuật.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. DANH MỤC HỒ SƠ TÀI LIỆU SẼ BÀN GIAO CHO KHÁCH HÀNG (DỰ THẢO) -->
+            <div class="quote-deliverables-section">
+              <div class="record-title-wrap">
+                <span class="record-title">Hồ sơ tài liệu bàn giao khách hàng (Dự thảo)</span>
+                <span class="record-subtitle">Bộ tài liệu chính thức KTS sẽ bàn giao cho khách hàng sau khi duyệt dự toán</span>
+              </div>
+
+              <div class="deliverables-grid">
+                <!-- Tài liệu 1: Phiếu Báo Giá & Dự Toán Chi Phí May Đo -->
+                <div class="deliverable-card" [class.ready]="quoteForm.quotedPrice && quoteForm.quotedPrice > 0">
+                  <div class="d-card-left">
+                    <div class="d-card-icon" [class.ready]="quoteForm.quotedPrice && quoteForm.quotedPrice > 0">
+                      <lucide-angular [img]="icons.FileText" size="20"></lucide-angular>
+                    </div>
+                    <div class="d-card-info">
+                      <div class="d-card-title-row">
+                        <strong class="d-card-title">Phiếu Báo Giá & Dự Toán Chi Phí May Đo</strong>
+                        <span class="d-status-pill" [class.pill-ready]="quoteForm.quotedPrice && quoteForm.quotedPrice > 0">
+                          {{ (quoteForm.quotedPrice && quoteForm.quotedPrice > 0) ? 'Đã lập dự toán' : 'Chưa nhập giá' }}
+                        </span>
+                      </div>
+                      <span class="d-card-meta" *ngIf="quoteForm.quotedPrice && quoteForm.quotedPrice > 0">
+                        Số phiếu: <strong>BG-{{ request.code }}</strong> • Dự toán: <strong>{{ formatVND(quoteForm.quotedPrice) }}</strong> • Cọc 30%: {{ formatVND(quoteForm.depositAmount) }}
+                      </span>
+                      <span class="d-card-meta text-muted" *ngIf="!quoteForm.quotedPrice || quoteForm.quotedPrice <= 0">
+                        Vui lòng nhập đơn giá dự toán may đo ở trên để tự động khởi tạo phiếu báo giá
+                      </span>
+                    </div>
+                  </div>
+                  <div class="d-card-action">
+                    <button 
+                      type="button" 
+                      class="btn-preview-deliverable" 
+                      [disabled]="!quoteForm.quotedPrice || quoteForm.quotedPrice <= 0"
+                      (click)="openQuotePreviewModal()"
+                      title="Xem trước mẫu phiếu báo giá chuẩn DCor">
+                      <lucide-angular [img]="icons.Eye" size="14"></lucide-angular>
+                      <span>Xem trước</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Tài liệu 2: Hồ Sơ Phối Cảnh 3D / Bản Vẽ Kỹ Thuật -->
+                <div class="deliverable-card" [class.ready]="quoteUploadedFile || (quoteForm.drawing3dUrl && quoteForm.drawing3dUrl.trim().length > 0)">
+                  <div class="d-card-left">
+                    <div class="d-card-icon" [class.ready]="quoteUploadedFile || (quoteForm.drawing3dUrl && quoteForm.drawing3dUrl.trim().length > 0)">
+                      <lucide-angular [img]="icons.Package" size="20"></lucide-angular>
+                    </div>
+                    <div class="d-card-info">
+                      <div class="d-card-title-row">
+                        <strong class="d-card-title">Hồ Sơ Phối Cảnh 3D & Bản Vẽ Kỹ Thuật</strong>
+                        <span class="d-status-pill" [class.pill-ready]="quoteUploadedFile || (quoteForm.drawing3dUrl && quoteForm.drawing3dUrl.trim().length > 0)">
+                          {{ (quoteUploadedFile || (quoteForm.drawing3dUrl && quoteForm.drawing3dUrl.trim().length > 0)) ? 'Đã sẵn sàng' : 'Chưa đính kèm' }}
+                        </span>
+                      </div>
+                      <span class="d-card-meta" *ngIf="quoteUploadedFile">
+                        Tệp tải lên: <strong>{{ quoteUploadedFile.name }}</strong> ({{ quoteUploadedFile.size }})
+                      </span>
+                      <span class="d-card-meta" *ngIf="!quoteUploadedFile && quoteForm.drawing3dUrl && quoteForm.drawing3dUrl.trim().length > 0">
+                        Liên kết trực tuyến: <strong>{{ quoteForm.drawing3dUrl }}</strong>
+                      </span>
+                      <span class="d-card-meta text-muted" *ngIf="!quoteUploadedFile && (!quoteForm.drawing3dUrl || quoteForm.drawing3dUrl.trim().length === 0)">
+                        Tải lên file hoặc nhập liên kết bản vẽ trực tuyến ở mục trên
+                      </span>
+                    </div>
+                  </div>
+                  <div class="d-card-action">
+                    <a 
+                      *ngIf="quoteUploadedFile?.url || quoteForm.drawing3dUrl" 
+                      [href]="quoteUploadedFile?.url || quoteForm.drawing3dUrl" 
+                      target="_blank" 
+                      class="btn-preview-deliverable link"
+                      title="Mở tệp hoặc link bản vẽ 3D">
+                      <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
+                      <span>Xem tệp</span>
+                    </a>
+                    <button 
+                      *ngIf="!quoteUploadedFile && (!quoteForm.drawing3dUrl || quoteForm.drawing3dUrl.trim().length === 0)" 
+                      type="button" 
+                      class="btn-preview-deliverable" 
+                      disabled>
+                      <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
+                      <span>Chưa có</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRƯỜNG HỢP 2: ĐÃ QUA BƯỚC 3 (getCurrentStepIndex() > 2) -> READ-ONLY DISPLAY -->
+          <ng-container *ngIf="getCurrentStepIndex() > 2 && request.quotedPrice">
+            <!-- Bảng phân tách chi phí Cọc 30% và Thu đợt 2 70% -->
+            <div class="quote-split-boxes">
+              <div class="split-card card-total">
+                <span class="sc-label">Tổng giá trị may đo (Dự toán)</span>
+                <strong class="sc-val">{{ formatVND(request.quotedPrice) }}</strong>
+                <span class="sc-sub">Đã bao gồm vật liệu, hoàn thiện & lắp đặt</span>
+              </div>
+              <div class="split-card card-deposit">
+                <div class="sc-head">
+                  <span class="sc-label">Cọc đợt 1 (30%)</span>
+                  <span class="sc-badge" [class.badge-paid]="['PROCESSING', 'QC_PASSED', 'COMPLETED'].includes(request.status)">
+                    {{ ['PROCESSING', 'QC_PASSED', 'COMPLETED'].includes(request.status) ? 'Đã thu cọc' : 'Chờ thanh toán' }}
+                  </span>
+                </div>
+                <strong class="sc-val text-success">{{ formatVND(request.quotedDeposit || (request.quotedPrice * 0.3)) }}</strong>
+                <span class="sc-sub">Điều kiện tiên quyết để bắn xưởng sản xuất</span>
+              </div>
+              <div class="split-card card-final">
+                <div class="sc-head">
+                  <span class="sc-label">Thu đợt 2 (70%)</span>
+                  <span class="sc-badge" [class.badge-paid]="request.status === 'COMPLETED'">
+                    {{ request.status === 'COMPLETED' ? 'Đã thanh toán đủ' : 'Thu khi bàn giao' }}
+                  </span>
+                </div>
+                <strong class="sc-val text-accent">{{ formatVND(request.quotedPrice - (request.quotedDeposit || (request.quotedPrice * 0.3))) }}</strong>
+                <span class="sc-sub">Nghiệm thu lắp đặt đạt chuẩn 100% tại nhà</span>
+              </div>
+            </div>
+
+            <!-- Tệp phối cảnh 3D đã gửi cho khách -->
+            <div class="quote-readonly-3d-box" *ngIf="request.drawing3dUrl">
+              <div class="r3d-left">
+                <div class="file-icon-badge">
+                  <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
+                </div>
+                <div class="file-info-text">
+                  <span class="file-name">Bản vẽ phối cảnh 3D may đo chính thức</span>
+                  <span class="file-meta">Đã gửi đính kèm cho khách hàng thẩm định & phê duyệt</span>
+                </div>
+              </div>
+              <a [href]="request.drawing3dUrl" target="_blank" class="btn-file-action view" title="Xem bản vẽ 3D">
+                <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+                <span>Xem bản vẽ 3D</span>
+              </a>
+            </div>
+
+            <!-- Khối thông tin hợp đồng kinh tế (Chỉ hiển thị từ bước AWAITING_CONTRACT trở đi) -->
+            <div class="contract-info-block" *ngIf="request.contractSignedAt || request.contractScanUrl || ['AWAITING_CONTRACT', 'CONTRACT_SIGNED', 'AWAITING_PAYMENT', 'PROCESSING', 'QC_PASSED', 'COMPLETED'].includes(request.status)">
+              <div class="contract-head">
+                <div class="c-title-group">
+                  <lucide-angular [img]="icons.FileText" size="18" class="text-accent"></lucide-angular>
+                  <h4>Hợp đồng may đo kinh tế: HD-DCOR-2026/{{ request.code }}</h4>
+                </div>
+                <span class="contract-status-tag" *ngIf="request.contractSignedAt">Đã ký kết hợp đồng</span>
+              </div>
+              <p class="c-desc">
+                Hợp đồng quy định rõ cam kết vật liệu da thật/gỗ chuẩn xuất xứ, tiến độ đóng xưởng, chính sách bảo hành 5 năm và quyền lợi của khách hàng.
+              </p>
+              <div class="contract-actions-row" *ngIf="request.contractScanUrl">
+                <a [href]="request.contractScanUrl" target="_blank" class="btn-contract-download">
+                  <lucide-angular [img]="icons.Download" size="14"></lucide-angular>
+                  <span>Xem / Tải bản scan hợp đồng có chữ ký</span>
+                </a>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </section>
+
+      <!-- CARD 4: TIẾN ĐỘ SẢN XUẤT XƯỞNG & NGHIỆM THU QC (CHỈ HIỂN THỊ TỪ BƯỚC 7 TRỞ ĐI) -->
+      <section class="v2-card" *ngIf="isProductionCardVisible()">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.ClipboardCheck" size="18" class="text-accent"></lucide-angular>
+            <h3>Tiến độ Sản xuất & Kiểm định Chất lượng QC</h3>
+          </div>
+          <span class="qc-status-badge" [class.badge-passed]="request.status === 'QC_PASSED' || request.status === 'COMPLETED'">
+            {{ (request.status === 'QC_PASSED' || request.status === 'COMPLETED') ? '100% Đạt tiêu chuẩn QC' : 'Đang sản xuất xưởng' }}
+          </span>
+        </div>
+
+        <div class="production-qc-body">
+          <div class="work-order-row">
+            <div class="wo-item">
+              <span class="wo-lbl">Mã lệnh xưởng (Work Order):</span>
+              <strong class="wo-val">{{ request.workOrderCode || 'WO-MK-2026' }}</strong>
+            </div>
+            <div class="wo-item">
+              <span class="wo-lbl">Đơn hàng hệ thống:</span>
+              <a (click)="goToOrder(request.generatedOrderNumber)" class="wo-val link-styled">
+                {{ request.generatedOrderNumber || 'DCOR-ORD-CUST' }}
+                <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
+              </a>
+            </div>
+          </div>
+
+          <!-- Bảng 4 Tiêu Chí Nghiệm Thu QC Khắt Khe -->
+          <div class="qc-checklist-box">
+            <span class="qc-box-title">Kết quả nghiệm thu 4 tiêu chí xuất xưởng:</span>
+            <div class="qc-items-grid">
+              <div class="qc-item verified">
+                <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+                <span>1. Độ chính xác kích thước đo đạc (sai số &lt; 3mm)</span>
+              </div>
+              <div class="qc-item verified">
+                <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+                <span>2. Bề mặt da bò Ý / gỗ tự nhiên & độ bóng sơn hoàn thiện</span>
+              </div>
+              <div class="qc-item verified">
+                <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+                <span>3. Độ đàn hồi đệm mút D40 & đường may đôi thẩm mỹ</span>
+              </div>
+              <div class="qc-item verified">
+                <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+                <span>4. Quy cách đóng gói bọc màng khí & bo góc carton</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="qc-inspector-note" *ngIf="request.qcInspector">
+            <span>Kiểm định viên: <strong>{{ request.qcInspector }}</strong> (Nghiệm thu lúc: {{ formatDate(request.qcPassedAt) }})</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 4: NHẬT KÝ TÁC NGHIỆP & TRAO ĐỔI (AUDIT TIMELINE) -->
+      <section class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Clock" size="18" class="text-accent"></lucide-angular>
+            <h3>Lịch sử Tác nghiệp & Dòng thời gian</h3>
+          </div>
+        </div>
+
+        <div class="audit-timeline-list">
+          <div class="audit-item" *ngFor="let item of request.timeline">
+            <div class="audit-dot"></div>
+            <div class="audit-content">
+              <div class="audit-top">
+                <strong class="audit-action">{{ item.title }}</strong>
+                <span class="audit-time">{{ formatDate(item.timestamp) }}</span>
+              </div>
+              <p class="audit-detail">{{ item.description }}</p>
+              <span class="audit-actor">Thực hiện bởi: <strong>{{ getActorDisplay(item) }}</strong></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Sidebar (Khách hàng, KTS Phụ trách, Liên kết hệ thống) -->
+    <div class="v2-col-right">
+
+      <!-- CARD 1: THÔNG TIN KHÁCH HÀNG -->
+      <section class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.User" size="18" class="text-accent"></lucide-angular>
+            <h3>Thông tin Khách hàng</h3>
+          </div>
+        </div>
+
+        <div class="customer-info-box">
+          <div class="cust-profile">
+            <div class="cust-avatar">{{ request.customerName.charAt(0) }}</div>
+            <div class="cust-meta">
+              <div class="cust-name" (click)="goToCustomer()" title="Xem chi tiết hồ sơ khách">{{ request.customerName }}</div>
+              <button type="button" class="btn-customer-nav" (click)="goToCustomer()">
+                <lucide-angular [img]="icons.User" size="12"></lucide-angular>
+                <span>Hồ sơ khách hàng</span>
+                <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+              </button>
+            </div>
+          </div>
+
+          <div class="cust-rows">
+            <div class="cust-row">
+              <lucide-angular [img]="icons.Phone" size="15" class="row-icon"></lucide-angular>
+              <span>{{ request.customerPhone }}</span>
+              <button type="button" class="btn-copy-small" (click)="copyToClipboard(request.customerPhone)" title="Sao chép SĐT">
+                <lucide-angular [img]="icons.Copy" size="12"></lucide-angular>
+              </button>
+            </div>
+            <div class="cust-row" *ngIf="request.customerEmail">
+              <lucide-angular [img]="icons.Mail" size="15" class="row-icon"></lucide-angular>
+              <span>{{ request.customerEmail }}</span>
+            </div>
+            <div class="cust-row address-row">
+              <lucide-angular [img]="icons.MapPin" size="15" class="row-icon"></lucide-angular>
+              <span>{{ request.customerAddress || 'Chưa cung cấp địa chỉ khảo sát' }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 2: KIẾN TRÚC SƯ PHỤ TRÁCH -->
+      <section class="v2-card">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.Building2" size="18" class="text-accent"></lucide-angular>
+            <h3>Kiến Trúc Sư Phụ Trách</h3>
+          </div>
+        </div>
+
+        <div class="staff-card-body">
+          <!-- BƯỚC 1: DROPDOWN PHÂN CÔNG KIẾN TRÚC SƯ (CHỈ ROLE KIẾN TRÚC SƯ) -->
+          <div class="staff-lead-row staff-assign-dropdown-row" *ngIf="request.status === 'PENDING_REVIEW'; else assignedStaffRow">
+            <div class="staff-select-container">
+              <label class="staff-dropdown-label">Phân công Kiến trúc sư phụ trách:</label>
+              
+              <div class="filter-dropdown-wrapper architect-dropdown-wrapper">
+                <button 
+                  type="button" 
+                  class="filter-trigger-btn" 
+                  title="Phân công Kiến trúc sư phụ trách"
+                  [class.active]="!!request.assignedStaff"
+                  (click)="toggleArchitectDropdown($event)">
+                  <div class="trigger-label">
+                    <lucide-angular [img]="icons.UserCheck" size="15" class="trigger-icon"></lucide-angular>
+                    <span class="truncate-label">{{ request.assignedStaff || 'Chọn Kiến trúc sư' }}</span>
+                  </div>
+                  <lucide-angular [img]="icons.ChevronDown" size="14" style="transition: transform 0.2s;" [style.transform]="isArchitectDropdownOpen ? 'rotate(180deg)' : 'none'"></lucide-angular>
+                </button>
+
+                <div class="filter-menu-dropdown architect-menu-dropdown" *ngIf="isArchitectDropdownOpen">
+                  <div 
+                    class="filter-menu-item" 
+                    *ngFor="let kts of architectsList"
+                    [class.selected]="request.assignedStaff === kts.name"
+                    (click)="selectArchitect(kts.name, $event)">
+                    <div class="kts-item-info">
+                      <span class="kts-item-name">{{ kts.name }}</span>
+                    </div>
+                    <lucide-angular [img]="icons.Check" size="13" *ngIf="request.assignedStaff === kts.name"></lucide-angular>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- KHI ĐÃ QUA BƯỚC 1: HIỂN THỊ THÔNG TIN KTS ĐÃ PHÂN CÔNG -->
+          <ng-template #assignedStaffRow>
+            <div class="staff-lead-row">
+              <div class="staff-avatar-badge">KTS</div>
+              <div>
+                <strong class="staff-name">{{ request.assignedStaff || 'KTS. Lê Nam (DCor Studio)' }}</strong>
+                <span class="staff-role">Kiến trúc sư • Ban Thiết Kế & Tư Vấn May Đo</span>
+              </div>
+            </div>
+          </ng-template>
+
+          <div class="staff-contact-details">
+            <div class="contact-line">
+              <span class="lbl">Hotline thiết kế nội bộ:</span>
+              <strong>1900 8888 (Máy lẻ 102)</strong>
+            </div>
+            <div class="contact-line">
+              <span class="lbl">Lịch khảo sát đo đạc:</span>
+              <strong>{{ request.status === 'PENDING_REVIEW' ? 'Đang lên lịch hẹn' : 'Đã xác nhận lịch với khách' }}</strong>
+            </div>
+          </div>
+
+          <div class="kts-admin-notes" *ngIf="request.adminNotes">
+            <span class="lbl">Ghi chú nghiệp vụ:</span>
+            <p>{{ request.adminNotes }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 3: HỒ SƠ LIÊN KẾT & BẢO HÀNH CHÍNH HÃNG (CHỈ HIỂN THỊ KHI ĐÃ VÀO XƯỞNG HOẶC ĐÃ CÓ ĐƠN HÀNG/LỆNH XƯỞNG/BẢO HÀNH) -->
+      <section class="v2-card" *ngIf="request.generatedOrderNumber || request.workOrderCode || request.warrantyCode || ['PROCESSING', 'QC_PASSED', 'COMPLETED'].includes(request.status)">
+        <div class="v2-card-header">
+          <div class="card-title-group">
+            <lucide-angular [img]="icons.ShieldCheck" size="18" class="text-accent"></lucide-angular>
+            <h3>Hồ sơ Liên kết & Bảo hành</h3>
+          </div>
+        </div>
+
+        <div class="links-card-body">
+          <!-- Đơn hàng chính thức -->
+          <div class="linked-item-row" *ngIf="request.generatedOrderNumber">
+            <div class="li-icon icon-order">
+              <lucide-angular [img]="icons.Package" size="16"></lucide-angular>
+            </div>
+            <div class="li-info">
+              <span class="li-label">Đơn hàng hệ thống</span>
+              <strong class="li-code">{{ request.generatedOrderNumber }}</strong>
+            </div>
+            <button type="button" class="btn-li-nav" (click)="goToOrder(request.generatedOrderNumber)" title="Đến trang chi tiết đơn hàng">
+              <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
+            </button>
+          </div>
+
+          <!-- Lệnh sản xuất xưởng -->
+          <div class="linked-item-row" *ngIf="request.workOrderCode">
+            <div class="li-icon icon-factory">
+              <lucide-angular [img]="icons.Building2" size="16"></lucide-angular>
+            </div>
+            <div class="li-info">
+              <span class="li-label">Lệnh sản xuất xưởng</span>
+              <strong class="li-code">{{ request.workOrderCode }}</strong>
+            </div>
+          </div>
+
+          <!-- Bảo hành điện tử -->
+          <div class="linked-item-row" *ngIf="request.warrantyCode || request.status === 'COMPLETED'">
+            <div class="li-icon icon-warranty">
+              <lucide-angular [img]="icons.ShieldCheck" size="16"></lucide-angular>
+            </div>
+            <div class="li-info">
+              <span class="li-label">Chứng thư bảo hành 5 năm</span>
+              <strong class="li-code">{{ request.warrantyCode || 'BH-DCOR-2026' }}</strong>
+            </div>
+            <button type="button" class="btn-li-nav" (click)="goToWarranty(request.warrantyCode)" title="Tra cứu bảo hành">
+              <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
+            </button>
+          </div>
+
+          <div class="empty-links-hint" *ngIf="!request.generatedOrderNumber && !request.warrantyCode">
+            <p>Hồ sơ đang trong giai đoạn tiền khả thi. Mã Đơn hàng và Lệnh xưởng sẽ được hệ thống kích hoạt tự động ngay sau khi xác nhận nhận cọc 30%.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <!-- =========================================================================
+       CRITICAL REQUIREMENT: BOTTOM ACTION CARD (Đưa 2 nút tác nghiệp xuống góc dưới bên phải)
+       ========================================================================= -->
+  <div class="v2-bottom-action-card" *ngIf="request.status !== 'CANCELLED' && request.status !== 'COMPLETED' && isViewingCurrentStep()">
+    <div class="bottom-action-inner">
+      <ng-container>
+        <!-- NÚT 1: Hủy hồ sơ (chỉ hiển thị khi chưa sản xuất/hoàn tất) -->
+        <button type="button" class="btn-cancel" *ngIf="!['PROCESSING', 'QC_PASSED', 'COMPLETED'].includes(request.status)" (click)="openModal('CANCEL')">
+          <lucide-angular [img]="icons.XCircle" size="15"></lucide-angular>
+          <span>Hủy hồ sơ</span>
+        </button>
+
+        <!-- NÚT 2: Tác nghiệp chuyển bước chính theo trạng thái -->
+        <!-- Bước 1: Tiếp nhận mới -->
+        <button 
+          type="button" 
+          class="btn-primary-action" 
+          *ngIf="request.status === 'PENDING_REVIEW'" 
+          [disabled]="!request.assignedStaff"
+          [class.btn-disabled]="!request.assignedStaff"
+          [title]="!request.assignedStaff ? 'Vui lòng phân công Kiến trúc sư phụ trách trước khi tiếp nhận yêu cầu' : 'Tiếp nhận yêu cầu & Lên lịch khảo sát'"
+          (click)="proceedToConsulting()">
+          <lucide-angular [img]="icons.Phone" size="15"></lucide-angular>
+          <span>Tiếp nhận yêu cầu & Lên lịch khảo sát</span>
+        </button>
+
+        <!-- Bước 2: Đang khảo sát đo đạc -> Hoàn thiện khảo sát đo đạc (chuyển sang bước 3, không hiện popup) -->
+        <button 
+          type="button" 
+          class="btn-primary-action" 
+          *ngIf="request.status === 'CONSULTING'"
+          [disabled]="!hasSurveyRecord()"
+          [class.btn-disabled]="!hasSurveyRecord()"
+          [title]="!hasSurveyRecord() ? 'Vui lòng nhập ghi chú đo đạc thực tế hoặc tải lên tệp khảo sát trước khi hoàn tất' : 'Hoàn thiện khảo sát đo đạc & chuyển sang Bước 3: Báo giá & 3D'"
+          (click)="completeSurveyRecord()">
+          <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+          <span>Hoàn thiện khảo sát đo đạc</span>
+        </button>
+
+        <!-- Bước 3: Báo giá & 3D -> Tạo báo giá & Xem trước -->
+        <button 
+          type="button" 
+          class="btn-primary-action" 
+          *ngIf="request.status === 'QUOTED'" 
+          [disabled]="!hasQuoteRecord()"
+          [class.btn-disabled]="!hasQuoteRecord()"
+          [title]="!hasQuoteRecord() ? 'Vui lòng nhập tiền trong báo giá và tệp phối cảnh 3D trước khi xem trước & gửi khách' : 'Xem trước phiếu báo giá & phát hành cho khách hàng'"
+          (click)="openQuotePreviewModal()">
+          <lucide-angular [img]="icons.FileText" size="15"></lucide-angular>
+          <span>Tạo báo giá & Xem trước</span>
+        </button>
+
+        <!-- Bước 4: Chờ ký HĐ -> Phát hành Hợp đồng may đo -->
+        <button 
+          type="button" 
+          class="btn-primary-action" 
+          *ngIf="request.status === 'AWAITING_CONTRACT'" 
+          (click)="openModal('CONTRACT')">
+          <lucide-angular [img]="icons.FileText" size="15"></lucide-angular>
+          <span>Phát hành Hợp đồng may đo</span>
+        </button>
+
+        <!-- Bước 5: Đã ký HĐ -> Sinh mã VietQR cọc -->
+        <button type="button" class="btn-primary-action" *ngIf="request.status === 'CONTRACT_SIGNED'" (click)="openModal('VIETQR')">
+          <lucide-angular [img]="icons.QrCode" size="15"></lucide-angular>
+          <span>Phát hành mã VietQR cọc 30%</span>
+        </button>
+
+        <!-- Bước 6: Chờ nhận cọc 30% -> Kế toán xác nhận -->
+        <button type="button" class="btn-primary-action btn-success-action" *ngIf="request.status === 'AWAITING_PAYMENT'" (click)="submitDepositPayment()">
+          <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+          <span>Xác nhận đã nhận cọc 30% (Bắn xưởng)</span>
+        </button>
+
+        <!-- Bước 7: Đang sản xuất -> Nghiệm thu QC -->
+        <button type="button" class="btn-primary-action" *ngIf="request.status === 'PROCESSING'" (click)="openModal('QC')">
+          <lucide-angular [img]="icons.ClipboardCheck" size="15"></lucide-angular>
+          <span>Nghiệm thu QC xuất xưởng</span>
+        </button>
+
+        <!-- Bước 8: QC đạt chuẩn -> Bàn giao & Bảo hành -->
+        <button type="button" class="btn-primary-action btn-success-action" *ngIf="request.status === 'QC_PASSED'" (click)="openModal('DELIVERY')">
+          <lucide-angular [img]="icons.Truck" size="15"></lucide-angular>
+          <span>Giao hàng, Thu 70% & Kích hoạt BH</span>
+        </button>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       CÁC MODAL THAO TÁC NGHIỆP VỤ (GỌI TỪ NÚT BẤM TRÊN ACTION CONTROL BANNER)
+       ====================================================================== -->
+
+  <!-- MODAL BƯỚC 2: LẬP DỰ TOÁN BÁO GIÁ & BẢN VẼ 3D -->
+  <div class="dcor-modal-backdrop" *ngIf="activeModal === 'QUOTE'" (click)="closeModal()">
+    <div class="dcor-modal-card modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <h3>Lập Báo Giá Dự Toán & Phối Cảnh 3D</h3>
+          <span class="modal-step-badge">Bước 2: Dự toán & 3D</span>
+        </div>
+        <button type="button" title="Đóng" class="modal-close-btn" (click)="closeModal()"><lucide-angular [img]="icons.X" size="20"></lucide-angular></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group-grid">
+          <div class="form-field">
+            <label class="field-label">Đơn giá dự toán may đo tổng thể (VNĐ) <span class="required-mark">*</span></label>
+            <input type="number" class="field-input font-bold" [(ngModel)]="quoteForm.quotedPrice" (input)="updateQuoteDeposit()" placeholder="Nhập tổng giá thành phẩm..." />
+          </div>
+          <div class="form-field">
+            <label class="field-label">Tiền cọc tối thiểu (30%)</label>
+            <input type="number" class="field-input text-success font-bold" [(ngModel)]="quoteForm.depositAmount" placeholder="Tự động tính 30%..." />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Đường dẫn liên kết Bản vẽ 3D phối cảnh</label>
+          <input type="text" class="field-input" [(ngModel)]="quoteForm.drawing3dUrl" placeholder="https://..." />
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Ghi chú giải trình vật liệu & định mức sản xuất</label>
+          <textarea class="field-textarea" [(ngModel)]="quoteForm.notes" rows="3" placeholder="Nhập ghi chú giải trình vật liệu, kết cấu khung mút và định mức sản xuất..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Đóng</button>
+        <button type="button" class="btn-confirm-primary" [disabled]="!hasQuoteRecord()" (click)="completeQuoteStep()">
+          <lucide-angular [img]="icons.DollarSign" size="15"></lucide-angular>
+          <span>Phát Hành Báo Giá & Gửi Khách Hàng</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BƯỚC 3 & 4: HỢP ĐỒNG MAY ĐO -->
+  <div class="dcor-modal-backdrop" *ngIf="activeModal === 'CONTRACT'" (click)="closeModal()">
+    <div class="dcor-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <div class="modal-step-badge">Bước 3 / 4: Hợp đồng</div>
+          <h3>Hợp Đồng May Đo Kinh Tế</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeModal()"><lucide-angular [img]="icons.X" size="18"></lucide-angular></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-field">
+          <label class="field-label">Mã số Hợp đồng</label>
+          <input type="text" class="field-input" [(ngModel)]="contractForm.contractNumber" />
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Đường dẫn bản scan hợp đồng đã ký</label>
+          <input type="text" class="field-input" [(ngModel)]="contractForm.scanUrl" />
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Ghi chú điều khoản hợp đồng</label>
+          <textarea class="field-textarea" [(ngModel)]="contractForm.notes" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Đóng</button>
+        <button type="button" class="btn-confirm-primary" (click)="submitContract()">
+          <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+          <span>Xác Nhận Lưu Trữ Hợp Đồng</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BƯỚC 5: MÃ VIETQR CỌC 30% -->
+  <div class="dcor-modal-backdrop" *ngIf="activeModal === 'VIETQR'" (click)="closeModal()">
+    <div class="dcor-modal-card modal-qr" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Mã VietQR Thanh Toán Cọc 30%</h3>
+        <button type="button" class="modal-close-btn" (click)="closeModal()"><lucide-angular [img]="icons.X" size="18"></lucide-angular></button>
+      </div>
+
+      <div class="modal-body text-center">
+        <div class="qr-display-box">
+          <img src="https://api.vietqr.io/image/970422-0909876543-compact2.jpg?amount=7350000&addInfo=CR0001%20COC%2030" alt="VietQR" class="qr-img" />
+        </div>
+        <div class="qr-details-block">
+          <p>Số tiền cọc (30%): <strong class="text-success">{{ formatVND(request.quotedDeposit || (request.quotedPrice! * 0.3)) }}</strong></p>
+          <p>Nội dung chuyển khoản: <strong>{{ request.code }} COC 30</strong></p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Đóng</button>
+        <button type="button" class="btn-confirm-primary" (click)="submitDepositPayment()">
+          <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+          <span>Xác Nhận Đã Nhận Tiền Cọc</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BƯỚC 6: NGHIỆM THU QC XUẤT XƯỞNG -->
+  <div class="dcor-modal-backdrop" *ngIf="activeModal === 'QC'" (click)="closeModal()">
+    <div class="dcor-modal-card modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <div class="modal-step-badge">Bước 6: QC Xưởng</div>
+          <h3>Nghiệm Thu QC May Đo 4 Tiêu Chí Xuất Xưởng</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeModal()"><lucide-angular [img]="icons.X" size="18"></lucide-angular></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="checklist-interactive">
+          <label class="dcor-checkbox-label">
+            <input type="checkbox" [(ngModel)]="qcForm.dimensionAccuracy" class="dcor-checkbox-input" />
+            <span>1. Đo đạc kích thước thực tế so với bản vẽ hiện trạng (sai số &lt; 3mm)</span>
+          </label>
+          <label class="dcor-checkbox-label">
+            <input type="checkbox" [(ngModel)]="qcForm.surfaceFinish" class="dcor-checkbox-input" />
+            <span>2. Bề mặt da bò Ý / gỗ tự nhiên không trầy xước, vân gỗ và màu sơn đồng đều</span>
+          </label>
+          <label class="dcor-checkbox-label">
+            <input type="checkbox" [(ngModel)]="qcForm.cushionStitching" class="dcor-checkbox-input" />
+            <span>3. Độ căng nệm D40 êm ái, chỉ may đôi thẳng hàng, không chùng nhăn</span>
+          </label>
+          <label class="dcor-checkbox-label">
+            <input type="checkbox" [(ngModel)]="qcForm.packagingProtection" class="dcor-checkbox-input" />
+            <span>4. Đóng gói màng xốp PE, bọc màng co và bo góc carton chống va đập</span>
+          </label>
+        </div>
+
+        <div class="form-field" style="margin-top: 14px;">
+          <label class="field-label">Kiểm định viên phụ trách QC</label>
+          <input type="text" class="field-input" [(ngModel)]="qcForm.inspectorName" />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Đóng</button>
+        <button type="button" class="btn-confirm-primary" [disabled]="!allQcChecked()" (click)="submitQc()">
+          <lucide-angular [img]="icons.ClipboardCheck" size="15"></lucide-angular>
+          <span>Xác Nhận Đạt Chuẩn QC Xuất Xưởng</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BƯỚC 7: BÀN GIAO, THU 70% & KÍCH HOẠT BẢO HÀNH -->
+  <div class="dcor-modal-backdrop" *ngIf="activeModal === 'DELIVERY'" (click)="closeModal()">
+    <div class="dcor-modal-card modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <div class="modal-step-badge">Bước 7: Bàn giao & Bảo hành</div>
+          <h3>Nghiệm Thu Bàn Giao, Thu 70% & Kích Hoạt Bảo Hành 5 Năm</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeModal()"><lucide-angular [img]="icons.X" size="18"></lucide-angular></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="delivery-receipt-preview">
+          <p>Khách hàng: <strong>{{ request.customerName }}</strong> • SĐT: <strong>{{ request.customerPhone }}</strong></p>
+          <p>Địa chỉ lắp đặt: <strong>{{ request.customerAddress }}</strong></p>
+          <p>Số tiền thu đợt 2 (70%): <strong class="text-accent">{{ formatVND(deliveryForm.remainingAmount) }}</strong></p>
+          <p>Mã bảo hành điện tử cấp phát: <strong class="text-success">{{ deliveryForm.warrantyCode }}</strong> (Thời hạn 5 năm)</p>
+        </div>
+
+        <div class="form-field" style="margin-top: 12px;">
+          <label class="dcor-checkbox-label">
+            <input type="checkbox" [(ngModel)]="deliveryForm.customerSignedHandover" class="dcor-checkbox-input" />
+            <span>Khách hàng đã ký biên bản bàn giao và hài lòng 100% với sản phẩm lắp đặt</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Đóng</button>
+        <button type="button" class="btn-confirm-primary" [disabled]="!deliveryForm.customerSignedHandover" (click)="submitDeliveryWarranty()">
+          <lucide-angular [img]="icons.ShieldCheck" size="15"></lucide-angular>
+          <span>Thu Đủ 70% & Hoàn Tất Hồ Sơ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HỦY HỒ SƠ (ĐỒNG BỘ CHUẨN FORM V2 TRONG CHI TIẾT ĐƠN HÀNG) -->
+  <div class="dcor-modal-backdrop" *ngIf="activeModal === 'CANCEL'" (click)="closeModal()">
+    <div class="v2-modal-card" (click)="$event.stopPropagation(); showCancelDropdown = false">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <lucide-angular [img]="icons.XCircle" size="20" style="color: #DC2626;"></lucide-angular>
+          <h3>Hủy hồ sơ #{{ request.code }}</h3>
+        </div>
+        <button type="button" title="Đóng" class="admin-close-btn modal-close" (click)="closeModal()">
+          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-subtext" style="font-size: 13px; color: var(--text-muted, #6B7280); margin-bottom: 14px;">
+          Xác nhận hủy hồ sơ <strong>#{{ request.code }}</strong> của khách hàng <strong>{{ request.customerName }}</strong>:
+        </p>
+
+        <label class="modal-label">
+          Chọn lý do hủy: <span style="color: #DC2626; font-size: 13px; font-weight: 700; margin-left: 2px;">*</span>
+        </label>
+        <div class="filter-dropdown-wrapper" (click)="$event.stopPropagation()">
+          <button 
+            type="button" 
+            title="Chọn lý do hủy" 
+            class="filter-trigger-btn modal-filter-trigger"
+            [class.active]="showCancelDropdown || !!cancelForm.reason"
+            (click)="toggleCancelDropdown($event)">
+            <div class="trigger-label">
+              <lucide-angular [img]="icons.XCircle" size="15" class="trigger-icon" style="color: #DC2626;"></lucide-angular>
+              <span class="truncate-label" [class.placeholder]="!cancelForm.reason">
+                {{ selectedCancelReasonLabel }}
+              </span>
+            </div>
+            <lucide-angular [img]="icons.ChevronDown" size="14" [ngStyle]="{'transform': showCancelDropdown ? 'rotate(180deg)' : 'none', 'transition': 'transform 0.2s'}"></lucide-angular>
+          </button>
+
+          <div *ngIf="showCancelDropdown" class="filter-menu-dropdown modal-dropdown-menu">
+            <div *ngFor="let opt of cancelPresetReasons"
+                 (click)="selectCancelReason(opt, $event)"
+                 class="filter-menu-item modal-dropdown-item"
+                 [class.selected]="cancelForm.reason === opt">
+              <span>{{ opt }}</span>
+              <lucide-angular *ngIf="cancelForm.reason === opt" [img]="icons.Check" size="14" class="item-check-icon"></lucide-angular>
+            </div>
+          </div>
+        </div>
+
+        <label class="modal-label" style="margin-top: 14px;">
+          Ghi chú chi tiết thêm: <span style="color: #DC2626; font-size: 13px; font-weight: 700; margin-left: 2px;">*</span>
+        </label>
+        <textarea [(ngModel)]="cancelForm.customReason" 
+                  rows="3" 
+                  placeholder="Nhập ghi chú chi tiết lý do hủy (bắt buộc)..." 
+                  class="modal-textarea"
+                  [style.border-color]="cancelForm.reason && (!cancelForm.customReason || !cancelForm.customReason.trim()) ? '#EF4444' : ''"></textarea>
+        <p *ngIf="cancelForm.reason && (!cancelForm.customReason || !cancelForm.customReason.trim())" 
+           style="color: #DC2626; font-size: 11px; margin: 4px 0 0; display: flex; align-items: center; gap: 4px;">
+          * Bạn cần nhập nội dung chi tiết lý do hủy để mở khóa nút Xác nhận.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Hủy</button>
+        <button type="button" 
+                class="btn-confirm-cancel" 
+                [disabled]="!canConfirmCancel" 
+                [class.btn-disabled]="!canConfirmCancel" 
+                [title]="!cancelForm.reason ? 'Vui lòng chọn lý do hủy' : (!cancelForm.customReason || !cancelForm.customReason.trim() ? 'Vui lòng nhập nội dung chi tiết lý do hủy' : 'Xác nhận Hủy hồ sơ')"
+                (click)="submitCancel()">
+          <span>Xác nhận Hủy đơn</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL XEM TRƯỚC PHIẾU BÁO GIÁ MAY ĐO & HỒ SƠ 3D (BƯỚC 3)
+       ====================================================================== -->
+  <div class="dcor-modal-backdrop" *ngIf="isQuotePreviewModalOpen" (click)="closeQuotePreviewModal()">
+    <div class="dcor-modal-card modal-quote-preview" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <span class="modal-step-badge">Bước 3: Dự toán & 3D</span>
+          <h3>Xem Trước Phiếu Báo Giá May Đo & Hồ Sơ Phối Cảnh</h3>
+        </div>
+        <div class="modal-header-actions">
+          <button type="button" class="btn-print-quote" (click)="printQuoteDocument()" title="In / Xuất PDF">
+            <lucide-angular [img]="icons.Printer" size="15"></lucide-angular>
+            <span>In / Xuất PDF</span>
+          </button>
+          <button type="button" title="Đóng" class="modal-close-btn" (click)="closeQuotePreviewModal()">
+            <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body quote-preview-modal-body">
+        <!-- TỜ GIẤY BÁO GIÁ CHUẨN DCOR BESPOKE ATELIER -->
+        <div class="quote-paper-sheet" id="printable-quote">
+          <!-- Header thương hiệu & thông tin liên hệ -->
+          <div class="quote-paper-header">
+            <div class="brand-left">
+              <div class="brand-logo-text">DCOR<span>STUDIO</span></div>
+              <div class="brand-sub">LUXURY BESPOKE INTERIOR & LIVING</div>
+              <div class="brand-address">Showroom & Atelier: 123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP. HCM</div>
+              <div class="brand-contact">Hotline: 1900 8888 • Email: bespoke&#64;dcor.vn • Website: www.dcor.vn</div>
+            </div>
+            <div class="brand-right">
+              <div class="doc-badge">DỰ THẢO BÁO GIÁ</div>
+              <div class="doc-meta-item">
+                <span class="meta-label">Mã số phiếu:</span>
+                <strong class="meta-value text-accent">BG-{{ request.code }}</strong>
+              </div>
+              <div class="doc-meta-item">
+                <span class="meta-label">Ngày lập:</span>
+                <span class="meta-value">{{ getTodayFormatted() }}</span>
+              </div>
+              <div class="doc-meta-item">
+                <span class="meta-label">Hiệu lực báo giá:</span>
+                <span class="meta-value">15 ngày làm việc</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="quote-paper-title">
+            <h2>PHIẾU DỰ TOÁN BÁO GIÁ MAY ĐO NỘI THẤT</h2>
+            <p class="quote-paper-subtitle">Căn cứ theo yêu cầu may đo độc bản và biên bản khảo sát hiện trạng thực tế</p>
+          </div>
+
+          <!-- Thông tin Khách hàng & KTS -->
+          <div class="quote-parties-grid">
+            <div class="party-col">
+              <div class="party-heading">I. THÔNG TIN KHÁCH HÀNG (BÊN ĐẶT HÀNG)</div>
+              <div class="party-row">
+                <span class="p-lbl">Khách hàng:</span>
+                <strong class="p-val">{{ request.customerName }}</strong>
+              </div>
+              <div class="party-row">
+                <span class="p-lbl">Số điện thoại:</span>
+                <span class="p-val">{{ request.customerPhone }}</span>
+              </div>
+              <div class="party-row">
+                <span class="p-lbl">Địa chỉ công trình:</span>
+                <span class="p-val">{{ request.customerAddress || 'Showroom DCOR Atelier' }}</span>
+              </div>
+            </div>
+            <div class="party-col">
+              <div class="party-heading">II. ĐẠI DIỆN THIẾT KẾ & TƯ VẤN (DCOR)</div>
+              <div class="party-row">
+                <span class="p-lbl">KTS phụ trách:</span>
+                <strong class="p-val">{{ request.assignedStaff || quoteForm.staffName || 'KTS. Lê Hoàng' }}</strong>
+              </div>
+              <div class="party-row">
+                <span class="p-lbl">Phòng ban:</span>
+                <span class="p-val">Xưởng Sản Xuất & Bespoke Atelier DCOR</span>
+              </div>
+              <div class="party-row">
+                <span class="p-lbl">Hotline hỗ trợ:</span>
+                <span class="p-val">1900 8888 (Phím 2 - Bộ phận May đo)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bảng chi tiết sản phẩm may đo -->
+          <div class="quote-specs-table-wrap">
+            <div class="party-heading">III. QUY CÁCH KỸ THUẬT & DỰ TOÁN CHI PHÍ SẢN XUẤT</div>
+            <table class="quote-specs-table">
+              <thead>
+                <tr>
+                  <th style="width: 44px; text-align: center;">STT</th>
+                  <th style="width: 220px;">Hạng mục sản phẩm</th>
+                  <th>Quy cách kỹ thuật may đo theo hiện trạng</th>
+                  <th style="width: 55px; text-align: center;">ĐVT</th>
+                  <th style="width: 50px; text-align: center;">SL</th>
+                  <th style="width: 140px; text-align: right;">Đơn giá (VNĐ)</th>
+                  <th style="width: 150px; text-align: right;">Thành tiền (VNĐ)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="text-align: center;">1</td>
+                  <td>
+                    <strong class="item-name">{{ request.productName }}</strong>
+                    <div class="item-sku">Mã hồ sơ may đo: {{ request.code }}</div>
+                  </td>
+                  <td>
+                    <div class="spec-line">• <strong>Kích thước may đo:</strong> Dài {{ request.length }} x Rộng {{ request.width }} x Cao {{ request.height }} cm</div>
+                    <div class="spec-line">• <strong>Chất liệu bọc:</strong> {{ request.material || 'Da bò thật / Vải nỉ cao cấp' }} (Màu: {{ request.colorName || 'Theo catalog' }})</div>
+                    <div class="spec-line">• <strong>Kết cấu khung mút:</strong> Khung gỗ sấy khô tự nhiên chống cong vênh, đệm mút D40 êm ái chống lún xẹp</div>
+                    <div class="spec-line">• <strong>Chân đế:</strong> {{ request.legMaterial || 'Kim loại sơn tĩnh điện / Gỗ tự nhiên' }}</div>
+                    <div class="spec-line" *ngIf="quoteForm.notes">• <strong>Ghi chú may đo:</strong> {{ quoteForm.notes }}</div>
+                  </td>
+                  <td style="text-align: center;">Bộ</td>
+                  <td style="text-align: center;">1</td>
+                  <td style="text-align: right;" class="font-bold">{{ formatVND(quoteForm.quotedPrice) }}</td>
+                  <td style="text-align: right;" class="font-bold text-accent">{{ formatVND(quoteForm.quotedPrice) }}</td>
+                </tr>
+                <!-- Hàng hiển thị đính kèm hồ sơ 3D -->
+                <tr class="quote-sub-row">
+                  <td style="text-align: center;">2</td>
+                  <td>
+                    <strong>Hồ sơ Phối Cảnh 3D & Bản Vẽ Kỹ Thuật</strong>
+                  </td>
+                  <td colspan="3">
+                    <span class="file-tag" *ngIf="quoteUploadedFile">
+                      📎 Tệp đính kèm: <strong>{{ quoteUploadedFile.name }}</strong> ({{ quoteUploadedFile.size }})
+                    </span>
+                    <span class="file-tag" *ngIf="!quoteUploadedFile && quoteForm.drawing3dUrl">
+                      🔗 Bản vẽ trực tuyến: <strong>{{ quoteForm.drawing3dUrl }}</strong>
+                    </span>
+                  </td>
+                  <td style="text-align: right; color: #6B7280;">Kèm theo</td>
+                  <td style="text-align: right; color: #6B7280;">Miễn phí</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="5" class="total-label-cell">Tổng giá trị dự toán may đo hoàn thiện (Đã gồm VAT & Lắp đặt):</td>
+                  <td colspan="2" class="total-value-cell">{{ formatVND(quoteForm.quotedPrice) }}</td>
+                </tr>
+                <tr class="words-row">
+                  <td colspan="7" class="words-cell">
+                    <span>Bằng chữ: </span>
+                    <strong>{{ formatVND(quoteForm.quotedPrice) }} (VNĐ)</strong>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Kế hoạch tiến độ thanh toán 2 đợt -->
+          <div class="quote-payment-plan">
+            <div class="party-heading">IV. TIẾN ĐỘ THANH TOÁN THEO HỢP ĐỒNG</div>
+            <div class="payment-boxes-grid">
+              <div class="p-box deposit">
+                <div class="p-box-top">
+                  <span class="p-box-tag">Đợt 1 (30%)</span>
+                  <span class="p-box-title">Tạm ứng cọc kích hoạt lệnh bắn xưởng</span>
+                </div>
+                <strong class="p-box-val text-success">{{ formatVND(quoteForm.depositAmount) }}</strong>
+                <p class="p-box-desc">Thanh toán sau khi hai bên ký Hợp đồng may đo kinh tế để nhập vật tư khung, da và định hình phôi.</p>
+              </div>
+
+              <div class="p-box final">
+                <div class="p-box-top">
+                  <span class="p-box-tag">Đợt 2 (70%)</span>
+                  <span class="p-box-title">Quyết toán khi bàn giao & nghiệm thu tại nhà</span>
+                </div>
+                <strong class="p-box-val text-accent">{{ formatVND(quoteForm.quotedPrice - quoteForm.depositAmount) }}</strong>
+                <p class="p-box-desc">Thanh toán sau khi hoàn thiện giao hàng, lắp đặt và khách hàng ký biên bản nghiệm thu đạt chuẩn 100%.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Điều khoản & Cam kết chất lượng DCor -->
+          <div class="quote-terms-box">
+            <div class="party-heading">V. ĐIỀU KHOẢN & CAM KẾT CHẤT LƯỢNG SẢN XUẤT</div>
+            <ul class="terms-list">
+              <li><strong>Tiến độ hoàn thành:</strong> Từ 12 - 18 ngày làm việc kể từ ngày nhận đủ tiền cọc đợt 1 và chốt duyệt bản vẽ 3D.</li>
+              <li><strong>Cam kết vật liệu:</strong> Da thật/vải nỉ và khung gỗ đúng 100% mẫu đã duyệt, hỗ trợ khách hàng nghiệm thu phôi mút tại xưởng.</li>
+              <li><strong>Chế độ bảo hành:</strong> Bảo hành kết cấu khung sườn 05 năm; bảo hành da & đệm mút 02 năm; bảo trì định kỳ trọn đời.</li>
+              <li><strong>Vận chuyển & Lắp đặt:</strong> Miễn phí vận chuyển và lắp đặt hoàn thiện nội thành TP. Hồ Chí Minh.</li>
+            </ul>
+          </div>
+
+          <!-- Chữ ký 2 bên -->
+          <div class="quote-signatures-row">
+            <div class="sig-col">
+              <span class="sig-role">ĐẠI DIỆN KHÁCH HÀNG</span>
+              <span class="sig-hint">(Ký và ghi rõ họ tên khi đồng ý duyệt báo giá)</span>
+              <div class="sig-space"></div>
+              <strong class="sig-name">{{ request.customerName }}</strong>
+            </div>
+            <div class="sig-col">
+              <span class="sig-role">KTS / ĐẠI DIỆN DCOR ATELIER</span>
+              <span class="sig-hint">(Đã thẩm định thông số kỹ thuật & duyệt dự toán)</span>
+              <div class="sig-space verified">
+                <div class="stamp-badge">DCOR BESPOKE</div>
+              </div>
+              <strong class="sig-name">{{ request.assignedStaff || quoteForm.staffName || 'KTS. Lê Hoàng' }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer quote-modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeQuotePreviewModal()">
+          <span>Quay lại chỉnh sửa</span>
+        </button>
+        <button type="button" class="btn-print-action" (click)="printQuoteDocument()">
+          <lucide-angular [img]="icons.Printer" size="15"></lucide-angular>
+          <span>In / Xuất PDF</span>
+        </button>
+        <button type="button" class="btn-confirm-primary" (click)="confirmAndSendQuote()">
+          <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+          <span>Xác Nhận & Gửi Cho Khách Hàng ➔ Chuyển Bước 4</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Không tìm thấy hồ sơ -->
+<ng-template #notFound>
+  <div class="not-found-container">
+    <lucide-angular [img]="icons.AlertCircle" size="48" class="text-danger"></lucide-angular>
+    <h2>Không tìm thấy yêu cầu Custom #{{ requestId }}</h2>
+    <p>Yêu cầu không tồn tại hoặc đã được chuyển giao vào kho lưu trữ.</p>
+    <button type="button" class="v2-btn-back-center" (click)="goBack()">
+      <lucide-angular [img]="icons.ArrowLeft" size="15"></lucide-angular>
+      <span>Trở về danh sách đơn custom</span>
+    </button>
+  </div>
+</ng-template>
+

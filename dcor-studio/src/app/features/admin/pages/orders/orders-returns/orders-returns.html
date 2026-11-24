@@ -262,7 +262,8 @@
 
   <!-- Returns Table (Đồng bộ cấu trúc hoàn toàn từ v2-table của Danh sách đơn hàng) -->
   <div class="v2-table-wrapper">
-    <table class="v2-table">
+    <div class="table-responsive">
+      <table class="v2-table">
       <thead>
         <tr>
           <th style="width: 175px;">
@@ -386,6 +387,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
 
     <!-- Pagination Footer (Đồng bộ chuẩn 100% từ Danh sách đơn hàng) -->
     <div *ngIf="filteredReturns.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color, #e5e7eb); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary, #ffffff); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">

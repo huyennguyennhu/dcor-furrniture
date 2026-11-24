@@ -75,7 +75,15 @@ export const reportController = {
           'Online Web Store': 'Online Web Store'
         };
         const mappedShowroom = showroomMap[showroom] || showroom;
-        whereCondition.showroom = { contains: mappedShowroom, mode: 'insensitive' };
+        if (showroom === 'online' || showroom === 'Online Web Store') {
+          whereCondition.OR = [
+            { showroom: { contains: 'Online', mode: 'insensitive' } },
+            { showroom: { contains: 'Tổng', mode: 'insensitive' } },
+            { showroom: null }
+          ];
+        } else {
+          whereCondition.showroom = { contains: mappedShowroom, mode: 'insensitive' };
+        }
       }
 
       if (categoryFilter && categoryFilter !== 'Tất cả danh mục') {
@@ -1236,7 +1244,15 @@ export const reportController = {
           'Online Web Store': 'Online Web Store'
         };
         const mappedShowroom = showroomMap[showroom] || showroom;
-        whereCondition.showroom = { contains: mappedShowroom, mode: 'insensitive' };
+        if (showroom === 'online' || showroom === 'Online Web Store') {
+          whereCondition.OR = [
+            { showroom: { contains: 'Online', mode: 'insensitive' } },
+            { showroom: { contains: 'Tổng', mode: 'insensitive' } },
+            { showroom: null }
+          ];
+        } else {
+          whereCondition.showroom = { contains: mappedShowroom, mode: 'insensitive' };
+        }
       }
 
       // 1. Lấy đơn hàng trong kỳ hiện tại
@@ -1306,8 +1322,13 @@ export const reportController = {
         where: {
           status: 'PENDING',
           OR: [
-            { isDepositRequired: true },
-            { isHighValue: true }
+            { paymentHoldReason: 'AWAITING_DEPOSIT' },
+            {
+              AND: [
+                { OR: [{ isDepositRequired: true }, { isHighValue: true }] },
+                { paymentStatus: { not: 'PAID' } }
+              ]
+            }
           ]
         }
       });
@@ -1479,7 +1500,19 @@ export const reportController = {
       ];
 
       const showroomSalesData = showroomList.map(sr => {
-        const srOrders = currentOrders.filter(o => (o.showroom || '').toLowerCase().includes(sr.key.toLowerCase()));
+        const srOrders = currentOrders.filter(o => {
+          const sh = (o.showroom || '').toLowerCase();
+          if (sr.key === 'Online Web Store') {
+            return sh.includes('online') || sh.includes('tổng') || sh === '' || (!sh.includes('quận 1') && !sh.includes('thủ đức') && !sh.includes('q1'));
+          }
+          if (sr.key === 'Showroom Quận 1') {
+            return sh.includes('quận 1') || sh.includes('sr_q1');
+          }
+          if (sr.key === 'Showroom Thủ Đức') {
+            return sh.includes('thủ đức') || sh.includes('thu duc') || sh.includes('sr_thu_duc');
+          }
+          return sh.includes(sr.key.toLowerCase());
+        });
         const srValid = srOrders.filter(o => o.status !== 'CANCELLED');
         const revenue = srValid.reduce((sum, o) => sum + Number(o.totalAmount), 0);
         return {

@@ -34,7 +34,7 @@ const mapPrismaOrderToFrontend = (o: any): any => {
 
   let holdReason = o.paymentHoldReason || 'NONE';
   if (o.status === 'PENDING') {
-    if (isHighValue && depositPaid < minDeposit && o.paymentStatus !== 'PAID') {
+    if (o.paymentHoldReason === 'AWAITING_DEPOSIT' || ((isHighValue || o.isDepositRequired) && depositPaid < minDeposit && o.paymentStatus !== 'PAID')) {
       holdReason = 'AWAITING_DEPOSIT';
     } else if (o.paymentMethod !== 'COD' && o.paymentStatus === 'UNPAID') {
       holdReason = 'AWAITING_PAYMENT';

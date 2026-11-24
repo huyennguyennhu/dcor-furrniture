@@ -11,13 +11,19 @@
   width: 100%;
 }
 
-/* 1. Header & Toolbar */
+/* 1. Header & Actions */
 .overview-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .overview-page-title {
@@ -35,11 +41,18 @@
   line-height: 1.5;
 }
 
+/* 2. Filter Toolbar Box */
+.overview-toolbar-box,
 .overview-toolbar {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
   align-items: center;
+  padding: 14px 18px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 /* Compare Toggle Button (Giữ nguyên Checkbox theo bài) */
@@ -873,6 +886,7 @@
   .overview-header-row {
     flex-direction: column;
   }
+  .overview-toolbar-box,
   .overview-toolbar {
     width: 100%;
   }

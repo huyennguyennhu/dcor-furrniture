@@ -479,35 +479,35 @@ export const inventoryController = {
         return res.json(productsWithOptionsCache.data);
       }
 
-      const products = await withDbRetry(() =>
-        prisma.$queryRawUnsafe<any[]>(`
-          SELECT 
-            p.id, p.name, p.slug, p."basePrice", p."categoryId",
-            p.images, p."configOptions",
-            c.name as "categoryName", c."parentId" as "categoryParentId"
-          FROM "Product" p
-          LEFT JOIN "Category" c ON p."categoryId" = c.id
-          WHERE p."isActive" = true
-          ORDER BY p.name ASC;
-        `)
-      );
-
-      const variants = await withDbRetry(() =>
-        prisma.$queryRawUnsafe<any[]>(`
-          SELECT 
-            v.id, v."productId", v.sku, v.name, v.price, v.stock, v."reservedStock", v."optionValues"
-          FROM "ProductVariant" v
-          WHERE v."isActive" = true;
-        `)
-      );
-
-      const stocks = await withDbRetry(() =>
-        prisma.$queryRawUnsafe<any[]>(`
-          SELECT 
-            ws."variantId", ws."warehouseId", ws."physicalStock", ws."reservedStock" as "whReservedStock"
-          FROM "WarehouseStock" ws;
-        `)
-      );
+      const [products, variants, stocks] = await Promise.all([
+        withDbRetry(() =>
+          prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+              p.id, p.name, p.slug, p."basePrice", p."categoryId",
+              p.images, p."configOptions",
+              c.name as "categoryName", c."parentId" as "categoryParentId"
+            FROM "Product" p
+            LEFT JOIN "Category" c ON p."categoryId" = c.id
+            WHERE p."isActive" = true
+            ORDER BY p.name ASC;
+          `)
+        ),
+        withDbRetry(() =>
+          prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+              v.id, v."productId", v.sku, v.name, v.price, v.stock, v."reservedStock", v."optionValues"
+            FROM "ProductVariant" v
+            WHERE v."isActive" = true;
+          `)
+        ),
+        withDbRetry(() =>
+          prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+              ws."variantId", ws."warehouseId", ws."physicalStock", ws."reservedStock" as "whReservedStock"
+            FROM "WarehouseStock" ws;
+          `)
+        )
+      ]);
 
       const stockMap = new Map<string, any[]>();
       for (const s of stocks) {

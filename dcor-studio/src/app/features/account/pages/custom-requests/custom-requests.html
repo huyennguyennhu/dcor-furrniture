@@ -14,13 +14,13 @@
           <span class="crumb-separator">/</span>
           <a routerLink="/account/profile" class="crumb-link">Tài khoản</a>
           <span class="crumb-separator">/</span>
-          <span class="crumb-current">Đơn may đo & Custom</span>
+          <span class="crumb-current">Yêu cầu Custom</span>
         </nav>
 
         <!-- Page Header & Action Bar -->
         <div class="orders-header-wrap">
           <div class="header-text">
-            <h1 class="page-title">Đơn may đo & Thiết kế Custom</h1>
+            <h1 class="page-title">Yêu cầu Custom</h1>
             <p class="page-subtitle">
               Không gian cá nhân hóa: Theo dõi tiến trình khảo sát, bản vẽ 3D và trạng thái sản xuất.
             </p>
@@ -120,12 +120,12 @@
             <div class="empty-icon-box">
               <lucide-angular [img]="icons.Pencil" size="36" class="empty-icon"></lucide-angular>
             </div>
-            <h3 class="empty-title">Không tìm thấy yêu cầu may đo nào</h3>
+            <h3 class="empty-title">Không tìm thấy yêu cầu custom nào</h3>
             <p class="empty-desc" *ngIf="searchQuery">
-              Không có đơn may đo nào khớp với từ khóa "{{ searchQuery }}".
+              Không có yêu cầu custom nào khớp với từ khóa "{{ searchQuery }}".
             </p>
             <p class="empty-desc" *ngIf="!searchQuery">
-              Bạn chưa có đơn may đo hoặc thiết kế riêng nào. Bạn có thể tùy biến kích thước dài x rộng x cao, chọn màu da bò Ý hoặc vải nỉ cao cấp theo từng thiết kế của DCor.
+              Bạn chưa có yêu cầu custom nào. Bạn có thể tùy biến kích thước dài x rộng x cao, chọn màu da bò Ý hoặc vải nỉ cao cấp theo từng thiết kế của DCor.
             </p>
             <button type="button" class="cta-btn shop-now-btn" (click)="openCreateModal()">
               <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
@@ -158,7 +158,7 @@
               <div *ngIf="req.status === 'AWAITING_PAYMENT'" class="waiting-payment-alert">
                 <lucide-angular [img]="icons.Clock" size="16" class="alert-icon"></lucide-angular>
                 <div class="alert-text">
-                  <strong>Đơn may đo chờ đặt cọc:</strong> Vui lòng đặt cọc <strong>{{ (req.quotedDeposit || (req.quotedPrice ? req.quotedPrice * 0.3 : 5000000)) | number }} đ</strong> trong 24h để xưởng tiến hành sản xuất theo bản vẽ.
+                  <strong>Đơn custom chờ đặt cọc:</strong> Vui lòng đặt cọc <strong>{{ (req.quotedDeposit || (req.quotedPrice ? req.quotedPrice * 0.3 : 5000000)) | number }} đ</strong> trong 24h để xưởng tiến hành sản xuất theo bản vẽ.
                 </div>
               </div>
 
@@ -168,7 +168,7 @@
               <div *ngIf="req.status === 'CANCELLED'" class="cancelled-alert-banner">
                 <lucide-angular [img]="icons.XCircle" size="16" class="alert-icon"></lucide-angular>
                 <div class="alert-text">
-                  <strong>Đơn may đo đã hủy:</strong> {{ req.cancelReason || 'Đã kết thúc theo yêu cầu của quý khách.' }}
+                  <strong>Đơn custom đã hủy:</strong> {{ req.cancelReason || 'Đã kết thúc theo yêu cầu của quý khách.' }}
                 </div>
               </div>
 
@@ -269,7 +269,7 @@
             <lucide-angular [img]="icons.Pencil" size="20"></lucide-angular>
           </div>
           <div>
-            <h2 class="modal-title">Tạo Yêu Cầu May Đo & Custom</h2>
+            <h2 class="modal-title">Tạo Yêu Cầu Custom</h2>
             <p class="modal-subtitle">Tùy biến kích thước, chiều cao, màu sắc và chất liệu theo không gian phòng của bạn.</p>
           </div>
         </div>
@@ -284,7 +284,7 @@
         <section class="form-section">
           <label class="section-title">
             <span class="step-num">1</span>
-            Chọn mẫu nội thất cần may đo / custom
+            Chọn mẫu nội thất cần custom
           </label>
 
           <div class="product-type-toggle">
@@ -521,7 +521,7 @@
           <div class="success-icon-wrap">
             <lucide-angular [img]="icons.CheckCircle2" size="48" color="#16a34a"></lucide-angular>
           </div>
-          <h3 class="success-title">Gửi Yêu Cầu May Đo Thành Công!</h3>
+          <h3 class="success-title">Gửi Yêu Cầu Custom Thành Công!</h3>
           <p class="success-text">
             Hệ thống đã tạo yêu cầu mã <strong>CR-PENDING</strong>. Chuyên viên KTS DCor sẽ liên hệ qua số điện thoại 
             <strong>{{ formCustomerPhone }}</strong> trong vòng 30 phút để chốt thông số và chuẩn bị bản vẽ 3D.
@@ -534,7 +534,7 @@
         <button type="button" class="btn-cancel" (click)="closeCreateModal()">Hủy bỏ</button>
         <button type="button" class="btn-submit-request" (click)="submitCustomRequest()">
           <lucide-angular [img]="icons.Pencil" size="16"></lucide-angular>
-          <span>Gửi Yêu Cầu May Đo</span>
+          <span>Gửi Yêu Cầu Custom</span>
         </button>
       </div>
     </div>
@@ -549,7 +549,7 @@
       <div class="drawer-header">
         <div class="drawer-header-info">
           <div class="drawer-title-row">
-            <h2 class="drawer-title">Chi tiết đơn may đo {{ selectedRequest.code }}</h2>
+            <h2 class="drawer-title">Chi tiết yêu cầu custom {{ selectedRequest.code }}</h2>
             <span class="order-status-pill" [ngClass]="'status-' + getOrderStatusClass(selectedRequest.status)">
               <span class="status-dot"></span>
               {{ getStatusMeta(selectedRequest.status).customerLabel }}
@@ -572,7 +572,7 @@
             <div class="alert-24h-title">
               <span class="pulse-clock-icon">⏳</span>
               <div>
-                <h4 class="alert-heading">ĐƠN MAY ĐO CHỜ ĐẶT CỌC TRONG 24 GIỜ</h4>
+                <h4 class="alert-heading">ĐƠN CUSTOM CHỜ ĐẶT CỌC TRONG 24 GIỜ</h4>
                 <p class="alert-desc">
                   Ràng buộc hệ thống: Quý khách vui lòng chuyển khoản đặt cọc 
                   <strong>{{ (selectedRequest.quotedDeposit || (selectedRequest.quotedPrice ? selectedRequest.quotedPrice * 0.3 : 5000000)) | number }} đ</strong> 
@@ -627,7 +627,7 @@
             <div class="alert-icon-title">
               <span class="sparkle-icon">✨</span>
               <div>
-                <h4 class="alert-heading text-purple">BẢN VẼ 3D VÀ BÁO GIÁ MAY ĐO ĐÃ HOÀN TẤT</h4>
+                <h4 class="alert-heading text-purple">BẢN VẼ 3D VÀ BÁO GIÁ CUSTOM ĐÃ HOÀN TẤT</h4>
                 <p class="alert-desc">
                   Chuyên viên KTS DCOR đã hoàn thiện bản vẽ phối cảnh 3D và bóc tách khối lượng vật liệu. Tổng kinh phí: 
                   <strong class="text-purple">{{ selectedRequest.quotedPrice | number }} đ</strong>.
@@ -646,9 +646,9 @@
           <div class="cancelled-header">
             <div class="cancelled-icon">✕</div>
             <div class="cancelled-content">
-              <h4 class="cancelled-title">YÊU CẦU MAY ĐO ĐÃ BỊ HỦY</h4>
+              <h4 class="cancelled-title">YÊU CẦU CUSTOM ĐÃ BỊ HỦY</h4>
               <p class="cancelled-reason">
-                <strong>Lý do:</strong> {{ selectedRequest.cancelReason || 'Yêu cầu may đo đã hủy theo nguyện vọng của khách hàng hoặc thỏa thuận với DCOR.' }}
+                <strong>Lý do:</strong> {{ selectedRequest.cancelReason || 'Yêu cầu custom đã hủy theo nguyện vọng của khách hàng hoặc thỏa thuận với DCOR.' }}
               </p>
               <p *ngIf="selectedRequest.cancelledAt" class="cancelled-time">
                 Thời điểm ghi nhận hủy: {{ selectedRequest.cancelledAt | date:'HH:mm - dd/MM/yyyy' }}
@@ -657,9 +657,9 @@
           </div>
         </section>
 
-        <!-- 4. Chi tiết quy cách sản phẩm may đo (Bố cục tối ưu theo DCor UI Style Guide) -->
+        <!-- 4. Chi tiết quy cách sản phẩm custom (Bố cục tối ưu theo DCor UI Style Guide) -->
         <section class="drawer-section custom-product-card-section">
-          <h3 class="section-heading">Quy cách sản phẩm may đo</h3>
+          <h3 class="section-heading">quy cách sản phẩm custom</h3>
           <div class="custom-product-card">
             <!-- Phần trên: Ảnh sản phẩm + Tên sản phẩm + 4 ô thông số -->
             <div class="custom-card-top">
@@ -729,7 +729,7 @@
               </div>
 
               <div class="quote-info-right">
-                <span class="quote-price-label">Dự toán may đo:</span>
+                <span class="quote-price-label">Dự toán custom:</span>
                 <span class="quote-price-val" [class.has-price]="!!selectedRequest.quotedPrice">
                   {{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Liên hệ tư vấn' }}
                 </span>
@@ -757,7 +757,7 @@
         <section class="drawer-section finance-summary">
           <h3 class="section-heading">Dự toán kinh phí & Ưu đãi may đo</h3>
           <div class="finance-row">
-            <span>Dự toán may đo:</span>
+            <span>Dự toán custom:</span>
             <span>{{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Đang khảo sát & tính toán' }}</span>
           </div>
           <div class="finance-row">
@@ -769,7 +769,7 @@
             <span class="free-badge">Miễn phí nội thành</span>
           </div>
           <div class="finance-row grand-total">
-            <span>Tổng kinh phí may đo:</span>
+            <span>Tổng kinh phí custom:</span>
             <span class="highlight">{{ selectedRequest.quotedPrice ? ((selectedRequest.quotedPrice | number) + ' đ') : 'Chờ báo giá' }}</span>
           </div>
 
@@ -838,7 +838,7 @@
             </div>
           </div>
           <ng-template #noCustomHistory>
-            <p class="empty-note">Yêu cầu may đo vừa được khởi tạo, đang chờ KTS tiếp nhận.</p>
+            <p class="empty-note">Yêu cầu custom vừa được khởi tạo, đang chờ KTS tiếp nhận.</p>
           </ng-template>
         </section>
       </div>
@@ -853,7 +853,7 @@
           class="btn-danger-outline" 
           *ngIf="!['PROCESSING', 'CANCELLED'].includes(selectedRequest.status)"
           (click)="closeDetailModal(); openCancelModal(selectedRequest)">
-          Hủy yêu cầu may đo
+          Hủy yêu cầu custom
         </button>
 
         <!-- Thanh toán cọc ngay khi ở trạng thái AWAITING_PAYMENT -->
@@ -886,8 +886,8 @@
     <div class="modal-card payment-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">Thanh Toán Đặt Cọc May Đo</h2>
-          <p class="modal-subtitle">Đơn may đo mã: <strong>{{ selectedRequest.code }}</strong></p>
+          <h2 class="modal-title">Thanh Toán Đặt Cọc Custom</h2>
+          <p class="modal-subtitle">Đơn custom mã: <strong>{{ selectedRequest.code }}</strong></p>
         </div>
         <button type="button" class="btn-close-modal" (click)="closePaymentModal()">
           <lucide-angular [img]="icons.X" size="18"></lucide-angular>
@@ -933,7 +933,7 @@
             <lucide-angular [img]="icons.XCircle" size="22" color="#dc2626"></lucide-angular>
           </div>
           <div>
-            <h2 class="modal-title" style="color: #dc2626;">Yêu Cầu Hủy Đơn May Đo</h2>
+            <h2 class="modal-title" style="color: #dc2626;">Yêu Cầu Hủy Đơn Custom</h2>
             <p class="modal-subtitle">Mã hồ sơ: <strong>{{ requestToCancel.code }}</strong> - {{ requestToCancel.productName }}</p>
           </div>
         </div>
@@ -946,7 +946,7 @@
         <div class="cancel-warning-box">
           <lucide-angular [img]="icons.AlertCircle" size="20" color="#dc2626"></lucide-angular>
           <div>
-            <strong>Lưu ý:</strong> Khi bạn xác nhận hủy, yêu cầu may đo sẽ kết thúc. Đội ngũ KTS DCor sẽ không tiếp tục khảo sát hoặc thiết kế bản vẽ 3D cho hồ sơ này.
+            <strong>Lưu ý:</strong> Khi bạn xác nhận hủy, yêu cầu custom sẽ kết thúc. Đội ngũ KTS DCor sẽ không tiếp tục khảo sát hoặc thiết kế bản vẽ 3D cho hồ sơ này.
           </div>
         </div>
 

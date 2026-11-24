@@ -39,6 +39,14 @@
       "description": "Tư vấn bán hàng, đặt lịch hẹn, hỗ trợ khách hàng và tạo đơn hàng.",
       "isSystem": true,
       "createdAt": "2026-01-01"
+    },
+    {
+      "id": "role-architect",
+      "name": "Kiến trúc sư",
+      "code": "KIEN_TRUC_SU",
+      "description": "Chuyên môn tư vấn thiết kế, khảo sát may đo nội thất và duyệt bản vẽ 3D.",
+      "isSystem": false,
+      "createdAt": "2026-01-01"
     }
   ],
   "matrix": {
@@ -443,6 +451,84 @@
       },
       "settings": {
         "view": true,
+        "edit": false,
+        "audit_log": false
+      }
+    },
+    "Kiến trúc sư": {
+      "reports": {
+        "view": true,
+        "export_file": false
+      },
+      "customers": {
+        "view": true,
+        "edit": false,
+        "lock_account": false
+      },
+      "products": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "categories": false
+      },
+      "categories": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "inventory": {
+        "view": true,
+        "audit": false,
+        "transactions": false,
+        "approve": false,
+        "settings": false
+      },
+      "orders": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "returns": false,
+        "warranty": false
+      },
+      "promotions": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "designs": {
+        "view": true,
+        "approve": true,
+        "config": true,
+        "delete": false
+      },
+      "appointments": {
+        "view": true,
+        "assign": true,
+        "update": true
+      },
+      "content": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "chat": {
+        "view": true,
+        "reply": true,
+        "close": false
+      },
+      "staff": {
+        "view": false,
+        "create": false,
+        "edit": false,
+        "delete": false,
+        "permissions": false
+      },
+      "settings": {
+        "view": false,
         "edit": false,
         "audit_log": false
       }

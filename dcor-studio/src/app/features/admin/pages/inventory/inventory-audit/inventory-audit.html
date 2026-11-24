@@ -275,8 +275,8 @@
 
   <!-- Table Card -->
   <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
-    <div style="width: 100%; overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table style="width: 100%; min-width: 1080px; border-collapse: collapse; text-align: left;">
         <thead>
           <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
             <!-- <th style="padding: 16px; width: 44px; text-align: center;">
@@ -291,10 +291,10 @@
                 <lucide-angular *ngIf="!isAllSelected()" [img]="icons.Square" size="18"></lucide-angular>
               </button>
             </th> -->
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
               Mã kiểm kê
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('date')" title="Sắp xếp theo Ngày tạo">
                 <span>Ngày tạo</span>
                 <span class="sort-arrows-inline">
@@ -303,13 +303,13 @@
                 </span>
               </div>
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
               Chi nhánh / Kho
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
               Người thực hiện
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center;">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('totalItems')" title="Sắp xếp theo Số mặt hàng" style="justify-content: center;">
                 <span>Số mặt hàng</span>
                 <span class="sort-arrows-inline">
@@ -318,7 +318,7 @@
                 </span>
               </div>
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center;">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-align: center; white-space: nowrap;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('discrepancy')" title="Sắp xếp theo Sai lệch" style="justify-content: center;">
                 <span>Sai lệch</span>
                 <span class="sort-arrows-inline">
@@ -327,7 +327,7 @@
                 </span>
               </div>
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
               Trạng thái
             </th>
             <th style="padding: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 1%;"></th>

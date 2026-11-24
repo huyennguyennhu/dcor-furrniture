@@ -24,6 +24,11 @@ export interface RoleDefinition {
   createdAt: string;
 }
 
+export interface RoleWithStaff extends RoleDefinition {
+  staffCount?: number;
+  assignedStaff?: { id: string; name: string; email: string; status?: string }[];
+}
+
 export interface Branch {
   id: string;
   code: string;
@@ -217,6 +222,14 @@ export const INITIAL_SYSTEM_ROLES: RoleDefinition[] = [
     name: 'NV Kinh doanh',
     code: 'NV_KINH_DOANH',
     description: 'Tư vấn bán hàng, đặt lịch hẹn, hỗ trợ khách hàng và tạo đơn hàng.',
+    isSystem: true,
+    createdAt: '2026-01-01'
+  },
+  {
+    id: 'role-architect',
+    name: 'Kiến trúc sư',
+    code: 'KTS',
+    description: 'Khảo sát hiện trạng phòng khách, lên bản vẽ 3D phối cảnh, tư vấn vật liệu may đo.',
     isSystem: true,
     createdAt: '2026-01-01'
   }
@@ -1141,6 +1154,25 @@ export class AdminAuthService {
     return new HttpHeaders({
       Authorization: `Bearer ${token || ''}`
     });
+  }
+
+  getRolesWithStaff(): Observable<RoleWithStaff[]> {
+    return this.http.get<any>(`${environment.apiUrl}/admin/staff/roles`, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      map(res => {
+        if (res.roles && Array.isArray(res.roles)) {
+          this.rolesList$.next(res.roles);
+          this.saveRolesToStorage(res.roles);
+          return res.roles as RoleWithStaff[];
+        }
+        return [];
+      }),
+      catchError(err => {
+        console.warn('[IAM] Lỗi tải vai trò từ server:', err);
+        return of(this.rolesList$.value as RoleWithStaff[]);
+      })
+    );
   }
 
   fetchPermissionsMatrix(): Observable<{ roles: RoleDefinition[]; matrix: Record<string, RolePermissions> }> {

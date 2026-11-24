@@ -313,8 +313,9 @@
   -->
 
   <!-- Table Container -->
-  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow-x: auto;">
-    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+  <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden;">
+    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table style="width: 100%; min-width: 1100px; border-collapse: collapse; text-align: left;">
       <thead>
         <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
           <!-- Checkbox header (Đã ẩn theo yêu cầu)
@@ -515,6 +516,7 @@
         </ng-container>
       </tbody>
     </table>
+    </div>
 
     <!-- Pagination Footer: Phân trang 10 dòng/trang -->
     <div *ngIf="!isLoading && filteredOrders.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">

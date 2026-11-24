@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Kiểm Thử - Kiểm Thử Tự Động Phân Hệ: 03_ORDERS_WARRANTY</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --pass: #10b981;
+            --fail: #ef4444;
+            --primary: #3b82f6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 30px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .title h1 { margin: 0 0 8px 0; font-size: 24px; color: #fff; }
+        .title p { margin: 0; color: var(--text-muted); font-size: 14px; }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .kpi-card .label { color: var(--text-muted); font-size: 13px; font-weight: 600; text-transform: uppercase; }
+        .kpi-card .value { font-size: 32px; font-weight: 700; margin-top: 8px; }
+        .val-pass { color: var(--pass); }
+        .val-fail { color: var(--fail); }
+        .val-total { color: var(--primary); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        th { background: #1a2234; color: var(--text-muted); font-weight: 600; }
+        tr:hover { background: rgba(255, 255, 255, 0.02); }
+        .row-fail { background: rgba(239, 68, 68, 0.08); }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .badge-pass { background: rgba(16, 185, 129, 0.2); color: var(--pass); border: 1px solid var(--pass); }
+        .badge-fail { background: rgba(239, 68, 68, 0.2); color: var(--fail); border: 1px solid var(--fail); }
+        .module-tag { background: #334155; padding: 3px 8px; border-radius: 6px; font-size: 12px; }
+        .btn-evidence {
+            background: #ef4444; color: #fff; text-decoration: none; padding: 5px 10px; border-radius: 6px;
+            font-size: 12px; font-weight: 600; display: inline-block;
+        }
+        .btn-evidence-gray {
+            background: #475569; color: #fff; text-decoration: none; padding: 5px 10px; border-radius: 6px;
+            font-size: 12px; display: inline-block;
+        }
+        .msg-col { max-width: 300px; color: #cbd5e1; font-size: 13px; }
+        .text-muted { color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">
+            <h1>📊 Kiểm Thử Tự Động Phân Hệ: 03_ORDERS_WARRANTY</h1>
+            <p>Hệ thống Quản trị Thương mại Điện tử DCOR Studio • Chạy lúc: 04/11/2026 16:03:00</p>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="label">Tổng Test Cases</div>
+            <div class="value val-total">54</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Thành Công (Pass)</div>
+            <div class="value val-pass">54</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Phát Hiện Lỗi (Fail)</div>
+            <div class="value val-fail">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Tỷ Lệ Pass Rate</div>
+            <div class="value val-pass">100.0%</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50px; text-align: center;">STT</th>
+                <th style="width: 140px;">Mã Test</th>
+                <th>Tên Kịch Bản Kiểm Thử</th>
+                <th style="width: 160px;">Phân Hệ</th>
+                <th style="width: 100px; text-align: center;">Kết Quả</th>
+                <th style="width: 90px; text-align: right;">Thời Gian</th>
+                <th style="width: 220px;">Minh Chứng Lỗi</th>
+                <th>Ghi Chú Nghiệm Thu</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            <tr class="">
+                <td style="text-align: center;">1</td>
+                <td><strong>TC-CUSTREQ-01</strong></td>
+                <td>Kiểm tra hiển thị danh sách yêu cầu may đo và các tab trạng thái</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_01_custom_requests_list.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_01_custom_requests_list.png', 'TC-CUSTREQ-01: Kiểm tra hiển thị danh sách yêu cầu may đo và các tab trạng thái'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hiển thị hoàn chỉnh bảng danh sách hồ sơ may đo và các tab tiến trình khảo sát thiết kế</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">2</td>
+                <td><strong>TC-CUSTREQ-02</strong></td>
+                <td>Tiếp nhận hồ sơ may đo mới từ khách hàng và phân công xử lý</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_02_assign_request.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_02_assign_request.png', 'TC-CUSTREQ-02: Tiếp nhận hồ sơ may đo mới từ khách hàng và phân công xử lý'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Tiếp nhận hồ sơ may đo và phân công Kiến trúc sư / Nhân viên tư vấn phụ trách khảo sát nhà mẫu</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">3</td>
+                <td><strong>TC-CUSTREQ-03</strong></td>
+                <td>Tải lên bản vẽ phối cảnh 3D và ghi chú kỹ thuật kích thước</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_03_upload_3d_render.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_03_upload_3d_render.png', 'TC-CUSTREQ-03: Tải lên bản vẽ phối cảnh 3D và ghi chú kỹ thuật kích thước'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hỗ trợ tải lên bộ sưu tập bản vẽ phối cảnh 3D và thông số kích thước hình học chính xác</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">4</td>
+                <td><strong>TC-CUSTREQ-04</strong></td>
+                <td>Lập bảng dự toán báo giá chi tiết và gửi duyệt hợp đồng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_04_quotation_estimate.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_04_quotation_estimate.png', 'TC-CUSTREQ-04: Lập bảng dự toán báo giá chi tiết và gửi duyệt hợp đồng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Lập bảng dự toán bóc tách khối lượng vật liệu gỗ, da, phụ kiện và đơn giá niêm yết gửi khách</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">5</td>
+                <td><strong>TC-CUSTREQ-05</strong></td>
+                <td>Xác nhận thanh toán cọc 30% và tự động sinh Lệnh sản xuất xưởng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_05_deposit_work_order.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_05_deposit_work_order.png', 'TC-CUSTREQ-05: Xác nhận thanh toán cọc 30% và tự động sinh Lệnh sản xuất xưởng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Xác nhận cọc thành công tự động liên kết và sinh Lệnh sản xuất xưởng mộc kèm mã định danh</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">6</td>
+                <td><strong>TC-CUSTREQ-06</strong></td>
+                <td>Tìm kiếm yêu cầu may đo theo Mã hồ sơ, SĐT và Tên khách hàng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_06_search_requests.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_06_search_requests.png', 'TC-CUSTREQ-06: Tìm kiếm yêu cầu may đo theo Mã hồ sơ, SĐT và Tên khách hàng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Tìm kiếm tức thì theo mã hồ sơ may đo, họ tên khách hàng và số điện thoại liên hệ</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">7</td>
+                <td><strong>TC-CUSTREQ-07</strong></td>
+                <td>Sắp xếp danh sách theo cột dọc (▲ Tăng dần / ▼ Giảm dần)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_07_column_sorting.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_07_column_sorting.png', 'TC-CUSTREQ-07: Sắp xếp danh sách theo cột dọc (▲ Tăng dần / ▼ Giảm dần)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Sắp xếp tăng dần / giảm dần theo giá trị báo giá, ngày tiếp nhận và tiến độ xử lý</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">8</td>
+                <td><strong>TC-CUSTREQ-08</strong></td>
+                <td>Từ chối hoặc hủy hồ sơ may đo do không khả thi kỹ thuật</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_08_reject_request.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_08_reject_request.png', 'TC-CUSTREQ-08: Từ chối hoặc hủy hồ sơ may đo do không khả thi kỹ thuật'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Xử lý hủy hoặc từ chối hồ sơ kèm lý do kỹ thuật không khả thi hoặc khách hàng thay đổi ý định</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">9</td>
+                <td><strong>TC-CUSTREQ-09</strong></td>
+                <td>Xuất hồ sơ thiết kế may đo ra tệp PDF bàn giao xưởng mộc</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_CUSTREQ_09_export_dossier.png" onclick="openLightbox('../screenshots/raw/pass/TC_CUSTREQ_09_export_dossier.png', 'TC-CUSTREQ-09: Xuất hồ sơ thiết kế may đo ra tệp PDF bàn giao xưởng mộc'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Xuất trọn bộ hồ sơ kỹ thuật may đo gồm bản vẽ 3D, quy cách gia công và chữ ký bàn giao xưởng</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">10</td>
+                <td><strong>TC-RET-01</strong></td>
+                <td>Kiểm tra hiển thị danh sách yêu cầu đổi trả và các tab quy trình</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_01_returns_list.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_01_returns_list.png', 'TC-RET-01: Kiểm tra hiển thị danh sách yêu cầu đổi trả và các tab quy trình'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hiển thị hoàn chỉnh bảng theo dõi yêu cầu đổi trả sản phẩm theo chính sách 72 giờ</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">11</td>
+                <td><strong>TC-RET-02</strong></td>
+                <td>Tạo yêu cầu đổi trả hợp lệ</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_02_create_return_request.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_02_create_return_request.png', 'TC-RET-02: Tạo yêu cầu đổi trả hợp lệ'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Tiếp nhận và khởi tạo yêu cầu đổi hàng/trả hàng hợp lệ trong thời hạn bảo lãnh 72h</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">12</td>
+                <td><strong>TC-RET-03</strong></td>
+                <td>Tra cứu đơn hàng gốc liên kết với yêu cầu đổi trả</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_03_lookup_original_order.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_03_lookup_original_order.png', 'TC-RET-03: Tra cứu đơn hàng gốc liên kết với yêu cầu đổi trả'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Truy vết hai chiều trực tiếp giữa phiếu yêu cầu đổi trả và mã đơn hàng đã giao gốc</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">13</td>
+                <td><strong>TC-RET-04</strong></td>
+                <td>Chặn tạo đổi trả khi đã vượt quá 72 giờ từ lúc nhận hàng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_04_block_exceeded_72h.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_04_block_exceeded_72h.png', 'TC-RET-04: Chặn tạo đổi trả khi đã vượt quá 72 giờ từ lúc nhận hàng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hệ thống tự động vô hiệu hóa quyền đổi trả miễn phí khi quá hạn 72h và chuyển sang diện bảo hành</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">14</td>
+                <td><strong>TC-RET-05</strong></td>
+                <td>Phát sinh lệnh thu hồi hàng hóa và bàn giao về xưởng kiểm định</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_05_recall_order.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_05_recall_order.png', 'TC-RET-05: Phát sinh lệnh thu hồi hàng hóa và bàn giao về xưởng kiểm định'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Khởi tạo lệnh điều phối xe tải thu hồi hàng hóa từ nhà khách về kho xưởng thẩm định</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">15</td>
+                <td><strong>TC-RET-06</strong></td>
+                <td>Lập Biên bản kiểm định chất lượng QC hàng hoàn (Return QC Report)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_06_return_qc_report.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_06_return_qc_report.png', 'TC-RET-06: Lập Biên bản kiểm định chất lượng QC hàng hoàn (Return QC Report)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Kỹ sư QC lập biên bản đánh giá tình trạng hư tổn (lỗi sản xuất, trầy xước vận chuyển)</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">16</td>
+                <td><strong>TC-RET-07</strong></td>
+                <td>Phê duyệt phương án xử lý: Đổi mới sản phẩm hoặc Hoàn tiền</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_07_approve_exchange_refund.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_07_approve_exchange_refund.png', 'TC-RET-07: Phê duyệt phương án xử lý: Đổi mới sản phẩm hoặc Hoàn tiền'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Duyệt phương án đổi mới 1-1 (tự động kích hoạt đơn hàng thay thế) hoặc lập lệnh hoàn tiền</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">17</td>
+                <td><strong>TC-RET-08</strong></td>
+                <td>Sắp xếp danh sách đổi trả theo cột dọc (▲ Tăng dần / ▼ Giảm dần)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_08_column_sorting.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_08_column_sorting.png', 'TC-RET-08: Sắp xếp danh sách đổi trả theo cột dọc (▲ Tăng dần / ▼ Giảm dần)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Sắp xếp tăng/giảm theo mã yêu cầu, ngày phát sinh và trạng thái xử lý hoạt động chuẩn xác</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">18</td>
+                <td><strong>TC-RET-09</strong></td>
+                <td>Từ chối yêu cầu đổi trả do lỗi phát sinh từ phía người sử dụng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_09_reject_user_damage.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_09_reject_user_damage.png', 'TC-RET-09: Từ chối yêu cầu đổi trả do lỗi phát sinh từ phía người sử dụng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Từ chối yêu cầu đổi trả khi biên bản QC xác định lỗi rách rưới do thú cưng hoặc vật nhọn</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">19</td>
+                <td><strong>TC-RET-10</strong></td>
+                <td>Tạo yêu cầu đổi trả tại thời điểm sát nút hạn chót (71 giờ 59 phút)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_10_near_deadline.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_10_near_deadline.png', 'TC-RET-10: Tạo yêu cầu đổi trả tại thời điểm sát nút hạn chót (71 giờ 59 phút)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Ghi nhận chính xác mốc timestamp gửi yêu cầu để bảo đảm quyền lợi khách hàng nộp sát giờ</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">20</td>
+                <td><strong>TC-RET-11</strong></td>
+                <td>Yêu cầu đổi trả đối với sản phẩm may đo Custom theo kích thước phòng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_RET_11_custom_product_policy.png" onclick="openLightbox('../screenshots/raw/pass/TC_RET_11_custom_product_policy.png', 'TC-RET-11: Yêu cầu đổi trả đối với sản phẩm may đo Custom theo kích thước phòng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Áp dụng điều khoản riêng đối với hàng may đo đặc thù (chỉ sửa chữa căn chỉnh, không hoàn tiền)</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">21</td>
+                <td><strong>TC-ORDSET-01</strong></td>
+                <td>Kiểm tra hiển thị các khối cấu hình vận hành và bảng phương thức</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_01_settings_display.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_01_settings_display.png', 'TC-ORDSET-01: Kiểm tra hiển thị các khối cấu hình vận hành và bảng phương thức'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hiển thị hoàn chỉnh các phân khu cấu hình: Biểu phí giao hàng, Mức cọc bắt buộc và Chính sách đổi trả</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">22</td>
+                <td><strong>TC-ORDSET-02</strong></td>
+                <td>Cấu hình Mức Miễn phí vận chuyển (Free Shipping Threshold)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.2s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_02_free_shipping_threshold.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_02_free_shipping_threshold.png', 'TC-ORDSET-02: Cấu hình Mức Miễn phí vận chuyển (Free Shipping Threshold)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Thiết lập hạn mức tổng tiền đơn hàng để tự động kích hoạt chính sách miễn phí vận chuyển toàn quốc</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">23</td>
+                <td><strong>TC-ORDSET-03</strong></td>
+                <td>Thêm mới Gói phương thức giao nhận vận chuyển</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_03_add_shipping_method.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_03_add_shipping_method.png', 'TC-ORDSET-03: Thêm mới Gói phương thức giao nhận vận chuyển'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Mở form thêm mới gói phương thức vận chuyển (Hỏa tốc 2h, Tiêu chuẩn, Chành xe liên tỉnh)</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">24</td>
+                <td><strong>TC-ORDSET-04</strong></td>
+                <td>Chỉnh sửa biểu phí giao hàng và thời gian cam kết vận chuyển</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_04_edit_shipping_fee.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_04_edit_shipping_fee.png', 'TC-ORDSET-04: Chỉnh sửa biểu phí giao hàng và thời gian cam kết vận chuyển'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Cập nhật biểu phí cước giao nhận và thời gian cam kết bàn giao hàng hóa chính xác</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">25</td>
+                <td><strong>TC-ORDSET-05</strong></td>
+                <td>Bật / Tắt trạng thái hoạt động của một phương thức vận chuyển</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_05_toggle_method_status.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_05_toggle_method_status.png', 'TC-ORDSET-05: Bật / Tắt trạng thái hoạt động của một phương thức vận chuyển'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Chuyển đổi trạng thái kích hoạt hoặc tạm dừng áp dụng phương thức giao hàng linh hoạt</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">26</td>
+                <td><strong>TC-ORDSET-06</strong></td>
+                <td>Cấu hình Tỷ lệ đặt cọc bắt buộc cho đơn tiêu chuẩn và may đo</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_06_deposit_percentage.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_06_deposit_percentage.png', 'TC-ORDSET-06: Cấu hình Tỷ lệ đặt cọc bắt buộc cho đơn tiêu chuẩn và may đo'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Cấu hình tỷ lệ cọc bắt buộc (Mặc định 30% đơn bán lẻ, 50% đơn may đo thiết kế riêng)</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">27</td>
+                <td><strong>TC-ORDSET-07</strong></td>
+                <td>Bắt lỗi kiểm tra tính hợp lệ số tiền và tỷ lệ phần trăm cọc</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_07_validation_deposit.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_07_validation_deposit.png', 'TC-ORDSET-07: Bắt lỗi kiểm tra tính hợp lệ số tiền và tỷ lệ phần trăm cọc'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Ràng buộc giới hạn tỷ lệ phần trăm cọc hợp lệ từ 10% đến 100%, chặn giá trị âm hoặc vượt quá 100%</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">28</td>
+                <td><strong>TC-ORDSET-08</strong></td>
+                <td>Sắp xếp danh sách phương thức theo cột dọc (▲ Tăng dần / ▼ Giảm dần)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORDSET_08_column_sorting.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORDSET_08_column_sorting.png', 'TC-ORDSET-08: Sắp xếp danh sách phương thức theo cột dọc (▲ Tăng dần / ▼ Giảm dần)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Sắp xếp danh sách các gói vận chuyển theo mức cước phí và thời gian giao cam kết chuẩn xác</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">29</td>
+                <td><strong>TC-WAR-01</strong></td>
+                <td>Kiểm tra hiển thị danh sách thẻ bảo hành và các trạng thái hiệu lực</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_01_warranty_list.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_01_warranty_list.png', 'TC-WAR-01: Kiểm tra hiển thị danh sách thẻ bảo hành và các trạng thái hiệu lực'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hiển thị hoàn chỉnh bảng theo dõi thẻ bảo hành điện tử và thời hạn hiệu lực chính sách</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">30</td>
+                <td><strong>TC-WAR-02</strong></td>
+                <td>Tra cứu thẻ bảo hành theo Số điện thoại và Tên khách hàng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_02_lookup_warranty.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_02_lookup_warranty.png', 'TC-WAR-02: Tra cứu thẻ bảo hành theo Số điện thoại và Tên khách hàng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Tra cứu thẻ bảo hành tức thì theo số điện thoại hoặc tên khách hàng mua sắm</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">31</td>
+                <td><strong>TC-WAR-03</strong></td>
+                <td>Đối soát phân tầng thời hạn bảo hành theo từng cấu phần nội thất</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_03_tier_warranty.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_03_tier_warranty.png', 'TC-WAR-03: Đối soát phân tầng thời hạn bảo hành theo từng cấu phần nội thất'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Phân tách rạch ròi thời hạn bảo hành theo cấu phần: Khung sườn gỗ (5 năm), Da/Nỉ/Mút (2 năm)</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">32</td>
+                <td><strong>TC-WAR-04</strong></td>
+                <td>Tiếp nhận yêu cầu bảo hành và phân công Kỹ thuật viên tại nhà</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_04_dispatch_technician.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_04_dispatch_technician.png', 'TC-WAR-04: Tiếp nhận yêu cầu bảo hành và phân công Kỹ thuật viên tại nhà'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Lên lịch hẹn và điều phối kỹ thuật viên chuyên trách sửa chữa tận nhà cho khách hàng</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">33</td>
+                <td><strong>TC-WAR-05</strong></td>
+                <td>Nghiệm thu hoàn tất ca bảo hành có biên bản và ảnh sửa chữa</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_05_complete_warranty.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_05_complete_warranty.png', 'TC-WAR-05: Nghiệm thu hoàn tất ca bảo hành có biên bản và ảnh sửa chữa'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Nghiệm thu hoàn tất bảo hành đính kèm hình ảnh hiện trường và chữ ký xác nhận của khách</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">34</td>
+                <td><strong>TC-WAR-06</strong></td>
+                <td>Xử lý yêu cầu sửa chữa đối với sản phẩm đã Hết hạn bảo hành</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_06_expired_warranty.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_06_expired_warranty.png', 'TC-WAR-06: Xử lý yêu cầu sửa chữa đối với sản phẩm đã Hết hạn bảo hành'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hỗ trợ chuyển đổi sang gói sửa chữa tính phí ưu đãi (Paid Service) cho sản phẩm hết hạn</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">35</td>
+                <td><strong>TC-WAR-07</strong></td>
+                <td>Sắp xếp danh sách theo cột dọc (▲ Tăng dần / ▼ Giảm dần)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_07_column_sorting.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_07_column_sorting.png', 'TC-WAR-07: Sắp xếp danh sách theo cột dọc (▲ Tăng dần / ▼ Giảm dần)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Sắp xếp tăng/giảm theo mã bảo hành, ngày hết hạn và trạng thái hiệu lực mượt mà</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">36</td>
+                <td><strong>TC-WAR-08</strong></td>
+                <td>Lọc danh sách theo Trạng thái</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_08_filter_status.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_08_filter_status.png', 'TC-WAR-08: Lọc danh sách theo Trạng thái'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Lọc nhanh danh sách theo các trạng thái: Còn hạn bảo hành, Sắp hết hạn, Đã hết hạn</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">37</td>
+                <td><strong>TC-WAR-09</strong></td>
+                <td>Xuất sổ theo dõi bảo hành ra tệp bảng tính Excel</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_09_export_warranty.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_09_export_warranty.png', 'TC-WAR-09: Xuất sổ theo dõi bảo hành ra tệp bảng tính Excel'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Xuất sổ theo dõi bảo hành điện tử ra tệp bảng tính chuẩn hóa phục vụ kiểm toán chất lượng</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">38</td>
+                <td><strong>TC-WAR-10</strong></td>
+                <td>Yêu cầu bảo hành đối với hư hại do ngập lụt / thiên tai / hỏa hoạn</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_10_force_majeure.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_10_force_majeure.png', 'TC-WAR-10: Yêu cầu bảo hành đối với hư hại do ngập lụt / thiên tai / hỏa hoạn'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Áp dụng điều khoản bất khả kháng (Force Majeure) từ chối bảo hành miễn phí đối với thiên tai/ngập lụt</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">39</td>
+                <td><strong>TC-WAR-11</strong></td>
+                <td>Tra cứu bảo hành khi khách hàng đổi số điện thoại mới</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_WAR_11_phone_change.png" onclick="openLightbox('../screenshots/raw/pass/TC_WAR_11_phone_change.png', 'TC-WAR-11: Tra cứu bảo hành khi khách hàng đổi số điện thoại mới'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hỗ trợ đối soát và liên kết bảo hành đa phương thức qua Mã đơn hàng hoặc CCCD khi khách đổi SĐT</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">40</td>
+                <td><strong>TC-ORD-01</strong></td>
+                <td>Kiểm tra hiển thị danh sách đơn hàng và 10 Tab trạng thái</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_01_orders_list_kpi.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_01_orders_list_kpi.png', 'TC-ORD-01: Kiểm tra hiển thị danh sách đơn hàng và 10 Tab trạng thái'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hiển thị hoàn chỉnh lưới thẻ KPI trạng thái chu trình đơn hàng và bảng dữ liệu thời gian thực</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">41</td>
+                <td><strong>TC-ORD-02</strong></td>
+                <td>Lọc đơn hàng theo Tab trạng thái vòng đời 7 chặng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.2s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_02_filter_lifecycle_tabs.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_02_filter_lifecycle_tabs.png', 'TC-ORD-02: Lọc đơn hàng theo Tab trạng thái vòng đời 7 chặng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Chuyển đổi linh hoạt giữa các giai đoạn xử lý đơn hàng: Chờ duyệt, Đang đóng gói, Giao hàng, Hoàn tất</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">42</td>
+                <td><strong>TC-ORD-03</strong></td>
+                <td>Tìm kiếm đơn hàng theo Mã đơn, SĐT và Tên khách hàng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.2s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_03_search_orders.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_03_search_orders.png', 'TC-ORD-03: Tìm kiếm đơn hàng theo Mã đơn, SĐT và Tên khách hàng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Tìm kiếm tức thì theo mã đơn hàng, số điện thoại người nhận và tên khách hàng chính xác</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">43</td>
+                <td><strong>TC-ORD-04</strong></td>
+                <td>Tiếp nhận điều hướng chuyên sâu từ Báo cáo</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_04_deep_linking.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_04_deep_linking.png', 'TC-ORD-04: Tiếp nhận điều hướng chuyên sâu từ Báo cáo'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Tiếp nhận chính xác tham số URL query params (?status=) và tự động kích hoạt bộ lọc tương ứng</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">44</td>
+                <td><strong>TC-ORD-05</strong></td>
+                <td>Duyệt xác nhận đơn hàng có tiền đặt cọc 30% hợp lệ</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_05_approve_deposit.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_05_approve_deposit.png', 'TC-ORD-05: Duyệt xác nhận đơn hàng có tiền đặt cọc 30% hợp lệ'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Xác nhận khoản đặt cọc 30% hợp lệ và chuyển trạng thái đơn sang 'Đã xác nhận' an toàn</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">45</td>
+                <td><strong>TC-ORD-06</strong></td>
+                <td>Chặn chuyển trạng thái 'Sẵn sàng xuất' khi chưa đạt Checklist 4 tiêu chuẩn QC</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_06_block_without_qc.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_06_block_without_qc.png', 'TC-ORD-06: Chặn chuyển trạng thái \'Sẵn sàng xuất\' khi chưa đạt Checklist 4 tiêu chuẩn QC'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Quy chuẩn cổng kiểm soát chất lượng (QC Gate) ngăn chặn xuất hàng khi chưa đạt đủ 4 tiêu chí kiểm định</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">46</td>
+                <td><strong>TC-ORD-07</strong></td>
+                <td>Đánh dấu đạt 4 tiêu chuẩn QC và cập nhật Mã vận đơn giao hàng</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_07_qc_checklist.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_07_qc_checklist.png', 'TC-ORD-07: Đánh dấu đạt 4 tiêu chuẩn QC và cập nhật Mã vận đơn giao hàng'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Đánh dấu đạt toàn diện bảng kiểm tra QC xưởng và tự động sinh mã vận đơn giao nhận</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">47</td>
+                <td><strong>TC-ORD-08</strong></td>
+                <td>Khách ký nhận hàng và kích hoạt đồng hồ đếm ngược 72 giờ đổi trả</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_08_delivered_countdown.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_08_delivered_countdown.png', 'TC-ORD-08: Khách ký nhận hàng và kích hoạt đồng hồ đếm ngược 72 giờ đổi trả'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Kích hoạt chính xác đồng hồ đếm ngược 72 giờ đổi trả minh bạch ngay khi nhận hàng thành công</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">48</td>
+                <td><strong>TC-ORD-09</strong></td>
+                <td>Hủy đơn hàng và bắt buộc ghi nhận Lý do hủy</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_09_cancel_order.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_09_cancel_order.png', 'TC-ORD-09: Hủy đơn hàng và bắt buộc ghi nhận Lý do hủy'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Ràng buộc bắt buộc nhập nguyên nhân hủy đơn và giải phóng tồn cam kết về kho tức thì</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">49</td>
+                <td><strong>TC-ORD-10</strong></td>
+                <td>Sắp xếp danh sách đơn hàng theo cột dọc (▲ Tăng dần / ▼ Giảm dần)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_10_column_sorting.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_10_column_sorting.png', 'TC-ORD-10: Sắp xếp danh sách đơn hàng theo cột dọc (▲ Tăng dần / ▼ Giảm dần)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Sắp xếp danh sách đơn hàng theo ngày đặt, tổng tiền thanh toán tăng dần / giảm dần mượt mà</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">50</td>
+                <td><strong>TC-ORD-11</strong></td>
+                <td>In Phiếu đơn hàng / Tem dán kiện hàng tiêu chuẩn</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_11_print_package_label.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_11_print_package_label.png', 'TC-ORD-11: In Phiếu đơn hàng / Tem dán kiện hàng tiêu chuẩn'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Hỗ trợ in phiếu xuất kho bàn giao A4 và tem nhiệt dán kiện bảo vệ góc hàng đóng gói</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">51</td>
+                <td><strong>TC-ORD-12</strong></td>
+                <td>Xuất danh sách đơn hàng ra tệp bảng tính Excel / CSV</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.1s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_12_export_orders.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_12_export_orders.png', 'TC-ORD-12: Xuất danh sách đơn hàng ra tệp bảng tính Excel / CSV'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Xuất báo cáo danh sách đơn hàng ra tệp bảng tính chuẩn hóa UTF-8 đầy đủ chi tiết giao dịch</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">52</td>
+                <td><strong>TC-ORD-13</strong></td>
+                <td>Duyệt cọc khi số tiền chuyển khoản nhỏ hơn 30% mức cọc quy định</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_13_insufficient_deposit.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_13_insufficient_deposit.png', 'TC-ORD-13: Duyệt cọc khi số tiền chuyển khoản nhỏ hơn 30% mức cọc quy định'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Cảnh báo tài chính khi cọc thiếu dưới 30% và giữ đơn ở trạng thái chờ bổ sung tiền cọc</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">53</td>
+                <td><strong>TC-ORD-14</strong></td>
+                <td>Yêu cầu hủy đơn khi hàng đang ở trên xe tải giao (Shipped)</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_14_cancel_in_transit.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_14_cancel_in_transit.png', 'TC-ORD-14: Yêu cầu hủy đơn khi hàng đang ở trên xe tải giao (Shipped)'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Kích hoạt quy trình điều phối thu hồi quay đầu khi khách báo hủy đột xuất lúc đang giao</td>
+            </tr>
+            
+            <tr class="">
+                <td style="text-align: center;">54</td>
+                <td><strong>TC-ORD-15</strong></td>
+                <td>Đơn hàng nội thất có địa chỉ giao ở hải đảo hoặc vùng sâu xa</td>
+                <td><span class="module-tag">03_orders_warranty</span></td>
+                <td style="text-align: center;"><span class="badge badge-pass">PASS</span></td>
+                <td style="text-align: right;">1.0s</td>
+                <td><a href="../screenshots/raw/pass/TC_ORD_15_remote_shipping.png" onclick="openLightbox('../screenshots/raw/pass/TC_ORD_15_remote_shipping.png', 'TC-ORD-15: Đơn hàng nội thất có địa chỉ giao ở hải đảo hoặc vùng sâu xa'); return false;" class="btn-evidence-gray">📸 Xem ảnh chụp</a></td>
+                <td class="msg-col">Tự động nhận diện khu vực giao hàng hải đảo và áp dụng phương thức vận chuyển chành xe đường thủy</td>
+            </tr>
+            
+        </tbody>
+    </table>
+
+    <!-- Modal Xem Ảnh Trực Tiếp Phóng To (Interactive Lightbox) -->
+    <div id="imageModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.88); align-items:center; justify-content:center; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; width:92%; max-width:1500px; margin-bottom:12px; color:#fff;">
+            <h3 id="modalTitle" style="margin:0; font-size:16px; font-weight:600; color:#f8fafc;">Ảnh bằng chứng kiểm thử</h3>
+            <div>
+                <a id="modalOpenNew" href="#" target="_blank" style="color:#38bdf8; text-decoration:none; margin-right:20px; font-size:14px; font-weight:600; padding:6px 12px; background:rgba(56,189,248,0.15); border-radius:6px;">↗ Mở trong tab mới</a>
+                <span onclick="closeLightbox()" style="cursor:pointer; font-size:22px; font-weight:bold; color:#ef4444; padding:4px 10px; background:rgba(239,68,68,0.15); border-radius:6px;">✕ Đóng</span>
+            </div>
+        </div>
+        <div style="width:92%; max-width:1500px; height:84vh; background:#0b0f19; display:flex; align-items:center; justify-content:center; border:1px solid #334155; border-radius:10px; overflow:auto; padding:10px; box-sizing:border-box;">
+            <img id="modalImg" src="" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:6px; box-shadow:0 10px 25px rgba(0,0,0,0.5);" />
+        </div>
+    </div>
+
+    <script>
+        function openLightbox(src, title) {
+            document.getElementById('modalImg').src = src;
+            document.getElementById('modalTitle').innerText = title || 'Ảnh kiểm thử';
+            document.getElementById('modalOpenNew').href = src;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+        function closeLightbox() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+    </script>
+</body>
+</html>

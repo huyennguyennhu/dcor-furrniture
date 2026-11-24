@@ -589,7 +589,51 @@ export const staffController = {
   // IAM ROLE-BASED PERMISSIONS MATRIX (Server-Side Storage & Enforcement)
   // =========================================================================
 
-  // 1. Lấy ma trận phân quyền và danh sách vai trò từ server
+  // 1. Lấy danh sách toàn bộ vai trò kết hợp thống kê nhân sự thực tế từ Database
+  getAllRoles: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const roles = iamService.getAllRoles();
+      const staffList = await withDbRetry(() =>
+        prisma.staffUser.findMany({
+          where: { deletedAt: null },
+          select: { id: true, email: true, fullName: true, role: true, status: true }
+        })
+      );
+      const allMetadata = getAllStaffMetadata();
+
+      const rolesWithStaff = roles.map(role => {
+        const assignedStaff = staffList.filter(s => {
+          const lowerEmail = s.email.trim().toLowerCase();
+          const meta = allMetadata[lowerEmail] || allMetadata[s.email];
+          const exactRoles = meta?.roles && meta.roles.length > 0
+            ? meta.roles
+            : [mapFromPrismaRole(s.role)];
+          return exactRoles.some((r: string) => r.trim().toLowerCase() === role.name.trim().toLowerCase());
+        }).map(s => ({
+          id: s.id,
+          name: s.fullName,
+          email: s.email,
+          status: formatStatus(s.status)
+        }));
+
+        return {
+          ...role,
+          staffCount: assignedStaff.length,
+          assignedStaff
+        };
+      });
+
+      res.status(200).json({
+        success: true,
+        roles: rolesWithStaff
+      });
+    } catch (error: any) {
+      console.error('Lỗi getAllRoles:', error);
+      res.status(500).json({ message: 'Lỗi tải danh sách vai trò từ cơ sở dữ liệu: ' + error.message });
+    }
+  },
+
+  // 1.1 Lấy ma trận phân quyền và danh sách vai trò từ server
   getPermissionsMatrix: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const roles = iamService.getAllRoles();

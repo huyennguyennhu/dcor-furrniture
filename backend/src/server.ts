@@ -570,8 +570,9 @@ app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
               discountValue = it.discountPercent || camp.discountValue || 0;
               discountType = camp.discountType === 'FIXED' ? 'AMOUNT' : 'PERCENT';
               campaignName = camp.name;
-              originalPrice = it.originalPrice || product.basePrice;
-              salePrice = it.salePrice || (discountType === 'AMOUNT' ? Math.max(0, originalPrice - camp.discountValue) : Math.round(originalPrice * (100 - discountValue) / 100));
+              originalPrice = it.originalPrice || product.basePrice || 0;
+              const effectivePrice = originalPrice || 0;
+              salePrice = it.salePrice || (discountType === 'AMOUNT' ? Math.max(0, effectivePrice - camp.discountValue) : Math.round(effectivePrice * (100 - discountValue) / 100));
               break;
             }
           }
@@ -801,8 +802,12 @@ app.get('/api/products/:id/reviews', async (req, res) => {
           avgRating = Number((totalStars / totalCountAll).toFixed(1));
         }
       }
-    } catch (dbErr) {
-      console.warn('[Review API] Lưu ý khi query Review từ DB:', dbErr);
+    } catch (dbErr: any) {
+      if (dbErr?.message?.includes('does not exist') || dbErr?.meta?.code === '42P01') {
+        initReviewDatabase().catch(() => {});
+      } else {
+        console.warn('[Review API] Lưu ý khi query Review từ DB:', dbErr?.message || dbErr);
+      }
     }
 
     // Ghép đánh giá thực tế của khách lên đầu danh sách

@@ -1,4 +1,7 @@
-<div class="products-page-container">
+<div class="products-page-container" style="position: relative;"
+     [style.pointer-events]="isLoading ? 'none' : 'auto'"
+     [style.user-select]="isLoading ? 'none' : 'auto'"
+     [style.cursor]="isLoading ? 'wait' : 'default'">
   
   <!-- =========================================================================
        1. HEADER BREADCRUMB & TOP ACTIONS
@@ -14,6 +17,8 @@
       <button 
         type="button" 
         class="admin-btn admin-btn-secondary" 
+        [disabled]="isLoading"
+        [class.disabled]="isLoading"
         (click)="openImportModal()"
         title="Nhập dữ liệu từ file Excel">
         <lucide-angular [img]="icons.Upload" size="16"></lucide-angular>
@@ -24,6 +29,8 @@
       <button 
         type="button" 
         class="admin-btn admin-btn-secondary" 
+        [disabled]="isLoading"
+        [class.disabled]="isLoading"
         (click)="exportExcel()"
         title="Xuất danh sách ra file CSV / Excel">
         <lucide-angular [img]="icons.Download" size="16"></lucide-angular>
@@ -34,6 +41,8 @@
       <button 
         type="button" 
         class="admin-btn admin-btn-primary" 
+        [disabled]="isLoading"
+        [class.disabled]="isLoading"
         (click)="goToNew()">
         <span>Thêm sản phẩm</span>
       </button>
@@ -671,7 +680,7 @@
   <!-- =========================================================================
        7. MODAL XÁC THỰC 2 BƯỚC KHI XÓA SẢN PHẨM (YÊU CẦU NHẬP YES)
        ========================================================================= -->
-  <div class="modal-backdrop" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()">
+  <div class="modal-backdrop" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
       
       <!-- BƯỚC 1: XÁC THỰC CÓ THỰC SỰ MUỐN XÓA -->
@@ -741,7 +750,7 @@
   </div>
 
   <!-- MODAL XÁC NHẬN ẨN / HIỆN SẢN PHẨM -->
-  <div class="modal-backdrop" *ngIf="isConfirmVisibilityModalOpen" (click)="closeVisibilityModal()">
+  <div class="modal-backdrop" *ngIf="isConfirmVisibilityModalOpen" (click)="closeVisibilityModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="warning-icon-box">
@@ -771,7 +780,7 @@
   <!-- =========================================================================
        8. MODAL NHẬP DỮ LIỆU EXCEL THÔNG MINH & BẢO MẬT (3 GIAI ĐOẠN)
        ========================================================================= -->
-  <div class="modal-backdrop" *ngIf="isImportModalOpen" (click)="closeImportModal()">
+  <div class="modal-backdrop" *ngIf="isImportModalOpen" (click)="closeImportModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-xl-import" (click)="$event.stopPropagation()">
       
       <!-- Modal Header -->
@@ -1027,7 +1036,7 @@
   <!-- =========================================================================
        9. FLOATING TOAST NOTIFICATION
        ========================================================================= -->
-  <div class="admin-toast-notice" *ngIf="toastMessage" [class]="'toast-' + toastType">
+  <div class="admin-toast-notice" *ngIf="toastMessage" [class]="'toast-' + toastType" style="pointer-events: auto; cursor: default;">
     <lucide-angular [img]="icons.CheckCircle2" size="18" *ngIf="toastType === 'success'"></lucide-angular>
     <lucide-angular [img]="icons.AlertCircle" size="18" *ngIf="toastType === 'warning' || toastType === 'error'"></lucide-angular>
     <lucide-angular [img]="icons.Info" size="18" *ngIf="toastType === 'info'"></lucide-angular>

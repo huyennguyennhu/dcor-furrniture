@@ -11,6 +11,7 @@ router.use(authenticateJWT);
 // IAM Matrix & Roles routes (Role-based permissions)
 router.get('/permissions/matrix', staffController.getPermissionsMatrix);
 router.put('/permissions/matrix', requirePermission('staff', 'edit'), staffController.updatePermissionsMatrix);
+router.get('/roles', requirePermission('staff', 'view'), staffController.getAllRoles);
 router.post('/roles', requirePermission('staff', 'create'), staffController.createRole);
 router.put('/roles/:id', requirePermission('staff', 'edit'), staffController.updateRoleDef);
 router.delete('/roles/:id', requirePermission('staff', 'delete'), staffController.deleteRoleDef);

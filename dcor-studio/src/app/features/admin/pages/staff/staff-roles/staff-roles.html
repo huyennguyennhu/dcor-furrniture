@@ -1,0 +1,479 @@
+<section class="admin-page staff-roles-page">
+
+  <!-- Toast Notification Floating -->
+  <div *ngIf="toastMessage" class="toast-alert" [ngClass]="'toast-' + toastType">
+    <app-icon [name]="toastType === 'success' ? 'CircleCheck' : (toastType === 'warning' ? 'AlertTriangle' : 'Info')" size="18"></app-icon>
+    <span>{{ toastMessage }}</span>
+    <button type="button" class="btn-close-toast" (click)="toastMessage = ''">
+      <app-icon name="X" size="14"></app-icon>
+    </button>
+  </div>
+
+  <!-- Header -->
+  <header class="admin-page-heading">
+    <div>
+      <h1>Quản lý vai trò nhân sự</h1>
+      <p class="heading-subtext">Danh sách các vai trò chức danh (Role-Based IAM) và phân quyền nghiệp vụ thực tế trong cơ sở dữ liệu.</p>
+    </div>
+    
+    <div class="admin-page-actions">
+      <!-- Nút Làm mới -->
+      <button 
+        type="button" 
+        class="admin-btn admin-btn-secondary" 
+        (click)="loadRoles()" 
+        title="Đồng bộ danh sách vai trò từ máy chủ">
+        <app-icon name="RefreshCw" size="16"></app-icon>
+        <span>Làm mới</span>
+      </button>
+
+      <!-- Nút Chuyển sang Ma trận phân quyền -->
+      <a 
+        routerLink="/admin/staff/permissions" 
+        class="admin-btn admin-btn-secondary" 
+        title="Xem và chỉnh sửa ma trận phân quyền chi tiết cho từng vai trò">
+        <app-icon name="ShieldCheck" size="16"></app-icon>
+        <span>Ma trận phân quyền</span>
+      </a>
+
+      <!-- Nút Thêm vai trò mới -->
+      <button 
+        type="button" 
+        class="admin-btn admin-btn-primary" 
+        (click)="openAddModal()" 
+        *ngIf="canCreateRole"
+        title="Tạo thêm chức danh vai trò mới trong hệ thống">
+        <app-icon name="Plus" size="16"></app-icon>
+        <span>Thêm vai trò mới</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Stats Cards -->
+  <div class="admin-page-stats">
+    <button 
+      type="button" 
+      class="admin-page-stat stat-filter-btn" 
+      [class.active]="typeFilter === 'ALL'"
+      (click)="typeFilter = 'ALL'">
+      <div class="admin-page-stat-label">Tổng số vai trò</div>
+      <div class="admin-page-stat-value">{{ totalRoles }}</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-page-stat stat-filter-btn" 
+      [class.active]="typeFilter === 'SYSTEM'"
+      (click)="typeFilter = 'SYSTEM'">
+      <div class="admin-page-stat-label">Vai trò hệ thống</div>
+      <div class="admin-page-stat-value" style="color: #0023DD;">{{ systemRolesCount }}</div>
+    </button>
+
+    <button 
+      type="button" 
+      class="admin-page-stat stat-filter-btn" 
+      [class.active]="typeFilter === 'CUSTOM'"
+      (click)="typeFilter = 'CUSTOM'">
+      <div class="admin-page-stat-label">Vai trò tùy chỉnh</div>
+      <div class="admin-page-stat-value" style="color: var(--color-primary, #765337);">{{ customRolesCount }}</div>
+    </button>
+
+    <div class="admin-page-stat">
+      <div class="admin-page-stat-label">Lượt nhân sự gán vai trò</div>
+      <div class="admin-page-stat-value" style="color: var(--color-success, #00A30B);">{{ totalStaffAssigned }}</div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="admin-page-filter roles-filter-bar">
+    <div class="admin-search-wrapper">
+      <app-icon name="Search" size="16" style="color: var(--color-text-muted); margin-right: 8px;"></app-icon>
+      <input 
+        class="admin-search-input" 
+        [(ngModel)]="searchTerm" 
+        maxlength="100"
+        placeholder="Tìm kiếm theo tên vai trò, mã code, mô tả..." 
+        aria-label="Tìm kiếm vai trò">
+      <button 
+        type="button" 
+        class="btn-clear-search" 
+        *ngIf="searchTerm" 
+        (click)="searchTerm = ''">
+        <app-icon name="X" size="13"></app-icon>
+      </button>
+    </div>
+
+    <div class="filter-select-group">
+      <label for="type-filter">Loại vai trò:</label>
+      <select id="type-filter" class="admin-select" [(ngModel)]="typeFilter" aria-label="Lọc loại vai trò">
+        <option value="ALL">Tất cả loại vai trò</option>
+        <option value="SYSTEM">Vai trò hệ thống</option>
+        <option value="CUSTOM">Vai trò tùy chỉnh</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Roles Table Card -->
+  <div class="admin-page-table-card">
+    <!-- Loading state -->
+    <div class="loading-state" *ngIf="isLoading">
+      <app-icon name="RefreshCw" size="24" class="spinner-icon"></app-icon>
+      <p>Đang tải danh sách vai trò từ cơ sở dữ liệu...</p>
+    </div>
+
+    <!-- Table -->
+    <table class="admin-page-table" *ngIf="!isLoading">
+      <thead>
+        <tr>
+          <th style="width: 260px;">VAI TRÒ &amp; MÃ ĐỊNH DANH</th>
+          <th style="width: 140px;">PHÂN LOẠI</th>
+          <th>MÔ TẢ TRÁCH NHIỆM</th>
+          <th style="width: 160px; text-align: center;">NHÂN SỰ ÁP DỤNG</th>
+          <th style="width: 130px;">NGÀY TẠO</th>
+          <th style="width: 160px; text-align: right;">THAO TÁC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let role of filteredRoles" class="role-row">
+          <!-- Cột 1: Tên & Code -->
+          <td>
+            <div class="role-identity">
+              <div class="role-icon-box" [ngClass]="'role-icon-' + (role.isSystem ? 'system' : 'custom')">
+                <app-icon [name]="getRoleIcon(role)" size="18"></app-icon>
+              </div>
+              <div class="role-name-wrapper">
+                <span class="role-display-name">{{ role.name }}</span>
+                <span class="role-code-badge" title="Mã định danh vai trò">{{ role.code }}</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Cột 2: Phân loại -->
+          <td>
+            <span class="role-type-pill" [ngClass]="role.isSystem ? 'pill-system' : 'pill-custom'">
+              {{ role.isSystem ? 'Hệ thống' : 'Tùy chỉnh' }}
+            </span>
+          </td>
+
+          <!-- Cột 3: Mô tả -->
+          <td>
+            <div class="role-desc" [title]="role.description">
+              {{ role.description || 'Chưa có thông tin mô tả trách nhiệm cụ thể.' }}
+            </div>
+          </td>
+
+          <!-- Cột 4: Số nhân sự -->
+          <td style="text-align: center;">
+            <button 
+              type="button" 
+              class="btn-staff-count" 
+              (click)="openStaffModal(role)"
+              [title]="'Xem danh sách ' + (role.staffCount || 0) + ' nhân sự giữ vai trò ' + role.name">
+              <app-icon name="UsersRound" size="14"></app-icon>
+              <span>{{ role.staffCount || 0 }} nhân sự</span>
+            </button>
+          </td>
+
+          <!-- Cột 5: Ngày tạo -->
+          <td>
+            <span class="role-created-date">{{ role.createdAt || '2026-01-01' }}</span>
+          </td>
+
+          <!-- Cột 6: Thao tác -->
+          <td style="text-align: right;">
+            <div class="role-actions">
+              <!-- Nút sang trang ma trận quyền -->
+              <a 
+                routerLink="/admin/staff/permissions" 
+                class="action-btn action-perm" 
+                title="Cấu hình ma trận quyền hạn cho vai trò này">
+                <app-icon name="ShieldCheck" size="16"></app-icon>
+              </a>
+
+              <!-- Nút Chỉnh sửa -->
+              <button 
+                type="button" 
+                class="action-btn action-edit" 
+                (click)="openEditModal(role)" 
+                *ngIf="canEditRole"
+                title="Chỉnh sửa tên và mô tả vai trò">
+                <app-icon name="Edit" size="16"></app-icon>
+              </button>
+
+              <!-- Nút Xóa (Chỉ cho phép nếu không phải role hệ thống) -->
+              <button 
+                type="button" 
+                class="action-btn action-delete" 
+                (click)="openDeleteModal(role)" 
+                *ngIf="canDeleteRole && !role.isSystem"
+                title="Xóa vai trò tùy chỉnh và chuyển giao nhân sự">
+                <app-icon name="Trash2" size="16"></app-icon>
+              </button>
+
+              <!-- Nút xóa bị vô hiệu hóa cho System Role -->
+              <button 
+                type="button" 
+                class="action-btn action-delete-disabled" 
+                disabled 
+                *ngIf="role.isSystem"
+                title="Không thể xóa vai trò mặc định của hệ thống">
+                <app-icon name="Trash2" size="16"></app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Không có kết quả -->
+        <tr *ngIf="filteredRoles.length === 0">
+          <td colspan="6" class="empty-state-cell">
+            <div class="empty-state">
+              <app-icon name="Search" size="32" color="var(--color-text-muted)"></app-icon>
+              <p class="empty-title">Không tìm thấy vai trò phù hợp</p>
+              <p class="empty-sub">Hãy thử điều chỉnh từ khóa tìm kiếm hoặc bỏ chọn bộ lọc loại vai trò.</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: THÊM VAI TRÒ MỚI
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isAddModalOpen" (click)="closeAddModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Thêm vai trò chức danh mới</h2>
+          <p class="modal-subtitle">Tạo vai trò mới và kế thừa bảng quyền mặc định.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeAddModal()">
+          <app-icon name="X" size="16"></app-icon>
+        </button>
+      </div>
+
+      <form (ngSubmit)="submitAddRole()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="add-role-name">Tên vai trò chức danh <span class="required">*</span></label>
+            <input 
+              id="add-role-name" 
+              type="text" 
+              class="admin-input" 
+              [(ngModel)]="addFormData.name" 
+              name="roleName" 
+              (input)="onRoleNameInput()"
+              placeholder="Ví dụ: Giám sát thi công, CSKH, Kế toán kho..." 
+              required 
+              maxlength="60">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-role-code">Mã vai trò (System Code) <span class="required">*</span></label>
+            <input 
+              id="add-role-code" 
+              type="text" 
+              class="admin-input font-code" 
+              [(ngModel)]="addFormData.code" 
+              name="roleCode" 
+              placeholder="Ví dụ: GIAM_SAT_THI_CONG" 
+              required 
+              maxlength="40">
+            <span class="field-hint">Mã viết hoa, không dấu, dùng dấu gạch dưới ngăn cách.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-clone-from">Kế thừa ma trận quyền từ vai trò</label>
+            <select id="add-clone-from" class="admin-select" [(ngModel)]="addFormData.cloneFromRoleName" name="cloneFrom">
+              <option *ngFor="let r of roles" [value]="r.name">{{ r.name }}</option>
+            </select>
+            <span class="field-hint">Vai trò mới sẽ được sao chép toàn bộ quyền ban đầu từ vai trò này.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-role-desc">Mô tả trách nhiệm &amp; quyền hạn</label>
+            <textarea 
+              id="add-role-desc" 
+              class="admin-textarea" 
+              [(ngModel)]="addFormData.description" 
+              name="roleDesc" 
+              rows="3" 
+              placeholder="Mô tả tóm tắt phạm vi công việc và trách nhiệm của chức vụ..." 
+              maxlength="250"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeAddModal()">Hủy</button>
+          <button type="submit" class="admin-btn admin-btn-primary" [disabled]="isAddSubmitting">
+            <app-icon name="Plus" size="15" *ngIf="!isAddSubmitting"></app-icon>
+            <app-icon name="RefreshCw" size="15" class="spinner-icon" *ngIf="isAddSubmitting"></app-icon>
+            <span>{{ isAddSubmitting ? 'Đang tạo...' : 'Tạo vai trò' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: CHỈNH SỬA VAI TRÒ
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isEditModalOpen" (click)="closeEditModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Chỉnh sửa thông tin vai trò</h2>
+          <p class="modal-subtitle">Cập nhật tên gọi hiển thị và bản mô tả trách nhiệm.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeEditModal()">
+          <app-icon name="X" size="16"></app-icon>
+        </button>
+      </div>
+
+      <form (ngSubmit)="submitEditRole()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="edit-role-name">Tên vai trò <span class="required">*</span></label>
+            <input 
+              id="edit-role-name" 
+              type="text" 
+              class="admin-input" 
+              [(ngModel)]="editFormData.name" 
+              name="editName" 
+              required 
+              maxlength="60">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Mã định danh vai trò</label>
+            <input 
+              type="text" 
+              class="admin-input font-code" 
+              [value]="editingRole?.code" 
+              disabled 
+              style="opacity: 0.7; background: #f5f5f5;">
+            <span class="field-hint">Mã code hệ thống không thể thay đổi để đảm bảo tính toàn vẹn IAM.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-role-desc">Mô tả trách nhiệm</label>
+            <textarea 
+              id="edit-role-desc" 
+              class="admin-textarea" 
+              [(ngModel)]="editFormData.description" 
+              name="editDesc" 
+              rows="3" 
+              maxlength="250"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeEditModal()">Hủy</button>
+          <button type="submit" class="admin-btn admin-btn-primary" [disabled]="isEditSubmitting">
+            <app-icon name="Check" size="15" *ngIf="!isEditSubmitting"></app-icon>
+            <app-icon name="RefreshCw" size="15" class="spinner-icon" *ngIf="isEditSubmitting"></app-icon>
+            <span>{{ isEditSubmitting ? 'Đang lưu...' : 'Lưu thay đổi' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: XÓA VAI TRÒ AN TOÀN & CHUYỂN GIAO NHÂN SỰ
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()">
+    <div class="modal-card modal-delete" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" style="color: var(--color-danger, #C42326);">Xác nhận xóa vai trò</h2>
+          <p class="modal-subtitle">Thao tác này sẽ xóa vĩnh viễn cấu hình vai trò khỏi ma trận.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeDeleteModal()">
+          <app-icon name="X" size="16"></app-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="delete-warning-text">
+          Bạn có chắc chắn muốn xóa vai trò <strong>"{{ deletingRole?.name }}"</strong> không?
+        </p>
+
+        <div class="reassign-box" *ngIf="(deletingRole?.staffCount || 0) > 0">
+          <div class="reassign-alert">
+            <app-icon name="AlertTriangle" size="16" color="#8C6200"></app-icon>
+            <span>Hiện có <strong>{{ deletingRole?.staffCount }} nhân sự</strong> đang giữ vai trò này. Hãy chọn vai trò an toàn mới để tự động chuyển giao:</span>
+          </div>
+
+          <div class="form-group" style="margin-top: 12px;">
+            <label class="form-label" for="reassign-select">Chuyển giao các nhân sự này sang vai trò:</label>
+            <select id="reassign-select" class="admin-select" [(ngModel)]="reassignToRoleName">
+              <ng-container *ngFor="let r of roles">
+                <option *ngIf="r.id !== deletingRole?.id" [value]="r.name">{{ r.name }}</option>
+              </ng-container>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeDeleteModal()">Hủy bỏ</button>
+        <button type="button" class="admin-btn admin-btn-danger" (click)="submitDeleteRole()" [disabled]="isDeleteSubmitting">
+          <app-icon name="Trash2" size="15" *ngIf="!isDeleteSubmitting"></app-icon>
+          <app-icon name="RefreshCw" size="15" class="spinner-icon" *ngIf="isDeleteSubmitting"></app-icon>
+          <span>{{ isDeleteSubmitting ? 'Đang xóa...' : 'Xác nhận xóa vai trò' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: DANH SÁCH NHÂN SỰ ĐANG GIỮ VAI TRÒ
+       ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="isStaffModalOpen" (click)="closeStaffModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Danh sách nhân sự: {{ selectedRoleForStaff?.name }}</h2>
+          <p class="modal-subtitle">Các tài khoản nhân sự thực tế trong cơ sở dữ liệu đang được phân quyền vai trò này.</p>
+        </div>
+        <button type="button" class="admin-close-btn" (click)="closeStaffModal()">
+          <app-icon name="X" size="16"></app-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="staff-list-container" *ngIf="(selectedRoleForStaff?.assignedStaff?.length || 0) > 0">
+          <div class="staff-item-row" *ngFor="let s of selectedRoleForStaff?.assignedStaff">
+            <div class="staff-avatar">
+              {{ s.name ? s.name.charAt(0).toUpperCase() : 'U' }}
+            </div>
+            <div class="staff-info">
+              <span class="staff-name">{{ s.name }}</span>
+              <span class="staff-email">{{ s.email }}</span>
+            </div>
+            <div class="staff-status-pill" [ngClass]="s.status === 'Đã kích hoạt' ? 'status-active' : 'status-pending'">
+              {{ s.status || 'Đã kích hoạt' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-staff-box" *ngIf="(selectedRoleForStaff?.assignedStaff?.length || 0) === 0">
+          <app-icon name="UsersRound" size="28" color="var(--color-text-muted)"></app-icon>
+          <p>Hiện chưa có nhân sự nào được gán vai trò này trong cơ sở dữ liệu.</p>
+          <a routerLink="/admin/staff/accounts" (click)="closeStaffModal()" class="link-go-staff">
+            Đi đến trang Quản lý tài khoản để gán vai trò
+          </a>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="admin-btn admin-btn-secondary" (click)="closeStaffModal()">Đóng</button>
+        <a routerLink="/admin/staff/accounts" (click)="closeStaffModal()" class="admin-btn admin-btn-primary">
+          <span>Quản lý tài khoản</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</section>

@@ -2,6 +2,20 @@ import prisma, { withDbRetry } from './prisma';
 
 export async function initInventorySettingsDatabase() {
   try {
+    // 0. Kiểm tra nhanh: nếu các bảng cấu hình đã tồn tại thì không cần chạy lại DDL & SEED tốn 30 roundtrip mạng
+    const checkTables = await withDbRetry(async () => {
+      return await prisma.$queryRawUnsafe<any[]>(`
+        SELECT COUNT(*)::int as count 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+          AND table_name IN ('InventoryReasons', 'TaxRates', 'InventorySettings')
+      `);
+    }, 2, 15000);
+
+    if (Number(checkTables[0]?.count || 0) >= 3) {
+      return true;
+    }
+
     await withDbRetry(async () => {
       // 0. Tự động đổi tên bảng cũ sang tên PascalCase mới nếu bảng cũ còn tồn tại
       await prisma.$executeRawUnsafe(`
@@ -172,7 +186,7 @@ export async function initInventorySettingsDatabase() {
           ON CONFLICT (key) DO NOTHING;
         `, s.key, s.value, s.description);
       }
-    });
+    }, 2, 60000);
 
     return true;
   } catch (error) {

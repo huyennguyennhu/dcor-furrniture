@@ -32,5 +32,27 @@
     "assignedBranches": [
       "KHO_TONG_HCM"
     ]
+  },
+  "lenam.kts@dcor.vn": {
+    "roles": [
+      "Kiến trúc sư"
+    ],
+    "role": "Kiến trúc sư",
+    "branchId": "ALL",
+    "branchName": "Toàn hệ thống",
+    "assignedBranches": [
+      "ALL"
+    ]
+  },
+  "lehoang.kts@dcor.vn": {
+    "roles": [
+      "Kiến trúc sư"
+    ],
+    "role": "Kiến trúc sư",
+    "branchId": "ALL",
+    "branchName": "Toàn hệ thống",
+    "assignedBranches": [
+      "ALL"
+    ]
   }
 }

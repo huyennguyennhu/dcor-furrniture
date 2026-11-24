@@ -19,16 +19,16 @@ const isValidPassword = (password: string): boolean => {
   return hasLetter && hasNumber;
 };
 
-const calculateMemberTier = (totalSpent: bigint | number): { tier: string; badge: string; minPoints: number; nextTierThreshold: number } => {
-  const spent = typeof totalSpent === 'bigint' ? Number(totalSpent) : totalSpent;
+export const calculateMemberTier = (totalSpent: bigint | number): { tier: string; badge: string; minPoints: number; nextTierThreshold: number } => {
+  const spent = typeof totalSpent === 'bigint' ? Number(totalSpent) : Number(totalSpent) || 0;
   if (spent >= 100000000) {
-    return { tier: 'Kim Cương', badge: 'DIAMOND', minPoints: 10000, nextTierThreshold: 100000000 };
+    return { tier: 'Kim Cương', badge: 'DIAMOND', minPoints: 1000, nextTierThreshold: 100000000 };
   }
   if (spent >= 50000000) {
-    return { tier: 'Vàng', badge: 'GOLD', minPoints: 5000, nextTierThreshold: 100000000 };
+    return { tier: 'Vàng', badge: 'GOLD', minPoints: 500, nextTierThreshold: 100000000 };
   }
   if (spent >= 15000000) {
-    return { tier: 'Bạc', badge: 'SILVER', minPoints: 1500, nextTierThreshold: 50000000 };
+    return { tier: 'Bạc', badge: 'SILVER', minPoints: 150, nextTierThreshold: 50000000 };
   }
   return { tier: 'Đồng', badge: 'BRONZE', minPoints: 0, nextTierThreshold: 15000000 };
 };

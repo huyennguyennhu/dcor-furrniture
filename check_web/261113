@@ -1,0 +1,25 @@
+Rule chung:  Check xem hiện tại thế nào và điềnn câu trả lời ngay dưới đây không sửa
+
+1. check xem tại sao khi đăng nhập bằng GG thì ở tài khoản của tôi thì nó lại hiện số điện thoại là "0999999999", nó nên là gạch ngang cho đến khi người dùng thực hiện cập nhật được chứ "-".
+> Trả lời:
+
+2. DỮ liệu trong http://localhost:4200/account/custom-requests đang là mock đúng không? nếu vậy thì cần xóa dữ liệu đó đi và lấy dữ liệu từ supabase về dùng thật nhé
+> Trả lời:
+
+3. Sau khi admin nhấn Gửi báo giá và bản vẻ cho khách hàng thì trong site khách hàng hiển thị trong tab Báo giá & Bản vẽ 3D
+> Trả lời:
+
+4. Sau khi gửi báo giá cho khách hàng, trong khi đợi khách hàng chốt thì bước 3 "Báo giá & 3D Phối cảnh 3D & giá" sẽ bị lock lại và hiển thị là Đang đợi khách hàng chốt, sau khi khách hàng chốt thì nó mới chuyển bảng 3 này sang hoàn thành và đi sang bước 4
+> Trả lời:
+
+5. Khi admin gửi hợp đồng cho khách hàng xem và ký thì hiển thị ở trang nào? ở đâu rồi làm cách nào để khách hàng ký vậy?
+> Trả lời:
+
+
+> Trả lời:
+
+
+> Trả lời:
+
+
+> Trả lời:

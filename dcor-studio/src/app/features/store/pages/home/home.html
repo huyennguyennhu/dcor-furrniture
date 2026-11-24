@@ -357,7 +357,7 @@
                   {{ formatBlogDate(featuredBlog.publishedAt) }}
                 </span>
                 <span class="styling-meta-bullet">•</span>
-                <span class="styling-meta-cat">{{ featuredBlog.category?.name || 'Xu hướng' }}</span>
+                <span class="styling-meta-cat">{{ featuredBlog.category.name || 'Xu hướng' }}</span>
               </div>
 
               <h3 class="featured-card-title">{{ featuredBlog.title }}</h3>
@@ -394,7 +394,7 @@
                     {{ formatBlogDate(blog.publishedAt) }}
                   </span>
                   <span class="styling-meta-bullet">•</span>
-                  <span class="styling-meta-cat">{{ blog.category?.name || (i === 0 ? 'Mẹo không gian' : 'Chăm sóc nội thất') }}</span>
+                  <span class="styling-meta-cat">{{ blog.category.name || (i === 0 ? 'Mẹo không gian' : 'Chăm sóc nội thất') }}</span>
                 </div>
 
                 <h3 class="side-card-title">{{ blog.title }}</h3>

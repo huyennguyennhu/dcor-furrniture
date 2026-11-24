@@ -24,6 +24,18 @@
   margin: 0 auto;
 }
 
+/* Disabled interaction & visual feedback during page loading */
+.categories-page-container[style*="pointer-events: none"] .admin-btn,
+.categories-page-container[style*="pointer-events: none"] .top-level-tab-btn,
+.categories-page-container[style*="pointer-events: none"] .sub-group-tab-btn,
+.categories-page-container[style*="pointer-events: none"] .filter-trigger-btn,
+.categories-page-container[style*="pointer-events: none"] .search-input,
+.categories-page-container[style*="pointer-events: none"] .pagination-nav button {
+  opacity: 0.65;
+  cursor: wait !important;
+  pointer-events: none !important;
+}
+
 /* 2. Page Header */
 .categories-header {
   position: static !important;

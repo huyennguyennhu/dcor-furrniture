@@ -15,6 +15,17 @@
   box-sizing: border-box;
 }
 
+/* Disabled interaction & visual feedback during page loading */
+.products-page-container[style*="pointer-events: none"] .admin-btn,
+.products-page-container[style*="pointer-events: none"] .filter-trigger-btn,
+.products-page-container[style*="pointer-events: none"] .tab-btn,
+.products-page-container[style*="pointer-events: none"] .search-input,
+.products-page-container[style*="pointer-events: none"] .pagination-nav button {
+  opacity: 0.65;
+  cursor: wait !important;
+  pointer-events: none !important;
+}
+
 /* 1. Header & Actions */
 .products-header {
   position: static !important;

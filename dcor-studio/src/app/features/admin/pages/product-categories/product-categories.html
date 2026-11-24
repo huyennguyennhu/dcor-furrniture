@@ -1,4 +1,7 @@
-<div class="categories-page-container">
+<div class="categories-page-container" style="position: relative;"
+     [style.pointer-events]="isLoading ? 'none' : 'auto'"
+     [style.user-select]="isLoading ? 'none' : 'auto'"
+     [style.cursor]="isLoading ? 'wait' : 'default'">
   
   <!-- =========================================================================
        1. HEADER BREADCRUMB & TOP ACTIONS
@@ -16,6 +19,8 @@
       <button 
         type="button" 
         class="admin-btn admin-btn-primary" 
+        [disabled]="isLoading"
+        [class.disabled]="isLoading"
         (click)="openAddModal()">
         <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
         <span>Thêm mới {{ activeGroupLabel }}</span>
@@ -405,7 +410,7 @@
   <!-- =========================================================================
        5. MODAL THÊM / CHỈNH SỬA DANH MỤC (FORM MODAL)
        ========================================================================= -->
-  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-md" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-title-group">
@@ -562,7 +567,7 @@
   <!-- =========================================================================
        6. MODAL CẢNH BÁO RÀNG BUỘC KHI XÓA (DELETE CONSTRAINT MODAL - >0 SP)
        ========================================================================= -->
-  <div class="modal-backdrop" *ngIf="isConstraintModalOpen" (click)="closeConstraintModal()">
+  <div class="modal-backdrop" *ngIf="isConstraintModalOpen" (click)="closeConstraintModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-md" (click)="$event.stopPropagation()">
       <div class="modal-header header-warning">
         <div class="warning-icon-box">
@@ -616,7 +621,7 @@
   <!-- =========================================================================
        7. MODAL XÁC NHẬN XÓA BÌNH THƯỜNG (KHI PRODUCTS COUNT === 0)
        ========================================================================= -->
-  <div class="modal-backdrop" *ngIf="isConfirmDeleteModalOpen" (click)="closeConfirmDeleteModal()">
+  <div class="modal-backdrop" *ngIf="isConfirmDeleteModalOpen" (click)="closeConfirmDeleteModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="danger-icon-box">
@@ -667,7 +672,7 @@
   <!-- =========================================================================
        7.5. MODAL CẢNH BÁO XÁC NHẬN CHUYỂN TRẠNG THÁI (ẨN / HIỆN DANH MỤC)
        ========================================================================= -->
-  <div class="modal-backdrop" *ngIf="isConfirmToggleModalOpen" (click)="closeToggleModal()">
+  <div class="modal-backdrop" *ngIf="isConfirmToggleModalOpen" (click)="closeToggleModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="warning-icon-box" style="width: 42px; height: 42px; border-radius: 50%; background: #FFF4E5; color: #D97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -712,7 +717,7 @@
   <!-- =========================================================================
        8. FLOATING TOAST NOTIFICATION
        ========================================================================= -->
-  <div class="admin-toast-notice" *ngIf="toastMessage" [class]="'toast-' + toastType">
+  <div class="admin-toast-notice" *ngIf="toastMessage" [class]="'toast-' + toastType" style="pointer-events: auto; cursor: default;">
     <lucide-angular [img]="icons.CheckCircle2" size="18" *ngIf="toastType === 'success'"></lucide-angular>
     <lucide-angular [img]="icons.AlertTriangle" size="18" *ngIf="toastType === 'warning' || toastType === 'error'"></lucide-angular>
     <lucide-angular [img]="icons.Info" size="18" *ngIf="toastType === 'info'"></lucide-angular>
