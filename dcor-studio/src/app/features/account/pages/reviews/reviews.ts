@@ -109,18 +109,34 @@ export class AccountReviewsComponent implements OnInit {
 
     this.reviewService.getMyReviews().subscribe({
       next: (res) => {
-        this.reviewedList = res.reviewed || [];
-        this.unreviewedList = res.unreviewed || [];
+        this.reviewedList = (res.reviewed || []).map(r => ({
+          ...r,
+          productImage: r.productImage && !r.productImage.includes('dsasf753c') ? r.productImage : ''
+        }));
+        this.unreviewedList = (res.unreviewed || []).map(u => ({
+          ...u,
+          productImage: u.productImage && !u.productImage.includes('dsasf753c') ? u.productImage : ''
+        }));
         this.isLoading = false;
         this.cdr.markForCheck();
+        try { this.cdr.detectChanges(); } catch (_) {}
       },
       error: (err) => {
         this.isLoading = false;
         console.error('Lỗi tải danh sách đánh giá:', err);
         this.errorMessage = 'Không thể tải danh sách đánh giá. Vui lòng thử lại sau.';
         this.cdr.markForCheck();
+        try { this.cdr.detectChanges(); } catch (_) {}
       }
     });
+  }
+
+  onProductImageError(item: { productImage?: string }): void {
+    if (item && item.productImage) {
+      item.productImage = '';
+      this.cdr.markForCheck();
+      try { this.cdr.detectChanges(); } catch (_) {}
+    }
   }
 
   switchTab(tab: 'unreviewed' | 'reviewed'): void {

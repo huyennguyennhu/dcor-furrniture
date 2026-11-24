@@ -8,15 +8,6 @@
 
       <!-- Main Content Column -->
       <main class="content-column">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb-nav">
-          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
-          <span class="breadcrumb-separator">/</span>
-          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
-          <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">Đánh giá đơn hàng</span>
-        </nav>
-
         <!-- Header & Search Bar (Sắp xếp chuẩn như Đơn hàng của tôi) -->
         <div class="orders-header-wrap">
           <div class="header-text">
@@ -114,7 +105,7 @@
 
                 <div class="pending-card-body">
                   <div class="item-thumb">
-                    <img *ngIf="item.productImage; else noImg" [src]="item.productImage" [alt]="item.productName" />
+                    <img *ngIf="item.productImage; else noImg" [src]="item.productImage" [alt]="item.productName" (error)="onProductImageError(item)" />
                     <ng-template #noImg>
                       <div class="no-img-box"><lucide-angular [img]="icons.ImageIcon" size="24"></lucide-angular></div>
                     </ng-template>
@@ -186,7 +177,7 @@
                   <!-- THÔNG TIN SẢN PHẨM -->
                   <div class="product-snippet">
                   <div class="snippet-thumb">
-                    <img *ngIf="rev.productImage; else noImgSnippet" [src]="rev.productImage" [alt]="rev.productName" />
+                    <img *ngIf="rev.productImage; else noImgSnippet" [src]="rev.productImage" [alt]="rev.productName" (error)="onProductImageError(rev)" />
                     <ng-template #noImgSnippet>
                       <div class="no-img-box"><lucide-angular [img]="icons.ImageIcon" size="20"></lucide-angular></div>
                     </ng-template>

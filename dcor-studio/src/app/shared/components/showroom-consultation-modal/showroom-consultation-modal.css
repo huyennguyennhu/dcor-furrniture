@@ -1206,30 +1206,84 @@
 }
 
 /* ==========================================================================
-   MÀN HÌNH XÁC NHẬN ĐẶT LỊCH THÀNH CÔNG
+   POPUP XÁC NHẬN ĐẶT LỊCH THÀNH CÔNG (TẮT SLIDE DRAWER, HIỆN POPUP GIỮA)
    ========================================================================== */
+.success-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: backdropFadeIn 0.22s ease-out;
+}
+
+.success-popup-card {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  background: #fdfbf7;
+  border-radius: 18px;
+  border: 1px solid rgba(180, 83, 9, 0.16);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-success-popup-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: all 0.15s ease;
+}
+
+.btn-success-popup-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
 .success-screen-view {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
-  padding: 40px 32px;
+  padding: 32px 28px 28px;
   background: #fdfbf7;
   overflow-y: auto;
 }
 
 .success-icon-badge {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: #ecfdf5;
   border: 4px solid #d1fae5;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
   animation: popSuccess 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

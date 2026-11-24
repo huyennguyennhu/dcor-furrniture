@@ -3,6 +3,10 @@ import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { otpService } from '../services/otp.service';
+import { ensureConsultationTable, notifyAdminPendingConsultations } from './consultation.controller';
+import { memoryCache, CACHE_KEYS } from '../lib/cache';
+import { DEFAULT_WARRANTY_MONTHS, parseWarrantyMonths } from './product.controller';
+import { calculateMemberTier, calculateRewardPoints } from '../lib/member-tier';
 
 const normalizePhone = (phone: string): string => {
   let cleaned = phone.replace(/\D/g, '');
@@ -19,40 +23,131 @@ const isValidPassword = (password: string): boolean => {
   return hasLetter && hasNumber;
 };
 
-const calculateMemberTier = (totalSpent: bigint | number): { tier: string; badge: string; minPoints: number; nextTierThreshold: number } => {
-  const spent = typeof totalSpent === 'bigint' ? Number(totalSpent) : totalSpent;
-  if (spent >= 100000000) {
-    return { tier: 'Kim Cương', badge: 'DIAMOND', minPoints: 10000, nextTierThreshold: 100000000 };
-  }
-  if (spent >= 50000000) {
-    return { tier: 'Vàng', badge: 'GOLD', minPoints: 5000, nextTierThreshold: 100000000 };
-  }
-  if (spent >= 15000000) {
-    return { tier: 'Bạc', badge: 'SILVER', minPoints: 1500, nextTierThreshold: 50000000 };
-  }
-  return { tier: 'Đồng', badge: 'BRONZE', minPoints: 0, nextTierThreshold: 15000000 };
-};
+// calculateMemberTier được dùng chung từ ../lib/member-tier (Thành viên < 30tr | Bạc >= 30tr | Vàng >= 80tr | Kim Cương >= 200tr)
 
-// Lưu trữ lịch hẹn tư vấn và yêu cầu bảo hành/đổi trả trong bộ nhớ an toàn (đồng bộ với DB orders)
+// Chuẩn cấu trúc lịch hẹn tư vấn đồng bộ trực tiếp với bảng PostgreSQL "ShowroomConsultations"
 interface CustomerAppointment {
   id: string;
+  appointmentCode?: string;
   customerId: string;
   customerName: string;
   phone: string;
   email?: string;
   appointmentType: 'SHOWROOM' | 'ONLINE_3D';
+  showroomId?: string;
+  showroomName?: string;
   showroomAddress?: string;
   date: string;
   timeSlot: string;
-  spaceType?: string;
-  budget?: string;
+  productId?: string | null;
+  productName?: string | null;
+  staffName?: string | null;
+  rejectionReason?: string | null;
+  cancellationReason?: string | null;
+  consultationResult?: string | null;
   notes?: string;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+  status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
   createdAt: string;
   updatedAt?: string;
 }
 
-const inMemoryAppointments: CustomerAppointment[] = [];
+const STANDARD_CONSULTATION_SLOTS = [
+  { time: '09:00 - 10:30', period: 'Ca sáng', maxCapacity: 3 },
+  { time: '10:30 - 12:00', period: 'Ca sáng', maxCapacity: 3 },
+  { time: '14:00 - 15:30', period: 'Ca chiều', maxCapacity: 3 },
+  { time: '16:00 - 17:30', period: 'Ca chiều', maxCapacity: 3 },
+  { time: '18:30 - 20:00', period: 'Ca tối', maxCapacity: 2 }
+];
+
+const mapConsultationRowToAppointment = (row: any, customerId = 'guest'): CustomerAppointment => ({
+  id: row.id,
+  appointmentCode: row.appointment_code || row.id,
+  customerId,
+  customerName: row.customer_name || '',
+  phone: row.customer_phone || '',
+  email: row.customer_email || '',
+  appointmentType: 'SHOWROOM',
+  showroomId: row.showroom_id || '',
+  showroomName: row.showroom_name || 'Showroom DCor',
+  showroomAddress: row.showroom_address || row.showroom_name || '',
+  date: row.preferred_date || '',
+  timeSlot: row.preferred_time || '',
+  productId: row.product_id || null,
+  productName: row.product_name || null,
+  staffName: row.staff_name || null,
+  rejectionReason: row.rejection_reason || null,
+  cancellationReason: row.cancellation_reason || null,
+  consultationResult: row.consultation_result || null,
+  notes: row.notes || '',
+  status: (row.status || 'PENDING') as CustomerAppointment['status'],
+  createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
+});
+
+const getLocalTodayStr = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
+const getShowroomSlotConfig = async (showroomId: string) => {
+  let slots = STANDARD_CONSULTATION_SLOTS;
+  let maintenanceDates = ['2026-12-25', '2026-01-01', '2026-04-30', '2026-05-01'];
+  try {
+    const configRes: any[] = await prisma.$queryRawUnsafe(`
+      SELECT slots, maintenance_dates FROM "ShowroomSlotConfigs" WHERE showroom_id = $1 LIMIT 1;
+    `, String(showroomId));
+    if (configRes && configRes.length > 0) {
+      if (Array.isArray(configRes[0].slots) && configRes[0].slots.length > 0) {
+        slots = configRes[0].slots;
+      }
+      if (Array.isArray(configRes[0].maintenance_dates)) {
+        maintenanceDates = configRes[0].maintenance_dates;
+      }
+    }
+  } catch (_) {}
+  return { slots, maintenanceDates };
+};
+
+const resolveCustomerIdentifiers = async (req: AuthRequest): Promise<{ customerId: string; phones: string[]; emails: string[] }> => {
+  const customerId = req.user?.userId || '';
+  const phoneSet = new Set<string>();
+  const emailSet = new Set<string>();
+
+  const addPhone = (p?: string | null) => {
+    if (!p) return;
+    const norm = normalizePhone(String(p));
+    if (norm) phoneSet.add(norm);
+  };
+  const addEmail = (e?: string | null) => {
+    if (!e) return;
+    const clean = String(e).trim().toLowerCase();
+    if (clean) emailSet.add(clean);
+  };
+
+  addPhone(req.user?.phone);
+  addPhone(req.headers['x-guest-phone'] as string);
+  addPhone(req.query.phone as string);
+  addEmail(req.user?.email);
+
+  if (customerId) {
+    try {
+      const dbCustomer = await prisma.customer.findUnique({
+        where: { id: customerId },
+        select: { phone: true, email: true }
+      });
+      if (dbCustomer) {
+        addPhone(dbCustomer.phone);
+        addEmail(dbCustomer.email);
+      }
+    } catch (_) {}
+  }
+
+  return {
+    customerId: customerId || 'guest',
+    phones: Array.from(phoneSet),
+    emails: Array.from(emailSet)
+  };
+};
 
 export interface CustomerReturnRequest {
   id: string;
@@ -76,7 +171,67 @@ export interface CustomerReturnRequest {
 
 export const inMemoryReturns: CustomerReturnRequest[] = [];
 
-const readNotificationIds = new Set<string>();
+let warrantyClaimsTableReady = false;
+export const ensureWarrantyClaimsTable = async (): Promise<void> => {
+  if (warrantyClaimsTableReady) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "WarrantyClaims" (
+        id VARCHAR(100) PRIMARY KEY,
+        claim_code VARCHAR(50) NOT NULL UNIQUE,
+        customer_id VARCHAR(100),
+        order_id VARCHAR(100),
+        order_number VARCHAR(100) NOT NULL,
+        product_name VARCHAR(255) NOT NULL,
+        warranty_code VARCHAR(100),
+        claim_type VARCHAR(100) DEFAULT 'Tại nhà',
+        issue_description TEXT NOT NULL,
+        evidence_images JSONB DEFAULT '[]'::jsonb,
+        status VARCHAR(30) DEFAULT 'PENDING',
+        admin_note TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    warrantyClaimsTableReady = true;
+  } catch (err) {
+    console.error('[WarrantyClaims] Lỗi khởi tạo bảng WarrantyClaims:', err);
+  }
+};
+
+let notificationReadsTableReady = false;
+export const ensureNotificationReadsTable = async (): Promise<void> => {
+  if (notificationReadsTableReady) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "CustomerNotificationReads" (
+        customer_id VARCHAR(100) NOT NULL,
+        notification_id VARCHAR(255) NOT NULL,
+        read_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (customer_id, notification_id)
+      );
+    `);
+    notificationReadsTableReady = true;
+  } catch (err) {
+    console.error('[NotificationReads] Lỗi khởi tạo bảng CustomerNotificationReads:', err);
+  }
+};
+
+const isAppointmentOwnedByCaller = (
+  appt: any,
+  identifiers: { customerId: string; phones: string[]; emails: string[] }
+): boolean => {
+  const apptPhone = appt.customer_phone ? normalizePhone(String(appt.customer_phone)) : '';
+  const apptEmail = appt.customer_email ? String(appt.customer_email).trim().toLowerCase() : '';
+
+  if (apptPhone && identifiers.phones.some(p => normalizePhone(p) === apptPhone)) {
+    return true;
+  }
+  if (apptEmail && identifiers.emails.some(e => e.toLowerCase() === apptEmail)) {
+    return true;
+  }
+  return false;
+};
 
 export const customerController = {
   // 1. LẤY HỒ SƠ KHÁCH HÀNG
@@ -153,7 +308,7 @@ export const customerController = {
 
         const latestOrder = orders[0];
         const totalSpent = orders
-          .filter(o => o.status !== 'CANCELLED')
+          .filter(o => o.status === 'DELIVERED' || o.status === 'COMPLETED')
           .reduce((sum, o) => sum + Number(o.totalAmount), 0);
 
         const guestTier = calculateMemberTier(totalSpent);
@@ -167,7 +322,7 @@ export const customerController = {
           type: 'RETAIL',
           companyName: null,
           taxCode: null,
-          rewardPoints: Math.floor(totalSpent / 100000),
+          rewardPoints: calculateRewardPoints(totalSpent),
           totalSpent,
           memberTier: guestTier.tier,
           memberBadge: guestTier.badge,
@@ -808,24 +963,121 @@ export const customerController = {
         orderBy: { deliveredAt: 'desc' }
       });
 
+      // Thu thập productId / variantId / productName để tra cứu thời hạn bảo hành & ảnh sạch theo từng sản phẩm trong 1 batch query
+      const productIdSet = new Set<string>();
+      const variantIdSet = new Set<string>();
+      const productNameSet = new Set<string>();
+      for (const order of orders) {
+        for (const item of order.items) {
+          if (item.productId) productIdSet.add(item.productId);
+          if (item.variantId) variantIdSet.add(item.variantId);
+          if (item.productName) productNameSet.add(item.productName);
+        }
+      }
+
+      const [dbProducts, dbVariants, dbProductsByName] = await Promise.all([
+        productIdSet.size > 0
+          ? prisma.product.findMany({
+              where: { id: { in: Array.from(productIdSet) } },
+              select: { id: true, name: true, images: true, configOptions: true }
+            }).catch(() => [])
+          : Promise.resolve([]),
+        variantIdSet.size > 0
+          ? prisma.productVariant.findMany({
+              where: { id: { in: Array.from(variantIdSet) } },
+              select: {
+                id: true,
+                productId: true,
+                optionValues: true,
+                product: { select: { id: true, name: true, images: true, configOptions: true } }
+              }
+            }).catch(() => [])
+          : Promise.resolve([]),
+        productNameSet.size > 0
+          ? prisma.product.findMany({
+              where: { name: { in: Array.from(productNameSet) } },
+              select: { id: true, name: true, images: true, configOptions: true }
+            }).catch(() => [])
+          : Promise.resolve([])
+      ]);
+
+      const productMap = new Map<string, { configOptions: any; images: any }>();
+      const productByNameMap = new Map<string, { configOptions: any; images: any }>();
+      for (const p of dbProducts) {
+        productMap.set(p.id, { configOptions: p.configOptions, images: p.images });
+        if (p.name) productByNameMap.set(p.name.trim().toLowerCase(), { configOptions: p.configOptions, images: p.images });
+      }
+      for (const p of dbProductsByName) {
+        if (!productMap.has(p.id)) {
+          productMap.set(p.id, { configOptions: p.configOptions, images: p.images });
+        }
+        if (p.name && !productByNameMap.has(p.name.trim().toLowerCase())) {
+          productByNameMap.set(p.name.trim().toLowerCase(), { configOptions: p.configOptions, images: p.images });
+        }
+      }
+      const variantMap = new Map<string, { optionValues: any; product: { configOptions: any; images: any } | null }>();
+      for (const v of dbVariants) {
+        const prodData = v.product ? { configOptions: v.product.configOptions, images: v.product.images } : null;
+        variantMap.set(v.id, { optionValues: v.optionValues, product: prodData });
+        if (v.product && !productMap.has(v.product.id)) {
+          productMap.set(v.product.id, prodData!);
+        }
+      }
+
+      const isCleanImageUrl = (u: any): u is string =>
+        typeof u === 'string' && u.trim().length > 0 && !u.includes('dsasf753c');
+
+      const extractFirstCleanImage = (imagesField: any): string => {
+        if (Array.isArray(imagesField)) {
+          for (const entry of imagesField) {
+            const url = typeof entry === 'string' ? entry : entry?.url;
+            if (isCleanImageUrl(url)) return url;
+          }
+        } else if (isCleanImageUrl(imagesField)) {
+          return imagesField;
+        }
+        return '';
+      };
+
       const warrantyItems: any[] = [];
       const now = new Date();
 
+      await ensureWarrantyClaimsTable();
+      const orderNumbers = orders.map(o => o.orderNumber).filter(Boolean);
+      const claimRows: any[] = orderNumbers.length > 0
+        ? await prisma.$queryRawUnsafe<any[]>(
+            `SELECT * FROM "WarrantyClaims" WHERE order_number = ANY($1::text[]) ORDER BY created_at DESC;`,
+            orderNumbers
+          ).catch(() => [])
+        : [];
+
+      const claimsByOrder = new Map<string, any[]>();
+      for (const c of claimRows) {
+        const key = String(c.order_number || '').trim();
+        if (!claimsByOrder.has(key)) claimsByOrder.set(key, []);
+        claimsByOrder.get(key)!.push({
+          id: c.id,
+          claimCode: c.claim_code,
+          orderNumber: c.order_number,
+          productName: c.product_name,
+          warrantyCode: c.warranty_code,
+          claimType: c.claim_type,
+          issueDescription: c.issue_description,
+          evidenceImages: Array.isArray(c.evidence_images) ? c.evidence_images : [],
+          status: c.status,
+          adminNote: c.admin_note,
+          createdAt: c.created_at,
+          updatedAt: c.updated_at
+        });
+      }
+
       orders.forEach(order => {
         const startDate = order.deliveredAt || order.createdAt;
-        // Bảo hành mặc định 24 tháng đối với nội thất chính hãng Dcor
-        const expiryDate = new Date(startDate);
-        expiryDate.setMonth(expiryDate.getMonth() + 24);
-
-        const isExpired = now > expiryDate;
-        const daysLeft = Math.max(0, Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-        const totalDurationMs = expiryDate.getTime() - new Date(startDate).getTime();
-        const elapsedMs = Math.max(0, now.getTime() - new Date(startDate).getTime());
-        const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedMs / totalDurationMs) * 100)));
+        const startMs = new Date(startDate).getTime();
 
         const cleanOrderDigits = (order.orderNumber || '').replace(/[^0-9]/g, '');
         const defaultWarrantyCode = 'BH-' + (cleanOrderDigits.slice(-6) || '883921');
-        const warrantyCode = (order as any).warrantyCode || defaultWarrantyCode;
+        const baseWarrantyCode = (order as any).warrantyCode || defaultWarrantyCode;
 
         const customerAddress = [
           order.detailAddress,
@@ -834,36 +1086,98 @@ export const customerController = {
           order.province
         ].filter(Boolean).join(', ');
 
-        order.items.forEach(item => {
+        // Sắp xếp ổn định để mã bảo hành từng sản phẩm trong cùng đơn luôn nhất quán và không trùng nhau
+        const sortedItems = [...order.items].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
+        sortedItems.forEach((item, idx) => {
+          const itemWarrantyCode =
+            (item.selectedOptions as any)?.warrantyCode ||
+            (sortedItems.length > 1
+              ? `${baseWarrantyCode}-${String(idx + 1).padStart(2, '0')}`
+              : baseWarrantyCode);
+          const variantEntry = item.variantId ? variantMap.get(item.variantId) : undefined;
+          const prodEntry =
+            (item.productId ? productMap.get(item.productId) : undefined) ??
+            variantEntry?.product ??
+            (item.productName ? productByNameMap.get(item.productName.trim().toLowerCase()) : undefined);
+
+          // Ưu tiên ảnh sạch: item.imageUrl (nếu không phải bucket cũ dsasf753c) -> ảnh sản phẩm live -> ảnh biến thể live
+          let resolvedImageUrl = isCleanImageUrl(item.imageUrl) ? item.imageUrl : '';
+          if (!resolvedImageUrl && prodEntry) {
+            resolvedImageUrl = extractFirstCleanImage(prodEntry.images);
+          }
+          if (!resolvedImageUrl && variantEntry?.optionValues) {
+            const vOpt = typeof variantEntry.optionValues === 'string'
+              ? (() => { try { return JSON.parse(variantEntry.optionValues); } catch { return {}; } })()
+              : variantEntry.optionValues;
+            resolvedImageUrl = extractFirstCleanImage(vOpt?.images) || (isCleanImageUrl(vOpt?.image) ? vOpt.image : '');
+          }
+
+          // Ưu tiên thời hạn bảo hành cấu hình trực tiếp trên sản phẩm -> snapshot lúc mua -> mặc định 24 tháng
+          const liveConfig = prodEntry?.configOptions;
+          const liveWarranty = parseWarrantyMonths(liveConfig?.specs?.warrantyMonths ?? liveConfig?.warrantyMonths);
+          const snapshotWarranty = parseWarrantyMonths((item.selectedOptions as any)?.warrantyMonths);
+          const warrantyPeriodMonths = liveWarranty ?? snapshotWarranty ?? DEFAULT_WARRANTY_MONTHS;
+
+          const expiryDate = new Date(startDate);
+          expiryDate.setMonth(expiryDate.getMonth() + warrantyPeriodMonths);
+
+          const isExpired = warrantyPeriodMonths <= 0 || now > expiryDate;
+          const daysLeft = isExpired
+            ? 0
+            : Math.max(0, Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+          const totalDurationMs = expiryDate.getTime() - startMs;
+          const elapsedMs = Math.max(0, now.getTime() - startMs);
+          const progressPercent = totalDurationMs > 0
+            ? Math.min(100, Math.max(0, Math.round((elapsedMs / totalDurationMs) * 100)))
+            : 100;
+
+          const coverageTerms = warrantyPeriodMonths > 0
+            ? [
+                `Bảo hành chính hãng ${warrantyPeriodMonths} tháng kể từ ngày giao hàng thành công theo chính sách riêng của sản phẩm.`,
+                'Bảo hành kết cấu chịu lực, mối mọt, cong vênh, gãy sập khung sườn do lỗi kỹ thuật từ nhà sản xuất.',
+                'Bảo hành bề mặt hoàn thiện, đệm mút, lò xo đàn hồi và phụ kiện cơ khí (ray trượt, bản lề giảm chấn) theo tiêu chuẩn DCor.',
+                'Hỗ trợ tư vấn kỹ thuật và bảo dưỡng sản phẩm qua Hotline 1900 1234.'
+              ]
+            : [
+                'Sản phẩm không áp dụng thời hạn bảo hành tiêu chuẩn theo cấu hình của cửa hàng.',
+                'Quý khách vẫn được hỗ trợ tư vấn bảo dưỡng và sửa chữa dịch vụ qua Hotline 1900 1234.'
+              ];
+
+          const orderClaims = claimsByOrder.get(order.orderNumber) || [];
+          const matchedClaims = orderClaims.filter(
+            c =>
+              (c.warrantyCode && c.warrantyCode === itemWarrantyCode) ||
+              (c.productName && item.productName && c.productName.trim().toLowerCase() === item.productName.trim().toLowerCase())
+          );
+
           warrantyItems.push({
             id: `WAR-${item.id}`,
             orderNumber: order.orderNumber,
-            warrantyCode,
+            warrantyCode: itemWarrantyCode,
             productId: (item as any).productId || '',
             productName: item.productName,
             sku: item.sku || 'DCOR-' + (item.id || '').slice(0, 6).toUpperCase(),
-            imageUrl: item.imageUrl,
+            imageUrl: resolvedImageUrl,
             variantDescription: item.variantDescription,
             price: Number(item.price) || 0,
             quantity: item.quantity || 1,
             purchaseDate: order.createdAt,
             deliveredDate: startDate,
-            warrantyPeriodMonths: 24,
+            warrantyPeriodMonths,
             expiryDate: expiryDate.toISOString(),
             isExpired,
             daysLeft,
             progressPercent,
             status: isExpired ? 'EXPIRED' : 'ACTIVE',
-            statusLabel: isExpired ? 'Hết hạn bảo hành' : 'Còn hiệu lực bảo hành',
+            statusLabel: warrantyPeriodMonths <= 0
+              ? 'Không áp dụng bảo hành'
+              : (isExpired ? 'Hết hạn bảo hành' : 'Còn hiệu lực bảo hành'),
             customerName: order.receiverName || 'Khách hàng',
             customerPhone: order.phone,
             customerAddress: customerAddress || 'Hồ Chí Minh, Việt Nam',
-            coverageTerms: [
-              'Bảo hành 24 - 36 tháng đối với khung xương gỗ tự nhiên và cấu trúc kim loại chịu lực.',
-              'Bảo hành 24 tháng đối với đệm mút và hệ thống lò xo đàn hồi chống lún sụt.',
-              'Bảo hành 12 - 24 tháng đối với bề mặt da cao cấp, vải nỉ và phụ kiện cơ học (ray trượt, bản lề giảm chấn).',
-              'Bảo dưỡng định kỳ miễn phí và hỗ trợ kỹ thuật tại nhà trọn đời.'
-            ]
+            coverageTerms,
+            claims: matchedClaims
           });
         });
       });
@@ -875,21 +1189,51 @@ export const customerController = {
     }
   },
 
-  // 11. TẠO PHIẾU YÊU CẦU BẢO HÀNH
+  // 11. TẠO PHIẾU YÊU CẦU BẢO HÀNH (LƯU TRỰC TIẾP VÀO POSTGRESQL "WarrantyClaims")
   createWarrantyClaim: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const customerId = req.user?.userId;
-      const { orderNumber, productName, issueDescription, claimType, evidenceImages } = req.body;
+      await ensureWarrantyClaimsTable();
+      const customerId = req.user?.userId || null;
+      const { orderNumber, productName, warrantyCode, issueDescription, claimType, evidenceImages } = req.body;
 
       if (!orderNumber || !productName || !issueDescription) {
         res.status(400).json({ message: 'Vui lòng cung cấp mã đơn hàng, tên sản phẩm và mô tả sự cố.' });
         return;
       }
 
-      // Ghi nhận vào OrderStatusHistory để theo dõi
       const order = await prisma.order.findFirst({
-        where: { orderNumber, customerId }
+        where: customerId
+          ? { orderNumber: String(orderNumber).trim(), customerId }
+          : { orderNumber: String(orderNumber).trim() }
       });
+
+      const claimId = `claim-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const claimCode = `CLM-${Date.now().toString().slice(-6)}`;
+      const cleanClaimType = String(claimType || 'Tại nhà').trim();
+      const cleanIssue = String(issueDescription).trim();
+      const cleanImages = Array.isArray(evidenceImages) ? evidenceImages.filter(Boolean) : [];
+
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "WarrantyClaims" (
+          id, claim_code, customer_id, order_id, order_number,
+          product_name, warranty_code, claim_type, issue_description,
+          evidence_images, status, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9,
+          $10::jsonb, 'PENDING', NOW(), NOW()
+        );`,
+        claimId,
+        claimCode,
+        customerId,
+        order?.id || null,
+        String(orderNumber).trim(),
+        String(productName).trim(),
+        warrantyCode ? String(warrantyCode).trim() : null,
+        cleanClaimType,
+        cleanIssue,
+        JSON.stringify(cleanImages)
+      );
 
       if (order) {
         await prisma.orderStatusHistory.create({
@@ -897,14 +1241,26 @@ export const customerController = {
             orderId: order.id,
             status: order.status,
             actorType: 'CUSTOMER',
-            notes: `[Yêu cầu bảo hành] Sản phẩm: ${productName}. Loại: ${claimType || 'Tại nhà'}. Chi tiết: ${issueDescription}. Ảnh: ${(evidenceImages || []).join(', ')}`
+            notes: `[Yêu cầu bảo hành ${claimCode}] Sản phẩm: ${productName}. Loại: ${cleanClaimType}. Chi tiết: ${cleanIssue}. Ảnh: ${cleanImages.join(', ')}`
           }
         });
       }
 
       res.status(201).json({
         message: 'Gửi yêu cầu bảo hành thành công. Kỹ thuật viên Dcor sẽ liên hệ với bạn trong vòng 24 giờ.',
-        claimId: `CLM-${Date.now().toString().slice(-6)}`
+        claimId: claimCode,
+        claim: {
+          id: claimId,
+          claimCode,
+          orderNumber: String(orderNumber).trim(),
+          productName: String(productName).trim(),
+          warrantyCode: warrantyCode ? String(warrantyCode).trim() : null,
+          claimType: cleanClaimType,
+          issueDescription: cleanIssue,
+          evidenceImages: cleanImages,
+          status: 'PENDING',
+          createdAt: new Date().toISOString()
+        }
       });
     } catch (error) {
       console.error('Lỗi createWarrantyClaim:', error);
@@ -912,78 +1268,143 @@ export const customerController = {
     }
   },
 
-  // 12. DANH SÁCH LỊCH HẸN TƯ VẤN (APPOINTMENTS)
+  // 12. DANH SÁCH LỊCH HẸN TƯ VẤN (ĐỒNG BỘ TRỰC TIẾP BẢNG "ShowroomConsultations")
   getAppointments: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const customerId = req.user?.userId;
-      const customerPhone = req.user?.phone || (req.headers['x-guest-phone'] as string) || (req.query.phone as string);
-      if (!customerId && !customerPhone) {
+      await ensureConsultationTable();
+      const { customerId, phones, emails } = await resolveCustomerIdentifiers(req);
+
+      if (phones.length === 0 && emails.length === 0) {
         res.json([]);
         return;
       }
 
-      const cleanPhone = customerPhone ? normalizePhone(customerPhone) : '';
-      const list = inMemoryAppointments.filter(a => 
-        (customerId && a.customerId === customerId) || 
-        (cleanPhone && normalizePhone(a.phone) === cleanPhone)
-      );
-      res.json(list);
+      const conditions: string[] = [];
+      const params: any[] = [];
+      let pIdx = 1;
+
+      if (phones.length > 0) {
+        const phoneVariants = new Set<string>();
+        for (const p of phones) {
+          phoneVariants.add(p);
+          if (p.startsWith('0')) phoneVariants.add('84' + p.slice(1));
+        }
+        conditions.push(`regexp_replace(COALESCE(customer_phone, ''), '[^0-9]', '', 'g') = ANY($${pIdx}::text[])`);
+        params.push(Array.from(phoneVariants));
+        pIdx++;
+      }
+
+      if (emails.length > 0) {
+        conditions.push(`LOWER(COALESCE(customer_email, '')) = ANY($${pIdx}::text[])`);
+        params.push(emails);
+        pIdx++;
+      }
+
+      const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT *
+        FROM "ShowroomConsultations"
+        WHERE ${conditions.join(' OR ')}
+        ORDER BY created_at DESC
+        LIMIT 50;
+      `, ...params);
+
+      res.json(rows.map(r => mapConsultationRowToAppointment(r, customerId)));
     } catch (error) {
       console.error('Lỗi getAppointments:', error);
       res.status(500).json({ message: 'Lỗi khi lấy danh sách lịch hẹn.' });
     }
   },
 
-  // 12.1. LẤY DANH SÁCH KHUNG GIỜ ĐÃ ĐƯỢC ĐẶT (ĐỂ ẨN TRÊN DROPDOWN TRÁNH TRÙNG LỊCH)
+  // 12.1. LẤY DANH SÁCH KHUNG GIỜ ĐÃ KÍN CHỖ (ĐỒNG BỘ THEO BẢNG "ShowroomConsultations" & "ShowroomSlotConfigs")
   getBookedAppointmentSlots: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { date, showroomAddress, appointmentType } = req.query as {
+      await ensureConsultationTable();
+      const { date, showroomId } = req.query as {
         date?: string;
-        showroomAddress?: string;
-        appointmentType?: string;
+        showroomId?: string;
       };
 
-      let queryList = inMemoryAppointments.filter(a => a.status !== 'CANCELLED');
+      const dateStr = date ? String(date).trim() : '';
+      let targetShowroomId = showroomId ? String(showroomId).trim() : '';
 
-      if (date) {
-        queryList = queryList.filter(a => a.date === date);
+      if (!targetShowroomId) {
+        const defaultSr = await prisma.warehouse.findFirst({
+          where: { type: 'SHOWROOM', isActive: true },
+          select: { id: true },
+          orderBy: { name: 'asc' }
+        });
+        targetShowroomId = defaultSr?.id || 'sr-q1';
       }
 
-      // Khóa tất cả các khung giờ đã có khách hàng đặt trong ngày (dù là showroom hay online)
-      const bookedSlots = Array.from(new Set(queryList.map(a => a.timeSlot)));
+      const { slots: configuredSlots, maintenanceDates } = await getShowroomSlotConfig(targetShowroomId);
+      const bookedSlots: string[] = [];
 
-      // RÀNG BUỘC THỜI GIAN THỰC: Nếu ngày tra cứu là hôm nay hoặc quá khứ, tự động khóa các khung giờ đã trôi qua
+      if (dateStr && maintenanceDates.includes(dateStr)) {
+        res.json({
+          bookedSlots: configuredSlots.map(s => s.time),
+          isClosed: true,
+          closureReason: 'Showroom tạm ngừng đón tiếp khách vào ngày này. Quý khách vui lòng chọn ngày hẹn khác.',
+          slots: []
+        });
+        return;
+      }
+
+      const existingBookings: any[] = dateStr
+        ? await prisma.$queryRawUnsafe(`
+            SELECT preferred_time, COUNT(*)::int as booked_count
+            FROM "ShowroomConsultations"
+            WHERE showroom_id = $1
+              AND preferred_date = $2
+              AND status NOT IN ('CANCELLED', 'REJECTED')
+            GROUP BY preferred_time;
+          `, targetShowroomId, dateStr)
+        : [];
+
+      const bookingMap: Record<string, number> = {};
+      for (const row of existingBookings) {
+        bookingMap[row.preferred_time] = Number(row.booked_count);
+      }
+
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      if (date && date <= todayStr) {
-        const masterSlots = ['09:00 - 10:30', '10:30 - 12:00', '14:00 - 15:30', '16:00 - 17:30', '19:00 - 20:30'];
-        const currentH = now.getHours();
-        const currentM = now.getMinutes();
-        for (const slot of masterSlots) {
-          if (date < todayStr) {
-            if (!bookedSlots.includes(slot)) bookedSlots.push(slot);
-          } else {
-            const [startPart] = slot.split(' - ');
+      const todayStr = getLocalTodayStr();
+      const currentH = now.getHours();
+      const currentM = now.getMinutes();
+
+      const slotDetails = configuredSlots.map(slot => {
+        const booked = bookingMap[slot.time] || 0;
+        const remaining = Math.max(0, slot.maxCapacity - booked);
+        let isPastSlot = false;
+        if (dateStr && dateStr < todayStr) {
+          isPastSlot = true;
+        } else if (dateStr && dateStr === todayStr) {
+          const [startPart] = slot.time.split(' - ');
+          if (startPart) {
             const [h, m] = startPart.split(':').map(Number);
             if (h < currentH || (h === currentH && m <= currentM)) {
-              if (!bookedSlots.includes(slot)) bookedSlots.push(slot);
+              isPastSlot = true;
             }
           }
         }
-      }
-
-      const allActiveBookings = inMemoryAppointments
-        .filter(a => a.status !== 'CANCELLED')
-        .map(a => ({
-          date: a.date,
-          appointmentType: a.appointmentType,
-          showroomAddress: a.showroomAddress,
-          timeSlot: a.timeSlot
-        }));
+        if (remaining === 0 || isPastSlot) {
+          bookedSlots.push(slot.time);
+        }
+        return {
+          time: slot.time,
+          period: slot.period || 'Ca tư vấn',
+          maxCapacity: slot.maxCapacity,
+          bookedCount: booked,
+          remainingSlots: remaining,
+          isAvailable: remaining > 0 && !isPastSlot,
+          isPastSlot,
+          statusLabel: isPastSlot ? 'Đã qua giờ' : (remaining === 0 ? 'Hết chỗ' : `Còn ${remaining} slot trống`)
+        };
+      });
 
       res.json({
         bookedSlots,
-        allBookings: allActiveBookings
+        isClosed: false,
+        closureReason: null,
+        slots: slotDetails
       });
     } catch (error) {
       console.error('Lỗi getBookedAppointmentSlots:', error);
@@ -991,96 +1412,137 @@ export const customerController = {
     }
   },
 
-  // 13. ĐẶT LỊCH HẸN TƯ VẤN (CÓ RÀNG BUỘC CHẶT CHẼ)
+  // 13. ĐẶT LỊCH HẸN TƯ VẤN (GHI TRỰC TIẾP VÀO BẢNG "ShowroomConsultations")
   createAppointment: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const customerId = req.user?.userId;
-      const { customerName, phone, email, appointmentType, showroomAddress, date, timeSlot, spaceType, budget, notes } = req.body;
+      await ensureConsultationTable();
+      const customerId = req.user?.userId || 'guest';
+      const { customerName, phone, email, showroomId, date, timeSlot, notes, productId, productName, variantId } = req.body;
 
       if (!customerName || !phone || !date || !timeSlot) {
         res.status(400).json({ message: 'Vui lòng cung cấp họ tên, số điện thoại, ngày hẹn và khung giờ tư vấn.' });
         return;
       }
 
-      const cleanPhone = normalizePhone(phone);
-      const isShowroom = appointmentType !== 'ONLINE_3D';
-      const selectedShowroom = isShowroom ? (showroomAddress || 'Showroom Dcor Quận 1 - 120 Hai Bà Trưng, P. Đa Kao, Q.1, TP.HCM') : undefined;
+      const cleanPhone = normalizePhone(String(phone));
+      const phoneRegex = /^(0)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/;
+      if (!phoneRegex.test(cleanPhone)) {
+        res.status(400).json({ message: 'Số điện thoại không đúng định dạng di động Việt Nam (10 chữ số).' });
+        return;
+      }
 
-      // RÀNG BUỘC THỜI GIAN THỰC: Không cho phép đặt lịch vào ngày hoặc khung giờ đã trôi qua
+      const dateStr = String(date).trim();
+      const timeStr = String(timeSlot).trim();
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      if (date < todayStr) {
+      const todayStr = getLocalTodayStr();
+
+      if (dateStr < todayStr) {
         res.status(400).json({ message: 'Không thể đặt lịch hẹn vào ngày trong quá khứ.' });
         return;
       }
-      if (date === todayStr) {
-        const [startPart] = timeSlot.split(' - ');
+      if (dateStr === todayStr) {
+        const [startPart] = timeStr.split(' - ');
         if (startPart) {
           const [h, m] = startPart.split(':').map(Number);
-          const currentH = now.getHours();
-          const currentM = now.getMinutes();
-          if (h < currentH || (h === currentH && m <= currentM)) {
-            res.status(400).json({
-              message: `Khung giờ ${timeSlot} hôm nay đã trôi qua so với thời gian hiện tại. Vui lòng chọn khung giờ khác hoặc ngày tiếp theo.`
-            });
+          if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) {
+            res.status(400).json({ message: `Khung giờ ${timeStr} hôm nay đã trôi qua. Vui lòng chọn khung giờ khác hoặc ngày tiếp theo.` });
             return;
           }
         }
       }
 
-      // RÀNG BUỘC 1: Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày
-      const customerAlreadyBooked = inMemoryAppointments.some(a => 
-        a.status !== 'CANCELLED' &&
-        a.date === date &&
-        ((customerId && a.customerId === customerId) || (cleanPhone && normalizePhone(a.phone) === cleanPhone))
+      let showroom = showroomId
+        ? await prisma.warehouse.findUnique({ where: { id: String(showroomId) } })
+        : null;
+      if (!showroom) {
+        showroom = await prisma.warehouse.findFirst({
+          where: { type: 'SHOWROOM', isActive: true },
+          orderBy: { name: 'asc' }
+        });
+      }
+
+      const targetShowroomId = showroom?.id || 'sr-q1';
+      const showroomName = showroom?.name || 'Showroom DCOR Studio';
+      const showroomAddress = showroom?.address || '128 Hai Bà Trưng, P. Đa Kao, Quận 1, TP.HCM';
+
+      const { slots: configuredSlots, maintenanceDates } = await getShowroomSlotConfig(targetShowroomId);
+      if (maintenanceDates.includes(dateStr)) {
+        res.status(400).json({ message: 'Showroom tạm ngừng đón tiếp khách vào ngày này. Quý khách vui lòng chọn ngày hẹn khác.' });
+        return;
+      }
+
+      const existingCountResult: any[] = await prisma.$queryRawUnsafe(`
+        SELECT COUNT(*)::int as count
+        FROM "ShowroomConsultations"
+        WHERE showroom_id = $1
+          AND preferred_date = $2
+          AND preferred_time = $3
+          AND status NOT IN ('CANCELLED', 'REJECTED');
+      `, targetShowroomId, dateStr, timeStr);
+
+      const matchedSlot = configuredSlots.find(s => s.time === timeStr);
+      const maxCap = matchedSlot ? matchedSlot.maxCapacity : 3;
+      if (Number(existingCountResult[0]?.count || 0) >= maxCap) {
+        res.status(409).json({
+          message: `Khung giờ ${timeStr} ngày ${dateStr} tại ${showroomName} đã kín chỗ. Quý khách vui lòng chọn khung giờ khác.`
+        });
+        return;
+      }
+
+      const datePart = todayStr.replace(/-/g, '');
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const appointmentCode = `REQ-${datePart}-${randomSuffix}`;
+      const id = `consult-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      const initialHistory = JSON.stringify([
+        {
+          action: 'CREATED',
+          title: 'Khách hàng gửi yêu cầu đặt lịch từ trang Tài khoản',
+          timestamp: now.toISOString(),
+          actor: String(customerName).trim(),
+          note: notes ? String(notes).trim() : 'Yêu cầu chờ ban quản trị phân công nhân sự và phê duyệt'
+        }
+      ]);
+
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "ShowroomConsultations" (
+          id, appointment_code, showroom_id, showroom_name, showroom_address,
+          customer_name, customer_phone, customer_email, preferred_date, preferred_time,
+          notes, product_id, product_name, variant_id, status, history, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9, $10,
+          $11, $12, $13, $14, 'PENDING', $15::jsonb, NOW(), NOW()
+        );
+      `,
+        id,
+        appointmentCode,
+        targetShowroomId,
+        showroomName,
+        showroomAddress,
+        String(customerName).trim(),
+        cleanPhone,
+        email ? String(email).trim() : (req.user?.email || null),
+        dateStr,
+        timeStr,
+        notes ? String(notes).trim() : null,
+        productId ? String(productId) : null,
+        productName ? String(productName) : null,
+        variantId ? String(variantId) : null,
+        initialHistory
       );
 
-      if (customerAlreadyBooked) {
-        res.status(400).json({ 
-          message: `Bạn đã có một lịch hẹn vào ngày ${date}. Quy định hệ thống: Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày.` 
-        });
-        return;
-      }
+      memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
-      // RÀNG BUỘC 2: Tại một showroom và tại một khung giờ chỉ có 1 khách hàng được đặt
-      const slotAlreadyTaken = inMemoryAppointments.some(a => {
-        if (a.status === 'CANCELLED' || a.date !== date || a.timeSlot !== timeSlot) return false;
-        if (isShowroom) {
-          return a.appointmentType === 'SHOWROOM' && a.showroomAddress === selectedShowroom;
-        } else {
-          return a.appointmentType === 'ONLINE_3D';
-        }
-      });
-
-      if (slotAlreadyTaken) {
-        res.status(400).json({
-          message: `Khung giờ ${timeSlot} ngày ${date} tại địa điểm này đã có khách hàng đặt trước. Vui lòng chọn khung giờ khác.`
-        });
-        return;
-      }
-
-      const newAppt: CustomerAppointment = {
-        id: `APT-${Date.now().toString().slice(-6)}`,
-        customerId: customerId || 'guest',
-        customerName: customerName.trim(),
-        phone: phone.trim(),
-        email: email ? email.trim() : (req.user?.email || ''),
-        appointmentType: isShowroom ? 'SHOWROOM' : 'ONLINE_3D',
-        showroomAddress: isShowroom ? selectedShowroom : 'Tư vấn trực tuyến qua Google Meet 3D',
-        date,
-        timeSlot,
-        spaceType: spaceType ? spaceType.trim() : 'Không gian chung',
-        budget: budget ? budget.trim() : 'Linh hoạt',
-        notes: notes ? notes.trim() : '',
-        status: 'PENDING',
-        createdAt: new Date().toISOString()
-      };
-
-      inMemoryAppointments.unshift(newAppt);
+      const createdRows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT * FROM "ShowroomConsultations" WHERE id = $1 LIMIT 1;
+      `, id);
 
       res.status(201).json({
-        message: 'Đặt lịch hẹn tư vấn thành công. Chuyên viên thiết kế Dcor sẽ liên hệ xác nhận lịch với bạn qua điện thoại & SMS.',
-        appointment: newAppt
+        message: 'Đặt lịch hẹn tư vấn thành công. Chuyên viên DCor sẽ liên hệ xác nhận với bạn sớm nhất.',
+        appointment: createdRows[0] ? mapConsultationRowToAppointment(createdRows[0], customerId) : null
       });
     } catch (error) {
       console.error('Lỗi createAppointment:', error);
@@ -1088,46 +1550,83 @@ export const customerController = {
     }
   },
 
-  // 14. HỦY LỊCH HẸN (Chỉ hủy được trước khi admin duyệt - trạng thái PENDING)
+  // 14. HỦY LỊCH HẸN (CẬP NHẬT TRỰC TIẾP BẢNG "ShowroomConsultations" - Chỉ khi PENDING)
   cancelAppointment: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
-      const appt = inMemoryAppointments.find(a => a.id === id);
-      if (!appt) {
+      await ensureConsultationTable();
+      const id = String(req.params.id);
+      const reason = req.body?.reason ? String(req.body.reason).trim() : 'Khách hàng chủ động hủy lịch hẹn';
+
+      const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT * FROM "ShowroomConsultations" WHERE id = $1 OR appointment_code = $1 LIMIT 1;
+      `, id);
+
+      if (!rows || rows.length === 0) {
         res.status(404).json({ message: 'Không tìm thấy lịch hẹn.' });
         return;
       }
 
+      const appt = rows[0];
+      const identifiers = await resolveCustomerIdentifiers(req);
+      if (!isAppointmentOwnedByCaller(appt, identifiers)) {
+        res.status(403).json({ message: 'Bạn không có quyền hủy lịch hẹn này.' });
+        return;
+      }
       if (appt.status === 'CANCELLED') {
         res.status(400).json({ message: 'Lịch hẹn này đã bị hủy trước đó.' });
         return;
       }
-
-      if (appt.status === 'CONFIRMED') {
-        res.status(400).json({ 
-          message: 'Lịch hẹn đã được quản trị viên duyệt xác nhận. Quý khách vui lòng liên hệ Hotline 1900 8888 để được hỗ trợ điều chỉnh hoặc hủy hẹn.' 
+      if (appt.status !== 'PENDING') {
+        res.status(400).json({
+          message: 'Lịch hẹn đã được xử lý hoặc xác nhận. Quý khách vui lòng liên hệ Hotline 1900 1234 để được hỗ trợ điều chỉnh hoặc hủy hẹn.'
         });
         return;
       }
 
-      if (appt.status === 'COMPLETED') {
-        res.status(400).json({ message: 'Lịch hẹn đã hoàn tất, không thể hủy.' });
-        return;
-      }
+      const existingHistory = Array.isArray(appt.history) ? appt.history : [];
+      const updatedHistory = [
+        ...existingHistory,
+        {
+          action: 'CANCELLED',
+          title: 'Khách hàng hủy lịch hẹn trực tuyến',
+          timestamp: new Date().toISOString(),
+          actor: appt.customer_name || 'Khách hàng',
+          reason
+        }
+      ];
 
-      appt.status = 'CANCELLED';
-      appt.updatedAt = new Date().toISOString();
-      res.json({ message: 'Hủy lịch hẹn thành công.', appointment: appt });
+      await prisma.$executeRawUnsafe(`
+        UPDATE "ShowroomConsultations"
+        SET status = 'CANCELLED',
+            cancellation_reason = $1,
+            history = $2::jsonb,
+            updated_at = NOW()
+        WHERE id = $3;
+      `, reason, JSON.stringify(updatedHistory), appt.id);
+
+      memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
+
+      const updatedRows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT * FROM "ShowroomConsultations" WHERE id = $1 LIMIT 1;
+      `, appt.id);
+
+      res.json({
+        message: 'Hủy lịch hẹn thành công.',
+        appointment: updatedRows[0] ? mapConsultationRowToAppointment(updatedRows[0], req.user?.userId || 'guest') : null
+      });
     } catch (error) {
       console.error('Lỗi cancelAppointment:', error);
       res.status(500).json({ message: 'Lỗi khi hủy lịch hẹn.' });
     }
   },
 
-  // 14.1. ĐỔI GIỜ LỊCH HẸN (Chỉ đổi được trước khi admin duyệt - trạng thái PENDING)
+  // 14.1. ĐỔI GIỜ LỊCH HẸN (CẬP NHẬT TRỰC TIẾP BẢNG "ShowroomConsultations" - Chỉ khi PENDING)
   rescheduleAppointment: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
+      await ensureConsultationTable();
+      const id = String(req.params.id);
       const { date, timeSlot, notes } = req.body;
 
       if (!date || !timeSlot) {
@@ -1135,86 +1634,108 @@ export const customerController = {
         return;
       }
 
-      const appt = inMemoryAppointments.find(a => a.id === id);
-      if (!appt) {
+      const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT * FROM "ShowroomConsultations" WHERE id = $1 OR appointment_code = $1 LIMIT 1;
+      `, id);
+
+      if (!rows || rows.length === 0) {
         res.status(404).json({ message: 'Không tìm thấy lịch hẹn.' });
         return;
       }
 
+      const appt = rows[0];
+      const identifiers = await resolveCustomerIdentifiers(req);
+      if (!isAppointmentOwnedByCaller(appt, identifiers)) {
+        res.status(403).json({ message: 'Bạn không có quyền thay đổi lịch hẹn này.' });
+        return;
+      }
       if (appt.status !== 'PENDING') {
-        res.status(400).json({ 
-          message: 'Lịch hẹn đã được duyệt hoặc không ở trạng thái Chờ xác nhận. Quý khách vui lòng liên hệ Hotline 1900 8888 nếu cần đổi thời gian.' 
+        res.status(400).json({
+          message: 'Lịch hẹn đã được duyệt hoặc không ở trạng thái Chờ xác nhận. Quý khách vui lòng liên hệ Hotline 1900 1234 nếu cần đổi thời gian.'
         });
         return;
       }
 
-      // RÀNG BUỘC THỜI GIAN THỰC: Không cho phép đổi sang ngày hoặc khung giờ đã trôi qua
+      const dateStr = String(date).trim();
+      const timeStr = String(timeSlot).trim();
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      if (date < todayStr) {
+      const todayStr = getLocalTodayStr();
+
+      if (dateStr < todayStr) {
         res.status(400).json({ message: 'Không thể dời lịch hẹn về ngày trong quá khứ.' });
         return;
       }
-      if (date === todayStr) {
-        const [startPart] = timeSlot.split(' - ');
+      if (dateStr === todayStr) {
+        const [startPart] = timeStr.split(' - ');
         if (startPart) {
           const [h, m] = startPart.split(':').map(Number);
-          const currentH = now.getHours();
-          const currentM = now.getMinutes();
-          if (h < currentH || (h === currentH && m <= currentM)) {
+          if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) {
             res.status(400).json({
-              message: `Khung giờ ${timeSlot} hôm nay đã trôi qua so với thời gian hiện tại. Vui lòng chọn khung giờ khác hoặc ngày tiếp theo.`
+              message: `Khung giờ ${timeStr} hôm nay đã trôi qua. Vui lòng chọn khung giờ khác hoặc ngày tiếp theo.`
             });
             return;
           }
         }
       }
 
-      // Kiểm tra xem khách đã có lịch hẹn khác vào ngày mới này chưa
-      const customerId = req.user?.userId;
-      const cleanPhone = normalizePhone(appt.phone);
-      const customerAlreadyBooked = inMemoryAppointments.some(a => 
-        a.id !== id &&
-        a.status !== 'CANCELLED' &&
-        a.date === date &&
-        ((customerId && a.customerId === customerId) || (cleanPhone && normalizePhone(a.phone) === cleanPhone))
-      );
+      const { slots: configuredSlots, maintenanceDates } = await getShowroomSlotConfig(appt.showroom_id);
+      if (maintenanceDates.includes(dateStr)) {
+        res.status(400).json({ message: 'Showroom tạm ngừng đón tiếp khách vào ngày này. Vui lòng chọn ngày khác.' });
+        return;
+      }
 
-      if (customerAlreadyBooked) {
-        res.status(400).json({ 
-          message: `Bạn đã có một lịch hẹn khác vào ngày ${date}. Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày.` 
+      const existingCountResult: any[] = await prisma.$queryRawUnsafe(`
+        SELECT COUNT(*)::int as count
+        FROM "ShowroomConsultations"
+        WHERE showroom_id = $1
+          AND preferred_date = $2
+          AND preferred_time = $3
+          AND id <> $4
+          AND status NOT IN ('CANCELLED', 'REJECTED');
+      `, appt.showroom_id, dateStr, timeStr, appt.id);
+
+      const matchedSlot = configuredSlots.find(s => s.time === timeStr);
+      const maxCap = matchedSlot ? matchedSlot.maxCapacity : 3;
+      if (Number(existingCountResult[0]?.count || 0) >= maxCap) {
+        res.status(409).json({
+          message: `Khung giờ ${timeStr} ngày ${dateStr} tại ${appt.showroom_name || 'Showroom'} đã kín chỗ. Vui lòng chọn khung giờ khác.`
         });
         return;
       }
 
-      // Kiểm tra khung giờ mới tại showroom đó đã có ai đặt chưa
-      const isShowroom = appt.appointmentType !== 'ONLINE_3D';
-      const slotAlreadyTaken = inMemoryAppointments.some(a => {
-        if (a.id === id || a.status === 'CANCELLED' || a.date !== date || a.timeSlot !== timeSlot) return false;
-        if (isShowroom) {
-          return a.appointmentType === 'SHOWROOM' && a.showroomAddress === appt.showroomAddress;
-        } else {
-          return a.appointmentType === 'ONLINE_3D';
+      const existingHistory = Array.isArray(appt.history) ? appt.history : [];
+      const updatedHistory = [
+        ...existingHistory,
+        {
+          action: 'RESCHEDULED',
+          title: 'Khách hàng thay đổi thời gian hẹn',
+          timestamp: now.toISOString(),
+          actor: appt.customer_name || 'Khách hàng',
+          note: `Dời từ ${appt.preferred_date} (${appt.preferred_time}) sang ${dateStr} (${timeStr})`
         }
-      });
+      ];
 
-      if (slotAlreadyTaken) {
-        res.status(400).json({
-          message: `Khung giờ ${timeSlot} ngày ${date} tại địa điểm này đã có khách hàng đặt trước. Vui lòng chọn khung giờ khác.`
-        });
-        return;
-      }
+      await prisma.$executeRawUnsafe(`
+        UPDATE "ShowroomConsultations"
+        SET preferred_date = $1,
+            preferred_time = $2,
+            notes = COALESCE($3, notes),
+            history = $4::jsonb,
+            updated_at = NOW()
+        WHERE id = $5;
+      `, dateStr, timeStr, notes !== undefined ? String(notes).trim() : null, JSON.stringify(updatedHistory), appt.id);
 
-      appt.date = date;
-      appt.timeSlot = timeSlot;
-      if (notes !== undefined) {
-        appt.notes = notes;
-      }
-      appt.updatedAt = new Date().toISOString();
+      memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
+
+      const updatedRows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT * FROM "ShowroomConsultations" WHERE id = $1 LIMIT 1;
+      `, appt.id);
 
       res.json({
         message: 'Đổi giờ lịch hẹn thành công. Hệ thống đã cập nhật thời gian mới.',
-        appointment: appt
+        appointment: updatedRows[0] ? mapConsultationRowToAppointment(updatedRows[0], req.user?.userId || 'guest') : null
       });
     } catch (error) {
       console.error('Lỗi rescheduleAppointment:', error);
@@ -1501,6 +2022,13 @@ export const customerController = {
         return;
       }
 
+      await ensureNotificationReadsTable();
+      const readRows: any[] = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT notification_id FROM "CustomerNotificationReads" WHERE customer_id = $1;`,
+        customerId
+      ).catch(() => []);
+      const customerReadSet = new Set<string>(readRows.map(r => String(r.notification_id)));
+
       const notifications: any[] = [];
 
       // 1. Thông báo từ các đơn hàng gần đây
@@ -1532,7 +2060,7 @@ export const customerController = {
             message = `Đơn hàng #${order.orderNumber} đã được giao thành công. Vui lòng kiểm tra và gửi đánh giá để nhận 100 điểm thưởng!`;
             break;
           case 'CANCELLED':
-            message = `Đơn hàng #${order.orderNumber} đã bị hủy. Nếu có thắc mắc xin vui lòng liên hệ hotline 1900 8888.`;
+            message = `Đơn hàng #${order.orderNumber} đã bị hủy. Nếu có thắc mắc xin vui lòng liên hệ hotline 1900 1234.`;
             break;
           case 'RETURNED':
             message = `Yêu cầu đổi trả cho đơn hàng #${order.orderNumber} đang được bộ phận kỹ thuật xử lý.`;
@@ -1545,26 +2073,69 @@ export const customerController = {
           title,
           message,
           type,
-          isRead: readNotificationIds.has(notifId),
+          isRead: customerReadSet.has(notifId),
           link: `/account/orders?orderNumber=${order.orderNumber}`,
           createdAt: order.updatedAt.toISOString()
         });
       });
 
-      // 2. Thông báo từ lịch hẹn
-      const appts = inMemoryAppointments.filter(a => a.customerId === customerId);
-      appts.forEach(apt => {
-        const notifId = `notif-apt-${apt.id}-${apt.status}`;
-        notifications.push({
-          id: notifId,
-          title: `Lịch hẹn tư vấn #${apt.id}`,
-          message: `Lịch hẹn ${apt.appointmentType === 'SHOWROOM' ? 'tại Showroom' : 'Online 3D'} vào ${apt.date} (${apt.timeSlot}) đang ở trạng thái: ${apt.status === 'CONFIRMED' ? 'Đã xác nhận' : apt.status === 'CANCELLED' ? 'Đã hủy' : 'Chờ xác nhận'}.`,
-          type: 'APPOINTMENT',
-          isRead: readNotificationIds.has(notifId),
-          link: '/account/appointments',
-          createdAt: apt.createdAt
-        });
-      });
+      // 2. Thông báo từ lịch hẹn tư vấn (từ bảng PostgreSQL "ShowroomConsultations")
+      try {
+        await ensureConsultationTable();
+        const { phones, emails } = await resolveCustomerIdentifiers(req);
+        if (phones.length > 0 || emails.length > 0) {
+          const conds: string[] = [];
+          const qParams: any[] = [];
+          let idx = 1;
+          if (phones.length > 0) {
+            const pVariants = new Set<string>();
+            for (const p of phones) {
+              pVariants.add(p);
+              if (p.startsWith('0')) pVariants.add('84' + p.slice(1));
+            }
+            conds.push(`regexp_replace(COALESCE(customer_phone, ''), '[^0-9]', '', 'g') = ANY($${idx}::text[])`);
+            qParams.push(Array.from(pVariants));
+            idx++;
+          }
+          if (emails.length > 0) {
+            conds.push(`LOWER(COALESCE(customer_email, '')) = ANY($${idx}::text[])`);
+            qParams.push(emails);
+            idx++;
+          }
+          const consultRows: any[] = await prisma.$queryRawUnsafe(`
+            SELECT id, appointment_code, showroom_name, preferred_date, preferred_time, status, created_at, updated_at
+            FROM "ShowroomConsultations"
+            WHERE ${conds.join(' OR ')}
+            ORDER BY updated_at DESC
+            LIMIT 10;
+          `, ...qParams);
+
+          const statusMap: Record<string, string> = {
+            PENDING: 'Chờ xác nhận',
+            CONFIRMED: 'Đã xác nhận',
+            IN_PROGRESS: 'Đang tư vấn',
+            COMPLETED: 'Đã hoàn tất',
+            REJECTED: 'Đã từ chối',
+            CANCELLED: 'Đã hủy'
+          };
+
+          consultRows.forEach(row => {
+            const code = row.appointment_code || row.id;
+            const notifId = `notif-apt-${row.id}-${row.status}`;
+            notifications.push({
+              id: notifId,
+              title: `Lịch hẹn tư vấn #${code}`,
+              message: `Lịch hẹn tại ${row.showroom_name || 'Showroom DCor'} vào ${row.preferred_date} (${row.preferred_time}) hiện ở trạng thái: ${statusMap[row.status] || row.status}.`,
+              type: 'APPOINTMENT',
+              isRead: customerReadSet.has(notifId),
+              link: '/account/appointments',
+              createdAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString()
+            });
+          });
+        }
+      } catch (consultNotifErr) {
+        console.warn('Không thể tải thông báo lịch hẹn:', consultNotifErr);
+      }
 
       // 3. Thông báo đổi trả
       const returns = inMemoryReturns.filter(r => r.customerId === customerId);
@@ -1575,7 +2146,7 @@ export const customerController = {
           title: `Yêu cầu đổi trả #${ret.id}`,
           message: `Yêu cầu đổi trả cho đơn hàng ${ret.orderNumber} hiện tại: ${ret.statusLabel}.`,
           type: 'RETURN',
-          isRead: readNotificationIds.has(notifId),
+          isRead: customerReadSet.has(notifId),
           link: '/account/returns',
           createdAt: ret.updatedAt
         });
@@ -1595,7 +2166,7 @@ export const customerController = {
             title: `Mã ưu đãi mới: ${v.code}`,
             message: `Nhận ngay ưu đãi khi mua sắm tại DCor với mã ${v.code}. Khám phá bộ sưu tập ngay!`,
             type: 'PROMO',
-            isRead: readNotificationIds.has(notifId),
+            isRead: customerReadSet.has(notifId),
             link: '/explore',
             createdAt: v.createdAt.toISOString()
           });
@@ -1609,7 +2180,7 @@ export const customerController = {
         title: 'Chào mừng bạn đến với DCor Furniture!',
         message: 'Cảm ơn bạn đã lựa chọn DCor. Trải nghiệm không gian sống đẳng cấp cùng các sản phẩm nội thất tinh tế.',
         type: 'PROMO',
-        isRead: readNotificationIds.has(welcomeId),
+        isRead: customerReadSet.has(welcomeId),
         link: '/explore',
         createdAt: new Date('2026-01-01T00:00:00Z').toISOString()
       });
@@ -1624,11 +2195,27 @@ export const customerController = {
     }
   },
 
-  // 18. ĐÁNH DẤU THÔNG BÁO ĐÃ ĐỌC
+  // 18. ĐÁNH DẤU THÔNG BÁO ĐÃ ĐỌC (LƯU THEO TỪNG KHÁCH HÀNG TRONG POSTGRESQL)
   markNotificationRead: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const id = String(req.params.id);
-      readNotificationIds.add(id);
+      const customerId = req.user?.userId;
+      if (!customerId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập để tiếp tục.' });
+        return;
+      }
+      const id = String(req.params.id || '').trim();
+      if (!id) {
+        res.status(400).json({ message: 'Thiếu mã thông báo.' });
+        return;
+      }
+      await ensureNotificationReadsTable();
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "CustomerNotificationReads" (customer_id, notification_id, read_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (customer_id, notification_id) DO NOTHING;`,
+        customerId,
+        id
+      );
       res.json({ message: 'Đã đánh dấu đã đọc.', id });
     } catch (error) {
       console.error('Lỗi markNotificationRead:', error);
@@ -1636,12 +2223,27 @@ export const customerController = {
     }
   },
 
-  // 19. ĐÁNH DẤU TẤT CẢ THÔNG BÁO ĐÃ ĐỌC
+  // 19. ĐÁNH DẤU TẤT CẢ THÔNG BÁO ĐÃ ĐỌC (LƯU THEO TỪNG KHÁCH HÀNG TRONG POSTGRESQL)
   markAllNotificationsRead: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+      const customerId = req.user?.userId;
+      if (!customerId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập để tiếp tục.' });
+        return;
+      }
       const { ids } = req.body;
-      if (Array.isArray(ids)) {
-        ids.forEach(id => readNotificationIds.add(id));
+      if (Array.isArray(ids) && ids.length > 0) {
+        await ensureNotificationReadsTable();
+        const cleanIds = ids.map(i => String(i || '').trim()).filter(Boolean);
+        if (cleanIds.length > 0) {
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO "CustomerNotificationReads" (customer_id, notification_id, read_at)
+             SELECT $1, unnest($2::text[]), NOW()
+             ON CONFLICT (customer_id, notification_id) DO NOTHING;`,
+            customerId,
+            cleanIds
+          );
+        }
       }
       res.json({ message: 'Đã đánh dấu tất cả thông báo là đã đọc.' });
     } catch (error) {

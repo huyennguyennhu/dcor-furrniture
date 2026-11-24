@@ -1018,8 +1018,19 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       });
   }
 
+  closeSuccessPopup() {
+    this.isSubmittedSuccess = false;
+    if (this.isOpen) {
+      this.close.emit();
+    }
+    this.cdr.detectChanges();
+  }
+
   viewMyRequests() {
-    this.close.emit();
+    this.isSubmittedSuccess = false;
+    if (this.isOpen) {
+      this.close.emit();
+    }
     this.router.navigate(['/account/custom-requests']);
   }
 }

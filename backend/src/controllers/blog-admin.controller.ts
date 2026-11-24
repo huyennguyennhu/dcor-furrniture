@@ -538,7 +538,6 @@ export const blogAdminController = {
         seoTitle,
         status,
         publishedAt,
-        scheduledAt,
         productIds,
         relatedProductIds
       } = req.body;
@@ -559,9 +558,7 @@ export const blogAdminController = {
         ? 'PUBLISHED'
         : status === 'HIDDEN'
           ? 'HIDDEN'
-          : status === 'SCHEDULED'
-            ? 'SCHEDULED'
-            : 'DRAFT';
+          : 'DRAFT';
 
       // Parse blocks from content if blocks not provided
       let inputBlocks = blocks;
@@ -598,9 +595,7 @@ export const blogAdminController = {
       }
 
       // Kiểm tra bắt buộc trước khi xuất bản
-      let finalPublishedAt: Date | null = publishedAt
-        ? new Date(publishedAt)
-        : (scheduledAt ? new Date(scheduledAt) : null);
+      let finalPublishedAt: Date | null = publishedAt ? new Date(publishedAt) : null;
 
       if (targetStatus === 'PUBLISHED') {
         if (!cleanTitle || !cleanCover || !categoryId) {
@@ -703,7 +698,6 @@ export const blogAdminController = {
         seoTitle,
         status,
         publishedAt,
-        scheduledAt,
         productIds,
         relatedProductIds,
         author
@@ -789,8 +783,8 @@ export const blogAdminController = {
 
       if (status !== undefined) {
         const targetStatus = String(status).toUpperCase();
-        if (!['DRAFT', 'PUBLISHED', 'HIDDEN', 'SCHEDULED'].includes(targetStatus)) {
-          res.status(400).json({ message: 'Trạng thái bài viết không hợp lệ.' });
+        if (!['DRAFT', 'PUBLISHED', 'HIDDEN'].includes(targetStatus)) {
+          res.status(400).json({ message: 'Trạng thái bài viết không hợp lệ. Chỉ chấp nhận DRAFT, PUBLISHED hoặc HIDDEN.' });
           return;
         }
         dataToUpdate.status = targetStatus;
@@ -798,8 +792,6 @@ export const blogAdminController = {
 
       if (publishedAt !== undefined) {
         dataToUpdate.publishedAt = publishedAt ? new Date(publishedAt) : null;
-      } else if (scheduledAt !== undefined) {
-        dataToUpdate.publishedAt = scheduledAt ? new Date(scheduledAt) : null;
       }
 
       // Kiểm tra tính hợp lệ trước khi xuất bản nếu trạng thái cuối cùng là PUBLISHED

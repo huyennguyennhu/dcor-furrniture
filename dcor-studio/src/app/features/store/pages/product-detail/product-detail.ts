@@ -346,9 +346,14 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     this.isLoading = true;
     try {
       const data = await this.productService.getProductById(id);
+      const rawWarranty = data.warrantyMonths ?? data.configOptions?.specs?.warrantyMonths ?? data.configOptions?.warrantyMonths;
+      const parsedWarranty = (rawWarranty !== null && rawWarranty !== undefined && rawWarranty !== '' && Number.isFinite(Number(rawWarranty)) && Number(rawWarranty) >= 0)
+        ? Math.min(120, Math.round(Number(rawWarranty)))
+        : 24;
       this.product = {
         ...data,
         allowCustom: !!(data.allowCustom ?? data.configOptions?.allowCustom),
+        warrantyMonths: parsedWarranty,
         categoryObj: data.category,
         category: typeof data.category === 'string'
           ? data.category
@@ -366,6 +371,24 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
       this.isLoading = false;
       this.cdr.detectChanges();
     }
+  }
+
+  get productWarrantyMonths(): number {
+    const val = this.product?.warrantyMonths;
+    if (typeof val === 'number' && Number.isFinite(val) && val >= 0) {
+      return val;
+    }
+    return 24;
+  }
+
+  get productWarrantyLabel(): string {
+    const months = this.productWarrantyMonths;
+    if (months <= 0) return 'Không áp dụng bảo hành';
+    if (months >= 12 && months % 12 === 0) {
+      const years = months / 12;
+      return `${months} tháng (${years} năm)`;
+    }
+    return `${months} tháng`;
   }
 
   // --- FLASH SALE TIMER ---

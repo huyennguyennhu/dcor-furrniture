@@ -13,6 +13,7 @@ import {
 
 import { environment } from '../../../../../environments/environment';
 import { AdminAuthService } from '../../../../core/services/admin-auth.service';
+import { ProductService } from '../../../../core/services/product.service';
 
 export type CategoryGroupType = 'main' | 'sub' | 'room' | 'collection' | 'style' | 'material';
 
@@ -623,7 +624,8 @@ export class ProductCategoriesComponent implements OnInit {
     private router: Router,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
-    public adminAuthService: AdminAuthService
+    public adminAuthService: AdminAuthService,
+    private productService: ProductService
   ) {}
 
   get canCreate(): boolean {
@@ -751,12 +753,29 @@ export class ProductCategoriesComponent implements OnInit {
     return Math.ceil(this.rootCategories.length / this.pageSize) || 1;
   }
 
-  get pagesArray(): number[] {
-    const pages: number[] = [];
-    for (let i = 1; i <= this.totalPages; i++) {
-      pages.push(i);
+  get pagesArray(): Array<number | '...'> {
+    const total = this.totalPages;
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
     }
-    return pages;
+
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, '...', total];
+    }
+
+    if (current >= total - 3) {
+      return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    }
+
+    return [1, '...', current - 1, current, current + 1, '...', total];
+  }
+
+  onPageClick(p: number | '...') {
+    if (typeof p === 'number') {
+      this.goToPage(p);
+    }
   }
 
   goToPage(page: number) {
@@ -942,6 +961,7 @@ export class ProductCategoriesComponent implements OnInit {
       this.http.patch<any>(`${environment.apiUrl}/admin/categories/${target.id}/status`, {}).subscribe({
         next: () => {
           target.status = newStatusText;
+          this.productService.clearCache();
           this.showToast(`Đã chuyển danh mục "${target.name}" sang trạng thái ${newStatusText}!`, 'success');
           this.closeToggleModal();
           this.applyFilters();
@@ -1070,6 +1090,7 @@ export class ProductCategoriesComponent implements OnInit {
               productsCount: 0,
               linkedProducts: []
             });
+            this.productService.clearCache();
             this.showToast(`Đã thêm mới danh mục "${this.formData.name}" vào cơ sở dữ liệu!`, 'success');
             this.closeModal();
             this.applyFilters();
@@ -1119,6 +1140,7 @@ export class ProductCategoriesComponent implements OnInit {
                 status: this.formData.status
               };
             }
+            this.productService.clearCache();
             this.showToast(`Đã cập nhật danh mục "${this.formData.name}" thành công!`, 'success');
             this.closeModal();
             this.applyFilters();
@@ -1190,6 +1212,7 @@ export class ProductCategoriesComponent implements OnInit {
       this.http.delete<any>(`${environment.apiUrl}/admin/categories/${targetId}`).subscribe({
         next: () => {
           this.allCategories = this.allCategories.filter(c => c.id !== targetId);
+          this.productService.clearCache();
           this.showToast(`Đã xóa danh mục "${targetName}" khỏi cơ sở dữ liệu!`, 'success');
           this.closeConfirmDeleteModal();
           this.applyFilters();

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma, { withDbRetry } from '../lib/prisma';
+import { calculateMemberTier } from '../lib/member-tier';
 import { authenticateJWT, AuthRequest } from '../middleware/auth.middleware';
 import { requirePermission } from '../middleware/iam.middleware';
 
@@ -28,20 +29,27 @@ router.get('/', requirePermission('customers', 'view'), async (req: Request, res
       })
     );
 
-    const formatted = customers.map(c => ({
-      id: c.id,
-      fullName: c.fullName,
-      phone: c.phone,
-      email: c.email || '',
-      type: c.type,
-      companyName: c.companyName || '',
-      totalSpent: c.totalSpent ? c.totalSpent.toString() : '0',
-      rewardPoints: c.rewardPoints || 0,
-      orderCount: c._count?.orders || 0,
-      lastPurchaseAt: c.orders?.[0]?.createdAt ? c.orders[0].createdAt.toISOString() : null,
-      isLocked: !!c.lockedUntil && c.lockedUntil > new Date(),
-      createdAt: c.createdAt.toISOString()
-    }));
+    const formatted = customers.map(c => {
+      const tierInfo = calculateMemberTier(c.totalSpent);
+      const isB2B = c.type === 'B2B' || (!!c.companyName && c.companyName.trim() !== '');
+      return {
+        id: c.id,
+        fullName: c.fullName,
+        phone: c.phone,
+        email: c.email || '',
+        type: c.type,
+        companyName: c.companyName || '',
+        membership: isB2B ? 'B2B Partner' : tierInfo.tier,
+        memberTier: tierInfo.tier,
+        memberBadge: tierInfo.badge,
+        totalSpent: c.totalSpent ? c.totalSpent.toString() : '0',
+        rewardPoints: c.rewardPoints || 0,
+        orderCount: c._count?.orders || 0,
+        lastPurchaseAt: c.orders?.[0]?.createdAt ? c.orders[0].createdAt.toISOString() : null,
+        isLocked: !!c.lockedUntil && c.lockedUntil > new Date(),
+        createdAt: c.createdAt.toISOString()
+      };
+    });
 
     res.json(formatted);
   } catch (error) {
@@ -57,10 +65,13 @@ router.get('/:id', requirePermission('customers', 'view'), async (req: Request, 
       prisma.customer.findUnique({
         where: { id: req.params.id as string },
         include: {
-          addresses: true,
+          addresses: {
+            orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }]
+          },
           orders: {
-            take: 10,
-            orderBy: { createdAt: 'desc' }
+            take: 20,
+            orderBy: { createdAt: 'desc' },
+            include: { items: { select: { id: true } } }
           }
         }
       })
@@ -71,9 +82,39 @@ router.get('/:id', requirePermission('customers', 'view'), async (req: Request, 
       return;
     }
 
+    const spent = Number(customer.totalSpent || 0);
+    const isLocked = !!customer.lockedUntil && customer.lockedUntil > new Date();
+    const tierInfo = calculateMemberTier(spent);
+    const tier = { label: tierInfo.tier, badge: tierInfo.badge };
+
     res.json({
-      ...customer,
-      totalSpent: customer.totalSpent ? customer.totalSpent.toString() : '0'
+      id: customer.id,
+      name: customer.fullName,
+      fullName: customer.fullName,
+      phone: customer.phone && !customer.phone.startsWith('GOOG_') ? customer.phone : '',
+      email: customer.email || '',
+      avatarUrl: customer.avatarUrl,
+      type: customer.type === 'B2B' ? 'B2B' : 'Cá nhân',
+      membership: customer.type === 'B2B' ? 'B2B Partner' : tier.label,
+      memberBadge: tier.badge,
+      companyName: customer.companyName,
+      taxCode: customer.taxCode,
+      rewardPoints: customer.rewardPoints || 0,
+      totalSpent: spent,
+      isLocked,
+      status: isLocked ? 'Khóa' : 'Hoạt động',
+      createdAt: customer.createdAt.toISOString().split('T')[0],
+      ordersCount: customer.orders.length,
+      addresses: customer.addresses,
+      orders: customer.orders.map(o => ({
+        id: o.orderNumber,
+        orderNumber: o.orderNumber,
+        totalAmount: Number(o.totalAmount || 0),
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        createdAt: o.createdAt.toISOString().replace('T', ' ').substring(0, 16),
+        itemsCount: o.items.length
+      }))
     });
   } catch (error) {
     console.error('[Admin Customer] Lỗi xem chi tiết khách hàng:', error);
@@ -129,11 +170,40 @@ router.patch('/:id/lock', requirePermission('customers', 'lock_account'), async 
     res.json({
       message: lock ? 'Đã khóa tài khoản khách hàng.' : 'Đã mở khóa tài khoản khách hàng.',
       isLocked: !!lockedUntil,
+      status: lockedUntil ? 'Khóa' : 'Hoạt động',
       reason
     });
   } catch (error) {
     console.error('[Admin Customer] Lỗi khóa/mở khóa tài khoản:', error);
     res.status(500).json({ message: 'Không thể thay đổi trạng thái tài khoản khách hàng.' });
+  }
+});
+
+// 5. Alias PUT /:id/status tương thích với trang chi tiết khách hàng
+router.put('/:id/status', requirePermission('customers', 'lock_account'), async (req: Request, res: Response) => {
+  try {
+    const { status, lock } = req.body;
+    const willLock = typeof lock === 'boolean' ? lock : status === 'Khóa';
+    const lockedUntil = willLock ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null;
+
+    await withDbRetry(() =>
+      prisma.customer.update({
+        where: { id: req.params.id as string },
+        data: {
+          lockedUntil,
+          failedLoginCount: willLock ? 5 : 0
+        }
+      })
+    );
+
+    res.json({
+      message: willLock ? 'Đã khóa tài khoản khách hàng.' : 'Đã mở khóa tài khoản khách hàng.',
+      isLocked: !!lockedUntil,
+      status: lockedUntil ? 'Khóa' : 'Hoạt động'
+    });
+  } catch (error) {
+    console.error('[Admin Customer] Lỗi cập nhật trạng thái tài khoản:', error);
+    res.status(500).json({ message: 'Không thể cập nhật trạng thái tài khoản khách hàng.' });
   }
 });
 

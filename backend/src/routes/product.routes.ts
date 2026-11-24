@@ -17,11 +17,19 @@ router.get('/:id', requirePermission('products', 'view'), productController.getD
 // Tạo mới sản phẩm
 router.post('/', requirePermission('products', 'create'), productController.createProduct);
 
+// Thao tác hàng loạt (Bulk Actions) — đặt trước route /:id
+router.patch('/bulk/status', requirePermission('products', 'edit'), productController.bulkStatus);
+router.post('/bulk/delete', requirePermission('products', 'delete'), productController.bulkDelete);
+router.post('/bulk/restore', requirePermission('products', 'edit'), productController.bulkRestore);
+
 // Cập nhật sản phẩm
 router.put('/:id', requirePermission('products', 'edit'), productController.updateProduct);
 
 // Bật / tắt trạng thái sản phẩm
 router.patch('/:id/status', requirePermission('products', 'edit'), productController.toggleStatus);
+
+// Bật / tắt trạng thái mở bán của từng biến thể
+router.patch('/:id/variants/:variantId/status', requirePermission('products', 'edit'), productController.toggleVariantStatus);
 
 // Xóa sản phẩm
 router.delete('/:id', requirePermission('products', 'delete'), productController.deleteProduct);

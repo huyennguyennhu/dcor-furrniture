@@ -333,3 +333,10 @@
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+
+.tier-badge.member {
+  background: rgba(245, 158, 11, 0.16);
+  color: #FCD34D;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}

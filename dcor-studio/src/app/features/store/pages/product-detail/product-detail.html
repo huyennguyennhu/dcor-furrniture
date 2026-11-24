@@ -139,7 +139,7 @@
               </button>
               <button type="button" class="round-action-btn wishlist-btn" [class.active]="isWishlisted"
                 [title]="isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'" (click)="toggleWishlist()">
-                <app-icon name="Heart" size="18" [filled]="isWishlisted"></app-icon>
+                <app-icon name="Heart" size="16" [color]="isWishlisted ? '#C42326' : '#4b5563'" [filled]="isWishlisted"></app-icon>
               </button>
             </div>
           </div>
@@ -470,6 +470,10 @@
                   <td class="spec-label">Khung kết cấu</td>
                   <td class="spec-value">Gỗ sồi Bắc Âu sấy đạt chuẩn & Thép gia cường sơn tĩnh điện</td>
                 </tr>
+                <tr>
+                  <td class="spec-label">Thời hạn bảo hành</td>
+                  <td class="spec-value">{{ productWarrantyLabel }}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -527,9 +531,9 @@
               <div class="policy-icon-wrapper">
                 <app-icon name="ShieldCheck" size="24"></app-icon>
               </div>
-              <h4>Bảo hành chính hãng 5 năm</h4>
-              <p>DCOR cam kết bảo hành miễn phí 5 năm đối với khung sườn và kết cấu gỗ, 2 năm đối với đệm mút và phụ
-                kiện cơ khí.</p>
+              <h4>{{ productWarrantyMonths > 0 ? ('Bảo hành chính hãng ' + productWarrantyLabel) : 'Chính sách bảo hành sản phẩm' }}</h4>
+              <p *ngIf="productWarrantyMonths > 0">DCOR cam kết bảo hành chính hãng <strong>{{ productWarrantyMonths }} tháng</strong> kể từ ngày giao hàng thành công cho sản phẩm này (áp dụng cho lỗi kỹ thuật kết cấu, vật liệu và phụ kiện theo tiêu chuẩn hãng).</p>
+              <p *ngIf="productWarrantyMonths <= 0">Sản phẩm này không áp dụng thời hạn bảo hành tiêu chuẩn. Quý khách vẫn được hỗ trợ tư vấn chăm sóc và bảo dưỡng qua Hotline 1900 1234.</p>
             </div>
 
             <div class="policy-card">

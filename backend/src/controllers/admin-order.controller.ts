@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { syncCustomerLoyalty } from '../lib/member-tier';
 
 // Helper serialize BigInt to String/Number
 const serializeBigInt = (obj: any): any => {
@@ -452,6 +453,10 @@ export const adminOrderController = {
         include: { items: true, statusHistory: true, payments: true, customer: true }
       });
 
+      if (updated.customerId) {
+        await syncCustomerLoyalty(updated.customerId);
+      }
+
       res.json(serializeBigInt(mapPrismaOrderToFrontend(updated)));
     } catch (error: any) {
       console.error('Lỗi cập nhật giao hàng:', error);
@@ -580,6 +585,10 @@ export const adminOrderController = {
         include: { items: true, statusHistory: true, payments: true, customer: true }
       });
 
+      if (updated.customerId) {
+        await syncCustomerLoyalty(updated.customerId);
+      }
+
       res.json(serializeBigInt(mapPrismaOrderToFrontend(updated)));
     } catch (error: any) {
       console.error('Lỗi hoàn tất đơn hàng:', error);
@@ -623,6 +632,10 @@ export const adminOrderController = {
         },
         include: { items: true, statusHistory: true, payments: true, customer: true }
       });
+
+      if (updated.customerId) {
+        await syncCustomerLoyalty(updated.customerId);
+      }
 
       res.json(serializeBigInt(mapPrismaOrderToFrontend(updated)));
     } catch (error: any) {

@@ -9,7 +9,6 @@ import {
   BlogService, 
   BlogArticle, 
   BlogCategory, 
-  MarketingBanner, 
   SimpleProduct 
 } from '../../../../core/services/blog.service';
 
@@ -22,7 +21,7 @@ import {
 })
 export class ContentComponent implements OnInit, OnDestroy {
   // Navigation Tabs
-  currentTab: 'articles' | 'categories' | 'banners' = 'articles';
+  currentTab: 'articles' | 'categories' = 'articles';
 
   // Subscriptions
   private subs = new Subscription();
@@ -30,7 +29,6 @@ export class ContentComponent implements OnInit, OnDestroy {
   // Data Collections
   articles: BlogArticle[] = [];
   categories: BlogCategory[] = [];
-  banners: MarketingBanner[] = [];
   availableProducts: SimpleProduct[] = [];
 
   // Filter & Search
@@ -77,7 +75,6 @@ export class ContentComponent implements OnInit, OnDestroy {
     author: string;
     authorAvatar: string;
     status: 'DRAFT' | 'PUBLISHED' | 'HIDDEN';
-    scheduledAt: string;
     publishedAt?: string;
     excerpt: string;
     content: string;
@@ -111,19 +108,6 @@ export class ContentComponent implements OnInit, OnDestroy {
     sortOrder: number;
   } = { name: '', slug: '', description: '', status: 'ACTIVE', sortOrder: 1 };
 
-  // Banner Modal State
-  isBannerModalOpen = false;
-  bannerForm: {
-    id?: string;
-    title: string;
-    position: 'HOME_HERO' | 'BLOG_SIDEBAR' | 'COLLECTION_BANNER';
-    imageUrl: string;
-    linkUrl: string;
-    status: 'ACTIVE' | 'INACTIVE';
-    startDate?: string;
-    endDate?: string;
-  } = { title: '', position: 'HOME_HERO', imageUrl: '', linkUrl: '', status: 'ACTIVE' };
-
   // Toast Notification
   toastMessage = '';
   toastType: 'success' | 'info' | 'error' = 'success';
@@ -155,14 +139,7 @@ export class ContentComponent implements OnInit, OnDestroy {
       })
     );
 
-    // 3. Subscribe to banners
-    this.subs.add(
-      this.blogService.banners$.subscribe(items => {
-        this.banners = items;
-      })
-    );
-
-    // 4. Subscribe to products
+    // 3. Subscribe to products
     this.subs.add(
       this.blogService.products$.subscribe(prods => {
         if (prods && prods.length > 0) {
@@ -303,7 +280,6 @@ export class ContentComponent implements OnInit, OnDestroy {
       author: art.author,
       authorAvatar: art.authorAvatar || '',
       status: art.status,
-      scheduledAt: art.scheduledAt ? art.scheduledAt.slice(0, 16) : '',
       publishedAt: art.publishedAt,
       excerpt: art.excerpt,
       content: art.content,
@@ -319,7 +295,7 @@ export class ContentComponent implements OnInit, OnDestroy {
     setTimeout(() => this.syncToEditor(), 60);
   }
 
-  saveArticle(): void {
+  async saveArticle(): Promise<void> {
     if (this.editorActiveTab === 'write') {
       this.syncFromEditor();
     }
@@ -353,7 +329,12 @@ export class ContentComponent implements OnInit, OnDestroy {
       relatedProductIds: this.articleForm.relatedProductIds
     };
 
-    this.blogService.saveArticle(payload);
+    const result = await this.blogService.saveArticle(payload);
+    if (!result.ok) {
+      this.showToast(result.error || 'Không thể lưu bài viết!', 'error');
+      return;
+    }
+
     this.isEditorOpen = false;
 
     let msg = 'Đã cập nhật bài viết thành công!';
@@ -391,10 +372,16 @@ export class ContentComponent implements OnInit, OnDestroy {
     this.isDeleteConfirmOpen = true;
   }
 
-  executeDeleteArticle(): void {
+  async executeDeleteArticle(): Promise<void> {
     const id = this.articleToDelete?.id || this.articleForm.id;
     if (id) {
-      this.blogService.deleteArticle(id);
+      const result = await this.blogService.deleteArticle(id);
+      if (!result.ok) {
+        this.showToast(result.error || 'Không thể xóa bài viết!', 'error');
+        this.isDeleteConfirmOpen = false;
+        this.articleToDelete = null;
+        return;
+      }
       this.selectedArticleIds.delete(id);
       this.showToast('Đã xóa bài viết thành công!', 'info');
     }
@@ -407,12 +394,15 @@ export class ContentComponent implements OnInit, OnDestroy {
     this.confirmDeleteArticle(art);
   }
 
-  toggleArticleVisibility(art: BlogArticle): void {
-    const updated = this.blogService.toggleArticleStatus(art.id);
-    if (updated) {
-      const msg = updated.status === 'PUBLISHED' ? 'Đã chuyển bài viết sang trạng thái HIỆN!' : 'Đã ẨN bài viết khỏi website!';
-      this.showToast(msg, 'success');
+  async toggleArticleVisibility(art: BlogArticle): Promise<void> {
+    const result = await this.blogService.toggleArticleStatus(art.id);
+    if (!result.ok) {
+      this.showToast(result.error || 'Không thể đổi trạng thái bài viết!', 'error');
+      return;
     }
+    const newStatus = result.data?.status;
+    const msg = newStatus === 'PUBLISHED' ? 'Đã chuyển bài viết sang trạng thái HIỆN!' : 'Đã ẨN bài viết khỏi website!';
+    this.showToast(msg, 'success');
   }
 
   // ==========================================
@@ -444,21 +434,29 @@ export class ContentComponent implements OnInit, OnDestroy {
     return this.paginatedArticles.length > 0 && this.paginatedArticles.every(a => this.selectedArticleIds.has(a.id));
   }
 
-  bulkSetStatus(status: 'PUBLISHED' | 'HIDDEN'): void {
+  async bulkSetStatus(status: 'PUBLISHED' | 'HIDDEN'): Promise<void> {
     const ids = Array.from(this.selectedArticleIds);
     if (ids.length === 0) return;
 
-    this.blogService.bulkUpdateStatus(ids, status);
+    const result = await this.blogService.bulkUpdateStatus(ids, status);
+    if (!result.ok) {
+      this.showToast(result.error || 'Không thể cập nhật trạng thái hàng loạt!', 'error');
+      return;
+    }
     this.selectedArticleIds.clear();
     this.showToast(`Đã chuyển trạng thái ${ids.length} bài viết thành ${status === 'PUBLISHED' ? 'HIỆN' : 'ẨN'}!`, 'success');
   }
 
-  bulkDelete(): void {
+  async bulkDelete(): Promise<void> {
     const ids = Array.from(this.selectedArticleIds);
     if (ids.length === 0) return;
 
     if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} bài viết đã chọn?`)) {
-      this.blogService.bulkDelete(ids);
+      const result = await this.blogService.bulkDelete(ids);
+      if (!result.ok) {
+        this.showToast(result.error || 'Không thể xóa hàng loạt bài viết!', 'error');
+        return;
+      }
       this.selectedArticleIds.clear();
       this.showToast(`Đã xóa thành công ${ids.length} bài viết!`, 'info');
     }
@@ -862,13 +860,13 @@ export class ContentComponent implements OnInit, OnDestroy {
     }
   }
 
-  saveCategory(): void {
+  async saveCategory(): Promise<void> {
     if (!this.categoryForm.name.trim()) {
       alert('Vui lòng nhập tên chuyên mục!');
       return;
     }
 
-    this.blogService.saveCategory({
+    const result = await this.blogService.saveCategory({
       id: this.categoryForm.id,
       name: this.categoryForm.name.trim(),
       slug: this.categoryForm.slug.trim() || this.blogService.generateSlug(this.categoryForm.name),
@@ -877,84 +875,36 @@ export class ContentComponent implements OnInit, OnDestroy {
       sortOrder: Number(this.categoryForm.sortOrder) || 1
     });
 
+    if (!result.ok) {
+      this.showToast(result.error || 'Không thể lưu chuyên mục!', 'error');
+      return;
+    }
+
     this.isCategoryModalOpen = false;
     this.showToast(this.categoryForm.id ? 'Đã cập nhật chuyên mục!' : 'Đã thêm chuyên mục mới!', 'success');
   }
 
-  toggleCategoryStatus(cat: BlogCategory): void {
-    this.blogService.toggleCategoryStatus(cat.id);
+  async toggleCategoryStatus(cat: BlogCategory): Promise<void> {
+    const result = await this.blogService.toggleCategoryStatus(cat.id);
+    if (!result.ok) {
+      this.showToast(result.error || 'Không thể đổi trạng thái chuyên mục!', 'error');
+      return;
+    }
     this.showToast(`Đã đổi trạng thái chuyên mục "${cat.name}"!`, 'success');
   }
 
-  deleteCategory(cat: BlogCategory): void {
+  async deleteCategory(cat: BlogCategory): Promise<void> {
     if (cat.articleCount > 0) {
       alert(`Không thể xóa chuyên mục "${cat.name}" vì đang có ${cat.articleCount} bài viết trực thuộc. Hãy chuyển bài viết sang chuyên mục khác trước!`);
       return;
     }
     if (confirm(`Bạn có chắc chắn muốn xóa chuyên mục "${cat.name}"?`)) {
-      this.blogService.deleteCategory(cat.id);
+      const result = await this.blogService.deleteCategory(cat.id);
+      if (!result.ok) {
+        this.showToast(result.error || 'Không thể xóa chuyên mục!', 'error');
+        return;
+      }
       this.showToast('Đã xóa chuyên mục thành công!', 'info');
-    }
-  }
-
-  // ==========================================
-  // MARKETING BANNERS MANAGEMENT
-  // ==========================================
-
-  openBannerModal(b?: MarketingBanner): void {
-    if (b) {
-      this.bannerForm = {
-        id: b.id,
-        title: b.title,
-        position: b.position,
-        imageUrl: b.imageUrl,
-        linkUrl: b.linkUrl,
-        status: b.status,
-        startDate: b.startDate,
-        endDate: b.endDate
-      };
-    } else {
-      this.bannerForm = {
-        title: '',
-        position: 'HOME_HERO',
-        imageUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
-        linkUrl: '/explore',
-        status: 'ACTIVE'
-      };
-    }
-    this.isBannerModalOpen = true;
-  }
-
-  saveBanner(): void {
-    if (!this.bannerForm.title.trim() || !this.bannerForm.imageUrl.trim()) {
-      alert('Vui lòng nhập tiêu đề và URL hình ảnh banner!');
-      return;
-    }
-
-    this.blogService.saveBanner({
-      id: this.bannerForm.id,
-      title: this.bannerForm.title.trim(),
-      position: this.bannerForm.position,
-      imageUrl: this.bannerForm.imageUrl.trim(),
-      linkUrl: this.bannerForm.linkUrl.trim() || '/explore',
-      status: this.bannerForm.status,
-      startDate: this.bannerForm.startDate,
-      endDate: this.bannerForm.endDate
-    });
-
-    this.isBannerModalOpen = false;
-    this.showToast(this.bannerForm.id ? 'Đã cập nhật banner!' : 'Đã thêm banner mới!', 'success');
-  }
-
-  toggleBannerStatus(b: MarketingBanner): void {
-    this.blogService.toggleBannerStatus(b.id);
-    this.showToast(`Đã cập nhật trạng thái banner "${b.title}"!`, 'success');
-  }
-
-  deleteBanner(b: MarketingBanner): void {
-    if (confirm(`Bạn có chắc chắn muốn xóa banner "${b.title}"?`)) {
-      this.blogService.deleteBanner(b.id);
-      this.showToast('Đã xóa banner thành công!', 'info');
     }
   }
 
@@ -1001,7 +951,6 @@ export class ContentComponent implements OnInit, OnDestroy {
       author: 'Ban biên tập DCor',
       authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
       status: 'DRAFT' as const,
-      scheduledAt: '',
       excerpt: '',
       content: '',
       tags: ['NoiThatLuxury', 'DCor2026'],

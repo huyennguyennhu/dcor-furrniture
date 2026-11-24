@@ -391,9 +391,9 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     const stockVal = v ? ((v.stock ?? 0) - (v.reservedStock ?? 0)) : (prod?.stock || 0);
     this.maxStock = Math.max(0, stockVal);
     
-    // Mức cảnh báo tồn kho của biến thể từ database (WarehouseStock.safetyThreshold, mặc định là 5)
-    const rawThreshold = v?.safetyThreshold ?? v?.threshold ?? v?.warehouseStocks?.[0]?.safetyThreshold;
-    this.safetyThreshold = (typeof rawThreshold === 'number' && rawThreshold > 0) ? rawThreshold : 5;
+    // Mức cảnh báo tồn kho của biến thể từ database (WarehouseStock.safetyThreshold)
+    const rawThreshold = v?.safetyThreshold ?? v?.threshold ?? v?.optionValues?.safetyThreshold ?? v?.warehouseStocks?.[0]?.safetyThreshold;
+    this.safetyThreshold = (typeof rawThreshold === 'number' && Number.isFinite(rawThreshold) && rawThreshold >= 0) ? rawThreshold : 5;
 
     if (this.maxStock > 0 && this.quantity > this.maxStock) {
       this.quantity = this.maxStock;

@@ -17,6 +17,7 @@ import {
 import { QuickViewDrawerComponent } from '../../../../shared/components/quick-view-drawer/quick-view-drawer';
 import { QuickViewService } from '../../../../core/services/quick-view.service';
 import { ProductCompareModalComponent } from '../../../../shared/components/product-compare-modal/product-compare-modal';
+import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
 import { Subscription } from 'rxjs';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
@@ -50,6 +51,7 @@ const INITIAL_FILTER_STATE: FilterState = {
     CustomSelect, 
     SidebarFilterComponent, 
     ProductCompareModalComponent,
+    ProductCardComponent,
     LucideAngularModule
   ],
   templateUrl: './explore.html',
@@ -1361,6 +1363,11 @@ export class ExploreComponent implements OnInit, OnDestroy {
     e.stopPropagation();
     e.preventDefault();
     this.openQuickView(e, prod);
+  }
+
+  onCardBuyClick(prod: CatalogProduct) {
+    this.quickViewProduct = prod;
+    this.quickViewService.open(prod);
   }
 
   openQuickView(e: Event, prod: CatalogProduct) {

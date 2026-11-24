@@ -489,17 +489,18 @@
 
 .footer-confirmed-note {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #065F46;
-  background: #ECFDF5;
-  padding: 8px 14px;
-  border-radius: 10px;
+  gap: 6px;
+  font-size: 12px;
+  color: #92400E;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .confirmed-icon {
-  color: #059669;
+  color: #92400E;
   flex-shrink: 0;
 }
 
@@ -2057,19 +2058,37 @@
   gap: 14px !important;
 }
 .apt-date-square {
-  width: 62px !important;
-  padding: 6px 4px !important;
-  border-radius: 6px !important;
-}
-.square-day {
-  font-size: 20px !important;
-  margin: 1px 0 !important;
+  width: 78px !important;
+  min-height: 82px !important;
+  padding: 0 0 8px 0 !important;
+  flex-direction: column !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid #D9C5B2 !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  justify-content: flex-start !important;
+  box-shadow: 0 4px 12px rgba(118, 83, 55, 0.14) !important;
 }
 .square-month {
-  font-size: 9.5px !important;
+  width: 100% !important;
+  padding: 5px 4px !important;
+  background: linear-gradient(135deg, #765337 0%, #9A663B 100%) !important;
+  color: #FFFFFF !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6px !important;
+}
+.square-day {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  color: #3B2819 !important;
+  line-height: 1.1 !important;
+  margin: 7px 0 2px !important;
 }
 .square-weekday {
-  font-size: 9.5px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #BC5F13 !important;
 }
 .time-range {
   font-size: 14px !important;
@@ -2370,4 +2389,354 @@
   background: var(--color-danger-hover, #8C1F1F) !important;
   border-color: var(--color-danger-hover, #8C1F1F) !important;
   color: #FFFFFF !important;
+}
+
+
+/* 2.5. Đang tư vấn (IN_PROGRESS) */
+.apt-card-topbar.status-in-progress {
+  background: #EFF6FF !important;
+  border-bottom: 1px solid #BFDBFE !important;
+}
+.apt-card-topbar.status-in-progress .status-indicator-dot {
+  background: #2563EB !important;
+}
+.apt-card-topbar.status-in-progress .topbar-status-text,
+.apt-card-topbar.status-in-progress .topbar-meta,
+.apt-card-topbar.status-in-progress .meta-type-tag {
+  color: #1E40AF !important;
+}
+.apt-card-topbar.status-in-progress .meta-divider {
+  color: #93C5FD !important;
+}
+.apt-card-topbar.status-in-progress .meta-code {
+  color: #1E3A8A !important;
+}
+
+
+/* ==========================================================================
+   RESCHEDULE MODAL: ĐỒNG BỘ CHỌN NGÀY & KHUNG GIỜ GIỐNG SHOWROOM MODAL
+   ========================================================================== */
+.reschedule-modal-dialog {
+  max-width: 680px !important;
+  width: 95% !important;
+}
+
+.reschedule-modal-dialog .block-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.reschedule-modal-dialog .date-selection-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.reschedule-modal-dialog .date-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.reschedule-modal-dialog .date-carousel-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+}
+
+.reschedule-modal-dialog .btn-carousel-nav {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  user-select: none;
+}
+
+.reschedule-modal-dialog .btn-carousel-nav:hover:not(:disabled) {
+  background: #fffbeb;
+  border-color: #b45309;
+  color: #b45309;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.15);
+}
+
+.reschedule-modal-dialog .btn-carousel-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: #f9fafb;
+  border-color: #f3f4f6;
+  color: #9ca3af;
+  box-shadow: none;
+}
+
+.reschedule-modal-dialog .date-carousel-strip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 2px 1px;
+}
+
+.reschedule-modal-dialog .date-carousel-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.reschedule-modal-dialog .date-pill-btn {
+  flex: 0 0 calc((100% - 40px) / 6);
+  min-width: 0;
+  box-sizing: border-box;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .reschedule-modal-dialog .date-pill-btn {
+    flex: 0 0 calc((100% - 24px) / 4);
+  }
+}
+
+@media (max-width: 440px) {
+  .reschedule-modal-dialog .date-pill-btn {
+    flex: 0 0 calc((100% - 16px) / 3);
+  }
+}
+
+.reschedule-modal-dialog .date-pill-btn:hover {
+  border-color: #b45309;
+  background: #fffbeb;
+}
+
+.reschedule-modal-dialog .date-pill-btn.active {
+  border-color: #b45309;
+  background: #b45309;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.25);
+}
+
+.reschedule-modal-dialog .date-pill-day {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.reschedule-modal-dialog .date-pill-btn.active .date-pill-day {
+  color: #fef3c7;
+}
+
+.reschedule-modal-dialog .date-pill-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.reschedule-modal-dialog .date-pill-btn.active .date-pill-value {
+  color: #ffffff;
+}
+
+.reschedule-modal-dialog .date-pill-tag {
+  margin-top: 3px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  white-space: nowrap;
+}
+
+.reschedule-modal-dialog .date-pill-btn.active .date-pill-tag {
+  background: #ffffff;
+  color: #b45309;
+}
+
+.reschedule-modal-dialog .closed-day-alert {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.reschedule-modal-dialog .alert-content strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #991b1b;
+  margin-bottom: 2px;
+}
+
+.reschedule-modal-dialog .alert-content p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+
+.reschedule-modal-dialog .time-matrix-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reschedule-modal-dialog .matrix-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reschedule-modal-dialog .loading-state-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 22px;
+  background: #fafaf9;
+  border-radius: 10px;
+  color: #6b7280;
+  font-size: 0.86rem;
+}
+
+.reschedule-modal-dialog .spinner-sm {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #b45309;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.reschedule-modal-dialog .slots-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .reschedule-modal-dialog .slots-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.reschedule-modal-dialog .slot-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.reschedule-modal-dialog .slot-card-btn:hover {
+  border-color: #b45309;
+  background: #fffbeb;
+  transform: translateY(-2px);
+}
+
+.reschedule-modal-dialog .slot-card-btn.selected {
+  border-color: #b45309;
+  background: #fffbeb;
+  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.15);
+}
+
+.reschedule-modal-dialog .slot-time-range {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.reschedule-modal-dialog .slot-card-btn.selected .slot-time-range {
+  color: #b45309;
+}
+
+.reschedule-modal-dialog .slot-period-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.reschedule-modal-dialog .slot-card-btn.selected .slot-period-badge {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.reschedule-modal-dialog .slot-selected-mark {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #b45309;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reschedule-modal-dialog .empty-slots-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  color: #4b5563;
+}
+
+.reschedule-modal-dialog .empty-slots-text strong {
+  display: block;
+  font-size: 0.86rem;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.reschedule-modal-dialog .empty-slots-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
 }

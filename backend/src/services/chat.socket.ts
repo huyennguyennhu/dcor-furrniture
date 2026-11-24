@@ -116,6 +116,13 @@ export function getIO(): Server {
   return io;
 }
 
+export function broadcastPendingConsultations(pending: number): void {
+  if (!io) return;
+  const safeCount = Math.max(0, Number(pending) || 0);
+  io.to('staff:admin').emit('admin:consultations_pending', { pending: safeCount });
+  io.to('staff').emit('admin:consultations_pending', { pending: safeCount });
+}
+
 export function hashGuestToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -440,6 +447,18 @@ export function initChatSocket(httpServer: HttpServer): Server {
   });
 
   io.on('connection', async (socket: Socket) => {
+    // Cho tất cả nhân sự quản trị vào room 'staff:admin' để nhận badge thông báo realtime (tư vấn, đơn hàng...)
+    if (socket.data.isStaff && !socket.data.isCustomer && !socket.data.isGuest) {
+      socket.join('staff:admin');
+      try {
+        const pendingRes: any[] = await prisma.$queryRawUnsafe(`
+          SELECT COUNT(*)::int AS count FROM "ShowroomConsultations" WHERE status = 'PENDING';
+        `);
+        const pendingCount = Number(pendingRes?.[0]?.count || 0);
+        socket.emit('admin:consultations_pending', { pending: pendingCount });
+      } catch (_) {}
+    }
+
     // Chỉ cho vào room 'staff' khi token là token nhân sự VÀ có quyền xem phân hệ chat
     if (socket.data.isStaff && socket.data.canChatView && !socket.data.isCustomer && !socket.data.isGuest) {
       socket.join('staff');

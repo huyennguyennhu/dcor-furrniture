@@ -8,15 +8,6 @@
 
       <!-- Main Content Column -->
       <main class="content-column">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb-nav">
-          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
-          <span class="breadcrumb-separator">/</span>
-          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
-          <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">Sổ địa chỉ</span>
-        </nav>
-
         <!-- Header -->
         <div class="page-header-row">
           <div>
@@ -333,6 +324,64 @@
         (click)="dismissSavePhonePrompt()"
         [disabled]="isSavingPhoneToProfile">
         Để lần sau
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     POPUP XÁC NHẬN XÓA ĐỊA CHỈ NHẬN HÀNG
+     ============================================================ -->
+<div *ngIf="isDeleteModalOpen && addressToDelete" class="modal-backdrop-overlay" (click)="closeDeleteModal()">
+  <div class="delete-confirm-modal-box" (click)="$event.stopPropagation()">
+    <button
+      type="button"
+      class="delete-modal-close-btn"
+      (click)="closeDeleteModal()"
+      [disabled]="isDeleting"
+      title="Đóng">
+      <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+    </button>
+
+    <div class="delete-icon-badge">
+      <lucide-angular [img]="icons.Trash2" size="26" color="#C42326"></lucide-angular>
+    </div>
+
+    <h3 class="delete-modal-title">Xác nhận xóa địa chỉ?</h3>
+
+    <p class="delete-modal-desc">
+      Bạn có chắc chắn muốn xóa địa chỉ nhận hàng này khỏi sổ địa chỉ không? Hành động này không thể hoàn tác.
+    </p>
+
+    <div class="delete-address-preview">
+      <div class="preview-receiver-line">
+        <strong>{{ addressToDelete.receiverName }}</strong>
+        <span class="preview-divider">|</span>
+        <span>{{ addressToDelete.phone }}</span>
+        <span *ngIf="addressToDelete.isDefault" class="preview-default-tag">Mặc định</span>
+      </div>
+      <div class="preview-address-line">
+        <lucide-angular [img]="icons.MapPin" size="14"></lucide-angular>
+        <span>{{ getFullAddress(addressToDelete) }}</span>
+      </div>
+    </div>
+
+    <div class="delete-modal-actions">
+      <button
+        type="button"
+        class="btn btn-outline delete-cancel-btn"
+        (click)="closeDeleteModal()"
+        [disabled]="isDeleting">
+        Hủy bỏ
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger-confirm"
+        (click)="confirmDeleteAddress()"
+        [disabled]="isDeleting">
+        <span *ngIf="isDeleting" class="spinner-small"></span>
+        <lucide-angular *ngIf="!isDeleting" [img]="icons.Trash2" size="15"></lucide-angular>
+        <span>{{ isDeleting ? 'Đang xóa...' : 'Xóa địa chỉ' }}</span>
       </button>
     </div>
   </div>

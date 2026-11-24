@@ -89,7 +89,7 @@ export const SYSTEM_BRANCHES: Branch[] = [
     name: 'Toàn hệ thống',
     type: 'SHOWROOM',
     address: 'Toàn quốc / Trụ sở điều hành chính DCor Studio',
-    phone: '1900 8888',
+    phone: '1900 1234',
     managerName: 'Ban Giám Đốc DCor',
     isActive: true
   },

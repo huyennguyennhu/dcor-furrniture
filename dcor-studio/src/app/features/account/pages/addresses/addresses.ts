@@ -42,6 +42,11 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
   editingId: string | null = null;
   isSaving = false;
 
+  // Delete Confirmation Modal State
+  isDeleteModalOpen = false;
+  addressToDelete: CustomerAddress | null = null;
+  isDeleting = false;
+
   // OTP & Popup hỏi lưu số vào hồ sơ
   verifiedPhonesList: string[] = [];
   isOtpModalOpen = false;
@@ -554,25 +559,46 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
   }
 
   deleteAddress(addr: CustomerAddress): void {
-    if (confirm(`Bạn có chắc muốn xóa địa chỉ nhận hàng của "${addr.receiverName}" không?`)) {
-      // Optimistic delete
-      this.addresses = this.addresses.filter(a => a.id !== addr.id);
-      this.saveLocalAddresses(this.addresses);
-      this.successMessage = 'Đã xóa địa chỉ thành công.';
-      setTimeout(() => this.successMessage = '', 3000);
+    this.addressToDelete = addr;
+    this.isDeleteModalOpen = true;
+    this.errorMessage = '';
+  }
 
-      this.sub.add(
-        this.customerService.deleteAddress(addr.id).subscribe({
-          next: () => {
-            this.loadAddressesSilently();
-          },
-          error: (err) => {
-            alert(err.error?.message || 'Không thể xóa địa chỉ.');
-            this.loadAddresses();
-          }
-        })
-      );
-    }
+  closeDeleteModal(): void {
+    if (this.isDeleting) return;
+    this.isDeleteModalOpen = false;
+    this.addressToDelete = null;
+  }
+
+  confirmDeleteAddress(): void {
+    const target = this.addressToDelete;
+    if (!target || this.isDeleting) return;
+
+    this.isDeleting = true;
+    this.errorMessage = '';
+
+    this.sub.add(
+      this.customerService.deleteAddress(target.id).subscribe({
+        next: () => {
+          this.isDeleting = false;
+          this.isDeleteModalOpen = false;
+          this.addressToDelete = null;
+          this.addresses = this.addresses.filter(a => a.id !== target.id);
+          this.saveLocalAddresses(this.addresses);
+          this.successMessage = 'Đã xóa địa chỉ nhận hàng thành công.';
+          setTimeout(() => (this.successMessage = ''), 3500);
+          this.loadAddressesSilently();
+        },
+        error: (err) => {
+          this.isDeleting = false;
+          this.isDeleteModalOpen = false;
+          this.addressToDelete = null;
+          this.errorMessage = err.error?.message || 'Không thể xóa địa chỉ. Vui lòng thử lại.';
+          setTimeout(() => (this.errorMessage = ''), 4500);
+          this.loadAddresses();
+        }
+      })
+    );
   }
 
   getFullAddress(addr: CustomerAddress): string {

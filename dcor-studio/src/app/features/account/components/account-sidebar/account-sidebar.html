@@ -18,10 +18,10 @@
     </div>
 
     <!-- Member Tier Badge (Hover hiển thị dòng tích lũy điểm) -->
-    <div *ngIf="isLoggedIn" class="tier-badge has-tooltip" [ngClass]="profile?.memberBadge?.toLowerCase() || 'bronze'"
+    <div *ngIf="isLoggedIn" class="tier-badge has-tooltip" [ngClass]="profile?.memberBadge?.toLowerCase() || 'member'"
       title="Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor">
       <span class="tier-icon">★</span>
-      <span class="tier-text">Hạng {{ profile?.memberTier || 'Đồng' }}</span>
+      <span class="tier-text">Hạng {{ profile?.memberTier || 'Thành viên' }}</span>
       <span class="tier-points">{{ (profile?.rewardPoints || 0) | number }} điểm</span>
       <span class="tier-hover-tooltip">Tích lũy 1 điểm cho mỗi 100.000₫ mua sắm tại hệ thống nội thất Dcor</span>
     </div>

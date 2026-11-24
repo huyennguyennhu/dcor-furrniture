@@ -16,6 +16,8 @@ export interface VoucherItem {
   minOrderValue: number;
   scope: 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS';
   categoryScopeName?: string;
+  productIds?: string[];
+  productNames?: string[];
   usageLimit: number;
   usedCount: number;
   perCustomerLimit: number;
@@ -24,6 +26,15 @@ export interface VoucherItem {
   endDate: string; // YYYY-MM-DD
   status: VoucherStatus;
   revenueGenerated: number;
+}
+
+export interface VoucherProductOption {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  image: string;
+  categoryName: string;
 }
 
 const STORAGE_KEY = 'dcor_admin_vouchers_data_v1';
@@ -181,13 +192,15 @@ export class VouchersComponent implements OnInit {
   get selectedScopeLabel(): string {
     const map: Record<string, string> = {
       'ALL': 'Tất cả phạm vi',
-      'CATEGORY': 'Theo danh mục'
+      'CATEGORY': 'Theo danh mục',
+      'SPECIFIC_PRODUCTS': 'Theo sản phẩm cụ thể'
     };
     return map[this.selectedScope] || 'Tất cả phạm vi';
   }
 
   get modalScopeLabel(): string {
     if (this.formData.scope === 'CATEGORY') return 'Theo danh mục sản phẩm cụ thể';
+    if (this.formData.scope === 'SPECIFIC_PRODUCTS') return 'Theo sản phẩm cụ thể';
     return 'Toàn bộ sản phẩm trên hệ thống';
   }
 
@@ -246,8 +259,14 @@ export class VouchersComponent implements OnInit {
     this.isModalScopeDropdownOpen = !curr;
   }
 
-  selectModalScope(scope: 'ALL' | 'CATEGORY') {
+  selectModalScope(scope: 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS') {
     this.formData.scope = scope;
+    if (scope === 'CATEGORY' && !this.formData.categoryScopeName && this.CATEGORIES.length > 0) {
+      this.formData.categoryScopeName = this.CATEGORIES[0];
+    }
+    if (scope === 'SPECIFIC_PRODUCTS' && this.availableProducts.length === 0) {
+      this.loadProductsForPicker();
+    }
     this.isModalScopeDropdownOpen = false;
   }
 
@@ -274,15 +293,13 @@ export class VouchersComponent implements OnInit {
     this.isModalCategoryDropdownOpen = false;
   }
 
-  // Category Scope List
-  readonly CATEGORIES: string[] = [
-    'Sofa & Ghế Phòng Khách',
-    'Bàn Ghế Ăn & Bếp',
-    'Giường & Phòng Ngủ',
-    'Tủ Kệ Trang Trí',
-    'Đèn & Phụ Kiện Decor',
-    'Nội thất Văn phòng'
-  ];
+  // Danh mục chính (cấp 1) tải trực tiếp từ PostgreSQL (Sofas, Chairs, Tables, Beds, ...)
+  CATEGORIES: string[] = [];
+
+  // Danh sách sản phẩm thật từ PostgreSQL cho phạm vi SPECIFIC_PRODUCTS
+  availableProducts: VoucherProductOption[] = [];
+  isLoadingProducts = false;
+  productSearchTerm = '';
 
   // Modal State
   isModalOpen = false;
@@ -298,6 +315,8 @@ export class VouchersComponent implements OnInit {
     minOrderValue: number | null;
     scope: 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS';
     categoryScopeName: string;
+    productIds: string[];
+    productNames: string[];
     usageLimit: number | null;
     perCustomerLimit: number | null;
     isStackableWithFlashSale?: boolean;
@@ -315,7 +334,173 @@ export class VouchersComponent implements OnInit {
   private toastTimer: any = null;
 
   ngOnInit(): void {
+    this.loadMainCategories();
+    this.loadProductsForPicker();
     this.loadFromApi();
+  }
+
+  loadProductsForPicker(): void {
+    if (this.isLoadingProducts) return;
+    this.isLoadingProducts = true;
+
+    const mapProducts = (rawList: any[]): VoucherProductOption[] => {
+      return (rawList || [])
+        .filter((p: any) => p && p.id && p.name && p.deletedAt == null)
+        .map((p: any) => {
+          const firstVar = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants[0] : null;
+          let img = '/assets/img/furniture-placeholder.svg';
+          if (Array.isArray(p.images) && p.images.length > 0) {
+            img = typeof p.images[0] === 'string' ? p.images[0] : (p.images[0]?.url || img);
+          } else if (typeof p.imageUrl === 'string' && p.imageUrl) {
+            img = p.imageUrl;
+          }
+          return {
+            id: String(p.id),
+            name: String(p.name),
+            sku: String(firstVar?.sku || p.sku || ''),
+            price: Number(firstVar?.price ?? p.basePrice ?? p.price ?? 0),
+            image: img,
+            categoryName: String(p.category?.parent?.name || p.category?.name || p.categoryName || '')
+          };
+        });
+    };
+
+    fetch(`${environment.apiUrl}/admin/products?limit=300`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      }
+    })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data: any) => {
+        const list = Array.isArray(data) ? data : (data?.products || data?.items || data?.data || []);
+        const mapped = mapProducts(list);
+        if (mapped.length > 0) {
+          this.availableProducts = mapped;
+          return;
+        }
+        return fetch(`${environment.apiUrl}/products?limit=300`)
+          .then(r => (r.ok ? r.json() : []))
+          .then((fallbackData: any) => {
+            const fbList = Array.isArray(fallbackData) ? fallbackData : (fallbackData?.products || fallbackData?.items || []);
+            this.availableProducts = mapProducts(fbList);
+          });
+      })
+      .catch(() => {
+        fetch(`${environment.apiUrl}/products?limit=300`)
+          .then(r => (r.ok ? r.json() : []))
+          .then((fallbackData: any) => {
+            const fbList = Array.isArray(fallbackData) ? fallbackData : (fallbackData?.products || fallbackData?.items || []);
+            this.availableProducts = mapProducts(fbList);
+          })
+          .catch(() => {});
+      })
+      .finally(() => {
+        this.isLoadingProducts = false;
+      });
+  }
+
+  get filteredPickerProducts(): VoucherProductOption[] {
+    const q = (this.productSearchTerm || '').trim().toLowerCase();
+    if (!q) return this.availableProducts.slice(0, 60);
+    return this.availableProducts
+      .filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        p.categoryName.toLowerCase().includes(q)
+      )
+      .slice(0, 60);
+  }
+
+  isProductSelected(id: string): boolean {
+    return this.formData.productIds.includes(id);
+  }
+
+  toggleProductSelection(p: VoucherProductOption): void {
+    const idx = this.formData.productIds.indexOf(p.id);
+    if (idx >= 0) {
+      this.formData.productIds = this.formData.productIds.filter(id => id !== p.id);
+      this.formData.productNames = this.formData.productIds.map(id => {
+        const found = this.availableProducts.find(x => x.id === id);
+        return found ? found.name : id;
+      });
+    } else {
+      this.formData.productIds = [...this.formData.productIds, p.id];
+      this.formData.productNames = [...this.formData.productNames, p.name];
+    }
+  }
+
+  removeSelectedProduct(id: string): void {
+    const idx = this.formData.productIds.indexOf(id);
+    if (idx >= 0) {
+      this.formData.productIds = this.formData.productIds.filter((_, i) => i !== idx);
+      this.formData.productNames = this.formData.productNames.filter((_, i) => i !== idx);
+    }
+  }
+
+  getSelectedProductsDisplay(): { id: string; name: string }[] {
+    return this.formData.productIds.map((id, idx) => {
+      const found = this.availableProducts.find(p => p.id === id);
+      return { id, name: found?.name || this.formData.productNames[idx] || id };
+    });
+  }
+
+  getProductScopeTooltip(record: VoucherItem): string {
+    if (record.productNames && record.productNames.length > 0) {
+      return record.productNames.join(', ');
+    }
+    return `${record.productIds?.length || 0} sản phẩm áp dụng`;
+  }
+
+  loadMainCategories(): void {
+    fetch(`${environment.apiUrl}/admin/categories`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      }
+    })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data: any) => {
+        const tree: any[] = Array.isArray(data?.tree)
+          ? data.tree
+          : Array.isArray(data)
+            ? data.filter((c: any) => !c.parentId)
+            : [];
+        const names = tree
+          .filter((c: any) => c && c.name && c.isActive !== false)
+          .map((c: any) => String(c.name).trim())
+          .filter(Boolean);
+        if (names.length > 0) {
+          this.CATEGORIES = Array.from(new Set(names));
+          if (!this.formData.categoryScopeName) {
+            this.formData.categoryScopeName = this.CATEGORIES[0];
+          }
+          return;
+        }
+        return this.loadMainCategoriesFallback();
+      })
+      .catch(() => {
+        this.loadMainCategoriesFallback();
+      });
+  }
+
+  private loadMainCategoriesFallback(): void {
+    fetch(`${environment.apiUrl}/categories`)
+      .then(res => (res.ok ? res.json() : []))
+      .then((cats: any[]) => {
+        if (!Array.isArray(cats)) return;
+        const names = cats
+          .filter((c: any) => c && !c.parentId && c.name && c.isActive !== false)
+          .map((c: any) => String(c.name).trim())
+          .filter(Boolean);
+        if (names.length > 0) {
+          this.CATEGORIES = Array.from(new Set(names));
+          if (!this.formData.categoryScopeName) {
+            this.formData.categoryScopeName = this.CATEGORIES[0];
+          }
+        }
+      })
+      .catch(() => {});
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -341,7 +526,7 @@ export class VouchersComponent implements OnInit {
         return res.json();
       })
       .then((data: any[]) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const nowStr = new Date().toISOString().split('T')[0];
           this.records = data.map(v => {
             const start = v.startDate ? String(v.startDate).split('T')[0] : '2026-01-01';
@@ -364,8 +549,10 @@ export class VouchersComponent implements OnInit {
               discountValue: v.discountValue,
               maxDiscountCap: v.maxDiscountCap,
               minOrderValue: v.minOrderValue || 0,
-              scope: 'ALL',
-              categoryScopeName: undefined,
+              scope: v.scope === 'SPECIFIC_PRODUCTS' ? 'SPECIFIC_PRODUCTS' : (v.scope === 'CATEGORY' ? 'CATEGORY' : 'ALL'),
+              categoryScopeName: v.scope === 'CATEGORY' ? (v.categoryScopeName || undefined) : undefined,
+              productIds: v.scope === 'SPECIFIC_PRODUCTS' && Array.isArray(v.productIds) ? v.productIds : [],
+              productNames: v.scope === 'SPECIFIC_PRODUCTS' && Array.isArray(v.productNames) ? v.productNames : [],
               usageLimit: v.usageLimit || 100,
               usedCount: v.usedCount || 0,
               perCustomerLimit: v.perCustomerLimit || 1,
@@ -377,8 +564,6 @@ export class VouchersComponent implements OnInit {
             };
           });
           this.saveToStorage();
-        } else {
-          this.loadFromStorage();
         }
       })
       .catch(err => {
@@ -421,7 +606,9 @@ export class VouchersComponent implements OnInit {
       maxDiscountCap: null as number | null,
       minOrderValue: null as any,
       scope: 'ALL' as 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS',
-      categoryScopeName: 'Sofa & Ghế Phòng Khách',
+      categoryScopeName: this.CATEGORIES?.[0] || '',
+      productIds: [] as string[],
+      productNames: [] as string[],
       usageLimit: null as any,
       perCustomerLimit: null as any,
       isStackableWithFlashSale: false,
@@ -478,6 +665,13 @@ export class VouchersComponent implements OnInit {
 
   // Actions
   openCreateModal(): void {
+    if (this.CATEGORIES.length === 0) {
+      this.loadMainCategories();
+    }
+    if (this.availableProducts.length === 0) {
+      this.loadProductsForPicker();
+    }
+    this.productSearchTerm = '';
     this.isEditing = false;
     this.editingId = null;
     this.formData = this.getEmptyForm();
@@ -485,6 +679,13 @@ export class VouchersComponent implements OnInit {
   }
 
   openEditModal(item: VoucherItem): void {
+    if (this.CATEGORIES.length === 0) {
+      this.loadMainCategories();
+    }
+    if (this.availableProducts.length === 0) {
+      this.loadProductsForPicker();
+    }
+    this.productSearchTerm = '';
     this.isEditing = true;
     this.editingId = item.id;
     this.formData = {
@@ -494,7 +695,9 @@ export class VouchersComponent implements OnInit {
       maxDiscountCap: item.maxDiscountCap !== undefined ? item.maxDiscountCap : null,
       minOrderValue: item.minOrderValue,
       scope: item.scope,
-      categoryScopeName: item.categoryScopeName || 'Sofa & Ghế Phòng Khách',
+      categoryScopeName: item.categoryScopeName || this.CATEGORIES[0] || '',
+      productIds: Array.isArray(item.productIds) ? [...item.productIds] : [],
+      productNames: Array.isArray(item.productNames) ? [...item.productNames] : [],
       usageLimit: item.usageLimit,
       perCustomerLimit: item.perCustomerLimit || 1,
       isStackableWithFlashSale: !!item.isStackableWithFlashSale,
@@ -622,10 +825,21 @@ export class VouchersComponent implements OnInit {
       return;
     }
 
+    if (this.formData.scope === 'CATEGORY' && !this.formData.categoryScopeName) {
+      this.showToast('Vui lòng chọn danh mục áp dụng!', 'warning');
+      return;
+    }
+
+    if (this.formData.scope === 'SPECIFIC_PRODUCTS' && (!this.formData.productIds || this.formData.productIds.length === 0)) {
+      this.showToast('Vui lòng chọn ít nhất 1 sản phẩm áp dụng!', 'warning');
+      return;
+    }
+
     // Auto determine status based on dates if active
     let calculatedStatus: VoucherStatus = this.formData.status;
     const nowStr = new Date().toISOString().split('T')[0];
-    if (calculatedStatus !== 'Tạm dừng') {
+    const isPaused = calculatedStatus === 'Tạm dừng' || calculatedStatus === 'Paused';
+    if (!isPaused) {
       if (this.formData.startDate > nowStr) {
         calculatedStatus = 'Sắp diễn ra';
       } else if (this.formData.endDate < nowStr) {
@@ -646,46 +860,44 @@ export class VouchersComponent implements OnInit {
       usageLimit: usageLim,
       perCustomerLimit: Number(this.formData.perCustomerLimit) || 1,
       isStackableWithFlashSale: !!this.formData.isStackableWithFlashSale,
-      isActive: calculatedStatus === 'Active'
+      isActive: !isPaused,
+      scope: this.formData.scope,
+      categoryScopeName: this.formData.scope === 'CATEGORY' ? (this.formData.categoryScopeName || null) : null,
+      productIds: this.formData.scope === 'SPECIFIC_PRODUCTS' ? this.formData.productIds : [],
+      productNames: this.formData.scope === 'SPECIFIC_PRODUCTS'
+        ? this.getSelectedProductsDisplay().map(p => p.name)
+        : []
     };
 
     if (this.isEditing && this.editingId) {
-      const idx = this.records.findIndex(r => r.id === this.editingId);
-      if (idx !== -1) {
-        const existing = this.records[idx];
-        this.records[idx] = {
-          ...existing,
-          code,
-          discountType: this.formData.discountType,
-          discountValue: discountVal,
-          maxDiscountCap: this.formData.discountType === 'PERCENT' && this.formData.maxDiscountCap ? Number(this.formData.maxDiscountCap) : undefined,
-          minOrderValue: Number(this.formData.minOrderValue) || 0,
-          scope: this.formData.scope,
-          categoryScopeName: this.formData.scope === 'CATEGORY' ? this.formData.categoryScopeName : undefined,
-          usageLimit: usageLim,
-          perCustomerLimit: Number(this.formData.perCustomerLimit) || 1,
-          isStackableWithFlashSale: !!this.formData.isStackableWithFlashSale,
-          startDate: this.formData.startDate,
-          endDate: this.formData.endDate,
-          status: calculatedStatus
-        };
-        this.saveToStorage();
-
-        // Gửi API cập nhật vào CSDL PostgreSQL thật
-        fetch(`${environment.apiUrl}/vouchers/${this.editingId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(apiPayload)
+      const targetId = this.editingId;
+      fetch(`${environment.apiUrl}/admin/vouchers/${targetId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders()
+        },
+        body: JSON.stringify(apiPayload)
+      })
+        .then(async res => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.message || `Lỗi cập nhật voucher (HTTP ${res.status})`);
+          }
+          return data;
         })
-          .then(res => res.json())
-          .then(() => {
-            this.loadFromApi();
-            this.showToast(`Đã cập nhật mã ${code} vào PostgreSQL thành công!`, 'success');
-          })
-          .catch(() => {
-            this.showToast(`Đã cập nhật mã ${code} thành công!`, 'success');
-          });
-      }
+        .then(() => {
+          this.closeModal();
+          this.loadFromApi();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('dcor_vouchers_updated'));
+          }
+          this.showToast(`Đã cập nhật mã ${code} và đồng bộ lên cửa hàng!`, 'success');
+        })
+        .catch(err => {
+          console.error('Lỗi cập nhật voucher:', err);
+          this.showToast(err?.message || 'Không thể cập nhật voucher lên máy chủ.', 'warning');
+        });
     } else {
       // Check duplicate code
       if (this.records.some(r => r.code.toUpperCase() === code)) {
@@ -693,50 +905,34 @@ export class VouchersComponent implements OnInit {
         return;
       }
 
-      const tempId = `VOUCHER-${Date.now().toString().slice(-4)}`;
-      const newVoucher: VoucherItem = {
-        id: tempId,
-        code,
-        discountType: this.formData.discountType,
-        discountValue: discountVal,
-        maxDiscountCap: this.formData.discountType === 'PERCENT' && this.formData.maxDiscountCap ? Number(this.formData.maxDiscountCap) : undefined,
-        minOrderValue: Number(this.formData.minOrderValue) || 0,
-        scope: this.formData.scope,
-        categoryScopeName: this.formData.scope === 'CATEGORY' ? this.formData.categoryScopeName : undefined,
-        usageLimit: usageLim,
-        usedCount: 0,
-        perCustomerLimit: Number(this.formData.perCustomerLimit) || 1,
-        isStackableWithFlashSale: !!this.formData.isStackableWithFlashSale,
-        startDate: this.formData.startDate,
-        endDate: this.formData.endDate,
-        status: calculatedStatus,
-        revenueGenerated: 0
-      };
-
-      this.records.unshift(newVoucher);
-      this.saveToStorage();
-
-      // Gửi API tạo mới vào CSDL PostgreSQL thật
-      fetch(`${environment.apiUrl}/vouchers`, {
+      fetch(`${environment.apiUrl}/admin/vouchers`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders()
+        },
         body: JSON.stringify(apiPayload)
       })
-        .then(res => res.json())
-        .then(created => {
-          if (created && created.id) {
-            newVoucher.id = created.id;
-            this.saveToStorage();
+        .then(async res => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.message || `Lỗi tạo voucher (HTTP ${res.status})`);
           }
-          this.loadFromApi();
-          this.showToast(`Đã lưu voucher ${code} vào cơ sở dữ liệu thật!`, 'success');
+          return data;
         })
-        .catch(() => {
-          this.showToast(`Đã tạo mới mã voucher ${code}!`, 'success');
+        .then(() => {
+          this.closeModal();
+          this.loadFromApi();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('dcor_vouchers_updated'));
+          }
+          this.showToast(`Đã tạo mã voucher ${code} và đồng bộ lên cửa hàng!`, 'success');
+        })
+        .catch(err => {
+          console.error('Lỗi tạo voucher:', err);
+          this.showToast(err?.message || 'Không thể tạo voucher trên máy chủ.', 'warning');
         });
     }
-
-    this.closeModal();
   }
 
   getStatusBadgeLabel(status: string): string {
@@ -765,6 +961,7 @@ export class VouchersComponent implements OnInit {
   }
 
   toggleStatus(item: VoucherItem): void {
+    const prevStatus = item.status;
     let nextActive = true;
     if (this.isStatus(item, 'Active')) {
       item.status = 'Paused';
@@ -784,14 +981,35 @@ export class VouchersComponent implements OnInit {
       this.showToast(`Voucher đã kết thúc hoặc hết lượt, vui lòng chỉnh sửa thời hạn/lượt dùng!`, 'info');
       return;
     }
-    this.saveToStorage();
 
-    // Đồng bộ trạng thái vào DB
-    fetch(`${environment.apiUrl}/vouchers/${item.id}`, {
+    // Đồng bộ trạng thái vào DB với đầy đủ Authorization
+    fetch(`${environment.apiUrl}/admin/vouchers/${item.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders()
+      },
       body: JSON.stringify({ isActive: nextActive })
-    }).catch(err => console.warn('Lỗi đồng bộ trạng thái voucher:', err));
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data?.message || `Lỗi cập nhật trạng thái (HTTP ${res.status})`);
+        }
+        return data;
+      })
+      .then(() => {
+        this.saveToStorage();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('dcor_vouchers_updated'));
+        }
+        this.showToast(`Đã ${nextActive ? 'kích hoạt' : 'tạm dừng'} mã ${item.code} trên toàn hệ thống!`, 'success');
+      })
+      .catch(err => {
+        item.status = prevStatus;
+        console.error('Lỗi đồng bộ trạng thái voucher:', err);
+        this.showToast(err?.message || 'Không thể cập nhật trạng thái voucher.', 'warning');
+      });
   }
 
   promptDelete(item: VoucherItem): void {
@@ -806,15 +1024,34 @@ export class VouchersComponent implements OnInit {
     if (!this.voucherToDelete) return;
     const code = this.voucherToDelete.code;
     const delId = this.voucherToDelete.id;
-    this.records = this.records.filter(r => r.id !== delId);
-    this.saveToStorage();
     this.voucherToDelete = null;
-    this.showToast(`Đã xóa voucher ${code} khỏi hệ thống`, 'success');
 
-    // Đồng bộ xóa trong DB PostgreSQL
-    fetch(`${environment.apiUrl}/vouchers/${delId}`, {
-      method: 'DELETE'
-    }).catch(err => console.warn('Lỗi xóa voucher trên server:', err));
+    // Đồng bộ xóa trong DB PostgreSQL với đầy đủ Authorization
+    fetch(`${environment.apiUrl}/admin/vouchers/${delId}`, {
+      method: 'DELETE',
+      headers: {
+        ...this.getAuthHeaders()
+      }
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data?.message || `Lỗi xóa voucher (HTTP ${res.status})`);
+        }
+        return data;
+      })
+      .then(() => {
+        this.records = this.records.filter(r => r.id !== delId);
+        this.saveToStorage();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('dcor_vouchers_updated'));
+        }
+        this.showToast(`Đã xóa voucher ${code} khỏi hệ thống!`, 'success');
+      })
+      .catch(err => {
+        console.error('Lỗi xóa voucher trên server:', err);
+        this.showToast(err?.message || 'Không thể xóa voucher trên máy chủ.', 'warning');
+      });
   }
 
   copyCode(code: string): void {

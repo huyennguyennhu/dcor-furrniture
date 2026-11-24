@@ -903,14 +903,14 @@
 .bulk-inputs-flex {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .bulk-field-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .bulk-label {
@@ -928,7 +928,7 @@
 
 .bulk-input {
   height: 34px !important;
-  width: 140px;
+  width: 135px;
   font-size: 12.5px;
   padding: 0 8px;
   border-radius: 6px;
@@ -936,6 +936,10 @@
   background: #FFFFFF;
   font-weight: 600;
   box-sizing: border-box;
+}
+
+.bulk-input-threshold {
+  width: 110px;
 }
 
 .bulk-input:focus {
@@ -1094,6 +1098,11 @@
   height: 28px;
   padding: 0 6px;
   font-size: 11.5px;
+}
+
+.table-input.is-invalid {
+  border-color: #C42326 !important;
+  background-color: #FFF7F7;
 }
 
 .font-mono {
@@ -2339,5 +2348,38 @@ select.form-control option {
 .form-dropdown-menu .dropdown-item.selected {
   background-color: #F3ECE2;
   color: #765337;
+  font-weight: 600;
+}
+
+/* Quick-select presets cho thời hạn bảo hành theo từng sản phẩm */
+.warranty-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.warranty-preset-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #d6d3d1;
+  background: #ffffff;
+  color: #57534e;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.warranty-preset-pill:hover {
+  border-color: #765337;
+  color: #765337;
+  background: #faf8f5;
+}
+
+.warranty-preset-pill.active {
+  background: #765337;
+  border-color: #765337;
+  color: #ffffff;
   font-weight: 600;
 }

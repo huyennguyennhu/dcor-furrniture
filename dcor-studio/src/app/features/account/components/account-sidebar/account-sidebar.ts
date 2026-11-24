@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { 
@@ -56,7 +56,8 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
     private customerService: CustomerService,
     private authService: AuthService,
     private reviewService: ReviewService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -146,9 +147,9 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
         avatarUrl: cachedUser.avatarUrl || cachedUser.avatar || null,
         rewardPoints: cachedUser.rewardPoints || 0,
         totalSpent: cachedUser.totalSpent || 0,
-        memberTier: cachedUser.memberTier || 'Đồng',
-        memberBadge: cachedUser.memberBadge || 'BRONZE',
-        nextTierThreshold: cachedUser.nextTierThreshold || 15000000,
+        memberTier: cachedUser.memberTier || 'Thành viên',
+        memberBadge: cachedUser.memberBadge || 'MEMBER',
+        nextTierThreshold: cachedUser.nextTierThreshold || 30000000,
         orderCount: cachedUser.orderCount || 0,
         addresses: cachedUser.addresses || [],
         createdAt: cachedUser.createdAt || ''
@@ -171,15 +172,26 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
           try {
             localStorage.setItem('dcor_customer_user', JSON.stringify(this.profile));
             if (this.isLoggedIn && currentUser) {
-              currentUser.avatarUrl = avatarUrl;
-              currentUser.avatar = avatarUrl;
-              currentUser.fullName = data.fullName || currentUser.fullName;
-              localStorage.setItem('dcor_customer', JSON.stringify(currentUser));
+              const updatedCustomer = {
+                ...currentUser,
+                avatarUrl,
+                avatar: avatarUrl,
+                fullName: data.fullName || currentUser.fullName,
+                memberTier: data.memberTier,
+                memberBadge: data.memberBadge,
+                rewardPoints: data.rewardPoints,
+                totalSpent: data.totalSpent
+              };
+              localStorage.setItem('dcor_customer', JSON.stringify(updatedCustomer));
             }
           } catch (e) {}
+          this.cdr.markForCheck();
+          try { this.cdr.detectChanges(); } catch (_) {}
         },
         error: () => {
           this.isLoading = false;
+          this.cdr.markForCheck();
+          try { this.cdr.detectChanges(); } catch (_) {}
         }
       })
     );

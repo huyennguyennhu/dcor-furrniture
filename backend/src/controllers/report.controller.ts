@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { calculateMemberTier, MEMBER_TIER_THRESHOLDS } from '../lib/member-tier';
 
 // Helper biến đổi BigInt sang Number an toàn cho JSON serialization
 function safeJson(data: any): any {
@@ -692,10 +693,33 @@ export const reportController = {
       const totalProducts = await prisma.product.count({ where: { isActive: true } });
       const allVariants = await prisma.productVariant.findMany({
         where: { isActive: true },
-        select: { stock: true }
+        select: {
+          stock: true,
+          reservedStock: true,
+          optionValues: true,
+          warehouseStocks: {
+            select: { safetyThreshold: true }
+          }
+        }
       });
-      const lowStockProducts = allVariants.filter(v => v.stock > 0 && v.stock < 5).length;
-      const outOfStockProducts = allVariants.filter(v => v.stock === 0).length;
+      const getVariantThreshold = (v: any): number => {
+        const whThresholds = (v.warehouseStocks || [])
+          .map((ws: any) => ws.safetyThreshold)
+          .filter((t: any) => typeof t === 'number' && Number.isFinite(t) && t >= 0);
+        if (whThresholds.length > 0) return Math.min(...whThresholds);
+        const opt = typeof v.optionValues === 'string'
+          ? (() => { try { return JSON.parse(v.optionValues); } catch { return {}; } })()
+          : (v.optionValues || {});
+        if (opt?.safetyThreshold !== null && opt?.safetyThreshold !== undefined && Number.isFinite(Number(opt.safetyThreshold)) && Number(opt.safetyThreshold) >= 0) {
+          return Math.round(Number(opt.safetyThreshold));
+        }
+        return 5;
+      };
+      const lowStockProducts = allVariants.filter(v => {
+        const avail = Math.max(0, (v.stock || 0) - (v.reservedStock || 0));
+        return avail > 0 && avail <= getVariantThreshold(v);
+      }).length;
+      const outOfStockProducts = allVariants.filter(v => Math.max(0, (v.stock || 0) - (v.reservedStock || 0)) === 0).length;
       const activeProducts = totalProducts;
 
       // Danh mục sản phẩm thực tế theo cấu trúc Cha - Con
@@ -947,7 +971,7 @@ export const reportController = {
         where: whereCust,
         include: {
           orders: {
-            where: { status: { not: 'CANCELLED' } },
+            where: { status: { in: ['DELIVERED', 'COMPLETED'] } },
             select: { id: true, totalAmount: true, createdAt: true, province: true, showroom: true }
           },
           addresses: { select: { province: true, district: true } }
@@ -986,20 +1010,19 @@ export const reportController = {
 
       const customerTiers = allCustomers.map(c => {
         const ordersSpent = c.orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
-        const spent = Math.max(Number(c.totalSpent) || 0, ordersSpent);
+        const spent = ordersSpent > 0 ? ordersSpent : (Number(c.totalSpent) || 0);
         totalAllRevenue += spent;
 
-        let tier = 'Thành viên';
-        if (spent >= 200000000) {
+        const tierInfo = calculateMemberTier(spent);
+        let tier: string = tierInfo.tier;
+        if (tierInfo.badge === 'DIAMOND') {
           tier = 'Kim cương';
           diamondCount++;
           diamondRevenue += spent;
-        } else if (spent >= 80000000) {
-          tier = 'Vàng';
+        } else if (tierInfo.badge === 'GOLD') {
           goldCount++;
           goldRevenue += spent;
-        } else if (spent >= 30000000) {
-          tier = 'Bạc';
+        } else if (tierInfo.badge === 'SILVER') {
           silverCount++;
         } else {
           memberCount++;
@@ -1312,10 +1335,30 @@ export const reportController = {
         }
       });
 
-      // b) SKU nguy cấp tồn kho (stock <= 10)
-      const criticalLowStockSKUs = await prisma.productVariant.count({
-        where: { isActive: true, stock: { lte: 10 } }
+      // b) SKU nguy cấp tồn kho (tồn khả dụng <= ngưỡng tồn kho cấu hình của từng biến thể)
+      const activeVariantsForLowStock = await prisma.productVariant.findMany({
+        where: { isActive: true },
+        select: {
+          stock: true,
+          reservedStock: true,
+          optionValues: true,
+          warehouseStocks: { select: { safetyThreshold: true } }
+        }
       });
+      const criticalLowStockSKUs = activeVariantsForLowStock.filter((v: any) => {
+        const avail = Math.max(0, (v.stock || 0) - (v.reservedStock || 0));
+        const whThresholds = (v.warehouseStocks || [])
+          .map((ws: any) => ws.safetyThreshold)
+          .filter((t: any) => typeof t === 'number' && Number.isFinite(t) && t >= 0);
+        const opt = typeof v.optionValues === 'string'
+          ? (() => { try { return JSON.parse(v.optionValues); } catch { return {}; } })()
+          : (v.optionValues || {});
+        const optThresh = (opt?.safetyThreshold !== null && opt?.safetyThreshold !== undefined && Number.isFinite(Number(opt.safetyThreshold)) && Number(opt.safetyThreshold) >= 0)
+          ? Math.round(Number(opt.safetyThreshold))
+          : null;
+        const threshold = whThresholds.length > 0 ? Math.min(...whThresholds) : (optThresh !== null ? optThresh : 5);
+        return avail <= threshold;
+      }).length;
 
       // c) Lịch hẹn showroom hôm nay thực tế
       let todayAppointments = 0;
@@ -1541,11 +1584,11 @@ export const reportController = {
           stock: p.stock
         }));
 
-      // 10. Top 5 Khách hàng thân thiết / chi tiêu cao nhất
+      // 10. Top 5 Khách hàng thân thiết / chi tiêu cao nhất (chỉ tính đơn đã giao / hoàn tất)
       const customersWithSpent = await prisma.customer.findMany({
         include: {
           orders: {
-            where: { status: { not: 'CANCELLED' } },
+            where: { status: { in: ['DELIVERED', 'COMPLETED'] } },
             select: { totalAmount: true, createdAt: true },
             orderBy: { createdAt: 'desc' }
           }
@@ -1554,19 +1597,13 @@ export const reportController = {
 
       const topCustomers = customersWithSpent
         .map(c => {
-          const spent = Number(c.totalSpent) || c.orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
-          let tier = 'Thành viên';
-          let badgeClass = 'badge-member';
-          if (spent >= 200000000) {
-            tier = 'Kim Cương';
-            badgeClass = 'badge-diamond';
-          } else if (spent >= 80000000) {
-            tier = 'Vàng';
-            badgeClass = 'badge-gold';
-          } else if (spent >= 30000000) {
-            tier = 'Bạc';
-            badgeClass = 'badge-silver';
-          }
+          const fulfilledSpent = c.orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+          const spent = fulfilledSpent > 0 ? fulfilledSpent : (Number(c.totalSpent) || 0);
+          const tierInfo = calculateMemberTier(spent);
+          const tier = tierInfo.tier;
+          const badgeClass = tierInfo.badge === 'DIAMOND'
+            ? 'badge-diamond'
+            : (tierInfo.badge === 'GOLD' ? 'badge-gold' : (tierInfo.badge === 'SILVER' ? 'badge-silver' : 'badge-member'));
 
           const lastOrder = c.orders[0]?.createdAt;
           const lastOrderDate = lastOrder 

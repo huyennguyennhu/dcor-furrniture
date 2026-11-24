@@ -1,23 +1,22 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
-import { 
-  LucideAngularModule, 
-  CheckCircle2, 
-  ShieldCheck, 
-  Shield, 
-  Package, 
-  AlertCircle, 
-  Wrench, 
-  Phone, 
-  X, 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  FileText, 
-  Check, 
-  ChevronRight,
+import {
+  LucideAngularModule,
+  CheckCircle2,
+  ShieldCheck,
+  Shield,
+  Package,
+  AlertCircle,
+  Phone,
+  X,
+  Calendar,
+  Clock,
+  MapPin,
+  FileText,
+  Check,
+  Copy,
   Sparkles,
   Search
 } from 'lucide-angular';
@@ -25,7 +24,7 @@ import { AccountSidebarComponent } from '../../components/account-sidebar/accoun
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { CustomerService, WarrantyItem } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { Subscription } from 'rxjs';
+import { Subscription, skip } from 'rxjs';
 
 @Component({
   selector: 'app-account-warranty',
@@ -42,7 +41,6 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
     Shield,
     Package,
     AlertCircle,
-    Wrench,
     Phone,
     X,
     Calendar,
@@ -50,17 +48,18 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
     MapPin,
     FileText,
     Check,
-    ChevronRight,
+    Copy,
     Sparkles
   };
 
   warranties: WarrantyItem[] = [];
   filteredWarranties: WarrantyItem[] = [];
   isLoading = false;
-  activeFilter: 'ACTIVE' | 'EXPIRED' | 'ALL' = 'ACTIVE';
+  activeFilter: 'ACTIVE' | 'EXPIRED' | 'ALL' = 'ALL';
   searchQuery = '';
   errorMessage = '';
-  successMessage = '';
+  copiedKey = signal<string>('');
+  private copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   isLoggedIn = false;
   isPhoneVerified = false;
@@ -77,22 +76,20 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
     return this.warranties.filter(w => w.isExpired).length;
   }
 
-  // Modal Chi tiết bảo hành
+  // Modal Chi tiết thẻ bảo hành (chỉ tra cứu)
   isDetailModalOpen = false;
   selectedWarrantyDetail: WarrantyItem | null = null;
 
-  // Modal Gửi yêu cầu bảo hành
-  isClaimModalOpen = false;
-  isSubmitting = false;
-  selectedItem: WarrantyItem | null = null;
-
-  claimForm = {
-    claimType: 'HOME',
-    issueDescription: '',
-    evidenceImageUrl: ''
-  };
-
   private sub = new Subscription();
+  private warrantiesReqSub?: Subscription;
+  private isDestroyed = false;
+  private isViewReady = false;
+
+  private triggerRender(): void {
+    if (!this.isDestroyed && this.isViewReady) {
+      this.cdr.detectChanges();
+    }
+  }
 
   constructor(
     private customerService: CustomerService,
@@ -110,18 +107,18 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
     this.isPhoneVerified = this.authService.isGuestVerified();
 
     this.sub.add(
-      this.authService.user$.subscribe(user => {
+      this.authService.user$.pipe(skip(1)).subscribe(user => {
         this.isLoggedIn = !!user;
         this.checkAndLoad();
-        this.cdr.markForCheck();
+        this.triggerRender();
       })
     );
 
     this.sub.add(
-      this.authService.guestPhone$.subscribe(phone => {
+      this.authService.guestPhone$.pipe(skip(1)).subscribe(phone => {
         this.isPhoneVerified = !!phone;
         this.checkAndLoad();
-        this.cdr.markForCheck();
+        this.triggerRender();
       })
     );
 
@@ -129,10 +126,10 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
       this.route.queryParams.subscribe(params => {
         if (params['tab'] === 'expired') {
           this.activeFilter = 'EXPIRED';
-        } else if (params['tab'] === 'all') {
-          this.activeFilter = 'ALL';
-        } else {
+        } else if (params['tab'] === 'active') {
           this.activeFilter = 'ACTIVE';
+        } else {
+          this.activeFilter = 'ALL';
         }
 
         const targetOrder = params['orderNumber'];
@@ -143,97 +140,101 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
           }
         }
         this.applyFilter();
-        this.cdr.markForCheck();
+        this.triggerRender();
       })
     );
 
     this.checkAndLoad();
+    this.isViewReady = true;
   }
 
   private checkAndLoad(): void {
     if (this.canViewContent) {
       this.loadWarranties();
     } else {
+      this.warrantiesReqSub?.unsubscribe();
       this.warranties = [];
       this.filteredWarranties = [];
       this.isLoading = false;
-      this.cdr.markForCheck();
+      this.triggerRender();
     }
   }
 
   loadWarranties(): void {
     if (!this.canViewContent) {
       this.isLoading = false;
-      this.cdr.markForCheck();
+      this.triggerRender();
       return;
     }
+    this.warrantiesReqSub?.unsubscribe();
     this.isLoading = true;
-    this.cdr.markForCheck();
-    this.sub.add(
-      this.customerService.getWarranties().subscribe({
-        next: (data) => {
-          this.warranties = data || [];
-          this.applyFilter();
-          this.isLoading = false;
+    this.errorMessage = '';
+    this.triggerRender();
 
-          // Kiểm tra mở tự động nếu có query params
-          const targetOrder = this.route.snapshot.queryParams['orderNumber'];
-          if (targetOrder && this.warranties.length > 0) {
-            const match = this.warranties.find(w => w.orderNumber === targetOrder);
-            if (match) {
-              this.openDetailModal(match);
-            }
+    this.warrantiesReqSub = this.customerService.getWarranties().subscribe({
+      next: (data) => {
+        this.warranties = (data || []).map(w => ({
+          ...w,
+          imageUrl: w.imageUrl && !w.imageUrl.includes('dsasf753c') ? w.imageUrl : ''
+        }));
+        this.applyFilter();
+        this.isLoading = false;
+
+        const targetOrder = this.route.snapshot.queryParams['orderNumber'];
+        if (targetOrder && this.warranties.length > 0) {
+          const match = this.warranties.find(w => w.orderNumber === targetOrder);
+          if (match) {
+            this.openDetailModal(match);
           }
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.errorMessage = err.error?.message || 'Không thể tải thông tin bảo hành.';
-          this.warranties = [];
-          this.filteredWarranties = [];
-          this.isLoading = false;
-          this.cdr.markForCheck();
         }
-      })
-    );
+        this.triggerRender();
+      },
+      error: (err) => {
+        this.errorMessage = err.error?.message || 'Không thể tải thông tin bảo hành.';
+        this.warranties = [];
+        this.filteredWarranties = [];
+        this.isLoading = false;
+        this.triggerRender();
+      }
+    });
   }
 
-  onGuestPhoneVerified(phone: string): void {
+  onGuestPhoneVerified(_phone: string): void {
     this.isPhoneVerified = true;
     this.warranties = [];
     this.filteredWarranties = [];
     this.errorMessage = '';
     this.loadWarranties();
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
   onGuestPhoneReset(): void {
     this.isPhoneVerified = false;
+    this.warrantiesReqSub?.unsubscribe();
     this.warranties = [];
     this.filteredWarranties = [];
     this.isLoading = false;
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
   setFilter(filter: 'ACTIVE' | 'EXPIRED' | 'ALL'): void {
     this.activeFilter = filter;
     this.applyFilter();
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
   applyFilter(): void {
     let list = this.warranties;
 
-    // Lọc theo trạng thái thời hạn
     if (this.activeFilter === 'ACTIVE') {
       list = list.filter(w => !w.isExpired);
     } else if (this.activeFilter === 'EXPIRED') {
       list = list.filter(w => w.isExpired);
     }
 
-    // Lọc theo từ khóa tìm kiếm
     if (this.searchQuery && this.searchQuery.trim()) {
       const q = this.searchQuery.trim().toLowerCase();
-      list = list.filter(w => 
+      list = list.filter(w =>
         (w.productName && w.productName.toLowerCase().includes(q)) ||
         (w.orderNumber && w.orderNumber.toLowerCase().includes(q)) ||
         (w.warrantyCode && w.warrantyCode.toLowerCase().includes(q)) ||
@@ -246,94 +247,74 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
 
   onSearchChange(): void {
     this.applyFilter();
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
-  // --- MODAL CHI TIẾT BẢO HÀNH ---
+  copyWarrantyCode(code: string | undefined, key: string, event?: Event): void {
+    if (event) event.stopPropagation();
+    if (!code) return;
+    const markCopied = () => {
+      if (this.copyResetTimer) {
+        clearTimeout(this.copyResetTimer);
+      }
+      this.copiedKey.set(key);
+      this.triggerRender();
+      this.copyResetTimer = setTimeout(() => {
+        if (this.copiedKey() === key) {
+          this.copiedKey.set('');
+          this.triggerRender();
+        }
+        this.copyResetTimer = null;
+      }, 1800);
+    };
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(code).then(markCopied).catch(() => {
+        this.fallbackCopyText(code);
+        markCopied();
+      });
+    } else {
+      this.fallbackCopyText(code);
+      markCopied();
+    }
+  }
+
+  private fallbackCopyText(text: string): void {
+    const input = document.createElement('input');
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+  }
+
   openDetailModal(item: WarrantyItem, event?: Event): void {
     if (event) event.stopPropagation();
     this.selectedWarrantyDetail = item;
     this.isDetailModalOpen = true;
-    this.cdr.markForCheck();
+    this.triggerRender();
+  }
+
+  onImageError(item: WarrantyItem): void {
+    if (item && item.imageUrl) {
+      item.imageUrl = '';
+      this.triggerRender();
+    }
   }
 
   closeDetailModal(): void {
     this.isDetailModalOpen = false;
     this.selectedWarrantyDetail = null;
-    this.cdr.markForCheck();
-  }
-
-  openClaimFromDetail(): void {
-    const item = this.selectedWarrantyDetail;
-    this.closeDetailModal();
-    if (item) {
-      this.openClaimModal(item);
-    }
-  }
-
-  // --- MODAL GỬI YÊU CẦU BẢO HÀNH ---
-  openClaimModal(item: WarrantyItem, event?: Event): void {
-    if (event) event.stopPropagation();
-    this.selectedItem = item;
-    this.claimForm = {
-      claimType: 'HOME',
-      issueDescription: '',
-      evidenceImageUrl: ''
-    };
-    this.isClaimModalOpen = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.cdr.markForCheck();
-  }
-
-  closeModal(): void {
-    this.isClaimModalOpen = false;
-    this.selectedItem = null;
-    this.cdr.markForCheck();
-  }
-
-  submitClaim(): void {
-    if (!this.selectedItem) return;
-    if (!this.claimForm.issueDescription.trim()) {
-      alert('Vui lòng mô tả chi tiết sự cố sản phẩm gặp phải.');
-      return;
-    }
-
-    this.isSubmitting = true;
-    const payload = {
-      orderNumber: this.selectedItem.orderNumber,
-      productName: this.selectedItem.productName,
-      claimType: this.claimForm.claimType === 'HOME' ? 'Bảo hành tại nhà' : 'Mang đến Showroom',
-      issueDescription: this.claimForm.issueDescription.trim(),
-      evidenceImages: this.claimForm.evidenceImageUrl ? [this.claimForm.evidenceImageUrl.trim()] : []
-    };
-
-    this.sub.add(
-      this.customerService.createWarrantyClaim(payload).subscribe({
-        next: (res) => {
-          this.isSubmitting = false;
-          this.closeModal();
-          this.successMessage = res.message || 'Tạo yêu cầu bảo hành thành công!';
-          setTimeout(() => {
-            this.successMessage = '';
-            this.cdr.markForCheck();
-          }, 5000);
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.isSubmitting = false;
-          alert(err.error?.message || 'Có lỗi xảy ra khi tạo yêu cầu bảo hành.');
-          this.cdr.markForCheck();
-        }
-      })
-    );
-  }
-
-  formatCurrency(val?: number): string {
-    return (val || 0).toLocaleString('vi-VN') + ' ₫';
+    this.triggerRender();
   }
 
   ngOnDestroy(): void {
+    this.isDestroyed = true;
+    if (this.copyResetTimer) {
+      clearTimeout(this.copyResetTimer);
+      this.copyResetTimer = null;
+    }
+    this.warrantiesReqSub?.unsubscribe();
     this.sub.unsubscribe();
   }
 }

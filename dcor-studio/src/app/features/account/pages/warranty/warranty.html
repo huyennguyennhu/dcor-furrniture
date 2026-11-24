@@ -8,94 +8,76 @@
 
       <!-- Main Content Column -->
       <main class="content-column">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb-nav">
-          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
-          <span class="breadcrumb-separator">/</span>
-          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
-          <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">Bảo hành sản phẩm</span>
-        </nav>
-
-        <!-- Header -->
-        <!-- Header & Search Bar (Sắp xếp chuẩn như Đơn hàng của tôi) -->
+        <!-- Header & Search Bar -->
         <div class="orders-header-wrap">
           <div class="header-text">
-            <h1 class="page-title">Bảo hành điện tử chính hãng</h1>
-            <p class="page-subtitle">Theo dõi thời hạn và kích hoạt dịch vụ bảo dưỡng, sửa chữa tận nhà cho các sản phẩm đã nhận hàng.</p>
+            <h1 class="page-title">Bảo hành sản phẩm</h1>
+            <p class="page-subtitle">Tra cứu nhanh mã bảo hành, thời hạn còn lại và điều kiện bảo hành cho các sản phẩm đã mua tại DCor.</p>
           </div>
 
           <!-- Search Box -->
           <div *ngIf="canViewContent" class="search-box">
             <lucide-angular [img]="icons.Search" size="18" class="search-icon"></lucide-angular>
-            <input 
-              type="text" 
-              class="search-input" 
-              placeholder="Tìm theo mã bảo hành, serial, tên sản phẩm..."
-              [(ngModel)]="searchQuery" 
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Tra cứu theo mã bảo hành, mã đơn, SKU, tên sản phẩm..."
+              [(ngModel)]="searchQuery"
               (input)="onSearchChange()" />
             <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; onSearchChange()">×</button>
           </div>
         </div>
 
         <!-- Banner xác thực số điện thoại cho khách vãng lai -->
-        <app-guest-phone-banner 
-          customTitle="Tra cứu hồ sơ bảo hành qua số điện thoại"
-          customDesc="Nhập và xác thực số điện thoại để tra cứu thời hạn và kích hoạt bảo dưỡng sản phẩm."
-          (verified)="onGuestPhoneVerified($event)" 
+        <app-guest-phone-banner
+          customTitle="Tra cứu bảo hành sản phẩm qua số điện thoại"
+          customDesc="Nhập và xác thực số điện thoại mua hàng để kiểm tra danh sách sản phẩm còn hoặc hết thời hạn bảo hành."
+          (verified)="onGuestPhoneVerified($event)"
           (reset)="onGuestPhoneReset()">
         </app-guest-phone-banner>
 
-        <!-- Chỉ hiển thị chính sách và danh sách bảo hành khi ĐÃ ĐĂNG NHẬP hoặc ĐÃ XÁC THỰC SĐT -->
+        <!-- Nội dung tra cứu bảo hành -->
         <ng-container *ngIf="canViewContent">
-          <!-- Success Toast -->
-          <div *ngIf="successMessage" class="alert alert-success">
-            <lucide-angular [img]="icons.CheckCircle2" size="18"></lucide-angular>
-            <span>{{ successMessage }}</span>
-          </div>
-
           <!-- Error Alert -->
           <div *ngIf="errorMessage" class="alert alert-danger">
             <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
             <span>{{ errorMessage }}</span>
           </div>
 
-          <!-- Filter Tabs (Sắp xếp đồng bộ như các tab trong Đơn hàng của tôi) -->
+          <!-- Filter Tabs -->
           <div class="order-tabs-bar">
-            <button 
-              type="button" 
-              class="tab-btn" 
-              [class.active]="activeFilter === 'ACTIVE'" 
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'ALL'"
+              (click)="setFilter('ALL')">
+              <span>Tất cả</span>
+              <span class="tab-badge" [class.active-badge]="activeFilter === 'ALL'">{{ warranties.length }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'ACTIVE'"
               (click)="setFilter('ACTIVE')">
-              <lucide-angular [img]="icons.ShieldCheck" size="15"></lucide-angular>
-              <span>Còn thời gian bảo hành</span>
+              <span>Còn bảo hành</span>
               <span class="tab-badge" [class.active-badge]="activeFilter === 'ACTIVE'">{{ activeCount }}</span>
             </button>
 
-            <button 
-              type="button" 
-              class="tab-btn" 
-              [class.active]="activeFilter === 'EXPIRED'" 
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'EXPIRED'"
               (click)="setFilter('EXPIRED')">
-              <lucide-angular [img]="icons.Clock" size="15"></lucide-angular>
-              <span>Hết thời gian bảo hành</span>
+              <span>Hết hạn bảo hành</span>
               <span class="tab-badge" [class.active-badge]="activeFilter === 'EXPIRED'">{{ expiredCount }}</span>
-            </button>
-
-            <button 
-              type="button" 
-              class="tab-btn" 
-              [class.active]="activeFilter === 'ALL'" 
-              (click)="setFilter('ALL')">
-              <span>Tất cả sản phẩm</span>
-              <span class="tab-badge" [class.active-badge]="activeFilter === 'ALL'">{{ warranties.length }}</span>
             </button>
           </div>
 
           <!-- Loading State -->
           <div *ngIf="isLoading" class="loading-state">
             <div class="spinner"></div>
-            <p>Đang kiểm tra hồ sơ bảo hành các sản phẩm đã giao...</p>
+            <p>Đang tra cứu thông tin bảo hành sản phẩm...</p>
           </div>
 
           <!-- Empty State -->
@@ -104,41 +86,54 @@
               <lucide-angular [img]="icons.Shield" size="48"></lucide-angular>
             </div>
             <h3 class="empty-title">
-              {{ searchQuery ? 'Không tìm thấy sản phẩm phù hợp' : (activeFilter === 'EXPIRED' ? 'Chưa có sản phẩm nào hết hạn bảo hành' : 'Không có sản phẩm trong mục này') }}
+              {{ searchQuery ? 'Không tìm thấy sản phẩm phù hợp' : (activeFilter === 'EXPIRED' ? 'Chưa có sản phẩm nào hết hạn bảo hành' : 'Chưa có sản phẩm nào trong danh sách bảo hành') }}
             </h3>
             <p class="empty-desc">
-              {{ searchQuery ? 'Hãy thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc.' : 'Mọi sản phẩm từ đơn hàng đã giao thành công sẽ được tự động kích hoạt bảo hành điện tử chính hãng DCor.' }}
+              {{ searchQuery ? 'Hãy thử tìm kiếm với mã bảo hành, mã đơn hàng hoặc tên sản phẩm khác.' : 'Mọi sản phẩm từ đơn hàng đã giao thành công sẽ tự động được kích hoạt thời hạn bảo hành tại đây.' }}
             </p>
             <div class="empty-actions">
               <button *ngIf="searchQuery" type="button" class="btn btn-outline" (click)="searchQuery = ''; applyFilter()">
                 Xóa tìm kiếm
               </button>
               <a routerLink="/account/orders" class="btn btn-primary">
-                <span>Xem danh sách đơn hàng</span>
+                <span>Xem đơn hàng của tôi</span>
               </a>
             </div>
           </div>
 
-          <!-- Warranty Products List -->
+          <!-- Warranty Lookup List -->
           <div *ngIf="!isLoading && filteredWarranties.length > 0" class="warranty-list">
-            <div 
-              *ngFor="let item of filteredWarranties" 
-              class="warranty-card" 
+            <div
+              *ngFor="let item of filteredWarranties"
+              class="warranty-card"
               [ngClass]="{ 'is-expired': item.isExpired }"
               (click)="openDetailModal(item)">
-              
-              <!-- 1. Header Topbar (Full màu trạng thái như Đơn hàng của tôi) -->
+
+              <!-- 1. Header Topbar -->
               <div class="warranty-card-topbar" [ngClass]="item.isExpired ? 'status-expired' : 'status-active'">
                 <div class="topbar-status">
                   <span class="status-indicator-dot"></span>
                   <span class="topbar-status-text">
-                    {{ item.isExpired ? 'Hết hạn bảo hành' : 'Còn thời gian bảo hành' }}
+                    {{ item.warrantyPeriodMonths <= 0 ? 'Không áp dụng bảo hành' : (item.isExpired ? 'Hết hạn bảo hành' : 'Còn thời gian bảo hành') }}
                   </span>
                 </div>
                 <div class="topbar-meta">
                   <span class="meta-code">Đơn #{{ item.orderNumber }}</span>
                   <span class="meta-divider" *ngIf="item.warrantyCode">|</span>
-                  <span class="meta-code" *ngIf="item.warrantyCode">Mã BH: {{ item.warrantyCode }}</span>
+                  <span class="meta-code meta-code-copy" *ngIf="item.warrantyCode">
+                    <span>Mã BH: {{ item.warrantyCode }}</span>
+                    <button
+                      type="button"
+                      class="meta-copy-btn"
+                      [class.copied]="copiedKey() === item.id"
+                      [title]="copiedKey() === item.id ? 'Đã sao chép mã bảo hành' : 'Sao chép mã bảo hành'"
+                      (click)="copyWarrantyCode(item.warrantyCode, item.id, $event)">
+                      <lucide-angular *ngIf="copiedKey() === item.id; else copyCardIcon" [img]="icons.Check" size="13"></lucide-angular>
+                      <ng-template #copyCardIcon>
+                        <lucide-angular [img]="icons.Copy" size="13"></lucide-angular>
+                      </ng-template>
+                    </button>
+                  </span>
                 </div>
               </div>
 
@@ -147,7 +142,7 @@
                 <div class="warranty-body-left">
                   <!-- Product Image Thumbnail -->
                   <div class="product-thumb">
-                    <img *ngIf="item.imageUrl; else placeholderImg" [src]="item.imageUrl" [alt]="item.productName" />
+                    <img *ngIf="item.imageUrl; else placeholderImg" [src]="item.imageUrl" [alt]="item.productName" (error)="onImageError(item)" />
                     <ng-template #placeholderImg>
                       <div class="thumb-placeholder">
                         <lucide-angular [img]="icons.Package" size="32"></lucide-angular>
@@ -158,66 +153,41 @@
                   <!-- Product Details -->
                   <div class="warranty-details-col">
                     <h4 class="product-title" title="Bấm để xem chi tiết thẻ bảo hành">{{ item.productName }}</h4>
-                    
-                    <div class="warranty-tags-row">
-                      <span class="info-tag tag-order">Đơn hàng #{{ item.orderNumber }}</span>
-                      <span *ngIf="item.warrantyCode" class="info-tag tag-warranty">Mã BH: {{ item.warrantyCode }}</span>
-                      <span *ngIf="(item.variantName || item.variantDescription)" class="info-tag tag-variant">{{ (item.variantName || item.variantDescription) }}</span>
+
+                    <div class="warranty-tags-row" *ngIf="(item.variantName || item.variantDescription)">
+                      <span class="info-tag tag-variant">{{ (item.variantName || item.variantDescription) }}</span>
+                    </div>
+
+                    <!-- Highlight Thời hạn bảo hành: Từ ngày -> Đến ngày -->
+                    <div class="warranty-period-highlight" [class.is-expired]="item.isExpired">
+                      <ng-container *ngIf="item.warrantyPeriodMonths > 0; else noWarrantyRange">
+                        <div class="period-date-range">
+                          <span class="range-label">Từ</span>
+                          <strong class="range-date">{{ item.deliveredDate | date:'dd/MM/yyyy' }}</strong>
+                          <span class="range-arrow">→</span>
+                          <span class="range-label">đến</span>
+                          <strong class="range-date">{{ item.expiryDate | date:'dd/MM/yyyy' }}</strong>
+                        </div>
+                      </ng-container>
+                      <ng-template #noWarrantyRange>
+                        <div class="period-date-range">
+                          <span class="range-label">Ngày nhận hàng:</span>
+                          <strong class="range-date">{{ item.deliveredDate | date:'dd/MM/yyyy' }}</strong>
+                        </div>
+                      </ng-template>
                     </div>
                   </div>
-                </div>
 
-                <!-- Cột bên phải: Thời hạn bảo hành còn lại số ngày -->
-                <div class="warranty-days-right" [class.is-expired]="item.isExpired">
-                  <span class="days-label">Thời hạn bảo hành còn lại</span>
-                  <div class="days-counter-box" *ngIf="!item.isExpired">
-                    <lucide-angular [img]="icons.Clock" size="18" class="days-icon"></lucide-angular>
-                    <div class="days-text-wrap">
-                      <span class="days-prefix">Còn lại</span>
-                      <strong class="days-number">{{ item.daysLeft }}</strong>
-                      <span class="days-unit">ngày</span>
-                    </div>
+                  <!-- Nút xem thẻ bảo hành -->
+                  <div class="warranty-body-right-inline" (click)="$event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="btn-warranty-primary"
+                      (click)="openDetailModal(item, $event)">
+                      <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
+                      <span>Xem thẻ bảo hành</span>
+                    </button>
                   </div>
-                  <div class="days-counter-box expired-box" *ngIf="item.isExpired">
-                    <lucide-angular [img]="icons.AlertCircle" size="18" class="days-icon-expired"></lucide-angular>
-                    <strong class="days-number-expired">Đã hết hạn</strong>
-                  </div>
-                  <span class="days-expiry-date">Hết hạn: {{ item.expiryDate | date:'dd/MM/yyyy' }}</span>
-                </div>
-              </div>
-
-              <!-- 3. Action Footer -->
-              <div class="warranty-card-footer" (click)="$event.stopPropagation()">
-                <div class="warranty-footer-hint">
-                  <lucide-angular [img]="icons.ShieldCheck" size="14" class="hint-icon"></lucide-angular>
-                  <span>Chính sách bảo hành & bảo dưỡng chính hãng DCor</span>
-                </div>
-
-                <div class="warranty-actions">
-                  <button 
-                    type="button" 
-                    class="btn-warranty-outline"
-                    (click)="openDetailModal(item, $event)">
-                    <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
-                    <span>Xem chi tiết thẻ bảo hành</span>
-                  </button>
-
-                  <button 
-                    *ngIf="!item.isExpired" 
-                    type="button" 
-                    class="btn-warranty-primary"
-                    (click)="openClaimModal(item, $event)">
-                    <lucide-angular [img]="icons.Wrench" size="14"></lucide-angular>
-                    <span>Yêu cầu bảo hành / Sửa chữa</span>
-                  </button>
-                  <button 
-                    *ngIf="item.isExpired" 
-                    type="button" 
-                    class="btn-warranty-outline"
-                    (click)="openClaimModal(item, $event)">
-                    <lucide-angular [img]="icons.Phone" size="14"></lucide-angular>
-                    <span>Liên hệ bảo dưỡng dịch vụ</span>
-                  </button>
                 </div>
               </div>
 
@@ -228,7 +198,7 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL CHI TIẾT BẢO HÀNH ĐIỆN TỬ ==================== -->
+  <!-- ==================== MODAL CHI TIẾT THẺ BẢO HÀNH (CHỈ TRA CỨU) ==================== -->
   <div *ngIf="isDetailModalOpen" class="modal-backdrop" (click)="closeDetailModal()">
     <div class="modal-dialog modal-detail-dialog" (click)="$event.stopPropagation()">
       <!-- Modal Header -->
@@ -238,7 +208,7 @@
             <lucide-angular [img]="icons.ShieldCheck" size="24"></lucide-angular>
           </div>
           <div>
-            <h3 class="modal-title">Chi tiết Thẻ bảo hành điện tử chính hãng</h3>
+            <h3 class="modal-title">Chi tiết Thẻ bảo hành sản phẩm</h3>
             <span class="warranty-subcode" *ngIf="selectedWarrantyDetail">
               Mã thẻ bảo hành: <strong>{{ selectedWarrantyDetail.warrantyCode }}</strong>
             </span>
@@ -256,17 +226,20 @@
           <div class="status-badge-row">
             <span class="status-chip" [ngClass]="detail.isExpired ? 'chip-expired' : 'chip-active'">
               <lucide-angular [img]="detail.isExpired ? icons.AlertCircle : icons.CheckCircle2" size="16"></lucide-angular>
-              <strong>{{ detail.isExpired ? 'ĐÃ HẾT HẠN BẢO HÀNH CHÍNH HÃNG' : 'ĐANG TRONG THỜI GIAN BẢO HÀNH HIỆU LỰC' }}</strong>
+              <strong>{{ detail.warrantyPeriodMonths <= 0 ? 'KHÔNG ÁP DỤNG BẢO HÀNH' : (detail.isExpired ? 'ĐÃ HẾT HẠN BẢO HÀNH' : 'CÒN THỜI HẠN BẢO HÀNH') }}</strong>
             </span>
             <span class="status-time-highlight" *ngIf="!detail.isExpired">
-              Còn <strong>{{ detail.daysLeft }} ngày</strong> bảo dưỡng miễn phí
+              Còn lại <strong>{{ detail.daysLeft }} ngày</strong>
             </span>
           </div>
           <p class="status-desc" *ngIf="!detail.isExpired">
-            Sản phẩm được áp dụng chính sách bảo hành chính hãng DCor tận nhà miễn phí 100% linh kiện và nhân công kỹ thuật.
+            Sản phẩm đang trong thời hạn bảo hành chính hãng <strong>{{ detail.warrantyPeriodMonths }} tháng</strong> tại DCor. Khi cần hỗ trợ kỹ thuật, vui lòng liên hệ Hotline <strong>1900 1234</strong> và cung cấp mã bảo hành <strong>{{ detail.warrantyCode }}</strong>.
           </p>
-          <p class="status-desc" *ngIf="detail.isExpired">
-            Thời hạn bảo hành tiêu chuẩn đã kết thúc vào ngày {{ detail.expiryDate | date:'dd/MM/yyyy' }}. Quý khách vẫn được hỗ trợ dịch vụ bảo dưỡng, sửa chữa trọn đời với chi phí ưu đãi dành cho khách hàng thân thiết.
+          <p class="status-desc" *ngIf="detail.isExpired && detail.warrantyPeriodMonths > 0">
+            Thời hạn bảo hành tiêu chuẩn ({{ detail.warrantyPeriodMonths }} tháng) đã kết thúc vào ngày {{ detail.expiryDate | date:'dd/MM/yyyy' }}. Quý khách vẫn có thể liên hệ Hotline <strong>1900 1234</strong> để được tư vấn bảo dưỡng dịch vụ.
+          </p>
+          <p class="status-desc" *ngIf="detail.warrantyPeriodMonths <= 0">
+            Sản phẩm này không áp dụng thời hạn bảo hành tiêu chuẩn. Quý khách vẫn có thể liên hệ Hotline <strong>1900 1234</strong> để được tư vấn bảo dưỡng dịch vụ.
           </p>
         </div>
 
@@ -274,11 +247,11 @@
         <div class="detail-section">
           <h4 class="section-title">
             <lucide-angular [img]="icons.Package" size="18"></lucide-angular>
-            <span>Thông tin sản phẩm được bảo hành</span>
+            <span>Thông tin sản phẩm</span>
           </h4>
           <div class="product-info-card">
             <div class="product-info-thumb">
-              <img *ngIf="detail.imageUrl; else thumbNone" [src]="detail.imageUrl" [alt]="detail.productName" />
+              <img *ngIf="detail.imageUrl; else thumbNone" [src]="detail.imageUrl" [alt]="detail.productName" (error)="onImageError(detail)" />
               <ng-template #thumbNone>
                 <div class="thumb-placeholder">
                   <lucide-angular [img]="icons.Package" size="36"></lucide-angular>
@@ -317,16 +290,16 @@
         <div class="detail-section">
           <h4 class="section-title">
             <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
-            <span>Thời hạn & Tiến trình bảo hành</span>
+            <span>Thời hạn bảo hành</span>
           </h4>
           <div class="timeline-detail-box">
             <div class="timeline-track-header">
               <div class="timeline-point start">
-                <span class="point-label">Ngày nhận hàng & kích hoạt</span>
+                <span class="point-label">Ngày kích hoạt</span>
                 <span class="point-date">{{ detail.deliveredDate | date:'dd/MM/yyyy' }}</span>
               </div>
               <div class="timeline-point duration">
-                <span class="duration-badge">{{ detail.warrantyPeriodMonths }} tháng</span>
+                <span class="duration-badge">{{ detail.warrantyPeriodMonths > 0 ? (detail.warrantyPeriodMonths + ' tháng') : 'Không BH' }}</span>
               </div>
               <div class="timeline-point end">
                 <span class="point-label">Ngày hết hạn</span>
@@ -336,15 +309,15 @@
 
             <!-- Progress Bar -->
             <div class="timeline-bar-wrap">
-              <div 
-                class="timeline-bar-fill" 
-                [ngClass]="detail.isExpired ? 'fill-expired' : 'fill-active'" 
+              <div
+                class="timeline-bar-fill"
+                [ngClass]="detail.isExpired ? 'fill-expired' : 'fill-active'"
                 [style.width.%]="detail.progressPercent">
               </div>
             </div>
 
             <div class="timeline-caption">
-              <span>Đã trôi qua {{ detail.progressPercent }}% thời hạn</span>
+              <span>Đã sử dụng {{ detail.progressPercent }}% thời hạn</span>
               <span *ngIf="!detail.isExpired" class="caption-remaining">
                 Còn lại <strong>{{ detail.daysLeft }} ngày</strong>
               </span>
@@ -355,11 +328,11 @@
           </div>
         </div>
 
-        <!-- Section 3: Thông tin khách hàng & Địa chỉ bảo dưỡng -->
+        <!-- Section 3: Thông tin khách hàng -->
         <div class="detail-section" *ngIf="detail.customerName || detail.customerAddress">
           <h4 class="section-title">
             <lucide-angular [img]="icons.MapPin" size="18"></lucide-angular>
-            <span>Chủ sở hữu & Địa chỉ phục vụ bảo dưỡng</span>
+            <span>Thông tin chủ sở hữu</span>
           </h4>
           <div class="customer-info-box">
             <div class="customer-row" *ngIf="detail.customerName">
@@ -367,21 +340,21 @@
               <span class="c-val"><strong>{{ detail.customerName }}</strong></span>
             </div>
             <div class="customer-row" *ngIf="detail.customerPhone">
-              <span class="c-label">Số điện thoại liên hệ:</span>
+              <span class="c-label">Số điện thoại:</span>
               <span class="c-val"><strong>{{ detail.customerPhone }}</strong></span>
             </div>
             <div class="customer-row" *ngIf="detail.customerAddress">
-              <span class="c-label">Địa chỉ phục vụ tận nhà:</span>
+              <span class="c-label">Địa chỉ giao hàng:</span>
               <span class="c-val">{{ detail.customerAddress }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Section 4: Phạm vi bảo hành chính hãng DCor -->
+        <!-- Section 4: Phạm vi bảo hành -->
         <div class="detail-section">
           <h4 class="section-title">
             <lucide-angular [img]="icons.Sparkles" size="18"></lucide-angular>
-            <span>Phạm vi & Điều kiện bảo hành tiêu chuẩn</span>
+            <span>Phạm vi & Điều kiện bảo hành</span>
           </h4>
           <div class="coverage-grid" *ngIf="detail.coverageTerms && detail.coverageTerms.length; else defaultCoverage">
             <div class="coverage-box" *ngFor="let term of detail.coverageTerms; let i = index">
@@ -414,85 +387,19 @@
 
       <!-- Modal Footer -->
       <div class="modal-footer footer-detail" *ngIf="selectedWarrantyDetail as detail">
-        <button type="button" class="btn btn-outline" (click)="closeDetailModal()">
+        <button
+          *ngIf="detail.warrantyCode"
+          type="button"
+          class="btn btn-outline"
+          (click)="copyWarrantyCode(detail.warrantyCode, 'modal-' + detail.id)">
+          <lucide-angular *ngIf="copiedKey() === ('modal-' + detail.id); else copyModalIcon" [img]="icons.Check" size="15"></lucide-angular>
+          <ng-template #copyModalIcon>
+            <lucide-angular [img]="icons.Copy" size="15"></lucide-angular>
+          </ng-template>
+          <span>{{ copiedKey() === ('modal-' + detail.id) ? 'Đã sao chép mã BH' : 'Sao chép mã bảo hành' }}</span>
+        </button>
+        <button type="button" class="btn btn-primary" (click)="closeDetailModal()">
           Đóng
-        </button>
-        <button 
-          *ngIf="!detail.isExpired" 
-          type="button" 
-          class="btn btn-primary" 
-          (click)="openClaimFromDetail()">
-          <lucide-angular [img]="icons.Wrench" size="16"></lucide-angular>
-          <span>Yêu cầu bảo hành / Sửa chữa</span>
-        </button>
-        <button 
-          *ngIf="detail.isExpired" 
-          type="button" 
-          class="btn btn-secondary" 
-          (click)="openClaimFromDetail()">
-          <lucide-angular [img]="icons.Phone" size="16"></lucide-angular>
-          <span>Liên hệ bảo dưỡng dịch vụ</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL GỬI YÊU CẦU BẢO HÀNH / SỬA CHỮA ==================== -->
-  <div *ngIf="isClaimModalOpen" class="modal-backdrop" (click)="closeModal()">
-    <div class="modal-dialog" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3 class="modal-title">Gửi yêu cầu bảo hành / bảo dưỡng</h3>
-        <button type="button" class="close-btn" (click)="closeModal()">
-          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
-        </button>
-      </div>
-
-      <div class="modal-body" *ngIf="selectedItem">
-        <div class="selected-product-box">
-          <strong>{{ selectedItem.productName }}</strong>
-          <span>Mã BH: {{ selectedItem.warrantyCode }} - Đơn hàng: #{{ selectedItem.orderNumber }} - Hạn: {{ selectedItem.expiryDate | date:'dd/MM/yyyy' }}</span>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Hình thức tiếp nhận <span class="required">*</span></label>
-          <div class="type-selector">
-            <label class="type-btn" [ngClass]="{ 'active': claimForm.claimType === 'HOME' }">
-              <input type="radio" name="claimType" value="HOME" [(ngModel)]="claimForm.claimType" />
-              <span>Kỹ thuật viên đến tận nhà</span>
-            </label>
-            <label class="type-btn" [ngClass]="{ 'active': claimForm.claimType === 'SHOWROOM' }">
-              <input type="radio" name="claimType" value="SHOWROOM" [(ngModel)]="claimForm.claimType" />
-              <span>Gửi sản phẩm đến Showroom</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Mô tả sự cố hoặc yêu cầu cần hỗ trợ <span class="required">*</span></label>
-          <textarea 
-            class="form-control form-textarea" 
-            rows="3" 
-            placeholder="Ví dụ: Đệm ghế có tiếng kêu cót két khi ngồi, hoặc ray trượt ngăn kéo bị kẹt..."
-            [(ngModel)]="claimForm.issueDescription"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Hình ảnh / Video minh họa sự cố</label>
-          <input 
-            type="url" 
-            class="form-control" 
-            placeholder="Dán link ảnh chụp sự cố để kỹ thuật viên chuẩn bị sẵn linh kiện thay thế"
-            [(ngModel)]="claimForm.evidenceImageUrl" />
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" (click)="closeModal()" [disabled]="isSubmitting">
-          Hủy bỏ
-        </button>
-        <button type="button" class="btn btn-primary" (click)="submitClaim()" [disabled]="isSubmitting">
-          <span *ngIf="isSubmitting" class="spinner-small"></span>
-          <span>{{ isSubmitting ? 'Đang gửi...' : 'Xác nhận gửi yêu cầu' }}</span>
         </button>
       </div>
     </div>

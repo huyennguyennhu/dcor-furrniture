@@ -1,4 +1,4 @@
-<div class="showroom-modal-backdrop" *ngIf="isOpen" (click)="handleCloseClick()">
+<div class="showroom-modal-backdrop" *ngIf="isOpen && !isSubmittedSuccess" (click)="handleCloseClick()">
   <div class="showroom-drawer-box" (click)="$event.stopPropagation()">
 
     <!-- DRAWER HEADER -->
@@ -294,73 +294,6 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- MÀN HÌNH XÁC NHẬN ĐẶT LỊCH THÀNH CÔNG -->
-    <!-- ================================================================= -->
-    <div class="success-screen-view" *ngIf="isSubmittedSuccess">
-      <div class="success-icon-badge">
-        <lucide-angular [img]="icons.CheckCircle2" size="48" color="#059669"></lucide-angular>
-      </div>
-
-      <h3 class="success-title">Đặt lịch tư vấn Showroom thành công!</h3>
-      <p class="success-desc">
-        DCOR Studio trân trọng cảm ơn Quý khách <strong>{{ fullName }}</strong> đã tin tưởng lựa chọn dịch vụ.
-      </p>
-
-      <!-- Mã cuộc hẹn nổi bật -->
-      <div class="appointment-code-box">
-        <span class="code-label">MÃ LỊCH HẸN TRẢI NGHIỆM</span>
-        <div class="code-number">{{ appointmentCode }}</div>
-        <span class="code-hint">Vui lòng cung cấp mã này cho Lễ tân khi đến Showroom</span>
-      </div>
-
-      <!-- Tóm tắt chi tiết lịch hẹn -->
-      <div class="appointment-summary-card">
-        <div class="summary-row">
-          <span class="s-label">Địa điểm đón tiếp:</span>
-          <span class="s-val"><strong>{{ createdAppointment?.showroomName || selectedShowroom?.name }}</strong></span>
-        </div>
-        <div class="summary-row">
-          <span class="s-label">Địa chỉ:</span>
-          <span class="s-val">{{ createdAppointment?.showroomAddress || selectedShowroom?.address }}</span>
-        </div>
-        <div class="summary-row">
-          <span class="s-label">Thời gian:</span>
-          <span class="s-val highlight-val">
-            {{ createdAppointment?.preferredTime || selectedTime }} — {{ createdAppointment?.preferredDate ||
-            selectedDate }}
-          </span>
-        </div>
-        <div class="summary-row" *ngIf="createdAppointment?.productName || productName">
-          <span class="s-label">Sản phẩm quan tâm:</span>
-          <span class="s-val">{{ createdAppointment?.productName || productName }}</span>
-        </div>
-        <div class="summary-row">
-          <span class="s-label">Khách hàng:</span>
-          <span class="s-val">{{ fullName }} ({{ phone }})</span>
-        </div>
-      </div>
-
-      <!-- Cam kết dịch vụ 15 phút -->
-      <div class="service-commitment-box">
-        <lucide-angular [img]="icons.Clock" size="18" color="#b45309"></lucide-angular>
-        <p>
-          Chuyên viên tư vấn kiến trúc DCOR sẽ gọi điện đối soát và chuẩn bị trước vật liệu mẫu tại showroom trong vòng
-          <strong>15 phút</strong>.
-        </p>
-      </div>
-
-      <div class="success-action-btns">
-        <button type="button" class="btn-maps-success" (click)="openGoogleMaps()">
-          <lucide-angular [img]="icons.Navigation" size="16"></lucide-angular>
-          <span>Chỉ đường trên Google Maps</span>
-        </button>
-        <button type="button" class="btn-done-success" (click)="close.emit()">
-          Hoàn tất & Đóng cửa sổ
-        </button>
-      </div>
-    </div>
-
-    <!-- ================================================================= -->
     <!-- SUB-MODAL: XÁC THỰC MÃ OTP CHO SĐT -->
     <!-- ================================================================= -->
     <div class="sub-modal-backdrop" *ngIf="isOtpModalOpen" (click)="closeOtpModal()">
@@ -430,5 +363,79 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- POPUP XÁC NHẬN ĐẶT LỊCH THÀNH CÔNG (TẮT DRAWER, HIỆN POPUP GIỮA MÀN HÌNH) -->
+<!-- ================================================================= -->
+<div class="success-popup-backdrop" *ngIf="isSubmittedSuccess" (click)="closeSuccessPopup()">
+  <div class="success-popup-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Đặt lịch tư vấn Showroom thành công">
+    <button type="button" class="btn-success-popup-close" (click)="closeSuccessPopup()" aria-label="Đóng">
+      <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+    </button>
+
+    <div class="success-screen-view">
+      <div class="success-icon-badge">
+        <lucide-angular [img]="icons.CheckCircle2" size="42" color="#059669"></lucide-angular>
+      </div>
+
+      <h3 class="success-title">Đặt lịch tư vấn Showroom thành công!</h3>
+      <p class="success-desc">
+        DCOR Studio trân trọng cảm ơn Quý khách <strong>{{ fullName }}</strong> đã tin tưởng lựa chọn dịch vụ.
+      </p>
+
+      <!-- Mã cuộc hẹn nổi bật -->
+      <div class="appointment-code-box">
+        <span class="code-label">MÃ LỊCH HẸN TRẢI NGHIỆM</span>
+        <div class="code-number">{{ appointmentCode }}</div>
+        <span class="code-hint">Vui lòng cung cấp mã này cho Lễ tân khi đến Showroom</span>
+      </div>
+
+      <!-- Tóm tắt chi tiết lịch hẹn -->
+      <div class="appointment-summary-card">
+        <div class="summary-row">
+          <span class="s-label">Địa điểm đón tiếp:</span>
+          <span class="s-val"><strong>{{ createdAppointment?.showroomName || selectedShowroom?.name }}</strong></span>
+        </div>
+        <div class="summary-row">
+          <span class="s-label">Địa chỉ:</span>
+          <span class="s-val">{{ createdAppointment?.showroomAddress || selectedShowroom?.address }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-label">Thời gian:</span>
+          <span class="s-val highlight-val">
+            {{ createdAppointment?.preferredTime || selectedTime }} — {{ createdAppointment?.preferredDate || selectedDate }}
+          </span>
+        </div>
+        <div class="summary-row" *ngIf="createdAppointment?.productName || productName">
+          <span class="s-label">Sản phẩm quan tâm:</span>
+          <span class="s-val">{{ createdAppointment?.productName || productName }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-label">Khách hàng:</span>
+          <span class="s-val">{{ fullName }} ({{ phone }})</span>
+        </div>
+      </div>
+
+      <!-- Cam kết dịch vụ 15 phút -->
+      <div class="service-commitment-box">
+        <lucide-angular [img]="icons.Clock" size="18" color="#b45309"></lucide-angular>
+        <p>
+          Chuyên viên tư vấn kiến trúc DCOR sẽ gọi điện đối soát và chuẩn bị trước vật liệu mẫu tại showroom trong vòng
+          <strong>15 phút</strong>.
+        </p>
+      </div>
+
+      <div class="success-action-btns">
+        <button type="button" class="btn-maps-success" (click)="openGoogleMaps()">
+          <lucide-angular [img]="icons.Navigation" size="16"></lucide-angular>
+          <span>Chỉ đường trên Google Maps</span>
+        </button>
+        <button type="button" class="btn-done-success" (click)="closeSuccessPopup()">
+          Hoàn tất & Đóng cửa sổ
+        </button>
+      </div>
+    </div>
   </div>
 </div>

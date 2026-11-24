@@ -331,6 +331,14 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   initPromotionSync() {
     this.sub.add(
+      this.promotionService.loadPromotions().subscribe(() => {
+        if (this.subTotal > 0) {
+          this.recalculateVoucher();
+        }
+        this.cdr.detectChanges();
+      })
+    );
+    this.sub.add(
       this.promotionService.appliedPromotion$.subscribe(promo => {
         this.appliedVoucher = promo;
         if (promo) {
@@ -1417,7 +1425,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.voucherErrorMessage = null;
     this.voucherSuccessMessage = null;
 
-    this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
+    this.promotionService.applyPromotion(code, this.subTotal, this.checkoutItems).subscribe(res => {
       this.isCheckingVoucher = false;
       if (!res.success) {
         this.voucherErrorMessage = res.message;
@@ -1438,7 +1446,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   recalculateVoucher() {
     this.promotionService.recalculate(this.subTotal);
     if (this.subTotal > 0) {
-      this.promotionService.autoApplyBestPromotions(this.subTotal);
+      this.promotionService.autoApplyBestPromotions(this.subTotal, false, false, false, this.checkoutItems);
     }
   }
 
@@ -1457,7 +1465,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
     // Tự động áp dụng mã tốt nhất nếu có khi đặt hàng
     if (this.subTotal > 0) {
-      this.promotionService.autoApplyBestPromotions(this.subTotal);
+      this.promotionService.autoApplyBestPromotions(this.subTotal, false, false, false, this.checkoutItems);
     }
 
     // Kiểm tra đã có địa chỉ nhận hàng từ Sổ địa chỉ chưa
@@ -1524,6 +1532,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       shippingNotes: (this.shippingNotes || '').trim() || undefined,
       paymentMethod: this.paymentMethod,
       voucherCode: this.appliedVoucher?.code || undefined,
+      freeshipVoucherCode: this.appliedFreeshipVoucher?.code || undefined,
       isGift: false,
       hideInvoicePrice: !this.showPriceOnInvoice,
       items: this.checkoutItems.map(i => ({
@@ -1607,6 +1616,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     });
     sessionStorage.removeItem('dcor_checkout_items');
     this.promotionService.removeAppliedPromotion();
+    this.promotionService.removeAppliedFreeship();
+    this.promotionService.loadPromotions().subscribe();
 
     // Lưu đơn vào danh sách đơn của khách để hiển thị tại "Đơn hàng của tôi"
     try {
@@ -1680,17 +1691,24 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   handleSaveGoogleAddress(agree: boolean) {
     if (agree) {
       this.googleAddressSaved = true;
-      // Gửi cập nhật địa chỉ về server nếu có API
-      fetch(`${environment.apiUrl}/account/profile/address`, {
+      const customerToken =
+        sessionStorage.getItem('dcor_customer_token') ||
+        localStorage.getItem('dcor_customer_token') ||
+        '';
+      fetch(`${environment.apiUrl}/customer/addresses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('dcor_customer_token') || ''}`
+          ...(customerToken ? { Authorization: `Bearer ${customerToken}` } : {})
         },
         body: JSON.stringify({
-          receiverName: this.fullName,
-          phone: this.phone,
-          address: this.address
+          receiverName: this.fullName?.trim() || this.currentUser?.fullName || 'Khách hàng',
+          phone: this.phone?.trim() || '',
+          province: this.selectedProvince || 'Thành phố Hồ Chí Minh',
+          district: this.selectedDistrict || '',
+          ward: this.selectedWard || '',
+          detail: (this.streetAddress || this.address || '').trim(),
+          isDefault: true
         })
       }).catch(() => {});
     }

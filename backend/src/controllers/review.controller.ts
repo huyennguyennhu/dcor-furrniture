@@ -105,6 +105,85 @@ export const reviewController = {
         existingReviews = [];
       }
 
+      // Thu thập productId / productName từ cả Review và OrderItem để thay thế mọi ảnh hỏng (dsasf753c) bằng ảnh sạch live
+      const prodIds = new Set<string>();
+      const prodNames = new Set<string>();
+      for (const r of existingReviews) {
+        if (r.productId) prodIds.add(String(r.productId));
+        if (r.productName) prodNames.add(String(r.productName));
+      }
+      for (const order of validCompletedOrders) {
+        for (const item of order.items) {
+          if (item.productId) prodIds.add(String(item.productId));
+          if (item.productName) prodNames.add(String(item.productName));
+        }
+      }
+
+      const [dbProdsById, dbProdsByName] = await Promise.all([
+        prodIds.size > 0
+          ? prisma.product.findMany({
+              where: { id: { in: Array.from(prodIds) } },
+              select: { id: true, name: true, images: true, variants: { select: { optionValues: true }, take: 3 } }
+            }).catch(() => [])
+          : Promise.resolve([]),
+        prodNames.size > 0
+          ? prisma.product.findMany({
+              where: { name: { in: Array.from(prodNames) } },
+              select: { id: true, name: true, images: true, variants: { select: { optionValues: true }, take: 3 } }
+            }).catch(() => [])
+          : Promise.resolve([])
+      ]);
+
+      const isCleanImg = (u: any): u is string =>
+        typeof u === 'string' && u.trim().length > 0 && !u.includes('dsasf753c');
+
+      const extractCleanProdImg = (prod: any): string => {
+        if (!prod) return '';
+        if (Array.isArray(prod.images)) {
+          for (const entry of prod.images) {
+            const url = typeof entry === 'string' ? entry : entry?.url;
+            if (isCleanImg(url)) return url;
+          }
+        } else if (isCleanImg(prod.images)) {
+          return prod.images;
+        }
+        if (Array.isArray(prod.variants)) {
+          for (const v of prod.variants) {
+            const opt = typeof v.optionValues === 'string'
+              ? (() => { try { return JSON.parse(v.optionValues); } catch { return {}; } })()
+              : (v.optionValues || {});
+            if (Array.isArray(opt?.images)) {
+              for (const u of opt.images) {
+                if (isCleanImg(u)) return u;
+              }
+            }
+            if (isCleanImg(opt?.image)) return opt.image;
+          }
+        }
+        return '';
+      };
+
+      const prodImgById = new Map<string, string>();
+      const prodImgByName = new Map<string, string>();
+      for (const p of [...dbProdsById, ...dbProdsByName]) {
+        const cleanUrl = extractCleanProdImg(p);
+        if (cleanUrl) {
+          if (p.id && !prodImgById.has(p.id)) prodImgById.set(p.id, cleanUrl);
+          if (p.name && !prodImgByName.has(p.name.trim().toLowerCase())) {
+            prodImgByName.set(p.name.trim().toLowerCase(), cleanUrl);
+          }
+        }
+      }
+
+      const resolveCleanImage = (rawUrl: any, productId?: string | null, productName?: string | null): string => {
+        if (isCleanImg(rawUrl)) return rawUrl;
+        if (productId && prodImgById.has(String(productId))) return prodImgById.get(String(productId))!;
+        if (productName && prodImgByName.has(String(productName).trim().toLowerCase())) {
+          return prodImgByName.get(String(productName).trim().toLowerCase())!;
+        }
+        return '';
+      };
+
       // Format các đánh giá đã có
       const reviewed = existingReviews.map((r: any) => {
         const order = orderMap.get(r.orderId);
@@ -122,12 +201,12 @@ export const reviewController = {
           orderItemId: r.orderItemId,
           productId: r.productId,
           productName: r.productName,
-          productImage: r.productImage,
+          productImage: resolveCleanImage(r.productImage, r.productId, r.productName),
           variantDescription: r.variantDescription,
           customerName: r.customerName,
           rating: Number(r.rating) || 5,
           comment: r.comment || '',
-          images: Array.isArray(imagesParsed) ? imagesParsed : [],
+          images: Array.isArray(imagesParsed) ? imagesParsed.filter(isCleanImg) : [],
           isAnonymous: !!r.isAnonymous,
           reply: r.reply || null,
           replyAt: r.replyAt || null,
@@ -163,7 +242,7 @@ export const reviewController = {
               orderItemId: item.id,
               productId: item.productId,
               productName: item.productName,
-              productImage: item.imageUrl,
+              productImage: resolveCleanImage(item.imageUrl, item.productId, item.productName),
               variantDescription: item.variantDescription,
               price: item.price,
               quantity: item.quantity,

@@ -31,7 +31,7 @@ export interface Customer {
   phone: string;
   email: string;
   type: 'Cá nhân' | 'B2B';
-  membership: 'Vàng' | 'Bạc' | 'Đồng' | 'B2B Partner';
+  membership: 'Kim Cương' | 'Vàng' | 'Bạc' | 'Thành viên' | 'B2B Partner';
   ordersCount: number;
   totalSpent: number;
   points: number;
@@ -84,7 +84,7 @@ export class CustomersComponent implements OnInit {
 
   membershipFilter = 'Tất cả hạng thành viên';
   showMembershipDropdown = false;
-  memberships = ['Tất cả hạng thành viên', 'Vàng', 'Bạc', 'Đồng', 'B2B Partner'];
+  memberships = ['Tất cả hạng thành viên', 'Kim Cương', 'Vàng', 'Bạc', 'Thành viên', 'B2B Partner'];
 
   spendingFilter = 'Tổng chi tiêu';
   showSpendingDropdown = false;
@@ -173,24 +173,28 @@ export class CustomersComponent implements OnInit {
   mapBackendCustomer(c: BackendCustomer): Customer {
     const spent = Number(c.totalSpent) || 0;
     
-    // Tính phân hạng thành viên dựa trên loại & chi tiêu tích lũy
-    let membership: 'Vàng' | 'Bạc' | 'Đồng' | 'B2B Partner' = 'Đồng';
-    if (c.type === 'B2B' || (c.companyName && c.companyName.trim() !== '')) {
+    // Phân hạng thành viên thống nhất toàn hệ thống: Thành viên < 30tr | Bạc >= 30tr | Vàng >= 80tr | Kim Cương >= 200tr
+    let membership: 'Kim Cương' | 'Vàng' | 'Bạc' | 'Thành viên' | 'B2B Partner' = 'Thành viên';
+    if ((c as any).membership && ['Kim Cương', 'Vàng', 'Bạc', 'Thành viên', 'B2B Partner'].includes((c as any).membership)) {
+      membership = (c as any).membership;
+    } else if (c.type === 'B2B' || (c.companyName && c.companyName.trim() !== '')) {
       membership = 'B2B Partner';
-    } else if (spent >= 150000000) {
+    } else if (spent >= 200000000) {
+      membership = 'Kim Cương';
+    } else if (spent >= 80000000) {
       membership = 'Vàng';
-    } else if (spent >= 40000000) {
+    } else if (spent >= 30000000) {
       membership = 'Bạc';
     } else {
-      membership = 'Đồng';
+      membership = 'Thành viên';
     }
 
-    // Điểm tích lũy (nếu DB chưa có thì quy đổi 1 điểm / 100.000đ)
-    const points = c.rewardPoints || Math.floor(spent / 100000);
+    // Điểm tích lũy (1 điểm / 100.000đ)
+    const points = typeof c.rewardPoints === 'number' ? c.rewardPoints : Math.floor(spent / 100000);
 
     // Gán nhãn nhận diện
     const labels: string[] = [];
-    if (spent >= 100000000) labels.push('VIP');
+    if (spent >= 80000000) labels.push('VIP');
     if (membership === 'B2B Partner') labels.push('Khách sỉ');
     if (c.isLocked) labels.push('Đã khóa');
 
@@ -251,7 +255,7 @@ export class CustomersComponent implements OnInit {
     const newCount = this.customers.filter(c => c.createdAtTimestamp >= thirtyDaysAgo).length;
 
     const b2bCount = this.customers.filter(c => c.type === 'B2B' || c.membership === 'B2B Partner').length;
-    const vipCount = this.customers.filter(c => c.labels.includes('VIP') || c.membership === 'Vàng' || c.membership === 'B2B Partner').length;
+    const vipCount = this.customers.filter(c => c.labels.includes('VIP') || c.membership === 'Kim Cương' || c.membership === 'Vàng' || c.membership === 'B2B Partner').length;
 
     this.kpi = {
       totalCustomers: total,
@@ -435,7 +439,7 @@ export class CustomersComponent implements OnInit {
       } else if (this.activeCardFilter === 'B2B') {
         matchCard = c.type === 'B2B' || c.membership === 'B2B Partner';
       } else if (this.activeCardFilter === 'VIP') {
-        matchCard = c.labels.includes('VIP') || c.membership === 'Vàng' || c.membership === 'B2B Partner';
+        matchCard = c.labels.includes('VIP') || c.membership === 'Kim Cương' || c.membership === 'Vàng' || c.membership === 'B2B Partner';
       }
 
       return matchSearch && matchStatus && matchMembership && matchLabel && matchSpending && matchCard;
@@ -539,7 +543,7 @@ export class CustomersComponent implements OnInit {
     if (membership === 'Kim Cương') return '#7c3aed';
     if (membership === 'Vàng') return '#b45309';
     if (membership === 'Bạc') return '#475569';
-    if (membership === 'Đồng') return '#9a3412';
+    if (membership === 'Thành viên' || membership === 'Đồng') return '#9a3412';
     return '#2563eb';
   }
 
@@ -550,7 +554,7 @@ export class CustomersComponent implements OnInit {
     if (membership === 'Bạc') {
       return { color: '#475569', bg: '#f1f5f9', border: '#e2e8f0' };
     }
-    if (membership === 'Đồng') {
+    if (membership === 'Thành viên' || membership === 'Đồng') {
       return { color: '#9a3412', bg: '#ffedd5', border: '#fed7aa' };
     }
     if (membership === 'Kim Cương') {

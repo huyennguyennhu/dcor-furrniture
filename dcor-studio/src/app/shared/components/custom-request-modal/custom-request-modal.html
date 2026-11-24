@@ -1,4 +1,4 @@
-<div class="custom-modal-backdrop" *ngIf="isOpen" (click)="handleCloseClick()">
+<div class="custom-modal-backdrop" *ngIf="isOpen && !isSubmittedSuccess" (click)="handleCloseClick()">
   <div class="custom-drawer-box" (click)="$event.stopPropagation()">
 
     <!-- MODAL HEADER -->
@@ -342,73 +342,6 @@
       </form>
     </div>
 
-    <!-- MODAL BODY: SUCCESS STATE -->
-    <div class="drawer-scroll-body success-state-body" *ngIf="isSubmittedSuccess">
-      <div class="success-card-view">
-        <div class="success-icon-big">
-          <lucide-angular [img]="icons.CheckCircle2" size="48" color="#00A30B"></lucide-angular>
-        </div>
-        <h3>Đã tiếp nhận yêu cầu chế tác!</h3>
-        <p class="success-intro">
-          Cảm ơn quý khách <b>{{ fullName }}</b>. Đội ngũ Kiến trúc sư và Xưởng chế tác DCOR sẽ hoàn thiện bóc tách kỹ
-          thuật và phản hồi trong vòng <b>24 giờ làm việc</b>.
-        </p>
-
-        <!-- Thông tin tóm tắt yêu cầu -->
-        <div class="success-summary-box">
-          <div class="sum-line">
-            <span class="sum-label">Mã phiếu yêu cầu:</span>
-            <strong class="sum-val code-highlight">{{ createdRequestCode }}</strong>
-          </div>
-          <div class="sum-line">
-            <span class="sum-label">Sản phẩm tham chiếu:</span>
-            <strong class="sum-val">{{ productName }} (SKU: {{ productSku }})</strong>
-          </div>
-          <div class="sum-line">
-            <span class="sum-label">Số điện thoại liên hệ:</span>
-            <strong class="sum-val">{{ phone }}</strong>
-          </div>
-          <div class="sum-line">
-            <span class="sum-label">Email gửi Dự thảo Hợp đồng:</span>
-            <strong class="sum-val">{{ email }}</strong>
-          </div>
-          <div class="sum-line" *ngIf="hasDimensions && (requestedDimensions || customDimensionNote)">
-            <span class="sum-label">Kích thước may đo:</span>
-            <strong class="sum-val">{{ requestedDimensions || originalDimensions }} {{ customDimensionNote ? '(' +
-              customDimensionNote + ')' : '' }}</strong>
-          </div>
-          <ng-container *ngFor="let attr of activeCustomAttributes">
-            <div class="sum-line" *ngIf="attr.selectedOptionName !== attr.originalValue || attr.customNote">
-              <span class="sum-label">Tùy biến {{ attr.label }}:</span>
-              <strong class="sum-val">
-                {{ attr.selectedOptionName }}
-                {{ attr.customNote ? ' — Ghi chú: ' + attr.customNote : '' }}
-              </strong>
-            </div>
-          </ng-container>
-          <div class="sum-line" *ngIf="selectedBudgetRange">
-            <span class="sum-label">Dự toán ngân sách:</span>
-            <strong class="sum-val">{{ selectedBudgetRange === 'other' ? (estimatedBudget ? estimatedBudget + ' VNĐ' :
-              'Khác (Chờ báo giá)') : selectedBudgetRange }}</strong>
-          </div>
-          <div class="sum-line" *ngIf="uploadedFiles.length > 0">
-            <span class="sum-label">Tài liệu tham khảo đính kèm:</span>
-            <strong class="sum-val">{{ uploadedFiles.length }} tệp</strong>
-          </div>
-        </div>
-
-        <div class="success-actions-row">
-          <button type="button" class="btn-view-requests" (click)="viewMyRequests()">
-            <lucide-angular [img]="icons.ExternalLink" size="16"></lucide-angular>
-            <span>Xem danh sách yêu cầu của tôi</span>
-          </button>
-          <button type="button" class="btn-close-success" (click)="close.emit()">
-            <span>Hoàn tất & Đóng</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- MODAL FOOTER ACTIONS (KHI Ở FORM STATE) -->
     <div class="drawer-footer-actions" *ngIf="!isSubmittedSuccess">
       <div class="footer-hint-text">
@@ -492,6 +425,79 @@
     <div class="confirm-actions-row">
       <button type="button" class="btn-keep-editing" (click)="cancelDiscard()">Tiếp tục chỉnh sửa</button>
       <button type="button" class="btn-discard" (click)="confirmDiscardAndClose()">Xác nhận Hủy</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- POPUP XÁC NHẬN GỬI YÊU CẦU CHẾ TÁC THÀNH CÔNG (TẮT DRAWER, HIỆN POPUP GIỮA) -->
+<!-- ================================================================= -->
+<div class="modal-backdrop-success" *ngIf="isSubmittedSuccess" (click)="closeSuccessPopup()">
+  <div class="success-card-view" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Đã tiếp nhận yêu cầu chế tác">
+    <button type="button" class="btn-success-popup-close" (click)="closeSuccessPopup()" aria-label="Đóng">
+      <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+    </button>
+
+    <div class="success-icon-big">
+      <lucide-angular [img]="icons.CheckCircle2" size="44" color="#00A30B"></lucide-angular>
+    </div>
+    <h3>Đã tiếp nhận yêu cầu chế tác!</h3>
+    <p class="success-intro">
+      Cảm ơn quý khách <b>{{ fullName }}</b>. Đội ngũ Kiến trúc sư và Xưởng chế tác DCOR sẽ hoàn thiện bóc tách kỹ
+      thuật và phản hồi trong vòng <b>24 giờ làm việc</b>.
+    </p>
+
+    <!-- Thông tin tóm tắt yêu cầu -->
+    <div class="success-summary-box">
+      <div class="sum-line">
+        <span class="sum-label">Mã phiếu yêu cầu:</span>
+        <strong class="sum-val code-highlight">{{ createdRequestCode }}</strong>
+      </div>
+      <div class="sum-line">
+        <span class="sum-label">Sản phẩm tham chiếu:</span>
+        <strong class="sum-val">{{ productName }} (SKU: {{ productSku }})</strong>
+      </div>
+      <div class="sum-line">
+        <span class="sum-label">Số điện thoại liên hệ:</span>
+        <strong class="sum-val">{{ phone }}</strong>
+      </div>
+      <div class="sum-line" *ngIf="email">
+        <span class="sum-label">Email gửi Dự thảo Hợp đồng:</span>
+        <strong class="sum-val">{{ email }}</strong>
+      </div>
+      <div class="sum-line" *ngIf="hasDimensions && (requestedDimensions || customDimensionNote)">
+        <span class="sum-label">Kích thước may đo:</span>
+        <strong class="sum-val">{{ requestedDimensions || originalDimensions }} {{ customDimensionNote ? '(' +
+          customDimensionNote + ')' : '' }}</strong>
+      </div>
+      <ng-container *ngFor="let attr of activeCustomAttributes">
+        <div class="sum-line" *ngIf="attr.selectedOptionName !== attr.originalValue || attr.customNote">
+          <span class="sum-label">Tùy biến {{ attr.label }}:</span>
+          <strong class="sum-val">
+            {{ attr.selectedOptionName }}
+            {{ attr.customNote ? ' — Ghi chú: ' + attr.customNote : '' }}
+          </strong>
+        </div>
+      </ng-container>
+      <div class="sum-line" *ngIf="selectedBudgetRange">
+        <span class="sum-label">Dự toán ngân sách:</span>
+        <strong class="sum-val">{{ selectedBudgetRange === 'other' ? (estimatedBudget ? estimatedBudget + ' VNĐ' :
+          'Khác (Chờ báo giá)') : selectedBudgetRange }}</strong>
+      </div>
+      <div class="sum-line" *ngIf="uploadedFiles.length > 0">
+        <span class="sum-label">Tài liệu tham khảo đính kèm:</span>
+        <strong class="sum-val">{{ uploadedFiles.length }} tệp</strong>
+      </div>
+    </div>
+
+    <div class="success-actions-row">
+      <button type="button" class="btn-view-requests" (click)="viewMyRequests()">
+        <lucide-angular [img]="icons.ExternalLink" size="16"></lucide-angular>
+        <span>Xem danh sách yêu cầu của tôi</span>
+      </button>
+      <button type="button" class="btn-close-success" (click)="closeSuccessPopup()">
+        <span>Hoàn tất & Đóng</span>
+      </button>
     </div>
   </div>
 </div>

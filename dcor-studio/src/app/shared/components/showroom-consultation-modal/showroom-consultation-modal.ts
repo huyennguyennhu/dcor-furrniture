@@ -168,9 +168,11 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit() {
-    this.checkUserAuth();
-    this.initDayOptions();
-    this.loadShowrooms();
+    if (this.isOpen) {
+      this.checkUserAuth();
+      this.initDayOptions();
+      this.loadShowrooms();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -256,7 +258,8 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
       console.error('[ShowroomModal] Lỗi tải showrooms:', e);
     } finally {
       this.isLoadingShowrooms = false;
-      this.cdr.detectChanges();
+      this.cdr.markForCheck();
+      try { this.cdr.detectChanges(); } catch (_) {}
     }
   }
 
@@ -397,7 +400,8 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
       this.selectedTimeSlot = null;
     } finally {
       this.isLoadingSlots = false;
-      this.cdr.detectChanges();
+      this.cdr.markForCheck();
+      try { this.cdr.detectChanges(); } catch (_) {}
     }
   }
 
@@ -658,9 +662,17 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
         variantId: this.matchedVariant?.id || null
       };
 
+      const customerToken =
+        sessionStorage.getItem('dcor_customer_token') ||
+        localStorage.getItem('dcor_customer_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (customerToken) {
+        headers['Authorization'] = `Bearer ${customerToken}`;
+      }
+
       const res = await fetch(`${environment.apiUrl}/consultations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       });
 
@@ -687,6 +699,10 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
       this.isSubmittedSuccess = true;
       this.appointmentSuccess.emit(this.createdAppointment);
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dcor_appointments_updated', { detail: this.createdAppointment }));
+      }
+
       // Lưu lịch sử vào LocalStorage để khách hàng tiện theo dõi
       try {
         const historyStr = localStorage.getItem('dcor_my_consultations') || '[]';
@@ -702,6 +718,16 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
       this.isSubmitting = false;
       this.cdr.detectChanges();
     }
+  }
+
+  closeSuccessPopup() {
+    this.isSubmittedSuccess = false;
+    this.createdAppointment = null;
+    this.appointmentCode = '';
+    if (this.isOpen) {
+      this.close.emit();
+    }
+    this.cdr.detectChanges();
   }
 
   // --- GETTERS ---

@@ -6,13 +6,18 @@ import { environment } from '../../../environments/environment';
 })
 export class ProductService {
   private productsCache: any[] | null = null;
+  private productsCacheTime = 0;
+  private readonly PRODUCTS_CACHE_TTL = 15000; // 15s TTL để đồng bộ tồn kho kịp thời
   private productsPromise: Promise<any[]> | null = null;
   private newestProductIds = new Set<string>();
 
   private categoriesCache: any[] | null = null;
+  private categoriesCacheTime = 0;
+  private readonly CATEGORIES_CACHE_TTL = 30000; // 30s TTL
   private categoriesPromise: Promise<any[]> | null = null;
 
-  private productDetailCache = new Map<string, any>();
+  private productDetailCache = new Map<string, { data: any; timestamp: number }>();
+  private readonly DETAIL_CACHE_TTL = 15000; // 15s TTL
   private productDetailPromises = new Map<string, Promise<any>>();
 
   /**
@@ -38,8 +43,9 @@ export class ProductService {
    * và khử trùng lặp yêu cầu gọi đồng thời (request deduplication)
    */
   async getProducts(forceRefresh = false): Promise<any[]> {
-    if (!forceRefresh && this.productsCache) {
-      return this.productsCache;
+    const isFresh = this.productsCache && (Date.now() - this.productsCacheTime < this.PRODUCTS_CACHE_TTL);
+    if (!forceRefresh && isFresh) {
+      return this.productsCache!;
     }
 
     if (!forceRefresh && this.productsPromise) {
@@ -56,10 +62,12 @@ export class ProductService {
         const rawProducts = Array.isArray(data) ? data : (data.data || data.products || []);
         const products = this.applyNewestFlags(rawProducts);
         this.productsCache = products;
+        this.productsCacheTime = Date.now();
         return products;
       } catch (err) {
-        this.productsPromise = null;
         throw err;
+      } finally {
+        this.productsPromise = null;
       }
     })();
 
@@ -70,8 +78,9 @@ export class ProductService {
    * Lấy danh mục sản phẩm có cache
    */
   async getCategories(forceRefresh = false): Promise<any[]> {
-    if (!forceRefresh && this.categoriesCache) {
-      return this.categoriesCache;
+    const isFresh = this.categoriesCache && (Date.now() - this.categoriesCacheTime < this.CATEGORIES_CACHE_TTL);
+    if (!forceRefresh && isFresh) {
+      return this.categoriesCache!;
     }
 
     if (!forceRefresh && this.categoriesPromise) {
@@ -87,10 +96,12 @@ export class ProductService {
         const data = await res.json();
         const categories = Array.isArray(data) ? data : (data.data || []);
         this.categoriesCache = categories;
+        this.categoriesCacheTime = Date.now();
         return categories;
       } catch (err) {
-        this.categoriesPromise = null;
         throw err;
+      } finally {
+        this.categoriesPromise = null;
       }
     })();
 
@@ -98,11 +109,12 @@ export class ProductService {
   }
 
   /**
-   * Lấy chi tiết sản phẩm theo ID hoặc Slug có cache
+   * Lấy chi tiết sản phẩm theo ID hoặc Slug có cache (TTL 15s)
    */
   async getProductById(id: string, forceRefresh = false): Promise<any> {
-    if (!forceRefresh && this.productDetailCache.has(id)) {
-      return this.productDetailCache.get(id);
+    const cachedEntry = this.productDetailCache.get(id);
+    if (!forceRefresh && cachedEntry && (Date.now() - cachedEntry.timestamp < this.DETAIL_CACHE_TTL)) {
+      return cachedEntry.data;
     }
 
     if (!forceRefresh && this.productDetailPromises.has(id)) {
@@ -119,13 +131,15 @@ export class ProductService {
         if (this.newestProductIds.size > 0 && data) {
           data.isNew = this.newestProductIds.has(String(data.id || ''));
         }
-        this.productDetailCache.set(id, data);
-        if (data.id) this.productDetailCache.set(data.id, data);
-        if (data.slug) this.productDetailCache.set(data.slug, data);
+        const entry = { data, timestamp: Date.now() };
+        this.productDetailCache.set(id, entry);
+        if (data.id) this.productDetailCache.set(data.id, entry);
+        if (data.slug) this.productDetailCache.set(data.slug, entry);
         return data;
       } catch (err) {
-        this.productDetailPromises.delete(id);
         throw err;
+      } finally {
+        this.productDetailPromises.delete(id);
       }
     })();
 
@@ -138,9 +152,11 @@ export class ProductService {
    */
   clearCache(): void {
     this.productsCache = null;
+    this.productsCacheTime = 0;
     this.productsPromise = null;
     this.newestProductIds.clear();
     this.categoriesCache = null;
+    this.categoriesCacheTime = 0;
     this.categoriesPromise = null;
     this.productDetailCache.clear();
     this.productDetailPromises.clear();

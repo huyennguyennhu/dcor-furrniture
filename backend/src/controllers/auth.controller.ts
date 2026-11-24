@@ -650,6 +650,24 @@ export const authController = {
       // Tìm user theo email
       let customer = await prisma.customer.findUnique({ where: { email } });
 
+      // Kiểm tra tài khoản bị xóa hoặc đang bị khóa
+      if (customer) {
+        if (customer.deletedAt !== null) {
+          res.status(403).json({
+            code: 'ACCOUNT_DELETED',
+            message: 'Tài khoản này đã bị xóa khỏi hệ thống.'
+          });
+          return;
+        }
+        if (customer.lockedUntil && customer.lockedUntil > new Date()) {
+          res.status(403).json({
+            code: 'ACCOUNT_LOCKED',
+            message: 'Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
+          });
+          return;
+        }
+      }
+
       // Nếu chưa có, tự động tạo tài khoản (Không cần mật khẩu, vì login bằng Google)
       if (!customer) {
         customer = await prisma.customer.create({

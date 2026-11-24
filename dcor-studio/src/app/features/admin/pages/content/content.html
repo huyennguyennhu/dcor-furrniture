@@ -397,96 +397,6 @@
   </section>
 
   <!-- ========================================================================= -->
-  <!-- TAB 3: MARKETING BANNERS MANAGEMENT                                       -->
-  <!-- ========================================================================= -->
-  <section *ngIf="currentTab === 'banners'" class="tab-content-pane">
-    <div class="filter-toolbar-card">
-      <div class="filter-left-group">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #18181b;">
-          Banner Quảng Cáo & Khuyến Mãi
-        </h3>
-        <span style="font-size: 13px; color: #71717a;">
-          Quản lý hình ảnh banner hiển thị trên trang chủ, sidebar bài viết blog và trang bộ sưu tập.
-        </span>
-      </div>
-      <div>
-        <button class="btn-primary" (click)="openBannerModal()">
-          <app-icon name="Plus" [size]="16"></app-icon>
-          Thêm Banner Mới
-        </button>
-      </div>
-    </div>
-
-    <div class="table-container-card">
-      <table class="admin-data-table">
-        <thead>
-          <tr>
-            <th style="width: 140px;">Hình Ảnh</th>
-            <th style="min-width: 220px;">Tiêu Đề Banner</th>
-            <th style="min-width: 160px;">Vị Trí Hiển Thị</th>
-            <th style="min-width: 180px;">Liên Kết Đích</th>
-            <th style="min-width: 180px;">Thời Gian Hiệu Lực</th>
-            <th style="width: 120px; text-align: center;">Trạng Thái</th>
-            <th style="width: 120px; text-align: right;">Thao Tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let b of banners">
-            <td>
-              <img [src]="b.imageUrl" [alt]="b.title"
-                style="width: 110px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #e4e4e7;" />
-            </td>
-            <td>
-              <strong style="color: #18181b; font-size: 13.5px;">{{ b.title }}</strong>
-            </td>
-            <td>
-              <span class="category-badge">
-                {{
-                b.position === 'HOME_HERO' ? 'Trang chủ (Hero)' :
-                b.position === 'BLOG_SIDEBAR' ? 'Sidebar Blog' : 'Bộ sưu tập'
-                }}
-              </span>
-            </td>
-            <td>
-              <a [href]="b.linkUrl" target="_blank" style="font-size: 12.5px; color: #3b82f6; text-decoration: none;">
-                {{ b.linkUrl }}
-              </a>
-            </td>
-            <td style="font-size: 12.5px; color: #71717a;">
-              <span *ngIf="b.startDate || b.endDate">
-                {{ b.startDate || '...' }} &rarr; {{ b.endDate || 'Vô thời hạn' }}
-              </span>
-              <span *ngIf="!b.startDate && !b.endDate">Liên tục</span>
-            </td>
-            <td style="text-align: center;">
-              <span class="status-pill" [class.published]="b.status === 'ACTIVE'"
-                [class.hidden]="b.status === 'INACTIVE'">
-                <span class="status-dot"></span>
-                {{ b.status === 'ACTIVE' ? 'Đang chạy' : 'Tạm dừng' }}
-              </span>
-            </td>
-            <td>
-              <div class="row-actions">
-                <button class="btn-icon-action btn-action-edit" title="Sửa banner" (click)="openBannerModal(b)">
-                  <app-icon name="Pencil" [size]="15"></app-icon>
-                </button>
-                <button class="btn-icon-action btn-action-toggle"
-                  [title]="b.status === 'ACTIVE' ? 'Tạm dừng banner' : 'Kích hoạt banner'"
-                  (click)="toggleBannerStatus(b)">
-                  <app-icon [name]="b.status === 'ACTIVE' ? 'EyeOff' : 'Check'" [size]="15"></app-icon>
-                </button>
-                <button class="btn-icon-action btn-action-delete" title="Xóa banner" (click)="deleteBanner(b)">
-                  <app-icon name="Trash2" [size]="15"></app-icon>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ========================================================================= -->
   <!-- MODAL: RICH TEXT ARTICLE EDITOR (FR8-A-01, FR8-A-02)                       -->
   <!-- ========================================================================= -->
   <div *ngIf="isEditorOpen" class="editor-modal-overlay" (click)="isEditorOpen = false">
@@ -1106,77 +1016,6 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: ADD / EDIT BANNER DIALOG                                           -->
-  <!-- ========================================================================= -->
-  <div *ngIf="isBannerModalOpen" class="dialog-modal-overlay" (click)="isBannerModalOpen = false">
-    <div class="dialog-modal-card" (click)="$event.stopPropagation()">
-      <div class="dialog-header">
-        <h3 class="dialog-title">
-          {{ bannerForm.id ? 'Sửa Banner Tiếp Thị' : 'Thêm Banner Quảng Cáo Mới' }}
-        </h3>
-        <button class="editor-modal-close" (click)="isBannerModalOpen = false">&times;</button>
-      </div>
-      <div class="dialog-body">
-        <div class="form-group">
-          <label class="form-label">Tiêu Đề Banner <span class="req">*</span></label>
-          <input type="text" class="form-input" placeholder="Ví dụ: BST Sofa Da Bò Ý Thu Đông 2026..."
-            [(ngModel)]="bannerForm.title" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Vị Trí Hiển Thị</label>
-          <select class="form-input" [(ngModel)]="bannerForm.position">
-            <option value="HOME_HERO">Trang Chủ (Hero Slider lớn)</option>
-            <option value="BLOG_SIDEBAR">Sidebar Trang Bài Viết Blog</option>
-            <option value="COLLECTION_BANNER">Đầu Trang Danh Mục Sản Phẩm</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">URL Hình Ảnh Banner <span class="req">*</span></label>
-          <input type="text" class="form-input" placeholder="https://..." [(ngModel)]="bannerForm.imageUrl" />
-        </div>
-
-        <div *ngIf="bannerForm.imageUrl"
-          style="height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #e4e4e7;">
-          <img [src]="bannerForm.imageUrl" alt="Banner Preview" style="width: 100%; height: 100%; object-fit: cover;" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Đường Dẫn Liên Kết Khi Click</label>
-          <input type="text" class="form-input" placeholder="/explore?category=sofa" [(ngModel)]="bannerForm.linkUrl" />
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div class="form-group">
-            <label class="form-label">Ngày Bắt Đầu</label>
-            <input type="date" class="form-input" [(ngModel)]="bannerForm.startDate" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Ngày Kết Thúc</label>
-            <input type="date" class="form-input" [(ngModel)]="bannerForm.endDate" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Trạng Thái</label>
-          <select class="form-input" [(ngModel)]="bannerForm.status">
-            <option value="ACTIVE">Kích hoạt (Đang chạy)</option>
-            <option value="INACTIVE">Tạm dừng</option>
-          </select>
-        </div>
-      </div>
-      <div class="dialog-footer">
-        <button type="button" class="btn-outline" (click)="isBannerModalOpen = false">Hủy</button>
-        <button type="button" class="btn-primary" (click)="saveBanner()">
-          <app-icon name="Check" [size]="16"></app-icon>
-          Lưu Banner
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
   <!-- MODAL: CHÈN HÌNH ẢNH VÀO BÀI VIẾT (TẢI TỪ MÁY HOẶC NHÚNG LINK)            -->
   <!-- ========================================================================= -->
   <div *ngIf="isInsertImageModalOpen" class="dialog-modal-overlay" (click)="closeInsertImageModal()">
@@ -1361,8 +1200,8 @@
   <!-- ========================================================================= -->
   <!-- TOAST NOTIFICATION                                                        -->
   <!-- ========================================================================= -->
-  <div *ngIf="toastMessage" class="admin-toast-banner" [class.success]="toastType === 'success'">
-    <app-icon [name]="toastType === 'success' ? 'CircleCheck' : 'Info'" [size]="18"></app-icon>
+  <div *ngIf="toastMessage" class="admin-toast-banner" [class.success]="toastType === 'success'" [class.error]="toastType === 'error'" [style.background]="toastType === 'error' ? '#dc2626' : null">
+    <app-icon [name]="toastType === 'success' ? 'CircleCheck' : (toastType === 'error' ? 'AlertTriangle' : 'Info')" [size]="18"></app-icon>
     <span>{{ toastMessage }}</span>
   </div>
 </div>

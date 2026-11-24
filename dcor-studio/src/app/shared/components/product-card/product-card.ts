@@ -25,6 +25,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() showCompare = true;
   @Input() showWishlist = true;
   @Input() showBuyButton = true;
+  @Input() confirmWishlistRemove = false;
 
   @Output() quickView = new EventEmitter<any>();
   @Output() buy = new EventEmitter<any>();
@@ -40,6 +41,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   // Pricing & Badges
   isOnSale = false;
   isNew = false;
+  isOutOfStock = false;
   discountBadgeText = '';
   currentPrice = 0;
   originalPrice: number | null = null;
@@ -68,6 +70,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   reviewCount = 128;
 
   private wishlistSub?: Subscription;
+  private compareSub?: Subscription;
   private campaignSub?: Subscription;
   private compareUpdateListener?: () => void;
   private campaignUpdateListener?: () => void;
@@ -89,6 +92,10 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     this.campaignSub = this.promotionService.activeCampaigns$.subscribe(() => {
       this.normalizeProduct();
       this.cdr.markForCheck();
+    });
+
+    this.compareSub = this.compareService.compareList$.subscribe(() => {
+      this.checkCompareState();
     });
 
     if (typeof window !== 'undefined') {
@@ -116,6 +123,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   ngOnDestroy() {
     this.clearHoverTimer();
     this.wishlistSub?.unsubscribe();
+    this.compareSub?.unsubscribe();
     this.campaignSub?.unsubscribe();
     if (typeof window !== 'undefined') {
       if (this.compareUpdateListener) {
@@ -177,9 +185,34 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     this.ratingVal = p.rating || 4.9;
     this.reviewCount = p.reviewCount || 128;
 
+    // Out of stock state
+    this.isOutOfStock = this.computeIsOutOfStock(p);
+
     // Swatches & Images
     this.initSwatchesAndImages();
     this.cdr.markForCheck();
+  }
+
+  private computeIsOutOfStock(p: any): boolean {
+    if (!p) return false;
+    if (Array.isArray(p.variants) && p.variants.length > 0) {
+      return p.variants.every((v: any) => {
+        const stock = Number(v?.stock ?? 0);
+        const reserved = Number(v?.reservedStock ?? 0);
+        return Math.max(0, stock - reserved) <= 0;
+      });
+    }
+    if (typeof p.totalAvailableStock === 'number') {
+      return p.totalAvailableStock <= 0;
+    }
+    if (typeof p.totalStock === 'number') {
+      return p.totalStock <= 0;
+    }
+    if (typeof p.stock === 'number') {
+      const reserved = Number(p.reservedStock ?? 0);
+      return Math.max(0, p.stock - reserved) <= 0;
+    }
+    return false;
   }
 
   private extractCategoryName(p: any): string {
@@ -323,6 +356,17 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     if (sw.images && sw.images.length > 0) {
       this.cardImages = sw.images;
     }
+    if ((sw as any).formattedPrice) {
+      this.formattedCurrentPrice = (sw as any).formattedPrice;
+    } else if (sw.price && sw.price > 0) {
+      const campDisc = this.promotionService.getDiscountForProduct({ ...this.product, basePrice: sw.price });
+      if (campDisc) {
+        this.formattedCurrentPrice = this.formatCurrency(campDisc.salePrice);
+        this.formattedOriginalPrice = campDisc.originalPrice > campDisc.salePrice ? this.formatCurrency(campDisc.originalPrice) : '';
+      } else {
+        this.formattedCurrentPrice = this.formatCurrency(sw.price);
+      }
+    }
     this.activeImageIndex = 0;
     this.cdr.markForCheck();
   }
@@ -408,6 +452,7 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
   onBuyClick(e: Event) {
     e.stopPropagation();
     e.preventDefault();
+    if (this.isOutOfStock) return;
     if (this.buy.observed) {
       this.buy.emit(this.product);
     } else {
@@ -433,14 +478,14 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     e.preventDefault();
     if (!this.productId) return;
 
-    // Nếu đang trong danh sách yêu thích -> Bật popup xác nhận trước khi bỏ
-    if (this.isWishlisted) {
+    // Nếu đang trong danh sách yêu thích và bật xác nhận (ví dụ trang Wishlist) -> Bật popup xác nhận trước khi bỏ
+    if (this.isWishlisted && this.confirmWishlistRemove) {
       this.isConfirmRemoveWishlistOpen = true;
       this.cdr.markForCheck();
       return;
     }
 
-    // Nếu chưa có -> Thêm ngay vào yêu thích
+    // Toggle trực tiếp yêu thích
     const prodToSave = this.product ? { ...this.product, id: this.productId, productId: this.productId } : {
       id: this.productId,
       productId: this.productId,
@@ -528,6 +573,6 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
 
   private formatCurrency(val: number): string {
     if (!val && val !== 0) return 'Liên hệ';
-    return new Intl.NumberFormat('vi-VN').format(val) + '₫';
+    return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
   }
 }
