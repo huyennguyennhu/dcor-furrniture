@@ -1406,9 +1406,14 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   // Yêu cầu đổi trả
+  get returnSelectableItems(): any[] {
+    const items = this.targetOrderForReturn?.items;
+    return Array.isArray(items) ? items : [];
+  }
+
   openReturnModal(order: OrderSummary | OrderDetail, event?: Event): void {
     if (event) event.stopPropagation();
-    const items = order.items || [];
+    const items = Array.isArray(order.items) ? order.items : [];
     if (items.length > 1) {
       // Đơn có > 1 sản phẩm: mở Popup chọn sản phẩm trước
       this.targetOrderForReturn = order;

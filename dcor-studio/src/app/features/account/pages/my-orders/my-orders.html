@@ -518,7 +518,7 @@
       </p>
 
       <div class="select-return-items-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; margin-bottom: 16px;">
-        <div *ngFor="let item of targetOrderForReturn?.items"
+        <div *ngFor="let item of returnSelectableItems"
              (click)="selectItemForReturn(item)"
              style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1.5px solid; cursor: pointer; transition: all 0.2s;"
              [style.borderColor]="selectedReturnItem === item ? '#765337' : '#E5E7EB'"
@@ -527,12 +527,12 @@
                  name="selectedReturnItemRadio"
                  [checked]="selectedReturnItem === item"
                  style="width: 18px; height: 18px; accent-color: #765337; cursor: pointer; flex-shrink: 0;" />
-          <img [src]="item.productImage || '/assets/img/furniture-placeholder.svg'"
+          <img [src]="item.imageUrl || '/assets/img/furniture-placeholder.svg'"
                [alt]="item.productName"
                style="width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 1px solid #E5E7EB; flex-shrink: 0;" />
           <div style="flex: 1; min-width: 0;">
             <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 2px;">{{ item.productName }}</div>
-            <div style="font-size: 12.5px; color: #6B7280;" *ngIf="item.variantName">{{ item.variantName }}</div>
+            <div style="font-size: 12.5px; color: #6B7280;" *ngIf="item.variantDescription">{{ item.variantDescription }}</div>
             <div style="font-size: 12.5px; color: #4B5563; margin-top: 4px;">
               Đã mua: <strong>x{{ item.quantity }}</strong> • Đơn giá: <strong>{{ item.price | number }} đ</strong>
             </div>
@@ -569,7 +569,7 @@
 
     <form (submit)="submitReturnRequest(); $event.preventDefault()" class="modal-form">
       <div *ngIf="selectedReturnItem" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FAF7F5; border: 1px solid #E5D9CF; border-radius: 8px; margin-bottom: 12px;">
-        <img [src]="selectedReturnItem.productImage || '/assets/img/furniture-placeholder.svg'" style="width: 42px; height: 42px; border-radius: 6px; object-fit: cover;" />
+        <img [src]="selectedReturnItem.imageUrl || '/assets/img/furniture-placeholder.svg'" style="width: 42px; height: 42px; border-radius: 6px; object-fit: cover;" />
         <div style="flex: 1; min-width: 0;">
           <div style="font-size: 13px; font-weight: 600; color: #111827;">{{ selectedReturnItem.productName }}</div>
           <div style="font-size: 12px; color: #6B7280;">Số lượng đổi trả: <strong>x{{ selectedReturnQuantity }}</strong></div>
