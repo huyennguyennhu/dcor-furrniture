@@ -1041,7 +1041,7 @@
                 <span class="clb-step-tag">2. Phiếu Nhập Thu Hồi</span>
                 <span class="clb-code" *ngIf="returnReq.qcReport?.inboundOrderCode">
                   <a [routerLink]="['/admin/inventory/orders']" class="clb-link" title="Xem tại Quản lý kho">
-                    {{ returnReq.qcReport.inboundOrderCode }}
+                    {{ returnReq.qcReport?.inboundOrderCode }}
                   </a>
                 </span>
                 <span class="clb-code text-muted" *ngIf="!returnReq.qcReport?.inboundOrderCode">Chờ duyệt QC</span>
@@ -1076,8 +1076,8 @@
               <div class="clb-item" [class.is-ready]="returnReq.replacementOrder?.orderNumber && returnReq.status === 'COMPLETED'">
                 <span class="clb-step-tag">4. Đơn Hàng Mới</span>
                 <span class="clb-code" *ngIf="returnReq.replacementOrder?.orderNumber">
-                  <a [routerLink]="['/admin/orders', returnReq.replacementOrder.orderNumber]" class="clb-link" title="Xem chi tiết đơn hàng">
-                    #{{ returnReq.replacementOrder.orderNumber }}
+                  <a [routerLink]="['/admin/orders', returnReq.replacementOrder?.orderNumber]" class="clb-link" title="Xem chi tiết đơn hàng">
+                    #{{ returnReq.replacementOrder?.orderNumber }}
                   </a>
                 </span>
                 <span class="clb-code text-muted" *ngIf="!returnReq.replacementOrder?.orderNumber">Chưa kích hoạt</span>
@@ -1314,21 +1314,21 @@
           </div>
 
           <!-- Thông báo Phiếu Nhập Kho / Xuất Kho tự động phát hành sau QC -->
-          <div *ngIf="returnReq.qcReport.inboundOrderCode" class="qc-inbound-receipt-banner" [class.is-scrap-banner]="returnReq.qcReport.restockOption === 'SCRAP'">
+          <div *ngIf="returnReq.qcReport?.inboundOrderCode" class="qc-inbound-receipt-banner" [class.is-scrap-banner]="returnReq.qcReport?.restockOption === 'SCRAP'">
             <div class="receipt-banner-left">
-              <div class="receipt-banner-icon" [class.is-scrap]="returnReq.qcReport.restockOption === 'SCRAP'">
-                <lucide-angular [img]="returnReq.qcReport.restockOption === 'SCRAP' ? icons.FileText : icons.Package" size="18"></lucide-angular>
+              <div class="receipt-banner-icon" [class.is-scrap]="returnReq.qcReport?.restockOption === 'SCRAP'">
+                <lucide-angular [img]="returnReq.qcReport?.restockOption === 'SCRAP' ? icons.FileText : icons.Package" size="18"></lucide-angular>
               </div>
               <div class="receipt-banner-info">
                 <div class="receipt-banner-title">
-                  <span class="receipt-type-label">{{ returnReq.qcReport.restockOption === 'SCRAP' ? 'Lệnh điều chuyển xử lý phế phẩm / bảo hành:' : 'Lệnh nhập kho thu hồi tự động:' }}</span>
-                  <strong class="receipt-code">{{ returnReq.qcReport.inboundOrderCode }}</strong>
-                  <span class="receipt-status-badge" [class.badge-completed]="returnReq.qcReport.inboundOrderStatus === 'Đã nhập kho' || returnReq.qcReport.inboundOrderStatus === 'COMPLETED' || returnReq.qcReport.inboundOrderStatus === 'Đã nhập kho Outlet'">
-                    {{ returnReq.qcReport.inboundOrderStatus || 'Đã nhập kho' }}
+                  <span class="receipt-type-label">{{ returnReq.qcReport?.restockOption === 'SCRAP' ? 'Lệnh điều chuyển xử lý phế phẩm / bảo hành:' : 'Lệnh nhập kho thu hồi tự động:' }}</span>
+                  <strong class="receipt-code">{{ returnReq.qcReport?.inboundOrderCode }}</strong>
+                  <span class="receipt-status-badge" [class.badge-completed]="returnReq.qcReport?.inboundOrderStatus === 'Đã nhập kho' || returnReq.qcReport?.inboundOrderStatus === 'COMPLETED' || returnReq.qcReport?.inboundOrderStatus === 'Đã nhập kho Outlet'">
+                    {{ returnReq.qcReport?.inboundOrderStatus || 'Đã nhập kho' }}
                   </span>
                 </div>
                 <p class="receipt-banner-desc">
-                  {{ returnReq.qcReport.restockOption === 'RESTOCK_SALE' ? 'Đã tự động lập phiếu nhập và cộng số lượng vào Tồn kho khả dụng tại Kho Tổng (TP.HCM).' : (returnReq.qcReport.restockOption === 'REFURBISH' ? 'Đã tự động chuyển hàng sang phân khúc Outlet / Showroom trưng bày chiết khấu.' : 'Đã lập lệnh xuất chuyển xưởng bảo hành / tiêu hủy. Không cộng vào tồn kho thương mại.') }}
+                  {{ returnReq.qcReport?.restockOption === 'RESTOCK_SALE' ? 'Đã tự động lập phiếu nhập và cộng số lượng vào Tồn kho khả dụng tại Kho Tổng (TP.HCM).' : (returnReq.qcReport?.restockOption === 'REFURBISH' ? 'Đã tự động chuyển hàng sang phân khúc Outlet / Showroom trưng bày chiết khấu.' : 'Đã lập lệnh xuất chuyển xưởng bảo hành / tiêu hủy. Không cộng vào tồn kho thương mại.') }}
                 </p>
               </div>
             </div>
