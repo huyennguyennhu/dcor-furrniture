@@ -58,7 +58,9 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
     private reviewService: ReviewService,
     private router: Router,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    this.unreviewedCount = this.reviewService.currentUnreviewedCount;
+  }
 
   ngOnInit(): void {
     this.isLoggedIn = this.authService.isAuthenticated();
@@ -74,6 +76,16 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.customerService.unreadCount$.subscribe(count => {
         this.unreadNotificationCount = count;
+        this.cdr.markForCheck();
+      })
+    );
+
+    // Lắng nghe số lượng đơn chưa đánh giá từ ReviewService (lưu trữ đồng bộ, không chập chờn)
+    this.sub.add(
+      this.reviewService.unreviewedCount$.subscribe(count => {
+        this.unreviewedCount = count;
+        this.cdr.markForCheck();
+        try { this.cdr.detectChanges(); } catch (_) {}
       })
     );
 
@@ -92,8 +104,10 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
             }
             if (user.email) this.profile.email = user.email;
           }
+          this.reviewService.refreshUnreviewedCount();
+        } else {
+          this.reviewService.updateUnreviewedCount(0);
         }
-        this.loadUnreviewedCount();
       })
     );
 
@@ -104,26 +118,19 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
         if (phone && !this.isLoggedIn) {
           this.loadProfile();
         }
-        this.loadUnreviewedCount();
+        if (phone || this.isLoggedIn) {
+          this.reviewService.refreshUnreviewedCount();
+        }
       })
     );
 
-    this.loadUnreviewedCount();
+    if (this.isLoggedIn || this.guestPhone) {
+      this.reviewService.refreshUnreviewedCount();
+    }
   }
 
   loadUnreviewedCount(): void {
-    if (this.isLoggedIn || this.guestPhone) {
-      this.reviewService.getMyReviews().subscribe({
-        next: (res) => {
-          this.unreviewedCount = res?.unreviewed?.length || 0;
-        },
-        error: () => {
-          this.unreviewedCount = 0;
-        }
-      });
-    } else {
-      this.unreviewedCount = 0;
-    }
+    this.reviewService.refreshUnreviewedCount();
   }
 
   loadProfile(): void {
@@ -206,11 +213,13 @@ export class AccountSidebarComponent implements OnInit, OnDestroy {
 
   logout(): void {
     if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?')) {
+      this.reviewService.updateUnreviewedCount(0);
       this.authService.clearSession();
       localStorage.removeItem('dcor_customer_token');
       localStorage.removeItem('dcor_customer');
       localStorage.removeItem('dcor_customer_user');
       localStorage.removeItem('dcor_user');
+      localStorage.removeItem('dcor_unreviewed_count');
       this.router.navigate(['/']);
     }
   }

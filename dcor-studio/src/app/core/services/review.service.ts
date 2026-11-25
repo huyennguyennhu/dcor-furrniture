@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
@@ -61,6 +61,55 @@ export interface ProductReviewInput {
 export class ReviewService {
   private readonly baseUrl = `${environment.apiUrl}/store/reviews`;
   private readonly uploadUrl = `${environment.apiUrl}/upload/image`;
+  private readonly CACHE_UNREVIEWED_COUNT_KEY = 'dcor_unreviewed_count';
+
+  private getInitialUnreviewedCount(): number {
+    try {
+      const cached = localStorage.getItem(this.CACHE_UNREVIEWED_COUNT_KEY);
+      if (cached !== null && !isNaN(Number(cached))) {
+        return Math.max(0, Number(cached));
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  private unreviewedCountSubject = new BehaviorSubject<number>(this.getInitialUnreviewedCount());
+  public unreviewedCount$: Observable<number> = this.unreviewedCountSubject.asObservable();
+
+  public get currentUnreviewedCount(): number {
+    return this.unreviewedCountSubject.value;
+  }
+
+  public updateUnreviewedCount(count: number): void {
+    const safeCount = Math.max(0, count);
+    this.unreviewedCountSubject.next(safeCount);
+    try {
+      localStorage.setItem(this.CACHE_UNREVIEWED_COUNT_KEY, String(safeCount));
+    } catch (_) {}
+  }
+
+  private isRefreshingCount = false;
+  public refreshUnreviewedCount(): void {
+    if (this.isRefreshingCount) return;
+    const hasAuth = this.authService.isAuthenticated() || !!this.authService.getGuestPhone();
+    if (!hasAuth) {
+      this.updateUnreviewedCount(0);
+      return;
+    }
+
+    this.isRefreshingCount = true;
+    this.getMyReviews().subscribe({
+      next: (res) => {
+        this.isRefreshingCount = false;
+        const count = res?.unreviewed?.length || 0;
+        this.updateUnreviewedCount(count);
+      },
+      error: () => {
+        this.isRefreshingCount = false;
+        // Giữ nguyên số lượng cache hiện tại, không reset về 0 khi có lỗi mạng tạm thời
+      }
+    });
+  }
 
   constructor(
     private http: HttpClient,
@@ -93,7 +142,12 @@ export class ReviewService {
     return this.http.get<ReviewListResponse>(`${this.baseUrl}/my-reviews`, {
       headers: this.getHeaders(),
       params
-    });
+    }).pipe(
+      tap((res) => {
+        const count = res?.unreviewed?.length || 0;
+        this.updateUnreviewedCount(count);
+      })
+    );
   }
 
   /**
@@ -114,6 +168,10 @@ export class ReviewService {
       `${this.baseUrl}/${orderNumber}`,
       payload,
       { headers: this.getHeaders() }
+    ).pipe(
+      tap(() => {
+        this.refreshUnreviewedCount();
+      })
     );
   }
 

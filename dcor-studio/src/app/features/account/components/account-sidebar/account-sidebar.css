@@ -208,6 +208,7 @@
 .unreviewed-badge {
   background: #ea580c !important;
   color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.35);
 }
 
 .order-badge {
@@ -215,8 +216,15 @@
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
   border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .nav-bottom-spacer {
