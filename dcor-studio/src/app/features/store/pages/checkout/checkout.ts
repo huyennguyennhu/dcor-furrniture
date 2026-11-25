@@ -38,6 +38,7 @@ import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { PromotionService, Promotion, AppliedPromotion } from '../../../../core/services/promotion.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { applyImageErrorFallback } from '../../../../shared/utils/image-fallback.util';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ALL_VIETNAM_PROVINCE_NAMES, getDistrictsForProvince, getWardsForDistrict, getWardsForProvince } from '../../../../shared/data/vietnam-administrative.data';
@@ -1823,6 +1824,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.guestRegisterSuccess = true;
         this.cdr.detectChanges();
       });
+  }
+
+  onOrderItemImageError(event: Event) {
+    applyImageErrorFallback(event);
   }
 
   handleSaveGoogleAddress(agree: boolean) {

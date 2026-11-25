@@ -58,10 +58,6 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
   isDetailDrawerOpen = false;
   zoomedImageUrl: string | null = null;
 
-  // Thanh Test kiểm thử nhanh đổi trả
-  selectedTestReturnId = '';
-  isUpdatingStatus = false;
-
   isLoggedIn = false;
   isPhoneVerified = false;
 
@@ -143,9 +139,6 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
       this.customerService.getReturns().subscribe({
         next: (data) => {
           this.returnsList = data || [];
-          if (this.returnsList.length > 0 && !this.selectedTestReturnId) {
-            this.selectedTestReturnId = this.returnsList[0].id;
-          }
           this.applyFilter();
           this.isLoading = false;
           this.cdr.markForCheck();
@@ -226,60 +219,6 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
       case 'REJECTED': return 'Đã từ chối';
       default: return status;
     }
-  }
-
-  // ==========================================
-  // THANH TEST: CHUYỂN TRẠNG THÁI ĐỔI TRẢ
-  // ==========================================
-  testChangeStatus(newStatus: string): void {
-    if (!this.selectedTestReturnId) {
-      alert('Vui lòng chọn yêu cầu đổi trả cần thử nghiệm.');
-      return;
-    }
-
-    this.isUpdatingStatus = true;
-    this.errorMessage = '';
-    this.customerService.updateReturnStatus(this.selectedTestReturnId, newStatus, 'Chuyển trạng thái thử nghiệm luồng đổi trả')
-      .subscribe({
-        next: (res) => {
-          this.isUpdatingStatus = false;
-          this.successMessage = res.message || `Đã chuyển trạng thái sang "${this.getStatusText(newStatus)}".`;
-          setTimeout(() => {
-            this.successMessage = '';
-            this.cdr.markForCheck();
-          }, 4000);
-
-          // Cập nhật lại danh sách tại chỗ
-          const target = this.returnsList.find(r => r.id === this.selectedTestReturnId);
-          if (target) {
-            target.status = newStatus as any;
-            target.statusLabel = this.getStatusText(newStatus);
-          }
-
-          // Cập nhật cả selectedReturn nếu đang mở drawer
-          if (this.selectedReturn && this.selectedReturn.id === this.selectedTestReturnId) {
-            this.selectedReturn.status = newStatus as any;
-            this.selectedReturn.statusLabel = this.getStatusText(newStatus);
-          }
-
-          // Nếu đang ở tab trạng thái cụ thể, tự chuyển sang tab vừa đổi để xem ngay
-          if (this.activeTab !== 'ALL') {
-            this.activeTab = newStatus;
-          }
-          this.applyFilter();
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.isUpdatingStatus = false;
-          console.error('Lỗi khi cập nhật trạng thái đổi trả:', err);
-          this.errorMessage = err.error?.message || 'Không thể cập nhật trạng thái đổi trả. Vui lòng thử lại.';
-          setTimeout(() => {
-            this.errorMessage = '';
-            this.cdr.markForCheck();
-          }, 5000);
-          this.cdr.markForCheck();
-        }
-      });
   }
 
   // ==========================================

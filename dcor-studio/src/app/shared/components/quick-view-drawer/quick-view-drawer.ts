@@ -9,6 +9,7 @@ import { IconComponent } from '../icon/icon';
 import { CartService } from '../../../core/services/cart.service';
 import { WishlistService } from '../../../core/services/wishlist.service';
 import { PromotionService, formatDiscountBadgeText } from '../../../core/services/promotion.service';
+import { applyImageErrorFallback, resolveNextImageFallback, PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/image-fallback.util';
 import { environment } from '../../../../environments/environment';
 
 export interface AttributeOption {
@@ -1029,6 +1030,29 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  private failedGalleryUrls = new Set<string>();
+
+  onGalleryImageError(index: number, event: Event) {
+    const coverFallbacks = Array.isArray(this.activeProduct?.images)
+      ? this.activeProduct.images.filter((u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('/image/fetch/'))
+      : [];
+    const failedUrl = this.galleryImages[index];
+    if (failedUrl && failedUrl !== PLACEHOLDER_PRODUCT_IMAGE) {
+      this.failedGalleryUrls.add(failedUrl);
+      const nextUrl = resolveNextImageFallback(failedUrl, coverFallbacks, this.failedGalleryUrls);
+      if (nextUrl !== failedUrl) {
+        this.galleryImages[index] = nextUrl;
+        this.cdr.detectChanges();
+        return;
+      }
+    }
+    applyImageErrorFallback(event, coverFallbacks);
+  }
+
+  onSwatchImageError(event: Event) {
+    applyImageErrorFallback(event);
   }
 
   // Xem toàn bộ chi tiết

@@ -63,14 +63,14 @@
             [class.is-loading]="isHeroImageLoading"
             fetchpriority="high" decoding="async"
             (load)="onHeroImageLoad()"
-            (error)="onHeroImageError()"
+            (error)="onHeroImageError(activeImageIndex)"
             (click)="openLightbox(activeImageIndex)" />
 
           <!-- Vòng vuông kính lúp Magnifier Lens theo chuột -->
           <div class="pdp-magnifier-lens" *ngIf="isMagnifierActive" [ngStyle]="lensStyle">
             <div class="lens-img-viewport">
               <img [src]="galleryImages[activeImageIndex]" [alt]="product.name" class="lens-zoom-img"
-                [ngStyle]="lensImgStyle" />
+                [ngStyle]="lensImgStyle" (error)="onHeroImageError(activeImageIndex)" />
             </div>
             <!-- Chỉ báo tâm kính lúp & Badge độ phóng đại -->
             <div class="lens-crosshair"></div>
@@ -103,7 +103,8 @@
           <div class="pdp-thumbnail-strip" #thumbStrip (scroll)="onThumbScroll()">
             <button *ngFor="let img of galleryImages; let idx = index" type="button" class="pdp-thumb-item"
               [class.active]="idx === activeImageIndex" (click)="selectGalleryImage(idx)">
-              <img [src]="getThumbUrl(img)" [alt]="product.name + ' góc ' + (idx + 1)" loading="lazy" decoding="async" />
+              <img [src]="getThumbUrl(img)" [alt]="product.name + ' góc ' + (idx + 1)" loading="lazy" decoding="async"
+                (error)="onThumbImageError(idx, $event)" />
             </button>
           </div>
           <button type="button" class="thumb-nav-btn thumb-next" (click)="scrollThumbs('right')"
@@ -773,7 +774,7 @@
   <!-- THANH MUA CỐ ĐỊNH (STICKY BUY BAR) TRÊN MOBILE -->
   <div class="mobile-sticky-buy-bar" *ngIf="showStickyMobileBar && product">
     <div class="sticky-bar-info">
-      <img [src]="galleryImages[0]" [alt]="product.name" class="sticky-thumb" />
+      <img [src]="galleryImages[0]" [alt]="product.name" class="sticky-thumb" (error)="onHeroImageError(0)" />
       <div class="sticky-text-wrap">
         <span class="sticky-name">{{ product.name }}</span>
         <span class="sticky-price">{{ formatPrice(currentPrice) }}</span>
@@ -815,7 +816,7 @@
         </button>
 
         <img [src]="galleryImages[lightboxIndex]" [alt]="product?.name" class="lightbox-main-img"
-          [style.transform]="'scale(' + lightboxZoom + ')'" />
+          [style.transform]="'scale(' + lightboxZoom + ')'" (error)="onHeroImageError(lightboxIndex)" />
 
         <button type="button" class="lightbox-arrow btn-lightbox-next" (click)="nextLightbox()">
           <app-icon name="ChevronRight" size="24"></app-icon>
@@ -825,7 +826,7 @@
       <div class="lightbox-thumbnails-reel" *ngIf="galleryImages.length > 1">
         <button *ngFor="let img of galleryImages; let idx = index" type="button" class="lightbox-thumb-btn"
           [class.active]="idx === lightboxIndex" (click)="lightboxIndex = idx; lightboxZoom = 1">
-          <img [src]="img" [alt]="'Thumb ' + (idx + 1)" />
+          <img [src]="img" [alt]="'Thumb ' + (idx + 1)" (error)="onThumbImageError(idx, $event)" />
         </button>
       </div>
     </div>

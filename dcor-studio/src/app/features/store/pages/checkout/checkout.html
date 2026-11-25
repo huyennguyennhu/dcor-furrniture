@@ -294,7 +294,8 @@
                 <div class="summary-item-thumb">
                   <img
                     [src]="item.image || '/assets/img/furniture-placeholder.svg'"
-                    [alt]="item.name" />
+                    [alt]="item.name"
+                    (error)="onOrderItemImageError($event)" />
                 </div>
                 <div class="summary-item-info">
                   <h4 class="item-title" [title]="item.name">{{ item.name }}</h4>
@@ -559,7 +560,8 @@
               <div *ngFor="let item of createdOrder.items" class="purchased-item-row">
                 <img
                   [src]="item.image || '/assets/img/furniture-placeholder.svg'"
-                  [alt]="item.name" />
+                  [alt]="item.name"
+                  (error)="onOrderItemImageError($event)" />
                 <div class="item-name-block">
                   <div class="item-name">{{ item.name }}</div>
                   <div class="item-variant" *ngIf="item.variantName">{{ item.variantName }}</div>

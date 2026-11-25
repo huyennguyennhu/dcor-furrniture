@@ -5,6 +5,7 @@ import { RouterModule, Router } from '@angular/router';
 import { CartService, CartItem } from '../../../core/services/cart.service';
 import { PromotionService, Promotion, AppliedPromotion, formatDiscountBadgeText } from '../../../core/services/promotion.service';
 import { WishlistService } from '../../../core/services/wishlist.service';
+import { applyImageErrorFallback, resolveNextImageFallback, PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/image-fallback.util';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { 
@@ -1611,6 +1612,32 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
         this.closeOutOfStockModal();
       }
     });
+  }
+
+  private failedVariantUrls = new Set<string>();
+
+  onVariantGalleryImageError(index: number, event: Event) {
+    const coverFallbacks: Array<string | undefined> = [
+      ...(Array.isArray(this.productForVariantEdit?.images)
+        ? this.productForVariantEdit.images.filter((u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('/image/fetch/'))
+        : []),
+      this.editingCartItem?.image
+    ];
+    const failedUrl = this.variantImages[index];
+    if (failedUrl && failedUrl !== PLACEHOLDER_PRODUCT_IMAGE) {
+      this.failedVariantUrls.add(failedUrl);
+      const nextUrl = resolveNextImageFallback(failedUrl, coverFallbacks, this.failedVariantUrls);
+      if (nextUrl !== failedUrl) {
+        this.variantImages[index] = nextUrl;
+        this.cdr.detectChanges();
+        return;
+      }
+    }
+    applyImageErrorFallback(event, coverFallbacks);
+  }
+
+  onCartImageError(event: Event, fallback?: string) {
+    applyImageErrorFallback(event, fallback ? [fallback] : []);
   }
 
   goToCheckout() {
