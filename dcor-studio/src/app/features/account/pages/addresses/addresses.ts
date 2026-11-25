@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -86,7 +86,8 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
 
   constructor(
     private customerService: CustomerService,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   get hasUserPhone(): boolean {
@@ -113,6 +114,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     } catch (e) {}
 
     this.loadVerifiedPhones();
+    this.cdr.markForCheck();
 
     // 2. Đồng bộ mới nhất từ server
     this.loadAddresses();
@@ -121,17 +123,19 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
   loadAddresses(): void {
     if (this.addresses.length === 0) {
       this.isLoading = true;
+      this.cdr.markForCheck();
     }
     this.sub.add(
       this.customerService.getAddresses().subscribe({
         next: (data) => {
-          this.addresses = data;
+          this.addresses = data || [];
           this.isLoading = false;
           // Lưu cache đồng bộ với trang checkout
           try {
             localStorage.setItem('dcor_saved_addresses', JSON.stringify(data));
           } catch (e) {}
           this.loadVerifiedPhones();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.warn('Lỗi khi đồng bộ sổ địa chỉ từ server:', err);
@@ -146,6 +150,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
             }
           }
           this.isLoading = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -160,23 +165,27 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
       this.wards = [];
       this.formData.ward = '';
     }
+    this.cdr.markForCheck();
   }
 
   onReceiverNameInput(): void {
     if (this.formData.receiverName && this.formData.receiverName.trim()) {
       delete this.formErrors.receiverName;
+      this.cdr.markForCheck();
     }
   }
 
   onPhoneInput(): void {
     if (this.formData.phone && this.formData.phone.trim()) {
       delete this.formErrors.phone;
+      this.cdr.markForCheck();
     }
   }
 
   onDetailInput(): void {
     if (this.formData.detail && this.formData.detail.trim()) {
       delete this.formErrors.detail;
+      this.cdr.markForCheck();
     }
   }
 
@@ -197,6 +206,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     this.formErrors = {};
     this.errorMessage = '';
     this.successMessage = '';
+    this.cdr.markForCheck();
   }
 
   openEditModal(addr: CustomerAddress): void {
@@ -219,12 +229,14 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     this.formErrors = {};
     this.errorMessage = '';
     this.successMessage = '';
+    this.cdr.markForCheck();
   }
 
   closeModal(): void {
     this.isModalOpen = false;
     this.editingId = null;
     this.formErrors = {};
+    this.cdr.markForCheck();
   }
 
   loadVerifiedPhones(): void {
@@ -309,6 +321,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     if (!this.targetPhoneForOtp) return;
     this.isSendingOtp = true;
     this.otpErrorMessage = '';
+    this.cdr.markForCheck();
 
     fetch(`${environment.apiUrl}/auth/send-otp`, {
       method: 'POST',
@@ -322,17 +335,21 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
         this.isOtpModalOpen = true;
         this.otpCode = '';
         this.startOtpCountdown();
+        this.cdr.markForCheck();
       });
   }
 
   startOtpCountdown(): void {
     this.otpCountdown = 60;
+    this.cdr.markForCheck();
     if (this.otpTimer) clearInterval(this.otpTimer);
     this.otpTimer = setInterval(() => {
       if (this.otpCountdown > 0) {
         this.otpCountdown--;
+        this.cdr.markForCheck();
       } else {
         clearInterval(this.otpTimer);
+        this.cdr.markForCheck();
       }
     }, 1000);
   }
@@ -341,6 +358,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     const code = (this.otpCode || '').trim();
     if (!code || code.length < 4) {
       this.otpErrorMessage = 'Vui lòng nhập mã OTP đầy đủ.';
+      this.cdr.markForCheck();
       return;
     }
 
@@ -353,10 +371,12 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
       if (!this.hasUserPhone) {
         this.phoneToSaveToProfile = this.targetPhoneForOtp;
         this.showSavePhonePromptModal = true;
+        this.cdr.markForCheck();
         return;
       }
 
       this.executeSaveAddress();
+      this.cdr.markForCheck();
     };
 
     if (code === '111111') {
@@ -376,12 +396,14 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
       .then(() => onOtpSuccess())
       .catch(() => {
         this.otpErrorMessage = 'Mã OTP không chính xác. Vui lòng nhập mã 111111.';
+        this.cdr.markForCheck();
       });
   }
 
   confirmSavePhoneToProfile(): void {
     if (!this.phoneToSaveToProfile) return;
     this.isSavingPhoneToProfile = true;
+    this.cdr.markForCheck();
     const phone = this.phoneToSaveToProfile;
 
     this.sub.add(
@@ -403,6 +425,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
           });
           this.addVerifiedPhone(phone);
           this.executeSaveAddress();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           this.isSavingPhoneToProfile = false;
@@ -418,6 +441,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
           this.addVerifiedPhone(phone);
           this.showSavePhonePromptModal = false;
           this.executeSaveAddress();
+          this.cdr.markForCheck();
         }
       })
     );
@@ -429,11 +453,13 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     }
     this.showSavePhonePromptModal = false;
     this.executeSaveAddress();
+    this.cdr.markForCheck();
   }
 
   executeSaveAddress(): void {
 
     this.isSaving = true;
+    this.cdr.markForCheck();
     const payload = {
       receiverName: this.formData.receiverName.trim(),
       phone: this.formData.phone.trim(),
@@ -462,18 +488,24 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
       this.saveLocalAddresses(this.addresses);
       this.closeModal();
       this.successMessage = 'Cập nhật địa chỉ nhận hàng thành công!';
+      this.cdr.markForCheck();
 
       this.sub.add(
         this.customerService.updateAddress(editId, payload).subscribe({
           next: (res: any) => {
             this.isSaving = false;
             this.loadAddressesSilently();
-            setTimeout(() => this.successMessage = '', 4000);
+            setTimeout(() => {
+              this.successMessage = '';
+              this.cdr.markForCheck();
+            }, 4000);
+            this.cdr.markForCheck();
           },
           error: (err) => {
             this.isSaving = false;
             alert(err.error?.message || 'Lỗi khi cập nhật địa chỉ.');
             this.loadAddresses();
+            this.cdr.markForCheck();
           }
         })
       );
@@ -497,6 +529,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
       this.saveLocalAddresses(this.addresses);
       this.closeModal();
       this.successMessage = 'Thêm địa chỉ nhận hàng mới thành công!';
+      this.cdr.markForCheck();
 
       this.sub.add(
         this.customerService.createAddress(payload).subscribe({
@@ -507,13 +540,18 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
               this.saveLocalAddresses(this.addresses);
             }
             this.loadAddressesSilently();
-            setTimeout(() => this.successMessage = '', 4000);
+            setTimeout(() => {
+              this.successMessage = '';
+              this.cdr.markForCheck();
+            }, 4000);
+            this.cdr.markForCheck();
           },
           error: (err) => {
             this.isSaving = false;
             this.addresses = this.addresses.filter(a => a.id !== tempId);
             this.saveLocalAddresses(this.addresses);
             alert(err.error?.message || 'Lỗi khi thêm địa chỉ.');
+            this.cdr.markForCheck();
           }
         })
       );
@@ -530,8 +568,9 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.customerService.getAddresses().subscribe({
         next: (data) => {
-          this.addresses = data;
+          this.addresses = data || [];
           this.saveLocalAddresses(data);
+          this.cdr.markForCheck();
         },
         error: () => {}
       })
@@ -543,16 +582,22 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     this.addresses.forEach(a => a.isDefault = (a.id === addr.id));
     this.saveLocalAddresses(this.addresses);
     this.successMessage = `Đã đặt "${addr.detail}" làm địa chỉ nhận hàng mặc định.`;
-    setTimeout(() => this.successMessage = '', 3000);
+    this.cdr.markForCheck();
+    setTimeout(() => {
+      this.successMessage = '';
+      this.cdr.markForCheck();
+    }, 3000);
 
     this.sub.add(
       this.customerService.setDefaultAddress(addr.id).subscribe({
         next: () => {
           this.loadAddressesSilently();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           alert(err.error?.message || 'Không thể thiết lập mặc định.');
           this.loadAddresses();
+          this.cdr.markForCheck();
         }
       })
     );
@@ -562,12 +607,14 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     this.addressToDelete = addr;
     this.isDeleteModalOpen = true;
     this.errorMessage = '';
+    this.cdr.markForCheck();
   }
 
   closeDeleteModal(): void {
     if (this.isDeleting) return;
     this.isDeleteModalOpen = false;
     this.addressToDelete = null;
+    this.cdr.markForCheck();
   }
 
   confirmDeleteAddress(): void {
@@ -576,6 +623,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
 
     this.isDeleting = true;
     this.errorMessage = '';
+    this.cdr.markForCheck();
 
     this.sub.add(
       this.customerService.deleteAddress(target.id).subscribe({
@@ -586,7 +634,11 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
           this.addresses = this.addresses.filter(a => a.id !== target.id);
           this.saveLocalAddresses(this.addresses);
           this.successMessage = 'Đã xóa địa chỉ nhận hàng thành công.';
-          setTimeout(() => (this.successMessage = ''), 3500);
+          this.cdr.markForCheck();
+          setTimeout(() => {
+            this.successMessage = '';
+            this.cdr.markForCheck();
+          }, 3500);
           this.loadAddressesSilently();
         },
         error: (err) => {
@@ -594,7 +646,11 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
           this.isDeleteModalOpen = false;
           this.addressToDelete = null;
           this.errorMessage = err.error?.message || 'Không thể xóa địa chỉ. Vui lòng thử lại.';
-          setTimeout(() => (this.errorMessage = ''), 4500);
+          this.cdr.markForCheck();
+          setTimeout(() => {
+            this.errorMessage = '';
+            this.cdr.markForCheck();
+          }, 4500);
           this.loadAddresses();
         }
       })

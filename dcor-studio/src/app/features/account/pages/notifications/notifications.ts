@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { LucideAngularModule, Package, ShieldCheck, CalendarDays, RefreshCw, Tag, Bell, Check, ChevronRight } from 'lucide-angular';
@@ -36,7 +36,8 @@ export class AccountNotificationsComponent implements OnInit, OnDestroy {
 
   constructor(
     private customerService: CustomerService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -48,6 +49,7 @@ export class AccountNotificationsComponent implements OnInit, OnDestroy {
           if (list.length > 0) {
             this.isLoading = false;
           }
+          this.cdr.markForCheck();
         }
       })
     );
@@ -55,6 +57,7 @@ export class AccountNotificationsComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.customerService.unreadCount$.subscribe((count) => {
         this.unreadCount = count;
+        this.cdr.markForCheck();
       })
     );
 
@@ -64,6 +67,7 @@ export class AccountNotificationsComponent implements OnInit, OnDestroy {
   loadNotifications(): void {
     if (this.notifications.length === 0) {
       this.isLoading = true;
+      this.cdr.markForCheck();
     }
     this.sub.add(
       this.customerService.getNotifications().subscribe({
@@ -71,10 +75,12 @@ export class AccountNotificationsComponent implements OnInit, OnDestroy {
           this.notifications = data || [];
           this.applyFilter();
           this.isLoading = false;
+          this.cdr.markForCheck();
         },
         error: (err) => {
           this.errorMessage = err.error?.message || 'Không thể tải thông báo.';
           this.isLoading = false;
+          this.cdr.markForCheck();
         }
       })
     );
@@ -83,6 +89,7 @@ export class AccountNotificationsComponent implements OnInit, OnDestroy {
   setFilter(filter: string): void {
     this.activeFilter = filter;
     this.applyFilter();
+    this.cdr.markForCheck();
   }
 
   applyFilter(): void {
@@ -122,6 +129,11 @@ export class AccountNotificationsComponent implements OnInit, OnDestroy {
   markAllAsRead(): void {
     const unreadIds = this.notifications.filter(n => !n.isRead).map(n => n.id);
     if (unreadIds.length === 0) return;
+
+    this.notifications.forEach(n => n.isRead = true);
+    this.unreadCount = 0;
+    this.applyFilter();
+    this.cdr.markForCheck();
 
     this.sub.add(
       this.customerService.markAllNotificationsRead(unreadIds).subscribe()

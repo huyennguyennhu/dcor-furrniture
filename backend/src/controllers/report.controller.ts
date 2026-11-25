@@ -1340,21 +1340,13 @@ export const reportController = {
         : 0;
 
       // 4. Khối Tác Nghiệp Khẩn Cấp (Actionable Urgent KPIs từ DB thực)
-      // a) Đơn cọc / Đơn giá trị cao chờ duyệt
-      const pendingDepositOrders = await prisma.order.count({
+      // a) Đơn hàng chờ xác nhận
+      const pendingConfirmationOrders = await prisma.order.count({
         where: {
-          status: 'PENDING',
-          OR: [
-            { paymentHoldReason: 'AWAITING_DEPOSIT' },
-            {
-              AND: [
-                { OR: [{ isDepositRequired: true }, { isHighValue: true }] },
-                { paymentStatus: { not: 'PAID' } }
-              ]
-            }
-          ]
+          status: 'PENDING'
         }
       });
+      const pendingDepositOrders = pendingConfirmationOrders;
 
       // b) SKU nguy cấp tồn kho (tồn khả dụng <= ngưỡng tồn kho cấu hình của từng biến thể)
       const activeVariantsForLowStock = await prisma.productVariant.findMany({
@@ -1668,6 +1660,7 @@ export const reportController = {
           fulfillmentRate,
           aov,
           // Operational Urgent KPIs
+          pendingConfirmationOrders,
           pendingDepositOrders,
           criticalLowStockSKUs,
           todayAppointments,
