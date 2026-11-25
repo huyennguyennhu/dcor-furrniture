@@ -2,13 +2,22 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { LucideAngularModule, Search, MapPin, CreditCard, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image as ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy } from 'lucide-angular';
+import { LucideAngularModule, Search, MapPin, CreditCard, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image as ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy, Truck, FileText, CircleX, RotateCcw } from 'lucide-angular';
 import { OrderReviewModalComponent, ReviewModalItem } from '../../../../shared/components/order-review-modal/order-review-modal';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { OrderService, OrderSummary, OrderDetail } from '../../../../core/services/order.service';
 import { CartService } from '../../../../core/services/cart.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
+
+export interface OrderTimelineStep {
+  key: string;
+  title: string;
+  subTitle?: string;
+  icon: any;
+  status: 'completed' | 'current' | 'pending' | 'cancelled';
+  time?: string | null;
+}
 
 @Component({
   selector: 'app-my-orders',
@@ -18,7 +27,7 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./my-orders.css']
 })
 export class MyOrdersComponent implements OnInit, OnDestroy {
-  readonly icons = { MapPin, CreditCard, Search, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image: ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy };
+  readonly icons = { MapPin, CreditCard, Search, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image: ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy, Truck, FileText, CircleX, RotateCcw };
 
   activeTab = 'ALL';
   searchQuery = '';
@@ -849,6 +858,14 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     return order.totalAmount;
   }
 
+  getVietQRUrl(order: OrderDetail | null | undefined): string {
+    if (!order) return 'assets/img/qr-payment-sample.svg';
+    const amount = this.getPaymentAmount(order);
+    const memo = encodeURIComponent('DCOR ' + order.orderNumber);
+    const accName = encodeURIComponent('CONG TY TNHH NOI THAT DCOR VIET NAM');
+    return `https://img.vietqr.io/image/mbbank-0988888888-compact2.png?amount=${amount}&addInfo=${memo}&accountName=${accName}`;
+  }
+
   getPaymentQrUrl(order: OrderDetail): string {
     if (!order) return '';
     const amount = this.getPaymentAmount(order);
@@ -912,6 +929,170 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
       }
     }
     return uniqueTokens.join(', ');
+  }
+
+  getOrderTimelineSteps(order: OrderDetail | null | undefined): OrderTimelineStep[] {
+    if (!order) return [];
+
+    const history = order.statusHistory || [];
+    const getStatusTime = (targetStatuses: string[]): string | null => {
+      // Tìm mốc thời gian sớm nhất đơn hàng bước vào một trong các trạng thái target
+      for (let i = history.length - 1; i >= 0; i--) {
+        const h = history[i];
+        if (targetStatuses.includes(h.status) && h.createdAt) {
+          return h.createdAt;
+        }
+      }
+      for (const h of history) {
+        if (targetStatuses.includes(h.status) && h.createdAt) {
+          return h.createdAt;
+        }
+      }
+      return null;
+    };
+
+    // Trường hợp đơn hàng đã hủy
+    if (order.status === 'CANCELLED') {
+      const cancelTime = order.cancelledAt || getStatusTime(['CANCELLED']) || null;
+      return [
+        {
+          key: 'ORDER_PLACED',
+          title: 'Đơn hàng đã đặt',
+          icon: this.icons.FileText,
+          status: 'completed',
+          time: order.createdAt || (order as any).date || null
+        },
+        {
+          key: 'ORDER_CANCELLED',
+          title: 'Đã hủy đơn hàng',
+          subTitle: order.cancelReason || 'Đã hủy đơn hàng',
+          icon: this.icons.CircleX,
+          status: 'cancelled',
+          time: cancelTime
+        }
+      ];
+    }
+
+    // 1. Bước 1: Đơn hàng đã đặt (Luôn hoàn tất khi đơn đã được tạo)
+    const step1: OrderTimelineStep = {
+      key: 'PLACED',
+      title: 'Đơn hàng đã đặt',
+      icon: this.icons.FileText,
+      status: 'completed',
+      time: order.createdAt || (order as any).date || null
+    };
+
+    // 2. Bước 2: Đã xác nhận / Đã thanh toán / Đã đặt cọc 30%
+    let step2Title = 'Đã xác nhận';
+    let isStep2Completed = false;
+    let isStep2Current = false;
+
+    const isHighValue = !!order.isHighValue;
+    const isBankTransfer = order.paymentMethod === 'BANK_TRANSFER' || (order.paymentMethod as any) === 'BANKING';
+    const isPaid = order.paymentStatus === 'PAID';
+    const isPartial = order.paymentStatus === 'PARTIAL' || ((order.paidAmount || 0) >= (order.depositAmount || 0) && (order.depositAmount || 0) > 0);
+
+    const advancedStatuses = ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'];
+    const isAdvanced = advancedStatuses.includes(order.status);
+
+    if (isHighValue) {
+      if (isPaid || isPartial || isAdvanced) {
+        step2Title = `Đã đặt cọc 30% (${this.formatCurrency(order.depositAmount || 0)})`;
+        isStep2Completed = true;
+      } else {
+        step2Title = 'Chờ đặt cọc 30%';
+        isStep2Current = true;
+      }
+    } else if (isBankTransfer) {
+      if (isPaid || isAdvanced) {
+        step2Title = `Đã thanh toán (${this.formatCurrency(order.totalAmount || 0)})`;
+        isStep2Completed = true;
+      } else {
+        step2Title = 'Chờ thanh toán';
+        isStep2Current = true;
+      }
+    } else {
+      if (isAdvanced) {
+        step2Title = 'Đã xác nhận đơn';
+        isStep2Completed = true;
+      } else {
+        step2Title = 'Chờ xác nhận';
+        isStep2Current = true;
+      }
+    }
+
+    const step2Time = isStep2Completed ? (getStatusTime(['CONFIRMED', 'PAID', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED']) || order.createdAt) : null;
+
+    const step2: OrderTimelineStep = {
+      key: 'CONFIRMED',
+      title: step2Title,
+      icon: this.icons.CreditCard,
+      status: isStep2Completed ? 'completed' : (isStep2Current ? 'current' : 'pending'),
+      time: step2Time
+    };
+
+    // 3. Bước 3: Đang chuẩn bị hàng (Xưởng gia công & Đóng gói xuất kho)
+    const prepStatuses = ['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'];
+    const isPrepCompleted = prepStatuses.includes(order.status);
+    const isPrepCurrent = order.status === 'PROCESSING' || order.status === 'READY_TO_SHIP';
+    const step3Time = isPrepCompleted ? getStatusTime(['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED']) : null;
+
+    const step3: OrderTimelineStep = {
+      key: 'PROCESSING',
+      title: 'Đang chuẩn bị hàng',
+      icon: this.icons.Package,
+      status: isPrepCompleted && !isPrepCurrent ? 'completed' : (isPrepCurrent ? 'current' : 'pending'),
+      time: step3Time
+    };
+
+    // 4. Bước 4: Đang giao hàng (Đã bàn giao cho đơn vị vận chuyển)
+    const shipStatuses = ['SHIPPED', 'DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'];
+    const isShipCompleted = shipStatuses.includes(order.status);
+    const isShipCurrent = order.status === 'SHIPPED';
+    const step4Time = isShipCompleted ? getStatusTime(['SHIPPED', 'DELIVERED', 'COMPLETED']) : null;
+
+    const step4: OrderTimelineStep = {
+      key: 'SHIPPED',
+      title: 'Đang giao hàng',
+      icon: this.icons.Truck,
+      status: isShipCompleted && !isShipCurrent ? 'completed' : (isShipCurrent ? 'current' : 'pending'),
+      time: step4Time
+    };
+
+    // 5. Bước 5: Đã nhận hàng (Giao hàng thành công)
+    const deliverStatuses = ['DELIVERED', 'COMPLETED', 'RETURN_REQUESTED', 'RETURNING', 'RETURNED'];
+    const isDeliverCompleted = deliverStatuses.includes(order.status);
+    const isDeliverCurrent = order.status === 'DELIVERED';
+    let step5Time: string | null = null;
+    if (isDeliverCompleted) {
+      if (order.deliveredAt) {
+        step5Time = typeof order.deliveredAt === 'string' ? order.deliveredAt : order.deliveredAt.toISOString();
+      } else {
+        step5Time = getStatusTime(['DELIVERED', 'COMPLETED']);
+      }
+    }
+
+    const step5: OrderTimelineStep = {
+      key: 'DELIVERED',
+      title: 'Đã nhận hàng',
+      icon: this.icons.CheckCircle2,
+      status: isDeliverCompleted && !isDeliverCurrent ? 'completed' : (isDeliverCurrent ? 'current' : 'pending'),
+      time: step5Time
+    };
+
+    // 6. Bước 6: Đánh giá (Hoàn tất đơn hàng)
+    const isCompleted = order.status === 'COMPLETED';
+    const step6Time = isCompleted ? getStatusTime(['COMPLETED']) : null;
+
+    const step6: OrderTimelineStep = {
+      key: 'REVIEW',
+      title: 'Đánh giá',
+      icon: this.icons.Star,
+      status: isCompleted ? 'completed' : (isDeliverCompleted ? 'current' : 'pending'),
+      time: step6Time
+    };
+
+    return [step1, step2, step3, step4, step5, step6];
   }
 
   getPaymentStatusText(order: any): string {
@@ -1465,6 +1646,6 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     this.sub.unsubscribe();
   }
 }
-
+
 
 
