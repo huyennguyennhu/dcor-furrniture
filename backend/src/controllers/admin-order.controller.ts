@@ -480,23 +480,38 @@ export const adminOrderController = {
       }
 
       const newFailedAttempts = (existing.failedDeliveryAttempts || 0) + 1;
+      const isMaxFailed = newFailedAttempts >= 3;
+      const nextStatus = isMaxFailed ? 'CANCELLED' : 'FAILED_DELIVERY';
+      const actionTitle = isMaxFailed 
+        ? `Hủy đơn do giao thất bại (Lần ${newFailedAttempts}) & Chuyển thu hồi nhập kho` 
+        : `Ghi nhận giao thất bại (Lần ${newFailedAttempts})`;
+      const actionNotes = isMaxFailed
+        ? `Lý do: ${reason}. Đơn hàng giao thất bại đạt giới hạn (≥ 3 lần). Tự động kích hoạt Lệnh Nhập Kho Hàng Hoàn.`
+        : `Lý do: ${reason}`;
+
+      const updateData: any = {
+        status: nextStatus,
+        failedDeliveryAttempts: newFailedAttempts,
+        failedDeliveryReason: reason,
+        statusHistory: {
+          create: {
+            status: nextStatus,
+            fromStatus: existing.status,
+            actorType: 'STAFF',
+            actorName: staffName,
+            action: actionTitle,
+            notes: actionNotes
+          }
+        }
+      };
+
+      if (isMaxFailed) {
+        updateData.cancelReason = `Hủy tự động: Giao không thành công ${newFailedAttempts} lần (${reason}). Chuyển thu hồi hoàn kho.`;
+      }
+
       const updated = await prisma.order.update({
         where: { id: existing.id },
-        data: {
-          status: 'FAILED_DELIVERY',
-          failedDeliveryAttempts: newFailedAttempts,
-          failedDeliveryReason: reason,
-          statusHistory: {
-            create: {
-              status: 'FAILED_DELIVERY',
-              fromStatus: existing.status,
-              actorType: 'STAFF',
-              actorName: staffName,
-              action: `Ghi nhận giao thất bại (Lần ${newFailedAttempts})`,
-              notes: `Lý do: ${reason}`
-            }
-          }
-        },
+        data: updateData,
         include: { items: true, statusHistory: true, payments: true, customer: true }
       });
 

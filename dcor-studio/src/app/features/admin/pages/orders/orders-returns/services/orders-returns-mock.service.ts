@@ -39,6 +39,11 @@ export interface ReturnQcChecklist {
   refundPercent: number;
   restockOption?: 'RESTOCK_SALE' | 'REFURBISH' | 'SCRAP' | '' | undefined;
   inspector: string;
+  inboundOrderCode?: string;
+  inboundOrderStatus?: string;
+  inboundOrderType?: string;
+  inboundOrderWarehouse?: string;
+  inboundOrderCreatedAt?: string;
 }
 
 export interface ReturnTimelineEvent {
@@ -69,6 +74,7 @@ export interface ReturnReplacementOrder {
   priceDiff: number;
   deliveryAddress: string;
   notes?: string;
+  exportOrderCode?: string;
 }
 
 export interface ReturnRequest {
@@ -85,6 +91,7 @@ export interface ReturnRequest {
   status: ReturnStatus;
   stage: 1 | 2 | 3 | 4;
   assignee: string;
+  exportOrderCode?: string;
   exchangeItem?: {
     name: string;
     sku: string;
@@ -911,6 +918,26 @@ export class OrdersReturnsMockService {
     if (update.replacementOrder && item.replacementOrder) {
       item.replacementOrder = { ...item.replacementOrder, ...update.replacementOrder };
     }
+    this.saveToStorage();
+    return item;
+  }
+
+  updateQcReport(id: string, qcReport: Partial<ReturnQcChecklist>): ReturnRequest | null {
+    const item = this.returns.find(r => r.id === id);
+    if (!item) return null;
+    if (!item.qcReport) {
+      item.qcReport = {
+        surfaceChecked: false,
+        structureChecked: false,
+        cushionLeatherChecked: false,
+        accessoriesChecked: false,
+        condition: '',
+        defectAssessment: '',
+        refundPercent: 100,
+        inspector: 'Thủ kho & QC'
+      };
+    }
+    Object.assign(item.qcReport, qcReport);
     this.saveToStorage();
     return item;
   }

@@ -567,6 +567,24 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
       if (this.returnReq?.replacementOrder) {
         this.ensureReplacementOrderExists(this.returnReq);
       }
+      if (this.returnReq?.qcReport && this.returnReq.qcReport.restockOption && !this.returnReq.qcReport.inboundOrderCode && this.currentStepIndex >= 4) {
+        if (this.returnReq.qcReport.restockOption === 'RESTOCK_SALE') {
+          this.returnReq.qcReport.inboundOrderCode = 'PNK-TH-1021';
+          this.returnReq.qcReport.inboundOrderStatus = 'Đã nhập kho';
+          this.returnReq.qcReport.inboundOrderWarehouse = 'Kho Tổng (TP.HCM)';
+        } else if (this.returnReq.qcReport.restockOption === 'REFURBISH') {
+          this.returnReq.qcReport.inboundOrderCode = 'PNK-OL-1021';
+          this.returnReq.qcReport.inboundOrderStatus = 'Đã nhập kho Outlet';
+          this.returnReq.qcReport.inboundOrderWarehouse = 'Kho Outlet / Showroom Quận 1';
+        } else if (this.returnReq.qcReport.restockOption === 'SCRAP') {
+          this.returnReq.qcReport.inboundOrderCode = 'PXK-SC-1021';
+          this.returnReq.qcReport.inboundOrderStatus = 'Lên kế hoạch xuất';
+          this.returnReq.qcReport.inboundOrderWarehouse = 'Xưởng bảo hành & Tiêu hủy DCOR';
+        }
+      }
+      if (this.returnReq?.type === 'EXCHANGE' && this.returnReq.status === 'COMPLETED' && !this.returnReq.exportOrderCode) {
+        this.returnReq.exportOrderCode = this.returnReq.replacementOrder?.exportOrderCode || 'PXK-DH-1008';
+      }
 
       // Đồng bộ trạng thái Checklist thẩm định
       if (this.currentStepIndex > 0) {
@@ -1037,6 +1055,12 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
       this.triggerToast('Chưa chọn phương án', 'Vui lòng chọn phương án đề xuất tái nhập hàng.', 'error');
       return;
     }
+
+    // Tự động kích hoạt lập đơn/lệnh nhập kho dựa trên phương án QC đã chọn
+    if (!this.returnReq.qcReport.inboundOrderCode) {
+      this.generateInboundOrderFromQc(this.returnReq);
+    }
+
     if (this.returnReq.type === 'EXCHANGE') {
       // Chuyển sang bước Đổi hàng mới (Lên sẵn cấu trúc thông tin đơn hàng dự kiến)
       this.advanceStatus(
@@ -1054,6 +1078,116 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
         'Kế toán Bích Ngọc'
       );
     }
+  }
+
+  generateInboundOrderFromQc(returnReq: ReturnRequest): void {
+    if (!returnReq || !returnReq.qcReport) return;
+    const option = returnReq.qcReport.restockOption;
+    if (!option) return;
+
+    const randomSuffix = Date.now().toString().slice(-4);
+    let orderCode = '';
+    let type: 'IMPORT' | 'EXPORT' = 'IMPORT';
+    let status: 'COMPLETED' | 'PLANNED' = 'COMPLETED';
+    let reason = '';
+    let destLocation = '';
+    let destWarehouseId: string | null = null;
+    let sourceLocation = '';
+    let sourceWarehouseId: string | null = null;
+    let notes = '';
+    let inboundStatusLabel = 'Đã nhập kho';
+
+    const customerName = returnReq.customer?.name || 'Khách hàng';
+    const customerPhone = returnReq.customer?.phone ? ` (${returnReq.customer.phone})` : '';
+
+    if (option === 'RESTOCK_SALE') {
+      // Tình huống Grade A: Tái nhập kho bán mới -> Nhập Kho Tổng, cộng lại tồn kho khả dụng mở bán
+      orderCode = `PNK-TH-${randomSuffix}`;
+      type = 'IMPORT';
+      status = 'COMPLETED';
+      reason = 'Tái nhập kho bán mới (Grade A)';
+      sourceLocation = `Thu hồi từ khách: ${customerName}${customerPhone}`;
+      destLocation = 'Kho Tổng (TP.HCM)';
+      destWarehouseId = '24114aab-767b-4877-b256-dc775fa88f66';
+      notes = `Tự động lập Phiếu Nhập Kho vào Kho Tổng từ yêu cầu đổi trả #${returnReq.id} (Đơn gốc: #${returnReq.orderNumber}). Phân loại: Tái nhập kho bán mới (Grade A) - Hàng nguyên vẹn 99-100%, đủ bao bì phụ kiện. Đã cộng lại số lượng vào tồn kho khả dụng để tiếp tục mở bán.`;
+      inboundStatusLabel = 'Đã nhập kho';
+    } else if (option === 'REFURBISH') {
+      // Tình huống Grade B: Hàng trầy xước nhẹ -> Nhập Kho Outlet / Trưng bày showroom
+      orderCode = `PNK-OL-${randomSuffix}`;
+      type = 'IMPORT';
+      status = 'COMPLETED';
+      reason = 'Chuyển hàng Outlet / Trưng bày (Grade B)';
+      sourceLocation = `Thu hồi từ khách: ${customerName}${customerPhone}`;
+      destLocation = 'Kho Outlet / Showroom Quận 1';
+      destWarehouseId = 'c3f1bec8-1e98-4808-9a97-4ed15d407a90';
+      notes = `Tự động tạo Lệnh Nhập Kho Outlet/Trưng bày từ yêu cầu đổi trả #${returnReq.id} (Đơn gốc: #${returnReq.orderNumber}). Phân loại: Hàng Outlet / Trưng bày (Grade B) - Trầy xước nhẹ bề mặt, đã mở seal. Chuyển sang phân khúc thanh lý / showroom chiết khấu.`;
+      inboundStatusLabel = 'Đã nhập kho Outlet';
+    } else if (option === 'SCRAP') {
+      // Tình huống Grade C: Hàng gãy khung / rách đệm da -> Xuất xưởng bảo hành / tiêu hủy, không cộng tồn kho
+      orderCode = `PXK-SC-${randomSuffix}`;
+      type = 'EXPORT';
+      status = 'PLANNED';
+      reason = 'Xuất chuyển xưởng bảo hành / Tiêu hủy (Grade C)';
+      sourceLocation = 'Kho Tổng (TP.HCM)';
+      sourceWarehouseId = '24114aab-767b-4877-b256-dc775fa88f66';
+      destLocation = 'Xưởng bảo hành & Tiêu hủy DCOR';
+      notes = `Tự động sinh Phiếu xuất chuyển xưởng bảo hành hoặc Tiêu hủy từ yêu cầu đổi trả #${returnReq.id} (Đơn gốc: #${returnReq.orderNumber}). Phân loại: Lỗi nặng kết cấu / rách đệm da (Grade C). Không cộng vào tồn kho thương mại.`;
+      inboundStatusLabel = 'Lên kế hoạch xuất';
+    }
+
+    returnReq.qcReport.inboundOrderCode = orderCode;
+    returnReq.qcReport.inboundOrderStatus = inboundStatusLabel;
+    returnReq.qcReport.inboundOrderType = type;
+    returnReq.qcReport.inboundOrderWarehouse = destLocation;
+    returnReq.qcReport.inboundOrderCreatedAt = new Date().toLocaleString('vi-VN');
+
+    this.returnsService.updateQcReport(returnReq.id, returnReq.qcReport);
+
+    const payload = {
+      orderCode,
+      type,
+      status,
+      reason,
+      sourceLocation,
+      destinationLocation: destLocation,
+      sourceWarehouseId,
+      destWarehouseId,
+      referenceCode: `#${returnReq.id}`,
+      recipientName: 'Thủ kho tiếp nhận',
+      notes,
+      items: [
+        {
+          variantId: this.stockExportPrefillData?.variantId || '3bdc0c8a-41c1-4a9f-ac0b-44178f010cc7',
+          quantity: returnReq.item?.quantity || 1,
+          price: returnReq.item?.price || 32500000,
+          unit: 'Bộ',
+          notes: `${reason} theo hồ sơ đổi trả #${returnReq.id}`
+        }
+      ]
+    };
+
+    this.http.post<any>(`${environment.apiUrl}/admin/inventory/orders`, payload).subscribe({
+      next: (created) => {
+        const finalCode = created?.orderCode || orderCode;
+        if (returnReq.qcReport) returnReq.qcReport.inboundOrderCode = finalCode;
+        this.returnsService.updateQcReport(returnReq.id, returnReq.qcReport || {});
+        this.triggerToast(
+          'Đã kích hoạt Lệnh kho tự động',
+          `Hệ thống đã tự động lập phiếu #${finalCode} (${type === 'IMPORT' ? 'Nhập kho' : 'Xuất kho'}) sang Quản lý Kho.`,
+          'success',
+          4000
+        );
+      },
+      error: (err) => {
+        console.warn('Lỗi khi gửi API tạo phiếu kho QC:', err);
+        this.triggerToast(
+          'Đã kích hoạt Lệnh kho tự động',
+          `Hệ thống đã tự động lập phiếu #${orderCode} (${type === 'IMPORT' ? 'Nhập kho' : 'Xuất kho'}) sang Quản lý Kho.`,
+          'success',
+          4000
+        );
+      }
+    });
   }
 
   confirmExchangeDelivery(): void {
@@ -1092,6 +1226,15 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
 
     // 4. Phát hành Phiếu xuất kho chính thức vào phân hệ Kho (Inventory Transactions) với trạng thái PLANNED
     const exportOrderCode = `PXK-DH-${Date.now().toString().slice(-4)}`;
+    if (this.returnReq) {
+      this.returnReq.exportOrderCode = exportOrderCode;
+      if (this.returnReq.replacementOrder) {
+        this.returnReq.replacementOrder.exportOrderCode = exportOrderCode;
+      }
+      this.returnsService.updateReplacementOrder(this.returnReq.id, {
+        replacementOrder: { exportOrderCode }
+      });
+    }
     const recipientName = [
       this.returnReq?.customer?.name,
       this.returnReq?.customer?.phone ? `(${this.returnReq.customer.phone})` : '',

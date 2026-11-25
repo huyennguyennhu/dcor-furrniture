@@ -1001,15 +1001,57 @@ export class OrdersService {
     return true;
   }
 
-  // 2. PENDING / CONFIRMED -> CANCELLED
+  // 2. PENDING / CONFIRMED / FAILED_DELIVERY -> CANCELLED
   cancelOrder(orderId: string, reason: string, staffName: string = 'Admin Tran'): boolean {
     const orders = this.orders;
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
+    const wasInDelivery = order.status === 'SHIPPED' || order.status === 'FAILED_DELIVERY';
+
     order.status = 'CANCELLED';
     order.cancelReason = reason || 'Khách đổi ý không tiếp tục đặt hàng';
     order.cancelledBy = staffName;
+
+    // Nếu đơn hàng đang trong luồng giao hàng hoặc giao thất bại mà hủy -> tự động kích hoạt Lệnh Nhập Kho Hàng Hoàn
+    if (wasInDelivery && !order.delivery.inboundOrderCode) {
+      const inboundOrderCode = `PNK-HH-${Date.now().toString().slice(-4)}`;
+      order.delivery.inboundOrderCode = inboundOrderCode;
+      order.delivery.inboundOrderDate = this.getNowFormatted();
+
+      order.delivery.trackingHistory.unshift({
+        time: this.getNowFormatted(),
+        status: 'Chuyển hoàn kho sau hủy đơn',
+        description: `Đơn hàng đã hủy khi đang vận chuyển/giao thất bại. Tự động kích hoạt Lệnh Nhập Kho Hàng Hoàn #${inboundOrderCode} hoàn trả tồn kho tại ${order.showroom || 'Kho Tổng (TP.HCM)'}.`,
+        location: order.showroom || 'Kho Tổng (TP.HCM)'
+      });
+
+      const inboundPayload = {
+        orderCode: inboundOrderCode,
+        type: 'IMPORT',
+        status: 'COMPLETED',
+        reason: 'Thu hồi hàng hoàn sau hủy đơn',
+        sourceLocation: `Khách hàng: ${order.customerName} (${order.address})`,
+        destinationLocation: order.showroom || 'Kho Tổng (TP.HCM)',
+        sourceWarehouseId: null,
+        destWarehouseId: order.showroom?.includes('Quận 1') ? 'c3f1bec8-1e98-4808-9a97-4ed15d407a90' : '24114aab-767b-4877-b256-dc775fa88f66',
+        referenceCode: `#${order.orderNumber}`,
+        recipientName: 'Thủ kho tiếp nhận hàng hoàn',
+        notes: `Tự động nhập kho hàng hoàn do hủy đơn #${order.orderNumber}. Lý do: ${order.cancelReason}`,
+        items: (order.items || []).map((it: any) => ({
+          variantId: it.variantId || '3bdc0c8a-41c1-4a9f-ac0b-44178f010cc7',
+          quantity: it.quantity || 1,
+          price: it.price || 0,
+          unit: 'Bộ',
+          notes: `Hàng hoàn từ đơn #${order.orderNumber}`
+        }))
+      };
+
+      this.http.post<any>(`${environment.apiUrl}/admin/inventory/orders`, inboundPayload).subscribe({
+        next: (created) => console.log('Đã tạo Lệnh Nhập Kho Hàng Hoàn khi hủy đơn:', created?.orderCode || inboundOrderCode),
+        error: (err) => console.warn('Lỗi khi gửi API tạo Lệnh Nhập Kho Hàng Hoàn:', err)
+      });
+    }
 
     if (order.paymentStatus === 'PAID' || order.paymentStatus === 'PARTIAL') {
       order.paymentStatus = 'REFUND_PENDING';
@@ -1152,18 +1194,73 @@ export class OrdersService {
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
-    order.status = 'FAILED_DELIVERY';
     order.delivery.failedAttempts += 1;
     order.delivery.failureReason = reason || 'Không liên lạc được với khách hàng qua SĐT';
 
-    order.delivery.trackingHistory.unshift({
-      time: this.getNowFormatted(),
-      status: `Giao thất bại (Lần ${order.delivery.failedAttempts})`,
-      description: `Lý do: ${order.delivery.failureReason}`,
-      location: order.address
-    });
+    const isMaxFailed = order.delivery.failedAttempts >= 3;
 
-    this.addAuditLog(order, staffName, `Ghi nhận giao thất bại (Lần ${order.delivery.failedAttempts})`, order.delivery.failureReason);
+    if (isMaxFailed) {
+      // Khi giao không thành công quá số lần quy định (>= 3 lần):
+      // Tự động chuyển kiện hàng sang luồng Thu hồi về kho và kích hoạt Lệnh Nhập Kho Hàng Hoàn
+      order.status = 'CANCELLED';
+      order.cancelReason = `Hủy tự động: Giao không thành công ${order.delivery.failedAttempts} lần (${order.delivery.failureReason}). Chuyển thu hồi hoàn kho.`;
+      order.cancelledBy = staffName;
+
+      const inboundOrderCode = `PNK-HH-${Date.now().toString().slice(-4)}`;
+      order.delivery.inboundOrderCode = inboundOrderCode;
+      order.delivery.inboundOrderDate = this.getNowFormatted();
+
+      order.delivery.trackingHistory.unshift({
+        time: this.getNowFormatted(),
+        status: `Giao thất bại lần ${order.delivery.failedAttempts} - Chuyển hoàn kho`,
+        description: `Đơn hàng đã giao thất bại đạt giới hạn (${order.delivery.failedAttempts} lần). Tự động kích hoạt Lệnh Nhập Kho Hàng Hoàn #${inboundOrderCode} để hoàn trả tồn kho tại ${order.showroom || 'Kho Tổng (TP.HCM)'}.`,
+        location: order.showroom || 'Kho Tổng (TP.HCM)'
+      });
+
+      this.addAuditLog(
+        order,
+        staffName,
+        `Tự động hủy & Kích hoạt Lệnh Nhập Kho Hàng Hoàn #${inboundOrderCode}`,
+        `Đơn hàng giao thất bại ${order.delivery.failedAttempts} lần. Lập phiếu nhập kho hoàn #${inboundOrderCode} về ${order.showroom || 'Kho Tổng (TP.HCM)'}.`
+      );
+
+      // Phát hành Phiếu Nhập Kho Hàng Hoàn sang backend phân hệ Kho
+      const inboundPayload = {
+        orderCode: inboundOrderCode,
+        type: 'IMPORT',
+        status: 'COMPLETED',
+        reason: 'Thu hồi hàng hoàn (Giao thất bại ≥ 3 lần)',
+        sourceLocation: `Khách hàng: ${order.customerName} (${order.address})`,
+        destinationLocation: order.showroom || 'Kho Tổng (TP.HCM)',
+        sourceWarehouseId: null,
+        destWarehouseId: order.showroom?.includes('Quận 1') ? 'c3f1bec8-1e98-4808-9a97-4ed15d407a90' : '24114aab-767b-4877-b256-dc775fa88f66',
+        referenceCode: `#${order.orderNumber}`,
+        recipientName: 'Thủ kho tiếp nhận hàng hoàn',
+        notes: `Tự động nhập kho hàng hoàn do giao thất bại ${order.delivery.failedAttempts} lần. Đơn hàng gốc: #${order.orderNumber}. Lý do: ${order.delivery.failureReason}`,
+        items: (order.items || []).map((it: any) => ({
+          variantId: it.variantId || '3bdc0c8a-41c1-4a9f-ac0b-44178f010cc7',
+          quantity: it.quantity || 1,
+          price: it.price || 0,
+          unit: 'Bộ',
+          notes: `Hàng hoàn từ đơn #${order.orderNumber}`
+        }))
+      };
+
+      this.http.post<any>(`${environment.apiUrl}/admin/inventory/orders`, inboundPayload).subscribe({
+        next: (created) => console.log('Đã tạo Lệnh Nhập Kho Hàng Hoàn:', created?.orderCode || inboundOrderCode),
+        error: (err) => console.warn('Lỗi khi gửi API tạo Lệnh Nhập Kho Hàng Hoàn:', err)
+      });
+    } else {
+      order.status = 'FAILED_DELIVERY';
+      order.delivery.trackingHistory.unshift({
+        time: this.getNowFormatted(),
+        status: `Giao thất bại (Lần ${order.delivery.failedAttempts})`,
+        description: `Lý do: ${order.delivery.failureReason}`,
+        location: order.address
+      });
+      this.addAuditLog(order, staffName, `Ghi nhận giao thất bại (Lần ${order.delivery.failedAttempts})`, order.delivery.failureReason);
+    }
+
     this.save(orders);
 
     this.http.patch(`${this.apiUrl}/${orderId}/delivery-failed`, { reason, staffName }).subscribe({

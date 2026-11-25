@@ -4072,5 +4072,207 @@
   color: #5c402a;
 }
 
+/* QC Inbound Order Receipt Banner */
+.qc-inbound-receipt-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 10px;
+}
+
+.qc-inbound-receipt-banner.is-scrap-banner {
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+
+.receipt-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.receipt-banner-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #DCFCE7;
+  color: #15803D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.receipt-banner-icon.is-scrap {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.receipt-banner-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.receipt-banner-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.receipt-type-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.receipt-code {
+  font-family: monospace;
+  font-size: 13.5px;
+  color: var(--accent, #765337);
+  background: #FAF7F5;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #E5E7EB;
+}
+
+.receipt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #E5E7EB;
+  color: #374151;
+}
+
+.receipt-status-badge.badge-completed {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.receipt-banner-desc {
+  margin: 0;
+  font-size: 12.5px;
+  color: #4B5563;
+  line-height: 1.4;
+}
+
+.receipt-view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #15803D;
+  background: #ffffff;
+  border: 1px solid #86EFAC;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.receipt-view-link:hover {
+  background: #F0FDF4;
+  border-color: #15803D;
+}
+
+/* Cross-Module Documents Tracking Box */
+.cross-links-box {
+  margin-top: 18px;
+  padding: 16px 18px;
+  background: #FAFAFA;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.clb-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.clb-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.clb-grid {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.clb-item {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.clb-item.is-ready {
+  border-color: #D1D5DB;
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.clb-step-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+}
+
+.clb-code {
+  font-size: 13px;
+  font-family: monospace;
+  color: #111827;
+}
+
+.clb-link {
+  color: var(--accent, #765337);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.clb-link:hover {
+  text-decoration: underline;
+  color: #5c402a;
+}
+
+.clb-sub {
+  font-size: 11.5px;
+  color: #6B7280;
+}
+
+.clb-arrow {
+  color: #9CA3AF;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 
 

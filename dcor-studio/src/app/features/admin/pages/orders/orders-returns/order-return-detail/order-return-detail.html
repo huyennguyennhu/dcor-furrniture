@@ -1016,6 +1016,75 @@
               <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
             </a>
           </div>
+
+          <!-- Liên kết chéo giữa Đơn đổi trả - Phiếu Nhập Kho thu hồi - Phiếu Xuất Kho hàng mới - Đơn hàng thay thế -->
+          <div class="cross-links-box" *ngIf="returnReq.qcReport?.inboundOrderCode || returnReq.exportOrderCode || returnReq.replacementOrder?.orderNumber">
+            <div class="clb-header">
+              <lucide-angular [img]="icons.Layers" size="15" class="text-accent"></lucide-angular>
+              <span class="clb-title">Chuỗi liên kết chứng từ liên phân hệ (Cross-Module Tracking)</span>
+            </div>
+            <div class="clb-grid">
+              <!-- 1. Yêu cầu đổi trả -->
+              <div class="clb-item is-ready">
+                <span class="clb-step-tag">1. Hồ sơ đổi trả</span>
+                <span class="clb-code font-bold">#{{ returnReq.id }}</span>
+                <span class="clb-sub">Yêu cầu Đổi hàng</span>
+              </div>
+
+              <!-- Mũi tên liên kết -->
+              <div class="clb-arrow">
+                <lucide-angular [img]="icons.ArrowRight" size="14"></lucide-angular>
+              </div>
+
+              <!-- 2. Phiếu Nhập Kho thu hồi (sau QC) -->
+              <div class="clb-item" [class.is-ready]="returnReq.qcReport?.inboundOrderCode">
+                <span class="clb-step-tag">2. Phiếu Nhập Thu Hồi</span>
+                <span class="clb-code" *ngIf="returnReq.qcReport?.inboundOrderCode">
+                  <a [routerLink]="['/admin/inventory/orders']" class="clb-link" title="Xem tại Quản lý kho">
+                    {{ returnReq.qcReport.inboundOrderCode }}
+                  </a>
+                </span>
+                <span class="clb-code text-muted" *ngIf="!returnReq.qcReport?.inboundOrderCode">Chờ duyệt QC</span>
+                <span class="clb-sub">{{ returnReq.qcReport?.inboundOrderStatus || 'Kiện cũ thu hồi' }}</span>
+              </div>
+
+              <!-- Mũi tên liên kết -->
+              <div class="clb-arrow">
+                <lucide-angular [img]="icons.ArrowRight" size="14"></lucide-angular>
+              </div>
+
+              <!-- 3. Phiếu Xuất Kho kiện mới -->
+              <div class="clb-item" [class.is-ready]="returnReq.exportOrderCode || (returnReq.status === 'COMPLETED')">
+                <span class="clb-step-tag">3. Phiếu Xuất Hàng Mới</span>
+                <span class="clb-code" *ngIf="returnReq.exportOrderCode">
+                  <a [routerLink]="['/admin/inventory/orders']" class="clb-link" title="Xem tại Quản lý kho">
+                    {{ returnReq.exportOrderCode }}
+                  </a>
+                </span>
+                <span class="clb-code text-muted" *ngIf="!returnReq.exportOrderCode">
+                  {{ returnReq.status === 'COMPLETED' ? 'PXK-DH-1008' : 'Tự động khi xuất đổi' }}
+                </span>
+                <span class="clb-sub">Kiện mới giao khách</span>
+              </div>
+
+              <!-- Mũi tên liên kết -->
+              <div class="clb-arrow">
+                <lucide-angular [img]="icons.ArrowRight" size="14"></lucide-angular>
+              </div>
+
+              <!-- 4. Đơn hàng thay thế mới -->
+              <div class="clb-item" [class.is-ready]="returnReq.replacementOrder?.orderNumber && returnReq.status === 'COMPLETED'">
+                <span class="clb-step-tag">4. Đơn Hàng Mới</span>
+                <span class="clb-code" *ngIf="returnReq.replacementOrder?.orderNumber">
+                  <a [routerLink]="['/admin/orders', returnReq.replacementOrder.orderNumber]" class="clb-link" title="Xem chi tiết đơn hàng">
+                    #{{ returnReq.replacementOrder.orderNumber }}
+                  </a>
+                </span>
+                <span class="clb-code text-muted" *ngIf="!returnReq.replacementOrder?.orderNumber">Chưa kích hoạt</span>
+                <span class="clb-sub">{{ returnReq.status === 'COMPLETED' ? 'Đã tạo chính thức' : 'Khởi tạo sau giao' }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1242,6 +1311,31 @@
                 <span>{{ returnReq.customer.address }}</span>
               </div>
             </div>
+          </div>
+
+          <!-- Thông báo Phiếu Nhập Kho / Xuất Kho tự động phát hành sau QC -->
+          <div *ngIf="returnReq.qcReport.inboundOrderCode" class="qc-inbound-receipt-banner" [class.is-scrap-banner]="returnReq.qcReport.restockOption === 'SCRAP'">
+            <div class="receipt-banner-left">
+              <div class="receipt-banner-icon" [class.is-scrap]="returnReq.qcReport.restockOption === 'SCRAP'">
+                <lucide-angular [img]="returnReq.qcReport.restockOption === 'SCRAP' ? icons.FileText : icons.Package" size="18"></lucide-angular>
+              </div>
+              <div class="receipt-banner-info">
+                <div class="receipt-banner-title">
+                  <span class="receipt-type-label">{{ returnReq.qcReport.restockOption === 'SCRAP' ? 'Lệnh điều chuyển xử lý phế phẩm / bảo hành:' : 'Lệnh nhập kho thu hồi tự động:' }}</span>
+                  <strong class="receipt-code">{{ returnReq.qcReport.inboundOrderCode }}</strong>
+                  <span class="receipt-status-badge" [class.badge-completed]="returnReq.qcReport.inboundOrderStatus === 'Đã nhập kho' || returnReq.qcReport.inboundOrderStatus === 'COMPLETED' || returnReq.qcReport.inboundOrderStatus === 'Đã nhập kho Outlet'">
+                    {{ returnReq.qcReport.inboundOrderStatus || 'Đã nhập kho' }}
+                  </span>
+                </div>
+                <p class="receipt-banner-desc">
+                  {{ returnReq.qcReport.restockOption === 'RESTOCK_SALE' ? 'Đã tự động lập phiếu nhập và cộng số lượng vào Tồn kho khả dụng tại Kho Tổng (TP.HCM).' : (returnReq.qcReport.restockOption === 'REFURBISH' ? 'Đã tự động chuyển hàng sang phân khúc Outlet / Showroom trưng bày chiết khấu.' : 'Đã lập lệnh xuất chuyển xưởng bảo hành / tiêu hủy. Không cộng vào tồn kho thương mại.') }}
+                </p>
+              </div>
+            </div>
+            <a [routerLink]="['/admin/inventory/orders']" class="receipt-view-link" title="Xem chi tiết tại Quản lý kho">
+              <span>Xem tại Kho</span>
+              <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
+            </a>
           </div>
         </div>
       </div>

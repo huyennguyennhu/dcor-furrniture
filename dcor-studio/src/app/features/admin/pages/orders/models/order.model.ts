@@ -63,6 +63,8 @@ export interface DeliveryInfo {
   estimatedDate?: string;
   failedAttempts: number;
   failureReason?: string;
+  inboundOrderCode?: string;
+  inboundOrderDate?: string;
   trackingHistory: DeliveryTrackingEntry[];
 }
 export type DeliveryInfoV2 = DeliveryInfo;

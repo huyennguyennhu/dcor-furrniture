@@ -251,11 +251,15 @@
     <div class="stepper-branch-pill branch-cancelled" *ngIf="order.status === 'CANCELLED'">
       <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
       <span>Trạng thái kết thúc: <strong>CANCELLED (Đã hủy đơn)</strong> — {{ order.cancelReason || 'Đã hủy đơn hàng' }} (Bởi: {{ order.cancelledBy || 'Admin' }})</span>
+      <span *ngIf="order.delivery?.inboundOrderCode" class="inbound-order-pill" style="margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; background: #DCFCE7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">
+        <lucide-angular [img]="icons.Package" size="13"></lucide-angular>
+        Phiếu hoàn kho: <a [routerLink]="['/admin/inventory/orders']" style="color: #166534; text-decoration: underline;">#{{ order.delivery.inboundOrderCode }}</a>
+      </span>
     </div>
 
     <div class="stepper-branch-pill branch-failed" *ngIf="order.status === 'FAILED_DELIVERY'">
       <lucide-angular [img]="icons.AlertTriangle" size="16"></lucide-angular>
-      <span>Trạng thái ngoại lệ: <strong>Giao thất bại</strong> — Lý do: "{{ order.delivery.failureReason || 'Không liên lạc được' }}". Chờ CSKH gọi lại lên lịch giao lần tiếp theo.</span>
+      <span>Trạng thái ngoại lệ: <strong>Giao thất bại (Lần {{ order.delivery.failedAttempts || 1 }}/3)</strong> — Lý do: "{{ order.delivery.failureReason || 'Không liên lạc được' }}". Chờ CSKH gọi lại lên lịch giao lần tiếp theo.</span>
     </div>
   </div>
 
@@ -1037,7 +1041,7 @@
           </button>
           <button type="button" class="btn-primary-action" [disabled]="isSubmitting" [class.btn-disabled]="isSubmitting" (click)="openRescheduleModal()">
             <lucide-angular [img]="icons.RefreshCw" size="18"></lucide-angular>
-            <span>Lên lịch Giao lại lần 2</span>
+            <span>Lên lịch Giao lại lần {{ (order.delivery.failedAttempts || 0) + 1 }}</span>
           </button>
         </ng-container>
 
