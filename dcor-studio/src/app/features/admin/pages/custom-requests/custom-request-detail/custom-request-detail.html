@@ -1532,18 +1532,40 @@
           <span>Hoàn thiện khảo sát đo đạc</span>
         </button>
 
-        <!-- Bước 3: Báo giá & 3D -> Gửi báo giá cho khách hàng -->
+        <!-- Bước 3: Báo giá & 3D -> Gửi báo giá cho khách hàng (khi chưa gửi) -->
         <button 
           type="button" 
           class="btn-primary-action" 
-          *ngIf="request.status === 'QUOTED'" 
+          *ngIf="request.status === 'QUOTED' && !request.quotedAt" 
           [disabled]="!quoteForm.quotedPrice || quoteForm.quotedPrice <= 0 || !quoteUploadedFile"
           [class.btn-disabled]="!quoteForm.quotedPrice || quoteForm.quotedPrice <= 0 || !quoteUploadedFile"
-          title="Xác nhận & gửi báo giá cho khách hàng ➔ Chuyển sang đợi khách ký hợp đồng"
+          title="Xác nhận & gửi báo giá cho khách hàng"
           (click)="confirmAndSendQuote()">
           <lucide-angular [img]="icons.FileText" size="15"></lucide-angular>
           <span>Gửi báo giá cho khách hàng</span>
         </button>
+
+        <!-- Bước 3: Đã gửi báo giá -> Đang đợi khách hàng duyệt báo giá & 3D -->
+        <ng-container *ngIf="request.status === 'QUOTED' && request.quotedAt">
+          <div class="waiting-client-sign-box">
+            <div class="wcs-icon-pulse">
+              <lucide-angular [img]="icons.Clock" size="16"></lucide-angular>
+            </div>
+            <div class="wcs-info">
+              <span class="wcs-title">Đang đợi khách hàng duyệt báo giá &amp; 3D</span>
+              <span class="wcs-desc">Hồ sơ báo giá {{ formatVND(request.quotedPrice) }} đã gửi tới khách. Đang chờ khách xem và phê duyệt trên web trước khi lập Hợp đồng.</span>
+            </div>
+          </div>
+
+          <button 
+            type="button" 
+            class="btn-primary-action"
+            (click)="adminApproveQuoteOnBehalf()"
+            title="Bấm nếu khách hàng đã chốt đồng ý báo giá qua điện thoại / tư vấn trực tiếp">
+            <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+            <span>Khách đã đồng ý báo giá ➔ Lập Hợp đồng</span>
+          </button>
+        </ng-container>
 
         <!-- Bước 4: Chờ khách hàng ký HĐ -> Trạng thái chờ khách ký hợp đồng điện tử -->
         <div class="waiting-client-sign-box" *ngIf="request.status === 'AWAITING_CONTRACT'">

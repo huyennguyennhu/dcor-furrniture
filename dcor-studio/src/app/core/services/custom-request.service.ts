@@ -724,7 +724,7 @@ export class CustomRequestService {
     });
   }
 
-  /** Bước 3: Lập dự toán báo giá + upload 3D, chuyển sang AWAITING_CONTRACT (Bước 4: Hợp đồng) */
+  /** Bước 3: Lập dự toán báo giá + upload 3D, gửi cho khách hàng (Trạng thái: QUOTED) */
   sendQuote(
     id: string,
     quoteData: {
@@ -741,9 +741,9 @@ export class CustomRequestService {
     if (target && quoteData.drawing3dUrls && quoteData.drawing3dUrls.length > 0) {
       target.drawing3dUrls = quoteData.drawing3dUrls;
     }
-    return this.updateStatus(id, 'AWAITING_CONTRACT', {
-      title: 'Đã hoàn thiện báo giá dự toán & phát hành hợp đồng',
-      description: `Báo giá chính thức: ${new Intl.NumberFormat('vi-VN').format(quoteData.quotedPrice)} đ (Cọc 30%: ${new Intl.NumberFormat('vi-VN').format(deposit)} đ). Đã chuyển sang trạng thái chờ khách hàng ký hợp đồng may đo.`,
+    return this.updateStatus(id, 'QUOTED', {
+      title: 'Đã hoàn thiện báo giá dự toán & phối cảnh 3D',
+      description: `Báo giá chính thức: ${new Intl.NumberFormat('vi-VN').format(quoteData.quotedPrice)} đ (Cọc 30%: ${new Intl.NumberFormat('vi-VN').format(deposit)} đ). Đã phát hành và gửi cho khách hàng, đang chờ khách xem và duyệt báo giá.`,
       performedBy: quoteData.staffName || 'Ban Báo Giá DCor',
       assignedStaff: quoteData.staffName,
       quotedPrice: quoteData.quotedPrice,
@@ -754,13 +754,18 @@ export class CustomRequestService {
     });
   }
 
+  /** Bước 3 -> Bước 4: Khách hàng (hoặc KTS đại diện) phê duyệt báo giá & thiết kế 3D, chuyển sang AWAITING_CONTRACT */
+  approveQuote(id: string, customerName: string = 'Khách hàng'): CustomRequest | undefined {
+    return this.updateStatus(id, 'AWAITING_CONTRACT', {
+      title: 'Khách hàng đã phê duyệt báo giá & phương án 3D',
+      description: `Khách hàng (${customerName}) đã duyệt dự toán và bản vẽ 3D. Hồ sơ đã chuyển sang bước Ký hợp đồng may đo kinh tế điện tử.`,
+      performedBy: customerName
+    });
+  }
+
   /** Bước 3: Phát hành hợp đồng may đo, chuyển sang AWAITING_CONTRACT */
   prepareContract(id: string, staffName: string = 'Phòng Hợp Đồng DCor'): CustomRequest | undefined {
-    return this.updateStatus(id, 'AWAITING_CONTRACT', {
-      title: 'Phát hành Hợp đồng may đo nội thất',
-      description: 'Khách hàng đã duyệt báo giá & thiết kế 3D. Đã soạn thảo hợp đồng kinh tế may đo và gửi khách xem trước.',
-      performedBy: staffName
-    });
+    return this.approveQuote(id, staffName);
   }
 
   /** Bước 4: Xác nhận đã ký hợp đồng -> Tự động lưu bản HĐ và chuyển thẳng sang Cọc 30% (AWAITING_PAYMENT) */

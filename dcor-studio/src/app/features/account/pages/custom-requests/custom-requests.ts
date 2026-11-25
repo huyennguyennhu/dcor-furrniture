@@ -1416,6 +1416,17 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
     this.isQuoteModalOpen = false;
   }
 
+  approveQuoteAndProceed(req: CustomRequest | null | undefined): void {
+    if (!req) return;
+    const name = this.currentUser?.fullName || req.customerName || 'Khách hàng';
+    const approved = this.customRequestService.approveQuote(req.id, name);
+    this.closeQuoteModal();
+    if (approved) {
+      this.selectedRequest = this.customRequestService.getRequestById(req.id) || approved;
+      this.openContractModal(this.selectedRequest);
+    }
+  }
+
   companyInfo = {
     brandName: 'DCOR',
     brandSub: 'LUXURY BESPOKE INTERIOR & LIVING',

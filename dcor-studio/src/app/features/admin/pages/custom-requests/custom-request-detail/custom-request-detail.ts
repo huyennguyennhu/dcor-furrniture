@@ -1067,7 +1067,21 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.loadRequest();
     this.triggerToast(
       'Phát hành báo giá thành công',
-      `Dự toán ${new Intl.NumberFormat('vi-VN').format(this.quoteForm.quotedPrice)} đ đã được gửi cho khách. Hồ sơ đã chuyển sang: Đang đợi khách hàng ký hợp đồng.`,
+      `Dự toán ${new Intl.NumberFormat('vi-VN').format(this.quoteForm.quotedPrice)} đ đã được gửi cho khách. Hồ sơ đang ở trạng thái: Đang đợi khách hàng duyệt báo giá & 3D.`,
+      'success'
+    );
+  }
+
+  adminApproveQuoteOnBehalf(): void {
+    if (!this.request) return;
+    const staff = this.adminAuthService.currentUser?.fullName 
+      ? `KTS. ${this.adminAuthService.currentUser.fullName}` 
+      : (this.request.assignedStaff || 'KTS DCor');
+    this.customRequestService.approveQuote(this.request.id, `${this.request.customerName} (xác nhận qua ${staff})`);
+    this.loadRequest();
+    this.triggerToast(
+      'Duyệt báo giá thành công',
+      'Đã xác nhận khách hàng đồng ý báo giá & bản vẽ 3D. Hồ sơ đã chuyển sang bước Ký Hợp Đồng.',
       'success'
     );
   }

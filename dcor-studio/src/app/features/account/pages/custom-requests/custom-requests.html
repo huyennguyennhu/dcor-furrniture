@@ -1303,15 +1303,19 @@
           </a>
         </ng-container>
 
-        <!-- Khi ở QUOTED (Đã nhận báo giá và bản vẽ / Đã gửi báo giá 3D): Hiển thị [Hủy yêu cầu] và [Xem báo giá] -->
+        <!-- Khi ở QUOTED (Đã nhận báo giá và bản vẽ / Đã gửi báo giá 3D): Hiển thị [Hủy yêu cầu], [Xem báo giá] và [Đồng ý báo giá ➔ Ký HĐ] -->
         <ng-container *ngIf="selectedRequest.status === 'QUOTED'">
           <button type="button" class="btn-cancel-pending" (click)="openCancelModal(selectedRequest)">
             <lucide-angular [img]="icons.XCircle" size="15"></lucide-angular>
             <span>Hủy yêu cầu</span>
           </button>
-          <button type="button" class="btn-primary-action btn-view-quote" (click)="openQuoteModal(selectedRequest)">
-            <lucide-angular [img]="icons.FileText" size="16"></lucide-angular>
-            <span>Xem báo giá</span>
+          <button type="button" class="btn-outline btn-view-quote" (click)="openQuoteModal(selectedRequest)">
+            <lucide-angular [img]="icons.FileText" size="15"></lucide-angular>
+            <span>Xem chi tiết báo giá</span>
+          </button>
+          <button type="button" class="btn-primary-action btn-contract-highlight" (click)="approveQuoteAndProceed(selectedRequest)">
+            <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
+            <span>Đồng ý báo giá ➔ Ký HĐ</span>
           </button>
         </ng-container>
 
@@ -1764,8 +1768,19 @@
       </div>
 
       <!-- Footer Modal -->
-      <div class="modal-footer quote-modal-footer">
+      <div class="modal-footer quote-modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%;">
         <button type="button" class="btn-cancel" (click)="closeQuoteModal()">Đóng</button>
+
+        <div style="display: flex; gap: 10px; align-items: center;" *ngIf="selectedRequest.status === 'QUOTED'">
+          <button type="button" class="btn-outline btn-cancel-card" style="color: #dc2626; border-color: #fca5a5;" (click)="closeQuoteModal(); openCancelModal(selectedRequest)">
+            <lucide-angular [img]="icons.XCircle" size="14"></lucide-angular>
+            <span>Hủy yêu cầu</span>
+          </button>
+          <button type="button" class="btn-primary-action" (click)="approveQuoteAndProceed(selectedRequest)">
+            <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+            <span>Đồng ý báo giá ➔ Ký hợp đồng</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
