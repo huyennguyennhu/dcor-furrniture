@@ -1,13 +1,3 @@
-<div class="account-page-container">
-  <div class="account-shell">
-    <div class="account-layout">
-      <!-- Sidebar Left Column -->
-      <aside class="sidebar-column">
-        <app-account-sidebar></app-account-sidebar>
-      </aside>
-
-      <!-- Main Content Column -->
-      <main class="content-column">
         <!-- Page Header & Search -->
         <div class="orders-header-wrap">
           <div class="header-text">
@@ -95,19 +85,7 @@
                     getTotalQuantityCount(order) }})</span>
                   <span class="meta-divider">|</span>
 
-                  <!-- Nút bảo hành đặt ở góc trên bên phải thay thế mã hàng khi đơn đã giao / hoàn tất -->
-                  <ng-container
-                    *ngIf="order.status === 'DELIVERED' || order.status === 'COMPLETED'; else defaultOrderId">
-                    <a [routerLink]="['/account/warranty']" [queryParams]="{ orderNumber: order.orderNumber }"
-                      class="topbar-warranty-btn" (click)="$event.stopPropagation()"
-                      title="Tra cứu thẻ bảo hành điện tử chính hãng của các sản phẩm trong đơn">
-                      <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
-                      <span>Bảo hành</span>
-                    </a>
-                  </ng-container>
-                  <ng-template #defaultOrderId>
-                    <span class="meta-order-id">{{ order.orderNumber }}</span>
-                  </ng-template>
+                  <span class="meta-order-id">{{ order.orderNumber }}</span>
                 </div>
               </div>
 
@@ -171,11 +149,6 @@
                 </div>
 
                 <div class="actions-wrap">
-                  <!-- Nút Xem chi tiết: Luôn hiển thị cho mọi đơn hàng -->
-                  <button type="button" class="btn-outline" (click)="openOrderDetail(order)">
-                    Xem chi tiết
-                  </button>
-
                   <!-- Nút Hủy đơn: Chờ đặt cọc - Chờ thanh toán - Chờ xác nhận -->
                   <button *ngIf="canCancelOrder(order)" type="button" class="btn-danger-outline"
                     (click)="openCancelModal(order, $event)">
@@ -209,403 +182,281 @@
           </div>
         </ng-container>
 
-      </main>
-    </div>
-
-  </div>
-</div>
-
 <!-- ============================================== -->
-<!-- DRAWER / MODAL: CHI TIẾT ĐƠN HÀNG -->
+<!-- POPUP MODAL: CHI TIẾT ĐƠN HÀNG (POPUP TRUNG TÂM CHUẨN DCOR) -->
 <!-- ============================================== -->
-<div *ngIf="isDetailDrawerOpen" class="drawer-overlay" (click)="closeDetailDrawer()">
-  <div class="drawer-content" (click)="$event.stopPropagation()">
-    <!-- Drawer Header -->
-    <div class="drawer-header">
-      <div class="drawer-header-info">
-        <div class="drawer-title-row">
-          <h2 class="drawer-title">Chi tiết đơn hàng {{ selectedOrder?.orderNumber }}</h2>
-          <span *ngIf="selectedOrder" class="order-status-pill" [ngClass]="getOrderStatusClass(selectedOrder)">
+<div *ngIf="isDetailDrawerOpen" class="order-modal-backdrop" (click)="closeDetailDrawer()">
+  <div class="order-modal-dialog" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="order-modal-header">
+      <div class="modal-header-info">
+        <div class="modal-title-row">
+          <h2 class="modal-title">Chi tiết đơn hàng #{{ selectedOrder?.orderNumber }}</h2>
+          <span *ngIf="selectedOrder" class="order-status-chip" [ngClass]="getOrderStatusClass(selectedOrder)">
             <span class="status-dot"></span>
             {{ getOrderDisplayStatus(selectedOrder) }}
           </span>
         </div>
-        <p class="drawer-subtitle">
+        <p class="modal-subtitle">
           Thời gian đặt: <strong>{{ selectedOrder?.createdAt | date:'HH:mm - dd/MM/yyyy' }}</strong>
-          <span *ngIf="selectedOrder?.shippingProvider"> • Đơn vị vận chuyển: {{ selectedOrder?.shippingProvider
-            }}</span>
+          <span *ngIf="selectedOrder?.shippingProvider"> • Đơn vị vận chuyển: <strong>{{ selectedOrder?.shippingProvider }}</strong></span>
         </p>
       </div>
-      <button type="button" class="drawer-close" (click)="closeDetailDrawer()" title="Đóng">×</button>
+      <button type="button" class="modal-close-btn" (click)="closeDetailDrawer()" title="Đóng">×</button>
     </div>
 
-    <!-- Drawer Body -->
-    <div class="drawer-body">
+    <!-- Modal Body (Scrollable) -->
+    <div class="order-modal-body">
       <div *ngIf="isLoadingDetail" class="loading-state">
         <div class="spinner"></div>
         <p>Đang tải chi tiết đơn hàng...</p>
       </div>
 
       <div *ngIf="!isLoadingDetail && selectedOrder">
-        <!-- ======================================================== -->
-        <!-- ĐƠN CHỜ THANH TOÁN / ĐẶT CỌC 24H (WAITING PAYMENT)       -->
-        <!-- Bố cục chuẩn theo ảnh mẫu của DCor Studio                -->
-        <!-- ======================================================== -->
-        <section *ngIf="selectedOrder.status !== 'CANCELLED' && isAwaitingPaymentOrDeposit(selectedOrder)"
-          class="drawer-status-card status-card-waiting"
-          [class.urgent-alert-expiring]="isOrderExpiringSoon(selectedOrder)">
+        <!-- 1. THANH TIẾN TRÌNH (STEPPER) CHUẨN DCOR (RULE 1, 2, 3) -->
+        <section class="modal-stepper-section">
+          <div class="stepper-track">
+            <div *ngFor="let s of getOrderTimelineSteps(selectedOrder); let idx = index; let first = first; let last = last"
+                 class="stepper-step"
+                 [ngClass]="'step-' + s.status">
+              
+              <!-- Đường nối giữa các bước -->
+              <div *ngIf="!first" class="step-connector"></div>
 
-          <!-- 1. Header trên cùng: Tên đơn & Đếm ngược 24h thay thế cho badge chờ đặt cọc -->
-          <div class="payment-card-top-header">
-            <div class="top-header-title-group">
-              <h3 class="top-header-title">
-                {{ selectedOrder.isHighValue ? 'THANH TOÁN ĐẶT CỌC' : 'THANH TOÁN ĐƠN HÀNG' }}
-              </h3>
-              <p class="top-header-subtitle">
-                Đơn hàng #{{ selectedOrder.orderNumber }} · Vui lòng hoàn tất trong 24 giờ
-              </p>
+              <!-- Node hình tròn biểu tượng -->
+              <div class="step-circle">
+                <lucide-angular [img]="s.icon" size="20"></lucide-angular>
+              </div>
+
+              <!-- Thông tin bước: Tên & Thời gian hoàn thành -->
+              <div class="step-meta">
+                <div class="step-title">{{ s.title }}</div>
+                <div *ngIf="s.time" class="step-time">{{ s.time | date:'HH:mm dd-MM-yyyy' }}</div>
+              </div>
             </div>
-            <div class="top-header-countdown-badge" [class.countdown-danger]="isOrderExpiringSoon(selectedOrder)">
-              <lucide-angular [img]="icons.Clock" size="13" class="countdown-clock-icon"></lucide-angular>
-              <span class="countdown-val">{{ remainingCountdown || '24:00:00' }}</span>
+          </div>
+        </section>
+
+        <!-- 2. ĐƯỜNG PHONG BÌ TRANG TRÍ (ENVELOPE DASHED LINE THEO MẪU ẢNH) -->
+        <div class="envelope-dashed-line"></div>
+
+        <!-- 3. KHỐI CẢNH BÁO / THANH TOÁN VIETQR NẾU ĐƠN ĐANG CHỜ THANH TOÁN HOẶC ĐẶT CỌC -->
+        <section *ngIf="selectedOrder.status !== 'CANCELLED' && isAwaitingPaymentOrDeposit(selectedOrder)"
+                 class="order-payment-qr-card"
+                 [class.urgent-alert-expiring]="isOrderExpiringSoon(selectedOrder)">
+          <div class="qr-card-header">
+            <div class="qr-header-left">
+              <h3 class="qr-heading">
+                {{ selectedOrder.isHighValue ? 'THANH TOÁN ĐẶT CỌC 30%' : 'THANH TOÁN ĐƠN HÀNG' }}
+              </h3>
+              <p class="qr-sub">Đơn hàng #{{ selectedOrder.orderNumber }} · Vui lòng hoàn tất trong 24 giờ</p>
+            </div>
+            <div class="countdown-badge" [class.countdown-danger]="isOrderExpiringSoon(selectedOrder)">
+              <lucide-angular [img]="icons.Clock" size="13"></lucide-angular>
+              <span>{{ remainingCountdown || '24:00:00' }}</span>
             </div>
           </div>
 
-          <!-- 2. Khung trắng chia 2 cột: Quét mã QR & Thông tin nhận tiền (Đưa lên trên) -->
-          <div class="payment-qr-info-card">
-            <!-- Cột trái: Quét mã QR -->
-            <div class="qr-preview-col">
-              <h5 class="col-card-title">Quét mã QR</h5>
-              <div class="qr-sample-box">
-                <img src="assets/img/qr-payment-sample.svg" alt="Mã QR thanh toán" class="qr-sample-img" />
+          <div class="qr-card-content">
+            <div class="qr-image-col">
+              <div class="qr-box">
+                <img [src]="getVietQRUrl(selectedOrder)"
+                     (error)="$any($event.target).src = 'assets/img/qr-payment-sample.svg'"
+                     alt="Mã QR thanh toán" class="qr-img" />
               </div>
-              <p class="qr-scan-guide">Mở ứng dụng ngân hàng để quét mã</p>
+              <p class="qr-guide-text">Mở app ngân hàng để quét mã</p>
             </div>
 
-            <!-- Cột phải: Thông tin nhận tiền -->
-            <div class="bank-details-col">
-              <h5 class="col-card-title">Thông tin nhận tiền</h5>
-
-              <div class="bank-info-field">
-                <span class="info-field-label">Ngân hàng</span>
-                <strong class="info-field-val">MB Bank</strong>
+            <div class="qr-bank-col">
+              <div class="bank-field">
+                <span class="bank-lbl">Ngân hàng</span>
+                <strong class="bank-val">MB Bank</strong>
               </div>
-
-              <div class="bank-info-field">
-                <span class="info-field-label">Chủ tài khoản</span>
-                <strong class="info-field-val">CÔNG TY TNHH NỘI THẤT DCOR VIỆT NAM</strong>
+              <div class="bank-field">
+                <span class="bank-lbl">Chủ tài khoản</span>
+                <strong class="bank-val">CÔNG TY TNHH NỘI THẤT DCOR VIỆT NAM</strong>
               </div>
-
-              <div class="bank-info-field acc-number-field">
-                <div class="acc-meta">
-                  <span class="info-field-label">Số tài khoản</span>
-                  <strong class="info-field-val highlight-acc">0988 888 888</strong>
+              <div class="bank-field acc-field">
+                <div class="field-meta">
+                  <span class="bank-lbl">Số tài khoản</span>
+                  <strong class="bank-val highlight-acc">0988 888 888</strong>
                 </div>
-                <button type="button" class="btn-copy-acc" (click)="copyToClipboard('0988888888', 'Số tài khoản')">
+                <button type="button" class="btn-copy-chip" (click)="copyToClipboard('0988888888', 'Số tài khoản')">
                   <lucide-angular [img]="icons.Copy" size="12"></lucide-angular>
                   <span>Sao chép</span>
                 </button>
               </div>
-
-              <span class="bank-info-footer-hint">Thông tin tài khoản có thể sao chép riêng.</span>
-            </div>
-          </div>
-
-          <!-- 3. Hàng Số tiền cần thanh toán (Đẩy xuống dưới khung QR) -->
-          <div class="payment-amount-horizontal-row">
-            <div class="amount-left-meta">
-              <span class="amount-label">
-                SỐ TIỀN CẦN {{ selectedOrder.isHighValue ? 'THANH TOÁN (30%)' : 'THANH TOÁN' }}
-              </span>
-              <span *ngIf="selectedOrder.isHighValue" class="amount-sub-order-total">
-                Tổng giá trị đơn hàng: {{ formatCurrency(selectedOrder.totalAmount) }}
-              </span>
-            </div>
-            <div class="amount-right-value">
-              <strong class="amount-highlight-num">
-                {{ formatCurrency(getPaymentAmount(selectedOrder)) }}
-              </strong>
-            </div>
-          </div>
-
-          <!-- 5. Khung: Nội dung chuyển khoản bắt buộc -->
-          <div class="payment-memo-card">
-            <span class="memo-card-title">Nội dung chuyển khoản bắt buộc</span>
-
-            <div class="memo-code-banner">
-              <span class="memo-code-text">DCOR {{ selectedOrder.orderNumber }}</span>
-            </div>
-
-            <button type="button" class="btn-memo-copy-cta"
-              (click)="copyToClipboard('DCOR ' + selectedOrder.orderNumber, 'Nội dung chuyển khoản')">
-              <lucide-angular [img]="icons.Copy" size="14"></lucide-angular>
-              <span>Sao chép nội dung chuyển khoản</span>
-            </button>
-
-            <p class="memo-auto-hint">Hệ thống tự động đối soát theo nội dung chuyển khoản.</p>
-          </div>
-
-          <!-- 6. Khung: Lưu ý khi thanh toán -->
-          <div class="payment-notes-section">
-            <h5 class="notes-heading">Lưu ý khi thanh toán</h5>
-            <div class="note-list">
-              <div class="note-item">
-                <lucide-angular [img]="icons.Check" size="14" class="note-icon note-icon-success"></lucide-angular>
-                <span>Nhập chính xác nội dung chuyển khoản để hệ thống tự động xác nhận.</span>
+              <div class="bank-field memo-field">
+                <div class="field-meta">
+                  <span class="bank-lbl">Nội dung chuyển khoản</span>
+                  <strong class="bank-val highlight-memo">DCOR {{ selectedOrder.orderNumber }}</strong>
+                </div>
+                <button type="button" class="btn-copy-chip" (click)="copyToClipboard('DCOR ' + selectedOrder.orderNumber, 'Nội dung CK')">
+                  <lucide-angular [img]="icons.Copy" size="12"></lucide-angular>
+                  <span>Sao chép</span>
+                </button>
               </div>
-              <div class="note-item">
-                <lucide-angular [img]="icons.Sparkles" size="14" class="note-icon note-icon-primary"></lucide-angular>
-                <span>Có thể quét mã QR hoặc chuyển khoản thủ công.</span>
-              </div>
-              <div class="note-item">
-                <lucide-angular [img]="icons.Clock" size="14" class="note-icon note-icon-clock"></lucide-angular>
-                <span>Sau khi nhận tiền, đơn hàng chuyển sang trạng thái đang gia công và chuẩn bị trong 1–3 phút.</span>
+              <div class="bank-field amount-field">
+                <span class="bank-lbl">Số tiền cần chuyển</span>
+                <strong class="bank-val highlight-amount">{{ formatCurrency(getPaymentAmount(selectedOrder)) }}</strong>
               </div>
             </div>
           </div>
-
         </section>
 
-        <!-- THẺ THÔNG BÁO: ĐÃ XÁC NHẬN THANH TOÁN / ĐẶT CỌC - ĐANG CHỜ XÁC NHẬN ĐƠN HÀNG -->
-        <section *ngIf="selectedOrder.status === 'PENDING' && !isAwaitingPaymentOrDeposit(selectedOrder)"
-          class="drawer-status-card status-card-pending-confirmed">
-          <div class="pending-confirmed-icon">
-            <lucide-angular [img]="icons.CheckCircle2" size="26" color="#16A34A"></lucide-angular>
+        <!-- 4. DANH SÁCH SẢN PHẨM TRONG ĐƠN (RULE 4) -->
+        <section class="order-items-container">
+          <div *ngFor="let item of selectedOrder.items" class="order-item-card">
+            <!-- Cột trái: 1 ảnh sản phẩm -->
+            <div class="item-thumb-box">
+              <img [src]="item.imageUrl || 'assets/img/furniture-placeholder.svg'"
+                   (error)="$any($event.target).src = 'assets/img/furniture-placeholder.svg'"
+                   [alt]="item.productName"
+                   class="item-thumb-img" />
+            </div>
+
+            <!-- Cột phải: 2 hàng nội dung (Tên sản phẩm & Tên biến thể + Đơn giá & Số lượng) -->
+            <div class="item-details-box">
+              <!-- Hàng 1: Tên sản phẩm + Đơn giá -->
+              <div class="item-row-top">
+                <h4 class="item-product-name" [title]="item.productName">{{ item.productName }}</h4>
+                <div class="item-price-val">{{ formatCurrency(item.price) }}</div>
+              </div>
+
+              <!-- Hàng 2: Tên biến thể + Số lượng -->
+              <div class="item-row-bottom">
+                <div class="item-variant-desc">
+                  Phân loại hàng: {{ item.variantDescription || 'Tiêu chuẩn chính hãng' }}
+                </div>
+                <div class="item-qty-tag">x{{ item.quantity }}</div>
+              </div>
+
+              <!-- Tra cứu bảo hành (nếu đơn đã giao) -->
+              <div *ngIf="selectedOrder.status === 'DELIVERED' || selectedOrder.status === 'COMPLETED'" class="item-warranty-row">
+                <a [routerLink]="['/account/warranty']" [queryParams]="{ orderNumber: selectedOrder.orderNumber }"
+                   class="item-warranty-link" (click)="closeDetailDrawer()"
+                   title="Tra cứu bảo hành điện tử chính hãng cho sản phẩm này">
+                  <lucide-angular [img]="icons.ShieldCheck" size="12"></lucide-angular>
+                  <span>Tra cứu bảo hành</span>
+                </a>
+              </div>
+            </div>
           </div>
-          <div class="pending-confirmed-body">
-            <h4 class="pending-confirmed-title">
-              {{ (selectedOrder.paymentStatus === 'PARTIAL' || selectedOrder.isHighValue) 
-                 ? 'Đã ghi nhận tiền đặt cọc thành công' 
-                 : (selectedOrder.paymentMethod === 'BANK_TRANSFER' ? 'Đã ghi nhận thanh toán thành công' : 'Đã tiếp nhận đơn hàng') }}
-            </h4>
-            <p class="pending-confirmed-desc">
-              {{ (selectedOrder.paymentStatus === 'PARTIAL' || selectedOrder.isHighValue)
-                 ? 'Kế toán DCor đã đối soát nhận tiền cọc ' + formatCurrency(selectedOrder.paidAmount || (selectedOrder.depositAmount || 0)) + '. Đơn hàng đang ở trạng thái Chờ xác nhận và chuẩn bị chuyển sang gia công.'
-                 : (selectedOrder.paymentMethod === 'BANK_TRANSFER'
-                    ? 'Kế toán DCor đã đối soát nhận chuyển khoản thành công. Đơn hàng đang ở trạng thái Chờ xác nhận và chuẩn bị chuyển sang gia công.'
-                    : 'Đơn hàng đã được tiếp nhận thành công và đang chờ nhân viên DCor liên hệ xác nhận.') }}
+        </section>
+
+        <!-- 5. BẢNG THÔNG TIN TÀI CHÍNH CHUẨN DCOR (RULE 5) -->
+        <section class="order-finance-section">
+          <div class="finance-table-wrapper">
+            <div class="finance-data-row">
+              <span class="finance-col-label">Tổng tiền hàng</span>
+              <span class="finance-col-value">{{ formatCurrency(selectedOrder.subTotal) }}</span>
+            </div>
+
+            <div class="finance-data-row">
+              <span class="finance-col-label">Phí vận chuyển</span>
+              <span class="finance-col-value">{{ selectedOrder.shippingFee > 0 ? formatCurrency(selectedOrder.shippingFee) : 'Miễn phí' }}</span>
+            </div>
+
+            <div *ngIf="selectedOrder.discountAmount > 0" class="finance-data-row discount-row">
+              <span class="finance-col-label">Giảm giá voucher / ưu đãi</span>
+              <span class="finance-col-value discount-text">-{{ formatCurrency(selectedOrder.discountAmount) }}</span>
+            </div>
+
+            <!-- Trường hợp đơn hàng giá trị cao (Cọc 30%) -->
+            <ng-container *ngIf="selectedOrder.isHighValue">
+              <div class="finance-data-row deposit-target-row">
+                <span class="finance-col-label">Số tiền cọc 30%</span>
+                <span class="finance-col-value deposit-target-text">{{ formatCurrency(selectedOrder.depositAmount) }}</span>
+              </div>
+              <div class="finance-data-row paid-row">
+                <span class="finance-col-label">Đã thanh toán</span>
+                <span class="finance-col-value paid-text">{{ formatCurrency(selectedOrder.paidAmount || 0) }}</span>
+              </div>
+              <div class="finance-data-row remaining-row">
+                <span class="finance-col-label">Còn lại thanh toán khi nhận hàng</span>
+                <span class="finance-col-value remaining-text">{{ formatCurrency(selectedOrder.remainingAmount || (selectedOrder.totalAmount - (selectedOrder.paidAmount || 0))) }}</span>
+              </div>
+            </ng-container>
+
+            <div class="finance-data-row total-amount-row">
+              <span class="finance-col-label total-label">Thành tiền</span>
+              <span class="finance-col-value total-value">{{ formatCurrency(selectedOrder.totalAmount) }}</span>
+            </div>
+
+            <div class="finance-data-row payment-method-row">
+              <span class="finance-col-label">Phương thức thanh toán</span>
+              <span class="finance-col-value method-text">
+                {{ selectedOrder.paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng (COD)' :
+                   (selectedOrder.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản ngân hàng (VietQR)' :
+                   selectedOrder.paymentMethod) }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. THÔNG TIN GIAO HÀNG ĐƯỢC CHỌN KHI ĐẶT ĐƠN (RULE 6) -->
+        <section class="order-shipping-card">
+          <div class="shipping-card-header">
+            <div class="shipping-header-left">
+              <lucide-angular [img]="icons.MapPin" size="16" class="shipping-header-icon"></lucide-angular>
+              <h4 class="shipping-card-heading">Thông tin giao hàng</h4>
+            </div>
+            <span *ngIf="selectedOrder.shippingProvider" class="shipping-provider-badge">
+              {{ selectedOrder.shippingProvider }}
+            </span>
+          </div>
+
+          <div class="shipping-card-content">
+            <div class="shipping-recipient-row">
+              <strong class="recipient-name">{{ selectedOrder.receiverName }}</strong>
+              <span class="meta-sep">•</span>
+              <span class="recipient-phone">{{ selectedOrder.phone }}</span>
+            </div>
+
+            <p class="shipping-address-text">{{ formatShippingAddress(selectedOrder) }}</p>
+
+            <div *ngIf="selectedOrder.trackingCode" class="shipping-tracking-box">
+              <span class="tracking-title">Mã vận đơn:</span>
+              <strong class="tracking-number">{{ selectedOrder.trackingCode }}</strong>
+              <button type="button" class="btn-copy-tracking" (click)="copyToClipboard(selectedOrder.trackingCode || '', 'Mã vận đơn')">
+                <lucide-angular [img]="icons.Copy" size="12"></lucide-angular>
+                <span>Sao chép</span>
+              </button>
+            </div>
+
+            <p *ngIf="selectedOrder.notes" class="shipping-notes-box">
+              <span class="notes-title">Ghi chú giao nhận:</span> {{ selectedOrder.notes }}
             </p>
           </div>
         </section>
-
-        <!-- 2. Danh sách sản phẩm trong đơn -->
-        <section class="drawer-section drawer-products-section">
-          <div class="section-header-row">
-            <h3 class="section-heading">Sản phẩm trong đơn</h3>
-            <span class="items-count-badge">{{ selectedOrder.items.length }} sản phẩm</span>
-          </div>
-          <div class="order-items-table">
-            <div *ngFor="let item of selectedOrder.items" class="table-row-item">
-              <div class="item-col-img">
-                <img [src]="item.imageUrl || 'assets/placeholder.png'" [alt]="item.productName" />
-              </div>
-              <div class="item-col-main">
-                <h5 class="table-item-name">{{ item.productName }}</h5>
-                <p *ngIf="item.variantDescription" class="table-item-variant">{{ item.variantDescription }}</p>
-                <span *ngIf="item.sku" class="table-item-sku">SKU: {{ item.sku }}</span>
-                <div *ngIf="selectedOrder.status === 'DELIVERED' || selectedOrder.status === 'COMPLETED'"
-                  class="item-warranty-badge-wrap">
-                  <a [routerLink]="['/account/warranty']" [queryParams]="{ orderNumber: selectedOrder.orderNumber }"
-                    class="item-warranty-tag" (click)="closeDetailDrawer()"
-                    title="Tra cứu bảo hành điện tử chính hãng cho sản phẩm này">
-                    <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
-                    <span>Tra cứu bảo hành</span>
-                  </a>
-                </div>
-              </div>
-              <div class="item-col-price">
-                <span class="unit-price">{{ formatCurrency(item.price) }}</span>
-                <span class="qty">x{{ item.quantity }}</span>
-              </div>
-              <div class="item-col-total">
-                {{ formatCurrency(item.lineTotal || (item.price * item.quantity)) }}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 3. Chi tiết tài chính -->
-        <section class="drawer-section finance-summary">
-          <div class="finance-row">
-            <span>Tạm tính tiền hàng:</span>
-            <span>{{ formatCurrency(selectedOrder.subTotal) }}</span>
-          </div>
-          <div class="finance-row">
-            <span>Phí vận chuyển:</span>
-            <span>{{ selectedOrder.shippingFee > 0 ? formatCurrency(selectedOrder.shippingFee) : 'Miễn phí' }}</span>
-          </div>
-          <div *ngIf="selectedOrder.discountAmount > 0" class="finance-row discount">
-            <span>Giảm giá ưu đãi:</span>
-            <span>-{{ formatCurrency(selectedOrder.discountAmount) }}</span>
-          </div>
-          <div class="finance-row grand-total">
-            <span>Tổng đơn hàng:</span>
-            <span class="highlight">{{ formatCurrency(selectedOrder.totalAmount) }}</span>
-          </div>
-
-          <div *ngIf="selectedOrder.isHighValue" class="deposit-breakdown">
-            <div class="finance-row">
-              <span>Số tiền cần đặt cọc (30%):</span>
-              <span class="deposit-target">{{ formatCurrency(selectedOrder.depositAmount) }}</span>
-            </div>
-            <div class="finance-row">
-              <span>Số tiền đã thanh toán:</span>
-              <span class="success-text">{{ formatCurrency(selectedOrder.paidAmount || 0) }}</span>
-            </div>
-            <div class="finance-row">
-              <span>Số tiền còn lại khi giao hàng:</span>
-              <span class="warning-text">{{ formatCurrency(selectedOrder.remainingAmount || selectedOrder.totalAmount)
-                }}</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- 4. Thông tin giao nhận & Thanh toán (COLLAPSIBLE ACCORDION: GIẤU ĐI, CÓ MŨI TÊN TRỎ XUỐNG) -->
-        <section class="drawer-collapsible-card">
-          <button type="button" class="collapsible-trigger-btn" (click)="toggleDeliveryPayment()"
-            [class.is-open]="isDeliveryPaymentExpanded"
-            title="Bấm để xem hoặc ẩn địa chỉ giao nhận và hình thức thanh toán">
-            <div class="trigger-left">
-              <div class="trigger-icon-pill">
-                <lucide-angular [img]="icons.MapPin" size="16"></lucide-angular>
-              </div>
-              <div class="trigger-meta">
-                <div class="trigger-title">Thông tin nhận hàng & Thanh toán</div>
-                <div class="trigger-summary" *ngIf="!isDeliveryPaymentExpanded">
-                  <span class="summary-name">{{ selectedOrder.receiverName }}</span>
-                  <span class="summary-dot">•</span>
-                  <span class="summary-method">{{ selectedOrder.paymentMethod === 'COD' ? 'Thanh toán COD' : 'Chuyển
-                    khoản' }}</span>
-                </div>
-                <div class="trigger-summary-open" *ngIf="isDeliveryPaymentExpanded">
-                  <span>Nhấp để thu gọn thông tin</span>
-                </div>
-              </div>
-            </div>
-            <div class="trigger-arrow" [class.rotated]="isDeliveryPaymentExpanded">
-              <lucide-angular [img]="icons.ChevronDown" size="18"></lucide-angular>
-            </div>
-          </button>
-
-          <!-- Chi tiết địa chỉ và thanh toán chỉ bung ra khi người dùng ấn vào -->
-          <div class="collapsible-expand-area" *ngIf="isDeliveryPaymentExpanded">
-            <div class="expand-grid">
-              <!-- Cột Địa chỉ nhận hàng -->
-              <div class="info-block luxury-block">
-                <div class="block-header">
-                  <lucide-angular [img]="icons.MapPin" size="15" class="block-header-icon"></lucide-angular>
-                  <h4 class="block-title">Địa chỉ nhận hàng</h4>
-                </div>
-                <div class="info-details-box">
-                  <p class="info-name"><strong>{{ selectedOrder.receiverName }}</strong></p>
-                  <p class="info-line"><span class="info-label">Số điện thoại:</span> <strong>{{ selectedOrder.phone
-                      }}</strong></p>
-                  <p *ngIf="selectedOrder.email" class="info-line"><span class="info-label">Email:</span> {{
-                    selectedOrder.email }}</p>
-                  <p class="info-line"><span class="info-label">Địa chỉ:</span> {{ formatShippingAddress(selectedOrder)
-                    }}</p>
-                </div>
-              </div>
-
-              <!-- Cột Thanh toán -->
-              <div class="info-block luxury-block">
-                <div class="block-header">
-                  <lucide-angular [img]="icons.CreditCard" size="15" class="block-header-icon"></lucide-angular>
-                  <h4 class="block-title">Thanh toán</h4>
-                </div>
-                <div class="info-details-box">
-                  <p class="info-line">
-                    <span class="info-label">Hình thức:</span>
-                    <strong>{{ selectedOrder.paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng (COD)' :
-                      (selectedOrder.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản ngân hàng' :
-                      selectedOrder.paymentMethod) }}</strong>
-                  </p>
-                  <p class="info-line">
-                    <span class="info-label">Trạng thái:</span>
-                    <span class="badge-status" [ngClass]="getPaymentStatusClass(selectedOrder)">
-                      {{ getPaymentStatusText(selectedOrder) }}
-                    </span>
-                  </p>
-                  <p *ngIf="selectedOrder.shippingProvider" class="info-line">
-                    <span class="info-label">Đơn vị vận chuyển:</span> {{ selectedOrder.shippingProvider }}
-                  </p>
-                  <p *ngIf="selectedOrder.trackingCode" class="info-line tracking-line">
-                    <span class="info-label">Mã vận đơn:</span>
-                    <strong>{{ selectedOrder.trackingCode }}</strong>
-                    <button type="button" class="inline-copy"
-                      (click)="copyToClipboard(selectedOrder.trackingCode || '', 'Mã vận đơn')">Sao chép</button>
-                  </p>
-                  <p *ngIf="selectedOrder.notes" class="info-line notes">
-                    <span class="info-label">Ghi chú:</span> {{ selectedOrder.notes }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 5. Lịch sử trạng thái đơn hàng (Timeline) -->
-        <section class="drawer-section drawer-timeline-section">
-          <div class="section-header-row">
-            <h3 class="section-heading">Lịch sử trạng thái đơn hàng</h3>
-            <span class="timeline-badge" *ngIf="selectedOrder.statusHistory.length">{{
-              selectedOrder.statusHistory.length }} mốc cập nhật</span>
-          </div>
-          <div *ngIf="selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0; else noHistory"
-            class="timeline-list">
-            <div *ngFor="let step of selectedOrder.statusHistory; let first = first" class="timeline-item"
-              [class.is-current]="first">
-              <div class="timeline-dot"></div>
-              <div class="timeline-info">
-                <div class="timeline-header-step">
-                  <span class="timeline-notes">{{ step.notes || step.status }}</span>
-                  <span class="timeline-time">{{ step.createdAt | date:'HH:mm - dd/MM/yyyy' }}</span>
-                </div>
-                <div class="timeline-actor">Ghi nhận bởi: <strong>{{ step.actorType === 'CUSTOMER' ? 'Khách hàng' :
-                    (step.actorType === 'STAFF' ? 'Nhân viên Dcor' : 'Hệ thống tự động') }}</strong></div>
-              </div>
-            </div>
-          </div>
-          <ng-template #noHistory>
-            <p class="empty-note">Đơn hàng vừa được khởi tạo, chưa có lịch sử biến động trạng thái.</p>
-          </ng-template>
-        </section>
-
       </div>
     </div>
 
-    <!-- Drawer Footer Actions -->
-    <div class="drawer-footer">
-      <!-- Nút Đóng: Chỉ hiện khi đơn chưa giao thành công / hoàn tất -->
-      <button *ngIf="selectedOrder && !(selectedOrder.status === 'DELIVERED' || selectedOrder.status === 'COMPLETED')"
-        type="button" class="btn-outline" (click)="closeDetailDrawer()">Đóng</button>
-      <button *ngIf="selectedOrder && canCancelOrder(selectedOrder)" type="button" class="btn-danger-outline"
-        (click)="openCancelModal(selectedOrder); closeDetailDrawer()">
+    <!-- Modal Footer Actions -->
+    <div class="order-modal-footer">
+      <button type="button" class="btn-modal-secondary" (click)="closeDetailDrawer()">Đóng</button>
+
+      <button *ngIf="selectedOrder && canCancelOrder(selectedOrder)" type="button" class="btn-modal-danger"
+              (click)="openCancelModal(selectedOrder); closeDetailDrawer()">
         Hủy đơn hàng
       </button>
 
-      <!-- Nút Đã nhận hàng trong Drawer -->
-      <button *ngIf="selectedOrder && canConfirmReceived(selectedOrder)" type="button" class="btn-confirm-received"
-        (click)="handleConfirmReceived(selectedOrder)">
-        <lucide-angular [img]="icons.Check" size="14"></lucide-angular>
+      <button *ngIf="selectedOrder && canConfirmReceived(selectedOrder)" type="button" class="btn-modal-success"
+              (click)="handleConfirmReceived(selectedOrder)">
+        <lucide-angular [img]="icons.Check" size="15"></lucide-angular>
         <span>Đã nhận hàng</span>
-
       </button>
 
-      <button
-        *ngIf="selectedOrder && (selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'DELIVERED' || selectedOrder.status === 'COMPLETED')"
-        type="button" class="btn-primary" (click)="reorder(selectedOrder); closeDetailDrawer()">
+      <button *ngIf="selectedOrder && (selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'DELIVERED' || selectedOrder.status === 'COMPLETED')"
+              type="button" class="btn-modal-reorder" (click)="reorder(selectedOrder); closeDetailDrawer()">
         Mua lại đơn này
       </button>
 
-      <!-- Nút Đánh giá sản phẩm trong Drawer -->
       <button *ngIf="selectedOrder && (selectedOrder.status === 'DELIVERED' || selectedOrder.status === 'COMPLETED')"
-        type="button" class="btn-review-drawer" (click)="openReviewModal(selectedOrder); closeDetailDrawer()">
-        <lucide-angular [img]="icons.Star" size="14"></lucide-angular>
+              type="button" class="btn-modal-review" (click)="openReviewModal(selectedOrder); closeDetailDrawer()">
+        <lucide-angular [img]="icons.Star" size="15"></lucide-angular>
         <span>Đánh giá sản phẩm</span>
       </button>
-
-
     </div>
   </div>
 </div>

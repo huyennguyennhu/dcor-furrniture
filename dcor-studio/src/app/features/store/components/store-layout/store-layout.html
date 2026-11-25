@@ -3,10 +3,10 @@
   <main style="flex-grow: 1;" [style.padding-top]="!isHomePage ? 'var(--header-height)' : '0'">
     <router-outlet></router-outlet>
   </main>
-  <app-footer></app-footer>
+  <app-footer *ngIf="!isAccountPage"></app-footer>
 
-  <!-- Nút Cuộn Về Đầu Trang Toàn Cục (Global Back to Top Button cho tất cả các trang) -->
-  <button type="button" class="btn-back-to-top" [class.visible]="showScrollTop"
+  <!-- Nút Cuộn Về Đầu Trang Toàn Cục (Global Back to Top Button - Ẩn trên Account Dashboard) -->
+  <button type="button" class="btn-back-to-top" [class.visible]="showScrollTop && !isAccountPage"
     [class.dock-active]="isDockActive" (click)="scrollToTop()" aria-label="Về đầu trang" title="Về đầu trang">
     <app-icon name="ArrowUp" size="20" color="#ffffff"></app-icon>
   </button>

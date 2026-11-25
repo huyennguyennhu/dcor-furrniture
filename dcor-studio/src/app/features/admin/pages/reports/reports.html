@@ -106,19 +106,19 @@
     <!-- 2. KHỐI TÁC NGHIỆP KHẨN CẤP (ACTIONABLE URGENT CARDS) -->
     <div class="urgent-action-grid">
       
-      <!-- Alert 1: Đơn cọc & Giá trị cao chờ duyệt -->
+      <!-- Alert 1: Đơn hàng chờ xác nhận -->
       <div class="urgent-card urgent-amber">
         <div class="urgent-icon-wrapper amber">
-          <lucide-angular [img]="icons.AlertCircle" size="20"></lucide-angular>
+          <lucide-angular [img]="icons.Clock" size="20"></lucide-angular>
         </div>
         <div class="urgent-body">
           <div class="urgent-title-row">
-            <span class="urgent-tag amber">Cần duyệt cọc</span>
-            <span class="urgent-count">{{ kpi.pendingDepositOrders || 0 }} đơn</span>
+            <span class="urgent-tag amber">Chờ xác nhận</span>
+            <span class="urgent-count">{{ kpi.pendingConfirmationOrders ?? kpi.pendingDepositOrders ?? 0 }} đơn</span>
           </div>
-          <p class="urgent-desc">Đơn hàng giá trị cao đang chờ xác nhận thanh toán cọc để sản xuất & điều phối.</p>
-          <a routerLink="/admin/orders" [queryParams]="{ payment: 'AWAITING_DEPOSIT' }" class="urgent-link amber-link">
-            <span>Xử lý đơn cọc</span>
+          <p class="urgent-desc">Đơn hàng mới tạo đang chờ nhân viên kiểm tra thông tin và xác nhận.</p>
+          <a routerLink="/admin/orders" [queryParams]="{ status: 'PENDING' }" class="urgent-link amber-link">
+            <span>Xử lý đơn hàng</span>
             <lucide-angular [img]="icons.ArrowUpRight" size="14"></lucide-angular>
           </a>
         </div>

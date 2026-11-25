@@ -213,7 +213,33 @@
         </div>
       </div>
 
-      <!-- 2. Dropdown Thanh toán -->
+      <!-- 2. Dropdown Loại đơn (Đơn thường & Đơn Custom) -->
+      <div class="filter-dropdown-wrapper order-type-filter-wrapper">
+        <button 
+          type="button" 
+          title="Chọn loại đơn hàng" 
+          class="filter-trigger-btn"
+          [class.active]="selectedOrderType !== 'ALL'"
+          (click)="toggleDropdown('orderType', $event)"
+        >
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.Layers" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedOrderTypeLabel }}</span>
+          </div>
+          <app-icon name="ChevronDown" size="14" [style.transform]="showOrderTypeDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+        </button>
+        <div *ngIf="showOrderTypeDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let t of ORDER_TYPES" 
+               (click)="setOrderType(t.id)" 
+               class="filter-menu-item" 
+               [class.selected]="selectedOrderType === t.id">
+            <span>{{ t.name }}</span>
+            <lucide-angular *ngIf="selectedOrderType === t.id" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Dropdown Thanh toán -->
       <div class="filter-dropdown-wrapper payment-filter-wrapper">
         <button 
           type="button" 
@@ -346,7 +372,15 @@
           <!-- Giá trị đơn (số lượng sản phẩm và tổng giá trị) -->
           <td>
             <div class="order-value-cell">
-              <div class="order-total-price">{{ formatVND(order.totalAmount) }}</div>
+              <div class="order-total-price">
+                <span>{{ formatVND(order.totalAmount) }}</span>
+                <span *ngIf="isCustomOrder(order)" 
+                      class="custom-order-pill" 
+                      title="Đơn hàng đặt may đo / thiết kế riêng (Custom)"
+                      style="margin-left: 6px; display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(168, 125, 70, 0.12); color: #a87d46; border: 1px solid rgba(168, 125, 70, 0.3); vertical-align: middle; text-transform: uppercase; letter-spacing: 0.02em;">
+                  Custom
+                </span>
+              </div>
               <div class="order-items-qty">
                 <span>{{ getOrderTotalQty(order) }} sản phẩm</span>
                 <span class="qty-types" *ngIf="order.items.length > 1">({{ order.items.length }} món)</span>
@@ -396,15 +430,6 @@
               <span class="dept-indicator">
                 Bộ phận: <strong>{{ getAdminStatusMeta(order.status, order).dept }}</strong>
               </span>
-              <button 
-                *ngIf="hasReturnOrder(order)"
-                type="button" 
-                (click)="goToReturnOrder(order, $event)"
-                style="margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: #FEF3C7; color: #B45309; border: 1px solid #FCD34D; cursor: pointer;"
-                title="Mở trực tiếp phiếu đổi trả hàng">
-                <span>Đơn đổi trả</span>
-                <lucide-angular [img]="icons.ExternalLink" size="10"></lucide-angular>
-              </button>
             </div>
           </td>
 

@@ -26,7 +26,6 @@ import {
   CalendarDays,
   ExternalLink
 } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { CustomerService, CustomerProfile } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { environment } from '../../../../../environments/environment';
@@ -35,7 +34,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
   templateUrl: './profile.html',
   styleUrls: ['./profile.css']
 })

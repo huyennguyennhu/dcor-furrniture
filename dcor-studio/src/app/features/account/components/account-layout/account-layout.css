@@ -1,0 +1,119 @@
+/* ============================================================
+   Account Layout — DCor Furniture
+   Cố định Sidebar và chỉ tải lại / cuộn nội dung trong content-column
+   ============================================================ */
+
+.account-page-container {
+  background-color: var(--color-page, #FCF8F3);
+  padding: 0;
+  width: 100%;
+  font-family: var(--font-body, "Poppins", sans-serif);
+}
+
+.account-shell {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 992px) {
+  .account-page-container {
+    height: calc(100vh - var(--header-height, 80px));
+    max-height: calc(100vh - var(--header-height, 80px));
+    overflow: hidden;
+  }
+
+  .account-shell {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .account-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  /* Cột Sidebar bên trái: cố định 100% chiều cao, không bị load lại hoặc nháy khi chuyển tab */
+  .sidebar-column {
+    width: 290px;
+    flex-shrink: 0;
+    background: #322116;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: static;
+  }
+
+  /* Cột nội dung bên phải: cuộn độc lập, router-outlet chỉ render trong phạm vi này */
+  .content-column {
+    flex: 1;
+    min-width: 0;
+    background-color: var(--color-page, #FCF8F3);
+    padding: 36px 48px 64px;
+    box-sizing: border-box;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Thanh cuộn tinh tế sang trọng chuẩn DCor */
+  .sidebar-column::-webkit-scrollbar,
+  .content-column::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar-column::-webkit-scrollbar-track,
+  .content-column::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-column::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+  }
+
+  .content-column::-webkit-scrollbar-thumb {
+    background: rgba(118, 83, 55, 0.22);
+    border-radius: 999px;
+  }
+
+  .content-column::-webkit-scrollbar-thumb:hover {
+    background: rgba(118, 83, 55, 0.45);
+  }
+}
+
+@media (max-width: 991px) {
+  .account-page-container {
+    min-height: calc(100vh - 80px);
+    height: auto;
+  }
+
+  .account-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .sidebar-column {
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .content-column {
+    width: 100%;
+    flex: 1;
+    min-width: 0;
+    background-color: var(--color-page, #FCF8F3);
+    padding: 24px 16px 48px;
+    box-sizing: border-box;
+  }
+}

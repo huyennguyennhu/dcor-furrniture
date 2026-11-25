@@ -126,6 +126,10 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   private routeSub?: Subscription;
   private ordersSub?: Subscription;
 
+  get isCustomOrder(): boolean {
+    return !!(this.order?.isCustomDesign || this.order?.orderNumber?.includes('CUST') || (this.order as any)?.isCustom);
+  }
+
   // 7-step pipeline configuration
   readonly STEP_CONFIG = [
     { key: 'PENDING' as AdminOrderStatus, en: 'Pending', vi: 'Chờ xác nhận', desc: 'Đơn mới tạo, kiểm tra thanh toán cọc và thông tin khách hàng.' },

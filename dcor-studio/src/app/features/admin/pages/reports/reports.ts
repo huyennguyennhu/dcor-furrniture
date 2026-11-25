@@ -70,6 +70,7 @@ export class ReportsComponent implements OnInit {
     ordersGrowth: 0,
     fulfillmentRate: 0,
     aov: 0,
+    pendingConfirmationOrders: 0,
     pendingDepositOrders: 0,
     criticalLowStockSKUs: 0,
     todayAppointments: 0,

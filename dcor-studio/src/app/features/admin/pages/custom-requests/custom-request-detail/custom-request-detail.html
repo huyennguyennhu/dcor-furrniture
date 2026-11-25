@@ -48,26 +48,6 @@
             <span class="dot-indicator" [style.background]="getStatusMeta(request.status).color"></span>
             {{ getStatusMeta(request.status).adminLabel }}
           </span>
-
-          <!-- Badge Đơn hàng liên kết (Chỉ hiển thị khi đã hoàn tất bước sản xuất và lên đơn hàng chính thức) -->
-          <a *ngIf="request.generatedOrderNumber && getCurrentStepIndex() >= 6" 
-             (click)="goToOrder(request.generatedOrderNumber)"
-             class="linked-order-pill"
-             title="Nhấp để xem đơn hàng chính thức">
-            <lucide-angular [img]="icons.Package" size="13"></lucide-angular>
-            <span>Đơn hàng: {{ request.generatedOrderNumber }}</span>
-            <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
-          </a>
-
-          <!-- Badge Bảo hành (Chỉ hiển thị khi đã hoàn tất bàn giao & kích hoạt bảo hành) -->
-          <a *ngIf="request.status === 'COMPLETED' && request.warrantyCode"
-             (click)="goToWarranty(request.warrantyCode)"
-             class="warranty-header-pill"
-             title="Hồ sơ Bảo hành chính hãng 5 năm">
-            <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
-            <span>Bảo hành: {{ request.warrantyCode }}</span>
-            <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
-          </a>
         </div>
 
         <div class="order-sub-meta">
@@ -676,7 +656,7 @@
         <div class="v2-card-header">
           <div class="card-title-group">
             <lucide-angular [img]="icons.DollarSign" size="18" class="text-accent"></lucide-angular>
-            <h3>Tác Nghiệp Báo Giá Dự Toán & Phối Cảnh 3D</h3>
+            <h3>Báo Giá Dự Toán & Phối Cảnh 3D</h3>
           </div>
           <span class="quote-date-tag" *ngIf="request.quotedAt">Ngày báo giá: {{ formatDate(request.quotedAt) }}</span>
         </div>
@@ -1006,10 +986,6 @@
               <lucide-angular [img]="icons.FileCheck" size="15"></lucide-angular>
               <span>{{ request.contractSignedAt ? 'Xem Hợp đồng đã ký' : 'Xem dự thảo Hợp đồng' }}</span>
             </button>
-            <a *ngIf="request.contractScanUrl" [href]="request.contractScanUrl" target="_blank" class="btn-scan-link">
-              <lucide-angular [img]="icons.Download" size="14"></lucide-angular>
-              <span>Tải bản scan / file PDF</span>
-            </a>
           </div>
         </div>
       </section>
@@ -1575,15 +1551,16 @@
           </div>
         </div>
 
-        <!-- Bước 5: Chờ nhận cọc 30% -> Kế toán xác nhận nhận cọc để bắn xưởng -->
-        <button 
-          type="button" 
-          class="btn-primary-action btn-success-action" 
-          *ngIf="request.status === 'AWAITING_PAYMENT' || request.status === 'DEPOSIT_SUBMITTED'" 
-          (click)="submitDepositPayment()">
-          <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
-          <span>Xác nhận đã nhận cọc 30% (Bắn xưởng)</span>
-        </button>
+        <!-- Bước 5: Chờ nhận cọc 30% -> Trạng thái chờ khách thanh toán qua VietQR -->
+        <div class="waiting-client-sign-box" *ngIf="request.status === 'AWAITING_PAYMENT' || request.status === 'CONTRACT_SIGNED' || request.status === 'DEPOSIT_SUBMITTED'">
+          <div class="wcs-icon-pulse">
+            <lucide-angular [img]="icons.Clock" size="16"></lucide-angular>
+          </div>
+          <div class="wcs-info">
+            <span class="wcs-title">Đang đợi khách hàng đặt cọc</span>
+            <span class="wcs-desc">Hệ thống đang chờ khách hàng chuyển khoản cọc 30% qua mã VietQR và xác nhận thành công</span>
+          </div>
+        </div>
 
         <!-- Bước 6: Đang sản xuất gia công -> Hoàn tất sản xuất & Lên đơn hàng chính thức -->
         <button 

@@ -23,7 +23,6 @@ import {
   Info,
   Package
 } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import {
   ShowroomConsultationModalComponent,
@@ -42,7 +41,6 @@ import { Subscription, skip } from 'rxjs';
     FormsModule,
     RouterModule,
     LucideAngularModule,
-    AccountSidebarComponent,
     GuestPhoneBannerComponent,
     ShowroomConsultationModalComponent
   ],

@@ -948,10 +948,8 @@
 .customer-name {
   font-weight: 600;
   font-size: 13px;
-  color: var(--accent-color, #a87d46);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
+  color: var(--text-primary, #111827);
+  text-decoration: none;
 }
 
 .customer-phone {

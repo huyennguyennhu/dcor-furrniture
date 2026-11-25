@@ -41,8 +41,8 @@
           </div>
           <div class="product-meta">
             <h4 class="product-name">{{ form.productName }}</h4>
-            <p class="product-variant" *ngIf="form.variantDescription">
-              Phân loại: <span>{{ form.variantDescription }}</span>
+            <p class="product-variant">
+              Phân loại: <span>{{ form.variantDescription || 'Tiêu chuẩn chính hãng' }}</span>
             </p>
           </div>
         </div>
@@ -95,62 +95,61 @@
             <span class="image-count-hint">{{ form.images.length }}/5 ảnh</span>
           </div>
 
-          <!-- ACTION BUTTONS: CHỤP ẢNH & TẢI ẢNH -->
-          <div class="media-actions-row">
-            <!-- Nút Chụp ảnh trực tiếp từ Camera -->
-            <button 
-              type="button" 
-              class="btn-media-action btn-camera"
-              (click)="openCamera(i)"
-              [disabled]="form.images.length >= 5 || form.uploadingImages"
-              title="Chụp ảnh trực tiếp từ camera của bạn">
-              <lucide-angular [img]="icons.Camera" size="18"></lucide-angular>
-              <span>Chụp ảnh</span>
-            </button>
+          <!-- Hidden File Inputs -->
+          <input 
+            #fileInput
+            type="file" 
+            class="hidden-file-input" 
+            accept="image/*" 
+            multiple
+            style="display: none !important;"
+            (change)="onFilesSelected($event, i)" />
 
-            <!-- Nút Tải ảnh lên từ thiết bị -->
-            <label 
-              class="btn-media-action btn-upload"
-              [class.disabled]="form.images.length >= 5 || form.uploadingImages"
-              title="Chọn ảnh từ thiết bị">
-              <lucide-angular [img]="icons.Upload" size="18"></lucide-angular>
-              <span>Tải ảnh lên</span>
-              <input 
-                type="file" 
-                class="hidden-file-input" 
-                accept="image/*" 
-                multiple
-                [disabled]="form.images.length >= 5 || form.uploadingImages"
-                (change)="onFilesSelected($event, i)" />
-            </label>
+          <input 
+            #cameraInput
+            type="file" 
+            class="hidden-file-input" 
+            accept="image/*" 
+            capture="environment"
+            style="display: none !important;"
+            (change)="onFilesSelected($event, i)" />
 
-            <!-- Hidden input fallback cho thiết bị di động chụp camera native -->
-            <input 
-              type="file" 
-              [id]="'camera-fallback-' + i" 
-              class="hidden-file-input" 
-              accept="image/*" 
-              capture="environment"
-              (change)="onFilesSelected($event, i)" />
-          </div>
-
-          <!-- UPLOADING SPINNER INDICATOR -->
-          <div *ngIf="form.uploadingImages" class="uploading-indicator">
-            <lucide-angular [img]="icons.Loader2" size="16" class="spin-icon"></lucide-angular>
-            <span>Đang tải và nén hình ảnh lên đám mây...</span>
-          </div>
-
-          <!-- PREVIEW THUMBNAILS LIST -->
-          <div class="thumbnails-grid" *ngIf="form.images.length > 0">
-            <div class="thumb-item" *ngFor="let imgUrl of form.images; let imgIdx = index">
-              <img [src]="imgUrl" alt="Ảnh đánh giá" class="thumb-img" />
+          <!-- HÌNH ẢNH TẢI LÊN TRÊN 1 HÀNG CHUẨN FORM ADMIN (VARIANT-IMG-GRID, KHÔNG CÓ SAO ĐẠI DIỆN) -->
+          <div class="variant-img-grid">
+            <!-- Danh sách ảnh đã tải lên -->
+            <div class="variant-img-item" *ngFor="let imgUrl of form.images; let imgIdx = index">
+              <img [src]="imgUrl" alt="Ảnh đánh giá" (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'" />
               <button 
                 type="button" 
-                class="thumb-remove-btn" 
-                (click)="removeImage(i, imgIdx)"
-                title="Xóa ảnh này">
+                class="btn-del-img" 
+                (click)="removeImage(i, imgIdx)" 
+                title="Xóa ảnh">
                 <lucide-angular [img]="icons.X" size="12"></lucide-angular>
               </button>
+            </div>
+
+            <!-- Nút Thêm ảnh từ thiết bị -->
+            <div 
+              class="variant-img-add" 
+              *ngIf="form.images.length < 5 && !form.uploadingImages"
+              (click)="fileInput.click()" 
+              title="Thêm ảnh">
+              <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+            </div>
+
+            <!-- Nút Chụp ảnh từ camera -->
+            <div 
+              class="variant-img-add variant-camera-add" 
+              *ngIf="form.images.length < 5 && !form.uploadingImages"
+              (click)="triggerCamera(i, cameraInput)" 
+              title="Chụp ảnh từ camera">
+              <lucide-angular [img]="icons.Camera" size="16"></lucide-angular>
+            </div>
+
+            <!-- UPLOADING SPINNER INDICATOR CÙNG HÀNG (RULE 4) -->
+            <div *ngIf="form.uploadingImages" class="variant-img-loading">
+              <div class="loading-spinner-circle"></div>
+              <span class="uploading-text">Đang load...</span>
             </div>
           </div>
         </div>
@@ -169,10 +168,6 @@
           <div class="anonymous-text-meta">
             <div class="anonymous-title-row">
               <strong class="anonymous-title">Đánh giá ẩn danh</strong>
-              <span class="anonymous-privacy-badge">
-                <lucide-angular [img]="icons.ShieldCheck" size="12"></lucide-angular>
-                Bảo vệ riêng tư
-              </span>
             </div>
             <p class="anonymous-desc">
               Tên của bạn sẽ được hiển thị dạng <strong>H***n</strong> trên website để bảo vệ quyền riêng tư cá nhân.

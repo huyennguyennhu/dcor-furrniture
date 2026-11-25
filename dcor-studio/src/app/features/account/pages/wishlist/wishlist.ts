@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { LucideAngularModule, Heart, Sparkles, ShoppingBag } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
@@ -11,7 +10,7 @@ import { Subscription, skip } from 'rxjs';
 @Component({
   selector: 'app-wishlist',
   standalone: true,
-  imports: [CommonModule, RouterModule, LucideAngularModule, AccountSidebarComponent, ProductCardComponent],
+  imports: [CommonModule, RouterModule, LucideAngularModule, ProductCardComponent],
   templateUrl: './wishlist.html',
   styleUrls: ['./wishlist.css']
 })

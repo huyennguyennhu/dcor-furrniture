@@ -275,6 +275,7 @@ export interface OverviewReportData {
     fulfillmentRate?: number;
     aov?: number;
     // Operational Urgent KPIs
+    pendingConfirmationOrders?: number;
     pendingDepositOrders?: number;
     criticalLowStockSKUs?: number;
     todayAppointments?: number;
