@@ -187,7 +187,33 @@
     </div>
 
     <div class="v2-filter-group">
-      <!-- 1. Dropdown Showroom -->
+      <!-- 1. Dropdown Trạng thái đơn hàng -->
+      <div class="filter-dropdown-wrapper status-filter-wrapper">
+        <button 
+          type="button" 
+          title="Chọn trạng thái đơn hàng" 
+          class="filter-trigger-btn"
+          [class.active]="selectedStatus !== 'ALL'"
+          (click)="toggleDropdown('status', $event)"
+        >
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.Clock" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedStatusLabel }}</span>
+          </div>
+          <app-icon name="ChevronDown" size="14" [style.transform]="showStatusDropdown ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s;"></app-icon>
+        </button>
+        <div *ngIf="showStatusDropdown" class="filter-menu-dropdown" (click)="$event.stopPropagation()">
+          <div *ngFor="let st of ORDER_STATUSES" 
+               (click)="setStatus(st.id)" 
+               class="filter-menu-item" 
+               [class.selected]="selectedStatus === st.id">
+            <span>{{ st.name }}</span>
+            <lucide-angular *ngIf="selectedStatus === st.id" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Dropdown Showroom -->
       <div class="filter-dropdown-wrapper showroom-filter-wrapper">
         <button 
           type="button" 

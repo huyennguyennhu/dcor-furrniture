@@ -1023,3 +1023,138 @@ model BlogLike {
 
   @@unique([postId, customerId])
 }
+
+// ============================================================================
+// 10. TIẾN TRÌNH YÊU CẦU MAY ĐO NỘI THẤT (CUSTOM REQUESTS)
+// ============================================================================
+model CustomRequest {
+  id                      String                  @id @default(uuid())
+  code                    String                  @unique // CR-YYYYMM-XXXX hoặc CR-0001
+  customerId              String?
+  customerName            String
+  customerPhone           String
+  customerEmail           String?
+  customerAddress         String?                 @db.Text
+  isPhoneVerified         Boolean                 @default(false)
+
+  // Sản phẩm quy chuẩn / gốc
+  productId               String?
+  productName             String
+  productSku              String?
+  productImage            String?                 @db.Text
+  categoryName            String?
+  basePrice               Decimal?                @default(0) @db.Decimal(15, 2)
+
+  // Kích thước may đo riêng
+  hasDimensions           Boolean                 @default(true)
+  originalDimensions      String?
+  requestedDimensions     String?
+  customDimensionNote     String?                 @db.Text
+  length                  Float?                  // Chiều dài (cm)
+  width                   Float?                  // Chiều rộng (cm)
+  height                  Float?                  // Chiều cao (cm)
+
+  // Thuộc tính tùy biến
+  customizedAttributes    Json                    @default("[]")
+  colorName               String?
+  colorHex                String?
+  colorImage              String?                 @db.Text
+  material                String?
+  legMaterial             String?
+
+  // Nhu cầu & khảo sát
+  notes                   String?                 @db.Text
+  requirementDetails      String?                 @db.Text
+  budgetRange             String?
+  estimatedBudget         String?
+  preferredSurveyTime     String?
+  expectedDeliveryDate    String?
+  roomSpace               String?
+
+  attachments             Json                    @default("[]")
+  referenceImages         Json                    @default("[]")
+
+  // Trạng thái & Nhân sự
+  status                  String                  @default("PENDING_REVIEW")
+  assignedStaff           String?
+  assignedStaffId         String?
+  adminNotes              String?                 @db.Text
+
+  // Khảo sát & Bản vẽ 3D
+  surveyNotes             String?                 @db.Text
+  surveyAttachment        Json?
+  surveyDate              DateTime?
+  drawing3dUrl            String?                 @db.Text
+  drawing3dUrls           Json                    @default("[]")
+
+  // Báo giá & Hợp đồng
+  quotedPrice             Decimal?                @default(0) @db.Decimal(15, 2)
+  quotedDeposit           Decimal?                @default(0) @db.Decimal(15, 2)
+  quotedAt                DateTime?
+  estimatedProductionDays Int?                    @default(15)
+  contractScanUrl         String?                 @db.Text
+  contractSignedAt        DateTime?
+  contractSignerName      String?
+
+  // Đặt cọc VietQR
+  depositProofImage       String?                 @db.Text
+  depositProofNote        String?                 @db.Text
+  depositPaidAt           DateTime?
+
+  // Hủy hồ sơ
+  cancelReason            String?                 @db.Text
+  cancelledAt             DateTime?
+  cancelledBy             String?
+
+  // QC & Nghiệm thu
+  qcPassedAt              DateTime?
+  qcInspector             String?
+  qcChecklist             Json?
+
+  // Bàn giao & Bảo hành
+  warrantyCode            String?
+  warrantyMonths          Int?                    @default(24)
+  warrantyFrameYears      Int?                    @default(10)
+  warrantySurfaceYears    Int?                    @default(3)
+  warrantyPolicy          String?                 @db.Text
+  deliveredAt             DateTime?
+  finalPaymentReceived    Boolean                 @default(false)
+
+  // Liên kết hệ thống
+  generatedOrderNumber    String?
+  orderId                 String?
+  workOrderCode           String?
+  customVariantId         String?
+  customVariant           Json?
+
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @default(now()) @updatedAt
+
+  timeline                CustomRequestTimeline[]
+
+  @@index([code])
+  @@index([customerId])
+  @@index([customerPhone])
+  @@index([customerEmail])
+  @@index([status])
+  @@index([assignedStaffId])
+  @@index([createdAt])
+}
+
+model CustomRequestTimeline {
+  id          String        @id @default(uuid())
+  requestId   String
+  request     CustomRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  status      String
+  title       String
+  description String?       @db.Text
+  performedBy String?
+  actorType   String        @default("SYSTEM") // CUSTOMER | STAFF | SYSTEM
+  metadata    Json?
+  timestamp   DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+
+  @@index([requestId])
+  @@index([createdAt])
+}
+

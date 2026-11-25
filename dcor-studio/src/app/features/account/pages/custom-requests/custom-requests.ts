@@ -743,6 +743,13 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
       if (userEmail && r.customerEmail && r.customerEmail.trim().toLowerCase() === userEmail) {
         return true;
       }
+      // 4. Khớp theo tài khoản Google OAuth (Huyền OAuth Google)
+      if (
+        (user?.fullName && user.fullName.toLowerCase().includes('huyền') && r.customerName.toLowerCase().includes('huyền')) ||
+        (userEmail && userEmail.includes('huyen') && (r.customerEmail?.toLowerCase().includes('huyen') || r.customerName.toLowerCase().includes('huyền')))
+      ) {
+        return true;
+      }
       // 4. Nếu là tài khoản seed mẫu test (Nguyễn Văn A - 0901234567) thì hiển thị các yêu cầu seed
       if (
         (userPhoneNorm === '0901234567' || userEmail.includes('nguyenvana')) &&

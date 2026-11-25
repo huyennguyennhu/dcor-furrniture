@@ -62,10 +62,27 @@ export class OrdersComponent implements OnInit, OnDestroy {
   sortDirection: 'asc' | 'desc' = 'desc';
 
   // Dropdowns UI State
+  showStatusDropdown = false;
   showShowroomDropdown = false;
   showOrderTypeDropdown = false;
   showPaymentDropdown = false;
   showSortDropdown = false;
+
+  readonly ORDER_STATUSES: { id: string; name: string }[] = [
+    { id: 'ALL', name: 'Tất cả trạng thái' },
+    { id: 'PENDING', name: 'Chờ xác nhận (Pending)' },
+    { id: 'CONFIRMED', name: 'Đã xác nhận (Confirmed)' },
+    { id: 'PROCESSING', name: 'Đang xử lý kho (Processing)' },
+    { id: 'READY_TO_SHIP', name: 'Chờ xuất kho (Ready to Ship)' },
+    { id: 'SHIPPED', name: 'Đang giao hàng (Shipped)' },
+    { id: 'FAILED_DELIVERY', name: 'Giao thất bại (Failed Delivery)' },
+    { id: 'DELIVERED', name: 'Đã giao hàng (Delivered)' },
+    { id: 'COMPLETED', name: 'Hoàn tất đơn (Completed)' },
+    { id: 'CANCELLED', name: 'Đã hủy đơn (Cancelled)' },
+    { id: 'RETURN_REQUESTED', name: 'Yêu cầu đổi / trả (Return)' },
+    { id: 'RETURNING', name: 'Đang thu hồi đổi / trả' },
+    { id: 'RETURNED', name: 'Đã hoàn trả kho' }
+  ];
 
   readonly ORDER_TYPES: { id: 'ALL' | 'STANDARD' | 'CUSTOM'; name: string }[] = [
     { id: 'ALL', name: 'Tất cả loại đơn' },
@@ -79,6 +96,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
     { value: 'total-desc', label: 'Giá trị cao nhất' },
     { value: 'total-asc', label: 'Giá trị thấp nhất' }
   ];
+
+  get selectedStatusLabel(): string {
+    const found = this.ORDER_STATUSES.find(s => s.id === this.selectedStatus);
+    return found ? found.name : 'Tất cả trạng thái';
+  }
 
   get selectedShowroomLabel(): string {
     const found = this.SHOWROOMS.find(s => (s.name === 'Tất cả chi nhánh' ? 'ALL' : s.name) === this.selectedShowroom);
@@ -100,28 +122,47 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return found ? found.label : 'Mới nhất trước';
   }
 
-  toggleDropdown(type: 'showroom' | 'payment' | 'orderType' | 'sort', event: MouseEvent) {
+  toggleDropdown(type: 'status' | 'showroom' | 'payment' | 'orderType' | 'sort', event: MouseEvent) {
     event.stopPropagation();
-    if (type === 'showroom') {
+    if (type === 'status') {
+      this.showStatusDropdown = !this.showStatusDropdown;
+      this.showShowroomDropdown = false;
+      this.showOrderTypeDropdown = false;
+      this.showPaymentDropdown = false;
+      this.showSortDropdown = false;
+    } else if (type === 'showroom') {
       this.showShowroomDropdown = !this.showShowroomDropdown;
+      this.showStatusDropdown = false;
       this.showOrderTypeDropdown = false;
       this.showPaymentDropdown = false;
       this.showSortDropdown = false;
     } else if (type === 'orderType') {
       this.showOrderTypeDropdown = !this.showOrderTypeDropdown;
+      this.showStatusDropdown = false;
       this.showShowroomDropdown = false;
       this.showPaymentDropdown = false;
       this.showSortDropdown = false;
     } else if (type === 'payment') {
       this.showPaymentDropdown = !this.showPaymentDropdown;
+      this.showStatusDropdown = false;
       this.showShowroomDropdown = false;
       this.showOrderTypeDropdown = false;
       this.showSortDropdown = false;
     } else if (type === 'sort') {
       this.showSortDropdown = !this.showSortDropdown;
+      this.showStatusDropdown = false;
       this.showShowroomDropdown = false;
       this.showOrderTypeDropdown = false;
       this.showPaymentDropdown = false;
+    }
+  }
+
+  setStatus(id: string) {
+    this.selectedStatus = id;
+    this.currentPage = 1;
+    this.showStatusDropdown = false;
+    if (id !== 'ALL' && this.activeTab !== 'ALL') {
+      this.activeTab = 'ALL';
     }
   }
 
@@ -170,6 +211,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click')
   onDocumentClick() {
+    this.showStatusDropdown = false;
     this.showShowroomDropdown = false;
     this.showOrderTypeDropdown = false;
     this.showPaymentDropdown = false;
@@ -399,6 +441,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   setTab(tab: KpiTab) {
     this.activeTab = tab;
+    this.selectedStatus = 'ALL';
     this.currentPage = 1;
   }
 

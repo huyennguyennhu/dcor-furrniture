@@ -49,6 +49,8 @@ import { initBlogDatabase } from './lib/init-blog-db';
 import { databaseCleanupService } from './services/cleanup.service';
 import reviewRoutes from './routes/review.routes';
 import { initReviewDatabase } from './lib/init-review-db';
+import customRequestRoutes from './routes/custom-request.routes';
+import { initCustomRequestDatabase } from './lib/init-custom-requests-db';
 import { publicApiRateLimiter } from './middleware/rate-limit.middleware';
 
 
@@ -144,6 +146,11 @@ app.use('/api/admin/categories', categoryRoutes);
 
 // Gắn router upload hình ảnh lên Cloudinary nén WebP
 app.use('/api/upload', uploadRoutes);
+
+// Gắn router yêu cầu may đo nội thất Custom Requests (Storefront & Admin)
+app.use('/api/store/custom-requests', customRequestRoutes);
+app.use('/api/admin/custom-requests', customRequestRoutes);
+app.use('/api/custom-requests', customRequestRoutes);
 
 // API danh mục sản phẩm từ database thực
 app.get('/api/categories', publicApiRateLimiter, async (req, res) => {
@@ -901,6 +908,7 @@ app.get('/api/products/:id/reviews', async (req, res) => {
     } catch (dbErr: any) {
       if (dbErr?.message?.includes('does not exist') || dbErr?.meta?.code === '42P01') {
         initReviewDatabase().catch(() => {});
+initCustomRequestDatabase().catch(() => {});
       } else {
         console.warn('[Review API] Lưu ý khi query Review từ DB:', dbErr?.message || dbErr);
       }
@@ -1070,6 +1078,7 @@ server.listen(port, () => {
         await initChatDatabase();
         await initBlogDatabase();
         await initReviewDatabase();
+      await initCustomRequestDatabase();
         console.log('[DB-Init] Khởi tạo các bảng và ảnh Blog thành công.');
       } catch (err) {
         console.error('[DB-Init] Lỗi khởi tạo bảng:', err);

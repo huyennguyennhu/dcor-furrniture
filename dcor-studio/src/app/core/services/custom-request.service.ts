@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export type CustomRequestStatus =
   | 'PENDING_REVIEW'
@@ -269,6 +271,8 @@ export const CUSTOM_STATUS_MAP: Record<CustomRequestStatus, StatusMeta> = {
   providedIn: 'root'
 })
 export class CustomRequestService {
+  private http = inject(HttpClient);
+  private apiUrl = environment.apiUrl;
   private readonly STORAGE_KEY = 'dcor_admin_custom_requests_v6';
   private requestsSubject = new BehaviorSubject<CustomRequest[]>([]);
   public requests$: Observable<CustomRequest[]> = this.requestsSubject.asObservable();
@@ -405,6 +409,7 @@ export class CustomRequestService {
 
           this.saveToStorage(merged);
           this.requestsSubject.next(merged);
+          this.fetchRequestsFromBackend();
           return;
         }
       }
@@ -413,6 +418,7 @@ export class CustomRequestService {
     const seeds = this.getInitialSeedRequests();
     this.saveToStorage(seeds);
     this.requestsSubject.next(seeds);
+    this.fetchRequestsFromBackend();
   }
 
   public get requestsValue(): CustomRequest[] {
@@ -442,6 +448,80 @@ export class CustomRequestService {
         window.dispatchEvent(new CustomEvent('dcor_custom_requests_updated', { detail: list }));
       } catch (_) {}
     }
+  }
+
+  /**
+   * Tải danh sách yêu cầu may đo từ máy chủ PostgreSQL Supabase qua REST API Backend
+   */
+  public fetchRequestsFromBackend(): void {
+    if (!this.http) return;
+    this.http.get<any>(`${this.apiUrl}/admin/custom-requests?limit=200`).subscribe({
+      next: (res) => {
+        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+          const backendList: CustomRequest[] = res.data;
+          const currentLocal = this.requestsSubject.value;
+
+          // Merge an toàn: Lấy bản mới nhất từ backend, bổ sung các đơn mới tạo ở client nếu backend chưa có
+          const merged = [...backendList];
+          for (const localItem of currentLocal) {
+            if (!merged.some(b => b.id === localItem.id || b.code === localItem.code)) {
+              merged.push(localItem);
+              this.createRequestOnBackend(localItem);
+            }
+          }
+
+          this.requestsSubject.next(merged);
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              localStorage.setItem(this.STORAGE_KEY, JSON.stringify(merged));
+              window.dispatchEvent(new CustomEvent('dcor_custom_requests_updated', { detail: merged }));
+            } catch (_) {}
+          }
+        }
+      },
+      error: (err) => {
+        console.warn('[CustomRequestService] Không thể kết nối API Backend Custom Requests, đang dùng bộ nhớ đệm:', err?.message);
+      }
+    });
+  }
+
+  /**
+   * Đồng bộ một hồ sơ may đo lên máy chủ Backend để lưu trữ vĩnh viễn vào PostgreSQL Supabase
+   */
+  public syncRequestToBackend(item: CustomRequest, newTimelineEvent?: any): void {
+    if (!this.http || !item || !item.id) return;
+    this.http.put<any>(`${this.apiUrl}/admin/custom-requests/${item.id}`, {
+      ...item,
+      newTimelineEvent
+    }).subscribe({
+      next: () => {},
+      error: (err) => {
+        console.warn('[CustomRequestService] Lưu ý khi đồng bộ cập nhật lên Backend (đã lưu cache local):', err?.message);
+      }
+    });
+  }
+
+  /**
+   * Đẩy yêu cầu may đo mới lên máy chủ Backend
+   */
+  public createRequestOnBackend(item: CustomRequest): void {
+    if (!this.http || !item) return;
+    this.http.post<any>(`${this.apiUrl}/store/custom-requests`, item).subscribe({
+      next: (res) => {
+        if (res?.data) {
+          const current = this.requestsSubject.value;
+          const idx = current.findIndex(r => r.id === item.id || r.code === item.code);
+          if (idx !== -1) {
+            current[idx] = { ...current[idx], ...res.data };
+            this.requestsSubject.next([...current]);
+            this.saveToStorage(current);
+          }
+        }
+      },
+      error: (err) => {
+        console.warn('[CustomRequestService] Lưu ý khi tạo yêu cầu mới lên Backend (đã lưu cache local):', err?.message);
+      }
+    });
   }
 
   /**
@@ -521,6 +601,7 @@ export class CustomRequestService {
     current.unshift(newRequest);
     this.saveToStorage(current);
     this.requestsSubject.next(current);
+    this.createRequestOnBackend(newRequest);
     return newRequest;
   }
 
@@ -537,6 +618,7 @@ export class CustomRequestService {
       current[idx] = { ...target };
       this.saveToStorage(current);
       this.requestsSubject.next(current);
+      this.syncRequestToBackend(target);
     }
     return target;
   }
@@ -587,6 +669,7 @@ export class CustomRequestService {
       current[idx] = { ...target };
       this.saveToStorage(current);
       this.requestsSubject.next(current);
+      this.syncRequestToBackend(target);
     }
     return target;
   }
@@ -623,6 +706,7 @@ export class CustomRequestService {
       current[idx] = { ...target };
       this.saveToStorage(current);
       this.requestsSubject.next(current);
+      this.syncRequestToBackend(target);
     }
     return target;
   }
@@ -769,6 +853,7 @@ export class CustomRequestService {
       current[idx] = target;
       this.saveToStorage(current);
       this.requestsSubject.next(current);
+      this.syncRequestToBackend(target);
     }
     return target;
   }
@@ -1029,6 +1114,7 @@ export class CustomRequestService {
     current[index] = item;
     this.saveToStorage(current);
     this.requestsSubject.next(current);
+    this.syncRequestToBackend(item, item.timeline[item.timeline.length - 1]);
     return item;
   }
 
