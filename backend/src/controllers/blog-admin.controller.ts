@@ -468,7 +468,7 @@ export const blogAdminController = {
       if (Array.isArray(post.productIds) && post.productIds.length > 0) {
         const prods = await withDbRetry(() =>
           prisma.product.findMany({
-            where: { id: { in: post!.productIds } },
+            where: { id: { in: post!.productIds }, deletedAt: null },
             include: {
               variants: {
                 where: { isActive: true },

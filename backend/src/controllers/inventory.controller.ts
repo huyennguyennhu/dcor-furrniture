@@ -314,7 +314,7 @@ export const inventoryController = {
 
         // Truy vấn nhẹ lấy stock, reservedStock & safetyThreshold của variants để tính KPI tổng
         const allProductsForSummary = await prisma.product.findMany({
-          where: { isActive: true },
+          where: { isActive: true, deletedAt: null },
           select: {
             variants: {
               where: { isActive: true },
@@ -395,7 +395,8 @@ export const inventoryController = {
 
       // Điều kiện lọc sản phẩm cho bảng
       const whereCondition: any = {
-        isActive: true
+        isActive: true,
+        deletedAt: null
       };
 
       // 1. Tìm tức thời theo Tên sản phẩm, Mã SKU, Danh mục
@@ -2745,7 +2746,7 @@ export const inventoryController = {
         }
       });
 
-      if (!product) {
+      if (!product || product.deletedAt !== null) {
         return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
       }
 

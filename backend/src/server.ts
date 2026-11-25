@@ -19,7 +19,7 @@ import auditLogRoutes from './routes/audit-log.routes';
 import productRoutes from './routes/product.routes';
 import { extractProductWarrantyMonths, registerProductCacheInvalidator } from './controllers/product.controller';
 import categoryRoutes from './routes/category.routes';
-import { registerCategoryCacheInvalidator } from './controllers/category.controller';
+import { categoryController, registerCategoryCacheInvalidator } from './controllers/category.controller';
 import uploadRoutes from './routes/upload.routes';
 import adminOrderRoutes from './routes/admin-order.routes';
 import consultationRoutes from './routes/consultation.routes';
@@ -160,12 +160,12 @@ app.get('/api/categories', publicApiRateLimiter, async (req, res) => {
           where: { isActive: true },
           include: {
             _count: {
-              select: { products: true }
+              select: { products: { where: { isActive: true, deletedAt: null } } }
             }
           }
         },
         _count: {
-          select: { products: true }
+          select: { products: { where: { isActive: true, deletedAt: null } } }
         }
       },
       orderBy: { sortOrder: 'asc' }
@@ -178,6 +178,9 @@ app.get('/api/categories', publicApiRateLimiter, async (req, res) => {
     res.status(503).json({ message: 'Không thể lấy danh mục từ cơ sở dữ liệu.' });
   }
 });
+
+// API danh mục phụ & thuộc tính (Phòng, Bộ sưu tập, Phong cách, Chất liệu) dùng chung toàn hệ thống từ PostgreSQL
+app.get('/api/sub-categories', publicApiRateLimiter, categoryController.getPublicSubCategories);
 
 // API danh sách sản phẩm
 // In-memory cache for Category map (5 minutes TTL)
@@ -240,6 +243,7 @@ const inFlightProductDetailMap = new Map<string, Promise<any>>();
 
 export function invalidateProductCache() {
   memoryCache.invalidate(CACHE_KEYS.CATEGORIES_LIST);
+  memoryCache.invalidate('store_sub_categories_list');
   memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
   memoryCache.invalidatePrefix('products_catalog');
   memoryCache.invalidatePrefix('products_cat_');
@@ -563,7 +567,7 @@ app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
         }));
       }
 
-      if (!product) return null;
+      if (!product || product.deletedAt !== null || product.isActive === false) return null;
 
       const variantsWithDimensions = product.variants.map((v: any) => {
         const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
@@ -729,7 +733,7 @@ app.get('/api/products/:id/reviews', async (req, res) => {
       });
     }
 
-    if (!product) {
+    if (!product || product.deletedAt !== null) {
       return res.status(404).json({ error: 'Product not found' });
     }
 

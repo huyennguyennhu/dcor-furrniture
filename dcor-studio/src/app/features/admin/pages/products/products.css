@@ -319,6 +319,25 @@
   font-size: 12px;
 }
 
+/* 3. Standalone Search Bar (Tách riêng phía trên bộ lọc) */
+.products-search-bar {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.standalone-search-box {
+  width: 100%;
+  min-width: 0;
+}
+
+.standalone-search-box .search-input {
+  height: 42px;
+  border-radius: 10px;
+  border-color: #E4DACF;
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
 /* 4. Filter Bar */
 .filter-bar-card {
   background-color: #FFFFFF;
@@ -331,8 +350,162 @@
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+}
+
+.status-opt-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-reset-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px dashed #D6CEC5;
+  background-color: transparent;
+  color: #C42326;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-reset-filters:hover {
+  background-color: #FEF2F2;
+  border-color: #FCA5A5;
+}
+
+/* Dropdown gộp phân tầng Danh mục phụ */
+.filter-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background-color: #765337;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.subcat-tree-menu {
+  min-width: 280px;
+  max-height: 360px;
+  padding: 8px;
+  gap: 4px;
+}
+
+.subcat-tree-divider {
+  height: 1px;
+  background-color: #EFE8DF;
+  margin: 4px 2px;
+}
+
+.subcat-tree-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.subcat-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #3F3934;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.subcat-group-header:hover {
+  background-color: #FAF6F0;
+  color: #765337;
+}
+
+.subcat-group-header.has-selection {
+  color: #765337;
+  background-color: #FAF4EC;
+}
+
+.subcat-group-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.subcat-group-chevron {
+  flex-shrink: 0;
+  color: #8C827A;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.subcat-group-chevron.expanded {
+  transform: rotate(90deg);
+  color: #765337;
+}
+
+.subcat-group-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subcat-group-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8C827A;
+  background-color: #F3EEE8;
+  padding: 1px 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.subcat-group-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #765337;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.subcat-group-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 16px;
+  padding-left: 10px;
+  border-left: 1.5px solid #E8DFD5;
+  margin-bottom: 4px;
+}
+
+.subcat-child-item {
+  padding: 6px 10px;
+  font-size: 12.5px;
 }
 
 .search-input-box {
@@ -2096,17 +2269,31 @@
   border-color: #BC5F13;
 }
 
-/* BUG-31: Format khung nhập YES ở bước 2 xóa sản phẩm */
+/* Hộp hiển thị tên sản phẩm cần nhập lại ở bước 2 xóa mềm */
+.delete-target-name-box {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background-color: #FEF2F2;
+  border: 1px dashed #FCA5A5;
+  color: #991B1B;
+  font-size: 13.5px;
+  font-weight: 700;
+  word-break: break-word;
+  user-select: all;
+}
+
+/* Format khung nhập tên sản phẩm ở bước 2 xóa mềm */
 .delete-confirm-input {
   width: 100% !important;
   height: 42px !important;
-  padding: 0 16px !important;
+  padding: 0 14px !important;
   border: 1.5px solid #E4DACF !important;
   border-radius: 8px !important;
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.1em !important;
-  text-align: center !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
+  text-align: left !important;
   background-color: #FAF8F5 !important;
   color: #DC2626 !important;
   box-sizing: border-box !important;

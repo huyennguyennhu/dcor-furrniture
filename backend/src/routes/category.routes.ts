@@ -8,6 +8,11 @@ const router = Router();
 router.use(authenticateJWT);
 
 router.get('/', requirePermission('categories', 'view'), categoryController.getAll);
+router.get('/sub', requirePermission('categories', 'view'), categoryController.getAdminSubCategories);
+router.post('/sub', requirePermission('categories', 'create'), categoryController.createSubCategory);
+router.put('/sub/:id', requirePermission('categories', 'edit'), categoryController.updateSubCategory);
+router.patch('/sub/:id/status', requirePermission('categories', 'edit'), categoryController.toggleSubCategoryStatus);
+router.delete('/sub/:id', requirePermission('categories', 'delete'), categoryController.deleteSubCategory);
 router.post('/', requirePermission('categories', 'create'), categoryController.createCategory);
 router.put('/:id', requirePermission('categories', 'edit'), categoryController.updateCategory);
 router.patch('/:id/status', requirePermission('categories', 'edit'), categoryController.toggleStatus);

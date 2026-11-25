@@ -34,7 +34,20 @@
           <span class="mobile-filter-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
         </button>
 
-        <div class="active-pills-list" *ngIf="hasActiveFilters">
+        <!-- Mô tả kết quả tìm kiếm khi người dùng nhập từ khóa & nhấn Enter -->
+        <div class="search-result-summary" *ngIf="searchQuery && searchQuery.trim()">
+          <span class="search-result-text">
+            Kết quả tìm kiếm của <strong class="search-result-keyword">"{{ searchQuery.trim() }}"</strong>
+          </span>
+          <button
+            type="button"
+            class="clear-all-link search-clear-link"
+            (click)="clearSearchQuery()">
+            Xóa tìm kiếm
+          </button>
+        </div>
+
+        <div class="active-pills-list" *ngIf="hasNonSearchFilters">
           <!-- Category Pills -->
           <span *ngFor="let cat of filters.categories" class="active-pill">
             {{ getCategoryLabel(cat) }}
@@ -47,6 +60,12 @@
             <button type="button" class="pill-close" (click)="removeFilterTag('rooms', room)">&times;</button>
           </span>
 
+          <!-- Collection Pills -->
+          <span *ngFor="let col of filters.collections" class="active-pill">
+            {{ getCollectionLabel(col) }}
+            <button type="button" class="pill-close" (click)="removeFilterTag('collections', col)">&times;</button>
+          </span>
+
           <!-- Style Pills -->
           <span *ngFor="let style of filters.styles" class="active-pill">
             {{ getStyleLabel(style) }}
@@ -55,7 +74,7 @@
 
           <!-- Material Pills -->
           <span *ngFor="let mat of filters.materials" class="active-pill">
-            {{ mat }}
+            {{ getMaterialLabel(mat) }}
             <button type="button" class="pill-close" (click)="removeFilterTag('materials', mat)">&times;</button>
           </span>
 

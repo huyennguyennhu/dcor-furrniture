@@ -14,6 +14,7 @@ import {
 
 import { environment } from '../../../../../../environments/environment';
 import { ProductService } from '../../../../../core/services/product.service';
+import { CategoryClassificationService, CategoryItem } from '../../../../../core/services/category-classification.service';
 
 export type ProductFormTab = 'basic' | 'classification' | 'variants' | 'specs';
 
@@ -287,47 +288,37 @@ export class ProductFormComponent implements OnInit {
   // State cho việc tải ảnh lên Cloudinary
   isUploadingImage = false;
 
-  rooms = [
-    { id: 'rm-living', name: 'Phòng khách' },
-    { id: 'rm-dining', name: 'Phòng ăn' },
-    { id: 'rm-bed', name: 'Phòng ngủ' },
-    { id: 'rm-work', name: 'Phòng làm việc' },
-    { id: 'rm-outdoor', name: 'Ngoài trời' }
+  rooms: Array<{ id: string; name: string; slug?: string }> = [
+    { id: 'rm-living', name: 'Phòng khách', slug: 'phong-khach' },
+    { id: 'rm-dining', name: 'Phòng ăn', slug: 'phong-an' },
+    { id: 'rm-bed', name: 'Phòng ngủ', slug: 'phong-ngu' },
+    { id: 'rm-work', name: 'Phòng làm việc', slug: 'phong-lam-viec' },
+    { id: 'rm-outdoor', name: 'Ngoài trời & Ban công', slug: 'ngoai-troi-ban-cong' }
   ];
 
-  collections = [
-    { id: 'col-bergamo', name: 'Bộ sưu tập Bergamo' },
-    { id: 'col-como', name: 'Bộ sưu tập Como' },
-    { id: 'col-lugano', name: 'Bộ sưu tập Lugano' },
-    { id: 'col-santiago', name: 'Bộ sưu tập Santiago' },
-    { id: 'col-cenova', name: 'Bộ sưu tập Cenova' },
-    { id: 'col-cupertino', name: 'Bộ sưu tập Cupertino' },
-    { id: 'col-ottawa', name: 'Bộ sưu tập Ottawa' },
-    { id: 'col-carmo', name: 'Bộ sưu tập Carmo' },
-    { id: 'col-indivi', name: 'Bộ sưu tập Indivi' }
+  collections: Array<{ id: string; name: string; slug?: string }> = [
+    { id: 'col-bergamo', name: 'Bộ sưu tập Bergamo', slug: 'bo-suu-tap-bergamo' },
+    { id: 'col-como', name: 'Bộ sưu tập Como', slug: 'bo-suu-tap-como' },
+    { id: 'col-lugano', name: 'Bộ sưu tập Lugano', slug: 'bo-suu-tap-lugano' },
+    { id: 'col-santiago', name: 'Bộ sưu tập Santiago', slug: 'bo-suu-tap-santiago' },
+    { id: 'col-cenova', name: 'Bộ sưu tập Cenova', slug: 'bo-suu-tap-cenova' }
   ];
 
-  styles = [
-    { id: 'st-modern', name: 'Hiện đại (Modern)' },
-    { id: 'st-minimal', name: 'Tối giản (Minimalism)' },
-    { id: 'st-nordic', name: 'Bắc Âu (Scandinavian)' },
-    { id: 'st-classic', name: 'Cổ điển (Classic Luxury)' },
-    { id: 'st-contemporary', name: 'Đương đại (Contemporary)' },
-    { id: 'st-industrial', name: 'Công nghiệp (Industrial)' }
+  styles: Array<{ id: string; name: string; slug?: string }> = [
+    { id: 'st-nordic', name: 'Bắc Âu (Scandinavian)', slug: 'bac-au-scandinavian' },
+    { id: 'st-modern', name: 'Hiện đại (Modern Luxury)', slug: 'hien-dai-modern-luxury' },
+    { id: 'st-minimal', name: 'Tối giản (Minimalism)', slug: 'toi-gian-minimalism' },
+    { id: 'st-japandi', name: 'Japandi', slug: 'japandi' },
+    { id: 'st-wabisabi', name: 'Wabi-Sabi', slug: 'wabi-sabi' },
+    { id: 'st-industrial', name: 'Công nghiệp (Industrial)', slug: 'industrial' }
   ];
 
-  materials = [
-    { id: 'mat-leather-real', name: 'Da bò Aniline thật' },
-    { id: 'mat-leather-pu', name: 'Da nhân tạo PU cao cấp' },
-    { id: 'mat-fabric-felt', name: 'Vải nỉ Copenhagen' },
-    { id: 'mat-fabric-velvet', name: 'Vải nhung Sapphire' },
-    { id: 'mat-fabric-boucle', name: 'Vải lông cừu Boucle' },
-    { id: 'mat-wood-oak', name: 'Gỗ sồi (Oak) tự nhiên' },
-    { id: 'mat-wood-walnut', name: 'Gỗ óc chó (Walnut)' },
-    { id: 'mat-ceramic', name: 'Gốm Ceramic chống trầy' },
-    { id: 'mat-glass', name: 'Kính khói cường lực' },
-    { id: 'mat-metal', name: 'Thép sơn tĩnh điện' },
-    { id: 'mat-brass', name: 'Đồng xước thủ công' }
+  materials: Array<{ id: string; name: string; slug?: string }> = [
+    { id: 'mat-leather-real', name: 'Da bò Aniline Ý thật', slug: 'da-bo-aniline-y' },
+    { id: 'mat-fabric-felt', name: 'Vải nỉ Copenhagen', slug: 'vai-ni-copenhagen' },
+    { id: 'mat-wood-oak', name: 'Gỗ sồi (Oak) tự nhiên', slug: 'go-soi-tu-nhien' },
+    { id: 'mat-wood-walnut', name: 'Gỗ óc chó (Walnut) thượng hạng', slug: 'go-oc-cho-walnut' },
+    { id: 'mat-ceramic', name: 'Gốm Ceramic chống trầy', slug: 'gom-ceramic-chong-tray' }
   ];
 
   // Generator ma trận thuộc tính động (Tab 3) - Tối đa 3 nhóm
@@ -402,11 +393,13 @@ export class ProductFormComponent implements OnInit {
     private router: Router,
     private http: HttpClient,
     private productService: ProductService,
+    private categoryClassificationService: CategoryClassificationService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.loadCategoriesFromApi();
+    this.loadSubCategoriesFromApi();
 
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
@@ -464,6 +457,45 @@ export class ProductFormComponent implements OnInit {
         ];
         this.initSelectedCategories();
         this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // Tải danh mục phụ & thuộc tính đồng bộ trực tiếp từ PostgreSQL (/api/admin/categories/sub)
+  loadSubCategoriesFromApi() {
+    const applySubCategories = (items: CategoryItem[]) => {
+      if (!Array.isArray(items) || items.length === 0) return;
+      const byParent = (parentId: string, legacyType: string) =>
+        items
+          .filter(c => (c.parentId === parentId || c.type === legacyType) && c.status !== 'Đã ẩn')
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          .map(c => ({ id: c.id, name: c.name, slug: c.slug }));
+
+      const dbRooms = byParent('sub-room', 'room');
+      const dbCollections = byParent('sub-collection', 'collection');
+      const dbStyles = byParent('sub-style', 'style');
+      const dbMaterials = byParent('sub-material', 'material');
+
+      if (dbRooms.length > 0) this.rooms = dbRooms;
+      if (dbCollections.length > 0) this.collections = dbCollections;
+      if (dbStyles.length > 0) this.styles = dbStyles;
+      if (dbMaterials.length > 0) this.materials = dbMaterials;
+      this.cdr.detectChanges();
+    };
+
+    this.http.get<{ items?: CategoryItem[] }>(`${environment.apiUrl}/admin/categories/sub`).subscribe({
+      next: (res) => {
+        if (Array.isArray(res?.items) && res.items.length > 0) {
+          this.categoryClassificationService.setCategories(res.items);
+          applySubCategories(res.items);
+        } else {
+          applySubCategories(this.categoryClassificationService.getAdminCategories());
+        }
+      },
+      error: () => {
+        this.categoryClassificationService.loadSubCategories(true).subscribe(items => {
+          applySubCategories(items);
+        });
       }
     });
   }
@@ -574,10 +606,10 @@ export class ProductFormComponent implements OnInit {
       }
     }
 
-    this.formData.classification.roomIds = item.configOptions?.roomIds || ['rm-living'];
+    this.formData.classification.roomIds = Array.isArray(item.configOptions?.roomIds) ? [...item.configOptions.roomIds] : [];
     this.formData.classification.collectionId = item.configOptions?.collectionId || '';
     this.formData.classification.styleId = item.configOptions?.styleId || '';
-    this.formData.classification.materialIds = item.configOptions?.materialIds || [];
+    this.formData.classification.materialIds = Array.isArray(item.configOptions?.materialIds) ? [...item.configOptions.materialIds] : [];
 
     // Xử lý biến thể: hỗ trợ mảng ảnh, tồn kho, giá vốn, barcode và attributes động
     if (Array.isArray(item.variants) && item.variants.length > 0) {
@@ -890,11 +922,56 @@ export class ProductFormComponent implements OnInit {
   addQuickMaterial() {
     const name = this.newMaterialName.trim();
     if (!name) return;
-    const newId = 'mat-custom-' + Date.now();
-    this.materials.push({ id: newId, name: name });
-    this.formData.classification.materialIds.push(newId);
-    this.newMaterialName = '';
-    this.showToast('Đã thêm chất liệu: ' + name, 'success');
+
+    const existing = this.materials.find(m => m.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!this.formData.classification.materialIds.includes(existing.id)) {
+        this.formData.classification.materialIds.push(existing.id);
+      }
+      this.newMaterialName = '';
+      this.showToast(`Đã chọn chất liệu có sẵn: ${existing.name}`, 'info');
+      return;
+    }
+
+    const slug = this.slugify(name) || `chat-lieu-${Date.now()}`;
+    const newId = `mat-${Date.now().toString().slice(-6)}`;
+    const subPayload = {
+      id: newId,
+      name,
+      slug,
+      description: '',
+      image: '',
+      parentId: 'sub-material',
+      sortOrder: this.materials.length + 1,
+      status: 'Hiển thị',
+      isActive: true
+    };
+
+    this.http.post<any>(`${environment.apiUrl}/admin/categories/sub`, subPayload).subscribe({
+      next: (res) => {
+        const created = res?.category;
+        const createdId = created?.id || newId;
+        const createdName = created?.name || name;
+        const createdSlug = created?.slug || slug;
+        if (!this.materials.some(m => m.id === createdId)) {
+          this.materials.push({ id: createdId, name: createdName, slug: createdSlug });
+        }
+        if (!this.formData.classification.materialIds.includes(createdId)) {
+          this.formData.classification.materialIds.push(createdId);
+        }
+        this.newMaterialName = '';
+        this.categoryClassificationService.refresh();
+        this.showToast('Đã thêm chất liệu vào hệ thống: ' + createdName, 'success');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.materials.push({ id: newId, name, slug });
+        this.formData.classification.materialIds.push(newId);
+        this.newMaterialName = '';
+        this.showToast('Đã thêm chất liệu: ' + name, 'success');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   isMaterialSelected(matId: string): boolean {
@@ -1514,6 +1591,7 @@ export class ProductFormComponent implements OnInit {
         next: () => {
           this.isLoading = false; this.isSubmitting = false;
           this.productService.clearCache();
+          this.categoryClassificationService.refresh();
           const successMsg = this.isEditMode 
             ? 'Cập nhật sản phẩm thành công!' 
             : 'Tạo và xuất bản sản phẩm mới thành công!';

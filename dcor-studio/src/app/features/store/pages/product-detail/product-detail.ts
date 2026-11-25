@@ -1341,10 +1341,20 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
       ? variantImages[0]
       : (this.galleryImages?.[0] || (productImages.length > 0 ? productImages[0] : ''));
 
+    const selectedVariantTags = this.attributeGroups
+      .map(group => {
+        const rawName = this.getSelectedOptionName(group);
+        const formatted = this.formatOptionDisplayName(rawName, group);
+        return formatted ? { label: group.label, value: formatted } : null;
+      })
+      .filter((t): t is { label: string; value: string } => !!t);
+
     const guestProductInfo = {
       productId: this.product.productId || (this.product as any).id || '',
+      sku: this.currentSku,
       name: this.product.shortDescription_vi || this.product.shortDescription || (this.product as any).name || 'Sản phẩm',
       variantName: variant.name !== 'Phân loại mặc định' ? variant.name : undefined,
+      variantTags: selectedVariantTags.length > 0 ? selectedVariantTags : undefined,
       image: typeof imageUrl === 'string' ? imageUrl : '',
       price: rawPrice,
       originalPrice: this.originalPrice || undefined,

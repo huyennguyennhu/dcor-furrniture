@@ -295,7 +295,6 @@
                   <img
                     [src]="item.image || '/assets/img/furniture-placeholder.svg'"
                     [alt]="item.name" />
-                  <span class="item-qty-badge">{{ item.quantity }}</span>
                 </div>
                 <div class="summary-item-info">
                   <h4 class="item-title" [title]="item.name">{{ item.name }}</h4>
@@ -308,39 +307,91 @@
                     *ngIf="(!item.variantTags || item.variantTags.length === 0) && item.variantName">
                     {{ item.variantName }}
                   </div>
-                  <div class="item-price">{{ formatCurrency(item.price * item.quantity) }}</div>
+                  <div class="item-price-qty-row">
+                    <div class="item-price">{{ formatCurrency(item.price * item.quantity) }}</div>
+                    <span class="item-qty-inline">x {{ item.quantity }}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Mã giảm giá: Nhập và kiểm tra khi có dữ liệu nạp vào (Không tự sinh voucher giả) -->
-            <div class="voucher-section">
-              <label class="voucher-label">
-                <lucide-angular [img]="icons.Tag" size="15" color="#765337"></lucide-angular>
-                <span>Mã ưu đãi / Voucher</span>
-              </label>
+            <!-- Khuyến mãi: Đồng bộ giao diện giỏ hàng, nhấn để mở Popup chọn mã -->
+            <div class="cart-footer-promo-section">
+              <div
+                class="drawer-voucher-trigger-bar"
+                [class.has-voucher]="hasAnyAppliedVoucher"
+                (click)="openVoucherModal()">
+                <!-- Khi CHƯA chọn mã nào -->
+                <ng-container *ngIf="!hasAnyAppliedVoucher">
+                  <div class="voucher-trigger-left">
+                    <span class="voucher-trigger-label">Khuyến mãi</span>
+                    <span *ngIf="totalEligibleVouchersCount > 0" class="voucher-eligible-badge">
+                      {{ totalEligibleVouchersCount }} mã
+                    </span>
+                  </div>
+                  <div class="voucher-trigger-right">
+                    <button
+                      type="button"
+                      class="voucher-open-btn"
+                      (click)="$event.stopPropagation(); openVoucherModal()"
+                      title="Chọn mã ưu đãi">
+                      <span>Chọn mã</span>
+                      <lucide-angular [img]="icons.ChevronRight" size="13" class="voucher-nav-arrow"></lucide-angular>
+                    </button>
+                  </div>
+                </ng-container>
 
-              <div class="voucher-input-group">
-                <input type="text" [(ngModel)]="voucherInput" name="voucherInput" placeholder="Nhập mã ưu đãi"
-                  class="voucher-input" />
-                <button type="button" class="btn-apply-voucher" (click)="applyVoucherCode()"
-                  [disabled]="isCheckingVoucher">
-                  {{ isCheckingVoucher ? 'Đang kiểm tra...' : 'Áp dụng' }}
-                </button>
-              </div>
+                <!-- Khi ĐÃ áp dụng mã -->
+                <ng-container *ngIf="hasAnyAppliedVoucher">
+                  <div class="voucher-trigger-left">
+                    <span class="voucher-trigger-label">Khuyến mãi</span>
+                  </div>
 
-              <!-- Thông báo voucher -->
-              <div *ngIf="voucherSuccessMessage" class="voucher-message success">
-                <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular>
-                <span>{{ voucherSuccessMessage }}</span>
-                <button type="button" class="btn-remove-voucher" (click)="removeVoucher()" title="Bỏ mã">
-                  <lucide-angular [img]="icons.X" size="14"></lucide-angular>
-                </button>
-              </div>
+                  <div class="voucher-trigger-right voucher-applied-right">
+                    <div class="voucher-applied-chips-wrap">
+                      <!-- Chip mã giảm giá sản phẩm -->
+                      <span
+                        *ngIf="appliedProductVoucher"
+                        class="voucher-applied-chip product-chip"
+                        [title]="appliedProductVoucher.code + ': -' + formatCurrency(discountAmount)">
+                        <span class="chip-code-text">{{ appliedProductVoucher.code }}</span>
+                        <span class="chip-val-text">-{{ formatShortDiscount(discountAmount) }}</span>
+                        <button
+                          type="button"
+                          class="btn-chip-remove"
+                          (click)="$event.stopPropagation(); removeProductVoucher()"
+                          title="Bỏ mã giảm giá sản phẩm">
+                          <lucide-angular [img]="icons.X" size="10"></lucide-angular>
+                        </button>
+                      </span>
 
-              <div *ngIf="voucherErrorMessage" class="voucher-message error">
-                <lucide-angular [img]="icons.AlertCircle" size="14"></lucide-angular>
-                <span>{{ voucherErrorMessage }}</span>
+                      <!-- Chip mã freeship -->
+                      <span
+                        *ngIf="appliedFreeshipVoucher"
+                        class="voucher-applied-chip freeship-chip"
+                        [title]="appliedFreeshipVoucher.code + ': Miễn phí vận chuyển'">
+                        <span class="chip-code-text">{{ appliedFreeshipVoucher.code }}</span>
+                        <span class="chip-val-text">Free ship</span>
+                        <button
+                          type="button"
+                          class="btn-chip-remove"
+                          (click)="$event.stopPropagation(); removeFreeshipVoucher()"
+                          title="Bỏ mã Freeship">
+                          <lucide-angular [img]="icons.X" size="10"></lucide-angular>
+                        </button>
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="voucher-nav-btn"
+                      (click)="$event.stopPropagation(); openVoucherModal()"
+                      title="Chọn hoặc thay đổi mã ưu đãi"
+                      aria-label="Chọn hoặc thay đổi mã ưu đãi">
+                      <lucide-angular [img]="icons.ChevronRight" size="13" class="voucher-nav-arrow"></lucide-angular>
+                    </button>
+                  </div>
+                </ng-container>
               </div>
             </div>
 
@@ -935,6 +986,11 @@
       </div>
     </div>
 
+    <div *ngIf="savePhoneError" style="display:flex;align-items:center;gap:6px;background:#fff2f0;border:1px solid #ffccc7;color:#cf1322;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;text-align:left;">
+      <lucide-angular [img]="icons.AlertCircle" size="15" style="flex-shrink:0;"></lucide-angular>
+      <span>{{ savePhoneError }}</span>
+    </div>
+
     <div class="save-phone-actions">
       <button type="button" class="btn-confirm-save-phone" (click)="confirmSavePhoneToProfile()"
         [disabled]="isSavingPhoneToProfile">
@@ -1153,4 +1209,218 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- ============================================================
+     POPUP CHỌN MÃ KHUYẾN MÃI & VOUCHER (Cấu trúc đồng bộ với Giỏ hàng)
+     ============================================================ -->
+<div *ngIf="isVoucherModalOpen" class="modal-backdrop-overlay voucher-modal-overlay" (click)="closeVoucherModal()">
+  <aside
+    class="drawer-variant-sidebar drawer-voucher-sidebar voucher-popup-modal open"
+    (click)="$event.stopPropagation()">
+
+    <!-- Header Popup -->
+    <div class="drawer-variant-header">
+      <div class="drawer-variant-header-left">
+        <lucide-angular [img]="icons.Tag" size="16" class="variant-header-icon"></lucide-angular>
+        <h3>Mã khuyến mãi & Ưu đãi</h3>
+      </div>
+      <button type="button" class="variant-close-btn" (click)="closeVoucherModal()" title="Đóng khuyến mãi">
+        <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- Body Popup -->
+    <div class="drawer-variant-body">
+      <!-- 1. Khung nhập mã thủ công -->
+      <div class="voucher-custom-input-box">
+        <div class="custom-input-row">
+          <input
+            type="text"
+            [(ngModel)]="customVoucherInput"
+            placeholder="Nhập mã khuyến mãi hoặc Freeship..."
+            class="voucher-text-input"
+            (keyup.enter)="applyCustomVoucher()" />
+          <button
+            type="button"
+            class="btn-apply-custom"
+            (click)="applyCustomVoucher()"
+            [disabled]="isCheckingVoucher">
+            {{ isCheckingVoucher ? 'Đang kiểm tra...' : 'Áp dụng' }}
+          </button>
+        </div>
+        <div *ngIf="voucherErrorMessage" class="voucher-error-msg">
+          <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
+          <span>{{ voucherErrorMessage }}</span>
+        </div>
+      </div>
+
+      <!-- 2. Danh mục: MÃ GIẢM GIÁ SẢN PHẨM (Mặc định hiện 3 mã đầu, có nút xem thêm) -->
+      <div class="voucher-list-section">
+        <div class="voucher-list-header">
+          <div class="voucher-list-header-left">
+            <lucide-angular [img]="icons.Tag" size="14" color="#C67C4E"></lucide-angular>
+            <span class="voucher-list-title">Mã giảm giá sản phẩm</span>
+            <span *ngIf="eligibleProductPromotionsCount > 0" class="voucher-eligible-badge">
+              {{ eligibleProductPromotionsCount }} mã khả dụng
+            </span>
+          </div>
+          <span class="voucher-list-sub">Giảm trực tiếp tiền hàng</span>
+        </div>
+
+        <div *ngIf="productPromotions.length === 0" class="drawer-variant-empty">
+          Hiện tại chưa có mã giảm giá sản phẩm nào trong hệ thống.
+        </div>
+
+        <div *ngIf="productPromotions.length > 0" class="voucher-tickets-list">
+          <div
+            *ngFor="let v of displayedProductPromotions"
+            class="voucher-ticket-card"
+            [class.is-applied]="appliedProductVoucher?.code === v.code"
+            [class.is-eligible]="isVoucherEligible(v)"
+            [class.is-ineligible]="!isVoucherEligible(v)">
+
+            <!-- Cạnh trái: Badge mức giảm -->
+            <div class="ticket-left-badge product-badge">
+              <span class="ticket-discount-val">
+                {{ v.discountType === 'PERCENT' ? '-' + v.discountValue + '%' : '-' + (v.discountValue / 1000) + 'k' }}
+              </span>
+              <span class="ticket-discount-sub">GIẢM GIÁ</span>
+            </div>
+
+            <!-- Ở giữa: Nội dung -->
+            <div class="ticket-center-content">
+              <div class="ticket-top-row">
+                <span class="ticket-code">{{ v.code }}</span>
+                <span *ngIf="appliedProductVoucher?.code === v.code" class="ticket-applied-tag">Đang dùng</span>
+              </div>
+              <h5 class="ticket-name">{{ v.name }}</h5>
+              <p class="ticket-condition">{{ v.description || ('Đơn từ ' + formatCurrency(v.minOrderValue || 0)) }}</p>
+              <div *ngIf="!isVoucherEligible(v)" class="ticket-need-more-hint">
+                Cần mua thêm <b>{{ formatCurrency(amountNeededForVoucher(v)) }}</b> để dùng mã
+              </div>
+            </div>
+
+            <!-- Cạnh phải: Thao tác -->
+            <div class="ticket-right-action">
+              <button
+                *ngIf="appliedProductVoucher?.code === v.code"
+                type="button"
+                class="btn-ticket-applied"
+                (click)="removeProductVoucher()"
+                title="Bỏ áp dụng">
+                <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                <span>Bỏ chọn</span>
+              </button>
+              <button
+                *ngIf="appliedProductVoucher?.code !== v.code && isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-apply"
+                (click)="applyVoucherDirectly(v)">
+                Áp dụng
+              </button>
+              <button
+                *ngIf="!isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-disabled"
+                disabled>
+                Chưa đủ ĐK
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nút Xem Thêm / Thu Gọn mã khuyến mãi sản phẩm -->
+        <button
+          *ngIf="hasMoreProductPromotions"
+          type="button"
+          class="btn-toggle-see-more"
+          (click)="toggleShowAllProductVouchers()">
+          <span>{{ showAllProductVouchers ? 'Thu gọn mã sản phẩm' : ('Xem thêm ' + (productPromotions.length - 3) + ' mã khuyến mãi sản phẩm') }}</span>
+          <lucide-angular [img]="showAllProductVouchers ? icons.ChevronUp : icons.ChevronDown" size="14"></lucide-angular>
+        </button>
+      </div>
+
+      <!-- 3. Danh mục: MÃ FREESHIP (Dùng đồng thời với mã sản phẩm) -->
+      <div class="voucher-list-section freeship-section">
+        <div class="voucher-list-header">
+          <div class="voucher-list-header-left">
+            <lucide-angular [img]="icons.Truck" size="14" color="#10b981"></lucide-angular>
+            <span class="voucher-list-title">Mã miễn phí vận chuyển</span>
+            <span *ngIf="eligibleFreeshipPromotionsCount > 0" class="voucher-eligible-badge freeship-badge-count">
+              {{ eligibleFreeshipPromotionsCount }} mã khả dụng
+            </span>
+          </div>
+          <span class="voucher-list-sub freeship-sub-note">Dùng đồng thời với mã sản phẩm</span>
+        </div>
+
+        <div *ngIf="freeshipPromotions.length === 0" class="drawer-variant-empty">
+          Hiện tại chưa có mã Freeship nào trong hệ thống.
+        </div>
+
+        <div *ngIf="freeshipPromotions.length > 0" class="voucher-tickets-list">
+          <div
+            *ngFor="let v of freeshipPromotions"
+            class="voucher-ticket-card freeship-card"
+            [class.is-applied]="appliedFreeshipVoucher?.code === v.code"
+            [class.is-eligible]="isVoucherEligible(v)"
+            [class.is-ineligible]="!isVoucherEligible(v)">
+
+            <!-- Cạnh trái: Badge Freeship -->
+            <div class="ticket-left-badge freeship-badge">
+              <span class="ticket-discount-val">FREE</span>
+              <span class="ticket-discount-sub">SHIP</span>
+            </div>
+
+            <!-- Ở giữa: Nội dung -->
+            <div class="ticket-center-content">
+              <div class="ticket-top-row">
+                <span class="ticket-code freeship-code">{{ v.code }}</span>
+                <span *ngIf="appliedFreeshipVoucher?.code === v.code" class="ticket-applied-tag">Đang dùng</span>
+              </div>
+              <h5 class="ticket-name">{{ v.name }}</h5>
+              <p class="ticket-condition">{{ v.description || ('Đơn từ ' + formatCurrency(v.minOrderValue || 0)) }}</p>
+              <div *ngIf="!isVoucherEligible(v)" class="ticket-need-more-hint">
+                Cần mua thêm <b>{{ formatCurrency(amountNeededForVoucher(v)) }}</b> để dùng mã
+              </div>
+            </div>
+
+            <!-- Cạnh phải: Thao tác -->
+            <div class="ticket-right-action">
+              <button
+                *ngIf="appliedFreeshipVoucher?.code === v.code"
+                type="button"
+                class="btn-ticket-applied"
+                (click)="removeFreeshipVoucher()"
+                title="Bỏ áp dụng">
+                <lucide-angular [img]="icons.Check" size="13"></lucide-angular>
+                <span>Bỏ chọn</span>
+              </button>
+              <button
+                *ngIf="appliedFreeshipVoucher?.code !== v.code && isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-apply freeship-btn"
+                (click)="applyVoucherDirectly(v)">
+                Áp dụng
+              </button>
+              <button
+                *ngIf="!isVoucherEligible(v)"
+                type="button"
+                class="btn-ticket-disabled"
+                disabled>
+                Chưa đủ ĐK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Popup -->
+    <div class="drawer-variant-footer">
+      <button type="button" class="btn-confirm-variant" style="flex: 1;" (click)="closeVoucherModal()">
+        Xác nhận & Hoàn tất
+      </button>
+    </div>
+  </aside>
 </div>

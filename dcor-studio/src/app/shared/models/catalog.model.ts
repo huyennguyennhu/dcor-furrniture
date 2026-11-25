@@ -69,6 +69,7 @@ export interface CatalogProduct {
   reviewCount?: number;
   room?: string;
   designStyle?: string;
+  configOptions?: Record<string, any>;
 }
 
 export interface LegStyle {

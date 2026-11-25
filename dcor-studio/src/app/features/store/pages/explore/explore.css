@@ -180,6 +180,37 @@
   line-height: 1;
 }
 
+.search-result-summary {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background-color: #faf7f2;
+  border: 1px solid #e6ddd2;
+  border-radius: 20px;
+  padding: 5px 12px 5px 14px;
+  font-size: 13.5px;
+  color: #4b5563;
+}
+
+.search-result-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  line-height: 1.3;
+}
+
+.search-result-keyword {
+  color: #765337;
+  font-weight: 700;
+}
+
+.search-clear-link {
+  margin-left: 2px;
+  padding: 2px 4px;
+}
+
 .active-pills-list {
   display: flex;
   align-items: center;

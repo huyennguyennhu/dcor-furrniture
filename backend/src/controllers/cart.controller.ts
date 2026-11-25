@@ -3,6 +3,160 @@ import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { promotionController } from './promotion.controller';
 
+const SYSTEM_OPTION_KEYS = new Set([
+  'sku',
+  'variantName',
+  'productId',
+  'variantId',
+  'images',
+  'attributes',
+  'dimensions',
+  'material',
+  'warrantyMonths',
+  'price',
+  'originalPrice',
+  'stock',
+  'leg',
+  'upholstery'
+]);
+
+const isNumericSlash = (str: string): boolean => /\d[\d½¼¾.]*\s*\/\s*\d/.test(str);
+
+const formatAttributeValue = (raw: string, isSize = false): string => {
+  let str = raw.trim();
+  if (!str) return '';
+  if (isSize && /^\d+(\.\d+)?$/.test(str)) {
+    return `${str} cm`;
+  }
+  str = str.replace(/(\d+(?:[½¼¾]|\/\d+)?)\s*(cm|mm|m)\b/gi, '$1 $2');
+  str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
+  str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
+  str = str.replace(/[Øø]\s*(\d+)/g, 'Ø$1');
+  return str;
+};
+
+const splitAttributeParts = (raw: string): string[] => {
+  if (!raw) return [];
+  const majorParts = raw.split(/\s*[|·]\s*/).map(p => p.trim()).filter(Boolean);
+  const result: string[] = [];
+
+  for (const chunk of majorParts) {
+    if (isNumericSlash(chunk)) {
+      result.push(chunk);
+      continue;
+    }
+    const subParts = chunk.split(/\s*\/\s*/).map(p => p.trim()).filter(Boolean);
+    if (subParts.length > 1 && subParts.every(p => !/^\d+$/.test(p))) {
+      result.push(...subParts);
+    } else {
+      result.push(chunk);
+    }
+  }
+
+  return result;
+};
+
+const extractVariantTags = (item: any): { label: string; value: string }[] => {
+  const tags: { label: string; value: string }[] = [];
+  const seen = new Set<string>();
+  const variantSkuLower = String(item.variant?.sku || '').trim().toLowerCase();
+  const variantOptionValues = (item.variant?.optionValues as any) || {};
+  const selected = (item.selectedOptions as any) || {};
+  const variantName = String(item.variant?.name || '').trim();
+  const variantNameLower = variantName.toLowerCase();
+
+  const pushTagValue = (label: string, rawVal: unknown, isSize = false) => {
+    if (rawVal === undefined || rawVal === null) return;
+    const strRaw = String(rawVal).trim();
+    if (!strRaw || strRaw.startsWith('http://') || strRaw.startsWith('https://')) return;
+
+    for (const part of splitAttributeParts(strRaw)) {
+      const formatted = formatAttributeValue(part, isSize);
+      const lower = formatted.toLowerCase();
+      if (
+        !formatted ||
+        lower === 'phân loại mặc định' ||
+        lower === 'tùy chọn mặc định' ||
+        (variantSkuLower && lower === variantSkuLower) ||
+        seen.has(lower)
+      ) {
+        continue;
+      }
+      seen.add(lower);
+      tags.push({ label, value: formatted });
+    }
+  };
+
+  // 1. Ưu tiên giải mã thuộc tính từ configOptions.attributes của sản phẩm theo đúng biến thể đã chọn
+  const configAttrs: any[] = Array.isArray(item.variant?.product?.configOptions?.attributes)
+    ? item.variant.product.configOptions.attributes
+    : [];
+
+  for (const attr of configAttrs) {
+    const gid = String(attr?.groupId || '');
+    const label = String(attr?.groupName || gid);
+    const options: any[] = Array.isArray(attr?.options) ? attr.options : [];
+    const isSize = /size|dimension|height|kích thước|chiều cao/i.test(`${gid} ${label}`);
+
+    const rawId = variantOptionValues[gid] ?? selected[gid];
+    let matchedOpt: any = null;
+
+    if (rawId !== undefined && rawId !== null && String(rawId).trim() !== '') {
+      const rawIdStr = String(rawId).trim();
+      matchedOpt = options.find(
+        (o: any) =>
+          String(o?.id) === rawIdStr ||
+          String(o?.name || '').trim().toLowerCase() === rawIdStr.toLowerCase()
+      );
+      if (matchedOpt?.name) {
+        pushTagValue(label, matchedOpt.name, isSize);
+        continue;
+      }
+    }
+
+    // Fallback khớp theo tên biến thể nếu variantOptionValues không lưu groupId trực tiếp
+    if (variantNameLower && options.length > 0) {
+      const sortedOpts = [...options]
+        .filter((o: any) => typeof o?.name === 'string' && o.name.trim())
+        .sort((a: any, b: any) => b.name.length - a.name.length);
+      matchedOpt = sortedOpts.find((o: any) => variantNameLower.includes(o.name.trim().toLowerCase()));
+      if (matchedOpt?.name) {
+        pushTagValue(label, matchedOpt.name, isSize);
+        continue;
+      }
+    }
+
+    if (options.length === 1 && options[0]?.name) {
+      pushTagValue(label, options[0].name, isSize);
+    }
+  }
+
+  // 2. Fallback: phân tích từ tên biến thể (variant.name) nếu sản phẩm không có configOptions.attributes
+  if (tags.length === 0 && variantName && variantNameLower !== 'phân loại mặc định') {
+    pushTagValue('', variantName, false);
+  }
+
+  // 3. Bổ sung thuộc tính tùy chọn riêng (chân, vải bọc hoặc thuộc tính custom không phải metadata hệ thống)
+  if (selected.leg) {
+    const legVal = typeof selected.leg === 'object' ? selected.leg.name : selected.leg;
+    pushTagValue('Chân', legVal, false);
+  }
+
+  if (selected.upholstery) {
+    const uphVal = typeof selected.upholstery === 'object' ? selected.upholstery.name : selected.upholstery;
+    pushTagValue('Vải bọc', uphVal, false);
+  }
+
+  for (const [key, val] of Object.entries(selected)) {
+    if (SYSTEM_OPTION_KEYS.has(key) || key.startsWith('va') || key.startsWith('opt_')) continue;
+    if (typeof val === 'string' || typeof val === 'number') {
+      pushTagValue(key, val, false);
+    }
+  }
+
+  return tags;
+};
+
 export const cartController = {
   // Lấy giỏ hàng của Customer
   getCart: async (req: AuthRequest, res: Response): Promise<void> => {
@@ -37,48 +191,8 @@ export const cartController = {
           baseImage = productImages[0];
         }
 
-        // Gom các Tags từ selectedOptions hoặc tên biến thể (LOẠI BỎ hoàn toàn url, image, object/array)
-        const tags: { label: string; value: string }[] = [];
-        const selected = (item.selectedOptions as any) || {};
-
-        if (selected.leg) {
-          const legVal = typeof selected.leg === 'object' ? selected.leg.name : selected.leg;
-          if (legVal && typeof legVal === 'string' && !legVal.startsWith('http')) {
-            tags.push({ label: 'Chân', value: legVal });
-          }
-        }
-
-        if (selected.upholstery) {
-          const uphVal = typeof selected.upholstery === 'object' ? selected.upholstery.name : selected.upholstery;
-          if (uphVal && typeof uphVal === 'string' && !uphVal.startsWith('http')) {
-            tags.push({ label: 'Vải bọc', value: uphVal });
-          }
-        }
-
-        // Lọc các thuộc tính tùy chọn người dùng (loại trừ mã hệ thống, url, ảnh, thông số kỹ thuật)
-        for (const [key, val] of Object.entries(selected)) {
-          if (['leg', 'upholstery', 'images', 'attributes'].includes(key) || key.startsWith('va')) continue;
-          if (typeof val === 'string' || typeof val === 'number') {
-            const strVal = String(val).trim();
-            if (strVal && !strVal.startsWith('http://') && !strVal.startsWith('https://')) {
-              tags.push({ label: key, value: strVal });
-            }
-          }
-        }
-
-        // Nếu không có custom selectedOptions, phân tích tên biến thể (variant.name)
-        if (tags.length === 0 && item.variant.name && item.variant.name !== 'Phân loại mặc định') {
-          const rawParts = item.variant.name.split('/').map(p => p.trim()).filter(Boolean);
-          // Loại bỏ các phần trùng lặp
-          const uniqueParts = Array.from(new Set(rawParts));
-          if (uniqueParts.length > 1) {
-            uniqueParts.forEach(part => {
-              if (!part.startsWith('http')) {
-                tags.push({ label: '', value: part });
-              }
-            });
-          }
-        }
+        // Gom danh sách thuộc tính đã chọn theo đúng biến thể (loại bỏ hoàn toàn sku, variantName, url, thông số hệ thống)
+        const tags = extractVariantTags(item);
 
         // Tính giá và giảm giá (từ chiến dịch khuyến mãi hoặc trường discountValue)
         const rawPrice = item.variant.price || item.variant.product.basePrice || 0;
@@ -306,7 +420,7 @@ export const cartController = {
             where: { id: existingTargetItem.id },
             data: {
               quantity: mergedQuantity,
-              selectedOptions: selectedOptions || existingTargetItem.selectedOptions
+              selectedOptions: selectedOptions !== undefined ? selectedOptions : (existingTargetItem.selectedOptions || {})
             }
           });
 
@@ -335,7 +449,7 @@ export const cartController = {
             data: {
               variantId,
               quantity: targetQuantity,
-              selectedOptions: selectedOptions || currentItem.selectedOptions
+              selectedOptions: selectedOptions !== undefined ? selectedOptions : {}
             }
           });
 

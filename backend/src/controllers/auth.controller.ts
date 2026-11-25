@@ -533,8 +533,11 @@ export const authController = {
         user: {
           id: customer.id,
           fullName: customer.fullName,
-          phone: customer.phone,
+          phone: customer.phone && !customer.phone.startsWith('GOOG_') ? customer.phone : '',
+          email: customer.email,
           avatar: customer.avatarUrl,
+          avatarUrl: customer.avatarUrl,
+          isPhoneVerified: !!customer.isPhoneVerified,
           rewardPoints: customer.rewardPoints,
           totalSpent: Number(customer.totalSpent),
           memberTier: tierInfo.tier,
@@ -658,8 +661,10 @@ export const authController = {
         return;
       }
 
-      // Tìm user theo email
-      let customer = await prisma.customer.findUnique({ where: { email } });
+      const normalizedEmail = String(email).trim().toLowerCase();
+
+      // Tìm user theo email (không phân biệt hoa thường)
+      let customer = await prisma.customer.findUnique({ where: { email: normalizedEmail } });
 
       // Kiểm tra tài khoản bị xóa hoặc đang bị khóa
       if (customer) {
@@ -683,10 +688,10 @@ export const authController = {
       if (!customer) {
         customer = await prisma.customer.create({
           data: {
-            email,
+            email: normalizedEmail,
             fullName: fullName || 'Khách hàng Google',
             avatarUrl: avatarUrl || null,
-            phone: 'GOOG_' + email, // Fake phone do Google login không cấp phone
+            phone: 'GOOG_' + normalizedEmail, // Fake phone do Google login không cấp phone
             isPhoneVerified: false
           }
         });
@@ -699,14 +704,18 @@ export const authController = {
       );
 
       const tierInfo = calculateMemberTier(customer.totalSpent);
+      const realPhone = customer.phone && !customer.phone.startsWith('GOOG_') ? customer.phone : '';
       res.status(200).json({
         message: 'Đăng nhập Google thành công',
         token,
         user: { 
           id: customer.id, 
           fullName: customer.fullName, 
-          email: customer.email, 
+          email: customer.email,
+          phone: realPhone,
+          isPhoneVerified: !!customer.isPhoneVerified,
           avatar: customer.avatarUrl,
+          avatarUrl: customer.avatarUrl,
           rewardPoints: customer.rewardPoints,
           totalSpent: Number(customer.totalSpent),
           memberTier: tierInfo.tier,

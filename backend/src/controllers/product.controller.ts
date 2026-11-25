@@ -227,7 +227,7 @@ export const productController = {
         });
       }
 
-      if (!product) {
+      if (!product || product.deletedAt !== null) {
         res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
         return;
       }
@@ -476,8 +476,8 @@ export const productController = {
         include: { variants: true }
       });
 
-      if (!existing) {
-        res.status(404).json({ message: 'Sản phẩm không tồn tại.' });
+      if (!existing || existing.deletedAt !== null) {
+        res.status(404).json({ message: 'Sản phẩm không tồn tại hoặc đã bị xóa.' });
         return;
       }
 
@@ -724,19 +724,48 @@ export const productController = {
     }
   },
 
-  // Xóa / Ẩn sản phẩm
+  // Xóa mềm sản phẩm (Ẩn hoàn toàn khỏi UI, giữ nguyên bản ghi ở trạng thái DELETED trong CSDL)
   deleteProduct: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id as string;
       const existing = await prisma.product.findUnique({ where: { id } });
-      if (existing) {
-        await prisma.product.update({
-          where: { id },
-          data: { deletedAt: new Date(), isActive: false }
-        });
+      if (!existing) {
+        res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
+        return;
       }
+
+      if (existing.deletedAt === null) {
+        const now = new Date();
+        const existingConfig =
+          existing.configOptions && typeof existing.configOptions === 'object' && !Array.isArray(existing.configOptions)
+            ? (existing.configOptions as Record<string, any>)
+            : {};
+
+        await prisma.$transaction([
+          prisma.product.update({
+            where: { id },
+            data: {
+              deletedAt: now,
+              isActive: false,
+              configOptions: {
+                ...existingConfig,
+                lifecycleStatus: 'DELETED',
+                deletedAt: now.toISOString()
+              }
+            }
+          }),
+          prisma.productVariant.updateMany({
+            where: { productId: id },
+            data: { isActive: false }
+          })
+        ]);
+      }
+
       invalidateAllProductCaches();
-      res.json({ message: 'Đã xóa sản phẩm thành công.' });
+      res.json({
+        message: 'Đã xóa sản phẩm khỏi hệ thống hiển thị (lưu trữ trạng thái đã xóa trong CSDL).',
+        softDeleted: true
+      });
     } catch (error: any) {
       console.error('Lỗi xóa sản phẩm:', error);
       res.status(500).json({ message: 'Lỗi xóa sản phẩm.', error: error?.message });
@@ -749,12 +778,14 @@ export const productController = {
       const id = req.params.id as string;
       const { isActive } = req.body;
       const existing = await prisma.product.findUnique({ where: { id } });
-      if (existing) {
-        await prisma.product.update({
-          where: { id },
-          data: { isActive: isActive !== undefined ? !!isActive : !existing.isActive }
-        });
+      if (!existing || existing.deletedAt !== null) {
+        res.status(404).json({ message: 'Không tìm thấy sản phẩm hoặc sản phẩm đã bị xóa.' });
+        return;
       }
+      await prisma.product.update({
+        where: { id },
+        data: { isActive: isActive !== undefined ? !!isActive : !existing.isActive }
+      });
       invalidateAllProductCaches();
       res.json({ message: 'Cập nhật trạng thái sản phẩm thành công.' });
     } catch (error: any) {
@@ -768,9 +799,12 @@ export const productController = {
     try {
       const variantId = req.params.variantId as string;
       const { isActive } = req.body;
-      const existing = await prisma.productVariant.findUnique({ where: { id: variantId } });
-      if (!existing) {
-        res.status(404).json({ message: 'Không tìm thấy biến thể.' });
+      const existing = await prisma.productVariant.findUnique({
+        where: { id: variantId },
+        include: { product: { select: { deletedAt: true } } }
+      });
+      if (!existing || existing.product?.deletedAt !== null) {
+        res.status(404).json({ message: 'Không tìm thấy biến thể hoặc sản phẩm đã bị xóa.' });
         return;
       }
       const nextActive = isActive !== undefined ? !!isActive : !existing.isActive;
@@ -795,7 +829,7 @@ export const productController = {
         return;
       }
       const result = await prisma.product.updateMany({
-        where: { id: { in: productIds } },
+        where: { id: { in: productIds }, deletedAt: null },
         data: { isActive: !!isActive }
       });
       invalidateAllProductCaches();
@@ -806,7 +840,7 @@ export const productController = {
     }
   },
 
-  // Xóa mềm hàng loạt sản phẩm
+  // Xóa mềm hàng loạt sản phẩm (Giữ bản ghi trong CSDL, tắt toàn bộ biến thể và đánh dấu DELETED)
   bulkDelete: async (req: Request, res: Response): Promise<void> => {
     try {
       const { productIds } = req.body;
@@ -814,12 +848,42 @@ export const productController = {
         res.status(400).json({ message: 'Vui lòng chọn ít nhất 1 sản phẩm.' });
         return;
       }
-      const result = await prisma.product.updateMany({
-        where: { id: { in: productIds } },
-        data: { deletedAt: new Date(), isActive: false }
+      const now = new Date();
+      const targets = await prisma.product.findMany({
+        where: { id: { in: productIds }, deletedAt: null },
+        select: { id: true, configOptions: true }
       });
+
+      if (targets.length > 0) {
+        const targetIds = targets.map(t => t.id);
+        await prisma.$transaction([
+          ...targets.map(t => {
+            const cfg =
+              t.configOptions && typeof t.configOptions === 'object' && !Array.isArray(t.configOptions)
+                ? (t.configOptions as Record<string, any>)
+                : {};
+            return prisma.product.update({
+              where: { id: t.id },
+              data: {
+                deletedAt: now,
+                isActive: false,
+                configOptions: {
+                  ...cfg,
+                  lifecycleStatus: 'DELETED',
+                  deletedAt: now.toISOString()
+                }
+              }
+            });
+          }),
+          prisma.productVariant.updateMany({
+            where: { productId: { in: targetIds } },
+            data: { isActive: false }
+          })
+        ]);
+      }
+
       invalidateAllProductCaches();
-      res.json({ message: 'Đã xóa hàng loạt sản phẩm thành công.', count: result.count });
+      res.json({ message: 'Đã xóa hàng loạt sản phẩm thành công.', count: targets.length, softDeleted: true });
     } catch (error: any) {
       console.error('Lỗi xóa hàng loạt sản phẩm:', error);
       res.status(500).json({ message: 'Lỗi xóa hàng loạt sản phẩm.', error: error?.message });

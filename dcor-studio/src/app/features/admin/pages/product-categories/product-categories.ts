@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { 
   LucideAngularModule, 
   Folder, Layers, Search, Plus, Edit, Trash2, 
@@ -14,29 +16,15 @@ import {
 import { environment } from '../../../../../environments/environment';
 import { AdminAuthService } from '../../../../core/services/admin-auth.service';
 import { ProductService } from '../../../../core/services/product.service';
+import {
+  CategoryClassificationService,
+  CategoryGroupType,
+  CategoryItem,
+  LinkedProduct,
+  DEFAULT_SUB_CATEGORIES
+} from '../../../../core/services/category-classification.service';
 
-export type CategoryGroupType = 'main' | 'sub' | 'room' | 'collection' | 'style' | 'material';
-
-export interface LinkedProduct {
-  id: string;
-  name: string;
-  sku: string;
-}
-
-export interface CategoryItem {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-  type: CategoryGroupType;
-  parentId?: string | null;
-  parentName?: string;
-  sortOrder: number;
-  status: 'Hiển thị' | 'Đã ẩn';
-  productsCount: number;
-  linkedProducts?: LinkedProduct[];
-}
+export type { CategoryGroupType, LinkedProduct, CategoryItem };
 
 export const INITIAL_CATEGORIES: CategoryItem[] = [
   // ==========================================
@@ -163,364 +151,9 @@ export const INITIAL_CATEGORIES: CategoryItem[] = [
   },
 
   // ==========================================
-  // 2. DANH MỤC PHỤ: CÁC NHÓM CHA CẤP 1
+  // 2. DANH MỤC PHỤ & THUỘC TÍNH (Dùng chung từ PostgreSQL)
   // ==========================================
-  {
-    id: 'sub-room',
-    name: 'Không gian & Phòng ứng dụng',
-    slug: 'khong-gian-phong',
-    description: 'Phân loại theo khu vực và không gian bài trí nội thất.',
-    image: '',
-    type: 'sub',
-    parentId: null,
-    sortOrder: 1,
-    status: 'Hiển thị',
-    productsCount: 36,
-    linkedProducts: []
-  },
-  {
-    id: 'sub-collection',
-    name: 'Bộ sưu tập',
-    slug: 'bo-suu-tap',
-    description: 'Các bộ sưu tập thiết kế đồng bộ của thương hiệu DCor.',
-    image: '',
-    type: 'sub',
-    parentId: null,
-    sortOrder: 2,
-    status: 'Hiển thị',
-    productsCount: 23,
-    linkedProducts: []
-  },
-  {
-    id: 'sub-style',
-    name: 'Phong cách thiết kế',
-    slug: 'phong-cach',
-    description: 'Các trường phái kiến trúc và ngôn ngữ nội thất.',
-    image: '',
-    type: 'sub',
-    parentId: null,
-    sortOrder: 3,
-    status: 'Hiển thị',
-    productsCount: 44,
-    linkedProducts: []
-  },
-  {
-    id: 'sub-material',
-    name: 'Chất liệu chế tác',
-    slug: 'chat-lieu',
-    description: 'Vật liệu cấu thành: Da thật, nỉ, gỗ sồi, gỗ óc chó, đá ceramic.',
-    image: '',
-    type: 'sub',
-    parentId: null,
-    sortOrder: 4,
-    status: 'Hiển thị',
-    productsCount: 43,
-    linkedProducts: []
-  },
-
-  // ==========================================
-  // 2.1 CÁC CON CỦA KHÔNG GIAN (sub-room)
-  // ==========================================
-  {
-    id: 'rm-living',
-    name: 'Phòng khách',
-    slug: 'phong-khach',
-    description: 'Không gian sum họp tiện nghi với sofa, bàn trà và hệ tủ tivi.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-room',
-    parentName: 'Không gian & Phòng ứng dụng',
-    sortOrder: 1,
-    status: 'Hiển thị',
-    productsCount: 15,
-    linkedProducts: []
-  },
-  {
-    id: 'rm-dining',
-    name: 'Phòng ăn',
-    slug: 'phong-an',
-    description: 'Khu vực gắn kết gia đình với bộ bàn ghế ăn cao cấp.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-room',
-    parentName: 'Không gian & Phòng ứng dụng',
-    sortOrder: 2,
-    status: 'Hiển thị',
-    productsCount: 8,
-    linkedProducts: []
-  },
-  {
-    id: 'rm-bed',
-    name: 'Phòng ngủ',
-    slug: 'phong-ngu',
-    description: 'Không gian nghỉ ngơi thư thái với giường êm ái và tap đầu giường.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-room',
-    parentName: 'Không gian & Phòng ứng dụng',
-    sortOrder: 3,
-    status: 'Hiển thị',
-    productsCount: 9,
-    linkedProducts: []
-  },
-  {
-    id: 'rm-work',
-    name: 'Phòng làm việc',
-    slug: 'phong-lam-viec',
-    description: 'Bàn làm việc thông minh và ghế công thái học bọc da cao cấp.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-room',
-    parentName: 'Không gian & Phòng ứng dụng',
-    sortOrder: 4,
-    status: 'Hiển thị',
-    productsCount: 4,
-    linkedProducts: []
-  },
-  {
-    id: 'rm-outdoor',
-    name: 'Ngoài trời & Ban công',
-    slug: 'ngoai-troi-ban-cong',
-    description: 'Bàn ghế cafe ngoài trời kháng tia UV và chịu mưa nắng bền bỉ.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-room',
-    parentName: 'Không gian & Phòng ứng dụng',
-    sortOrder: 5,
-    status: 'Đã ẩn',
-    productsCount: 0,
-    linkedProducts: []
-  },
-
-  // ==========================================
-  // 2.2 CÁC CON CỦA BỘ SƯU TẬP (sub-collection)
-  // ==========================================
-  {
-    id: 'col-bergamo',
-    name: 'Bộ sưu tập Bergamo',
-    slug: 'bo-suu-tap-bergamo',
-    description: 'Dòng sản phẩm mang cảm hứng Bắc Âu đương đại với các đường bo viền hữu cơ.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-collection',
-    parentName: 'Bộ sưu tập',
-    sortOrder: 1,
-    status: 'Hiển thị',
-    productsCount: 6,
-    linkedProducts: []
-  },
-  {
-    id: 'col-como',
-    name: 'Bộ sưu tập Como',
-    slug: 'bo-suu-tap-como',
-    description: 'Sự kết hợp tinh tế giữa kính khói, gỗ óc chó và thép đen nhám.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-collection',
-    parentName: 'Bộ sưu tập',
-    sortOrder: 2,
-    status: 'Hiển thị',
-    productsCount: 4,
-    linkedProducts: []
-  },
-  {
-    id: 'col-lugano',
-    name: 'Bộ sưu tập Lugano',
-    slug: 'bo-suu-tap-lugano',
-    description: 'Thiết kế phòng ngủ và giường tối giản với đệm bọc đầu giường trang nhã.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-collection',
-    parentName: 'Bộ sưu tập',
-    sortOrder: 3,
-    status: 'Hiển thị',
-    productsCount: 5,
-    linkedProducts: []
-  },
-  {
-    id: 'col-santiago',
-    name: 'Bộ sưu tập Santiago',
-    slug: 'bo-suu-tap-santiago',
-    description: 'Dòng bàn ăn thông minh ceramic và ghế ăn da bò thủ công.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-collection',
-    parentName: 'Bộ sưu tập',
-    sortOrder: 4,
-    status: 'Hiển thị',
-    productsCount: 5,
-    linkedProducts: []
-  },
-  {
-    id: 'col-cenova',
-    name: 'Bộ sưu tập Cenova',
-    slug: 'bo-suu-tap-cenova',
-    description: 'Ghế bành đơn thư giãn bọc vải Boucle mềm mại.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-collection',
-    parentName: 'Bộ sưu tập',
-    sortOrder: 5,
-    status: 'Hiển thị',
-    productsCount: 3,
-    linkedProducts: []
-  },
-
-  // ==========================================
-  // 2.3 CÁC CON CỦA PHONG CÁCH (sub-style)
-  // ==========================================
-  {
-    id: 'st-nordic',
-    name: 'Bắc Âu (Scandinavian)',
-    slug: 'bac-au-scandinavian',
-    description: 'Phong cách đề cao ánh sáng tự nhiên, đường nét mộc mạc và tone màu trung tính.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-style',
-    parentName: 'Phong cách thiết kế',
-    sortOrder: 1,
-    status: 'Hiển thị',
-    productsCount: 12,
-    linkedProducts: []
-  },
-  {
-    id: 'st-modern',
-    name: 'Hiện đại (Modern Luxury)',
-    slug: 'hien-dai-modern-luxury',
-    description: 'Đường nét dứt khoát, kết hợp kim loại mạ vàng PVD và đá cẩm thạch sang trọng.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-style',
-    parentName: 'Phong cách thiết kế',
-    sortOrder: 2,
-    status: 'Hiển thị',
-    productsCount: 18,
-    linkedProducts: []
-  },
-  {
-    id: 'st-minimal',
-    name: 'Tối giản (Minimalism)',
-    slug: 'toi-gian-minimalism',
-    description: 'Loại bỏ chi tiết thừa, tập trung vào công năng và chất lượng vật liệu nguyên bản.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-style',
-    parentName: 'Phong cách thiết kế',
-    sortOrder: 3,
-    status: 'Hiển thị',
-    productsCount: 14,
-    linkedProducts: []
-  },
-  {
-    id: 'st-japandi',
-    name: 'Japandi',
-    slug: 'japandi',
-    description: 'Sự giao thoa hoàn hảo giữa thẩm mỹ tối giản Nhật Bản và sự ấm cúng Bắc Âu.',
-    image: '/assets/img/furniture-placeholder.svg',
-    type: 'style',
-    sortOrder: 4,
-    status: 'Hiển thị',
-    productsCount: 10,
-    linkedProducts: []
-  },
-  {
-    id: 'st-wabisabi',
-    name: 'Wabi-Sabi',
-    slug: 'wabi-sabi',
-    description: 'Vẻ đẹp của sự mộc mạc, bất toàn và hài hòa với thiên nhiên.',
-    image: '/assets/img/furniture-placeholder.svg',
-    type: 'style',
-    sortOrder: 5,
-    status: 'Hiển thị',
-    productsCount: 8,
-    linkedProducts: []
-  },
-  {
-    id: 'st-industrial',
-    name: 'Công nghiệp (Industrial)',
-    slug: 'industrial',
-    description: 'Phong cách phóng khoáng với khung kim loại, thép đen và bề mặt bê tông độc đáo.',
-    image: '/assets/img/furniture-placeholder.svg',
-    type: 'style',
-    sortOrder: 6,
-    status: 'Hiển thị',
-    productsCount: 7,
-    linkedProducts: []
-  },
-
-  // ==========================================
-  // 2.4 CÁC CON CỦA CHẤT LIỆU (sub-material)
-  // ==========================================
-  {
-    id: 'mat-leather-real',
-    name: 'Da bò Aniline Ý thật',
-    slug: 'da-bo-aniline-y',
-    description: 'Chất liệu da thượng hạng mềm mịn, lưu giữ vân da tự nhiên và càng dùng càng bóng đẹp.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-material',
-    parentName: 'Chất liệu chế tác',
-    sortOrder: 1,
-    status: 'Hiển thị',
-    productsCount: 6,
-    linkedProducts: []
-  },
-  {
-    id: 'mat-fabric-felt',
-    name: 'Vải nỉ Copenhagen',
-    slug: 'vai-ni-copenhagen',
-    description: 'Vải dệt cao cấp chống bám bụi, độ bền sợi cao và tạo cảm giác ấm cúng.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-material',
-    parentName: 'Chất liệu chế tác',
-    sortOrder: 2,
-    status: 'Hiển thị',
-    productsCount: 15,
-    linkedProducts: []
-  },
-  {
-    id: 'mat-wood-oak',
-    name: 'Gỗ sồi (Oak) tự nhiên',
-    slug: 'go-soi-tu-nhien',
-    description: 'Gỗ sồi nhập khẩu Bắc Mỹ tẩm sấy chống cong vênh mối mọt, vân gỗ sáng trang nhã.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-material',
-    parentName: 'Chất liệu chế tác',
-    sortOrder: 3,
-    status: 'Hiển thị',
-    productsCount: 10,
-    linkedProducts: []
-  },
-  {
-    id: 'mat-wood-walnut',
-    name: 'Gỗ óc chó (Walnut) thượng hạng',
-    slug: 'go-oc-cho-walnut',
-    description: 'Tone màu nâu trầm sang trọng với những đường vân cuộn sóng lôi cuốn.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-material',
-    parentName: 'Chất liệu chế tác',
-    sortOrder: 4,
-    status: 'Hiển thị',
-    productsCount: 8,
-    linkedProducts: []
-  },
-  {
-    id: 'mat-ceramic',
-    name: 'Gốm Ceramic chống trầy',
-    slug: 'gom-ceramic-chong-tray',
-    description: 'Mặt bàn ceramic công nghệ nung nhiệt cao, chống trầy xước, chống ố màu và chịu nhiệt tuyệt đối.',
-    image: '',
-    type: 'sub',
-    parentId: 'sub-material',
-    parentName: 'Chất liệu chế tác',
-    sortOrder: 5,
-    status: 'Hiển thị',
-    productsCount: 4,
-    linkedProducts: []
-  }
+  ...DEFAULT_SUB_CATEGORIES
 ];
 
 @Component({
@@ -625,7 +258,8 @@ export class ProductCategoriesComponent implements OnInit {
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     public adminAuthService: AdminAuthService,
-    private productService: ProductService
+    private productService: ProductService,
+    private categoryClassificationService: CategoryClassificationService
   ) {}
 
   get canCreate(): boolean {
@@ -648,93 +282,75 @@ export class ProductCategoriesComponent implements OnInit {
 
   loadCategories() {
     this.isLoading = true;
-    
-    // Tải danh mục thực tế từ Database Backend (/api/admin/categories)
-    this.http.get<any>(`${environment.apiUrl}/admin/categories`).subscribe({
-      next: (res) => {
-        const tree = res.tree || [];
-        if (Array.isArray(tree) && tree.length > 0) {
-          const apiCats: CategoryItem[] = [];
-          let sortIdx = 1;
 
-          tree.forEach((parent: any) => {
-            const parentCount = parent._count?.products || 0;
-            apiCats.push({
-              id: parent.id,
-              name: parent.name,
-              slug: parent.slug,
-              description: '',
-              image: '',
-              type: 'main',
-              parentId: null,
-              parentName: undefined,
-              sortOrder: parent.sortOrder || sortIdx++,
-              status: parent.isActive ? 'Hiển thị' : 'Đã ẩn',
-              productsCount: parentCount,
-              linkedProducts: []
-            });
+    // Tải đồng thời Danh mục chính và Danh mục phụ từ Database Backend (PostgreSQL) — KHÔNG dùng localStorage
+    forkJoin({
+      main: this.http.get<any>(`${environment.apiUrl}/admin/categories`).pipe(catchError(() => of(null))),
+      sub: this.http.get<{ items?: CategoryItem[] }>(`${environment.apiUrl}/admin/categories/sub`).pipe(
+        catchError(() => this.http.get<{ items?: CategoryItem[] }>(`${environment.apiUrl}/sub-categories`).pipe(catchError(() => of(null))))
+      )
+    }).subscribe(({ main, sub }) => {
+      const tree = main?.tree || [];
+      let mainCats: CategoryItem[];
 
-            if (Array.isArray(parent.children) && parent.children.length > 0) {
-              parent.children.forEach((child: any) => {
-                const childCount = child._count?.products || 0;
-                apiCats.push({
-                  id: child.id,
-                  name: child.name,
-                  slug: child.slug,
-                  description: '',
-                  image: '',
-                  type: 'main',
-                  parentId: parent.id,
-                  parentName: parent.name,
-                  sortOrder: child.sortOrder || sortIdx++,
-                  status: child.isActive ? 'Hiển thị' : 'Đã ẩn',
-                  productsCount: childCount,
-                  linkedProducts: childCount > 0 ? [
-                    { id: `prod-${child.id}`, name: `Sản phẩm thuộc ${child.name}`, sku: `DCOR-${child.slug.toUpperCase().slice(0, 8)}` }
-                  ] : []
-                });
-              });
-            }
+      if (Array.isArray(tree) && tree.length > 0) {
+        const apiCats: CategoryItem[] = [];
+        let sortIdx = 1;
+
+        tree.forEach((parent: any) => {
+          const parentCount = parent._count?.products || 0;
+          apiCats.push({
+            id: parent.id,
+            name: parent.name,
+            slug: parent.slug,
+            description: '',
+            image: '',
+            type: 'main',
+            parentId: null,
+            parentName: undefined,
+            sortOrder: parent.sortOrder || sortIdx++,
+            status: parent.isActive ? 'Hiển thị' : 'Đã ẩn',
+            productsCount: parentCount,
+            linkedProducts: []
           });
 
-          const otherGroups = this.getStoredNonMainCategories();
-          this.allCategories = [...apiCats, ...otherGroups];
-        } else {
-          this.allCategories = [...INITIAL_CATEGORIES.filter(c => c.type === 'main'), ...this.getStoredNonMainCategories()];
-        }
-        this.isLoading = false;
-        this.applyFilters();
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.allCategories = [...INITIAL_CATEGORIES.filter(c => c.type === 'main'), ...this.getStoredNonMainCategories()];
-        this.isLoading = false;
-        this.applyFilters();
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  getStoredNonMainCategories(): CategoryItem[] {
-    if (typeof localStorage !== 'undefined') {
-      const saved = localStorage.getItem('dcor_admin_categories');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
+          if (Array.isArray(parent.children) && parent.children.length > 0) {
+            parent.children.forEach((child: any) => {
+              const childCount = child._count?.products || 0;
+              apiCats.push({
+                id: child.id,
+                name: child.name,
+                slug: child.slug,
+                description: '',
+                image: '',
+                type: 'main',
+                parentId: parent.id,
+                parentName: parent.name,
+                sortOrder: child.sortOrder || sortIdx++,
+                status: child.isActive ? 'Hiển thị' : 'Đã ẩn',
+                productsCount: childCount,
+                linkedProducts: childCount > 0 ? [
+                  { id: `prod-${child.id}`, name: `Sản phẩm thuộc ${child.name}`, sku: `DCOR-${child.slug.toUpperCase().slice(0, 8)}` }
+                ] : []
+              });
+            });
           }
-        } catch (e) {}
+        });
+        mainCats = apiCats;
+      } else {
+        mainCats = INITIAL_CATEGORIES.filter(c => c.type === 'main');
       }
-    }
-    return INITIAL_CATEGORIES.filter(c => c.type !== 'main');
-  }
 
-  saveNonMainCategories() {
-    if (typeof localStorage !== 'undefined') {
-      const nonMain = this.allCategories.filter(c => c.type !== 'main');
-      localStorage.setItem('dcor_admin_categories', JSON.stringify(nonMain));
-    }
+      const subCats: CategoryItem[] = Array.isArray(sub?.items) && sub.items.length > 0
+        ? sub.items
+        : [...DEFAULT_SUB_CATEGORIES];
+
+      this.categoryClassificationService.setCategories(subCats);
+      this.allCategories = [...mainCats, ...subCats];
+      this.isLoading = false;
+      this.applyFilters();
+      this.cdr.detectChanges();
+    });
   }
 
   // Lấy các danh mục gốc (cấp 1 / cha) để hiển thị trên bảng
@@ -956,7 +572,7 @@ export class ProductCategoriesComponent implements OnInit {
     const isNowHidden = target.status === 'Hiển thị';
     const newStatusText = isNowHidden ? 'Đã ẩn' : 'Hiển thị';
 
-    // Gọi API Backend nếu là danh mục main
+    // Gọi API Backend đồng bộ cho cả danh mục chính & danh mục phụ
     if (target.type === 'main') {
       this.http.patch<any>(`${environment.apiUrl}/admin/categories/${target.id}/status`, {}).subscribe({
         next: () => {
@@ -973,11 +589,21 @@ export class ProductCategoriesComponent implements OnInit {
         }
       });
     } else {
-      target.status = newStatusText;
-      this.showToast(`Đã chuyển "${target.name}" sang trạng thái ${newStatusText}!`, 'success');
-      this.closeToggleModal();
-      this.saveNonMainCategories();
-      this.applyFilters();
+      this.http.patch<any>(`${environment.apiUrl}/admin/categories/sub/${target.id}/status`, {}).subscribe({
+        next: () => {
+          target.status = newStatusText;
+          this.categoryClassificationService.setCategories(this.allCategories.filter(c => c.type !== 'main'));
+          this.categoryClassificationService.refresh();
+          this.showToast(`Đã chuyển "${target.name}" sang trạng thái ${newStatusText}!`, 'success');
+          this.closeToggleModal();
+          this.applyFilters();
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.showToast(err?.error?.message || 'Lỗi: Máy chủ từ chối cập nhật trạng thái danh mục phụ.', 'error');
+          this.closeToggleModal();
+        }
+      });
     }
   }
 
@@ -1102,25 +728,46 @@ export class ProductCategoriesComponent implements OnInit {
           }
         });
       } else {
-        const newItem: CategoryItem = {
+        const subPayload = {
           id: this.formData.id,
           name: this.formData.name.trim(),
           slug: this.formData.slug.trim(),
           description: this.formData.description.trim(),
           image: this.formData.image.trim(),
-          type: this.formData.type,
           parentId: this.formData.parentId,
-          parentName: pName,
           sortOrder: Number(this.formData.sortOrder) || 1,
           status: this.formData.status,
-          productsCount: 0,
-          linkedProducts: []
+          isActive: this.formData.status === 'Hiển thị'
         };
-        this.allCategories.push(newItem);
-        this.saveNonMainCategories();
-        this.showToast(`Đã thêm mới ${this.activeGroupLabel} "${newItem.name}"`, 'success');
-        this.closeModal();
-        this.applyFilters();
+        this.http.post<any>(`${environment.apiUrl}/admin/categories/sub`, subPayload).subscribe({
+          next: (res) => {
+            const created: CategoryItem = res?.category || {
+              id: this.formData.id,
+              name: this.formData.name.trim(),
+              slug: this.formData.slug.trim(),
+              description: this.formData.description.trim(),
+              image: this.formData.image.trim(),
+              type: 'sub',
+              parentId: this.formData.parentId,
+              parentName: pName,
+              sortOrder: Number(this.formData.sortOrder) || 1,
+              status: this.formData.status,
+              productsCount: 0,
+              linkedProducts: []
+            };
+            this.allCategories.push(created);
+            this.categoryClassificationService.setCategories(this.allCategories.filter(c => c.type !== 'main'));
+            this.categoryClassificationService.refresh();
+            this.showToast(`Đã thêm mới ${this.activeGroupLabel} "${created.name}" vào cơ sở dữ liệu!`, 'success');
+            this.closeModal();
+            this.applyFilters();
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            this.showToast(err?.error?.message || 'Không thể thêm mới danh mục phụ vào cơ sở dữ liệu.', 'error');
+            this.closeModal();
+          }
+        });
       }
     } else {
       if (this.activeTab === 'main') {
@@ -1152,24 +799,51 @@ export class ProductCategoriesComponent implements OnInit {
           }
         });
       } else {
-        const index = this.allCategories.findIndex(c => c.id === this.formData.id);
-        if (index > -1) {
-          this.allCategories[index] = {
-            ...this.allCategories[index],
-            name: this.formData.name.trim(),
-            slug: this.formData.slug.trim(),
-            description: this.formData.description.trim(),
-            image: this.formData.image.trim(),
-            parentId: this.formData.parentId,
-            parentName: pName,
-            sortOrder: Number(this.formData.sortOrder) || 1,
-            status: this.formData.status
-          };
-          this.saveNonMainCategories();
-          this.showToast(`Đã cập nhật ${this.activeGroupLabel} "${this.formData.name}"`, 'success');
-        }
-        this.closeModal();
-        this.applyFilters();
+        const subPayload = {
+          name: this.formData.name.trim(),
+          slug: this.formData.slug.trim(),
+          description: this.formData.description.trim(),
+          image: this.formData.image.trim(),
+          parentId: this.formData.parentId,
+          sortOrder: Number(this.formData.sortOrder) || 1,
+          status: this.formData.status,
+          isActive: this.formData.status === 'Hiển thị'
+        };
+        this.http.put<any>(`${environment.apiUrl}/admin/categories/sub/${this.formData.id}`, subPayload).subscribe({
+          next: (res) => {
+            const updated: CategoryItem | undefined = res?.category;
+            const index = this.allCategories.findIndex(c => c.id === this.formData.id);
+            if (index > -1) {
+              this.allCategories[index] = updated || {
+                ...this.allCategories[index],
+                name: this.formData.name.trim(),
+                slug: this.formData.slug.trim(),
+                description: this.formData.description.trim(),
+                image: this.formData.image.trim(),
+                parentId: this.formData.parentId,
+                parentName: pName,
+                sortOrder: Number(this.formData.sortOrder) || 1,
+                status: this.formData.status
+              };
+              // Cập nhật parentName cho các mục con nếu sửa tên nhóm cha
+              this.allCategories.forEach(c => {
+                if (c.parentId === this.formData.id) {
+                  c.parentName = this.formData.name.trim();
+                }
+              });
+            }
+            this.categoryClassificationService.setCategories(this.allCategories.filter(c => c.type !== 'main'));
+            this.categoryClassificationService.refresh();
+            this.showToast(`Đã cập nhật ${this.activeGroupLabel} "${this.formData.name}" thành công!`, 'success');
+            this.closeModal();
+            this.applyFilters();
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            this.showToast(err?.error?.message || 'Không thể cập nhật danh mục phụ.', 'error');
+            this.closeModal();
+          }
+        });
       }
     }
   }
@@ -1224,11 +898,21 @@ export class ProductCategoriesComponent implements OnInit {
         }
       });
     } else {
-      this.allCategories = this.allCategories.filter(c => c.id !== targetId);
-      this.saveNonMainCategories();
-      this.showToast(`Đã xóa "${targetName}" thành công!`, 'success');
-      this.closeConfirmDeleteModal();
-      this.applyFilters();
+      this.http.delete<any>(`${environment.apiUrl}/admin/categories/sub/${targetId}`).subscribe({
+        next: () => {
+          this.allCategories = this.allCategories.filter(c => c.id !== targetId);
+          this.categoryClassificationService.setCategories(this.allCategories.filter(c => c.type !== 'main'));
+          this.categoryClassificationService.refresh();
+          this.showToast(`Đã xóa "${targetName}" khỏi cơ sở dữ liệu!`, 'success');
+          this.closeConfirmDeleteModal();
+          this.applyFilters();
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.showToast(err?.error?.message || 'Không thể xóa danh mục phụ.', 'error');
+          this.closeConfirmDeleteModal();
+        }
+      });
     }
   }
 

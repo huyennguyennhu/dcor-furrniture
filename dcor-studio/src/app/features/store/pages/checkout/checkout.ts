@@ -18,6 +18,7 @@ import {
   Sparkles, 
   X, 
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Gift,
   FileText,
@@ -34,7 +35,7 @@ import {
   Clock
 } from 'lucide-angular';
 import { CartService, CartItem } from '../../../../core/services/cart.service';
-import { PromotionService, AppliedPromotion } from '../../../../core/services/promotion.service';
+import { PromotionService, Promotion, AppliedPromotion } from '../../../../core/services/promotion.service';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
@@ -78,6 +79,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     Sparkles,
     X,
     ChevronDown,
+    ChevronUp,
     ChevronRight,
     Gift,
     FileText,
@@ -198,15 +200,30 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   showSavePhonePromptModal = false;
   phoneToSaveToProfile = '';
   isSavingPhoneToProfile = false;
+  savePhoneError = '';
   pendingActionAfterPhonePrompt: 'SUBMIT_ORDER' | 'SAVE_ADDRESS' | null = null;
 
   // Mã giảm giá (Đồng bộ qua PromotionService)
+  systemPromotions: Promotion[] = [];
   voucherInput = '';
+  customVoucherInput = '';
   appliedVoucher: AppliedPromotion | null = null;
   appliedFreeshipVoucher: AppliedPromotion | null = null;
   voucherErrorMessage: string | null = null;
   voucherSuccessMessage: string | null = null;
   isCheckingVoucher = false;
+  isVoucherModalOpen = false;
+  showAllProductVouchers = false;
+  manuallyRemovedProduct = false;
+  manuallyRemovedFreeship = false;
+
+  get appliedProductVoucher(): AppliedPromotion | null {
+    return this.appliedVoucher;
+  }
+
+  get hasAnyAppliedVoucher(): boolean {
+    return !!this.appliedVoucher || !!this.appliedFreeshipVoucher;
+  }
 
   // Thông tin cấu hình thanh toán ngân hàng (chỉ hiển thị khi có dữ liệu nạp từ API/cấu hình cửa hàng)
   storeBankInfo: {
@@ -330,6 +347,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   }
 
   initPromotionSync() {
+    this.sub.add(
+      this.promotionService.promotions$.subscribe(promos => {
+        this.systemPromotions = promos || [];
+        this.cdr.detectChanges();
+      })
+    );
     this.sub.add(
       this.promotionService.loadPromotions().subscribe(() => {
         if (this.subTotal > 0) {
@@ -612,9 +635,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
         this.isLoadingCart = false;
         this.recalculateVoucher();
-        if (this.subTotal > 0) {
-          this.promotionService.autoApplyBestPromotions(this.subTotal);
-        }
         this.cdr.detectChanges();
       })
     );
@@ -1291,6 +1311,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       // Bật popup hỏi: "Bạn có muốn lưu số điện thoại này vào hồ sơ cá nhân để sau này đăng nhập hay không?"
       if (this.isLoggedIn && !this.hasUserPhone) {
         this.phoneToSaveToProfile = targetPhone;
+        this.savePhoneError = '';
         this.showSavePhonePromptModal = true;
         this.cdr.detectChanges();
         return;
@@ -1338,28 +1359,30 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   confirmSavePhoneToProfile() {
     if (!this.phoneToSaveToProfile) return;
     this.isSavingPhoneToProfile = true;
+    this.savePhoneError = '';
     const phone = this.phoneToSaveToProfile;
 
+    // Dùng API changePhone chuyên biệt để chỉ liên kết SĐT, tuyệt đối không ghi đè họ tên / email / avatar
     this.sub.add(
-      this.customerService.updateProfile({
-        fullName: this.fullName || this.currentUser?.fullName || 'Khách hàng',
-        phone: phone,
+      this.customerService.changePhone({
+        newPhone: phone,
         otp: '111111'
       }).subscribe({
         next: (res) => {
+          const savedPhone = res?.phone || phone;
           this.isSavingPhoneToProfile = false;
           this.showSavePhonePromptModal = false;
           if (this.currentUser) {
-            this.currentUser.phone = phone;
+            this.currentUser.phone = savedPhone;
             this.currentUser.isPhoneVerified = true;
           }
           this.authService.updateCurrentUser({
-            phone: phone,
+            phone: savedPhone,
             isPhoneVerified: true
           });
-          this.addVerifiedPhone(phone);
+          this.addVerifiedPhone(savedPhone);
           this.isPhoneVerified = true;
-          this.phone = phone;
+          this.phone = savedPhone;
 
           // Tiếp tục hành động dở dang nếu có
           if (this.pendingActionAfterPhonePrompt === 'SAVE_ADDRESS') {
@@ -1373,24 +1396,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.isSavingPhoneToProfile = false;
-          console.warn('Lỗi khi lưu SĐT vào hồ sơ:', err);
-          if (this.currentUser) {
-            this.currentUser.phone = phone;
-            this.currentUser.isPhoneVerified = true;
-          }
-          this.authService.updateCurrentUser({
-            phone: phone,
-            isPhoneVerified: true
-          });
-          this.addVerifiedPhone(phone);
-          this.showSavePhonePromptModal = false;
-          if (this.pendingActionAfterPhonePrompt === 'SAVE_ADDRESS') {
-            this.pendingActionAfterPhonePrompt = null;
-            this.submitNewAddress();
-          } else if (this.pendingActionAfterPhonePrompt === 'SUBMIT_ORDER') {
-            this.pendingActionAfterPhonePrompt = null;
-            this.handleSubmitOrder();
-          }
+          this.savePhoneError = err?.error?.message || 'Không thể lưu số điện thoại vào hồ sơ. Vui lòng thử lại hoặc chọn "Để lần sau".';
           this.cdr.detectChanges();
         }
       })
@@ -1402,6 +1408,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     if (this.phoneToSaveToProfile) {
       this.addVerifiedPhone(this.phoneToSaveToProfile);
     }
+    this.savePhoneError = '';
     this.showSavePhonePromptModal = false;
     if (this.pendingActionAfterPhonePrompt === 'SAVE_ADDRESS') {
       this.pendingActionAfterPhonePrompt = null;
@@ -1414,19 +1421,119 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   }
 
   // --- 8. Mã giảm giá (Đồng bộ qua PromotionService, không tự sinh voucher giả) ---
-  applyVoucherCode() {
-    const code = (this.voucherInput || '').trim().toUpperCase();
+  get productPromotions(): Promotion[] {
+    return this.systemPromotions.filter(p => !p.isFreeShip && !p.code.startsWith('FREESHIP'));
+  }
+
+  get displayedProductPromotions(): Promotion[] {
+    return this.showAllProductVouchers ? this.productPromotions : this.productPromotions.slice(0, 3);
+  }
+
+  get hasMoreProductPromotions(): boolean {
+    return this.productPromotions.length > 3;
+  }
+
+  get freeshipPromotions(): Promotion[] {
+    return this.systemPromotions.filter(p => !!p.isFreeShip || p.code.startsWith('FREESHIP'));
+  }
+
+  get eligibleProductPromotionsCount(): number {
+    return this.productPromotions.filter(p => this.isVoucherEligible(p)).length;
+  }
+
+  get eligibleFreeshipPromotionsCount(): number {
+    return this.freeshipPromotions.filter(p => this.isVoucherEligible(p)).length;
+  }
+
+  get totalEligibleVouchersCount(): number {
+    return this.eligibleProductPromotionsCount + this.eligibleFreeshipPromotionsCount;
+  }
+
+  openVoucherModal() {
+    this.isVoucherModalOpen = true;
+    this.voucherErrorMessage = null;
+    this.showAllProductVouchers = false;
+    this.promotionService.loadPromotions().subscribe();
+  }
+
+  closeVoucherModal() {
+    this.isVoucherModalOpen = false;
+  }
+
+  toggleShowAllProductVouchers() {
+    this.showAllProductVouchers = !this.showAllProductVouchers;
+  }
+
+  isVoucherEligible(v: Promotion): boolean {
+    if (v.isActive === false) return false;
+    if (v.minOrderValue && this.subTotal < v.minOrderValue) return false;
+    if (v.scope === 'SPECIFIC_PRODUCTS' && Array.isArray(v.productIds) && v.productIds.length > 0) {
+      const idSet = new Set(v.productIds.map(x => String(x).trim()));
+      const hasMatch = this.checkoutItems.some(it => idSet.has(String(it.productId || it.id || '').trim()));
+      if (!hasMatch) return false;
+    }
+    return true;
+  }
+
+  amountNeededForVoucher(v: Promotion): number {
+    const min = v.minOrderValue || 0;
+    return Math.max(0, min - this.subTotal);
+  }
+
+  formatShortDiscount(val: number): string {
+    if (!val || val <= 0) return '0₫';
+    if (val >= 1000000) {
+      const m = val / 1000000;
+      return m % 1 === 0 ? `${m}tr` : `${m.toFixed(1)}tr`;
+    }
+    if (val >= 1000) {
+      const k = val / 1000;
+      return k % 1 === 0 ? `${k}k` : `${k.toFixed(0)}k`;
+    }
+    return `${val}₫`;
+  }
+
+  applyCustomVoucher() {
+    const code = (this.customVoucherInput || '').trim().toUpperCase();
     if (!code) {
-      this.voucherErrorMessage = 'Vui lòng nhập mã ưu đãi trước khi bấm áp dụng.';
+      this.voucherErrorMessage = 'Vui lòng nhập mã ưu đãi.';
       return;
     }
 
     this.isCheckingVoucher = true;
     this.voucherErrorMessage = null;
-    this.voucherSuccessMessage = null;
+    this.manuallyRemovedProduct = false;
+    this.manuallyRemovedFreeship = false;
 
     this.promotionService.applyPromotion(code, this.subTotal, this.checkoutItems).subscribe(res => {
       this.isCheckingVoucher = false;
+      if (!res.success) {
+        this.voucherErrorMessage = res.message;
+      } else {
+        this.voucherErrorMessage = null;
+        this.customVoucherInput = '';
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+  applyVoucherDirectly(v: Promotion) {
+    if (!this.isVoucherEligible(v)) {
+      if (v.scope === 'SPECIFIC_PRODUCTS' && v.productIds?.length) {
+        this.voucherErrorMessage = `Mã "${v.code}" chỉ áp dụng cho các sản phẩm chọn lọc, chưa có trong đơn hàng hiện tại.`;
+      } else {
+        this.voucherErrorMessage = `Đơn hàng cần tối thiểu ${this.formatCurrency(v.minOrderValue || 0)} để áp dụng mã "${v.code}".`;
+      }
+      return;
+    }
+    this.voucherErrorMessage = null;
+    const isFreeship = !!v.isFreeShip || v.code.startsWith('FREESHIP');
+    if (isFreeship) {
+      this.manuallyRemovedFreeship = false;
+    } else {
+      this.manuallyRemovedProduct = false;
+    }
+    this.promotionService.applyPromotion(v.code, this.subTotal, this.checkoutItems).subscribe(res => {
       if (!res.success) {
         this.voucherErrorMessage = res.message;
       } else {
@@ -1436,17 +1543,41 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     });
   }
 
-  removeVoucher() {
+  applyVoucherCode() {
+    this.customVoucherInput = this.voucherInput;
+    this.applyCustomVoucher();
+  }
+
+  removeProductVoucher() {
+    this.manuallyRemovedProduct = true;
     this.promotionService.removeAppliedPromotion();
     this.voucherInput = '';
     this.voucherSuccessMessage = null;
     this.voucherErrorMessage = null;
+    this.cdr.detectChanges();
+  }
+
+  removeFreeshipVoucher() {
+    this.manuallyRemovedFreeship = true;
+    this.promotionService.removeAppliedFreeship();
+    this.voucherErrorMessage = null;
+    this.cdr.detectChanges();
+  }
+
+  removeVoucher() {
+    this.removeProductVoucher();
   }
 
   recalculateVoucher() {
     this.promotionService.recalculate(this.subTotal);
     if (this.subTotal > 0) {
-      this.promotionService.autoApplyBestPromotions(this.subTotal, false, false, false, this.checkoutItems);
+      this.promotionService.autoApplyBestPromotions(
+        this.subTotal,
+        false,
+        this.manuallyRemovedProduct,
+        this.manuallyRemovedFreeship,
+        this.checkoutItems
+      );
     }
   }
 
@@ -1465,7 +1596,13 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
     // Tự động áp dụng mã tốt nhất nếu có khi đặt hàng
     if (this.subTotal > 0) {
-      this.promotionService.autoApplyBestPromotions(this.subTotal, false, false, false, this.checkoutItems);
+      this.promotionService.autoApplyBestPromotions(
+        this.subTotal,
+        false,
+        this.manuallyRemovedProduct,
+        this.manuallyRemovedFreeship,
+        this.checkoutItems
+      );
     }
 
     // Kiểm tra đã có địa chỉ nhận hàng từ Sổ địa chỉ chưa
