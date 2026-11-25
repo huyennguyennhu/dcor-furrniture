@@ -59,6 +59,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
   showSavePhonePromptModal = false;
   phoneToSaveToProfile = '';
   isSavingPhoneToProfile = false;
+  savePhoneError = '';
 
   formData = {
     receiverName: '',
@@ -369,6 +370,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
 
       if (!this.hasUserPhone) {
         this.phoneToSaveToProfile = this.targetPhoneForOtp;
+        this.savePhoneError = '';
         this.showSavePhonePromptModal = true;
         this.cdr.markForCheck();
         return;
@@ -402,44 +404,35 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
   confirmSavePhoneToProfile(): void {
     if (!this.phoneToSaveToProfile) return;
     this.isSavingPhoneToProfile = true;
+    this.savePhoneError = '';
     this.cdr.markForCheck();
     const phone = this.phoneToSaveToProfile;
 
+    // Dùng API changePhone chuyên biệt để chỉ liên kết SĐT, tuyệt đối không ghi đè họ tên / email / avatar
     this.sub.add(
-      this.customerService.updateProfile({
-        fullName: this.formData.receiverName || this.currentUser?.fullName || 'Khách hàng',
-        phone: phone,
+      this.customerService.changePhone({
+        newPhone: phone,
         otp: '111111'
       }).subscribe({
-        next: () => {
+        next: (res) => {
+          const savedPhone = res?.phone || phone;
           this.isSavingPhoneToProfile = false;
           this.showSavePhonePromptModal = false;
           if (this.currentUser) {
-            this.currentUser.phone = phone;
+            this.currentUser.phone = savedPhone;
             this.currentUser.isPhoneVerified = true;
           }
           this.authService.updateCurrentUser({
-            phone: phone,
+            phone: savedPhone,
             isPhoneVerified: true
           });
-          this.addVerifiedPhone(phone);
+          this.addVerifiedPhone(savedPhone);
           this.executeSaveAddress();
           this.cdr.markForCheck();
         },
         error: (err) => {
           this.isSavingPhoneToProfile = false;
-          console.warn('Lỗi lưu SĐT vào hồ sơ:', err);
-          if (this.currentUser) {
-            this.currentUser.phone = phone;
-            this.currentUser.isPhoneVerified = true;
-          }
-          this.authService.updateCurrentUser({
-            phone: phone,
-            isPhoneVerified: true
-          });
-          this.addVerifiedPhone(phone);
-          this.showSavePhonePromptModal = false;
-          this.executeSaveAddress();
+          this.savePhoneError = err?.error?.message || 'Không thể lưu số điện thoại vào hồ sơ. Vui lòng thử lại hoặc chọn "Để lần sau".';
           this.cdr.markForCheck();
         }
       })
@@ -450,6 +443,7 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
     if (this.phoneToSaveToProfile) {
       this.addVerifiedPhone(this.phoneToSaveToProfile);
     }
+    this.savePhoneError = '';
     this.showSavePhonePromptModal = false;
     this.executeSaveAddress();
     this.cdr.markForCheck();

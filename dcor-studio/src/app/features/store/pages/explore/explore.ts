@@ -123,6 +123,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
 
   get activeFilterCount(): number {
     let count = 0;
+    if (this.searchQuery && this.searchQuery.trim()) count++;
     count += (this.filters.categories?.length || 0);
     count += (this.filters.rooms?.length || 0);
     count += (this.filters.collections?.length || 0);
@@ -177,11 +178,25 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.adminCategories = this.categoryClassificationService.getAdminCategories();
-    this.adminCategories.forEach(cat => {
-      this.adminCategoryMap[cat.slug] = cat;
-      this.adminCategoryMap[cat.id] = cat;
-    });
+    this.sub.add(
+      this.categoryClassificationService.categories$.subscribe(cats => {
+        this.adminCategories = cats || [];
+        this.adminCategoryMap = {};
+        this.adminCategories.forEach(cat => {
+          if (cat.slug) {
+            this.adminCategoryMap[cat.slug] = cat;
+            this.adminCategoryMap[cat.slug.toLowerCase()] = cat;
+          }
+          if (cat.id) {
+            this.adminCategoryMap[cat.id] = cat;
+          }
+        });
+        if (this.products && this.products.length > 0) {
+          this.updateFilteredProducts();
+          this.cdr.detectChanges();
+        }
+      })
+    );
 
     this.wishlistSub = this.wishlistService.wishlist$.subscribe((ids: any) => {
       this.wishlist = Array.isArray(ids) ? (typeof ids[0] === 'string' ? ids : ids.map((i: any) => i.productId || i.id)) : [];
@@ -345,19 +360,29 @@ export class ExploreComponent implements OnInit, OnDestroy {
             ? new Intl.NumberFormat('vi-VN').format(origPriceVal) + ' đ'
             : null;
 
-          // Trích xuất chất liệu từ description trong DB
+          // Trích xuất chất liệu từ description và biến thể trong DB
           const materialsList: string[] = [];
           if (p.description) {
             const parts = p.description.split(',').map((s: string) => s.trim()).filter(Boolean);
             parts.forEach((part: string) => materialsList.push(part));
           }
 
-          // Trích xuất màu sắc từ biến thể trong DB
+          // Trích xuất màu sắc & gợi ý chất liệu từ biến thể trong DB
           const extractedColors: string[] = [];
           if (p.variants && Array.isArray(p.variants)) {
             p.variants.forEach((v: any) => {
               if (v.name && v.name !== 'Phân loại mặc định') {
                 extractedColors.push(v.name);
+                materialsList.push(String(v.name));
+              }
+              const opt = typeof v?.optionValues === 'string'
+                ? (() => { try { return JSON.parse(v.optionValues); } catch { return {}; } })()
+                : (v?.optionValues || {});
+              if (opt?.material) materialsList.push(String(opt.material));
+              if (opt?.attributes && typeof opt.attributes === 'object') {
+                Object.values(opt.attributes).forEach((val: any) => {
+                  if (typeof val === 'string') materialsList.push(val);
+                });
               }
             });
           }
@@ -530,7 +555,8 @@ export class ExploreComponent implements OnInit, OnDestroy {
             currentPrice,
             formattedCurrentPrice,
             formattedOriginalPrice,
-            basePrice
+            basePrice,
+            configOptions: p.configOptions || {}
           };
         });
 
@@ -743,7 +769,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     return this.currentCategoryTitle;
   }
 
-  get hasActiveFilters(): boolean {
+  get hasNonSearchFilters(): boolean {
     return (this.filters.categories.length > 0) ||
            ((this.filters.rooms?.length || 0) > 0) ||
            ((this.filters.collections?.length || 0) > 0) ||
@@ -752,6 +778,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
            (this.filters.colors.length > 0) ||
            (this.filters.minRating !== undefined) ||
            (Boolean(this.filters.priceRange) && (this.filters.priceRange[0] > this.dynamicMinPrice || this.filters.priceRange[1] < this.dynamicMaxPrice));
+  }
+
+  get hasActiveFilters(): boolean {
+    return Boolean(this.searchQuery && this.searchQuery.trim()) || this.hasNonSearchFilters;
   }
 
   // Cập nhật danh sách sản phẩm sau lọc & sắp xếp (chạy 1 lần khi bộ lọc thay đổi, KHÔNG chạy lặp lại trong Change Detection)
@@ -794,7 +824,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       // 2. Lọc theo Phòng & Không gian (từ Admin Categories)
       if (this.filters.rooms && this.filters.rooms.length > 0) {
         const matchesRoom = this.filters.rooms.some(rSlug => {
-          const adminCat = this.adminCategoryMap[rSlug];
+          const adminCat = this.adminCategoryMap[rSlug] || this.adminCategoryMap[rSlug.toLowerCase()];
           return matchProductRoom(prod, rSlug, adminCat);
         });
         if (!matchesRoom) return false;
@@ -803,7 +833,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       // 3. Lọc theo Bộ sưu tập (từ Admin Categories)
       if (this.filters.collections && this.filters.collections.length > 0) {
         const matchesCollection = this.filters.collections.some(cSlug => {
-          const adminCat = this.adminCategoryMap[cSlug];
+          const adminCat = this.adminCategoryMap[cSlug] || this.adminCategoryMap[cSlug.toLowerCase()];
           return matchProductCollection(prod, cSlug, adminCat);
         });
         if (!matchesCollection) return false;
@@ -812,7 +842,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       // 4. Lọc theo Phong cách (từ Admin Categories)
       if (this.filters.styles && this.filters.styles.length > 0) {
         const matchesStyle = this.filters.styles.some(sSlug => {
-          const adminCat = this.adminCategoryMap[sSlug];
+          const adminCat = this.adminCategoryMap[sSlug] || this.adminCategoryMap[sSlug.toLowerCase()];
           return matchProductStyle(prod, sSlug, adminCat);
         });
         if (!matchesStyle) return false;
@@ -821,7 +851,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
       // 5. Lọc theo Chất liệu (từ Admin Categories)
       if (this.filters.materials && this.filters.materials.length > 0) {
         const matchesMaterial = this.filters.materials.some(mSlug => {
-          const adminCat = this.adminCategoryMap[mSlug];
+          const adminCat = this.adminCategoryMap[mSlug] || this.adminCategoryMap[mSlug.toLowerCase()];
           return matchProductMaterial(prod, mSlug, adminCat);
         });
         if (!matchesMaterial) return false;
@@ -837,16 +867,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (star === 2 && prodRating >= 3.0) return false;
       }
 
-      // 7. Lọc theo chất liệu (nếu có từ refinementMaterials)
-      if (this.filters.materials && this.filters.materials.length > 0) {
-        const selectedMats = this.filters.materials;
-        const matchesMaterial = prod.refinementMaterials?.some(m => 
-          selectedMats.some(fm => m.toLowerCase().includes(fm.toLowerCase()) || fm.toLowerCase().includes(m.toLowerCase()))
-        );
-        if (!matchesMaterial) return false;
-      }
-
-      // 8. Lọc nghiêm ngặt theo màu sắc: Chỉ hiển thị sản phẩm thực sự có biến thể màu được chọn
+      // 7. Lọc nghiêm ngặt theo màu sắc: Chỉ hiển thị sản phẩm thực sự có biến thể màu được chọn
       if (this.filters.colors.length > 0) {
         const matchesColor = this.filters.colors.some(cSlug => {
           return Boolean(prod.colorSwatches && prod.colorSwatches.some(sw => this.isColorSlugMatch(cSlug, sw)));
@@ -1012,34 +1033,114 @@ export class ExploreComponent implements OnInit, OnDestroy {
     return item.id || `sw-${index}`;
   }
 
+  private resolveAdminSubCategoryName(slug: string, fallbackMap: Record<string, string>): string {
+    if (!slug) return '';
+    const key = slug.trim().toLowerCase();
+    const direct = this.adminCategoryMap[slug] || this.adminCategoryMap[key];
+    if (direct?.name) return direct.name;
+
+    // Khớp gần đúng nếu URL truyền dạng viết tắt (vd: ngoai-troi vs ngoai-troi-ban-cong, bergamo vs bo-suu-tap-bergamo)
+    const fuzzy = this.adminCategories.find(c => {
+      const cSlug = (c.slug || '').toLowerCase();
+      return cSlug === key || cSlug.endsWith(`-${key}`) || cSlug.includes(key);
+    });
+    if (fuzzy?.name) return fuzzy.name;
+
+    if (fallbackMap[key]) return fallbackMap[key];
+
+    // Fallback cuối cùng: chuyển dạng slug-co-gach-ngang thành chữ dễ đọc thay vì hiện dấu '-'
+    return slug.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+  }
+
   getCategoryLabel(catKey: string): string {
-    const match = this.rawCategories.find(c => c.slug === catKey || c.id === catKey);
-    return match ? match.name : catKey;
+    const key = (catKey || '').trim().toLowerCase();
+    const match = this.rawCategories.find(
+      c => (c.slug || '').toLowerCase() === key || (c.id || '').toLowerCase() === key
+    );
+    if (match?.name) return match.name;
+    for (const c of this.rawCategories) {
+      const child = (c as any).children?.find(
+        (ch: any) => (ch.slug || '').toLowerCase() === key || (ch.id || '').toLowerCase() === key
+      );
+      if (child?.name) return child.name;
+    }
+    return catKey.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
   }
 
   getRoomLabel(slug: string): string {
-    const match = this.adminCategoryMap[slug];
-    return match ? match.name : slug;
+    return this.resolveAdminSubCategoryName(slug, {
+      'phong-khach': 'Phòng khách',
+      'phong-an': 'Phòng ăn',
+      'phong-ngu': 'Phòng ngủ',
+      'phong-lam-viec': 'Phòng làm việc',
+      'ngoai-troi': 'Ngoài trời & Ban công',
+      'ngoai-troi-ban-cong': 'Ngoài trời & Ban công'
+    });
   }
 
   getCollectionLabel(slug: string): string {
-    const match = this.adminCategoryMap[slug];
-    return match ? match.name : slug;
+    return this.resolveAdminSubCategoryName(slug, {
+      'bo-suu-tap-bergamo': 'Bộ sưu tập Bergamo',
+      'bo-suu-tap-como': 'Bộ sưu tập Como',
+      'bo-suu-tap-lugano': 'Bộ sưu tập Lugano',
+      'bo-suu-tap-santiago': 'Bộ sưu tập Santiago',
+      'bo-suu-tap-cenova': 'Bộ sưu tập Cenova'
+    });
   }
 
   getStyleLabel(slug: string): string {
-    const match = this.adminCategoryMap[slug];
-    return match ? match.name : slug;
+    return this.resolveAdminSubCategoryName(slug, {
+      'bac-au-scandinavian': 'Bắc Âu (Scandinavian)',
+      'hien-dai-modern-luxury': 'Hiện đại (Modern Luxury)',
+      'toi-gian-minimalism': 'Tối giản (Minimalism)',
+      'japandi': 'Japandi',
+      'wabi-sabi': 'Wabi-Sabi',
+      'industrial': 'Công nghiệp (Industrial)'
+    });
   }
 
   getMaterialLabel(slug: string): string {
-    const match = this.adminCategoryMap[slug];
-    return match ? match.name : slug;
+    return this.resolveAdminSubCategoryName(slug, {
+      'da-bo-aniline-y': 'Da bò Aniline Ý thật',
+      'vai-ni-copenhagen': 'Vải nỉ Copenhagen',
+      'go-soi-tu-nhien': 'Gỗ sồi (Oak) tự nhiên',
+      'go-oc-cho-walnut': 'Gỗ óc chó (Walnut) thượng hạng',
+      'gom-ceramic-chong-tray': 'Gốm Ceramic chống trầy'
+    });
   }
 
   getColorLabel(slug: string): string {
-    const color = this.dynamicFilters.colors.find(c => c.slug === slug);
-    return color ? color.name : slug;
+    const key = (slug || '').trim().toLowerCase();
+    const color = this.dynamicFilters.colors.find(c => (c.slug || '').toLowerCase() === key);
+    if (color?.name) return color.name;
+    const fallbackColors: Record<string, string> = {
+      grey: 'Xám (Grey)',
+      white: 'Trắng (White)',
+      brown: 'Nâu (Brown)',
+      black: 'Đen (Black)',
+      green: 'Xanh lá (Green)',
+      oak: 'Gỗ sồi (Oak)',
+      'dark-oak': 'Sồi tối (Dark Oak)',
+      marble: 'Cẩm thạch (Marble)',
+      beige: 'Be (Beige)',
+      blue: 'Xanh dương (Blue)',
+      cognac: 'Cam đất (Cognac)',
+      yellow: 'Vàng (Yellow)'
+    };
+    return fallbackColors[key] || slug.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+  }
+
+  clearSearchQuery() {
+    this.searchQuery = '';
+    if (typeof window !== 'undefined' && window.location.search) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('q');
+      const nextUrl = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : '') + url.hash;
+      window.history.replaceState({}, '', nextUrl);
+    }
+    this.currentPage = 1;
+    this.updateFilteredProducts();
+    this.scrollToTop();
   }
 
   formatPriceShort(price: number): string {
@@ -1141,6 +1242,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   clearAllFilters() {
+    this.searchQuery = '';
     this.filters = {
       categories: [],
       rooms: [],
@@ -1151,6 +1253,9 @@ export class ExploreComponent implements OnInit, OnDestroy {
       minRating: undefined,
       priceRange: [this.dynamicMinPrice, this.dynamicMaxPrice]
     };
+    if (typeof window !== 'undefined' && window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     this.syncSelectedVariantsWithColorFilter();
     this.currentPage = 1;
     this.updateFilteredProducts();

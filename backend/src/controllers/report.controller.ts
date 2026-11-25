@@ -697,10 +697,10 @@ export const reportController = {
       const categoryFilter = req.query.category as string;
       const { start, end } = getTimeRanges(timeRange, req.query.startDate as string, req.query.endDate as string);
 
-      // Thống kê tồn kho thực tế từ DB
-      const totalProducts = await prisma.product.count({ where: { isActive: true } });
+      // Thống kê tồn kho thực tế từ DB (loại trừ sản phẩm đã xóa mềm)
+      const totalProducts = await prisma.product.count({ where: { isActive: true, deletedAt: null } });
       const allVariants = await prisma.productVariant.findMany({
-        where: { isActive: true },
+        where: { isActive: true, product: { isActive: true, deletedAt: null } },
         select: {
           stock: true,
           reservedStock: true,
@@ -829,7 +829,7 @@ export const reportController = {
 
       // 4 Cấu trúc phân loại dữ liệu thật từ DB: Danh mục chính (Cha), Danh mục phụ (Con), Loại phòng, Phong cách
       const allActiveProducts = await prisma.product.findMany({
-        where: { isActive: true },
+        where: { isActive: true, deletedAt: null },
         include: {
           category: {
             include: { parent: true }
@@ -1398,7 +1398,7 @@ export const reportController = {
         return cd >= start && cd <= end;
       }).length;
       const diamondCustomers = allCustomers.filter(c => Number(c.totalSpent) >= 200000000).length;
-      const totalProducts = await prisma.product.count({ where: { isActive: true } });
+      const totalProducts = await prisma.product.count({ where: { isActive: true, deletedAt: null } });
 
       // 5. Line Chart: Doanh thu theo thời gian phân giải theo INTERVAL (Giờ / Ngày / Tuần / Tháng)
       let chartLabels: string[] = [];

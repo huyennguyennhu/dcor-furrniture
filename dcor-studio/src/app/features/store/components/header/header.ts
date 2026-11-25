@@ -1,9 +1,10 @@
-﻿import { IconComponent } from '../../../../shared/components/icon/icon';
+import { IconComponent } from '../../../../shared/components/icon/icon';
 import { Component, HostListener, OnInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CartDrawerComponent } from '../../../../shared/components/cart-drawer/cart-drawer';
 import { CartService } from '../../../../core/services/cart.service';
@@ -70,6 +71,7 @@ export class Header implements OnInit, OnDestroy {
   products: CatalogProduct[] = [];
   user: StoreUser | null = null;
   private lastCartToken: string | null = null;
+  private subCategoriesSub?: Subscription;
 
   readonly DEFAULT_ROOMS = [
     { name: 'Phòng khách', slug: 'phong-khach', desc: 'Sofa, bàn trà, kệ tivi' },
@@ -186,6 +188,7 @@ export class Header implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.subCategoriesSub?.unsubscribe();
     if (this.shopHoverTimeout) {
       clearTimeout(this.shopHoverTimeout);
       this.shopHoverTimeout = null;
@@ -197,6 +200,9 @@ export class Header implements OnInit, OnDestroy {
   ngOnInit() {
     this.syncUser();
     void this.loadSearchProducts();
+    this.subCategoriesSub = this.classificationService.categories$.subscribe(() => {
+      this.cdr.markForCheck();
+    });
     this.cartService.cart$.subscribe(items => {
       this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
     });

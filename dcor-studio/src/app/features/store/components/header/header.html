@@ -307,10 +307,6 @@
       </ng-container>
 
       <ng-template #guestTemplate>
-        <button class="icon-btn" title="Sản phẩm yêu thích" routerLink="/account/wishlist" style="position: relative;">
-          <app-icon name="Heart" size="20"></app-icon>
-          <span *ngIf="wishlistCount > 0" class="badge" id="guest-wishlist-count">{{ wishlistCount }}</span>
-        </button>
         <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
           (click)="toggleCartDrawer()">
           <app-icon name="ShoppingCart" size="20"></app-icon>
@@ -327,12 +323,6 @@
 
           <div class="user-dropdown-menu guest-user-dropdown" [class.active]="isGuestMenuOpen"
             (mouseenter)="onGuestDropdownMouseEnter()" (mouseleave)="onGuestDropdownMouseLeave()">
-            <div class="user-dropdown-header">
-              <button (click)="openLoginModal(); closeGuestUserMenu()" class="store-login-button"
-                onmouseenter="this.style.transform='scale(1.02)'" onmouseleave="this.style.transform='scale(1)'">
-                <span class="login-text">Đăng nhập</span>
-              </button>
-            </div>
             <ul>
               <li><a routerLink="/account/profile" class="user-menu-item" (click)="closeGuestUserMenu()">Hồ sơ cá nhân</a></li>
               <li><a routerLink="/account/orders" class="user-menu-item" (click)="closeGuestUserMenu()">Đơn hàng của tôi</a></li>
@@ -340,6 +330,11 @@
             </ul>
           </div>
         </div>
+
+        <button type="button" (click)="openLoginModal()" class="store-login-button" title="Đăng nhập"
+          onmouseenter="this.style.transform='scale(1.02)'" onmouseleave="this.style.transform='scale(1)'">
+          <span class="login-text">Đăng nhập</span>
+        </button>
 
       </ng-template>
 

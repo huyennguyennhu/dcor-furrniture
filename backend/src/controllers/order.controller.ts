@@ -314,6 +314,7 @@ export const orderController = {
       const needsFallback = itemsList.some((i: any) => !i.variantId || !variantMap.has(i.variantId));
       if (needsFallback) {
         defaultProduct = await prisma.product.findFirst({
+          where: { deletedAt: null, isActive: true },
           include: { variants: true }
         }).catch(() => null);
       }

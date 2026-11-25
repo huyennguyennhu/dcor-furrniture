@@ -304,14 +304,41 @@ export class CartService {
   /**
    * Update variant — must reload cart because image/price/tags can change
    */
-  updateVariant(id: string, variantId: string, quantity?: number, selectedOptions?: any): Observable<any> {
+  updateVariant(
+    id: string,
+    variantId: string,
+    quantity?: number,
+    selectedOptions?: any,
+    updatedGuestInfo?: Partial<CartItem>
+  ): Observable<any> {
     if (!this.isLoggedIn) {
       const guestItems = this.loadGuestCart();
       const idx = guestItems.findIndex(i => i.id === id);
       if (idx >= 0) {
-        guestItems[idx].variantId = variantId;
-        if (quantity !== undefined) guestItems[idx].quantity = quantity;
-        if (selectedOptions) guestItems[idx].selectedOptions = selectedOptions;
+        const current = guestItems[idx];
+        const targetQuantity = quantity !== undefined ? quantity : current.quantity;
+        const sameVariantIdx = guestItems.findIndex(i => i.variantId === variantId && i.id !== id);
+
+        if (sameVariantIdx >= 0) {
+          guestItems[sameVariantIdx] = {
+            ...guestItems[sameVariantIdx],
+            ...(updatedGuestInfo || {}),
+            quantity: guestItems[sameVariantIdx].quantity + targetQuantity,
+            selectedOptions: selectedOptions !== undefined ? selectedOptions : guestItems[sameVariantIdx].selectedOptions
+          };
+          guestItems.splice(idx, 1);
+          this.saveGuestCart(guestItems);
+          this.cartSubject.next(guestItems);
+          return of({ message: 'Đã gộp vào sản phẩm cùng biến thể đã có trong giỏ hàng', merged: true });
+        }
+
+        guestItems[idx] = {
+          ...current,
+          ...(updatedGuestInfo || {}),
+          variantId,
+          quantity: targetQuantity,
+          selectedOptions: selectedOptions !== undefined ? selectedOptions : {}
+        };
         this.saveGuestCart(guestItems);
         this.cartSubject.next(guestItems);
       }

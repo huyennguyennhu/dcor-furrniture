@@ -1213,19 +1213,12 @@ header.store-site-header .store-header-main,
 }
 
 @media (max-width: 420px) {
-  .login-text {
-    display: none !important;
-  }
-
-  .login-mobile-icon {
-    display: inline-flex !important;
-  }
-
   .store-login-button {
-    width: 32px !important;
-    height: 32px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
+    width: auto !important;
+    height: 30px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+    border-radius: 50px !important;
   }
 
   .btn-mobile-menu-toggle {
@@ -1480,44 +1473,4 @@ header.store-site-header .store-header-main,
   left: 0;
   right: 0;
   height: 16px;
-}
-
-/* Guest user dropdown header & login CTA */
-.guest-user-dropdown .user-dropdown-header {
-  padding: 14px 16px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.guest-user-dropdown .store-login-button {
-  width: 100% !important;
-  min-width: unset !important;
-  height: 38px !important;
-  border-radius: 50px !important;
-  padding: 0 16px !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  background: #765337 !important;
-  color: #fff3e3 !important;
-  border: none !important;
-  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25) !important;
-  cursor: pointer !important;
-  transition: transform 0.2s ease, background 0.2s ease !important;
-}
-
-.guest-user-dropdown .store-login-button:hover {
-  background: #5a3c24 !important;
-}
-
-.guest-user-dropdown .store-login-button .login-text {
-  display: inline !important;
-}
-
-.guest-user-dropdown .store-login-button .login-mobile-icon {
-  display: inline-flex !important;
 }

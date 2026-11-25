@@ -294,6 +294,11 @@
       </div>
     </div>
 
+    <div *ngIf="savePhoneError" style="display:flex;align-items:center;gap:6px;background:#fff2f0;border:1px solid #ffccc7;color:#cf1322;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;text-align:left;">
+      <lucide-angular [img]="icons.AlertCircle" size="15" style="flex-shrink:0;"></lucide-angular>
+      <span>{{ savePhoneError }}</span>
+    </div>
+
     <div class="save-phone-actions">
       <button 
         type="button" 

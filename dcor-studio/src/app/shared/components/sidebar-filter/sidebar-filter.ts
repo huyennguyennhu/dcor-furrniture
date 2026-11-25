@@ -1,6 +1,7 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { LucideAngularModule, ChevronDown, Check, Star } from 'lucide-angular';
 import { ProductCategory } from '../../models/catalog.model';
 import { 
@@ -44,8 +45,9 @@ export interface ColorOption {
   templateUrl: './sidebar-filter.html',
   styleUrls: ['./sidebar-filter.css']
 })
-export class SidebarFilterComponent implements OnChanges {
+export class SidebarFilterComponent implements OnInit, OnChanges, OnDestroy {
   icons = { ChevronDown, Check, Star };
+  private subCategoriesSub?: Subscription;
 
   @Input() filters!: FilterState;
   @Input() rawCategories: ProductCategory[] = [];
@@ -108,7 +110,21 @@ export class SidebarFilterComponent implements OnChanges {
     return 10000;
   }
 
-  constructor(private categoryClassificationService: CategoryClassificationService) {}
+  constructor(
+    private categoryClassificationService: CategoryClassificationService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit() {
+    this.subCategoriesSub = this.categoryClassificationService.categories$.subscribe(() => {
+      this.initFilters();
+      this.cdr.markForCheck();
+    });
+  }
+
+  ngOnDestroy() {
+    this.subCategoriesSub?.unsubscribe();
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['rawCategories'] || changes['allProducts'] || changes['dynamicFilters'] || changes['validFilters']) {

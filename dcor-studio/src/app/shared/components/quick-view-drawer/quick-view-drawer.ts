@@ -890,11 +890,18 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
 
     const cleanVariantName = (variant.name || '').replace(/([a-zA-Z])\/([a-zA-Z])/g, '$1 · ');
     const selectedConfig = {
+      ...this.selectedAttributes,
       variantName: cleanVariantName,
-      sku: variant.sku,
-      dimensions: this.realDimensions,
-      material: this.realMaterial
+      sku: variant.sku
     };
+
+    const selectedVariantTags = this.attributeGroups
+      .map(group => {
+        const selId = this.selectedAttributes[group.groupId];
+        const opt = group.options.find(o => o.id === selId) || group.options[0];
+        return opt?.name ? { label: group.label, value: opt.name } : null;
+      })
+      .filter((t): t is { label: string; value: string } => !!t);
 
     const rawPrice = this.currentPrice || variant.price || this.activeProduct?.prices?.[0]?.price || 0;
     const productImages = Array.isArray(this.activeProduct?.images) ? this.activeProduct.images : [];
@@ -905,8 +912,10 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
 
     const guestProductInfo = {
       productId: this.activeProduct?.productId || this.activeProduct?.id || '',
+      sku: variant.sku,
       name: this.activeProduct?.shortDescription_vi || this.activeProduct?.shortDescription || this.activeProduct?.name || 'Sản phẩm',
       variantName: cleanVariantName !== 'Phân loại mặc định' ? cleanVariantName : undefined,
+      variantTags: selectedVariantTags.length > 0 ? selectedVariantTags : undefined,
       image: typeof imageUrl === 'string' ? imageUrl : '',
       price: rawPrice,
       originalPrice: this.originalPrice || undefined,
@@ -957,11 +966,18 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
 
     const cleanVariantName = (variant.name || '').replace(/([a-zA-Z])\/([a-zA-Z])/g, '$1 · ');
     const selectedConfig = {
+      ...this.selectedAttributes,
       variantName: cleanVariantName,
-      sku: variant.sku,
-      dimensions: this.realDimensions,
-      material: this.realMaterial
+      sku: variant.sku
     };
+
+    const selectedVariantTags = this.attributeGroups
+      .map(group => {
+        const selId = this.selectedAttributes[group.groupId];
+        const opt = group.options.find(o => o.id === selId) || group.options[0];
+        return opt?.name ? { label: group.label, value: opt.name } : null;
+      })
+      .filter((t): t is { label: string; value: string } => !!t);
 
     const rawPrice = this.currentPrice || variant.price || this.activeProduct?.prices?.[0]?.price || 0;
     const productImages = Array.isArray(this.activeProduct?.images) ? this.activeProduct.images : [];
@@ -972,8 +988,10 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
 
     const guestProductInfo = {
       productId: this.activeProduct?.productId || this.activeProduct?.id || '',
+      sku: variant.sku,
       name: this.activeProduct?.shortDescription_vi || this.activeProduct?.shortDescription || this.activeProduct?.name || 'Sản phẩm',
       variantName: cleanVariantName !== 'Phân loại mặc định' ? cleanVariantName : undefined,
+      variantTags: selectedVariantTags.length > 0 ? selectedVariantTags : undefined,
       image: typeof imageUrl === 'string' ? imageUrl : '',
       price: rawPrice,
       originalPrice: this.originalPrice || undefined,

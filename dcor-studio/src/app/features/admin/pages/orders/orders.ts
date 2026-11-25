@@ -397,7 +397,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
       list = list.filter(o => 
         o.orderNumber.toLowerCase().includes(q) ||
         o.customerName.toLowerCase().includes(q) ||
-        o.phone.includes(q) ||
+        (o.accountName && o.accountName.toLowerCase().includes(q)) ||
+        (o.phone && o.phone.toLowerCase().includes(q)) ||
+        (o.customerPhone && o.customerPhone.toLowerCase().includes(q)) ||
+        (o.email && o.email.toLowerCase().includes(q)) ||
         (o.delivery.trackingCode && o.delivery.trackingCode.toLowerCase().includes(q)) ||
         o.items.some(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
       );

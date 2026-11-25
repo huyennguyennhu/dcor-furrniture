@@ -129,6 +129,9 @@ const mapPrismaOrderToFrontend = (o: any): any => {
     }
   ];
 
+  const accountPhone = o.customer?.phone && !String(o.customer.phone).startsWith('GOOG_') ? String(o.customer.phone) : '';
+  const orderPhone = o.phone && !String(o.phone).startsWith('GOOG_') ? String(o.phone) : accountPhone;
+
   return {
     id: o.id,
     orderNumber: o.orderNumber,
@@ -142,7 +145,9 @@ const mapPrismaOrderToFrontend = (o: any): any => {
       : (o.customer?.fullName && !o.customer.fullName.toLowerCase().includes('vãng lai') 
           ? o.customer.fullName 
           : 'Lê Minh Hoàng'),
-    phone: o.phone,
+    accountName: o.customer?.fullName || '',
+    phone: orderPhone || '',
+    customerPhone: accountPhone,
     email: o.email || o.customer?.email || 'customer@dcor.vn',
     address: o.detailAddress || 'Địa chỉ giao hàng',
     province: o.province || 'Hồ Chí Minh',

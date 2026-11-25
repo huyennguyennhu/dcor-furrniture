@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -8,14 +8,22 @@ import {
   Package, Tag, AlertCircle, TrendingUp, Search, Download, Upload, Plus, 
   ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
   RotateCcw, CheckCircle2, X, Filter, FileSpreadsheet, Info, Check, RefreshCw,
-  AlertTriangle
+  AlertTriangle, Home, Sparkles, Palette, Layers
 } from 'lucide-angular';
 import * as XLSX from 'xlsx';
 
 import { environment } from '../../../../../environments/environment';
 import { AdminAuthService } from '../../../../core/services/admin-auth.service';
 import { ProductService } from '../../../../core/services/product.service';
-import { forkJoin, of } from 'rxjs';
+import {
+  CategoryClassificationService,
+  CategoryItem,
+  matchProductRoom,
+  matchProductCollection,
+  matchProductStyle,
+  matchProductMaterial
+} from '../../../../core/services/category-classification.service';
+import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
 export interface ImportPrecheckRow {
@@ -50,14 +58,19 @@ export interface ProductVariantItem {
 
 export interface ProductListItem {
   id: string;
+  slug?: string;
+  description?: string;
   name: string;
   baseSku: string; // SKU tổng, readonly
   categoryName: string;
   categoryId: string;
+  categorySlug?: string;
   parentCategoryId?: string;
   parentCategoryName?: string;
   parentCategorySlug?: string;
   majorCategoryKey?: string;
+  refinementMaterials?: string[];
+  configOptions?: Record<string, any>;
   priceRange: { min: number; max: number };
   totalVariants: number;
   totalAvailableStock: number;
@@ -578,14 +591,14 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
   templateUrl: './products.html',
   styleUrls: ['./products.css']
 })
-export class ProductsComponent implements OnInit {
+export class ProductsComponent implements OnInit, OnDestroy {
   readonly Math = Math;
 
   icons = { 
     Package, Tag, AlertCircle, TrendingUp, Search, Download, Upload, Plus, 
     ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, ArrowUpDown, Trash2, Edit, Copy, Eye, EyeOff, 
     RotateCcw, CheckCircle2, X, Filter, FileSpreadsheet, Info, Check, RefreshCw,
-    AlertTriangle
+    AlertTriangle, Home, Sparkles, Palette, Layers
   };
 
   // State chính - Khởi tạo rỗng để hiển thị loading spinner đồng bộ khi tải từ database
@@ -659,9 +672,12 @@ export class ProductsComponent implements OnInit {
   private searchDebounceTimer: any = null;
 
   selectedCategory = 'ALL';
+  selectedRoomFilter = 'ALL';
+  selectedCollectionFilter = 'ALL';
+  selectedStyleFilter = 'ALL';
+  selectedMaterialFilter = 'ALL';
   selectedStockFilter: StockFilter = 'ALL';
   selectedBranchFilter = 'ALL';
-  isBranchDropdownOpen = false;
   branchOptions = [
     { id: 'wh-main', name: 'Kho Tổng' },
     { id: 'sr-q1', name: 'Showroom Q1' },
@@ -671,9 +687,25 @@ export class ProductsComponent implements OnInit {
   sortBy: SortOption = 'newest';
 
   // Dropdown UI states
+  isStatusDropdownOpen = false;
   isCategoryDropdownOpen = false;
+  isSubCategoryDropdownOpen = false;
+  expandedSubCategoryGroups: Record<'room' | 'collection' | 'style' | 'material', boolean> = {
+    room: false,
+    collection: false,
+    style: false,
+    material: false
+  };
   isStockDropdownOpen = false;
+  isBranchDropdownOpen = false;
   isSortDropdownOpen = false;
+
+  // Danh sách Subcategories dùng chung từ PostgreSQL (CategoryClassificationService)
+  roomOptions: CategoryItem[] = [];
+  collectionOptions: CategoryItem[] = [];
+  styleOptions: CategoryItem[] = [];
+  materialOptions: CategoryItem[] = [];
+  private subCategoriesSub?: Subscription;
 
   // Danh mục động (Chỉ lọc danh mục chính: Tables, Sofas, Chairs, Beds, Storage...)
   categories: Array<{ id: string; name: string; slug?: string; childIds?: string[] }> = [
@@ -697,10 +729,11 @@ export class ProductsComponent implements OnInit {
   toastType: 'success' | 'warning' | 'info' | 'error' = 'success';
   private toastTimer: any = null;
 
-  // Modal Xóa 2 bước
+  // Modal Xóa mềm 2 bước (nhập đúng tên sản phẩm)
   isDeleteModalOpen = false;
   deleteStep: 1 | 2 = 1;
   deleteConfirmText = '';
+  isDeletingProduct = false;
   productToDelete: ProductListItem | null = null;
 
   // Modal Xác nhận Ẩn / Hiện
@@ -731,7 +764,8 @@ export class ProductsComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
     private adminAuthService: AdminAuthService,
-    private productService: ProductService
+    private productService: ProductService,
+    private categoryClassificationService: CategoryClassificationService
   ) {}
 
   get canCreate(): boolean {
@@ -765,7 +799,26 @@ export class ProductsComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.syncSubCategoryOptions();
+    this.subCategoriesSub = this.categoryClassificationService.categories$.subscribe(() => {
+      this.syncSubCategoryOptions();
+      this.applyFilters();
+      this.cdr.detectChanges();
+    });
     this.loadProducts();
+  }
+
+  ngOnDestroy() {
+    this.subCategoriesSub?.unsubscribe();
+    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+  }
+
+  private syncSubCategoryOptions() {
+    this.roomOptions = this.categoryClassificationService.getRooms();
+    this.collectionOptions = this.categoryClassificationService.getCollections();
+    this.styleOptions = this.categoryClassificationService.getStyles();
+    this.materialOptions = this.categoryClassificationService.getMaterials();
   }
 
   // Tải dữ liệu ban đầu từ Database thực tế (PostgreSQL / Prisma)
@@ -866,16 +919,35 @@ export class ProductsComponent implements OnInit {
               coverImg = mappedVariants[0].image;
             }
 
+            const variantMaterialHints: string[] = [];
+            rawVariants.forEach((v: any) => {
+              if (v?.name) variantMaterialHints.push(String(v.name));
+              const opt = typeof v?.optionValues === 'string'
+                ? (() => { try { return JSON.parse(v.optionValues); } catch { return {}; } })()
+                : (v?.optionValues || {});
+              if (opt?.material) variantMaterialHints.push(String(opt.material));
+              if (opt?.attributes && typeof opt.attributes === 'object') {
+                Object.values(opt.attributes).forEach((val: any) => {
+                  if (typeof val === 'string') variantMaterialHints.push(val);
+                });
+              }
+            });
+
             return {
               id: p.id,
+              slug: p.slug || '',
+              description: p.description || '',
               name: p.name || 'Sản phẩm nội thất DCor',
               baseSku: baseSku,
               categoryName: catName,
               categoryId: catId,
+              categorySlug: cat?.slug || '',
               parentCategoryId: parentCatId,
               parentCategoryName: parentCatName,
               parentCategorySlug: parentCatSlug,
               majorCategoryKey: (parentCatName || catName).toLowerCase(),
+              refinementMaterials: variantMaterialHints,
+              configOptions: p.configOptions || {},
               priceRange: { min: minPrice, max: maxPrice },
               totalVariants: mappedVariants.length || 1,
               totalAvailableStock: totalStock,
@@ -1045,6 +1117,42 @@ export class ProductsComponent implements OnInit {
 
         return false;
       });
+    }
+
+    // 3.5. Lọc theo các Subcategories (Phòng & Không gian, Bộ sưu tập, Phong cách, Chất liệu) dùng chung logic Storefront
+    const toMatchableProduct = (p: ProductListItem) => ({
+      id: p.id,
+      productId: p.id,
+      slug: p.slug || '',
+      name: p.name || '',
+      description: p.description || '',
+      category: `${p.parentCategoryName || ''} ${p.categoryName || ''}`.trim(),
+      categoryObj: {
+        slug: p.categorySlug || '',
+        parent: { slug: p.parentCategorySlug || '' }
+      },
+      refinementMaterials: p.refinementMaterials || p.variants.map(v => v.name),
+      configOptions: p.configOptions || {}
+    });
+
+    if (this.selectedRoomFilter !== 'ALL') {
+      const cat = this.roomOptions.find(r => r.slug === this.selectedRoomFilter);
+      result = result.filter(p => matchProductRoom(toMatchableProduct(p), this.selectedRoomFilter, cat));
+    }
+
+    if (this.selectedCollectionFilter !== 'ALL') {
+      const cat = this.collectionOptions.find(c => c.slug === this.selectedCollectionFilter);
+      result = result.filter(p => matchProductCollection(toMatchableProduct(p), this.selectedCollectionFilter, cat));
+    }
+
+    if (this.selectedStyleFilter !== 'ALL') {
+      const cat = this.styleOptions.find(s => s.slug === this.selectedStyleFilter);
+      result = result.filter(p => matchProductStyle(toMatchableProduct(p), this.selectedStyleFilter, cat));
+    }
+
+    if (this.selectedMaterialFilter !== 'ALL') {
+      const cat = this.materialOptions.find(m => m.slug === this.selectedMaterialFilter);
+      result = result.filter(p => matchProductMaterial(toMatchableProduct(p), this.selectedMaterialFilter, cat));
     }
 
     // 4. Lọc theo Tồn kho
@@ -1217,12 +1325,19 @@ export class ProductsComponent implements OnInit {
   }
 
 
-  // --- XÓA SẢN PHẨM 2 BƯỚC (BỎ THÙNG RÁC, XÁC THỰC YES) ---
+  // --- XÓA MỀM SẢN PHẨM 2 BƯỚC (NHẬP CHÍNH XÁC TÊN SẢN PHẨM) ---
+  get isDeleteConfirmMatched(): boolean {
+    const expected = (this.productToDelete?.name || '').trim();
+    const typed = (this.deleteConfirmText || '').trim();
+    return expected.length > 0 && typed === expected;
+  }
+
   openDeleteStep1(product: ProductListItem, event: Event) {
     event.stopPropagation();
     this.productToDelete = product;
     this.deleteStep = 1;
     this.deleteConfirmText = '';
+    this.isDeletingProduct = false;
     this.isDeleteModalOpen = true;
   }
 
@@ -1232,35 +1347,46 @@ export class ProductsComponent implements OnInit {
   }
 
   closeDeleteModal() {
+    if (this.isDeletingProduct) return;
     this.isDeleteModalOpen = false;
     this.deleteStep = 1;
     this.deleteConfirmText = '';
     this.productToDelete = null;
   }
 
-  executePermanentDelete() {
-    if (this.deleteConfirmText !== 'YES' || !this.productToDelete) {
+  executeSoftDelete() {
+    if (!this.isDeleteConfirmMatched || !this.productToDelete || this.isDeletingProduct) {
       return;
     }
     const target = this.productToDelete;
+    this.isDeletingProduct = true;
+
     this.http.delete(`${environment.apiUrl}/admin/products/${target.id}`).subscribe({
       next: () => {
+        this.isDeletingProduct = false;
         this.allProducts = this.allProducts.filter(p => p.id !== target.id);
         this.selectedProductIds.delete(target.id);
         this.productService.clearCache();
-        this.showToast(`Đã xóa vĩnh viễn sản phẩm "${target.name}" khỏi hệ thống`, 'success');
+        this.showToast(`Đã xóa sản phẩm "${target.name}" khỏi giao diện hệ thống`, 'success');
         this.closeDeleteModal();
         this.applyFilters();
+        this.cdr.detectChanges();
       },
       error: (err) => {
+        this.isDeletingProduct = false;
         const msg = err?.error?.message || 'Máy chủ từ chối: Bạn không có quyền xóa sản phẩm trên hệ thống! (403 Forbidden)';
         this.showToast(msg, 'warning');
         this.closeDeleteModal();
+        this.cdr.detectChanges();
       }
     });
   }
 
   // Tương thích với các gọi cũ
+  executePermanentDelete() {
+    this.executeSoftDelete();
+  }
+
   moveToTrash(product: ProductListItem, event: Event) {
     this.openDeleteStep1(product, event);
   }
@@ -1270,7 +1396,7 @@ export class ProductsComponent implements OnInit {
   }
 
   confirmPermanentDelete() {
-    this.executePermanentDelete();
+    this.executeSoftDelete();
   }
 
   closeDeleteConfirmModal() {
@@ -1338,16 +1464,13 @@ export class ProductsComponent implements OnInit {
       productIds: targetIds
     }).subscribe({
       next: () => {
-        this.allProducts.forEach(p => {
-          if (targetIds.includes(p.id)) {
-            p.isDeleted = true;
-            p.isExpanded = false;
-          }
-        });
+        const targetSet = new Set(targetIds);
+        this.allProducts = this.allProducts.filter(p => !targetSet.has(p.id));
         this.productService.clearCache();
-        this.showToast(`Đã xóa ${targetIds.length} sản phẩm khỏi hệ thống!`, 'warning');
+        this.showToast(`Đã xóa ${targetIds.length} sản phẩm khỏi giao diện hệ thống!`, 'success');
         this.clearSelection();
         this.applyFilters();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.showToast(err?.error?.message || 'Không thể xóa hàng loạt sản phẩm.', 'warning');
@@ -1848,11 +1971,160 @@ export class ProductsComponent implements OnInit {
   }
 
   // --- DROPDOWN CONTROL ---
+  private closeAllDropdowns() {
+    this.isStatusDropdownOpen = false;
+    this.isCategoryDropdownOpen = false;
+    this.isSubCategoryDropdownOpen = false;
+    this.isStockDropdownOpen = false;
+    this.isBranchDropdownOpen = false;
+    this.isSortDropdownOpen = false;
+  }
+
+  get hasSubCategoryOptions(): boolean {
+    return (
+      this.roomOptions.length > 0 ||
+      this.collectionOptions.length > 0 ||
+      this.styleOptions.length > 0 ||
+      this.materialOptions.length > 0
+    );
+  }
+
+  get activeSubCategoryCount(): number {
+    let count = 0;
+    if (this.selectedRoomFilter !== 'ALL') count++;
+    if (this.selectedCollectionFilter !== 'ALL') count++;
+    if (this.selectedStyleFilter !== 'ALL') count++;
+    if (this.selectedMaterialFilter !== 'ALL') count++;
+    return count;
+  }
+
+  get selectedSubCategoryLabel(): string {
+    const selectedNames: string[] = [];
+    if (this.selectedRoomFilter !== 'ALL') {
+      const found = this.roomOptions.find(r => r.slug === this.selectedRoomFilter);
+      if (found) selectedNames.push(found.name);
+    }
+    if (this.selectedCollectionFilter !== 'ALL') {
+      const found = this.collectionOptions.find(c => c.slug === this.selectedCollectionFilter);
+      if (found) selectedNames.push(found.name);
+    }
+    if (this.selectedStyleFilter !== 'ALL') {
+      const found = this.styleOptions.find(s => s.slug === this.selectedStyleFilter);
+      if (found) selectedNames.push(found.name);
+    }
+    if (this.selectedMaterialFilter !== 'ALL') {
+      const found = this.materialOptions.find(m => m.slug === this.selectedMaterialFilter);
+      if (found) selectedNames.push(found.name);
+    }
+
+    if (selectedNames.length === 0) return 'Danh mục phụ';
+    if (selectedNames.length === 1) return selectedNames[0];
+    return 'Danh mục phụ';
+  }
+
+  toggleSubCategoryDropdown(e: Event) {
+    e.stopPropagation();
+    const next = !this.isSubCategoryDropdownOpen;
+    this.closeAllDropdowns();
+    this.isSubCategoryDropdownOpen = next;
+  }
+
+  toggleSubCategoryGroup(group: 'room' | 'collection' | 'style' | 'material', e: Event) {
+    e.stopPropagation();
+    this.expandedSubCategoryGroups[group] = !this.expandedSubCategoryGroups[group];
+  }
+
+  toggleSubCategoryOption(group: 'room' | 'collection' | 'style' | 'material', slug: string) {
+    const isAlreadySelected =
+      (group === 'room' && this.selectedRoomFilter === slug) ||
+      (group === 'collection' && this.selectedCollectionFilter === slug) ||
+      (group === 'style' && this.selectedStyleFilter === slug) ||
+      (group === 'material' && this.selectedMaterialFilter === slug);
+
+    // Chỉ cho phép chọn duy nhất 1 danh mục phụ tại một thời điểm
+    this.selectedRoomFilter = 'ALL';
+    this.selectedCollectionFilter = 'ALL';
+    this.selectedStyleFilter = 'ALL';
+    this.selectedMaterialFilter = 'ALL';
+
+    if (!isAlreadySelected) {
+      if (group === 'room') this.selectedRoomFilter = slug;
+      else if (group === 'collection') this.selectedCollectionFilter = slug;
+      else if (group === 'style') this.selectedStyleFilter = slug;
+      else if (group === 'material') this.selectedMaterialFilter = slug;
+    }
+
+    this.isSubCategoryDropdownOpen = false;
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  clearSubCategoryFilters() {
+    this.selectedRoomFilter = 'ALL';
+    this.selectedCollectionFilter = 'ALL';
+    this.selectedStyleFilter = 'ALL';
+    this.selectedMaterialFilter = 'ALL';
+    this.isSubCategoryDropdownOpen = false;
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  get hasActiveFilters(): boolean {
+    return (
+      this.activeTab !== 'ALL' ||
+      this.selectedCategory !== 'ALL' ||
+      this.selectedRoomFilter !== 'ALL' ||
+      this.selectedCollectionFilter !== 'ALL' ||
+      this.selectedStyleFilter !== 'ALL' ||
+      this.selectedMaterialFilter !== 'ALL' ||
+      this.selectedStockFilter !== 'ALL' ||
+      this.selectedBranchFilter !== 'ALL' ||
+      this.sortBy !== 'newest'
+    );
+  }
+
+  resetAllFilters() {
+    this.activeTab = 'ALL';
+    this.selectedCategory = 'ALL';
+    this.selectedRoomFilter = 'ALL';
+    this.selectedCollectionFilter = 'ALL';
+    this.selectedStyleFilter = 'ALL';
+    this.selectedMaterialFilter = 'ALL';
+    this.selectedStockFilter = 'ALL';
+    this.selectedBranchFilter = 'ALL';
+    this.sortBy = 'newest';
+    this.closeAllDropdowns();
+    this.currentPage = 1;
+    this.selectedProductIds.clear();
+    this.applyFilters();
+  }
+
+  toggleStatusDropdown(e: Event) {
+    e.stopPropagation();
+    const next = !this.isStatusDropdownOpen;
+    this.closeAllDropdowns();
+    this.isStatusDropdownOpen = next;
+  }
+
+  selectStatusFilter(tab: StatusTab) {
+    this.isStatusDropdownOpen = false;
+    this.setTab(tab);
+  }
+
+  get selectedStatusLabel(): string {
+    switch (this.activeTab) {
+      case 'ACTIVE': return `Đang bán (${this.totalActiveCount})`;
+      case 'DRAFT': return `Bản nháp (${this.totalDraftCount})`;
+      case 'HIDDEN': return `Đã ẩn (${this.totalHiddenCount})`;
+      default: return 'Tất cả trạng thái';
+    }
+  }
+
   toggleCategoryDropdown(e: Event) {
     e.stopPropagation();
-    this.isCategoryDropdownOpen = !this.isCategoryDropdownOpen;
-    this.isStockDropdownOpen = false;
-    this.isSortDropdownOpen = false;
+    const next = !this.isCategoryDropdownOpen;
+    this.closeAllDropdowns();
+    this.isCategoryDropdownOpen = next;
   }
 
   selectCategory(catId: string) {
@@ -1869,9 +2141,9 @@ export class ProductsComponent implements OnInit {
 
   toggleStockDropdown(e: Event) {
     e.stopPropagation();
-    this.isStockDropdownOpen = !this.isStockDropdownOpen;
-    this.isCategoryDropdownOpen = false;
-    this.isSortDropdownOpen = false;
+    const next = !this.isStockDropdownOpen;
+    this.closeAllDropdowns();
+    this.isStockDropdownOpen = next;
   }
 
   selectStockFilter(filter: StockFilter) {
@@ -1889,10 +2161,9 @@ export class ProductsComponent implements OnInit {
 
   toggleBranchDropdown(event: Event) {
     event.stopPropagation();
-    this.isBranchDropdownOpen = !this.isBranchDropdownOpen;
-    this.isCategoryDropdownOpen = false;
-    this.isStockDropdownOpen = false;
-    this.isSortDropdownOpen = false;
+    const next = !this.isBranchDropdownOpen;
+    this.closeAllDropdowns();
+    this.isBranchDropdownOpen = next;
   }
 
   selectBranchFilter(branchId: string) {
@@ -1927,9 +2198,9 @@ export class ProductsComponent implements OnInit {
 
   toggleSortDropdown(e: Event) {
     e.stopPropagation();
-    this.isSortDropdownOpen = !this.isSortDropdownOpen;
-    this.isCategoryDropdownOpen = false;
-    this.isStockDropdownOpen = false;
+    const next = !this.isSortDropdownOpen;
+    this.closeAllDropdowns();
+    this.isSortDropdownOpen = next;
   }
 
   selectSort(option: SortOption) {
@@ -1954,10 +2225,7 @@ export class ProductsComponent implements OnInit {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     if (this.filterContainerRef && !this.filterContainerRef.nativeElement.contains(event.target)) {
-      this.isCategoryDropdownOpen = false;
-      this.isStockDropdownOpen = false;
-      this.isBranchDropdownOpen = false;
-      this.isSortDropdownOpen = false;
+      this.closeAllDropdowns();
     }
   }
 

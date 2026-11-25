@@ -405,6 +405,24 @@
             <button 
               type="button" 
               class="tag-checkbox-pill"
+              *ngFor="let room of rooms"
+              [class.checked]="isRoomSelected(room.id)"
+              (click)="toggleRoom(room.id)">
+              <lucide-angular [img]="icons.Check" size="13" *ngIf="isRoomSelected(room.id)"></lucide-angular>
+              <span>{{ room.name }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. Chất liệu chế tác (Multi-select pills) -->
+        <div class="form-group span-2">
+          <label class="form-label">
+            Chất liệu chế tác (Chọn nhiều)
+          </label>
+          <div class="tag-selector-group">
+            <button 
+              type="button" 
+              class="tag-checkbox-pill"
               *ngFor="let mat of materials"
               [class.checked]="isMaterialSelected(mat.id)"
               (click)="toggleMaterial(mat.id)">

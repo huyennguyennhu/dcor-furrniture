@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { CartService, CartItem } from '../../../core/services/cart.service';
-import { PromotionService, Promotion, AppliedPromotion } from '../../../core/services/promotion.service';
+import { PromotionService, Promotion, AppliedPromotion, formatDiscountBadgeText } from '../../../core/services/promotion.service';
+import { WishlistService } from '../../../core/services/wishlist.service';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { 
@@ -24,7 +25,10 @@ import {
   Undo2,
   Sparkles,
   Truck,
-  Pencil
+  Pencil,
+  Heart,
+  Star,
+  Layers
 } from 'lucide-angular';
 
 
@@ -42,13 +46,30 @@ export interface VariantAttributeGroup {
   options: VariantAttributeOption[];
 }
 
+export interface VariantSingleFixedAttribute {
+  groupId: string;
+  label: string;
+  value: string;
+}
+
 const GROUP_LABEL_MAP: Record<string, string> = {
+  vaConfigurationSize: 'Kích thước',
   vaSize: 'Kích thước',
-  vaMaterial: 'Chất liệu & Hoàn thiện',
-  vaMaterialShell: 'Chất liệu vỏ / Khung',
-  vaMaterialTabletop: 'Chất liệu mặt bàn',
-  vaMaterialLeg: 'Chất liệu chân ghế / bàn',
+  vaMaterialUpholstery: 'Chất liệu vải bọc',
+  vaMaterial: 'Chất liệu / Màu hoàn thiện',
+  vaColour: 'Màu sắc',
   vaColor: 'Màu sắc',
+  vaMaterialLeg: 'Chất liệu chân',
+  vaMaterialLegStyle: 'Kiểu dáng chân',
+  vaMaterialSeat: 'Chất liệu mặt ngồi',
+  vaMaterialTabletop: 'Chất liệu mặt bàn',
+  vaSofaDirection: 'Hướng góc sofa',
+  vaRugShape: 'Kiểu dáng thảm',
+  vaFunction: 'Chức năng',
+  vaMaterialLamp: 'Chất liệu đèn',
+  vaMaterialShell: 'Chất liệu vỏ / Khung',
+  vaMaterialCabinet: 'Chất liệu tủ',
+  vaMattressSize: 'Kích thước nệm',
   vaFinish: 'Bề mặt hoàn thiện'
 };
 
@@ -81,7 +102,10 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     Undo2,
     Sparkles,
     Truck,
-    Pencil
+    Pencil,
+    Heart,
+    Star,
+    Layers
   };
 
   // Cache biến thể sản phẩm theo productId để tải nhanh tức thì
@@ -132,9 +156,26 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
 
   // Dropdown ma trận thuộc tính chuẩn tab Xem Nhanh trong Sidebar
   variantAttributeGroups: VariantAttributeGroup[] = [];
+  variantSingleFixedAttributes: VariantSingleFixedAttribute[] = [];
   selectedVariantAttributes: Record<string, string> = {};
   openVariantDropdownGroupId: string | null = null;
   isSingleVariantDropdownOpen = false;
+
+  // Dữ liệu hiển thị chuẩn Quick View trong Sidebar Chỉnh sửa biến thể
+  variantGalleryImages: string[] = [];
+  isEditingProductWishlisted = false;
+  editingQuantity = 1;
+  editingMaxStock = 0;
+  editingSafetyThreshold = 5;
+  variantRealMaterial = '';
+  variantRealDimensions = '';
+  variantSpecsWeightLoad = '';
+  variantSpecsMaterials = '';
+  variantSpecsDesignedBy = '';
+  variantSpecsPolicy = 'Bảo hành 10 năm kết cấu, Đổi trả 30 ngày';
+
+  // Floating tooltip hiện đầy đủ thuộc tính khi bị tràn (...)
+  hoveredVariantTooltip: { text: string; top: number; left: number; placement: 'top' | 'bottom' } | null = null;
 
   // Voucher Switcher Drawer / Panel (Mở song song bên cạnh giỏ hàng)
   isVoucherDrawerOpen = false;
@@ -150,6 +191,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     private router: Router,
     private cartService: CartService,
     private promotionService: PromotionService,
+    private wishlistService: WishlistService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -238,6 +280,13 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     this.sub.add(
       this.cartService.isLoading$.subscribe(loading => {
         this.isLoading = loading;
+        this.cdr.detectChanges();
+      })
+    );
+
+    this.sub.add(
+      this.wishlistService.wishlist$.subscribe(() => {
+        this.checkEditingWishlist();
         this.cdr.detectChanges();
       })
     );
@@ -353,8 +402,24 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     return baseFee;
   }
 
+  get productSaleSavings(): number {
+    return this.selectedValidItems.reduce((sum, item) => {
+      if (item.originalPrice && item.originalPrice > item.price) {
+        return sum + (item.originalPrice - item.price) * item.quantity;
+      }
+      return sum;
+    }, 0);
+  }
+
+  get totalSavings(): number {
+    const freeshipSaving = (this.subTotal > 0 && this.subTotal < 50000000 && this.appliedFreeshipVoucher)
+      ? Math.min(250000, this.appliedFreeshipVoucher.calculatedDiscount || 250000)
+      : 0;
+    return this.productSaleSavings + this.discountAmount + freeshipSaving;
+  }
+
   get totalAmount(): number {
-    return Math.max(0, this.subTotal + (this.subTotal > 0 ? this.shippingFee : 0) - this.discountAmount);
+    return Math.max(0, this.subTotal - this.discountAmount);
   }
 
   get totalSelectedQuantity(): number {
@@ -620,6 +685,9 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   get variantImages(): string[] {
+    if (this.variantGalleryImages.length > 0) {
+      return this.variantGalleryImages;
+    }
     const v = this.selectedVariantDetails;
     if (v?.images && Array.isArray(v.images) && v.images.length > 0) {
       return v.images;
@@ -634,6 +702,255 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     return ['/assets/img/furniture-placeholder.svg'];
   }
 
+  optimizeVariantImageUrl(url: string, width = 800): string {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('res.cloudinary.com')) {
+      if (url.includes('/image/fetch/') && !url.includes('w_')) {
+        return url.replace('/image/fetch/', `/image/fetch/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+      if (url.includes('/image/upload/') && !url.includes('w_')) {
+        return url.replace('/image/upload/', `/image/upload/w_${width},c_limit,f_auto,q_auto:good/`);
+      }
+    }
+    return url;
+  }
+
+  getVariantThumbUrl(url: string): string {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('/image/fetch/')) {
+      return url.replace(/\/image\/fetch\/([^/]+\/)?/, '/image/fetch/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    if (url.includes('/image/upload/')) {
+      return url.replace(/\/image\/upload\/([^/]+\/)?/, '/image/upload/w_160,h_160,c_fill,f_auto,q_auto:good/');
+    }
+    return url;
+  }
+
+  private extractVariantRealImages(prod: any, currentVariant: any): string[] {
+    const list: string[] = [];
+    const isClean = (u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('dsasf753c');
+
+    const vImgs = currentVariant?.images || currentVariant?.optionValues?.images || [];
+    if (Array.isArray(vImgs)) {
+      vImgs.filter(isClean).forEach((img: string) => {
+        const opt = this.optimizeVariantImageUrl(img, 800);
+        if (!list.includes(opt)) list.push(opt);
+      });
+    }
+
+    const pImgs = prod?.images || [];
+    if (Array.isArray(pImgs)) {
+      pImgs.filter(isClean).forEach((img: string) => {
+        const opt = this.optimizeVariantImageUrl(img, 800);
+        if (!list.includes(opt)) list.push(opt);
+      });
+    }
+
+    if (list.length === 0 && this.editingCartItem?.image) {
+      list.push(this.editingCartItem.image);
+    }
+
+    return list.length > 0 ? list : ['/assets/img/furniture-placeholder.svg'];
+  }
+
+  private buildVariantDimensionString(attrs: any, dims: any): string {
+    const parts: string[] = [];
+    if (attrs.diameter) {
+      parts.push(`Đường kính: ${attrs.diameter}`);
+    } else if (dims.width || attrs.width) {
+      parts.push(`Rộng: ${attrs.width || (dims.width + ' cm')}`);
+    }
+    if (dims.depth || attrs.depth) {
+      parts.push(`Sâu: ${attrs.depth || (dims.depth + ' cm')}`);
+    }
+    if (dims.height || attrs.height) {
+      parts.push(`Cao: ${attrs.height || (dims.height + ' cm')}`);
+    }
+    if (dims.weight || attrs.weight) {
+      parts.push(`Trọng lượng: ${attrs.weight || (dims.weight + ' kg')}`);
+    }
+    if (attrs.mattressSize) {
+      parts.push(`Kích thước nệm: ${attrs.mattressSize}`);
+    }
+    return parts.join(' × ');
+  }
+
+  private updateVariantSidebarData() {
+    const prod = this.productForVariantEdit;
+    const v = this.selectedVariantDetails || prod?.variants?.[0];
+    const attrs = v?.attributes || v?.optionValues?.attributes || {};
+    const dims = v?.dimensions || v?.optionValues?.dimensions || {};
+
+    // A. Tồn kho khả dụng & Ngưỡng cảnh báo từ Database
+    const stockVal = v ? ((v.stock ?? 0) - (v.reservedStock ?? 0)) : (prod?.stock || 0);
+    this.editingMaxStock = Math.max(0, stockVal);
+
+    const rawThreshold = v?.safetyThreshold ?? v?.threshold ?? v?.optionValues?.safetyThreshold ?? v?.warehouseStocks?.[0]?.safetyThreshold;
+    this.editingSafetyThreshold = (typeof rawThreshold === 'number' && Number.isFinite(rawThreshold) && rawThreshold >= 0) ? rawThreshold : 5;
+
+    if (this.editingMaxStock > 0 && this.editingQuantity > this.editingMaxStock) {
+      this.editingQuantity = this.editingMaxStock;
+    } else if (this.editingMaxStock > 0 && this.editingQuantity < 1) {
+      this.editingQuantity = 1;
+    }
+
+    // B. Ảnh thật từ Database
+    this.variantGalleryImages = this.extractVariantRealImages(prod, v);
+    this.currentVariantImageIdx = 0;
+
+    // C. Kích thước thật từ Database
+    this.variantRealDimensions = this.buildVariantDimensionString(attrs, dims);
+
+    // D. Chất liệu & Hoàn thiện thật từ Database
+    const finish = attrs.finish_vi || attrs.finish || '';
+    const upholstery = attrs.upholsteryComposition_vi || attrs.upholsteryComposition || '';
+    const baseDesc = prod?.description || '';
+    const matParts = [finish, upholstery, baseDesc].filter(Boolean);
+    this.variantRealMaterial = matParts.length > 0 ? matParts.join(' • ') : '';
+
+    // E. Thông số kỹ thuật
+    this.variantSpecsWeightLoad = attrs.weightLoad ? `${attrs.weightLoad}` : '';
+    if (attrs.productSpecification_vi) {
+      this.variantSpecsMaterials = attrs.productSpecification_vi.split('|').slice(0, 3).join(', ');
+    } else if (attrs.productSpecification) {
+      this.variantSpecsMaterials = attrs.productSpecification.split('|').slice(0, 2).join(', ');
+    } else {
+      this.variantSpecsMaterials = this.variantRealMaterial || '';
+    }
+    this.variantSpecsDesignedBy = attrs.designedBy || '';
+  }
+
+  private checkEditingWishlist() {
+    const pid = this.productForVariantEdit?.productId || this.productForVariantEdit?.id || this.editingCartItem?.productId;
+    this.isEditingProductWishlisted = pid ? this.wishlistService.isWishlisted(pid) : false;
+  }
+
+  toggleEditingWishlist(e: Event) {
+    e.stopPropagation();
+    e.preventDefault();
+    const pid = this.productForVariantEdit?.productId || this.productForVariantEdit?.id || this.editingCartItem?.productId;
+    if (!pid) return;
+    this.isEditingProductWishlisted = this.wishlistService.toggle(pid);
+    this.cdr.detectChanges();
+  }
+
+  selectVariantThumbnail(idx: number) {
+    this.currentVariantImageIdx = idx;
+  }
+
+  decreaseEditingQuantity() {
+    if (this.editingMaxStock === 0) return;
+    this.editingQuantity = this.editingQuantity > 1 ? this.editingQuantity - 1 : 1;
+  }
+
+  increaseEditingQuantity() {
+    if (this.editingMaxStock === 0) return;
+    if (this.editingQuantity < this.editingMaxStock) {
+      this.editingQuantity++;
+    }
+  }
+
+  onEditingQtyFocus(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input) input.select();
+  }
+
+  onEditingQtyKeydown(event: KeyboardEvent) {
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (allowedKeys.includes(event.key)) {
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.increaseEditingQuantity();
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.decreaseEditingQuantity();
+      } else if (event.key === 'Enter') {
+        (event.target as HTMLElement).blur();
+      }
+      return;
+    }
+    if (event.ctrlKey || event.metaKey) return;
+    if (!/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  onEditingQtyInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const cleanVal = input.value.replace(/\D/g, '');
+    if (!cleanVal) {
+      input.value = '';
+      return;
+    }
+    let num = parseInt(cleanVal, 10);
+    if (this.editingMaxStock > 0 && num > this.editingMaxStock) num = this.editingMaxStock;
+    if (num < 1) num = 1;
+    input.value = String(num);
+    this.editingQuantity = num;
+  }
+
+  onEditingQtyBlur(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const cleanVal = input.value.replace(/\D/g, '');
+    let num = parseInt(cleanVal, 10);
+    if (isNaN(num) || num < 1) {
+      num = this.editingMaxStock > 0 ? 1 : 0;
+    } else if (this.editingMaxStock > 0 && num > this.editingMaxStock) {
+      num = this.editingMaxStock;
+    }
+    this.editingQuantity = num;
+    input.value = String(this.editingQuantity);
+  }
+
+  get isEditingLowStock(): boolean {
+    return this.editingMaxStock > 0 && this.editingMaxStock <= this.editingSafetyThreshold;
+  }
+
+  get editingCurrentSku(): string {
+    return this.selectedVariantDetails?.sku || this.productForVariantEdit?.variants?.[0]?.sku || this.editingCartItem?.sku || this.editingCartItem?.productId || '—';
+  }
+
+  get editingCurrentPrice(): number {
+    const prod = this.productForVariantEdit;
+    const v = this.selectedVariantDetails;
+    const raw = v ? v.price : (prod?.basePrice || this.editingCartItem?.price || 0);
+    if (prod) {
+      const campDisc = this.promotionService.getDiscountForProduct(prod);
+      if (campDisc) return campDisc.salePrice;
+      const disc = prod.discountValue;
+      const type = prod.discountType;
+      if (disc && disc > 0) {
+        if (type === 'PERCENT') return Math.round(raw * (100 - disc) / 100);
+        return Math.max(0, raw - disc);
+      }
+    }
+    return raw;
+  }
+
+  get editingOriginalPrice(): number | null {
+    const prod = this.productForVariantEdit;
+    if (!prod) return this.editingCartItem?.originalPrice || null;
+    const campDisc = this.promotionService.getDiscountForProduct(prod);
+    if (campDisc) return campDisc.originalPrice;
+    const disc = prod.discountValue;
+    if (disc && disc > 0) {
+      return this.selectedVariantDetails ? this.selectedVariantDetails.price : prod.basePrice;
+    }
+    return null;
+  }
+
+  get editingDiscountBadgeText(): string {
+    const prod = this.productForVariantEdit;
+    if (!prod) return '';
+    const campDisc = this.promotionService.getDiscountForProduct(prod);
+    if (campDisc) return campDisc.badgeText;
+    const disc = prod.discountValue;
+    if (disc && disc > 0) {
+      return formatDiscountBadgeText(prod.discountType || 'PERCENT', disc);
+    }
+    return '';
+  }
+
   prevVariantImage(e?: Event) {
     if (e) e.stopPropagation();
     const imgs = this.variantImages;
@@ -646,7 +963,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     this.currentVariantImageIdx = this.currentVariantImageIdx >= imgs.length - 1 ? 0 : this.currentVariantImageIdx + 1;
   }
 
-  // --- Logic Đổi Biến Thể Sản Phẩm (Sidebar bên cạnh - Chuẩn Dropdown Tab Xem Nhanh) ---
+  // --- Logic Đổi Biến Thể Sản Phẩm (Sidebar bên cạnh - Chuẩn 100% Quick View Drawer) ---
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
@@ -660,18 +977,21 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     if (event) event.stopPropagation();
     this.editingCartItem = item;
     this.selectedVariantId = item.variantId;
+    this.editingQuantity = Math.max(1, item.quantity || 1);
     this.isVariantDrawerOpen = true;
     this.isVoucherDrawerOpen = false;
     this.currentVariantImageIdx = 0;
     this.variantErrorMessage = null;
     this.openVariantDropdownGroupId = null;
     this.isSingleVariantDropdownOpen = false;
+    this.checkEditingWishlist();
 
     // Kiểm tra cache: Nếu sản phẩm đã tải trước đó, hiển thị ngay lập tức
     if (CartDrawerComponent.productVariantsCache.has(item.productId)) {
       this.productForVariantEdit = CartDrawerComponent.productVariantsCache.get(item.productId);
       this.isLoadingProductVariants = false;
       this.initVariantAttributes();
+      this.checkEditingWishlist();
       this.cdr.detectChanges();
       return;
     }
@@ -689,6 +1009,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
         this.productForVariantEdit = data;
         this.isLoadingProductVariants = false;
         this.initVariantAttributes();
+        this.checkEditingWishlist();
         this.cdr.detectChanges();
       })
       .catch(err => {
@@ -709,7 +1030,11 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     this.openVariantDropdownGroupId = null;
     this.isSingleVariantDropdownOpen = false;
     this.variantAttributeGroups = [];
+    this.variantSingleFixedAttributes = [];
     this.selectedVariantAttributes = {};
+    this.variantGalleryImages = [];
+    this.editingQuantity = 1;
+    this.editingMaxStock = 0;
   }
 
   get availableVariantsForEdit(): any[] {
@@ -732,12 +1057,13 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     this.currentVariantImageIdx = 0;
     this.variantErrorMessage = null;
     this.syncSelectedAttributesFromVariant(variant);
+    this.updateVariantSidebarData();
     this.cdr.detectChanges();
   }
 
-  // --- Khởi tạo và xử lý Ma trận thuộc tính Dropdown chuẩn Tab Xem Nhanh ---
+  // --- Khởi tạo và xử lý Ma trận thuộc tính Dropdown chuẩn 100% Quick View ---
   private isNumericSlash(name: string): boolean {
-    return /^\d+(\.\d+)?\/\d+(\.\d+)?$/.test((name || '').trim());
+    return /\d[\d½¼¾.]*\s*\/\s*\d/.test((name || '').trim());
   }
 
   private splitCompositeName(name: string): string[] {
@@ -770,11 +1096,12 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     const configAttrs: any[] = prod.configOptions?.attributes || [];
 
     this.variantAttributeGroups = [];
+    this.variantSingleFixedAttributes = [];
     this.selectedVariantAttributes = {};
     this.openVariantDropdownGroupId = null;
     this.isSingleVariantDropdownOpen = false;
 
-    // 1. Phân tích nhóm thuộc tính
+    // 1. Phân tích nhóm thuộc tính giống hệt Quick View
     if (configAttrs.length > 0) {
       for (const attr of configAttrs) {
         const gid = attr.groupId || 'attr';
@@ -830,21 +1157,39 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
                 label: subLabel,
                 options: subOpts
               });
+            } else if (subOpts.length === 1) {
+              this.variantSingleFixedAttributes.push({
+                groupId: subGroupId,
+                label: subLabel,
+                value: subOpts[0].name
+              });
             }
           }
         } else {
-          const uniqueOpts = Array.from(new Map(rawOpts.map(o => [o.name, o])).values());
+          const cleanedOpts = rawOpts.map(o => {
+            const parts = this.splitCompositeName(o.name);
+            return {
+              ...o,
+              name: parts.length === 1 ? parts[0] : o.name
+            };
+          });
+          const uniqueOpts = Array.from(new Map(cleanedOpts.map(o => [o.name, o])).values());
           if (uniqueOpts.length > 1) {
             this.variantAttributeGroups.push({
               groupId: gid,
               label,
               options: uniqueOpts
             });
+          } else if (uniqueOpts.length === 1) {
+            this.variantSingleFixedAttributes.push({
+              groupId: gid,
+              label,
+              value: uniqueOpts[0].name
+            });
           }
         }
       }
     } else if (rawVariants.length > 1) {
-      // Fallback: phân tích theo tên biến thể
       const sampleParts = this.parseVariantToParts(rawVariants[0].name || '');
       if (sampleParts.length > 1) {
         sampleParts.forEach((_: string, idx: number) => {
@@ -861,6 +1206,12 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
               label,
               options: uniqueVals.map(val => ({ id: val, name: val }))
             });
+          } else if (uniqueVals.length === 1) {
+            this.variantSingleFixedAttributes.push({
+              groupId: `opt_${idx}`,
+              label: idx === 0 && /^[HhWwLlDdØø]\d+/i.test(uniqueVals[0]) ? 'Kích thước tiêu chuẩn' : 'Chất liệu tiêu chuẩn',
+              value: uniqueVals[0]
+            });
           }
         });
       }
@@ -872,6 +1223,64 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
       this.selectedVariantId = currentVar.id;
       this.syncSelectedAttributesFromVariant(currentVar);
     }
+
+    // 3. Cập nhật toàn bộ ảnh, tồn kho, thông số kỹ thuật chuẩn Quick View
+    this.updateVariantSidebarData();
+  }
+
+  private isVariantMatchOption(v: any, group: VariantAttributeGroup, opt: VariantAttributeOption): boolean {
+    if (!v || !opt) return false;
+    const optIdLower = (opt.id || '').toLowerCase();
+    const optNameLower = (opt.name || '').toLowerCase();
+    const vNameLower = (v.name || '').toLowerCase();
+    const vSkuLower = (v.sku || '').toLowerCase();
+    const groupId = group.groupId;
+
+    const optVal = v.optionValues?.[groupId];
+    if (optVal !== undefined && optVal !== null) {
+      const optValStr = String(optVal).toLowerCase();
+      if (optValStr === optIdLower || optValStr === optNameLower) return true;
+    }
+
+    const parentGroupId = groupId.replace(/_sub_\d+$/, '');
+    const parentOptVal = v.optionValues?.[parentGroupId];
+    if (parentOptVal !== undefined && parentOptVal !== null) {
+      const pStr = String(parentOptVal).toLowerCase();
+      if (pStr === optIdLower || pStr === optNameLower) return true;
+    }
+
+    const nestedVal = v.optionValues?.attributes?.[groupId] || v.optionValues?.attributes?.[parentGroupId];
+    if (nestedVal !== undefined && nestedVal !== null) {
+      const nestedStr = String(nestedVal).toLowerCase();
+      if (nestedStr === optIdLower || nestedStr === optNameLower) return true;
+    }
+
+    if (optNameLower && (vNameLower.includes(optNameLower) || optNameLower.includes(vNameLower))) {
+      return true;
+    }
+
+    const vParts = this.parseVariantToParts(v.name || '');
+    if (vParts.some(p => p.toLowerCase() === optNameLower || p.toLowerCase() === optIdLower)) {
+      return true;
+    }
+
+    if (optIdLower && optIdLower.length >= 3 && vSkuLower.includes(optIdLower)) {
+      return true;
+    }
+
+    if (v.optionValues) {
+      for (const key of ['color', 'size', 'material', 'finish']) {
+        const val = v.optionValues[key];
+        if (typeof val === 'string' && val.trim() && val !== 'Tiêu chuẩn' && val !== 'Mặc định') {
+          const valLower = val.toLowerCase();
+          if (valLower === optIdLower || valLower === optNameLower || optNameLower.includes(valLower)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   private syncSelectedAttributesFromVariant(v: any) {
@@ -882,7 +1291,8 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
       if (valId !== undefined && valId !== null && group.options.some(o => o.id === String(valId))) {
         this.selectedVariantAttributes[group.groupId] = String(valId);
       } else {
-        const matchedOpt = group.options.find(o => vNameLower.includes(o.name.toLowerCase()));
+        const matchedOpt = group.options.find(o => this.isVariantMatchOption(v, group, o))
+          || group.options.find(o => vNameLower.includes(o.name.toLowerCase()));
         this.selectedVariantAttributes[group.groupId] = matchedOpt ? matchedOpt.id : (group.options[0]?.id || '');
       }
     }
@@ -916,6 +1326,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     }
     str = str.replace(/(\d+(?:[½¼¾]|\/\d+)?)\s*(cm|mm|m)\b/gi, '$1 $2');
     str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
+    str = str.replace(/([a-zA-Z0-9½¼¾]+)\s*[xX]\s*([a-zA-Z0-9½¼¾Øø]+)/g, '$1 × $2');
     str = str.replace(/[Øø]\s*(\d+)/g, 'Ø$1');
     return str;
   }
@@ -936,43 +1347,31 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     const variants: any[] = this.availableVariantsForEdit;
     if (variants.length === 0) return null;
 
-    const exact = variants.find(v => {
-      const vNameLower = (v.name || '').toLowerCase();
-      return Object.keys(attrs).every(gid => {
-        const selVal = attrs[gid];
-        const vVal = v.optionValues?.[gid];
-        if (vVal !== undefined && vVal !== null) {
-          return String(vVal) === String(selVal);
-        }
-        const group = this.variantAttributeGroups.find(g => g.groupId === gid);
-        const opt = group?.options.find(o => o.id === selVal);
-        if (!opt) return true;
-        return vNameLower.includes(opt.name.toLowerCase());
-      });
-    });
-    if (exact) return exact;
-
-    let bestMatch: any = null;
-    let maxScore = -1;
+    let bestMatch = variants[0];
+    let highestScore = -1;
 
     for (const v of variants) {
       let score = 0;
-      const vNameLower = (v.name || '').toLowerCase();
-      for (const gid of Object.keys(attrs)) {
-        const selVal = attrs[gid];
-        const vVal = v.optionValues?.[gid];
-        if (vVal !== undefined && vVal !== null && String(vVal) === String(selVal)) {
-          score += 2;
+      for (const group of this.variantAttributeGroups) {
+        const selValId = attrs[group.groupId];
+        if (!selValId) continue;
+
+        const selectedOpt = group.options.find(o => o.id === selValId);
+        if (selectedOpt && this.isVariantMatchOption(v, group, selectedOpt)) {
+          score += 10;
         } else {
-          const group = this.variantAttributeGroups.find(g => g.groupId === gid);
-          const opt = group?.options.find(o => o.id === selVal);
-          if (opt && vNameLower.includes(opt.name.toLowerCase())) {
-            score += 1;
+          const optVal = v.optionValues?.[group.groupId];
+          if (optVal !== undefined && String(optVal) === selValId) {
+            score += 10;
           }
         }
       }
-      if (score > maxScore) {
-        maxScore = score;
+
+      const avail = this.getVariantAvailableStock(v);
+      if (avail > 0) score += 2;
+
+      if (score > highestScore) {
+        highestScore = score;
         bestMatch = v;
       }
     }
@@ -985,8 +1384,8 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     if (matched) {
       this.selectedVariantId = matched.id;
       this.syncSelectedAttributesFromVariant(matched);
-      this.currentVariantImageIdx = 0;
       this.variantErrorMessage = null;
+      this.updateVariantSidebarData();
       this.cdr.detectChanges();
     }
   }
@@ -994,7 +1393,27 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
   saveVariantChange() {
     if (!this.editingCartItem || !this.selectedVariantId) return;
 
+    const targetQty = Math.max(1, this.editingQuantity || this.editingCartItem.quantity || 1);
+
+    // Trường hợp giữ nguyên biến thể nhưng có thay đổi số lượng
     if (this.selectedVariantId === this.editingCartItem.variantId) {
+      if (targetQty !== this.editingCartItem.quantity) {
+        if (this.editingMaxStock > 0 && targetQty > this.editingMaxStock) {
+          this.variantErrorMessage = `Chỉ còn ${this.editingMaxStock} sản phẩm trong kho.`;
+          return;
+        }
+        this.cartService.updateQuantity(this.editingCartItem.id, targetQty).subscribe({
+          next: () => {
+            this.showToast('Cập nhật số lượng thành công.', 'success');
+            this.closeVariantDrawer();
+          },
+          error: (err) => {
+            this.variantErrorMessage = err.error?.message || 'Không thể cập nhật số lượng.';
+            this.cdr.detectChanges();
+          }
+        });
+        return;
+      }
       this.closeVariantDrawer();
       return;
     }
@@ -1012,19 +1431,53 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     );
 
     if (existingSameVariantItem) {
-      const mergedQty = this.editingCartItem.quantity + existingSameVariantItem.quantity;
+      const mergedQty = targetQty + existingSameVariantItem.quantity;
       if (mergedQty > availableStock) {
         this.variantErrorMessage = `Không thể đổi vì tổng số lượng sau khi gộp (${mergedQty}) sẽ vượt quá tồn kho (Chỉ còn ${availableStock} sản phẩm).`;
         return;
       }
     } else {
-      if (this.editingCartItem.quantity > availableStock) {
-        this.variantErrorMessage = `Số lượng hiện tại (${this.editingCartItem.quantity}) vượt quá tồn kho của biến thể mới (Chỉ còn ${availableStock} sản phẩm).`;
+      if (targetQty > availableStock) {
+        this.variantErrorMessage = `Số lượng hiện tại (${targetQty}) vượt quá tồn kho của biến thể mới (Chỉ còn ${availableStock} sản phẩm).`;
         return;
       }
     }
 
-    this.cartService.updateVariant(this.editingCartItem.id, this.selectedVariantId).subscribe({
+    const selectedTags: { label: string; value: string }[] = [];
+    if (this.variantAttributeGroups.length > 0) {
+      for (const group of this.variantAttributeGroups) {
+        const opt = this.getSelectedVariantOption(group);
+        if (opt?.name) {
+          selectedTags.push({
+            label: group.label,
+            value: this.formatOptionDisplayName(opt.name, group)
+          });
+        }
+      }
+    }
+
+    const newVariantImgs = newVariant.optionValues?.images;
+    const updatedImage = (Array.isArray(newVariantImgs) && newVariantImgs.length > 0 && typeof newVariantImgs[0] === 'string')
+      ? newVariantImgs[0]
+      : (this.variantGalleryImages[0] || this.editingCartItem.image);
+
+    const updatedGuestInfo: Partial<CartItem> = {
+      sku: newVariant.sku,
+      variantName: newVariant.name,
+      variantTags: selectedTags.length > 0 ? selectedTags : undefined,
+      image: updatedImage,
+      price: this.editingCurrentPrice || newVariant.price || this.editingCartItem.price,
+      originalPrice: this.editingOriginalPrice || undefined,
+      availableStock
+    };
+
+    this.cartService.updateVariant(
+      this.editingCartItem.id,
+      this.selectedVariantId,
+      targetQty,
+      { ...this.selectedVariantAttributes },
+      updatedGuestInfo
+    ).subscribe({
       next: (res) => {
         this.showToast(res?.message || 'Cập nhật biến thể thành công.', 'success');
         this.closeVariantDrawer();
@@ -1036,7 +1489,81 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
+  getVariantDisplayText(item: CartItem): string {
+    const values: string[] = [];
+    const seen = new Set<string>();
+    const skuLower = String(item.sku || '').trim().toLowerCase();
+
+    const pushRawValue = (raw: string | undefined | null) => {
+      if (!raw || typeof raw !== 'string') return;
+      const trimmed = raw.trim();
+      if (!trimmed || trimmed.startsWith('http://') || trimmed.startsWith('https://')) return;
+
+      const majorParts = trimmed.split(/\s*[|·]\s*/).map(p => p.trim()).filter(Boolean);
+      for (const chunk of majorParts) {
+        const parts = this.splitCompositeName(chunk);
+        for (const p of parts) {
+          const formatted = this.formatOptionDisplayName(p);
+          const lower = formatted.toLowerCase();
+          if (
+            !formatted ||
+            lower === 'phân loại mặc định' ||
+            lower === 'tùy chọn mặc định' ||
+            (skuLower && lower === skuLower) ||
+            seen.has(lower)
+          ) {
+            continue;
+          }
+          seen.add(lower);
+          values.push(formatted);
+        }
+      }
+    };
+
+    if (Array.isArray(item.variantTags) && item.variantTags.length > 0) {
+      for (const tag of item.variantTags) {
+        pushRawValue(tag?.value);
+      }
+    }
+
+    if (values.length === 0 && item.variantName) {
+      pushRawValue(item.variantName);
+    }
+
+    return values.length > 0 ? values.join(' | ') : 'Tùy chọn mặc định';
+  }
+
+  onVariantBadgeMouseEnter(event: MouseEvent, item: CartItem) {
+    if (typeof window === 'undefined') return;
+    const btn = event.currentTarget as HTMLElement | null;
+    if (!btn) return;
+
+    const textEl = btn.querySelector('.variant-text') as HTMLElement | null;
+    if (!textEl || textEl.scrollWidth <= textEl.clientWidth + 1) {
+      this.hoveredVariantTooltip = null;
+      return;
+    }
+
+    const fullText = this.getVariantDisplayText(item);
+    const rect = btn.getBoundingClientRect();
+    const tooltipMaxWidth = 280;
+    const left = Math.max(12, Math.min(window.innerWidth - tooltipMaxWidth - 12, rect.left));
+    const showBelow = rect.top < 96;
+
+    this.hoveredVariantTooltip = {
+      text: fullText,
+      top: showBelow ? rect.bottom + 8 : rect.top - 8,
+      left,
+      placement: showBelow ? 'bottom' : 'top'
+    };
+  }
+
+  hideVariantTooltip() {
+    this.hoveredVariantTooltip = null;
+  }
+
   closeDrawer() {
+    this.hideVariantTooltip();
     this.closeVariantDrawer();
     this.isOpen = false;
     this.isConfirmDeleteOpen = false;

@@ -50,77 +50,98 @@
   </div>
 
   <!-- =========================================================================
-       2. TABS CHUYỂN ĐỔI TRẠNG THÁI & QUICK EXPAND
+       2. THANH TÌM KIẾM TÁCH RIÊNG BÊN NGOÀI
        ========================================================================= -->
-  <div class="tabs-and-tools">
-    <nav class="status-tabs-nav" aria-label="Lọc trạng thái sản phẩm">
+  <div class="products-search-bar">
+    <div class="search-input-box standalone-search-box">
+      <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Tìm theo tên sản phẩm, mã SKU tổng hoặc SKU biến thể..." 
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+      />
       <button 
         type="button" 
-        class="tab-btn" 
-        [class.active]="activeTab === 'ALL'" 
-        (click)="setTab('ALL')">
-        <span>Tất cả</span>
-        <span class="tab-badge">{{ totalNonTrashCount }}</span>
+        class="clear-search-btn" 
+        *ngIf="searchQuery" 
+        (click)="clearSearch()"
+        title="Xóa từ khóa tìm kiếm">
+        <lucide-angular [img]="icons.X" size="14"></lucide-angular>
       </button>
-
-      <button 
-        type="button" 
-        class="tab-btn" 
-        [class.active]="activeTab === 'ACTIVE'" 
-        (click)="setTab('ACTIVE')">
-        <span class="status-dot dot-active"></span>
-        <span>Đang bán</span>
-        <span class="tab-badge">{{ totalActiveCount }}</span>
-      </button>
-
-      <button 
-        type="button" 
-        class="tab-btn" 
-        [class.active]="activeTab === 'DRAFT'" 
-        (click)="setTab('DRAFT')">
-        <span class="status-dot dot-draft"></span>
-        <span>Bản nháp</span>
-        <span class="tab-badge">{{ totalDraftCount }}</span>
-      </button>
-
-      <button 
-        type="button" 
-        class="tab-btn" 
-        [class.active]="activeTab === 'HIDDEN'" 
-        (click)="setTab('HIDDEN')">
-        <span class="status-dot dot-hidden"></span>
-        <span>Đã ẩn</span>
-        <span class="tab-badge">{{ totalHiddenCount }}</span>
-      </button>
-    </nav>
+    </div>
   </div>
 
   <!-- =========================================================================
-       4. THANH TÌM KIẾM & BỘ LỌC (FILTER BAR)
+       3. KHỐI BỘ LỌC TẬP TRUNG (TRẠNG THÁI, DANH MỤC, DANH MỤC PHỤ, TỒN KHO, SẮP XẾP)
        ========================================================================= -->
   <div #filterContainerRef class="filter-bar-card">
     <div class="filter-row">
-      
-      <!-- Ô Tìm kiếm -->
-      <div class="search-input-box">
-        <lucide-angular [img]="icons.Search" size="16" class="search-icon"></lucide-angular>
-        <input 
-          type="text" 
-          class="search-input" 
-          placeholder="Tìm theo tên sản phẩm, mã SKU tổng hoặc SKU biến thể..." 
-          [(ngModel)]="searchQuery"
-          (ngModelChange)="onSearchChange()"
-        />
+
+      <!-- Dropdown Lọc Trạng thái sản phẩm -->
+      <div class="custom-dropdown">
         <button 
           type="button" 
-          class="clear-search-btn" 
-          *ngIf="searchQuery" 
-          (click)="clearSearch()">
-          <lucide-angular [img]="icons.X" size="14"></lucide-angular>
+          class="dropdown-trigger-btn" 
+          [class.active]="activeTab !== 'ALL'"
+          (click)="toggleStatusDropdown($event)">
+          <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular>
+          <span class="dropdown-label">{{ selectedStatusLabel }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
         </button>
+        <div class="dropdown-menu" *ngIf="isStatusDropdownOpen">
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="activeTab === 'ALL'"
+            (click)="selectStatusFilter('ALL')">
+            <span class="status-opt-left">
+              <span>Tất cả trạng thái</span>
+              <span class="tab-badge">{{ totalNonTrashCount }}</span>
+            </span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="activeTab === 'ALL'"></lucide-angular>
+          </button>
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="activeTab === 'ACTIVE'"
+            (click)="selectStatusFilter('ACTIVE')">
+            <span class="status-opt-left">
+              <span class="status-dot dot-active"></span>
+              <span>Đang bán</span>
+              <span class="tab-badge">{{ totalActiveCount }}</span>
+            </span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="activeTab === 'ACTIVE'"></lucide-angular>
+          </button>
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="activeTab === 'DRAFT'"
+            (click)="selectStatusFilter('DRAFT')">
+            <span class="status-opt-left">
+              <span class="status-dot dot-draft"></span>
+              <span>Bản nháp</span>
+              <span class="tab-badge">{{ totalDraftCount }}</span>
+            </span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="activeTab === 'DRAFT'"></lucide-angular>
+          </button>
+          <button 
+            type="button" 
+            class="dropdown-item" 
+            [class.selected]="activeTab === 'HIDDEN'"
+            (click)="selectStatusFilter('HIDDEN')">
+            <span class="status-opt-left">
+              <span class="status-dot dot-hidden"></span>
+              <span>Đã ẩn</span>
+              <span class="tab-badge">{{ totalHiddenCount }}</span>
+            </span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="activeTab === 'HIDDEN'"></lucide-angular>
+          </button>
+        </div>
       </div>
 
-      <!-- Dropdown Lọc Danh mục -->
+      <!-- Dropdown Lọc Danh mục chính -->
       <div class="custom-dropdown">
         <button 
           type="button" 
@@ -141,6 +162,165 @@
             <span>{{ cat.name }}</span>
             <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedCategory === cat.id"></lucide-angular>
           </button>
+        </div>
+      </div>
+
+      <!-- Dropdown Gộp Danh mục phụ & Thuộc tính (Phân tầng theo 4 nhóm cha → con) -->
+      <div class="custom-dropdown" *ngIf="hasSubCategoryOptions">
+        <button 
+          type="button" 
+          class="dropdown-trigger-btn" 
+          [class.active]="activeSubCategoryCount > 0"
+          (click)="toggleSubCategoryDropdown($event)">
+          <lucide-angular [img]="icons.Layers" size="14"></lucide-angular>
+          <span class="dropdown-label">{{ selectedSubCategoryLabel }}</span>
+          <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+        </button>
+
+        <div class="dropdown-menu subcat-tree-menu" *ngIf="isSubCategoryDropdownOpen" (click)="$event.stopPropagation()">
+          <!-- Tùy chọn Tất cả -->
+          <button 
+            type="button" 
+            class="dropdown-item subcat-all-item" 
+            [class.selected]="activeSubCategoryCount === 0"
+            (click)="clearSubCategoryFilters()">
+            <span>Tất cả danh mục phụ</span>
+            <lucide-angular [img]="icons.Check" size="14" *ngIf="activeSubCategoryCount === 0"></lucide-angular>
+          </button>
+
+          <div class="subcat-tree-divider"></div>
+
+          <!-- Tầng 1: Không gian & Phòng ứng dụng -->
+          <div class="subcat-tree-group" *ngIf="roomOptions.length > 0">
+            <button
+              type="button"
+              class="subcat-group-header"
+              [class.has-selection]="selectedRoomFilter !== 'ALL'"
+              (click)="toggleSubCategoryGroup('room', $event)">
+              <span class="subcat-group-left">
+                <lucide-angular
+                  [img]="icons.ChevronRight"
+                  size="14"
+                  class="subcat-group-chevron"
+                  [class.expanded]="expandedSubCategoryGroups['room']">
+                </lucide-angular>
+                <span class="subcat-group-title">Không gian &amp; Phòng ứng dụng</span>
+              </span>
+              <span class="subcat-group-badge" *ngIf="selectedRoomFilter !== 'ALL'">1</span>
+              <span class="subcat-group-count" *ngIf="selectedRoomFilter === 'ALL'">{{ roomOptions.length }}</span>
+            </button>
+
+            <div class="subcat-group-children" *ngIf="expandedSubCategoryGroups['room']">
+              <button
+                type="button"
+                class="dropdown-item subcat-child-item"
+                *ngFor="let r of roomOptions"
+                [class.selected]="selectedRoomFilter === r.slug"
+                (click)="toggleSubCategoryOption('room', r.slug)">
+                <span>{{ r.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedRoomFilter === r.slug"></lucide-angular>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tầng 2: Bộ sưu tập -->
+          <div class="subcat-tree-group" *ngIf="collectionOptions.length > 0">
+            <button
+              type="button"
+              class="subcat-group-header"
+              [class.has-selection]="selectedCollectionFilter !== 'ALL'"
+              (click)="toggleSubCategoryGroup('collection', $event)">
+              <span class="subcat-group-left">
+                <lucide-angular
+                  [img]="icons.ChevronRight"
+                  size="14"
+                  class="subcat-group-chevron"
+                  [class.expanded]="expandedSubCategoryGroups['collection']">
+                </lucide-angular>
+                <span class="subcat-group-title">Bộ sưu tập</span>
+              </span>
+              <span class="subcat-group-badge" *ngIf="selectedCollectionFilter !== 'ALL'">1</span>
+              <span class="subcat-group-count" *ngIf="selectedCollectionFilter === 'ALL'">{{ collectionOptions.length }}</span>
+            </button>
+
+            <div class="subcat-group-children" *ngIf="expandedSubCategoryGroups['collection']">
+              <button
+                type="button"
+                class="dropdown-item subcat-child-item"
+                *ngFor="let col of collectionOptions"
+                [class.selected]="selectedCollectionFilter === col.slug"
+                (click)="toggleSubCategoryOption('collection', col.slug)">
+                <span>{{ col.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedCollectionFilter === col.slug"></lucide-angular>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tầng 3: Phong cách thiết kế -->
+          <div class="subcat-tree-group" *ngIf="styleOptions.length > 0">
+            <button
+              type="button"
+              class="subcat-group-header"
+              [class.has-selection]="selectedStyleFilter !== 'ALL'"
+              (click)="toggleSubCategoryGroup('style', $event)">
+              <span class="subcat-group-left">
+                <lucide-angular
+                  [img]="icons.ChevronRight"
+                  size="14"
+                  class="subcat-group-chevron"
+                  [class.expanded]="expandedSubCategoryGroups['style']">
+                </lucide-angular>
+                <span class="subcat-group-title">Phong cách thiết kế</span>
+              </span>
+              <span class="subcat-group-badge" *ngIf="selectedStyleFilter !== 'ALL'">1</span>
+              <span class="subcat-group-count" *ngIf="selectedStyleFilter === 'ALL'">{{ styleOptions.length }}</span>
+            </button>
+
+            <div class="subcat-group-children" *ngIf="expandedSubCategoryGroups['style']">
+              <button
+                type="button"
+                class="dropdown-item subcat-child-item"
+                *ngFor="let st of styleOptions"
+                [class.selected]="selectedStyleFilter === st.slug"
+                (click)="toggleSubCategoryOption('style', st.slug)">
+                <span>{{ st.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedStyleFilter === st.slug"></lucide-angular>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tầng 4: Chất liệu chế tác -->
+          <div class="subcat-tree-group" *ngIf="materialOptions.length > 0">
+            <button
+              type="button"
+              class="subcat-group-header"
+              [class.has-selection]="selectedMaterialFilter !== 'ALL'"
+              (click)="toggleSubCategoryGroup('material', $event)">
+              <span class="subcat-group-left">
+                <lucide-angular
+                  [img]="icons.ChevronRight"
+                  size="14"
+                  class="subcat-group-chevron"
+                  [class.expanded]="expandedSubCategoryGroups['material']">
+                </lucide-angular>
+                <span class="subcat-group-title">Chất liệu chế tác</span>
+              </span>
+              <span class="subcat-group-badge" *ngIf="selectedMaterialFilter !== 'ALL'">1</span>
+              <span class="subcat-group-count" *ngIf="selectedMaterialFilter === 'ALL'">{{ materialOptions.length }}</span>
+            </button>
+
+            <div class="subcat-group-children" *ngIf="expandedSubCategoryGroups['material']">
+              <button
+                type="button"
+                class="dropdown-item subcat-child-item"
+                *ngFor="let mat of materialOptions"
+                [class.selected]="selectedMaterialFilter === mat.slug"
+                (click)="toggleSubCategoryOption('material', mat.slug)">
+                <span>{{ mat.name }}</span>
+                <lucide-angular [img]="icons.Check" size="14" *ngIf="selectedMaterialFilter === mat.slug"></lucide-angular>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -260,6 +440,17 @@
           </button>
         </div>
       </div>
+
+      <!-- Nút đặt lại tất cả bộ lọc -->
+      <button
+        *ngIf="hasActiveFilters"
+        type="button"
+        class="btn-reset-filters"
+        (click)="resetAllFilters()"
+        title="Đặt lại tất cả bộ lọc">
+        <lucide-angular [img]="icons.RotateCcw" size="14"></lucide-angular>
+        <span>Đặt lại</span>
+      </button>
 
     </div>
   </div>
@@ -681,7 +872,7 @@
   </div>
 
   <!-- =========================================================================
-       7. MODAL XÁC THỰC 2 BƯỚC KHI XÓA SẢN PHẨM (YÊU CẦU NHẬP YES)
+       7. MODAL XÁC THỰC 2 BƯỚC KHI XÓA MỀM SẢN PHẨM (NHẬP TÊN SẢN PHẨM)
        ========================================================================= -->
   <div class="modal-backdrop" *ngIf="isDeleteModalOpen" (click)="closeDeleteModal()" style="pointer-events: auto; cursor: default;">
     <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
@@ -694,14 +885,14 @@
           </div>
           <div class="modal-title-group">
             <h3 class="modal-title">Xác nhận xóa sản phẩm</h3>
-            <p class="modal-subtitle">Bước 1/2: Xác thực hành động xóa</p>
+            <p class="modal-subtitle">Bước 1/2: Xác thực hành động xóa mềm</p>
           </div>
         </div>
         <div class="modal-body">
-          <p>Bạn có chắc chắn muốn xóa sản phẩm <strong>"{{ productToDelete?.name }}"</strong> (Mã SKU: {{ productToDelete?.baseSku }}) khỏi hệ thống không?</p>
+          <p>Bạn có chắc chắn muốn xóa sản phẩm <strong>"{{ productToDelete?.name }}"</strong> (Mã SKU: {{ productToDelete?.baseSku }}) khỏi giao diện quản trị và website bán hàng không?</p>
           <div class="delete-warning-box">
             <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
-            <span>Dữ liệu biến thể, tồn kho và hình ảnh của sản phẩm này sẽ bị xóa hoàn toàn khỏi cơ sở dữ liệu.</span>
+            <span>Sản phẩm và toàn bộ biến thể sẽ bị gỡ hoàn toàn khỏi giao diện (Admin &amp; Storefront). Dữ liệu gốc vẫn được lưu trữ ở trạng thái đã xóa trong cơ sở dữ liệu để bảo toàn lịch sử đơn hàng và báo cáo.</span>
           </div>
         </div>
         <div class="modal-footer">
@@ -713,7 +904,7 @@
         </div>
       </ng-container>
 
-      <!-- BƯỚC 2: YÊU CẦU NHẬP CHỮ YES ĐỂ XÁC NHẬN -->
+      <!-- BƯỚC 2: YÊU CẦU NHẬP TÊN SẢN PHẨM ĐỂ XÁC NHẬN -->
       <ng-container *ngIf="deleteStep === 2">
         <div class="modal-header">
           <div class="danger-icon-box">
@@ -721,30 +912,34 @@
           </div>
           <div class="modal-title-group">
             <h3 class="modal-title">Xác thực bảo mật bước 2</h3>
-            <p class="modal-subtitle">Vui lòng nhập chữ YES để hoàn tất</p>
+            <p class="modal-subtitle">Vui lòng nhập chính xác tên sản phẩm để hoàn tất</p>
           </div>
         </div>
         <div class="modal-body">
-          <p>Hành động này <strong>không thể hoàn tác</strong>. Để xác nhận xóa vĩnh viễn sản phẩm <strong>"{{ productToDelete?.name }}"</strong>, vui lòng nhập chính xác chữ <strong>YES</strong> vào ô bên dưới:</p>
-          <div class="form-group" style="margin-top: 14px;">
+          <p>Sản phẩm sau khi xóa sẽ <strong>biến mất hoàn toàn khỏi giao diện</strong> và không thể thao tác lại trên hệ thống. Vui lòng nhập chính xác tên sản phẩm dưới đây để xác nhận:</p>
+          <div class="delete-target-name-box" [title]="productToDelete?.name || ''">
+            <span>{{ productToDelete?.name }}</span>
+          </div>
+          <div class="form-group" style="margin-top: 12px;">
             <input 
               type="text" 
               class="form-control delete-confirm-input" 
-              placeholder="Nhập chữ YES để xác nhận" 
+              placeholder="Nhập chính xác tên sản phẩm..." 
               [(ngModel)]="deleteConfirmText"
+              (keyup.enter)="isDeleteConfirmMatched && !isDeletingProduct && executeSoftDelete()"
               autocomplete="off"
             />
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="admin-btn admin-btn-secondary" (click)="deleteStep = 1">Quay lại</button>
+          <button type="button" class="admin-btn admin-btn-secondary" [disabled]="isDeletingProduct" (click)="deleteStep = 1">Quay lại</button>
           <button 
             type="button" 
             class="admin-btn admin-btn-danger" 
-            [disabled]="deleteConfirmText !== 'YES'" 
-            (click)="executePermanentDelete()">
+            [disabled]="!isDeleteConfirmMatched || isDeletingProduct" 
+            (click)="executeSoftDelete()">
             <lucide-angular [img]="icons.Trash2" size="15"></lucide-angular>
-            <span>Xác nhận xóa vĩnh viễn</span>
+            <span>{{ isDeletingProduct ? 'Đang xóa...' : 'Xác nhận xóa sản phẩm' }}</span>
           </button>
         </div>
       </ng-container>

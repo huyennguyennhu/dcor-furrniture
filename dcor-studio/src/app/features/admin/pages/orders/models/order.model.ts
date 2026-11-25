@@ -120,7 +120,9 @@ export interface Order {
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod;
   customerName: string;
+  accountName?: string;
   phone: string;
+  customerPhone?: string;
   email: string;
   address: string;
   province: string;

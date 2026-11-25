@@ -550,6 +550,8 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .name-cell-wrap.child-indent {
@@ -569,6 +571,9 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
+  flex: 1;
+  max-width: 100%;
 }
 
 .cat-title-row {
@@ -582,6 +587,10 @@
   font-size: 14px;
   font-weight: 600;
   color: #1F2937;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .parent-tag {
@@ -600,7 +609,8 @@
   font-size: 12px;
   color: #757575;
   line-height: 1.4;
-  max-width: 600px;
+  display: block;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -615,10 +625,11 @@
   border: 1px solid #E0E0E0;
   border-radius: 6px;
   padding: 3px 8px;
-  max-width: 200px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .font-mono {
@@ -1712,6 +1723,7 @@
   justify-content: center;
   width: 30px;
   height: 30px;
+  flex-shrink: 0;
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
@@ -1838,7 +1850,8 @@ select.form-control {
    ========================================================================= */
 .categories-table {
   width: 100% !important;
-  table-layout: auto !important;
+  min-width: 920px;
+  table-layout: fixed !important;
   border-collapse: collapse !important;
 }
 
@@ -1851,42 +1864,49 @@ select.form-control {
 
 .categories-table th.col-name,
 .categories-table td.col-name {
+  width: auto !important;
   text-align: left !important;
   padding: 12px 16px !important;
+  overflow: hidden;
 }
 
 .categories-table th.col-subcat,
 .categories-table td.col-subcat {
+  width: 132px !important;
   text-align: center !important;
-  padding: 12px 16px !important;
+  padding: 12px 10px !important;
   white-space: nowrap !important;
 }
 
 .categories-table th.col-slug,
 .categories-table td.col-slug {
+  width: 195px !important;
   text-align: left !important;
-  padding: 12px 16px !important;
+  padding: 12px 12px !important;
+  overflow: hidden;
 }
 
 .categories-table th.col-count,
 .categories-table td.col-count {
+  width: 135px !important;
   text-align: center !important;
-  padding: 12px 16px !important;
+  padding: 12px 10px !important;
   white-space: nowrap !important;
 }
 
 .categories-table th.col-status,
 .categories-table td.col-status {
+  width: 105px !important;
   text-align: center !important;
-  padding: 12px 16px !important;
+  padding: 12px 10px !important;
   white-space: nowrap !important;
 }
 
 .categories-table th.col-actions,
 .categories-table td.col-actions {
-  width: 110px !important;
+  width: 132px !important;
   text-align: right !important;
-  padding: 12px 16px !important;
+  padding: 12px 14px !important;
   white-space: nowrap !important;
 }
 

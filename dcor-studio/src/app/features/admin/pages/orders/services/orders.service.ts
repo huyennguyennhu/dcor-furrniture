@@ -61,6 +61,8 @@ export class OrdersService {
             pay: o.paymentStatus,
             dep: o.depositPaid,
             tot: o.totalAmount,
+            ph: o.phone || '',
+            cph: o.customerPhone || '',
             del: (o.delivery?.trackingCode || '') + '-' + (o.delivery?.failedAttempts || 0)
           })));
 

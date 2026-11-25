@@ -446,12 +446,22 @@ export const customerController = {
       }
 
       const dataToUpdate: any = {
-        fullName: fullName.trim(),
-        email: email && email.trim() ? email.trim().toLowerCase() : null,
-        avatarUrl: avatarUrl || null,
-        companyName: companyName ? companyName.trim() : null,
-        taxCode: taxCode ? taxCode.trim() : null
+        fullName: fullName.trim()
       };
+
+      // Chỉ cập nhật những trường thực sự được gửi lên (tránh xóa trắng email/avatar khi gọi partial update)
+      if (email !== undefined) {
+        dataToUpdate.email = email && email.trim() ? email.trim().toLowerCase() : null;
+      }
+      if (avatarUrl !== undefined) {
+        dataToUpdate.avatarUrl = avatarUrl || null;
+      }
+      if (companyName !== undefined) {
+        dataToUpdate.companyName = companyName ? companyName.trim() : null;
+      }
+      if (taxCode !== undefined) {
+        dataToUpdate.taxCode = taxCode ? taxCode.trim() : null;
+      }
 
       // Xử lý cập nhật / thêm số điện thoại cá nhân
       if (phone && phone.trim()) {
