@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
 import { AdminAuthService, AdminModule } from '../../../../core/services/admin-auth.service';
 import { AdminConsultationService } from '../../../../core/services/admin-consultation.service';
 import { ChatUnreadService } from '../../pages/chat/services/chat-unread.service';
+import { OrdersService } from '../../pages/orders/services/orders.service';
 
 interface MenuItem {
   title: string;
@@ -37,6 +38,8 @@ export class AdminSidebar implements OnInit, OnDestroy {
 
   private hoverTimeout: any;
   private permSub?: Subscription;
+  private ordersSub?: Subscription;
+  pendingOrdersCount = 0;
 
   readonly ALL_MENU_ITEMS: MenuItem[] = [
     {
@@ -181,7 +184,8 @@ export class AdminSidebar implements OnInit, OnDestroy {
     private router: Router,
     private adminAuthService: AdminAuthService,
     public chatUnreadService: ChatUnreadService,
-    public adminConsultationService: AdminConsultationService
+    public adminConsultationService: AdminConsultationService,
+    public ordersService: OrdersService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -199,10 +203,17 @@ export class AdminSidebar implements OnInit, OnDestroy {
     this.filterMenuItemsByPermission();
     this.calculateActiveHref(this.router.url);
     this.adminConsultationService.startBadgeSync();
+
+    // Lắng nghe và đồng bộ số lượng đơn hàng chờ xác nhận PENDING
+    this.pendingOrdersCount = this.ordersService.getPendingOrdersCount();
+    this.ordersSub = this.ordersService.orders$.subscribe(orders => {
+      this.pendingOrdersCount = (orders || []).filter(o => o.status === 'PENDING').length;
+    });
   }
 
   ngOnDestroy(): void {
     this.permSub?.unsubscribe();
+    this.ordersSub?.unsubscribe();
   }
 
   handleLogout(): void {

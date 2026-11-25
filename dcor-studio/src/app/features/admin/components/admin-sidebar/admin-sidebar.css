@@ -331,3 +331,21 @@
   line-height: 14px;
   flex-shrink: 0;
 }
+
+/* Circle tròn nhỏ thể hiện số lượng đơn chờ xác nhận */
+.sidebar-sub-badge.order-pending-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #d97706; /* Màu cam Amber cho đơn Chờ xác nhận */
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.35);
+  margin-left: auto;
+}

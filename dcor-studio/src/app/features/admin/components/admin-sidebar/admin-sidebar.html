@@ -42,6 +42,13 @@
               [attr.aria-label]="adminConsultationService.pendingCount() + ' yêu cầu tư vấn mới'">
               {{ isCollapsed ? '' : (adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount()) }}
             </span>
+            <span
+              *ngIf="item.href === '/admin/orders' && pendingOrdersCount > 0"
+              class="sidebar-chat-badge"
+              [class.collapsed-badge]="isCollapsed"
+              [attr.aria-label]="pendingOrdersCount + ' đơn chờ xác nhận'">
+              {{ isCollapsed ? '' : (pendingOrdersCount > 99 ? '99+' : pendingOrdersCount) }}
+            </span>
             <app-icon
               *ngIf="!isCollapsed"
               class="sidebar-chevron"
@@ -76,6 +83,13 @@
               [attr.aria-label]="adminConsultationService.pendingCount() + ' yêu cầu tư vấn mới'">
               {{ isCollapsed ? '' : (adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount()) }}
             </span>
+            <span
+              *ngIf="item.href === '/admin/orders' && pendingOrdersCount > 0"
+              class="sidebar-chat-badge"
+              [class.collapsed-badge]="isCollapsed"
+              [attr.aria-label]="pendingOrdersCount + ' đơn chờ xác nhận'">
+              {{ isCollapsed ? '' : (pendingOrdersCount > 99 ? '99+' : pendingOrdersCount) }}
+            </span>
           </a>
         </ng-template>
 
@@ -92,6 +106,12 @@
                 [routerLink]="sub.href"
                 (click)="selectSubItem(item.href)">
                 <span class="sub-item-label">{{ sub.title }}</span>
+                <span
+                  *ngIf="sub.href === '/admin/orders' && pendingOrdersCount > 0"
+                  class="sidebar-sub-badge order-pending-badge"
+                  [attr.aria-label]="pendingOrdersCount + ' đơn chờ xác nhận'">
+                  {{ pendingOrdersCount > 99 ? '99+' : pendingOrdersCount }}
+                </span>
                 <span
                   *ngIf="sub.href === '/admin/appointments/requests' && adminConsultationService.pendingCount() > 0"
                   class="sidebar-sub-badge"
@@ -120,6 +140,12 @@
             [routerLink]="sub.href"
             (click)="closeHoveredMenu(); selectSubItem(item.href)">
             <span class="sub-item-label">{{ sub.title }}</span>
+            <span
+              *ngIf="sub.href === '/admin/orders' && pendingOrdersCount > 0"
+              class="sidebar-sub-badge order-pending-badge"
+              [attr.aria-label]="pendingOrdersCount + ' đơn chờ xác nhận'">
+              {{ pendingOrdersCount > 99 ? '99+' : pendingOrdersCount }}
+            </span>
             <span
               *ngIf="sub.href === '/admin/appointments/requests' && adminConsultationService.pendingCount() > 0"
               class="sidebar-sub-badge">

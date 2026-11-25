@@ -80,6 +80,10 @@ export class OrdersService {
     return this.orders$;
   }
 
+  public getPendingOrdersCount(): number {
+    return this.ordersSubject.value.filter(o => o.status === 'PENDING').length;
+  }
+
   public getReplacementOrders(): OrderV2[] {
     if (typeof window === 'undefined' || !window.localStorage) return [];
     try {
