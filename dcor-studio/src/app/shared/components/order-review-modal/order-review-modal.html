@@ -95,67 +95,61 @@
             <span class="image-count-hint">{{ form.images.length }}/5 ảnh</span>
           </div>
 
-          <!-- ACTION BUTTONS: CHỤP ẢNH & TẢI ẢNH -->
-          <div class="media-actions-row">
-            <!-- Nút Chụp ảnh trực tiếp từ Camera -->
-            <button 
-              type="button" 
-              class="btn-media-action btn-camera"
-              (click)="triggerCamera(i, cameraInput)"
-              [disabled]="form.images.length >= 5 || form.uploadingImages"
-              title="Chụp ảnh trực tiếp từ camera của bạn">
-              <lucide-angular [img]="icons.Camera" size="18"></lucide-angular>
-              <span>Chụp ảnh</span>
-            </button>
+          <!-- Hidden File Inputs -->
+          <input 
+            #fileInput
+            type="file" 
+            class="hidden-file-input" 
+            accept="image/*" 
+            multiple
+            style="display: none !important;"
+            (change)="onFilesSelected($event, i)" />
 
-            <!-- Nút Tải ảnh lên từ thiết bị -->
-            <button 
-              type="button"
-              class="btn-media-action btn-upload"
-              (click)="fileInput.click()"
-              [disabled]="form.images.length >= 5 || form.uploadingImages"
-              title="Chọn ảnh từ thiết bị">
-              <lucide-angular [img]="icons.Upload" size="18"></lucide-angular>
-              <span>Tải ảnh lên</span>
-            </button>
+          <input 
+            #cameraInput
+            type="file" 
+            class="hidden-file-input" 
+            accept="image/*" 
+            capture="environment"
+            style="display: none !important;"
+            (change)="onFilesSelected($event, i)" />
 
-            <!-- File Inputs hoàn toàn ẩn, không chiếm diện tích trong DOM -->
-            <input 
-              #fileInput
-              type="file" 
-              class="hidden-file-input" 
-              accept="image/*" 
-              multiple
-              style="display: none !important;"
-              (change)="onFilesSelected($event, i)" />
-
-            <input 
-              #cameraInput
-              type="file" 
-              class="hidden-file-input" 
-              accept="image/*" 
-              capture="environment"
-              style="display: none !important;"
-              (change)="onFilesSelected($event, i)" />
-          </div>
-
-          <!-- UPLOADING SPINNER INDICATOR TRÊN 1 HÀNG (RULE 4) -->
-          <div *ngIf="form.uploadingImages" class="uploading-indicator">
-            <div class="loading-spinner-circle"></div>
-            <span class="uploading-text">Đang load...</span>
-          </div>
-
-          <!-- PREVIEW THUMBNAILS LIST -->
-          <div class="thumbnails-grid" *ngIf="form.images.length > 0">
-            <div class="thumb-item" *ngFor="let imgUrl of form.images; let imgIdx = index">
-              <img [src]="imgUrl" alt="Ảnh đánh giá" class="thumb-img" />
+          <!-- HÌNH ẢNH TẢI LÊN TRÊN 1 HÀNG CHUẨN FORM ADMIN (VARIANT-IMG-GRID, KHÔNG CÓ SAO ĐẠI DIỆN) -->
+          <div class="variant-img-grid">
+            <!-- Danh sách ảnh đã tải lên -->
+            <div class="variant-img-item" *ngFor="let imgUrl of form.images; let imgIdx = index">
+              <img [src]="imgUrl" alt="Ảnh đánh giá" (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'" />
               <button 
                 type="button" 
-                class="thumb-remove-btn" 
-                (click)="removeImage(i, imgIdx)"
-                title="Xóa ảnh này">
+                class="btn-del-img" 
+                (click)="removeImage(i, imgIdx)" 
+                title="Xóa ảnh">
                 <lucide-angular [img]="icons.X" size="12"></lucide-angular>
               </button>
+            </div>
+
+            <!-- Nút Thêm ảnh từ thiết bị -->
+            <div 
+              class="variant-img-add" 
+              *ngIf="form.images.length < 5 && !form.uploadingImages"
+              (click)="fileInput.click()" 
+              title="Thêm ảnh">
+              <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+            </div>
+
+            <!-- Nút Chụp ảnh từ camera -->
+            <div 
+              class="variant-img-add variant-camera-add" 
+              *ngIf="form.images.length < 5 && !form.uploadingImages"
+              (click)="triggerCamera(i, cameraInput)" 
+              title="Chụp ảnh từ camera">
+              <lucide-angular [img]="icons.Camera" size="16"></lucide-angular>
+            </div>
+
+            <!-- UPLOADING SPINNER INDICATOR CÙNG HÀNG (RULE 4) -->
+            <div *ngIf="form.uploadingImages" class="variant-img-loading">
+              <div class="loading-spinner-circle"></div>
+              <span class="uploading-text">Đang load...</span>
             </div>
           </div>
         </div>

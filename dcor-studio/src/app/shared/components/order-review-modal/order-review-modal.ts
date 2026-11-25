@@ -13,7 +13,8 @@ import {
   Image as ImageIcon,
   Trash2,
   RefreshCw,
-  ShieldCheck
+  ShieldCheck,
+  Plus
 } from 'lucide-angular';
 import { ReviewService, ProductReviewInput } from '../../../core/services/review.service';
 
@@ -68,7 +69,8 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
     ImageIcon,
     Trash2,
     RefreshCw,
-    ShieldCheck
+    ShieldCheck,
+    Plus
   };
 
   forms: ProductReviewFormState[] = [];
