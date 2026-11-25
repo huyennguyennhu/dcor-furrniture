@@ -21,6 +21,7 @@ import { Subscription } from 'rxjs';
 })
 export class StoreLayout implements OnInit, OnDestroy {
   isHomePage = false;
+  isAccountPage = false;
   showScrollTop = false;
   isDockActive = false;
 
@@ -34,18 +35,39 @@ export class StoreLayout implements OnInit, OnDestroy {
     public quickViewService: QuickViewService
   ) {
     this.isHomePage = this.router.url === '/' || this.router.url === '';
+    this.isAccountPage = this.router.url.startsWith('/account');
+
+    let previousUrl = this.router.url;
 
     this.routerSub = this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
-      this.isHomePage = event.url === '/' || event.url === '' || event.urlAfterRedirects === '/';
+      const currentUrl = event.urlAfterRedirects || event.url || '';
+      this.isHomePage = currentUrl === '/' || currentUrl === '' || currentUrl === '/#';
 
-      // Tự động cuộn lên đầu trang cho tất cả các trang ở store khi di chuyển
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
+      const wasAccount = previousUrl.startsWith('/account');
+      const isNowAccount = currentUrl.startsWith('/account');
+      this.isAccountPage = isNowAccount;
+
+      // Nếu đang chuyển tab bên trong phân hệ /account/* -> KHÔNG cuộn toàn trang làm nháy sidebar, chỉ cuộn riêng content-column
+      if (wasAccount && isNowAccount) {
+        if (typeof window !== 'undefined') {
+          const contentCol = document.querySelector('.content-column');
+          if (contentCol) {
+            contentCol.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          }
+        }
+      } else {
+        // Tự động cuộn lên đầu trang cho tất cả các trang khác ở store khi di chuyển
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }
       }
+
+      previousUrl = currentUrl;
+      this.cdr.markForCheck();
     });
   }
 
