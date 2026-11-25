@@ -92,6 +92,9 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
 
   // Modal Yêu cầu đổi trả
   isReturnModalOpen = false;
+  isSelectReturnItemModalOpen = false;
+  selectedReturnItem: any = null;
+  selectedReturnQuantity = 1;
   targetOrderForReturn: OrderSummary | OrderDetail | null = null;
   returnReason = 'Sản phẩm lỗi kỹ thuật do nhà sản xuất';
   returnDescription = '';
@@ -1405,6 +1408,51 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   // Yêu cầu đổi trả
   openReturnModal(order: OrderSummary | OrderDetail, event?: Event): void {
     if (event) event.stopPropagation();
+    const items = order.items || [];
+    if (items.length > 1) {
+      // Đơn có > 1 sản phẩm: mở Popup chọn sản phẩm trước
+      this.targetOrderForReturn = order;
+      this.selectedReturnItem = null;
+      this.selectedReturnQuantity = 1;
+      this.isSelectReturnItemModalOpen = true;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    // Đơn chỉ có 1 sản phẩm: bỏ qua popup, vào thẳng form đổi trả
+    this.selectedReturnItem = items[0] || null;
+    this.selectedReturnQuantity = 1;
+    this.proceedToReturnForm(order);
+  }
+
+  selectItemForReturn(item: any): void {
+    this.selectedReturnItem = item;
+    this.selectedReturnQuantity = 1;
+    this.cdr.markForCheck();
+  }
+
+  decreaseReturnQty(): void {
+    if (this.selectedReturnQuantity > 1) {
+      this.selectedReturnQuantity--;
+      this.cdr.markForCheck();
+    }
+  }
+
+  increaseReturnQty(): void {
+    const maxQty = this.selectedReturnItem?.quantity || 1;
+    if (this.selectedReturnQuantity < maxQty) {
+      this.selectedReturnQuantity++;
+      this.cdr.markForCheck();
+    }
+  }
+
+  confirmReturnItemSelection(): void {
+    if (!this.selectedReturnItem || !this.targetOrderForReturn) return;
+    this.isSelectReturnItemModalOpen = false;
+    this.proceedToReturnForm(this.targetOrderForReturn);
+  }
+
+  private proceedToReturnForm(order: OrderSummary | OrderDetail): void {
     this.targetOrderForReturn = order;
     this.returnReason = this.returnReasonOptions[0];
     this.returnDescription = '';

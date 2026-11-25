@@ -850,6 +850,40 @@
         <button type="button" class="drawer-close" (click)="closeDetailModal()" title="Đóng">×</button>
       </div>
 
+      <!-- Stepper ngang tương tác (Cho phép click xem lại nội dung từng bước trước đó) -->
+      <div *ngIf="selectedRequest.status !== 'CANCELLED'" style="padding: 14px 28px; background: #FAF7F5; border-bottom: 1px solid #E5D9CF;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; overflow-x: auto;">
+          <div *ngFor="let step of CUSTOM_STEPS; let last = last"
+               (click)="onCustomStepClick(step.index)"
+               [style.cursor]="step.index <= currentCustomStepIndex ? 'pointer' : 'not-allowed'"
+               [style.opacity]="step.index <= currentCustomStepIndex ? 1 : 0.45"
+               style="display: flex; align-items: center; flex: 1; min-width: 85px;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1;">
+              <div style="width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; transition: all 0.2s;"
+                   [style.background]="activeCustomViewingStep === step.index ? '#765337' : (step.index < currentCustomStepIndex ? '#16A34A' : '#E5E7EB')"
+                   [style.color]="(activeCustomViewingStep === step.index || step.index < currentCustomStepIndex) ? '#FFFFFF' : '#6B7280'"
+                   [style.boxShadow]="activeCustomViewingStep === step.index ? '0 0 0 3px rgba(118, 83, 55, 0.2)' : 'none'">
+                {{ step.index < currentCustomStepIndex ? '✓' : (step.index + 1) }}
+              </div>
+              <span style="font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap;"
+                    [style.color]="activeCustomViewingStep === step.index ? '#765337' : '#4B5563'">
+                {{ step.label }}
+              </span>
+            </div>
+            <div *ngIf="!last" style="height: 2px; flex: 0.4; min-width: 12px; margin-bottom: 18px;"
+                 [style.background]="step.index < currentCustomStepIndex ? '#16A34A' : '#E5E7EB'"></div>
+          </div>
+        </div>
+
+        <div *ngIf="viewingCustomStepIndex !== null" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #D6C7BA; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #765337;">
+          <span>Đang xem lại nội dung: <strong>Bước {{ activeCustomViewingStep + 1 }} — {{ CUSTOM_STEPS[activeCustomViewingStep].label }}</strong></span>
+          <button type="button" (click)="returnToCurrentCustomStep()"
+                  style="padding: 4px 10px; border-radius: 6px; border: 1px solid #765337; background: #fff; color: #765337; font-size: 11.5px; font-weight: 600; cursor: pointer;">
+            Quay về bước hiện tại
+          </button>
+        </div>
+      </div>
+
       <!-- Drawer Body -->
       <div class="drawer-body">
         <!-- Template Khung Dự toán kinh phí & Ưu đãi may đo -->

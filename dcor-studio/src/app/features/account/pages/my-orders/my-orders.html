@@ -503,6 +503,63 @@
 <!-- ============================================== -->
 <!-- MODAL: YÊU CẦU ĐỔI TRẢ -->
 <!-- ============================================== -->
+<!-- POPUP CHỌN SẢN PHẨM ĐỔI TRẢ (KHI ĐƠN > 1 MÓN) -->
+<!-- ============================================== -->
+<div *ngIf="isSelectReturnItemModalOpen" class="modal-overlay" (click)="isSelectReturnItemModalOpen = false">
+  <div class="modal-content select-return-item-modal" (click)="$event.stopPropagation()" style="max-width: 620px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Chọn sản phẩm cần Đổi / Trả ({{ targetOrderForReturn?.orderNumber }})</h3>
+      <button type="button" class="close-btn" (click)="isSelectReturnItemModalOpen = false">×</button>
+    </div>
+
+    <div class="modal-form" style="padding-top: 12px;">
+      <p class="modal-tip" style="margin-bottom: 14px;">
+        Mỗi yêu cầu đổi trả chỉ áp dụng cho <strong>1 loại sản phẩm duy nhất</strong>. Vui lòng chọn sản phẩm cần hỗ trợ và điều chỉnh số lượng tương ứng:
+      </p>
+
+      <div class="select-return-items-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; margin-bottom: 16px;">
+        <div *ngFor="let item of targetOrderForReturn?.items"
+             (click)="selectItemForReturn(item)"
+             style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1.5px solid; cursor: pointer; transition: all 0.2s;"
+             [style.borderColor]="selectedReturnItem === item ? '#765337' : '#E5E7EB'"
+             [style.backgroundColor]="selectedReturnItem === item ? '#FAF7F5' : '#FFFFFF'">
+          <input type="radio"
+                 name="selectedReturnItemRadio"
+                 [checked]="selectedReturnItem === item"
+                 style="width: 18px; height: 18px; accent-color: #765337; cursor: pointer; flex-shrink: 0;" />
+          <img [src]="item.productImage || '/assets/img/furniture-placeholder.svg'"
+               [alt]="item.productName"
+               style="width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 1px solid #E5E7EB; flex-shrink: 0;" />
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 2px;">{{ item.productName }}</div>
+            <div style="font-size: 12.5px; color: #6B7280;" *ngIf="item.variantName">{{ item.variantName }}</div>
+            <div style="font-size: 12.5px; color: #4B5563; margin-top: 4px;">
+              Đã mua: <strong>x{{ item.quantity }}</strong> • Đơn giá: <strong>{{ item.price | number }} đ</strong>
+            </div>
+          </div>
+
+          <!-- Bộ chỉnh số lượng (chỉ hiện khi được chọn và số lượng mua > 1) -->
+          <div *ngIf="selectedReturnItem === item" (click)="$event.stopPropagation()" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <button type="button" (click)="decreaseReturnQty()" [disabled]="selectedReturnQuantity <= 1"
+                    style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #D1D5DB; background: #fff; font-weight: 700; cursor: pointer;">-</button>
+            <span style="min-width: 24px; text-align: center; font-weight: 700; font-size: 14px;">{{ selectedReturnQuantity }}</span>
+            <button type="button" (click)="increaseReturnQty()" [disabled]="selectedReturnQuantity >= (item.quantity || 1)"
+                    style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #D1D5DB; background: #fff; font-weight: 700; cursor: pointer;">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="isSelectReturnItemModalOpen = false">Hủy</button>
+        <button type="button" class="cta-btn" [disabled]="!selectedReturnItem" [style.opacity]="!selectedReturnItem ? 0.5 : 1" (click)="confirmReturnItemSelection()">
+          Tiếp tục đổi trả
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
 <div *ngIf="isReturnModalOpen" class="modal-overlay" (click)="isReturnModalOpen = false">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -511,6 +568,13 @@
     </div>
 
     <form (submit)="submitReturnRequest(); $event.preventDefault()" class="modal-form">
+      <div *ngIf="selectedReturnItem" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FAF7F5; border: 1px solid #E5D9CF; border-radius: 8px; margin-bottom: 12px;">
+        <img [src]="selectedReturnItem.productImage || '/assets/img/furniture-placeholder.svg'" style="width: 42px; height: 42px; border-radius: 6px; object-fit: cover;" />
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #111827;">{{ selectedReturnItem.productName }}</div>
+          <div style="font-size: 12px; color: #6B7280;">Số lượng đổi trả: <strong>x{{ selectedReturnQuantity }}</strong></div>
+        </div>
+      </div>
       <p class="modal-tip">Chính sách Dcor hỗ trợ đổi mới miễn phí trong vòng 7 ngày đối với các sản phẩm có lỗi từ nhà
         sản xuất hoặc hư hại do vận chuyển.</p>
 

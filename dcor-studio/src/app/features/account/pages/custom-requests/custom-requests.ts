@@ -1146,11 +1146,47 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   }
 
   // --- XEM CHI TIẾT YÊU CẦU ---
+  readonly CUSTOM_STEPS = [
+    { index: 0, label: 'Tiếp nhận', statuses: ['PENDING_REVIEW'] },
+    { index: 1, label: 'Khảo sát', statuses: ['CONSULTING'] },
+    { index: 2, label: 'Báo giá & 3D', statuses: ['QUOTED'] },
+    { index: 3, label: 'Hợp đồng', statuses: ['AWAITING_CONTRACT'] },
+    { index: 4, label: 'Đặt cọc 30%', statuses: ['CONTRACT_SIGNED', 'AWAITING_PAYMENT', 'DEPOSIT_SUBMITTED'] },
+    { index: 5, label: 'Sản xuất', statuses: ['PROCESSING'] },
+    { index: 6, label: 'Hoàn tất', statuses: ['QC_PASSED', 'COMPLETED'] }
+  ];
+  viewingCustomStepIndex: number | null = null;
+
+  get currentCustomStepIndex(): number {
+    if (!this.selectedRequest) return 0;
+    const st = this.selectedRequest.status;
+    const found = this.CUSTOM_STEPS.find(s => s.statuses.includes(st));
+    return found ? found.index : 0;
+  }
+
+  get activeCustomViewingStep(): number {
+    return this.viewingCustomStepIndex !== null ? this.viewingCustomStepIndex : this.currentCustomStepIndex;
+  }
+
+  onCustomStepClick(stepIdx: number): void {
+    if (!this.selectedRequest || this.selectedRequest.status === 'CANCELLED') return;
+    if (stepIdx <= this.currentCustomStepIndex) {
+      this.viewingCustomStepIndex = (stepIdx === this.currentCustomStepIndex) ? null : stepIdx;
+      this.cdr.detectChanges();
+    }
+  }
+
+  returnToCurrentCustomStep(): void {
+    this.viewingCustomStepIndex = null;
+    this.cdr.detectChanges();
+  }
+
   openDetailModal(req: CustomRequest): void {
     const isOwned = this.myRequests.some(r => r.id === req.id || r.code === req.code);
     if (!isOwned) return;
     const latest = this.customRequestService.getRequestById(req.id) || this.myRequests.find(r => r.id === req.id || r.code === req.code) || req;
     this.selectedRequest = latest;
+    this.viewingCustomStepIndex = null;
     this.activeDrawingIndex = 0;
     this.isDetailModalOpen = true;
     this.cdr.detectChanges();
