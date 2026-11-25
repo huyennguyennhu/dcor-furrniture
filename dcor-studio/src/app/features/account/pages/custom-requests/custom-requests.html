@@ -1814,7 +1814,7 @@
         </div>
       </div>
 
-      <div class="modal-body contract-modal-body" style="overflow-y: auto; max-height: calc(90vh - 120px); background: #525659; padding: 24px;">
+      <div class="modal-body contract-modal-body" (scroll)="onContractScroll($event)" style="overflow-y: auto; max-height: calc(90vh - 120px); background: #525659; padding: 24px;">
         <div class="contract-paper-sheet" style="background: #fff; padding: 40px; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); font-family: 'Times New Roman', Times, serif !important; color: #000; line-height: 1.5;">
           <!-- Quốc hiệu Tiêu ngữ -->
           <div style="text-align: center; margin-bottom: 24px;">
@@ -1979,16 +1979,31 @@
 
       <!-- Footer Modal -->
       <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 24px; background: #fff; border-top: 1px solid #E5E7EB; flex-wrap: wrap;">
-        <!-- Checkbox xác nhận điều khoản hợp đồng ngay trong footer để khách hàng thấy ngay lập tức -->
+        <!-- Trạng thái hướng dẫn đọc và xác nhận hợp đồng trước khi ký -->
         <div *ngIf="selectedRequest.status === 'AWAITING_CONTRACT'" style="display: flex; align-items: center; gap: 8px;">
-          <input 
-            type="checkbox" 
-            id="agreeTermsFooter"
-            [(ngModel)]="agreeContractTerms" 
-            style="width: 18px; height: 18px; accent-color: #16A34A; cursor: pointer;" />
-          <label for="agreeTermsFooter" style="font-size: 13px; color: #1F2937; cursor: pointer; user-select: none;">
-            Tôi đã đọc kỹ và đồng ý với tất cả điều khoản hợp đồng
-          </label>
+          <!-- 1. Chưa cuộn đọc hết -->
+          <div *ngIf="!hasScrolledContractToEnd" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 13px; color: #D97706; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+              <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+              <span>Vui lòng cuộn xuống cuối để đọc hết hợp đồng</span>
+            </span>
+            <button type="button" (click)="scrollToContractBottom()" style="padding: 5px 12px; font-size: 12px; font-weight: 500; background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 6px; cursor: pointer; color: #374151; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s ease;">
+              <span>Cuộn xuống cuối</span>
+              <lucide-angular [img]="icons.ChevronDown" size="14"></lucide-angular>
+            </button>
+          </div>
+
+          <!-- 2. Đã đọc hết nhưng chưa tích xác nhận ở cuối hợp đồng -->
+          <div *ngIf="hasScrolledContractToEnd && !agreeContractTerms" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #2563EB; font-weight: 500;">
+            <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+            <span>Đã đọc hết hợp đồng. Vui lòng tích chọn đồng ý điều khoản ở cuối văn bản.</span>
+          </div>
+
+          <!-- 3. Đã đọc hết và đã tích xác nhận -->
+          <div *ngIf="hasScrolledContractToEnd && agreeContractTerms" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #16A34A; font-weight: 500;">
+            <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+            <span>Đã xác nhận điều khoản. Bạn có thể ký hợp đồng ngay.</span>
+          </div>
         </div>
         <div *ngIf="selectedRequest.status !== 'AWAITING_CONTRACT'"></div>
 
@@ -1999,12 +2014,13 @@
           <button 
             type="button" 
             class="btn-confirm-primary" 
-            [style.background]="agreeContractTerms ? '#16A34A' : '#9CA3AF'"
-            style="color: #fff; border: none; padding: 9px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;"
+            [style.background]="(hasScrolledContractToEnd && agreeContractTerms) ? '#16A34A' : '#9CA3AF'"
+            [style.cursor]="(hasScrolledContractToEnd && agreeContractTerms) ? 'pointer' : 'not-allowed'"
+            style="color: #fff; border: none; padding: 9px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;"
             *ngIf="selectedRequest.status === 'AWAITING_CONTRACT'"
-            [disabled]="isSigningContract"
+            [disabled]="!hasScrolledContractToEnd || !agreeContractTerms || isSigningContract"
             (click)="signContract()"
-            [title]="agreeContractTerms ? 'Bấm để xác nhận ký kết điện tử' : 'Vui lòng tích chọn đồng ý điều khoản trước khi ký'">
+            [title]="!hasScrolledContractToEnd ? 'Vui lòng cuộn xuống cuối đọc hết hợp đồng' : (!agreeContractTerms ? 'Vui lòng tích chọn đồng ý ở cuối hợp đồng' : 'Xác nhận ký kết điện tử')">
             <lucide-angular [img]="icons.FileCheck" size="16"></lucide-angular>
             <span>{{ isSigningContract ? 'Đang xác thực chữ ký...' : 'Xác Nhận Ký Hợp Đồng Điện Tử' }}</span>
           </button>

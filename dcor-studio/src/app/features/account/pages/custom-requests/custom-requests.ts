@@ -176,6 +176,7 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   isPaymentModalOpen = false;
   isContractModalOpen = false;
   isQuoteModalOpen = false;
+  hasScrolledContractToEnd = false;
   agreeContractTerms = false;
   isSigningContract = false;
   selectedRequest: CustomRequest | null = null;
@@ -1394,8 +1395,37 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
     const latest = this.customRequestService.getRequestById(req.id) || this.myRequests.find(r => r.id === req.id || r.code === req.code) || req;
     this.selectedRequest = latest;
     this.agreeContractTerms = false;
+    this.hasScrolledContractToEnd = false;
     this.isContractModalOpen = true;
     this.cdr.detectChanges();
+
+    // Tự động kiểm tra nếu nội dung vừa đủ khung và không cần cuộn
+    setTimeout(() => {
+      const el = document.querySelector('.contract-modal-body') as HTMLElement;
+      if (el && el.scrollHeight <= el.clientHeight + 40) {
+        this.hasScrolledContractToEnd = true;
+        this.cdr.detectChanges();
+      }
+    }, 150);
+  }
+
+  onContractScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    if (!el || this.hasScrolledContractToEnd) return;
+    // Khi người dùng cuộn đến gần cuối (cách đáy dưới 80px)
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) {
+      this.hasScrolledContractToEnd = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  scrollToContractBottom(): void {
+    const el = document.querySelector('.contract-modal-body') as HTMLElement;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      this.hasScrolledContractToEnd = true;
+      this.cdr.detectChanges();
+    }
   }
 
   closeContractModal(): void {
@@ -1555,8 +1585,13 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
 
   signContract(): void {
     if (!this.selectedRequest) return;
+    if (!this.hasScrolledContractToEnd) {
+      alert('Quý khách vui lòng cuộn và đọc hết các điều khoản trong hợp đồng trước khi xác nhận ký.');
+      this.scrollToContractBottom();
+      return;
+    }
     if (!this.agreeContractTerms) {
-      alert('Quý khách vui lòng tích chọn ô "Tôi đã đọc kỹ và đồng ý với tất cả điều khoản hợp đồng" trước khi xác nhận ký.');
+      alert('Quý khách vui lòng đánh dấu xác nhận đồng ý với các điều khoản ở cuối hợp đồng trước khi ký.');
       return;
     }
     this.isSigningContract = true;
