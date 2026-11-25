@@ -9,6 +9,7 @@ import { memoryCache, CACHE_KEYS } from './lib/cache';
 import authRoutes from './routes/auth.routes';
 import cartRoutes from './routes/cart.routes';
 import inventoryRoutes from './routes/inventory.routes';
+import { registerInventoryProductCacheInvalidator } from './controllers/inventory.controller';
 import staffRoutes from './routes/staff.routes';
 import reportRoutes from './routes/report.routes';
 import orderRoutes from './routes/order.routes';
@@ -16,7 +17,9 @@ import { orderController, autoCancelExpiredOrders, autoCompleteExpiredDeliveredO
 import administrativeRoutes from './routes/administrative.routes';
 import auditLogRoutes from './routes/audit-log.routes';
 import productRoutes from './routes/product.routes';
+import { extractProductWarrantyMonths, registerProductCacheInvalidator } from './controllers/product.controller';
 import categoryRoutes from './routes/category.routes';
+import { registerCategoryCacheInvalidator } from './controllers/category.controller';
 import uploadRoutes from './routes/upload.routes';
 import adminOrderRoutes from './routes/admin-order.routes';
 import consultationRoutes from './routes/consultation.routes';
@@ -27,7 +30,7 @@ import designRoutes from './routes/design.routes';
 import { initPromotionsAndDesignsDatabase } from './lib/init-promotions-and-designs-db';
 import adminCustomerRoutes from './routes/admin-customer.routes';
 import adminAppointmentRoutes from './routes/admin-appointment.routes';
-import adminContentRoutes from './routes/admin-content.routes';
+import adminWarrantyRoutes from './routes/admin-warranty.routes';
 import adminChatRoutes from './routes/admin-chat.routes';
 import myDesignRoutes from './routes/my-design.routes';
 import communityLikeRoutes from './routes/community-like.routes';
@@ -39,7 +42,7 @@ import { initChatSocket } from './services/chat.socket';
 import { initChatDatabase } from './lib/init-chat-db';
 import customerRoutes from './routes/customer.routes';
 import promotionRoutes from './routes/promotion.routes';
-import { promotionController } from './controllers/promotion.controller';
+import { promotionController, registerCampaignCacheInvalidator, ensureCampaignsTable } from './controllers/promotion.controller';
 import blogRoutes from './routes/blog.routes';
 import blogAdminRoutes from './routes/blog-admin.routes';
 import { initBlogDatabase } from './lib/init-blog-db';
@@ -108,15 +111,10 @@ app.use('/api/store/orders', orderRoutes);
 app.use('/api/store/reviews', reviewRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
+app.use('/api/admin/warranties', adminWarrantyRoutes);
 
 // Gắn router chương trình khuyến mãi & vouchers (Store & Admin)
 app.use('/api', promotionRoutes);
-
-// Gắn router quản lý đơn hàng phía Admin
-app.use('/api/admin/orders', adminOrderRoutes);
-
-// Gắn router quản lý khách hàng phía Admin
-app.use('/api/admin/customers', adminCustomerRoutes);
 
 // Gắn router tài khoản khách hàng & sổ địa chỉ
 app.use('/api/customer', customerRoutes);
@@ -136,9 +134,6 @@ app.use('/api/admin/customers', adminCustomerRoutes);
 
 // Gắn router quản trị lịch tư vấn Showroom (Appointments IAM RBAC)
 app.use('/api/admin/appointments', adminAppointmentRoutes);
-
-// Gắn router quản trị nội dung Blog / Tin tức (Content IAM RBAC)
-app.use('/api/admin/content', adminContentRoutes);
 
 // Gắn router quản trị hội thoại CSKH (Chat IAM RBAC)
 app.use('/api/admin/chat', adminChatRoutes);
@@ -244,6 +239,13 @@ const inFlightProductsQueryMap = new Map<string, Promise<any[]>>();
 const inFlightProductDetailMap = new Map<string, Promise<any>>();
 
 export function invalidateProductCache() {
+  memoryCache.invalidate(CACHE_KEYS.CATEGORIES_LIST);
+  memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
+  memoryCache.invalidatePrefix('products_catalog');
+  memoryCache.invalidatePrefix('products_cat_');
+  memoryCache.invalidatePrefix('products_slug_');
+  memoryCache.invalidatePrefix('admin_products_');
+  memoryCache.invalidatePrefix('product_detail_');
   cachedProductsList = null;
   lastProductsCacheTime = 0;
   cachedCategoryMap = null;
@@ -253,6 +255,12 @@ export function invalidateProductCache() {
   inFlightProductsQueryMap.clear();
   inFlightProductDetailMap.clear();
 }
+
+registerCampaignCacheInvalidator(invalidateProductCache);
+registerProductCacheInvalidator(invalidateProductCache);
+registerInventoryProductCacheInvalidator(invalidateProductCache);
+registerCategoryCacheInvalidator(invalidateProductCache);
+ensureCampaignsTable().catch(() => {});
 
 // API danh sách sản phẩm (Hiệu năng cao: In-memory join & cache)
 app.get('/api/products', publicApiRateLimiter, async (req, res) => {
@@ -337,7 +345,13 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
               name: true,
               price: true,
               stock: true,
-              optionValues: true
+              reservedStock: true,
+              optionValues: true,
+              warehouseStocks: {
+                select: {
+                  safetyThreshold: true
+                }
+              }
             }
           }));
           variants.push(...chunkVariants);
@@ -353,8 +367,16 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
           varMap.set(v.productId, []);
         }
         const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+        const whThresholds = ((v as any).warehouseStocks || [])
+          .map((ws: any) => ws.safetyThreshold)
+          .filter((t: any) => typeof t === 'number' && Number.isFinite(t) && t >= 0);
+        const optThreshold = (opt?.safetyThreshold !== null && opt?.safetyThreshold !== undefined && opt?.safetyThreshold !== '' && Number.isFinite(Number(opt.safetyThreshold)) && Number(opt.safetyThreshold) >= 0)
+          ? Math.round(Number(opt.safetyThreshold))
+          : null;
+        const safetyThreshold = whThresholds.length > 0 ? Math.min(...whThresholds) : (optThreshold !== null ? optThreshold : 5);
         varMap.get(v.productId)!.push({
           ...v,
+          safetyThreshold,
           images: opt.images || [],
           optionValues: opt
         });
@@ -449,6 +471,7 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
           ...p,
           allowCustom,
           isNew: newestIds.has(p.id),
+          warrantyMonths: extractProductWarrantyMonths(p.configOptions),
           discountValue: discountValue > 0 ? discountValue : p.discountValue,
           discountType: discountValue > 0 ? discountType : p.discountType,
           campaignName,
@@ -552,8 +575,11 @@ app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
         };
         const whThresholds = (v.warehouseStocks || [])
           .map((ws: any) => ws.safetyThreshold)
-          .filter((t: any) => typeof t === 'number' && t > 0);
-        const safetyThreshold = whThresholds.length > 0 ? Math.min(...whThresholds) : 5;
+          .filter((t: any) => typeof t === 'number' && Number.isFinite(t) && t >= 0);
+        const optThreshold = (opt?.safetyThreshold !== null && opt?.safetyThreshold !== undefined && opt?.safetyThreshold !== '' && Number.isFinite(Number(opt.safetyThreshold)) && Number(opt.safetyThreshold) >= 0)
+          ? Math.round(Number(opt.safetyThreshold))
+          : null;
+        const safetyThreshold = whThresholds.length > 0 ? Math.min(...whThresholds) : (optThreshold !== null ? optThreshold : 5);
 
         return {
           ...v,
@@ -651,6 +677,7 @@ app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
       const responseData = {
         ...product,
         isNew: newestIds.has(product.id),
+        warrantyMonths: extractProductWarrantyMonths(product.configOptions),
         discountValue: discountValue > 0 ? discountValue : product.discountValue,
         discountType: discountValue > 0 ? discountType : product.discountType,
         campaignName,
@@ -997,7 +1024,6 @@ app.use('/api/admin/activity', auditLogRoutes);
 // Gắn router Quản lý Voucher khuyến mãi
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/admin/vouchers', voucherRoutes);
-app.use('/api/store/promotions/verify', voucherController.verifyVoucher);
 
 // Gắn router Cộng đồng thiết kế & Room Templates 3D
 app.use('/api/designs', designRoutes);

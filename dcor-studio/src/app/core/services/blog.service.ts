@@ -14,7 +14,6 @@ export interface BlogArticle {
   authorAvatar?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'HIDDEN';
   publishedAt?: string;
-  scheduledAt?: string;
   createdAt: string;
   updatedAt: string;
   views: number;
@@ -36,17 +35,6 @@ export interface BlogCategory {
   sortOrder: number;
 }
 
-export interface MarketingBanner {
-  id: string;
-  title: string;
-  position: 'HOME_HERO' | 'BLOG_SIDEBAR' | 'COLLECTION_BANNER';
-  imageUrl: string;
-  linkUrl: string;
-  status: 'ACTIVE' | 'INACTIVE';
-  startDate?: string;
-  endDate?: string;
-}
-
 export interface SimpleProduct {
   id: string;
   name: string;
@@ -57,7 +45,11 @@ export interface SimpleProduct {
   categoryName?: string;
 }
 
-const STORAGE_BANNERS_KEY = 'dcor_marketing_banners';
+export interface BlogActionResult<T = any> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -71,9 +63,6 @@ export class BlogService {
 
   private categoriesSubject = new BehaviorSubject<BlogCategory[]>([]);
   public categories$ = this.categoriesSubject.asObservable();
-
-  private bannersSubject = new BehaviorSubject<MarketingBanner[]>([]);
-  public banners$ = this.bannersSubject.asObservable();
 
   private productsSubject = new BehaviorSubject<SimpleProduct[]>([]);
   public products$ = this.productsSubject.asObservable();
@@ -95,22 +84,7 @@ export class BlogService {
     this.loadCategoriesFromBackend();
     this.loadArticlesFromBackend();
 
-    // 2. Khởi tạo Banner quảng cáo (marketing)
-    let banners: MarketingBanner[] = [];
-    try {
-      const storedBanners = localStorage.getItem(STORAGE_BANNERS_KEY);
-      if (storedBanners) {
-        banners = JSON.parse(storedBanners);
-      }
-    } catch (_) {}
-
-    if (!banners || banners.length === 0) {
-      banners = this.getDefaultBanners();
-      this.saveBannersToStorage(banners);
-    }
-    this.bannersSubject.next(banners);
-
-    // 3. Tải danh sách sản phẩm thực tế từ kho/cửa hàng
+    // 2. Tải danh sách sản phẩm thực tế từ kho/cửa hàng
     this.loadRealProducts();
   }
 
@@ -160,9 +134,8 @@ export class BlogService {
           categoryName: p.category?.name || p.categoryName || '',
           author: p.authorName || p.author || 'Ban biên tập DCor',
           authorAvatar: p.authorAvatar || '/assets/favicon/logo.png',
-          status: p.status,
+          status: p.status === 'PUBLISHED' || p.status === 'HIDDEN' ? p.status : 'DRAFT',
           publishedAt: p.publishedAt,
-          scheduledAt: p.scheduledAt,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
           views: p.viewsCount || p.views || 0,
@@ -211,36 +184,14 @@ export class BlogService {
     return this.articlesSubject.value.find(a => a.slug === slug);
   }
 
-  saveArticle(article: Partial<BlogArticle>): BlogArticle {
-    const current = [...this.articlesSubject.value];
+  private extractHttpError(err: any, fallback: string): string {
+    return err?.error?.message || err?.error?.error || err?.message || fallback;
+  }
+
+  async saveArticle(article: Partial<BlogArticle>): Promise<BlogActionResult<BlogArticle>> {
     const now = new Date().toISOString();
-
     const isEdit = Boolean(article.id && !article.id.startsWith('temp-'));
-    let savedItem: BlogArticle;
 
-    if (isEdit) {
-      const index = current.findIndex(a => a.id === article.id);
-      if (index >= 0) {
-        savedItem = {
-          ...current[index],
-          ...article,
-          updatedAt: now
-        } as BlogArticle;
-        current[index] = savedItem;
-      } else {
-        savedItem = this.createArticleObject(article, now);
-        current.unshift(savedItem);
-      }
-    } else {
-      savedItem = this.createArticleObject(article, now);
-      current.unshift(savedItem);
-    }
-
-    // Cập nhật State tức thì trên giao diện (Optimistic UI)
-    this.articlesSubject.next(current);
-    this.updateCategoryCounts(current, this.categoriesSubject.value);
-
-    // Chuẩn bị payload gửi lên PostgreSQL Backend
     const blocks = article.content ? this.htmlToBlocks(article.content) : [];
     const payload: any = {
       title: article.title?.trim() || 'Bài viết mới',
@@ -255,202 +206,97 @@ export class BlogService {
       seoDescription: article.seoDescription?.trim() || article.excerpt?.trim() || '',
       status: article.status || 'DRAFT',
       publishedAt: article.status === 'PUBLISHED' ? (article.publishedAt || now) : null,
-      scheduledAt: null,
       productIds: article.relatedProductIds || [],
       relatedProductIds: article.relatedProductIds || [],
       author: article.author?.trim() || 'Ban biên tập DCor'
     };
 
-    if (isEdit) {
-      // Gửi PUT cập nhật tới Backend
-      this.http.put<any>(`${this.adminApiUrl}/posts/${article.id}`, payload).subscribe({
-        next: (res) => {
-          const updatedPost = res.post || res;
-          if (updatedPost && updatedPost.id) {
-            const list = [...this.articlesSubject.value];
-            const idx = list.findIndex(a => a.id === updatedPost.id);
-            if (idx >= 0) {
-              list[idx] = {
-                ...list[idx],
-                ...updatedPost,
-                coverImage: updatedPost.coverImageUrl || updatedPost.coverImage || list[idx].coverImage,
-                categoryName: updatedPost.category?.name || list[idx].categoryName,
-                author: updatedPost.authorName || list[idx].author,
-                views: updatedPost.viewsCount ?? list[idx].views,
-                relatedProductIds: updatedPost.productIds || list[idx].relatedProductIds,
-                content: updatedPost.content || list[idx].content
-              };
-              this.articlesSubject.next(list);
-              this.updateCategoryCounts(list, this.categoriesSubject.value);
-            }
-          }
-        },
-        error: (err) => {
-          console.error('[BlogService] Lỗi khi cập nhật bài viết lên database:', err);
-        }
-      });
-    } else {
-      // Gửi POST tạo mới tới Backend
-      this.http.post<any>(`${this.adminApiUrl}/posts`, payload).subscribe({
-        next: (res) => {
-          const createdPost = res.post || res;
-          if (createdPost && createdPost.id) {
-            const list = [...this.articlesSubject.value];
-            const idx = list.findIndex(a => a.id === savedItem.id);
-            const realArticle: BlogArticle = {
-              id: createdPost.id,
-              title: createdPost.title,
-              slug: createdPost.slug,
-              coverImage: createdPost.coverImageUrl || createdPost.coverImage || savedItem.coverImage,
-              categoryId: createdPost.categoryId,
-              categoryName: createdPost.category?.name || savedItem.categoryName,
-              author: createdPost.authorName || createdPost.author || savedItem.author,
-              authorAvatar: savedItem.authorAvatar,
-              status: createdPost.status,
-              publishedAt: createdPost.publishedAt,
-              scheduledAt: createdPost.scheduledAt,
-              createdAt: createdPost.createdAt,
-              updatedAt: createdPost.updatedAt,
-              views: createdPost.viewsCount || 0,
-              excerpt: createdPost.excerpt,
-              content: createdPost.content || savedItem.content,
-              tags: createdPost.tags || [],
-              seoTitle: savedItem.seoTitle,
-              seoDescription: createdPost.seoDescription || savedItem.seoDescription,
-              relatedProductIds: createdPost.productIds || savedItem.relatedProductIds
-            };
+    try {
+      const res: any = isEdit
+        ? await firstValueFrom(this.http.put<any>(`${this.adminApiUrl}/posts/${article.id}`, payload))
+        : await firstValueFrom(this.http.post<any>(`${this.adminApiUrl}/posts`, payload));
 
-            if (idx >= 0) {
-              list[idx] = realArticle;
-            } else {
-              list.unshift(realArticle);
-            }
-            this.articlesSubject.next(list);
-            this.loadCategoriesFromBackend();
-          }
-        },
-        error: (err) => {
-          console.error('[BlogService] Lỗi khi tạo bài viết mới trên database:', err);
-        }
-      });
-    }
-
-    return savedItem;
-  }
-
-  private createArticleObject(article: Partial<BlogArticle>, now: string): BlogArticle {
-    const id = 'temp-' + Date.now();
-    const slug = article.slug || this.generateSlug(article.title || 'bai-viet-moi');
-    return {
-      id,
-      title: article.title || 'Tiêu đề bài viết',
-      slug,
-      coverImage: article.coverImage || '/assets/room_img/phong_khach.jpg',
-      categoryId: article.categoryId || '',
-      categoryName: article.categoryName || '',
-      author: article.author || 'Ban biên tập DCor',
-      authorAvatar: article.authorAvatar || '/assets/favicon/logo.png',
-      status: article.status || 'DRAFT',
-      publishedAt: article.status === 'PUBLISHED' ? (article.publishedAt || now) : undefined,
-      scheduledAt: undefined,
-      createdAt: article.createdAt || now,
-      updatedAt: now,
-      views: article.views || 0,
-      excerpt: article.excerpt || '',
-      content: article.content || '',
-      tags: article.tags || [],
-      seoTitle: article.seoTitle || article.title,
-      seoDescription: article.seoDescription || article.excerpt,
-      relatedProductIds: article.relatedProductIds || []
-    };
-  }
-
-  deleteArticle(id: string): void {
-    const current = this.articlesSubject.value.filter(a => a.id !== id);
-    this.articlesSubject.next(current);
-    this.updateCategoryCounts(current, this.categoriesSubject.value);
-
-    if (!id.startsWith('temp-')) {
-      this.http.delete(`${this.adminApiUrl}/posts/${id}`).subscribe({
-        next: () => {
-          this.loadCategoriesFromBackend();
-        },
-        error: (err) => {
-          console.error('[BlogService] Lỗi khi xóa bài viết khỏi database:', err);
-        }
-      });
+      const savedPost = res?.post || res;
+      await Promise.all([this.loadArticlesFromBackend(), this.loadCategoriesFromBackend()]);
+      const synced = this.articlesSubject.value.find(a => a.id === savedPost?.id);
+      return { ok: true, data: synced || savedPost };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi khi lưu bài viết lên database:', err);
+      return { ok: false, error: this.extractHttpError(err, 'Không thể lưu bài viết lên hệ thống.') };
     }
   }
 
-  toggleArticleStatus(id: string): BlogArticle | undefined {
-    const current = [...this.articlesSubject.value];
-    const index = current.findIndex(a => a.id === id);
-    if (index >= 0) {
-      const art = current[index];
-      const newStatus = art.status === 'PUBLISHED' ? 'HIDDEN' : 'PUBLISHED';
-      const updatedItem: BlogArticle = {
-        ...art,
-        status: newStatus,
-        publishedAt: newStatus === 'PUBLISHED' && !art.publishedAt ? new Date().toISOString() : art.publishedAt,
-        updatedAt: new Date().toISOString()
-      };
-      current[index] = updatedItem;
+  async deleteArticle(id: string): Promise<BlogActionResult> {
+    if (id.startsWith('temp-')) {
+      const current = this.articlesSubject.value.filter(a => a.id !== id);
       this.articlesSubject.next(current);
+      this.updateCategoryCounts(current, this.categoriesSubject.value);
+      return { ok: true };
+    }
 
-      if (!id.startsWith('temp-')) {
+    try {
+      await firstValueFrom(this.http.delete(`${this.adminApiUrl}/posts/${id}`));
+      await Promise.all([this.loadArticlesFromBackend(), this.loadCategoriesFromBackend()]);
+      return { ok: true };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi khi xóa bài viết khỏi database:', err);
+      return { ok: false, error: this.extractHttpError(err, 'Không thể xóa bài viết.') };
+    }
+  }
+
+  async toggleArticleStatus(id: string): Promise<BlogActionResult<BlogArticle>> {
+    const art = this.articlesSubject.value.find(a => a.id === id);
+    if (!art) return { ok: false, error: 'Không tìm thấy bài viết.' };
+
+    const newStatus: 'PUBLISHED' | 'HIDDEN' = art.status === 'PUBLISHED' ? 'HIDDEN' : 'PUBLISHED';
+    const publishedAt = newStatus === 'PUBLISHED' && !art.publishedAt ? new Date().toISOString() : art.publishedAt;
+
+    try {
+      await firstValueFrom(
         this.http.patch<any>(`${this.adminApiUrl}/posts/${id}/status`, {
           status: newStatus,
-          publishedAt: updatedItem.publishedAt
-        }).subscribe({
-          next: () => {
-            this.loadCategoriesFromBackend();
-          },
-          error: (err) => {
-            console.error('[BlogService] Lỗi khi cập nhật trạng thái bài viết:', err);
-          }
-        });
-      }
-
-      return updatedItem;
+          publishedAt
+        })
+      );
+      await Promise.all([this.loadArticlesFromBackend(), this.loadCategoriesFromBackend()]);
+      const updated = this.articlesSubject.value.find(a => a.id === id);
+      return { ok: true, data: updated || { ...art, status: newStatus, publishedAt } };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi khi cập nhật trạng thái bài viết:', err);
+      return { ok: false, error: this.extractHttpError(err, 'Không thể cập nhật trạng thái bài viết.') };
     }
-    return undefined;
   }
 
-  bulkUpdateStatus(ids: string[], status: 'PUBLISHED' | 'HIDDEN' | 'DRAFT'): void {
-    const current = this.articlesSubject.value.map(a => {
-      if (ids.includes(a.id)) {
-        return {
-          ...a,
-          status,
-          updatedAt: new Date().toISOString()
-        };
-      }
-      return a;
-    });
-    this.articlesSubject.next(current);
-
-    ids.forEach(id => {
-      if (!id.startsWith('temp-')) {
-        this.http.patch(`${this.adminApiUrl}/posts/${id}/status`, { status }).subscribe({
-          error: (e) => console.error(`[BlogService] Lỗi cập nhật status bài ${id}:`, e)
-        });
-      }
-    });
+  async bulkUpdateStatus(ids: string[], status: 'PUBLISHED' | 'HIDDEN' | 'DRAFT'): Promise<BlogActionResult> {
+    const validIds = ids.filter(id => !id.startsWith('temp-'));
+    try {
+      await Promise.all(
+        validIds.map(id =>
+          firstValueFrom(this.http.patch(`${this.adminApiUrl}/posts/${id}/status`, { status }))
+        )
+      );
+      await this.loadArticlesFromBackend();
+      return { ok: true };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi cập nhật trạng thái hàng loạt:', err);
+      await this.loadArticlesFromBackend();
+      return { ok: false, error: this.extractHttpError(err, 'Một số bài viết không thể cập nhật trạng thái.') };
+    }
   }
 
-  bulkDelete(ids: string[]): void {
-    const current = this.articlesSubject.value.filter(a => !ids.includes(a.id));
-    this.articlesSubject.next(current);
-    this.updateCategoryCounts(current, this.categoriesSubject.value);
-
-    ids.forEach(id => {
-      if (!id.startsWith('temp-')) {
-        this.http.delete(`${this.adminApiUrl}/posts/${id}`).subscribe({
-          next: () => this.loadCategoriesFromBackend(),
-          error: (e) => console.error(`[BlogService] Lỗi xóa bài ${id}:`, e)
-        });
-      }
-    });
+  async bulkDelete(ids: string[]): Promise<BlogActionResult> {
+    const validIds = ids.filter(id => !id.startsWith('temp-'));
+    try {
+      await Promise.all(
+        validIds.map(id => firstValueFrom(this.http.delete(`${this.adminApiUrl}/posts/${id}`)))
+      );
+      await Promise.all([this.loadArticlesFromBackend(), this.loadCategoriesFromBackend()]);
+      return { ok: true };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi xóa bài viết hàng loạt:', err);
+      await Promise.all([this.loadArticlesFromBackend(), this.loadCategoriesFromBackend()]);
+      return { ok: false, error: this.extractHttpError(err, 'Một số bài viết không thể xóa.') };
+    }
   }
 
   // ==========================================
@@ -461,168 +307,59 @@ export class BlogService {
     return this.categoriesSubject.value;
   }
 
-  saveCategory(cat: Partial<BlogCategory>): BlogCategory {
-    const current = [...this.categoriesSubject.value];
-    let savedItem: BlogCategory;
+  async saveCategory(cat: Partial<BlogCategory>): Promise<BlogActionResult<BlogCategory>> {
     const isEdit = Boolean(cat.id && !cat.id.startsWith('temp-'));
-
-    if (isEdit) {
-      const index = current.findIndex(c => c.id === cat.id);
-      if (index >= 0) {
-        savedItem = {
-          ...current[index],
-          ...cat
-        } as BlogCategory;
-        current[index] = savedItem;
-      } else {
-        savedItem = {
-          id: cat.id!,
-          name: cat.name || 'Chuyên mục mới',
-          slug: cat.slug || this.generateSlug(cat.name || 'chuyen-muc-moi'),
-          description: cat.description || '',
-          articleCount: cat.articleCount || 0,
-          status: cat.status || 'ACTIVE',
-          sortOrder: cat.sortOrder || current.length + 1
-        };
-        current.push(savedItem);
-      }
-    } else {
-      savedItem = {
-        id: 'temp-' + Date.now(),
-        name: cat.name || 'Chuyên mục mới',
-        slug: cat.slug || this.generateSlug(cat.name || 'chuyen-muc-moi'),
-        description: cat.description || '',
-        articleCount: 0,
-        status: cat.status || 'ACTIVE',
-        sortOrder: cat.sortOrder || current.length + 1
-      };
-      current.push(savedItem);
-    }
-
-    this.categoriesSubject.next(current);
-
+    const status = cat.status || 'ACTIVE';
     const payload = {
-      name: savedItem.name,
-      slug: savedItem.slug,
-      sortOrder: savedItem.sortOrder,
-      status: savedItem.status,
-      isActive: savedItem.status === 'ACTIVE'
+      name: cat.name?.trim() || 'Chuyên mục mới',
+      slug: cat.slug?.trim() || this.generateSlug(cat.name || 'chuyen-muc-moi'),
+      sortOrder: Number(cat.sortOrder) || this.categoriesSubject.value.length + 1,
+      status,
+      isActive: status === 'ACTIVE'
     };
 
-    if (isEdit) {
-      this.http.put<any>(`${this.adminApiUrl}/categories/${cat.id}`, payload).subscribe({
-        next: () => this.loadCategoriesFromBackend(),
-        error: (err) => console.error('[BlogService] Lỗi cập nhật danh mục:', err)
-      });
-    } else {
-      this.http.post<any>(`${this.adminApiUrl}/categories`, payload).subscribe({
-        next: () => this.loadCategoriesFromBackend(),
-        error: (err) => console.error('[BlogService] Lỗi tạo danh mục:', err)
-      });
-    }
+    try {
+      const res: any = isEdit
+        ? await firstValueFrom(this.http.put<any>(`${this.adminApiUrl}/categories/${cat.id}`, payload))
+        : await firstValueFrom(this.http.post<any>(`${this.adminApiUrl}/categories`, payload));
 
-    return savedItem;
-  }
-
-  deleteCategory(id: string): void {
-    const current = this.categoriesSubject.value.filter(c => c.id !== id);
-    this.categoriesSubject.next(current);
-
-    if (!id.startsWith('temp-')) {
-      this.http.delete(`${this.adminApiUrl}/categories/${id}`).subscribe({
-        next: () => this.loadCategoriesFromBackend(),
-        error: (err) => console.error('[BlogService] Lỗi xóa danh mục:', err)
-      });
+      await this.loadCategoriesFromBackend();
+      return { ok: true, data: res?.category || res };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi lưu danh mục:', err);
+      return { ok: false, error: this.extractHttpError(err, 'Không thể lưu chuyên mục.') };
     }
   }
 
-  toggleCategoryStatus(id: string): void {
-    const current = [...this.categoriesSubject.value];
-    const cat = current.find(c => c.id === id);
-    if (!cat) return;
+  async deleteCategory(id: string): Promise<BlogActionResult> {
+    try {
+      await firstValueFrom(this.http.delete(`${this.adminApiUrl}/categories/${id}`));
+      await this.loadCategoriesFromBackend();
+      return { ok: true };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi xóa danh mục:', err);
+      return { ok: false, error: this.extractHttpError(err, 'Không thể xóa chuyên mục.') };
+    }
+  }
+
+  async toggleCategoryStatus(id: string): Promise<BlogActionResult> {
+    const cat = this.categoriesSubject.value.find(c => c.id === id);
+    if (!cat) return { ok: false, error: 'Không tìm thấy chuyên mục.' };
 
     const newStatus = cat.status === 'ACTIVE' ? ('HIDDEN' as const) : ('ACTIVE' as const);
-    cat.status = newStatus;
-    this.categoriesSubject.next(current);
-
-    if (!id.startsWith('temp-')) {
-      this.http.put(`${this.adminApiUrl}/categories/${id}`, {
-        status: newStatus,
-        isActive: newStatus === 'ACTIVE'
-      }).subscribe({
-        next: () => this.loadCategoriesFromBackend(),
-        error: (err) => console.error('[BlogService] Lỗi cập nhật trạng thái danh mục:', err)
-      });
+    try {
+      await firstValueFrom(
+        this.http.put(`${this.adminApiUrl}/categories/${id}`, {
+          status: newStatus,
+          isActive: newStatus === 'ACTIVE'
+        })
+      );
+      await this.loadCategoriesFromBackend();
+      return { ok: true };
+    } catch (err: any) {
+      console.error('[BlogService] Lỗi cập nhật trạng thái danh mục:', err);
+      return { ok: false, error: this.extractHttpError(err, 'Không thể cập nhật trạng thái chuyên mục.') };
     }
-  }
-
-  // ==========================================
-  // MARKETING BANNERS
-  // ==========================================
-
-  getBanners(): MarketingBanner[] {
-    return this.bannersSubject.value;
-  }
-
-  saveBanner(banner: Partial<MarketingBanner>): MarketingBanner {
-    const current = [...this.bannersSubject.value];
-    let saved: MarketingBanner;
-
-    if (banner.id) {
-      const idx = current.findIndex(b => b.id === banner.id);
-      if (idx >= 0) {
-        saved = { ...current[idx], ...banner } as MarketingBanner;
-        current[idx] = saved;
-      } else {
-        saved = {
-          id: 'ban-' + Date.now(),
-          title: banner.title || 'Banner mới',
-          position: banner.position || 'HOME_HERO',
-          imageUrl: banner.imageUrl || '/assets/room_img/phong_khach.jpg',
-          linkUrl: banner.linkUrl || '/explore',
-          status: banner.status || 'ACTIVE',
-          startDate: banner.startDate,
-          endDate: banner.endDate
-        };
-        current.push(saved);
-      }
-    } else {
-      saved = {
-        id: 'ban-' + Date.now(),
-        title: banner.title || 'Banner mới',
-        position: banner.position || 'HOME_HERO',
-        imageUrl: banner.imageUrl || '/assets/room_img/phong_khach.jpg',
-        linkUrl: banner.linkUrl || '/explore',
-        status: banner.status || 'ACTIVE',
-        startDate: banner.startDate,
-        endDate: banner.endDate
-      };
-      current.push(saved);
-    }
-
-    this.saveBannersToStorage(current);
-    this.bannersSubject.next(current);
-    return saved;
-  }
-
-  deleteBanner(id: string): void {
-    const current = this.bannersSubject.value.filter(b => b.id !== id);
-    this.saveBannersToStorage(current);
-    this.bannersSubject.next(current);
-  }
-
-  toggleBannerStatus(id: string): void {
-    const current = this.bannersSubject.value.map(b => {
-      if (b.id === id) {
-        return {
-          ...b,
-          status: b.status === 'ACTIVE' ? ('INACTIVE' as const) : ('ACTIVE' as const)
-        };
-      }
-      return b;
-    });
-    this.saveBannersToStorage(current);
-    this.bannersSubject.next(current);
   }
 
   // ==========================================
@@ -808,12 +545,6 @@ export class BlogService {
       .join('\n');
   }
 
-  private saveBannersToStorage(items: MarketingBanner[]): void {
-    try {
-      localStorage.setItem(STORAGE_BANNERS_KEY, JSON.stringify(items));
-    } catch (_) {}
-  }
-
   private updateCategoryCounts(articles: BlogArticle[], categories: BlogCategory[]): void {
     const updated = categories.map(cat => ({
       ...cat,
@@ -828,39 +559,6 @@ export class BlogService {
       { id: 'cat-2', name: 'Mẹo không gian', slug: 'meo-khong-gian', description: 'Cẩm nang chọn lựa chất liệu, kết cấu gỗ, da bò, nỉ cao cấp.', articleCount: 0, status: 'ACTIVE', sortOrder: 2 },
       { id: 'cat-3', name: 'Cẩm nang chọn mua', slug: 'cam-nang-chon-mua', description: 'Nghệ thuật sắp đặt không gian sống, phong thủy tài lộc phòng khách.', articleCount: 0, status: 'ACTIVE', sortOrder: 3 },
       { id: 'cat-4', name: 'Chăm sóc nội thất', slug: 'cham-soc-noi-that', description: 'Quy trình chăm sóc, vệ sinh da thật và bề mặt gỗ sơn phủ.', articleCount: 0, status: 'ACTIVE', sortOrder: 4 }
-    ];
-  }
-
-  private getDefaultBanners(): MarketingBanner[] {
-    return [
-      {
-        id: 'ban-1',
-        title: 'Bộ sưu tập Thu - Đông 2026: Kiệt tác da bò Ý',
-        position: 'HOME_HERO',
-        imageUrl: '/assets/room_img/phong_khach.jpg',
-        linkUrl: '/explore?category=sofa',
-        status: 'ACTIVE',
-        startDate: '2026-10-01',
-        endDate: '2026-12-31'
-      },
-      {
-        id: 'ban-2',
-        title: 'Tư vấn thiết kế không gian 3D miễn phí cùng Kiến Trúc Sư DCor',
-        position: 'BLOG_SIDEBAR',
-        imageUrl: '/assets/room_img/phong_lam_viec.jpg',
-        linkUrl: '/account/appointments',
-        status: 'ACTIVE',
-        startDate: '2026-10-15',
-        endDate: '2026-11-30'
-      },
-      {
-        id: 'ban-3',
-        title: 'Ưu đãi đặt cọc may đo sofa: Tặng gói bảo dưỡng chuyên sâu 2 năm',
-        position: 'COLLECTION_BANNER',
-        imageUrl: '/assets/room_img/phong_ngu.jpg',
-        linkUrl: '/custom-design',
-        status: 'ACTIVE'
-      }
     ];
   }
 

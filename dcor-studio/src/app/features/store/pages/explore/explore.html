@@ -205,103 +205,18 @@
           <button (click)="clearAllFilters()" class="btn-reset-filters">Xóa bộ lọc</button>
         </div>
 
-        <!-- Products Grid (3 cột theo mẫu) -->
+        <!-- Products Grid (3 cột theo mẫu - dùng chung app-product-card) -->
         <div *ngIf="!isLoading && paginatedProducts.length > 0" class="products-grid-3col">
-          <div *ngFor="let prod of paginatedProducts; trackBy: trackByProductId" class="product-item-card"
-            [class.is-hovered]="hoveredCardId === prod.productId" [id]="'product-' + prod.productId"
-            (mouseenter)="onCardMouseEnter(prod)" (mouseleave)="onCardMouseLeave(prod)"
-            (click)="handleProductClick(prod.productId)">
-
-            <!-- Vùng ảnh sản phẩm -->
-            <div class="card-image-box" (mousemove)="onCardMouseMove($event, prod)">
-
-              <!-- Badge Sale / Mới -->
-              <div class="card-badge-wrap">
-                <span *ngIf="isOnSale(prod)" class="badge-hotdeal">
-                  HOT DEAL {{ getDiscountBadgeText(prod) }}
-                </span>
-                <span *ngIf="prod.isNew" class="badge-new">
-                  NEW
-                </span>
-              </div>
-
-              <!-- Top-right Action Buttons: So sánh + Yêu thích -->
-              <div class="card-corner-actions">
-                <button type="button" class="round-action-btn compare-btn" [class.active]="isInCompare(prod.productId)"
-                  [class.disabled-compare]="isCompareDisabledForProduct(prod)"
-                  [disabled]="isCompareDisabledForProduct(prod)" [title]="getCompareButtonTooltip(prod)"
-                  (click)="toggleCompare($event, prod)">
-                  <app-icon name="Scale" size="16"
-                    [color]="isInCompare(prod.productId) ? '#b45309' : (isCompareDisabledForProduct(prod) ? '#9ca3af' : '#4b5563')"></app-icon>
-                </button>
-                <button type="button" class="round-action-btn wishlist-btn"
-                  [class.active]="wishlist.includes(prod.productId)"
-                  [title]="wishlist.includes(prod.productId) ? 'Bỏ yêu thích' : 'Yêu thích'"
-                  (click)="toggleWishlist($event, prod.productId)">
-                  <app-icon name="Heart" size="16" [color]="wishlist.includes(prod.productId) ? '#C42326' : '#4b5563'"
-                    [filled]="wishlist.includes(prod.productId)"></app-icon>
-                </button>
-              </div>
-
-              <!-- Ảnh sản phẩm đa góc nhìn (Stack) -->
-              <div class="card-img-stack">
-                <img *ngFor="let img of getCardImages(prod); let idx = index" [src]="img"
-                  [alt]="prod.shortDescription + ' - Góc ' + (idx + 1)" class="product-main-img"
-                  [class.active-img]="getActiveImageIndex(prod.productId) === idx"
-                  [attr.loading]="idx === 0 ? 'eager' : 'lazy'" (error)="onImageError(prod, idx)">
-              </div>
-            </div>
-
-            <!-- Vùng thông tin sản phẩm -->
-            <div class="card-body-box">
-
-              <!-- Hàng biến thể màu sắc & Đánh giá -->
-              <div class="meta-row">
-                <div class="swatches-preview" *ngIf="prod.colorSwatches && prod.colorSwatches.length > 0">
-                  <button type="button" *ngFor="let sw of getVisibleSwatches(prod); trackBy: trackBySwatchId" class="swatch-btn"
-                    [class.active]="isSwatchActive(prod, sw)" [title]="sw.name" [style.background-color]="sw.hex"
-                    (mouseenter)="selectCardSwatch($event, prod, sw)" (click)="selectCardSwatch($event, prod, sw)">
-                  </button>
-                  <span *ngIf="prod.colorSwatches.length > 5" class="variant-count">
-                    +{{ prod.colorSwatches.length - 5 }}
-                  </span>
-                  <span *ngIf="prod.colorSwatches.length <= 5 && prod.colorSwatches.length > 1" class="variant-count">
-                    {{ prod.colorSwatches.length }} màu
-                  </span>
-                </div>
-                <div class="swatches-preview" *ngIf="!prod.colorSwatches || prod.colorSwatches.length === 0">
-                  <span class="variant-count">1 màu tiêu chuẩn</span>
-                </div>
-                <div class="rating-badge">
-                  <lucide-angular [img]="icons.Star" size="13" class="star-gold"></lucide-angular>
-                  <span class="rating-val">{{ (prod.rating || 4.9).toFixed(1) }}</span>
-                  <span class="rating-total">({{ prod.reviewCount || 128 }})</span>
-                </div>
-              </div>
-
-              <!-- Tiêu đề sản phẩm -->
-              <h3 class="product-name" [title]="prod.shortDescription_vi || prod.shortDescription">
-                {{ prod.shortDescription_vi || prod.shortDescription }}
-              </h3>
-
-              <!-- Hàng giá & Nút mua -->
-              <div class="price-buy-row">
-                <div class="price-stack">
-                  <span class="price-current">{{ getProductPriceFormatted(prod) }}</span>
-                  <span *ngIf="getOriginalPriceFormatted(prod)" class="price-original">
-                    {{ getOriginalPriceFormatted(prod) }}
-                  </span>
-                </div>
-
-                <button type="button" class="btn-buy" (click)="handleBuyClick($event, prod)">
-                  <app-icon name="ShoppingCart" size="14" color="#ffffff"></app-icon>
-                  <span>MUA</span>
-                </button>
-              </div>
-
-            </div>
-
-          </div>
+          <app-product-card
+            *ngFor="let prod of paginatedProducts; trackBy: trackByProductId"
+            [product]="prod"
+            [showWishlist]="true"
+            [showCompare]="true"
+            [showQuickView]="true"
+            [showBuyButton]="true"
+            (cardClick)="handleProductClick(prod.productId)"
+            (buy)="onCardBuyClick($event)">
+          </app-product-card>
         </div>
 
         <!-- Nút Xem thêm -->

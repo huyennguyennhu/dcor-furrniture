@@ -11,6 +11,10 @@ export interface Promotion {
   discountValue: number;
   minOrderValue?: number;
   maxDiscountAmount?: number;
+  scope?: 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS';
+  categoryScopeName?: string;
+  productIds?: string[];
+  productNames?: string[];
   startDate?: string;
   endDate?: string;
   isActive?: boolean;
@@ -23,6 +27,10 @@ export interface AppliedPromotion {
   discountType: 'PERCENT' | 'AMOUNT';
   discountValue: number;
   minOrderValue?: number;
+  maxDiscountAmount?: number;
+  scope?: 'ALL' | 'CATEGORY' | 'SPECIFIC_PRODUCTS';
+  categoryScopeName?: string;
+  productIds?: string[];
   calculatedDiscount: number;
   isFreeShip?: boolean;
 }
@@ -264,81 +272,75 @@ export class PromotionService {
   private initCampaignsListener() {
     if (typeof window !== 'undefined') {
       window.addEventListener('dcor_campaigns_updated', () => this.loadActiveCampaigns());
+      window.addEventListener('dcor_vouchers_updated', () => this.loadPromotions().subscribe());
       window.addEventListener('storage', (e) => {
         if (e.key === this.CAMPAIGNS_STORAGE_KEY) this.loadActiveCampaigns();
+        if (e.key === 'dcor_admin_vouchers_data_v1') this.loadPromotions().subscribe();
       });
     }
   }
 
-  loadActiveCampaigns(): void {
-    let campaigns: any[] = [];
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem(this.CAMPAIGNS_STORAGE_KEY);
-        // Tự động nâng cấp dữ liệu mock cũ (P-SOFA-01 hoặc DCor Nordic hoặc 2026-10-31)
-        if (!raw || raw.includes('P-SOFA-01') || raw.includes('DCor Nordic') || raw.includes('2026-10-31')) {
-          campaigns = [...FALLBACK_CAMPAIGNS];
-          localStorage.setItem(this.CAMPAIGNS_STORAGE_KEY, JSON.stringify(campaigns));
-        } else {
-          campaigns = JSON.parse(raw);
-        }
-      } catch (e) {
-        console.warn('Lỗi đọc chiến dịch từ localStorage:', e);
-        campaigns = [...FALLBACK_CAMPAIGNS];
-      }
-    } else {
-      campaigns = [...FALLBACK_CAMPAIGNS];
-    }
+  private hasLoadedCampaignsFromApi = false;
 
-    const today = new Date().toISOString().split('T')[0];
+  loadActiveCampaigns(): void {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const filterActive = (list: any[]) => {
       return (list || []).filter((c: any) => {
         const isStatusActive = c.status === 'Ongoing' || c.status === 'Active' || c.status === 'Đang diễn ra' || c.status === 'Đang hoạt động';
-        const isNotExpired = !c.endDateTime || c.endDateTime >= today;
-        const isStarted = !c.startDateTime || c.startDateTime <= today;
+        const startDay = c.startDateTime ? String(c.startDateTime).slice(0, 10) : '';
+        const endDay = c.endDateTime ? String(c.endDateTime).slice(0, 10) : '';
+        const isNotExpired = !endDay || endDay >= today;
+        const isStarted = !startDay || startDay <= today;
         return isStatusActive && isNotExpired && isStarted;
       });
     };
 
-    let active = filterActive(campaigns);
-    if (!active || active.length === 0) {
-      active = filterActive(FALLBACK_CAMPAIGNS);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(this.CAMPAIGNS_STORAGE_KEY, JSON.stringify(FALLBACK_CAMPAIGNS));
-      }
+    // Hiển thị tức thì dữ liệu cache trong localStorage nếu có (trong lúc đợi API thật trả về)
+    if (!this.hasLoadedCampaignsFromApi && typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(this.CAMPAIGNS_STORAGE_KEY);
+        if (raw) {
+          const localActive = filterActive(JSON.parse(raw));
+          this.discountCache.clear();
+          this.activeCampaignsSubject.next(localActive);
+        }
+      } catch {}
     }
 
-    this.discountCache.clear();
-    this.activeCampaignsSubject.next(active);
-
-    // Tải thêm từ backend API store/campaigns (có guard chống gọi dồn dập)
+    // Luôn lấy nguồn dữ liệu chuẩn từ PostgreSQL qua API /store/campaigns (KHÔNG tự hồi sinh FALLBACK hay bắn POST ngược)
     if (!this.isFetchingCampaigns) {
       this.isFetchingCampaigns = true;
-      fetch(`${environment.apiUrl}/store/campaigns`)
-        .then(res => res.ok ? res.json() : [])
+      fetch(`${environment.apiUrl}/store/campaigns`, { cache: 'no-store' })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then(data => {
           this.isFetchingCampaigns = false;
-          if (Array.isArray(data) && data.length > 0) {
-            const remoteActive = filterActive(data);
-            if (remoteActive.length > 0) {
-              this.discountCache.clear();
-              this.activeCampaignsSubject.next(remoteActive);
-            }
-          }
+          this.hasLoadedCampaignsFromApi = true;
+          const remoteActive = Array.isArray(data) ? filterActive(data) : [];
+          this.discountCache.clear();
+          this.activeCampaignsSubject.next(remoteActive);
         })
         .catch(() => {
           this.isFetchingCampaigns = false;
+          // Chỉ fallback nếu hoàn toàn mất kết nối và chưa từng tải từ API
+          if (!this.hasLoadedCampaignsFromApi && this.activeCampaignsSubject.getValue().length === 0) {
+            this.discountCache.clear();
+            this.activeCampaignsSubject.next(filterActive(FALLBACK_CAMPAIGNS));
+          }
         });
     }
   }
 
   getActiveCampaigns(): any[] {
-    let list = this.activeCampaignsSubject.getValue();
-    if (!list || list.length === 0) {
+    const list = this.activeCampaignsSubject.getValue();
+    if (!this.hasLoadedCampaignsFromApi && (!list || list.length === 0)) {
       this.loadActiveCampaigns();
-      list = this.activeCampaignsSubject.getValue();
+      return this.activeCampaignsSubject.getValue();
     }
-    return list && list.length > 0 ? list : FALLBACK_CAMPAIGNS;
+    return list || [];
   }
 
   private normalizeStr(str: string): string {
@@ -465,10 +467,10 @@ export class PromotionService {
     }
   }
 
-  // Kết nối đến API chương trình khuyến mãi thực tế của hệ thống (database Admin)
+  // Kết nối đến API chương trình khuyến mãi thực tế của hệ thống (database PostgreSQL Admin)
   loadPromotions(): Observable<Promotion[]> {
     return new Observable<Promotion[]>(observer => {
-      fetch(`${environment.apiUrl}/store/promotions`)
+      fetch(`${environment.apiUrl}/store/promotions`, { cache: 'no-store' })
         .then(res => {
           if (!res.ok) return [];
           return res.json();
@@ -476,6 +478,7 @@ export class PromotionService {
         .then(data => {
           const list: Promotion[] = Array.isArray(data) ? data : (data?.promotions || []);
           this.promotionsSubject.next(list);
+          this.syncAppliedWithActiveList(list);
           observer.next(list);
           observer.complete();
         })
@@ -485,6 +488,49 @@ export class PromotionService {
           observer.complete();
         });
     });
+  }
+
+  // Đồng bộ các mã đang lưu trong session với danh sách mới nhất từ DB (gỡ mã nếu Admin đã tắt/xóa/hết hạn)
+  private syncAppliedWithActiveList(activeList: Promotion[]) {
+    const activeMap = new Map<string, Promotion>();
+    for (const p of activeList) {
+      if (p?.code) activeMap.set(p.code.toUpperCase(), p);
+    }
+
+    const currentPromo = this.appliedPromotionSubject.getValue();
+    if (currentPromo) {
+      const fresh = activeMap.get(currentPromo.code.toUpperCase());
+      if (!fresh) {
+        this.removeAppliedPromotion();
+      } else {
+        this.saveAppliedPromotion({
+          ...currentPromo,
+          name: fresh.name,
+          discountType: fresh.discountType,
+          discountValue: fresh.discountValue,
+          minOrderValue: fresh.minOrderValue,
+          maxDiscountAmount: fresh.maxDiscountAmount
+        });
+      }
+    }
+
+    const currentFreeship = this.appliedFreeshipSubject.getValue();
+    if (currentFreeship) {
+      const freshFs = activeMap.get(currentFreeship.code.toUpperCase());
+      if (!freshFs) {
+        this.removeAppliedFreeship();
+      } else {
+        this.saveAppliedFreeship({
+          ...currentFreeship,
+          name: freshFs.name,
+          discountType: freshFs.discountType,
+          discountValue: freshFs.discountValue,
+          minOrderValue: freshFs.minOrderValue,
+          maxDiscountAmount: freshFs.maxDiscountAmount,
+          calculatedDiscount: freshFs.discountValue
+        });
+      }
+    }
   }
 
   // Lấy các khuyến mãi thực tế phù hợp với giá trị đơn hàng
@@ -498,63 +544,45 @@ export class PromotionService {
     });
   }
 
-  // Áp dụng mã ưu đãi (hỗ trợ phân loại mã sản phẩm vs mã freeship để dùng đồng thời)
-  applyPromotion(code: string, orderTotal: number): Observable<{ success: boolean; message: string; applied?: AppliedPromotion }> {
-    const cleanCode = (code || '').trim().toUpperCase();
+  // Áp dụng mã ưu đãi — luôn xác thực trực tiếp với PostgreSQL qua API để đồng bộ realtime với Admin
+  applyPromotion(code: string, orderTotal: number, items?: any[]): Observable<{ success: boolean; message: string; applied?: AppliedPromotion }> {
+    const cleanCode = (code || '').trim().toUpperCase().replace(/\s+/g, '');
     if (!cleanCode) {
       return of({ success: false, message: 'Vui lòng nhập mã ưu đãi.' });
     }
 
-    // 1. Kiểm tra trong danh sách chương trình khuyến mãi đã nạp từ hệ thống
-    const existing = this.promotionsSubject.getValue().find(p => p.code.toUpperCase() === cleanCode);
-    if (existing) {
-      if (existing.minOrderValue && orderTotal < existing.minOrderValue) {
-        return of({
-          success: false,
-          message: `Mã "${cleanCode}" chỉ áp dụng cho đơn từ ${existing.minOrderValue.toLocaleString('vi-VN')} ₫.`
-        });
-      }
+    const normalizedItems = Array.isArray(items)
+      ? items.map(it => ({
+          productId: it.productId || it.id || '',
+          productName: it.productName || it.name || '',
+          price: Number(it.price || 0),
+          quantity: Number(it.quantity || 1),
+          categoryName: it.categoryName || it.category || ''
+        }))
+      : undefined;
 
-      let discount = 0;
-      if (existing.discountType === 'PERCENT') {
-        discount = Math.round((orderTotal * existing.discountValue) / 100);
-        if (existing.maxDiscountAmount) {
-          discount = Math.min(discount, existing.maxDiscountAmount);
-        }
-      } else {
-        discount = existing.discountValue;
-      }
-
-      const isFreeship = !!existing.isFreeShip || cleanCode.startsWith('FREESHIP');
-
-      const applied: AppliedPromotion = {
-        code: existing.code,
-        name: existing.name,
-        discountType: existing.discountType,
-        discountValue: existing.discountValue,
-        minOrderValue: existing.minOrderValue,
-        calculatedDiscount: isFreeship ? discount : Math.min(discount, orderTotal),
-        isFreeShip: isFreeship
-      };
-
-      if (isFreeship) {
-        this.saveAppliedFreeship(applied);
-      } else {
-        this.saveAppliedPromotion(applied);
-      }
-      return of({ success: true, message: `Áp dụng thành công mã "${applied.code}"`, applied });
-    }
-
-    // 2. Kết nối tới API xác thực mã ưu đãi của server (khi người dùng tự nhập mã voucher)
     return new Observable(observer => {
       const verifyUrl = `${environment.apiUrl}/vouchers/verify`;
       const fallbackUrl = `${environment.apiUrl}/store/promotions/verify`;
+
+      let customerId: string | undefined;
+      let phone: string | undefined;
+      try {
+        if (typeof window !== 'undefined') {
+          const userStr = localStorage.getItem('dcor_customer_user');
+          if (userStr) {
+            const u = JSON.parse(userStr);
+            customerId = u?.id;
+            phone = u?.phone;
+          }
+        }
+      } catch {}
 
       const tryVerify = (url: string, tryFallback: boolean) => {
         fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: cleanCode, orderTotal })
+          body: JSON.stringify({ code: cleanCode, orderTotal, customerId, phone, items: normalizedItems })
         })
           .then(async res => {
             const contentType = res.headers.get('content-type') || '';
@@ -571,24 +599,29 @@ export class PromotionService {
             }
 
             const v = data.voucher || data;
-            let discount = data.discountAmount;
+            const maxCap = data.maxDiscountAmount ?? v.maxDiscountCap ?? v.maxDiscountAmount ?? undefined;
+            const isFreeship = Boolean(data.isFreeShip ?? v.isFreeShip ?? cleanCode.startsWith('FREESHIP'));
+
+            let discount = data.discountAmount ?? data.calculatedDiscount;
             if (discount === undefined || discount === null) {
               if (v.discountType === 'PERCENT') {
                 discount = Math.round((orderTotal * v.discountValue) / 100);
-                const cap = v.maxDiscountCap || v.maxDiscountAmount;
-                if (cap) discount = Math.min(discount, cap);
+                if (maxCap) discount = Math.min(discount, maxCap);
               } else {
                 discount = v.discountValue || 0;
               }
             }
 
-            const isFreeship = !!v.isFreeShip || cleanCode.startsWith('FREESHIP');
             const applied: AppliedPromotion = {
               code: v.code || cleanCode,
-              name: v.name || v.code || cleanCode,
+              name: data.name || v.name || v.code || cleanCode,
               discountType: v.discountType === 'PERCENT' ? 'PERCENT' : 'AMOUNT',
               discountValue: v.discountValue || 0,
               minOrderValue: v.minOrderValue || 0,
+              maxDiscountAmount: maxCap,
+              scope: data.scope || v.scope || 'ALL',
+              categoryScopeName: data.categoryScopeName || v.categoryScopeName,
+              productIds: data.productIds || v.productIds || [],
               calculatedDiscount: isFreeship ? discount : Math.min(discount, orderTotal),
               isFreeShip: isFreeship
             };
@@ -602,7 +635,17 @@ export class PromotionService {
             observer.complete();
           })
           .catch(err => {
-            if (tryFallback && !err.message?.includes('không hợp lệ')) {
+            const msg = String(err?.message || '');
+            const isBusinessRejection =
+              msg.includes('không tồn tại') ||
+              msg.includes('không hợp lệ') ||
+              msg.includes('tạm dừng') ||
+              msg.includes('hết hạn') ||
+              msg.includes('tối thiểu') ||
+              msg.includes('hết lượt') ||
+              msg.includes('danh mục') ||
+              msg.includes('sản phẩm');
+            if (tryFallback && !isBusinessRejection) {
               tryVerify(fallbackUrl, false);
               return;
             }
@@ -660,18 +703,37 @@ export class PromotionService {
     } catch (e) {}
   }
 
-  // Tính số tiền giảm giá của 1 voucher dựa trên giá trị đơn hàng
-  calculateDiscount(promo: Promotion, orderTotal: number): number {
+  // Tính số tiền giảm giá của 1 voucher dựa trên giá trị đơn hàng (và phạm vi sản phẩm nếu có)
+  calculateDiscount(promo: Promotion, orderTotal: number, items?: any[]): number {
     if (promo.isActive === false) return 0;
     if (promo.minOrderValue && orderTotal < promo.minOrderValue) return 0;
+
+    let eligibleTotal = orderTotal;
+    if (promo.scope === 'SPECIFIC_PRODUCTS' && Array.isArray(promo.productIds) && promo.productIds.length > 0) {
+      if (!Array.isArray(items) || items.length === 0) return 0;
+      const idSet = new Set(promo.productIds.map(x => String(x).trim()));
+      const matched = items.filter(it => idSet.has(String(it.productId || it.id || '').trim()));
+      if (matched.length === 0) return 0;
+      const matchedSub = matched.reduce((s, it) => s + Number(it.price || 0) * Math.max(1, Number(it.quantity || 1)), 0);
+      eligibleTotal = matchedSub > 0 ? matchedSub : orderTotal;
+    } else if (promo.scope === 'CATEGORY' && promo.categoryScopeName) {
+      // Không tự áp bừa voucher giới hạn danh mục khi chưa có dữ liệu danh mục từng item
+      if (!Array.isArray(items) || items.length === 0) return 0;
+      const targetCat = promo.categoryScopeName.trim().toLowerCase();
+      const matched = items.filter(it => String(it.categoryName || it.category || '').trim().toLowerCase() === targetCat);
+      if (matched.length === 0) return 0;
+      const matchedSub = matched.reduce((s, it) => s + Number(it.price || 0) * Math.max(1, Number(it.quantity || 1)), 0);
+      eligibleTotal = matchedSub > 0 ? matchedSub : orderTotal;
+    }
+
     let discount = 0;
     if (promo.discountType === 'PERCENT') {
-      discount = Math.round((orderTotal * promo.discountValue) / 100);
+      discount = Math.round((eligibleTotal * promo.discountValue) / 100);
       if (promo.maxDiscountAmount) {
         discount = Math.min(discount, promo.maxDiscountAmount);
       }
     } else {
-      discount = promo.discountValue || 0;
+      discount = Math.min(promo.discountValue || 0, promo.isFreeShip ? (promo.discountValue || 0) : eligibleTotal);
     }
     return discount;
   }
@@ -681,7 +743,8 @@ export class PromotionService {
     orderTotal: number, 
     force: boolean = false, 
     skipProduct: boolean = false, 
-    skipFreeship: boolean = false
+    skipFreeship: boolean = false,
+    items?: any[]
   ) {
     if (orderTotal <= 0) {
       this.removeAppliedPromotion();
@@ -699,7 +762,7 @@ export class PromotionService {
       let bestPromo: Promotion | null = null;
       let maxDiscount = 0;
       for (const p of productPromos) {
-        const discount = this.calculateDiscount(p, orderTotal);
+        const discount = this.calculateDiscount(p, orderTotal, items);
         if (discount > maxDiscount) {
           maxDiscount = discount;
           bestPromo = p;
@@ -718,6 +781,7 @@ export class PromotionService {
             discountType: bestPromo.discountType,
             discountValue: bestPromo.discountValue,
             minOrderValue: bestPromo.minOrderValue,
+            maxDiscountAmount: bestPromo.maxDiscountAmount,
             calculatedDiscount: Math.min(maxDiscount, orderTotal),
             isFreeShip: false
           };

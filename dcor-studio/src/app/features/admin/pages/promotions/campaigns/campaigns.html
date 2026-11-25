@@ -295,7 +295,7 @@
 
   <!-- MODAL: Tạo / Chỉnh sửa Chương trình Giảm giá -->
   <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
-    <div class="modal-card modal-campaign" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="isEditing ? 'Chỉnh sửa đợt giảm giá' : 'Tạo đợt giảm giá mới'">
+    <div class="modal-card modal-campaign" (click)="$event.stopPropagation(); onModalCardClick()" role="dialog" aria-modal="true" [attr.aria-label]="isEditing ? 'Chỉnh sửa đợt giảm giá' : 'Tạo đợt giảm giá mới'">
       <!-- Modal Header -->
       <header class="modal-header">
         <div class="modal-header-info">
@@ -464,35 +464,118 @@
             </button>
           </div>
 
-          <!-- Danh sách sản phẩm tham gia giảm giá (Gọn gàng) -->
+          <!-- Phạm vi áp dụng & Gán sản phẩm (Đồng bộ 100% chuẩn form-grid-2 như Voucher) -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">Phạm vi áp dụng</label>
+              <div class="custom-dropdown modal-custom-dropdown">
+                <button
+                  type="button"
+                  class="dropdown-trigger-btn modal-dropdown-trigger"
+                  (click)="toggleModalScopeDropdown($event)">
+                  <span class="dropdown-label">{{ modalScopeLabel }}</span>
+                  <app-icon name="ChevronDown" size="14"></app-icon>
+                </button>
+                <div class="dropdown-menu modal-dropdown-menu" *ngIf="isModalScopeDropdownOpen">
+                  <button type="button" class="dropdown-item" [class.selected]="formData.scope === 'ALL'" (click)="selectModalScope('ALL')">
+                    <span>Toàn bộ sản phẩm trên hệ thống</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.scope === 'ALL'"></app-icon>
+                  </button>
+                  <button type="button" class="dropdown-item" [class.selected]="formData.scope === 'CATEGORY'" (click)="selectModalScope('CATEGORY')">
+                    <span>Theo danh mục sản phẩm cụ thể</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.scope === 'CATEGORY'"></app-icon>
+                  </button>
+                  <button type="button" class="dropdown-item" [class.selected]="formData.scope === 'SPECIFIC_PRODUCTS'" (click)="selectModalScope('SPECIFIC_PRODUCTS')">
+                    <span>Theo sản phẩm cụ thể</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.scope === 'SPECIFIC_PRODUCTS'"></app-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Danh mục chính cụ thể nếu scope === 'CATEGORY' -->
+            <div class="form-group" *ngIf="formData.scope === 'CATEGORY'">
+              <label class="form-label required">Chọn danh mục áp dụng</label>
+              <div class="custom-dropdown modal-custom-dropdown">
+                <button
+                  type="button"
+                  class="dropdown-trigger-btn modal-dropdown-trigger"
+                  (click)="toggleModalCategoryDropdown($event)">
+                  <span class="dropdown-label">{{ modalCategoryLabel }}</span>
+                  <app-icon name="ChevronDown" size="14"></app-icon>
+                </button>
+                <div class="dropdown-menu modal-dropdown-menu" *ngIf="isModalCategoryDropdownOpen">
+                  <button
+                    type="button"
+                    class="dropdown-item"
+                    *ngFor="let cat of CATEGORIES"
+                    [class.selected]="formData.categoryScopeName === cat"
+                    (click)="selectModalCategory(cat)">
+                    <span>{{ cat }}</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.categoryScopeName === cat"></app-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chọn sản phẩm cụ thể trực tiếp nếu scope === 'SPECIFIC_PRODUCTS' -->
+          <div class="form-group product-picker-section" *ngIf="formData.scope === 'SPECIFIC_PRODUCTS'">
+            <div class="product-picker-header">
+              <label class="form-label required" style="margin: 0;">Chọn sản phẩm áp dụng</label>
+              <span class="selected-count-pill">Đã chọn {{ formData.items.length }} sản phẩm</span>
+            </div>
+
+            <div class="selected-products-chips" *ngIf="formData.items.length > 0">
+              <span class="product-chip" *ngFor="let sp of formData.items">
+                <span class="chip-name" [title]="sp.productName">{{ sp.productName }}</span>
+                <button type="button" class="chip-remove-btn" (click)="removeSelectedProduct(sp.productId)" title="Bỏ chọn">&times;</button>
+              </span>
+            </div>
+
+            <div class="product-picker-search">
+              <app-icon name="Search" size="15" class="picker-search-icon"></app-icon>
+              <input
+                type="text"
+                class="admin-input picker-search-input"
+                name="productSearchTerm"
+                [(ngModel)]="productSearchTerm"
+                placeholder="Tìm sản phẩm theo tên, mã SKU hoặc danh mục..." />
+            </div>
+
+            <div class="product-picker-list">
+              <div class="picker-empty" *ngIf="isLoadingProducts">Đang tải danh sách sản phẩm...</div>
+              <div class="picker-empty" *ngIf="!isLoadingProducts && filteredPickerProducts.length === 0">
+                Không tìm thấy sản phẩm phù hợp.
+              </div>
+              <button
+                type="button"
+                class="product-picker-row"
+                *ngFor="let prod of filteredPickerProducts"
+                [class.selected]="isProductSelected(prod.id)"
+                (click)="toggleProductSelection(prod)">
+                <img [src]="prod.image" [alt]="prod.name" class="picker-thumb" />
+                <div class="picker-info">
+                  <div class="picker-name">{{ prod.name }}</div>
+                  <div class="picker-meta">
+                    <span *ngIf="prod.mainCategoryName">{{ prod.mainCategoryName }}</span>
+                    <span *ngIf="prod.sku">• {{ prod.sku }}</span>
+                    <span>• {{ formatCurrency(prod.price) }}</span>
+                  </div>
+                </div>
+                <span class="picker-check-box" [class.checked]="isProductSelected(prod.id)">
+                  <app-icon name="Check" size="13" *ngIf="isProductSelected(prod.id)"></app-icon>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bảng xem trước các sản phẩm áp dụng & giá sau giảm -->
           <div class="form-group products-section-compact">
             <div class="products-section-header-compact">
               <label class="form-label required mb-0">
                 Sản phẩm áp dụng ({{ formData.items.length }})
               </label>
-
-              <!-- 2 NÚT THAO TÁC RÕ RÀNG: THEO SẢN PHẨM HOẶC THEO DANH MỤC -->
-              <div class="product-add-actions">
-                <!-- Nút Mở Modal Chọn Sản Phẩm chuyên nghiệp (chuẩn Shopee / Shopify) -->
-                <button
-                  type="button"
-                  class="admin-btn admin-btn-secondary btn-sm"
-                  (click)="openProductPickerModal()"
-                  title="Mở bảng chọn sản phẩm">
-                  <app-icon name="Package" size="13"></app-icon>
-                  <span>Thêm sản phẩm</span>
-                </button>
-
-                <!-- Nút Mở Modal Chọn Danh Mục Chính -->
-                <button
-                  type="button"
-                  class="admin-btn admin-btn-secondary btn-sm"
-                  (click)="openCategoryPickerModal()"
-                  title="Mở danh sách danh mục chính">
-                  <app-icon name="Layers" size="13"></app-icon>
-                  <span>Thêm danh mục</span>
-                </button>
-              </div>
             </div>
 
             <!-- Bảng sản phẩm hiển thị cố định gọn gàng: cấu hình giá theo phần giảm giá đồng loạt -->
@@ -509,7 +592,7 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of formData.items; let i = index">
-                    <!-- Tên SP & Quy cách (Hiển thị cố định dạng text đọc, không nhập riêng lẻ) -->
+                    <!-- Tên SP & Quy cách -->
                     <td>
                       <div class="item-text-display">
                         <span class="prod-display-name">{{ item.productName }}</span>
@@ -549,7 +632,7 @@
 
             <!-- Empty State nếu chưa có SP -->
             <div class="compact-empty-state" *ngIf="formData.items.length === 0">
-              <span class="empty-hint">Chưa có sản phẩm nào. Chọn nút <strong>"Thêm sản phẩm"</strong> hoặc <strong>"Thêm danh mục"</strong> ở trên để nạp sản phẩm.</span>
+              <span class="empty-hint">Chưa có sản phẩm nào. Chọn <strong>Phạm vi áp dụng</strong> ở trên để gán toàn bộ hệ thống, theo danh mục chính hoặc tick chọn sản phẩm cụ thể.</span>
             </div>
           </div>
         </form>
@@ -723,261 +806,6 @@
           <app-icon name="Trash2" size="15"></app-icon>
           <span>Xác nhận xóa</span>
         </button>
-      </footer>
-    </div>
-  </div>
-
-  <!-- =========================================================================
-       MODAL CHỌN SẢN PHẨM HÀNG LOẠT (CHUẨN SHOPEE / SHOPIFY UI)
-       ========================================================================= -->
-  <div class="modal-backdrop modal-picker-backdrop" *ngIf="isProductModalOpen" (click)="closeProductPickerModal()">
-    <div class="modal-card modal-product-picker" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-      <header class="modal-header">
-        <div class="modal-header-info">
-          <div class="modal-header-icon">
-            <app-icon name="Package" size="18"></app-icon>
-          </div>
-          <div>
-            <h2 class="modal-title">Chọn sản phẩm áp dụng giảm giá</h2>
-          </div>
-        </div>
-        <button type="button" class="modal-close-btn" (click)="closeProductPickerModal()" aria-label="Đóng">
-          <app-icon name="X" size="18"></app-icon>
-        </button>
-      </header>
-
-      <!-- Filter Bar -->
-      <div class="picker-filter-bar">
-        <div class="picker-search-wrap">
-          <app-icon name="Search" size="14" class="picker-search-icon"></app-icon>
-          <input
-            type="text"
-            class="admin-input picker-search-input"
-            [(ngModel)]="productModalSearch"
-            placeholder="Tìm theo tên sản phẩm, quy cách..." />
-        </div>
-
-        <div class="picker-cat-filter">
-          <select class="admin-select picker-select" [(ngModel)]="productModalCategoryFilter">
-            <option value="ALL">Tất cả danh mục</option>
-            <option *ngFor="let cat of categoriesHierarchyList" [value]="cat.name">{{ cat.name }}</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Products Table in Modal -->
-      <div class="picker-table-wrapper">
-        <table class="picker-table">
-          <thead>
-            <tr>
-              <th style="width: 44px; text-align: center;">
-                <input
-                  type="checkbox"
-                  class="picker-checkbox"
-                  [checked]="isAllVisibleProductsSelected()"
-                  (change)="toggleSelectAllVisibleProducts()" />
-              </th>
-              <th>Sản phẩm / Quy cách</th>
-              <th style="width: 180px;">Danh mục</th>
-              <th style="width: 140px; text-align: right;">Giá gốc (₫)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              *ngFor="let p of filteredModalProducts"
-              (click)="toggleSelectProductKey(p.name + '::' + p.variant)"
-              [class.row-selected]="isProductKeySelected(p.name + '::' + p.variant)">
-              <td style="text-align: center;" (click)="$event.stopPropagation()">
-                <input
-                  type="checkbox"
-                  class="picker-checkbox"
-                  [checked]="isProductKeySelected(p.name + '::' + p.variant)"
-                  (change)="toggleSelectProductKey(p.name + '::' + p.variant)" />
-              </td>
-              <td>
-                <div class="picker-prod-cell">
-                  <span class="picker-prod-name">{{ p.name }}</span>
-                  <span class="picker-prod-var">{{ p.variant }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="picker-cat-badge">{{ p.categoryName }}</span>
-              </td>
-              <td style="text-align: right; font-weight: 600; color: #1A1A1A;">
-                {{ formatCurrency(p.price) }}
-              </td>
-            </tr>
-            <tr *ngIf="filteredModalProducts.length === 0">
-              <td colspan="4" class="picker-empty-cell">
-                Không tìm thấy sản phẩm nào phù hợp với bộ lọc
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Footer -->
-      <footer class="modal-footer picker-footer">
-        <div class="picker-selection-count">
-          Đã chọn <strong>{{ selectedProductKeys.size }}</strong> sản phẩm
-        </div>
-        <div class="picker-footer-btns">
-          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeProductPickerModal()">Hủy bỏ</button>
-          <button type="button" class="admin-btn admin-btn-primary" (click)="confirmProductPickerSelection()">
-            <app-icon name="Check" size="14"></app-icon>
-            <span>Xác nhận</span>
-          </button>
-        </div>
-      </footer>
-    </div>
-  </div>
-
-  <!-- =========================================================================
-       MODAL CHỌN DANH MỤC CHÍNH (CHUẨN SHOPEE / SHOPIFY UI)
-       ========================================================================= -->
-  <div class="modal-backdrop modal-picker-backdrop" *ngIf="isCategoryModalOpen" (click)="closeCategoryPickerModal()">
-    <div class="modal-card modal-cat-picker" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-      <header class="modal-header">
-        <div class="modal-header-info">
-          <div class="modal-header-icon">
-            <app-icon name="Layers" size="18"></app-icon>
-          </div>
-          <div>
-            <h2 class="modal-title">Chọn danh mục chính áp dụng</h2>
-          </div>
-        </div>
-        <button type="button" class="modal-close-btn" (click)="closeCategoryPickerModal()" aria-label="Đóng">
-          <app-icon name="X" size="18"></app-icon>
-        </button>
-      </header>
-
-      <!-- Search -->
-      <div class="picker-filter-bar">
-        <div class="picker-search-wrap" style="width: 100%;">
-          <app-icon name="Search" size="14" class="picker-search-icon"></app-icon>
-          <input
-            type="text"
-            class="admin-input picker-search-input"
-            [(ngModel)]="categoryModalSearch"
-            placeholder="Tìm kiếm danh mục chính..." />
-        </div>
-      </div>
-
-      <!-- Category Tree List (Đồng bộ chuẩn giao diện Trang Danh Mục) -->
-      <div class="picker-cat-tree-list">
-        <table class="picker-cat-table">
-          <tbody>
-            <ng-container *ngFor="let parent of filteredModalCategories">
-              <!-- Hàng Danh mục cha (Root row) -->
-              <tr 
-                class="cat-table-row parent-row"
-                [class.selected]="isCategorySelected(parent.name)">
-                
-                <!-- Nút Mở rộng / Thu gọn dạng chevron xoay như trang danh mục -->
-                <td class="col-cat-expand">
-                  <button
-                    type="button"
-                    class="cat-accordion-btn"
-                    *ngIf="parent.children && parent.children.length > 0"
-                    [class.expanded]="isParentCategoryExpanded(parent.id)"
-                    (click)="toggleExpandParentCategory(parent.id, $event)"
-                    [title]="isParentCategoryExpanded(parent.id) ? 'Thu gọn danh mục con' : 'Xem danh mục con'">
-                    <app-icon name="ChevronRight" size="15"></app-icon>
-                  </button>
-                  <span class="cat-expand-spacer" *ngIf="!parent.children || parent.children.length === 0"></span>
-                </td>
-
-                <!-- Checkbox chọn -->
-                <td class="col-cat-check" (click)="toggleSelectParentAndChildren(parent)">
-                  <input
-                    type="checkbox"
-                    class="picker-checkbox"
-                    [checked]="isParentChecked(parent)"
-                    (click)="$event.stopPropagation()"
-                    (change)="toggleSelectParentAndChildren(parent)" />
-                </td>
-
-                <!-- Tên danh mục cha -->
-                <td class="col-cat-name" (click)="toggleExpandParentCategory(parent.id, $event)">
-                  <div class="cat-name-cell">
-                    <span class="cat-parent-name-text">{{ parent.name }}</span>
-                    <span class="cat-badge-pill" *ngIf="parent.children && parent.children.length > 0">
-                      {{ parent.children.length }} danh mục con
-                    </span>
-                  </div>
-                </td>
-
-                <!-- Số lượng sản phẩm -->
-                <td class="col-cat-count" (click)="toggleExpandParentCategory(parent.id, $event)">
-                  <span class="cat-count-pill" *ngIf="parent.count > 0">{{ parent.count }} sản phẩm</span>
-                  <span class="cat-count-empty" *ngIf="parent.count === 0">-</span>
-                </td>
-              </tr>
-
-              <!-- Các Hàng Danh mục con (Child rows - dạng nhánh cây chuẩn trang danh mục) -->
-              <ng-container *ngIf="parent.children && parent.children.length > 0 && isParentCategoryExpanded(parent.id)">
-                <tr
-                  *ngFor="let child of parent.children; let isLastChild = last"
-                  class="cat-table-row child-row"
-                  [class.selected]="isCategorySelected(child.name)"
-                  (click)="toggleSelectCategory(child.name)">
-                  
-                  <!-- Nhánh cây nối dọc và ngang (Chuẩn Tree-branch trang danh mục) -->
-                  <td class="col-cat-expand col-cat-tree-cell" (click)="$event.stopPropagation()">
-                    <div 
-                      class="tree-line-v"
-                      [style.top]="'-1px'"
-                      [style.bottom]="isLastChild ? 'auto' : '-1px'"
-                      [style.height]="isLastChild ? 'calc(50% + 1px)' : 'auto'">
-                    </div>
-                    <div class="tree-line-h"></div>
-                  </td>
-
-                  <!-- Checkbox chọn con -->
-                  <td class="col-cat-check" (click)="$event.stopPropagation()">
-                    <input
-                      type="checkbox"
-                      class="picker-checkbox"
-                      [checked]="isCategorySelected(child.name)"
-                      (change)="toggleSelectCategory(child.name)" />
-                  </td>
-
-                  <!-- Tên danh mục con -->
-                  <td class="col-cat-name">
-                    <span class="cat-child-name-text">{{ child.name }}</span>
-                  </td>
-
-                  <!-- Số lượng sản phẩm con -->
-                  <td class="col-cat-count">
-                    <span class="cat-count-sub" *ngIf="child.count > 0">{{ child.count }} sản phẩm</span>
-                    <span class="cat-count-empty" *ngIf="child.count === 0">-</span>
-                  </td>
-                </tr>
-              </ng-container>
-            </ng-container>
-
-            <!-- Trống kết quả tìm kiếm -->
-            <tr *ngIf="filteredModalCategories.length === 0">
-              <td colspan="4" class="picker-empty-cell">
-                Không tìm thấy danh mục nào phù hợp
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Footer -->
-      <footer class="modal-footer picker-footer">
-        <div class="picker-selection-count">
-          Đã chọn <strong>{{ selectedCategoryNames.size }}</strong> danh mục
-        </div>
-        <div class="picker-footer-btns">
-          <button type="button" class="admin-btn admin-btn-secondary" (click)="closeCategoryPickerModal()">Hủy bỏ</button>
-          <button type="button" class="admin-btn admin-btn-primary" (click)="confirmCategoryPickerSelection()">
-            <app-icon name="Check" size="14"></app-icon>
-            <span>Thêm sản phẩm từ danh mục</span>
-          </button>
-        </div>
       </footer>
     </div>
   </div>

@@ -166,6 +166,10 @@
             <span>Theo danh mục</span>
             <app-icon name="Check" size="14" *ngIf="selectedScope === 'CATEGORY'"></app-icon>
           </button>
+          <button type="button" class="dropdown-item" [class.selected]="selectedScope === 'SPECIFIC_PRODUCTS'" (click)="selectScopeFilter('SPECIFIC_PRODUCTS')">
+            <span>Theo sản phẩm cụ thể</span>
+            <app-icon name="Check" size="14" *ngIf="selectedScope === 'SPECIFIC_PRODUCTS'"></app-icon>
+          </button>
         </div>
       </div>
     </div>
@@ -243,6 +247,9 @@
                   <span class="scope-tag" *ngIf="record.scope === 'ALL'">Toàn bộ sản phẩm</span>
                   <span class="scope-tag category-tag" *ngIf="record.scope === 'CATEGORY'" [title]="record.categoryScopeName">
                     {{ record.categoryScopeName }}
+                  </span>
+                  <span class="scope-tag product-tag" *ngIf="record.scope === 'SPECIFIC_PRODUCTS'" [title]="getProductScopeTooltip(record)">
+                    {{ record.productIds?.length || 0 }} sản phẩm chọn lọc
                   </span>
                 </div>
               </div>
@@ -512,6 +519,10 @@
                     <span>Theo danh mục sản phẩm cụ thể</span>
                     <app-icon name="Check" size="14" *ngIf="formData.scope === 'CATEGORY'"></app-icon>
                   </button>
+                  <button type="button" class="dropdown-item" [class.selected]="formData.scope === 'SPECIFIC_PRODUCTS'" (click)="selectModalScope('SPECIFIC_PRODUCTS')">
+                    <span>Theo sản phẩm cụ thể</span>
+                    <app-icon name="Check" size="14" *ngIf="formData.scope === 'SPECIFIC_PRODUCTS'"></app-icon>
+                  </button>
                 </div>
               </div>
             </div>
@@ -539,6 +550,60 @@
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Chọn sản phẩm cụ thể nếu scope === 'SPECIFIC_PRODUCTS' -->
+          <div class="form-group product-picker-section" *ngIf="formData.scope === 'SPECIFIC_PRODUCTS'">
+            <div class="product-picker-header">
+              <label class="form-label required" style="margin: 0;">Chọn sản phẩm áp dụng</label>
+              <span class="selected-count-pill">Đã chọn {{ formData.productIds.length }} sản phẩm</span>
+            </div>
+
+            <!-- Các sản phẩm đã chọn -->
+            <div class="selected-products-chips" *ngIf="formData.productIds.length > 0">
+              <span class="product-chip" *ngFor="let sp of getSelectedProductsDisplay()">
+                <span class="chip-name" [title]="sp.name">{{ sp.name }}</span>
+                <button type="button" class="chip-remove-btn" (click)="removeSelectedProduct(sp.id)" title="Bỏ chọn">&times;</button>
+              </span>
+            </div>
+
+            <!-- Ô tìm kiếm sản phẩm -->
+            <div class="product-picker-search">
+              <app-icon name="Search" size="15" class="picker-search-icon"></app-icon>
+              <input
+                type="text"
+                class="admin-input picker-search-input"
+                name="productSearchTerm"
+                [(ngModel)]="productSearchTerm"
+                placeholder="Tìm sản phẩm theo tên, mã SKU hoặc danh mục..." />
+            </div>
+
+            <!-- Danh sách sản phẩm để tick chọn -->
+            <div class="product-picker-list">
+              <div class="picker-empty" *ngIf="isLoadingProducts">Đang tải danh sách sản phẩm...</div>
+              <div class="picker-empty" *ngIf="!isLoadingProducts && filteredPickerProducts.length === 0">
+                Không tìm thấy sản phẩm phù hợp.
+              </div>
+              <button
+                type="button"
+                class="product-picker-row"
+                *ngFor="let prod of filteredPickerProducts"
+                [class.selected]="isProductSelected(prod.id)"
+                (click)="toggleProductSelection(prod)">
+                <img [src]="prod.image" [alt]="prod.name" class="picker-thumb" />
+                <div class="picker-info">
+                  <div class="picker-name">{{ prod.name }}</div>
+                  <div class="picker-meta">
+                    <span *ngIf="prod.categoryName">{{ prod.categoryName }}</span>
+                    <span *ngIf="prod.sku">• {{ prod.sku }}</span>
+                    <span>• {{ formatCurrency(prod.price) }}</span>
+                  </div>
+                </div>
+                <span class="picker-check-box" [class.checked]="isProductSelected(prod.id)">
+                  <app-icon name="Check" size="13" *ngIf="isProductSelected(prod.id)"></app-icon>
+                </span>
+              </button>
             </div>
           </div>
 

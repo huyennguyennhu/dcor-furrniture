@@ -76,18 +76,27 @@ export interface WarrantyItem {
 
 export interface CustomerAppointment {
   id: string;
+  appointmentCode?: string;
   customerId: string;
   customerName: string;
   phone: string;
   email?: string;
   appointmentType: 'SHOWROOM' | 'ONLINE_3D';
+  showroomId?: string;
+  showroomName?: string;
   showroomAddress?: string;
   date: string;
   timeSlot: string;
+  productId?: string | null;
+  productName?: string | null;
+  staffName?: string | null;
+  rejectionReason?: string | null;
+  cancellationReason?: string | null;
+  consultationResult?: string | null;
   spaceType?: string;
   budget?: string;
   notes?: string;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+  status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
   createdAt: string;
   updatedAt?: string;
 }
@@ -254,12 +263,13 @@ export class CustomerService {
     return this.http.get<CustomerAppointment[]>(`${this.baseUrl}/appointments`, { headers: this.getHeaders() });
   }
 
-  getBookedSlots(params?: { date?: string; showroomAddress?: string; appointmentType?: string }): Observable<{ bookedSlots: string[]; allBookings?: any[] }> {
+  getBookedSlots(params?: { date?: string; showroomId?: string; showroomAddress?: string; appointmentType?: string }): Observable<{ bookedSlots: string[]; isClosed?: boolean; closureReason?: string | null; slots?: any[]; allBookings?: any[] }> {
     let httpParams = new HttpParams();
     if (params?.date) httpParams = httpParams.set('date', params.date);
+    if (params?.showroomId) httpParams = httpParams.set('showroomId', params.showroomId);
     if (params?.showroomAddress) httpParams = httpParams.set('showroomAddress', params.showroomAddress);
     if (params?.appointmentType) httpParams = httpParams.set('appointmentType', params.appointmentType);
-    return this.http.get<{ bookedSlots: string[]; allBookings?: any[] }>(`${this.baseUrl}/appointments/booked-slots`, {
+    return this.http.get<{ bookedSlots: string[]; isClosed?: boolean; closureReason?: string | null; slots?: any[]; allBookings?: any[] }>(`${this.baseUrl}/appointments/booked-slots`, {
       headers: this.getHeaders(),
       params: httpParams
     });
@@ -270,6 +280,7 @@ export class CustomerService {
     phone: string;
     email?: string;
     appointmentType: 'SHOWROOM' | 'ONLINE_3D';
+    showroomId?: string;
     showroomAddress?: string;
     date: string;
     timeSlot: string;
@@ -280,8 +291,8 @@ export class CustomerService {
     return this.http.post(`${this.baseUrl}/appointments`, payload, { headers: this.getHeaders() });
   }
 
-  cancelAppointment(id: string): Observable<any> {
-    return this.http.put(`${this.baseUrl}/appointments/${id}/cancel`, {}, { headers: this.getHeaders() });
+  cancelAppointment(id: string, reason?: string): Observable<any> {
+    return this.http.put(`${this.baseUrl}/appointments/${id}/cancel`, { reason }, { headers: this.getHeaders() });
   }
 
   rescheduleAppointment(id: string, payload: { date: string; timeSlot: string; notes?: string }): Observable<any> {

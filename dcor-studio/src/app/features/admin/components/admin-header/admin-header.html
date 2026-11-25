@@ -21,10 +21,61 @@
 
   <!-- Right: Actions -->
   <div class="header-actions">
-    <button style="background: none; border: none; cursor: pointer; position: relative; color: var(--text-secondary);">
-      <app-icon name="Bell" size="20"></app-icon>
-      <span style="position: absolute; top: -4px; right: -4px; background: var(--accent); color: white; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">3</span>
-    </button>
+    <div class="notif-menu">
+      <button
+        type="button"
+        class="notif-trigger-btn"
+        [class.open]="isNotifMenuOpen"
+        [attr.aria-expanded]="isNotifMenuOpen"
+        aria-label="Thông báo quản trị"
+        (click)="toggleNotifMenu($event)">
+        <app-icon name="Bell" size="20"></app-icon>
+        <span *ngIf="totalNotifications() > 0" class="notif-badge">
+          {{ totalNotifications() > 99 ? '99+' : totalNotifications() }}
+        </span>
+      </button>
+
+      <div *ngIf="isNotifMenuOpen" class="notif-dropdown" role="menu">
+        <div class="notif-dropdown-header">
+          <span>Thông báo mới</span>
+          <span class="notif-header-count" *ngIf="totalNotifications() > 0">{{ totalNotifications() }}</span>
+        </div>
+
+        <button
+          *ngIf="adminConsultationService.pendingCount() > 0"
+          type="button"
+          class="notif-item"
+          (click)="openNotificationsTarget('/admin/appointments/requests')">
+          <span class="notif-item-icon consult">
+            <app-icon name="CalendarDays" size="16"></app-icon>
+          </span>
+          <span class="notif-item-content">
+            <span class="notif-item-title">Yêu cầu tư vấn chờ duyệt</span>
+            <span class="notif-item-desc">Có <strong>{{ adminConsultationService.pendingCount() }}</strong> yêu cầu tư vấn mới từ khách hàng</span>
+          </span>
+          <span class="notif-item-pill">{{ adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount() }}</span>
+        </button>
+
+        <button
+          *ngIf="chatUnreadService.totalUnread() > 0"
+          type="button"
+          class="notif-item"
+          (click)="openNotificationsTarget('/admin/chat')">
+          <span class="notif-item-icon chat">
+            <app-icon name="MessagesSquare" size="16"></app-icon>
+          </span>
+          <span class="notif-item-content">
+            <span class="notif-item-title">Tin nhắn khách hàng</span>
+            <span class="notif-item-desc">Có <strong>{{ chatUnreadService.totalUnread() }}</strong> tin nhắn chưa đọc</span>
+          </span>
+          <span class="notif-item-pill">{{ chatUnreadService.totalUnread() > 99 ? '99+' : chatUnreadService.totalUnread() }}</span>
+        </button>
+
+        <div *ngIf="totalNotifications() === 0" class="notif-empty">
+          Hiện chưa có thông báo mới nào.
+        </div>
+      </div>
+    </div>
 
     <div style="height: 24px; width: 1px; background: var(--border-color);"></div>
 

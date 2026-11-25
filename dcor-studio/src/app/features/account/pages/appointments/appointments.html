@@ -8,574 +8,242 @@
 
       <!-- Main Content Column -->
       <main class="content-column">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb-nav">
-          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
-          <span class="breadcrumb-separator">/</span>
-          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
-          <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">Lịch hẹn tư vấn</span>
-        </nav>
-
         <!-- Header -->
         <div class="page-header-row">
           <div>
-            <h1 class="page-title">Lịch hẹn tư vấn thiết kế</h1>
-            <p class="page-subtitle">Đặt lịch hẹn tư vấn thiết kế không gian nội thất cùng chuyên gia DCor.</p>
+            <h1 class="page-title">Lịch hẹn tư vấn Showroom</h1>
+            <p class="page-subtitle">Theo dõi, điều chỉnh hoặc đặt lịch hẹn tư vấn trực tiếp tại hệ thống Showroom DCor.</p>
           </div>
-          <button *ngIf="canViewContent" type="button" class="btn btn-primary" (click)="openBookingModal()">
+          <button type="button" class="btn btn-primary" (click)="openBookingModal()">
             <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
             <span>Đặt lịch hẹn mới</span>
           </button>
         </div>
 
         <!-- Banner tra cứu số điện thoại cho khách vãng lai -->
-        <app-guest-phone-banner 
+        <app-guest-phone-banner
           customTitle="Tra cứu lịch hẹn tư vấn qua số điện thoại"
-          customDesc="Nhập số điện thoại để tra cứu các lịch hẹn tư vấn của bạn, yêu cầu đổi giờ hoặc hủy trước khi duyệt."
-          (verified)="onGuestPhoneVerified($event)" 
+          customDesc="Nhập số điện thoại đã dùng khi đặt lịch để tra cứu, đổi giờ hoặc hủy lịch hẹn trước khi duyệt."
+          (verified)="onGuestPhoneVerified($event)"
           (reset)="onGuestPhoneReset()">
         </app-guest-phone-banner>
 
-        <!-- Chỉ hiển thị nội dung lịch hẹn khi đã đăng nhập hoặc đã xác thực SĐT -->
+        <!-- Chỉ hiển thị danh sách lịch hẹn khi đã đăng nhập hoặc đã xác thực SĐT -->
         <ng-container *ngIf="canViewContent">
 
-        <!-- Toast thông báo thành công -->
-        <div *ngIf="successMessage" class="alert alert-success">
-          <lucide-angular [img]="icons.CheckCircle2" size="20"></lucide-angular>
-          <span>{{ successMessage }}</span>
-        </div>
-
-        <!-- Tabs lọc trạng thái -->
-        <div class="order-tabs-bar">
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="activeFilter === 'ALL'" 
-            (click)="setFilter('ALL')">
-            <span>Tất cả</span>
-            <span class="tab-badge" [class.active-badge]="activeFilter === 'ALL'">
-              {{ appointments.length }}
-            </span>
-          </button>
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="activeFilter === 'PENDING'" 
-            (click)="setFilter('PENDING')">
-            <span>Chờ xác nhận</span>
-            <span class="tab-badge" [class.active-badge]="activeFilter === 'PENDING'">
-              {{ getCountByStatus('PENDING') }}
-            </span>
-          </button>
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="activeFilter === 'CONFIRMED'" 
-            (click)="setFilter('CONFIRMED')">
-            <span>Lịch hẹn sắp tới</span>
-            <span class="tab-badge" [class.active-badge]="activeFilter === 'CONFIRMED'">
-              {{ getCountByStatus('CONFIRMED') }}
-            </span>
-          </button>
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="activeFilter === 'CANCELLED'" 
-            (click)="setFilter('CANCELLED')">
-            <span>Đã hủy</span>
-            <span class="tab-badge" [class.active-badge]="activeFilter === 'CANCELLED'">
-              {{ getCountByStatus('CANCELLED') }}
-            </span>
-          </button>
-        </div>
-
-        <!-- Loading State -->
-        <div *ngIf="isLoading" class="loading-state">
-          <div class="spinner"></div>
-          <p>Đang tải danh sách lịch hẹn...</p>
-        </div>
-
-        <!-- Empty State -->
-        <div *ngIf="!isLoading && filteredAppointments.length === 0" class="empty-state">
-          <div class="empty-icon-box">
-            <lucide-angular [img]="icons.CalendarDays" size="48"></lucide-angular>
+          <!-- Toast thông báo thành công -->
+          <div *ngIf="successMessage" class="alert alert-success">
+            <lucide-angular [img]="icons.CheckCircle2" size="20"></lucide-angular>
+            <span>{{ successMessage }}</span>
           </div>
-          <h3 class="empty-title">
-            {{ activeFilter === 'PENDING' ? 'Không có lịch hẹn nào đang chờ xác nhận' :
-               activeFilter === 'CONFIRMED' ? 'Không có lịch hẹn sắp tới nào' :
-               activeFilter === 'CANCELLED' ? 'Không có lịch hẹn nào đã hủy' : 'Bạn chưa có lịch hẹn tư vấn nào' }}
-          </h3>
-          <p class="empty-desc">
-            {{ activeFilter === 'PENDING' ? 'Tất cả các lịch hẹn của bạn đã được chuyên viên DCor xử lý xác nhận hoặc hoàn tất.' :
-               activeFilter === 'CONFIRMED' ? 'Bạn hiện không có lịch hẹn tư vấn nào đã duyệt sắp diễn ra.' :
-               activeFilter === 'CANCELLED' ? 'Danh sách lịch hẹn đã hủy hiện đang trống.' :
-               'Hãy đặt lịch hẹn tư vấn để các kiến trúc sư DCor chuẩn bị giải pháp không gian tốt nhất cho bạn.' }}
-          </p>
-          <button *ngIf="activeFilter !== 'CANCELLED'" type="button" class="btn btn-primary" (click)="openBookingModal()">
-            <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
-            <span>Đặt lịch ngay</span>
-          </button>
-        </div>
 
-        <!-- Danh sách Lịch hẹn -->
-        <div *ngIf="!isLoading && filteredAppointments.length > 0" class="appointments-list">
-          <div *ngFor="let apt of filteredAppointments" class="appointment-card">
-            <!-- Header Topbar (Full màu trạng thái giống hệt Đơn hàng) -->
-            <div class="apt-card-topbar" [ngClass]="getStatusClass(apt.status)">
-              <div class="topbar-status">
-                <span class="status-indicator-dot"></span>
-                <span class="topbar-status-text">{{ getStatusText(apt.status) }}</span>
-              </div>
-              <div class="topbar-meta">
-                <span class="meta-date">{{ apt.date | date:'dd/MM/yyyy' }}</span>
-                <span class="meta-divider">|</span>
-                <span class="meta-type-tag">
-                  {{ apt.appointmentType === 'SHOWROOM' ? 'Tư vấn trực tiếp' : 'Tư vấn online' }}
-                </span>
-                <span class="meta-divider">|</span>
-                <span class="meta-code">#{{ apt.id }}</span>
-              </div>
+          <!-- Tabs lọc trạng thái (đồng bộ 6 trạng thái từ ShowroomConsultations) -->
+          <div class="order-tabs-bar">
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'ALL'"
+              (click)="setFilter('ALL')">
+              <span>Tất cả</span>
+              <span class="tab-badge" [class.active-badge]="activeFilter === 'ALL'">
+                {{ appointments.length }}
+              </span>
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'PENDING'"
+              (click)="setFilter('PENDING')">
+              <span>Chờ xác nhận</span>
+              <span class="tab-badge" [class.active-badge]="activeFilter === 'PENDING'">
+                {{ getCountByStatus('PENDING') }}
+              </span>
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'CONFIRMED'"
+              (click)="setFilter('CONFIRMED')">
+              <span>Lịch hẹn sắp tới</span>
+              <span class="tab-badge" [class.active-badge]="activeFilter === 'CONFIRMED'">
+                {{ getCountByStatus('CONFIRMED') }}
+              </span>
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'COMPLETED'"
+              (click)="setFilter('COMPLETED')">
+              <span>Hoàn tất</span>
+              <span class="tab-badge" [class.active-badge]="activeFilter === 'COMPLETED'">
+                {{ getCountByStatus('COMPLETED') }}
+              </span>
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeFilter === 'CANCELLED'"
+              (click)="setFilter('CANCELLED')">
+              <span>Đã hủy / Từ chối</span>
+              <span class="tab-badge" [class.active-badge]="activeFilter === 'CANCELLED'">
+                {{ getCountByStatus('CANCELLED') }}
+              </span>
+            </button>
+          </div>
+
+          <!-- Loading State -->
+          <div *ngIf="isLoading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Đang tải danh sách lịch hẹn...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="!isLoading && filteredAppointments.length === 0" class="empty-state">
+            <div class="empty-icon-box">
+              <lucide-angular [img]="icons.CalendarDays" size="48"></lucide-angular>
             </div>
+            <h3 class="empty-title">
+              {{ activeFilter === 'PENDING' ? 'Không có lịch hẹn nào đang chờ xác nhận' :
+                 activeFilter === 'CONFIRMED' ? 'Không có lịch hẹn sắp tới nào' :
+                 activeFilter === 'COMPLETED' ? 'Chưa có buổi tư vấn nào hoàn tất' :
+                 activeFilter === 'CANCELLED' ? 'Không có lịch hẹn nào đã hủy hoặc từ chối' : 'Bạn chưa có lịch hẹn tư vấn nào' }}
+            </h3>
+            <p class="empty-desc">
+              {{ activeFilter === 'PENDING' ? 'Tất cả các lịch hẹn của bạn đã được chuyên viên DCor xử lý xác nhận hoặc hoàn tất.' :
+                 activeFilter === 'CONFIRMED' ? 'Bạn hiện không có lịch hẹn tư vấn nào đã duyệt sắp diễn ra.' :
+                 activeFilter === 'COMPLETED' ? 'Các buổi tư vấn đã hoàn tất tại Showroom sẽ được lưu lại tại đây.' :
+                 activeFilter === 'CANCELLED' ? 'Danh sách lịch hẹn đã hủy hoặc từ chối hiện đang trống.' :
+                 'Hãy đặt lịch hẹn tư vấn để các chuyên viên DCor chuẩn bị mẫu vật liệu và giải pháp không gian tốt nhất cho bạn.' }}
+            </p>
+            <button *ngIf="activeFilter !== 'CANCELLED' && activeFilter !== 'COMPLETED'" type="button" class="btn btn-primary" (click)="openBookingModal()">
+              <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
+              <span>Đặt lịch ngay</span>
+            </button>
+          </div>
 
-            <!-- Nội dung Body: Ô vuông ngày tháng bên trái, thông tin bên phải -->
-            <div class="apt-card-body">
-              <!-- Ô vuông hiển thị ngày tháng to rõ -->
-              <div class="apt-date-square">
-                <span class="square-month">{{ getAppointmentMonth(apt.date) }}</span>
-                <strong class="square-day">{{ getAppointmentDay(apt.date) }}</strong>
-                <span class="square-weekday">{{ getAppointmentWeekday(apt.date) }}</span>
+          <!-- Danh sách Lịch hẹn (Đồng bộ 100% từ bảng ShowroomConsultations) -->
+          <div *ngIf="!isLoading && filteredAppointments.length > 0" class="appointments-list">
+            <div *ngFor="let apt of filteredAppointments" class="appointment-card">
+              <!-- Header Topbar -->
+              <div class="apt-card-topbar" [ngClass]="getStatusClass(apt.status)">
+                <div class="topbar-status">
+                  <span class="status-indicator-dot"></span>
+                  <span class="topbar-status-text">{{ getStatusText(apt.status) }}</span>
+                </div>
+                <div class="topbar-meta">
+                  <span class="meta-date">{{ apt.date | date:'dd/MM/yyyy' }}</span>
+                  <span class="meta-divider">|</span>
+                  <span class="meta-type-tag">{{ apt.showroomName || 'Showroom DCor' }}</span>
+                  <span class="meta-divider">|</span>
+                  <span class="meta-code">#{{ apt.appointmentCode || apt.id }}</span>
+                </div>
               </div>
 
-              <!-- Cột thông tin chi tiết -->
-              <div class="apt-info-column">
-                <div class="apt-time-headline">
-                  <lucide-angular [img]="icons.Clock" size="16" class="headline-clock"></lucide-angular>
-                  <span class="time-range">{{ apt.timeSlot }}</span>
-                  <span class="type-pill" [class.type-showroom]="apt.appointmentType === 'SHOWROOM'">
-                    {{ apt.appointmentType === 'SHOWROOM' ? 'Tại Showroom' : 'Google Meet' }}
+              <!-- Nội dung Body -->
+              <div class="apt-card-body">
+                <!-- Ô vuông ngày tháng -->
+                <div class="apt-date-square">
+                  <span class="square-month">{{ getAppointmentMonth(apt.date) }}</span>
+                  <strong class="square-day">{{ getAppointmentDay(apt.date) }}</strong>
+                  <span class="square-weekday">{{ getAppointmentWeekday(apt.date) }}</span>
+                </div>
+
+                <!-- Cột thông tin chi tiết -->
+                <div class="apt-info-column">
+                  <div class="apt-time-headline">
+                    <lucide-angular [img]="icons.Clock" size="16" class="headline-clock"></lucide-angular>
+                    <span class="time-range">{{ apt.timeSlot }}</span>
+                  </div>
+
+                  <div class="apt-details-grid">
+                    <div class="detail-cell" *ngIf="apt.showroomAddress">
+                      <span class="cell-label">Địa chỉ Showroom:</span>
+                      <strong class="cell-val">{{ apt.showroomAddress }}</strong>
+                    </div>
+                    <div class="detail-cell" *ngIf="apt.productName">
+                      <span class="cell-label">Sản phẩm quan tâm:</span>
+                      <strong class="cell-val">{{ apt.productName }}</strong>
+                    </div>
+                    <div class="detail-cell" *ngIf="apt.staffName">
+                      <span class="cell-label">Chuyên viên phụ trách:</span>
+                      <strong class="cell-val">{{ apt.staffName }}</strong>
+                    </div>
+                  </div>
+
+                  <div *ngIf="apt.notes" class="apt-customer-note">
+                    <span class="note-label">Ghi chú của bạn:</span>
+                    <span class="note-text">{{ apt.notes }}</span>
+                  </div>
+
+                  <div *ngIf="apt.rejectionReason" class="apt-customer-note">
+                    <span class="note-label">Lý do từ chối:</span>
+                    <span class="note-text">{{ apt.rejectionReason }}</span>
+                  </div>
+
+                  <div *ngIf="apt.cancellationReason && apt.status === 'CANCELLED'" class="apt-customer-note">
+                    <span class="note-label">Lý do hủy:</span>
+                    <span class="note-text">{{ apt.cancellationReason }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Thẻ -->
+              <div class="apt-card-footer" *ngIf="apt.status !== 'CANCELLED' && apt.status !== 'REJECTED'">
+                <!-- Khi đang Chờ xác nhận (PENDING) -->
+                <div *ngIf="apt.status === 'PENDING'" class="footer-pending-actions">
+                  <div class="pending-hint">
+                    <lucide-angular [img]="icons.Info" size="15" class="hint-icon"></lucide-angular>
+                    <span>Chuyên viên DCor sẽ liên hệ xác nhận. Bạn có thể đổi giờ hoặc hủy trước khi duyệt.</span>
+                  </div>
+                  <div class="actions-group">
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-reschedule"
+                      (click)="openRescheduleModal(apt)">
+                      <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
+                      <span>Đổi giờ hẹn</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-cancel"
+                      (click)="openCancelModal(apt)">
+                      <span>Hủy lịch hẹn</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Khi đã xác nhận hoặc đang tư vấn -->
+                <div *ngIf="apt.status === 'CONFIRMED' || apt.status === 'IN_PROGRESS'" class="footer-confirmed-note">
+                  <lucide-angular [img]="icons.ShieldCheck" size="16" class="confirmed-icon"></lucide-angular>
+                  <span>
+                    {{ apt.status === 'IN_PROGRESS'
+                       ? 'Buổi tư vấn của bạn đang diễn ra tại Showroom.'
+                       : 'Lịch hẹn đã được xác nhận. Nếu bạn cần đổi giờ hoặc hủy gấp, vui lòng liên hệ Hotline' }}
+                    <strong *ngIf="apt.status === 'CONFIRMED'"> 1900 1234</strong>.
                   </span>
                 </div>
 
-                <div class="apt-details-grid">
-                  <div class="detail-cell" *ngIf="apt.spaceType">
-                    <span class="cell-label">Không gian:</span>
-                    <strong class="cell-val">{{ apt.spaceType }}</strong>
-                  </div>
-                  <div class="detail-cell" *ngIf="apt.budget">
-                    <span class="cell-label">Ngân sách dự kiến:</span>
-                    <strong class="cell-val">{{ apt.budget }}</strong>
-                  </div>
-                  <div class="detail-cell" *ngIf="apt.showroomAddress">
-                    <span class="cell-label">Địa điểm:</span>
-                    <strong class="cell-val">{{ apt.showroomAddress }}</strong>
-                  </div>
+                <!-- Khi hoàn tất -->
+                <div *ngIf="apt.status === 'COMPLETED'" class="footer-confirmed-note">
+                  <lucide-angular [img]="icons.CheckCircle2" size="16" class="confirmed-icon"></lucide-angular>
+                  <span>Buổi tư vấn đã hoàn tất. Cảm ơn quý khách đã ghé thăm Showroom DCor!</span>
                 </div>
-
-                <div *ngIf="apt.notes" class="apt-customer-note">
-                  <span class="note-label">Yêu cầu riêng:</span>
-                  <span class="note-text">{{ apt.notes }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Footer Thẻ -->
-            <div class="apt-card-footer">
-              <!-- Khi đang Chờ xác nhận (PENDING) -->
-              <div *ngIf="apt.status === 'PENDING'" class="footer-pending-actions">
-                <div class="pending-hint">
-                  <lucide-angular [img]="icons.Info" size="15" class="hint-icon"></lucide-angular>
-                  <span>Chuyên viên DCor sẽ liên hệ xác nhận. Bạn có thể đổi giờ hoặc hủy trước khi duyệt.</span>
-                </div>
-                <div class="actions-group">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline btn-reschedule" 
-                    (click)="openRescheduleModal(apt)">
-                    <lucide-angular [img]="icons.RotateCcw" size="13"></lucide-angular>
-                    <span>Đổi giờ hẹn</span>
-                  </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline btn-cancel" 
-                    (click)="openCancelModal(apt)">
-                    <span>Hủy lịch hẹn</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Khi đã xác nhận (CONFIRMED) -->
-              <div *ngIf="apt.status === 'CONFIRMED'" class="footer-confirmed-note">
-                <lucide-angular [img]="icons.ShieldCheck" size="16" class="confirmed-icon"></lucide-angular>
-                <span>Lịch hẹn đã được xác nhận. Nếu bạn cần đổi giờ hoặc hủy gấp, vui lòng liên hệ Hotline <strong>1900 8888</strong>.</span>
-              </div>
-
-              <!-- Khi đã hủy (CANCELLED) -->
-              <div *ngIf="apt.status === 'CANCELLED'" class="footer-cancelled-note">
-                <span>Lịch hẹn này đã bị hủy.</span>
               </div>
             </div>
           </div>
-        </div>
         </ng-container>
       </main>
     </div>
   </div>
 
   <!-- ============================================================== -->
-  <!-- MODAL ĐẶT LỊCH HẸN TƯ VẤN                                      -->
+  <!-- MODAL ĐẶT LỊCH TƯ VẤN SHOWROOM DÙNG CHUNG TOÀN HỆ THỐNG        -->
   <!-- ============================================================== -->
-  <div *ngIf="isBookingModalOpen" class="modal-backdrop" (click)="closeModal()">
-    <div class="modal-dialog booking-modal-dialog" (click)="$event.stopPropagation()">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <div class="modal-header-content">
-          <h3 class="modal-title">Đặt lịch hẹn tư vấn thiết kế & không gian</h3>
-          <p class="modal-subtitle">Trải nghiệm chất liệu cao cấp và phác thảo giải pháp không gian cùng kiến trúc sư DCor.</p>
-        </div>
-        <button type="button" class="close-btn" (click)="closeModal()" aria-label="Đóng popup">
-          <lucide-angular [img]="icons.X" size="20"></lucide-angular>
-        </button>
-      </div>
-
-      <!-- Modal Body (2-Column Spacious & Balanced Layout) -->
-      <div class="modal-body">
-        <!-- Alert thông báo lỗi nếu có -->
-        <div *ngIf="errorMessage" class="modal-alert alert-danger">
-          <lucide-angular [img]="icons.AlertTriangle" size="18" class="alert-icon"></lucide-angular>
-          <span>{{ errorMessage }}</span>
-        </div>
-
-
-
-        <div class="modal-form-grid">
-          <!-- CỘT TRÁI: Thời gian & Hình thức tư vấn -->
-          <div class="form-panel form-panel-left">
-            <div class="panel-header">
-              <span class="panel-step-badge">1</span>
-              <div>
-                <h4 class="panel-title">Thời gian & Hình thức tư vấn</h4>
-                <p class="panel-subtitle">Chọn hình thức trải nghiệm và khung giờ tư vấn phù hợp nhất.</p>
-              </div>
-            </div>
-
-            <!-- Hình thức tư vấn (Rút gọn) -->
-            <div class="form-group form-group-compact">
-              <label class="form-label">Hình thức tư vấn <span class="required">*</span></label>
-              <div class="segmented-control compact-segments">
-                <button 
-                  type="button" 
-                  class="segment-btn" 
-                  [class.active]="bookingForm.appointmentType === 'SHOWROOM'"
-                  (click)="onTypeChange('SHOWROOM')">
-                  <lucide-angular [img]="icons.Home" size="15"></lucide-angular>
-                  <span>Tư vấn trực tiếp</span>
-                </button>
-                <button 
-                  type="button" 
-                  class="segment-btn" 
-                  [class.active]="bookingForm.appointmentType === 'ONLINE_3D'"
-                  (click)="onTypeChange('ONLINE_3D')">
-                  <lucide-angular [img]="icons.Sparkles" size="15"></lucide-angular>
-                  <span>Tư vấn online</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Chọn ngày hẹn (Tự động mở lịch khi bấm, ràng buộc không chọn ngày quá và không quá 1 tháng) -->
-            <div class="form-group form-group-compact">
-              <div class="label-between">
-                <label class="form-label">Ngày hẹn mong muốn <span class="required">*</span></label>
-                <span *ngIf="!isLoadingSlots && !isDateLockedSelected && !customerHasAppointmentOnDate" 
-                  class="slot-count-badge" [class.badge-danger]="availableTimeSlots.length === 0">
-                  {{ availableTimeSlots.length > 0 ? ('Còn ' + availableTimeSlots.length + ' khung giờ') : 'Hết khung giờ' }}
-                </span>
-                <span *ngIf="customerHasAppointmentOnDate" class="slot-count-badge badge-danger">
-                  Đã có lịch hẹn
-                </span>
-              </div>
-              <div class="input-with-icon clickable-date-box" [class.input-box-error]="customerHasAppointmentOnDate || fieldErrors['date']" (click)="triggerDatePicker(datePickerInput)">
-                <lucide-angular [img]="icons.CalendarDays" size="18" class="field-icon"></lucide-angular>
-                <input 
-                  #datePickerInput
-                  type="date" 
-                  class="form-control has-icon cursor-pointer" 
-                  [class.is-invalid]="customerHasAppointmentOnDate || fieldErrors['date']"
-                  [min]="minDate"
-                  [max]="maxDate"
-                  [(ngModel)]="bookingForm.date" 
-                  (change)="onDateChange()"
-                  (click)="$any($event.target).showPicker?.()" />
-              </div>
-              <div *ngIf="fieldErrors['date']" class="field-error-msg">
-                {{ fieldErrors['date'] }}
-              </div>
-              <div *ngIf="isDateLockedSelected" class="field-locked-warning">
-                ⚠️ Ngày này tạm ngừng tiếp khách (Nghỉ lễ / Bảo trì). Vui lòng chọn ngày khác.
-              </div>
-
-              <!-- CẢNH BÁO MÀU ĐỎ ĐẶT NGAY DƯỚI KHUNG NGÀY BỊ TRÙNG LỊCH -->
-              <div *ngIf="customerHasAppointmentOnDate" class="date-conflict-error-box">
-                <lucide-angular [img]="icons.AlertCircle" size="16" class="error-icon"></lucide-angular>
-                <span>
-                  <strong>Lưu ý:</strong> Bạn đã có lịch hẹn vào ngày {{ bookingForm.date | date:'dd/MM/yyyy' }} ({{ existingAppointmentOnDate?.timeSlot }}). Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày.
-                </span>
-              </div>
-            </div>
-
-            <!-- Lưới Khung Giờ theo Ca Làm Việc (Khung giờ đầy bị làm mờ) -->
-            <div class="shifts-container" *ngIf="!isDateLockedSelected">
-              <label class="form-label shifts-title">
-                Khung giờ tư vấn theo ca làm việc <span class="required">*</span>
-              </label>
-
-              <div class="shifts-list">
-                <div *ngFor="let shift of shifts" class="shift-group">
-                  <div class="shift-group-header">
-                    <span class="shift-name">{{ shift.name }}</span>
-                    <span class="shift-period">({{ shift.period }})</span>
-                  </div>
-                  <div class="shift-slots-grid">
-                    <button 
-                      type="button"
-                      *ngFor="let slot of shift.slots"
-                      class="slot-btn"
-                      [class.slot-full]="isSlotBooked(slot) || isSlotPast(slot)"
-                      [class.slot-disabled]="isSlotDisabled(slot)"
-                      [class.slot-selected]="bookingForm.timeSlot === slot && !isSlotDisabled(slot)"
-                      [disabled]="isSlotDisabled(slot)"
-                      (click)="selectTimeSlot(slot)">
-                      <div class="slot-btn-content">
-                        <lucide-angular [img]="icons.Clock" size="14" class="slot-btn-icon"></lucide-angular>
-                        <span class="slot-btn-time">{{ slot }}</span>
-                      </div>
-                      <span *ngIf="isSlotPast(slot)" class="badge-slot-full badge-slot-past">Đã qua</span>
-                      <span *ngIf="!isSlotPast(slot) && isSlotBooked(slot)" class="badge-slot-full">
-                        {{ (existingAppointmentOnDate?.timeSlot === slot) ? 'Lịch của bạn' : 'Đã đặt' }}
-                      </span>
-                      <lucide-angular *ngIf="bookingForm.timeSlot === slot && !isSlotDisabled(slot)" [img]="icons.Check" size="14" class="slot-check-icon"></lucide-angular>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-
-              <div *ngIf="fieldErrors['timeSlot'] && !customerHasAppointmentOnDate" class="field-error-msg" style="margin-top: 6px;">
-                {{ fieldErrors['timeSlot'] }}
-              </div>
-            </div>
-          </div>
-
-          <!-- CỘT PHẢI: Thông tin khách hàng & Nhu cầu tư vấn -->
-          <div class="form-panel form-panel-right">
-            <div class="panel-header">
-              <span class="panel-step-badge">2</span>
-              <div>
-                <h4 class="panel-title">Thông tin & Nhu cầu tư vấn</h4>
-                <p class="panel-subtitle">Điền thông tin liên hệ và định hướng không gian cần tư vấn.</p>
-              </div>
-            </div>
-
-            <!-- Họ và tên -->
-            <div class="form-group form-group-compact">
-              <label class="form-label">Họ và tên của bạn <span class="required">*</span></label>
-              <div class="input-with-icon">
-                <lucide-angular [img]="icons.UserRound" size="17" class="field-icon"></lucide-angular>
-                <input 
-                  type="text" 
-                  class="form-control has-icon" 
-                  placeholder="Ví dụ: Nguyễn Văn A" 
-                  [(ngModel)]="bookingForm.customerName" />
-              </div>
-              <div *ngIf="fieldErrors['customerName']" class="field-error-msg">
-                {{ fieldErrors['customerName'] }}
-              </div>
-            </div>
-
-            <!-- SĐT & Email (2 Cột cố định) -->
-            <div class="form-row-2col">
-              <div class="form-group form-group-compact">
-                <label class="form-label">Số điện thoại <span class="required">*</span></label>
-                <div class="input-with-icon">
-                  <lucide-angular [img]="icons.Phone" size="17" class="field-icon"></lucide-angular>
-                  <input 
-                    type="tel" 
-                    class="form-control has-icon" 
-                    placeholder="0912 345 678" 
-                    [(ngModel)]="bookingForm.phone" />
-                </div>
-                <div *ngIf="fieldErrors['phone']" class="field-error-msg">
-                  {{ fieldErrors['phone'] }}
-                </div>
-              </div>
-
-              <div class="form-group form-group-compact">
-                <label class="form-label">Địa chỉ Email</label>
-                <div class="input-with-icon">
-                  <lucide-angular [img]="icons.Mail" size="17" class="field-icon"></lucide-angular>
-                  <input 
-                    type="email" 
-                    class="form-control has-icon" 
-                    placeholder="name@example.com" 
-                    [(ngModel)]="bookingForm.email" />
-                </div>
-                <div *ngIf="fieldErrors['email']" class="field-error-msg">
-                  {{ fieldErrors['email'] }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Không gian & Ngân sách (2 Cột cố định) -->
-            <div class="form-row-2col">
-              <div class="form-group form-group-compact">
-                <label class="form-label">Loại không gian tư vấn</label>
-                <select class="form-control" [(ngModel)]="bookingForm.spaceType">
-                  <option *ngFor="let st of spaceTypes" [value]="st">{{ st }}</option>
-                </select>
-              </div>
-
-              <div class="form-group form-group-compact">
-                <label class="form-label">Ngân sách dự kiến</label>
-                <select class="form-control" [(ngModel)]="bookingForm.budget">
-                  <option *ngFor="let b of budgetRanges" [value]="b">{{ b }}</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Ghi chú & Yêu cầu cụ thể -->
-            <div class="form-group form-group-compact">
-              <label class="form-label">Ghi chú & Yêu cầu cụ thể (Mặt bằng, diện tích, chất liệu...)</label>
-              <textarea 
-                class="form-control form-textarea-compact" 
-                rows="3" 
-                placeholder="Ví dụ: Căn hộ 85m2 Masteri Thảo Điền, phòng khách tông nâu ấm, sofa da góc L và bàn ăn Ceramic mở rộng..."
-                [(ngModel)]="bookingForm.notes"></textarea>
-            </div>
-
-            <!-- Tóm tắt lịch hẹn được chọn trực quan (Booking Summary Preview) -->
-            <div class="booking-preview-pill">
-              <div class="preview-pill-icon">
-                <lucide-angular [img]="icons.Sparkles" size="16"></lucide-angular>
-              </div>
-              <div class="preview-pill-text">
-                <span class="preview-title">Lịch hẹn đã chọn:</span>
-                <span class="preview-val">
-                  <strong>{{ bookingForm.date | date:'dd/MM/yyyy' }}</strong> • 
-                  <strong>{{ bookingForm.timeSlot || 'Chưa chọn giờ' }}</strong> • 
-                  <span>{{ bookingForm.appointmentType === 'SHOWROOM' ? 'Tại Showroom DCor' : 'Online 3D Google Meet' }}</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-footer">
-        <div class="modal-footer-guarantee">
-          <lucide-angular [img]="icons.ShieldCheck" size="16" class="guarantee-icon"></lucide-angular>
-          <span>Cam kết bảo mật thông tin & tư vấn hoàn toàn miễn phí</span>
-        </div>
-        <div class="modal-footer-actions">
-          <button type="button" class="btn btn-outline" (click)="closeModal()" [disabled]="isSubmitting">
-            Hủy bỏ
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-primary btn-submit-booking" 
-            (click)="submitBooking()" 
-            [disabled]="isSubmitting || customerHasAppointmentOnDate || isDateLockedSelected">
-            <span *ngIf="isSubmitting" class="spinner-small"></span>
-            <span>{{ isSubmitting ? 'Đang gửi thông tin...' : 'Xác nhận đặt lịch' }}</span>
-            <lucide-angular *ngIf="!isSubmitting" [img]="icons.ArrowRight" size="15"></lucide-angular>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================== -->
-  <!-- MODAL / TRANG THÀNH CÔNG                                      -->
-  <!-- ============================================================== -->
-  <div *ngIf="isSuccessScreenOpen && createdAppointment" class="modal-backdrop" (click)="closeSuccessScreen()">
-    <div class="modal-dialog success-modal-dialog" (click)="$event.stopPropagation()">
-      <div class="success-modal-body">
-        <div class="success-icon-badge">
-          <lucide-angular [img]="icons.CheckCircle2" size="48" color="#BC5F13"></lucide-angular>
-        </div>
-
-        <h3 class="success-title">Đặt lịch tư vấn thành công!</h3>
-        <p class="success-subtitle">Chuyên viên tư vấn DCor đã tiếp nhận thông tin và sẽ chuẩn bị chu đáo nhất cho buổi hẹn của bạn.</p>
-
-        <!-- Khung Mã lịch hẹn & Trạng thái -->
-        <div class="appointment-code-card">
-          <div class="code-label">MÃ LỊCH HẸN CỦA BẠN</div>
-          <div class="code-value-row">
-            <span class="code-text">#{{ createdAppointment.id }}</span>
-            <button type="button" class="btn-copy-code" (click)="copyAppointmentCode(createdAppointment.id)">
-              <lucide-angular [img]="copiedCode ? icons.Check : icons.Copy" size="16"></lucide-angular>
-              <span>{{ copiedCode ? 'Đã sao chép' : 'Sao chép' }}</span>
-            </button>
-          </div>
-          <div class="status-indicator-row">
-            <span class="status-dot"></span>
-            <span>Trạng thái: <strong>Chờ xác nhận</strong></span>
-          </div>
-        </div>
-
-        <!-- Chi tiết tóm tắt buổi hẹn -->
-        <div class="summary-details-grid">
-          <div class="summary-item">
-            <span class="summary-label">Hình thức:</span>
-            <strong class="summary-val">{{ createdAppointment.appointmentType === 'SHOWROOM' ? 'Tư vấn trực tiếp' : 'Tư vấn 3D Online' }}</strong>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Thời gian:</span>
-            <strong class="summary-val">{{ createdAppointment.timeSlot }} - {{ createdAppointment.date | date:'dd/MM/yyyy' }}</strong>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Khách hàng:</span>
-            <strong class="summary-val">{{ createdAppointment.customerName }} ({{ createdAppointment.phone }})</strong>
-          </div>
-          <div class="summary-item" *ngIf="createdAppointment.spaceType">
-            <span class="summary-label">Nhu cầu:</span>
-            <strong class="summary-val">{{ createdAppointment.spaceType }} ({{ createdAppointment.budget }})</strong>
-          </div>
-        </div>
-
-        <!-- Thông báo SMS -->
-        <div class="sms-notice-banner">
-          <lucide-angular [img]="icons.Phone" size="18" class="sms-icon"></lucide-angular>
-          <div>
-            <strong>Thông báo SMS:</strong> Tin nhắn xác nhận lịch hẹn kèm mã <strong>#{{ createdAppointment.id }}</strong> đã được gửi tới số điện thoại <strong>{{ createdAppointment.phone }}</strong>.
-          </div>
-        </div>
-
-        <!-- Khung mời đăng ký dành riêng cho khách vãng lai -->
-        <div *ngIf="!isLoggedIn" class="guest-register-promo-card">
-          <div class="promo-header">
-            <lucide-angular [img]="icons.Sparkles" size="20" class="promo-icon"></lucide-angular>
-            <strong>Đăng ký tài khoản để đồng bộ lịch hẹn</strong>
-          </div>
-          <p class="promo-desc">
-            Sử dụng chính số điện thoại <strong>{{ createdAppointment.phone }}</strong> để tạo tài khoản ngay, tự động đồng bộ lịch hẹn vào hệ thống, dễ dàng đổi giờ/hủy trước khi duyệt và nhận ngay voucher ưu đãi 5% cho đơn hàng đầu tiên!
-          </p>
-          <div class="promo-actions">
-            <a [routerLink]="['/register']" [queryParams]="{ phone: createdAppointment.phone }" (click)="closeSuccessScreen()" class="btn btn-primary btn-sm">
-              Đăng ký tài khoản bằng SĐT này
-            </a>
-          </div>
-        </div>
-
-        <!-- Nút hành động đóng -->
-        <div class="success-actions">
-          <button type="button" class="btn btn-primary" (click)="closeSuccessScreen()">
-            Xem danh sách lịch hẹn của tôi
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <app-showroom-consultation-modal
+    [isOpen]="isBookingModalOpen"
+    (close)="closeBookingModal()"
+    (appointmentSuccess)="onConsultationBooked($event)">
+  </app-showroom-consultation-modal>
 
   <!-- ============================================================== -->
   <!-- MODAL ĐỔI GIỜ HẸN (Chỉ trước khi admin duyệt - PENDING)         -->
@@ -585,7 +253,7 @@
       <div class="modal-header">
         <div>
           <span class="modal-tag">ĐỔI GIỜ HẸN TRƯỚC KHI DUYỆT</span>
-          <h3 class="modal-title">Điều chỉnh thời gian lịch hẹn #{{ reschedulingAppointment.id }}</h3>
+          <h3 class="modal-title">Điều chỉnh lịch hẹn #{{ reschedulingAppointment.appointmentCode || reschedulingAppointment.id }}</h3>
         </div>
         <button type="button" class="close-btn" (click)="closeRescheduleModal()">
           <lucide-angular [img]="icons.X" size="20"></lucide-angular>
@@ -599,61 +267,111 @@
         </div>
 
         <div class="current-schedule-info">
+          <div><strong>Showroom:</strong> {{ reschedulingAppointment.showroomName || reschedulingAppointment.showroomAddress }}</div>
           <div><strong>Thời gian hiện tại:</strong> {{ reschedulingAppointment.timeSlot }} - {{ reschedulingAppointment.date | date:'dd/MM/yyyy' }}</div>
-          <div *ngIf="reschedulingAppointment.spaceType"><strong>Không gian:</strong> {{ reschedulingAppointment.spaceType }} ({{ reschedulingAppointment.budget }})</div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Chọn ngày mới mong muốn <span class="required">*</span></label>
-          <div class="input-with-icon" [class.input-box-error]="!!rescheduleDateConflict">
-            <lucide-angular [img]="icons.CalendarDays" size="18" class="field-icon"></lucide-angular>
-            <input 
-              type="date" 
-              class="form-control has-icon" 
-              [class.is-invalid]="!!rescheduleDateConflict"
-              [min]="minDate"
-              [(ngModel)]="rescheduleDate" 
-              (change)="onRescheduleDateChange()" />
+        <!-- Chọn ngày hẹn dạng thanh cuộn giống form đặt lịch Showroom -->
+        <div class="date-selection-block">
+          <div class="date-header-row">
+            <label class="block-subtitle">
+              <lucide-angular [img]="icons.Calendar" size="15" color="#b45309"></lucide-angular>
+              <span>Lịch chọn ngày hẹn</span>
+            </label>
           </div>
 
-          <!-- CẢNH BÁO MÀU ĐỎ ĐẶT NGAY DƯỚI Ô CHỌN NGÀY -->
-          <div *ngIf="rescheduleDateConflict" class="date-conflict-error-box">
-            <lucide-angular [img]="icons.AlertCircle" size="16" class="error-icon"></lucide-angular>
-            <span>
-              <strong>Lưu ý:</strong> {{ rescheduleDateConflict }}
-            </span>
+          <div class="date-carousel-wrapper">
+            <button
+              type="button"
+              class="btn-carousel-nav prev"
+              (click)="scrollRescheduleDateStrip('prev')"
+              [disabled]="isAtRescheduleDateStart"
+              aria-label="Ngày trước"
+              title="Ngày trước">
+              <lucide-angular [img]="icons.ChevronLeft" size="18"></lucide-angular>
+            </button>
+
+            <div class="date-carousel-strip" #rescheduleDateStripRef (scroll)="onRescheduleDateStripScroll()">
+              <button
+                type="button"
+                *ngFor="let d of rescheduleDayOptions"
+                class="date-pill-btn"
+                [class.active]="rescheduleDate === d.dateStr"
+                (click)="selectRescheduleDate(d.dateStr)">
+                <span class="date-pill-day">{{ d.dayName }}</span>
+                <span class="date-pill-value">{{ d.dateDisplay }}</span>
+                <span class="date-pill-tag" *ngIf="d.isToday">Hôm nay</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              class="btn-carousel-nav next"
+              (click)="scrollRescheduleDateStrip('next')"
+              [disabled]="isAtRescheduleDateEnd"
+              aria-label="Ngày tiếp theo"
+              title="Ngày tiếp theo">
+              <lucide-angular [img]="icons.ChevronRight" size="18"></lucide-angular>
+            </button>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Chọn khung giờ mới <span class="required">*</span></label>
-          <div class="reschedule-slots-grid">
-            <div 
-              *ngFor="let slot of masterTimeSlots"
-              class="slot-card"
-              [class.slot-full]="isRescheduleSlotBooked(slot) || isSlotPast(slot, rescheduleDate)"
-              [class.slot-disabled]="isRescheduleSlotDisabled(slot)"
-              [class.slot-selected]="rescheduleTimeSlot === slot && !isRescheduleSlotDisabled(slot)"
-              (click)="selectRescheduleSlot(slot)">
-              <div class="slot-card-left">
-                <lucide-angular [img]="icons.Clock" size="15"></lucide-angular>
-                <span>{{ slot }}</span>
+        <!-- Cảnh báo nếu ngày đóng cửa -->
+        <div class="closed-day-alert" *ngIf="isRescheduleClosedDay()">
+          <lucide-angular [img]="icons.AlertCircle" size="20" color="#dc2626"></lucide-angular>
+          <div class="alert-content">
+            <strong>Showroom tạm ngừng tiếp khách vào ngày này</strong>
+            <p>{{ rescheduleClosureReason() || 'Showroom tạm thời không nhận lịch hẹn vào ngày đã chọn. Quý khách vui lòng chọn một ngày hẹn khác để được phục vụ tốt nhất.' }}</p>
+          </div>
+        </div>
+
+        <!-- Ma trận chọn khung giờ giống form đặt lịch Showroom -->
+        <div class="time-matrix-block" *ngIf="!isRescheduleClosedDay()">
+          <div class="matrix-header-row">
+            <label class="block-subtitle">
+              <lucide-angular [img]="icons.Clock" size="15" color="#b45309"></lucide-angular>
+              <span>Khung giờ tư vấn khả dụng</span>
+            </label>
+          </div>
+
+          <div class="loading-state-box" *ngIf="isLoadingRescheduleSlots()">
+            <div class="spinner-sm"></div>
+            <span>Đang truy vấn số lượng slot thực tế từ cơ sở dữ liệu...</span>
+          </div>
+
+          <div class="slots-grid" *ngIf="!isLoadingRescheduleSlots() && availableRescheduleSlots().length > 0">
+            <button
+              type="button"
+              *ngFor="let s of availableRescheduleSlots()"
+              class="slot-card-btn"
+              [class.selected]="rescheduleTimeSlot === s.time"
+              (click)="selectRescheduleSlot(s)">
+              <div class="slot-time-range">{{ s.time }}</div>
+              <div class="slot-period-badge">
+                {{ (rescheduleDate === reschedulingAppointment.date && s.time === reschedulingAppointment.timeSlot)
+                   ? 'Lịch hiện tại'
+                   : s.period }}
               </div>
-              <span *ngIf="isSlotPast(slot, rescheduleDate)" class="badge-slot-full badge-slot-past">Đã qua</span>
-              <span *ngIf="!isSlotPast(slot, rescheduleDate) && isRescheduleSlotBooked(slot)" class="badge-slot-full">
-                {{ (existingRescheduleAppointmentOnDate?.timeSlot === slot) ? 'Lịch của bạn' : 'Đã đặt' }}
-              </span>
-              <span *ngIf="!isSlotPast(slot, rescheduleDate) && !isRescheduleSlotBooked(slot) && !rescheduleDateConflict" class="badge-slot-open">Có thể chọn</span>
+              <div class="slot-selected-mark" *ngIf="rescheduleTimeSlot === s.time">
+                <lucide-angular [img]="icons.Check" size="14"></lucide-angular>
+              </div>
+            </button>
+          </div>
+
+          <div class="empty-slots-box" *ngIf="!isLoadingRescheduleSlots() && availableRescheduleSlots().length === 0">
+            <lucide-angular [img]="icons.Clock" size="20" color="#9ca3af"></lucide-angular>
+            <div class="empty-slots-text">
+              <strong>Tất cả khung giờ trong ngày đã kín chỗ</strong>
+              <p>Quý khách vui lòng chọn ngày khác để đổi lịch hẹn tư vấn tại showroom.</p>
             </div>
           </div>
-
         </div>
 
         <div class="form-group">
           <label class="form-label">Lý do dời lịch / Ghi chú thêm</label>
-          <textarea 
-            class="form-control" 
-            rows="2" 
+          <textarea
+            class="form-control"
+            rows="2"
             placeholder="Ví dụ: Bận việc đột xuất muốn dời sang ca chiều..."
             [(ngModel)]="rescheduleNotes"></textarea>
         </div>
@@ -663,7 +381,7 @@
         <button type="button" class="btn btn-outline" (click)="closeRescheduleModal()" [disabled]="isRescheduling">
           Hủy bỏ
         </button>
-        <button type="button" class="btn btn-primary" (click)="confirmReschedule()" [disabled]="isRescheduling || !rescheduleDate || !rescheduleTimeSlot">
+        <button type="button" class="btn btn-primary" (click)="confirmReschedule()" [disabled]="isRescheduling || isRescheduleClosedDay() || !rescheduleDate || !rescheduleTimeSlot">
           <span *ngIf="isRescheduling" class="spinner-small"></span>
           <span>{{ isRescheduling ? 'Đang cập nhật...' : 'Xác nhận đổi giờ' }}</span>
         </button>
@@ -690,7 +408,7 @@
         </div>
 
         <p class="cancel-warning-text">
-          Bạn có chắc chắn muốn hủy lịch hẹn <strong>#{{ cancellingAppointment.id }}</strong> vào ngày <strong>{{ cancellingAppointment.date | date:'dd/MM/yyyy' }}</strong> ({{ cancellingAppointment.timeSlot }}) không?
+          Bạn có chắc chắn muốn hủy lịch hẹn <strong>#{{ cancellingAppointment.appointmentCode || cancellingAppointment.id }}</strong> vào ngày <strong>{{ cancellingAppointment.date | date:'dd/MM/yyyy' }}</strong> ({{ cancellingAppointment.timeSlot }}) không?
         </p>
 
         <div class="form-group">

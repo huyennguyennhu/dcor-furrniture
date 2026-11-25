@@ -222,8 +222,8 @@
 .round-action-btn.wishlist-btn.active ::ng-deep svg,
 .round-action-btn.wishlist-btn.active ::ng-deep svg path,
 .round-action-btn.active app-icon.filled ::ng-deep svg path {
-  fill: #b45309 !important;
-  stroke: #b45309 !important;
+  fill: #C42326 !important;
+  stroke: #C42326 !important;
 }
 
 /* 5. Thumbnails nhỏ gọn, chứa trọn ảnh không bị cắt (object-fit: contain) */
@@ -946,16 +946,17 @@
 }
 
 .qv-wishlist-btn:hover {
-  background: #fff1f2;
-  border-color: #fca5a5;
-  color: #C42326;
-  transform: translateY(-2px);
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.2);
+  color: #4b5563;
+  transform: scale(1.05);
 }
 
 .qv-wishlist-btn.active {
-  background: #fff1f2;
-  border-color: #fca5a5;
-  color: #C42326;
+  background: #ffffff;
+  border: 1.5px solid #b45309;
+  color: #b45309;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.15);
 }
 
 .qv-wishlist-btn.active ::ng-deep svg,

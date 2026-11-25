@@ -2400,34 +2400,38 @@
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 36px;
-  height: 36px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 5;
   color: #4b5563;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .featured-wishlist-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
   background: #ffffff;
-  color: #C42326;
-  box-shadow: 0 4px 12px rgba(196, 35, 38, 0.18);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .featured-wishlist-btn.active {
-  background: #fff1f2;
-  border-color: #fca5a5;
-  color: #C42326;
-  box-shadow: 0 4px 12px rgba(196, 35, 38, 0.2);
+  background: #ffffff;
+  border: 1.5px solid #b45309;
+  color: #b45309;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.15);
+}
+
+.featured-wishlist-btn.active:hover {
+  background: #ffffff;
+  border-color: #b45309;
 }
 
 .featured-wishlist-btn.active ::ng-deep svg,

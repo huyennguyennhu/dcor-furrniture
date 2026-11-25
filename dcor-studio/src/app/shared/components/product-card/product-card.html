@@ -38,7 +38,7 @@
         [title]="isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
         (click)="toggleWishlist($event)">
         <app-icon name="Heart" size="16"
-          [color]="isWishlisted ? '#dc2626' : '#4b5563'"
+          [color]="isWishlisted ? '#C42326' : '#4b5563'"
           [filled]="isWishlisted"></app-icon>
       </button>
     </div>
@@ -87,7 +87,7 @@
       <!-- Rating Badge -->
       <div class="rating-badge">
         <app-icon name="Star" size="13" color="#f59e0b" [filled]="true" class="star-gold"></app-icon>
-        <span class="rating-val">{{ ratingVal }}</span>
+        <span class="rating-val">{{ ratingVal.toFixed(1) }}</span>
         <span class="rating-total">({{ reviewCount }})</span>
       </div>
     </div>
@@ -106,9 +106,15 @@
         </span>
       </div>
 
-      <button *ngIf="showBuyButton" type="button" class="btn-buy" (click)="onBuyClick($event)">
-        <app-icon name="ShoppingCart" size="14" color="#ffffff"></app-icon>
-        <span>MUA</span>
+      <button *ngIf="showBuyButton"
+        type="button"
+        class="btn-buy"
+        [class.is-out-of-stock]="isOutOfStock"
+        [disabled]="isOutOfStock"
+        [title]="isOutOfStock ? 'Sản phẩm tạm hết hàng' : 'Mua ngay'"
+        (click)="onBuyClick($event)">
+        <app-icon *ngIf="!isOutOfStock" name="ShoppingCart" size="14" color="#ffffff"></app-icon>
+        <span>{{ isOutOfStock ? 'Hết hàng' : 'MUA' }}</span>
       </button>
     </div>
 

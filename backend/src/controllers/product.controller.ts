@@ -1,6 +1,60 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { memoryCache, CACHE_KEYS } from '../lib/cache';
+import { clearInventoryCaches } from './inventory.controller';
+
+export const DEFAULT_WARRANTY_MONTHS = 24;
+
+export function parseSafetyThreshold(raw: any): number | null {
+  if (raw === null || raw === undefined || raw === '') return null;
+  const parsed = Math.round(Number(raw));
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+export function resolveVariantSafetyThreshold(v: any, fallback = 5): number {
+  const opt = typeof v?.optionValues === 'string'
+    ? (() => { try { return JSON.parse(v.optionValues); } catch { return {}; } })()
+    : (v?.optionValues || {});
+  const optThreshold = parseSafetyThreshold(opt?.safetyThreshold ?? opt?.threshold);
+  const whThresholds = (v?.warehouseStocks || [])
+    .map((ws: any) => parseSafetyThreshold(ws?.safetyThreshold))
+    .filter((t: number | null): t is number => t !== null);
+  if (whThresholds.length > 0) return Math.min(...whThresholds);
+  if (optThreshold !== null) return optThreshold;
+  return fallback;
+}
+
+export function parseWarrantyMonths(raw: any): number | null {
+  if (raw === null || raw === undefined || raw === '') return null;
+  const parsed = Math.round(Number(raw));
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.min(120, parsed);
+}
+
+export function extractProductWarrantyMonths(configOptions: any, fallback = DEFAULT_WARRANTY_MONTHS): number {
+  if (!configOptions || typeof configOptions !== 'object') return fallback;
+  const parsed = parseWarrantyMonths(configOptions?.specs?.warrantyMonths ?? configOptions?.warrantyMonths);
+  return parsed !== null ? parsed : fallback;
+}
+
+let productCacheInvalidator: (() => void) | null = null;
+export function registerProductCacheInvalidator(fn: () => void) {
+  productCacheInvalidator = fn;
+}
+
+function invalidateAllProductCaches() {
+  memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
+  memoryCache.invalidatePrefix('products_catalog');
+  memoryCache.invalidatePrefix('products_cat_');
+  memoryCache.invalidatePrefix('products_slug_');
+  memoryCache.invalidatePrefix('admin_products_');
+  memoryCache.invalidatePrefix('product_detail_');
+  clearInventoryCaches(true);
+  if (productCacheInvalidator) {
+    productCacheInvalidator();
+  }
+}
 
 function generateSlug(text: string): string {
   const base = text
@@ -79,7 +133,22 @@ export const productController = {
               price: true,
               stock: true,
               isActive: true,
-              optionValues: true
+              optionValues: true,
+              warehouseStocks: {
+                select: {
+                  warehouseId: true,
+                  physicalStock: true,
+                  reservedStock: true,
+                  safetyThreshold: true,
+                  warehouse: {
+                    select: {
+                      id: true,
+                      code: true,
+                      name: true
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -89,11 +158,17 @@ export const productController = {
       const formatted = products.map(p => {
         const totalStock = p.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
         const config = (p.configOptions as any) || {};
+        const variantsWithThreshold = p.variants.map((v: any) => ({
+          ...v,
+          safetyThreshold: resolveVariantSafetyThreshold(v)
+        }));
         return {
           ...p,
+          variants: variantsWithThreshold,
           totalStock,
           variantsCount: p.variants.length,
           allowCustom: !!config.allowCustom,
+          warrantyMonths: extractProductWarrantyMonths(config),
           categoryName: p.category?.name || 'Chưa phân loại',
           parentCategoryName: p.category?.parent?.name || null
         };
@@ -160,10 +235,7 @@ export const productController = {
       const config = (product.configOptions as any) || {};
 
       const variantsWithThreshold = (product.variants || []).map((v: any) => {
-        const whThresholds = (v.warehouseStocks || [])
-          .map((ws: any) => ws.safetyThreshold)
-          .filter((t: any) => typeof t === 'number' && t > 0);
-        const safetyThreshold = whThresholds.length > 0 ? Math.min(...whThresholds) : 5;
+        const safetyThreshold = resolveVariantSafetyThreshold(v);
         return {
           ...v,
           safetyThreshold
@@ -173,7 +245,8 @@ export const productController = {
       res.json({
         ...product,
         variants: variantsWithThreshold,
-        allowCustom: !!config.allowCustom
+        allowCustom: !!config.allowCustom,
+        warrantyMonths: extractProductWarrantyMonths(config)
       });
     } catch (error: any) {
       console.error('Lỗi lấy chi tiết sản phẩm:', error);
@@ -191,6 +264,7 @@ export const productController = {
         basePrice,
         images,
         allowCustom,
+        warrantyMonths,
         configOptions,
         isBestSeller,
         isNew,
@@ -218,17 +292,44 @@ export const productController = {
 
       const cleanSlug = generateSlug(name);
 
-      // Chuẩn bị configOptions bao gồm cờ allowCustom
+      // Chuẩn bị configOptions bao gồm cờ allowCustom và thời hạn bảo hành theo từng sản phẩm
+      const incomingConfig = typeof configOptions === 'object' && configOptions ? configOptions : {};
+      const resolvedWarranty = parseWarrantyMonths(
+        warrantyMonths ?? incomingConfig?.specs?.warrantyMonths ?? incomingConfig?.warrantyMonths
+      ) ?? DEFAULT_WARRANTY_MONTHS;
       const mergedConfig = {
-        ...(typeof configOptions === 'object' ? configOptions : {}),
-        allowCustom: !!allowCustom
+        ...incomingConfig,
+        allowCustom: !!allowCustom,
+        warrantyMonths: resolvedWarranty,
+        specs: {
+          ...(typeof incomingConfig?.specs === 'object' && incomingConfig.specs ? incomingConfig.specs : {}),
+          warrantyMonths: resolvedWarranty
+        }
       };
 
-      // Đọc danh sách kho hiện tại để khởi tạo WarehouseStock (tồn kho ban đầu = 0)
+      // Validate ngưỡng tồn kho cho các biến thể khi xuất bản sản phẩm
+      if (isActive !== false && Array.isArray(variants) && variants.length > 0) {
+        const invalidVariant = variants.find((v: any) => {
+          const parsed = parseSafetyThreshold(v.safetyThreshold ?? v.optionValues?.safetyThreshold);
+          return parsed === null;
+        });
+        if (invalidVariant) {
+          res.status(400).json({ message: 'Vui lòng nhập ngưỡng tồn kho hợp lệ (≥ 0) cho tất cả biến thể.' });
+          return;
+        }
+      }
+
+      // Đọc danh sách kho hiện tại (ưu tiên kho mặc định để chứa tồn kho ban đầu, tránh nhân bản tồn kho ra mọi kho)
       const warehouses = await prisma.warehouse.findMany({
         where: { isActive: true },
-        select: { id: true }
+        select: { id: true, isDefault: true, type: true },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
       });
+      const defaultWarehouseId = (
+        warehouses.find(w => w.isDefault) ||
+        warehouses.find(w => w.type === 'CENTRAL_WAREHOUSE') ||
+        warehouses[0]
+      )?.id;
 
       // Tạo trong Transaction có cấu hình timeout 30s để xử lý nhiều biến thể
       const newProduct = await prisma.$transaction(async (tx) => {
@@ -257,6 +358,7 @@ export const productController = {
                 sku: `DCOR-${cleanSlug.slice(0, 10).toUpperCase()}-DF`,
                 name: 'Tiêu chuẩn',
                 price: Math.round(Number(basePrice)) || 0,
+                safetyThreshold: 0,
                 optionValues: {}
               }
             ];
@@ -285,6 +387,13 @@ export const productController = {
           usedSkusInBatch.add(sku);
 
           const initStock = Math.max(0, Math.round(Number(v.stock)) || Math.round(Number(v.optionValues?.stock)) || 0);
+          const parsedThreshold = parseSafetyThreshold(v.safetyThreshold ?? v.optionValues?.safetyThreshold);
+          const variantThreshold = parsedThreshold !== null ? parsedThreshold : 0;
+          const incomingOptionValues = typeof v.optionValues === 'object' && v.optionValues ? v.optionValues : {};
+          const mergedOptionValues = {
+            ...incomingOptionValues,
+            safetyThreshold: variantThreshold
+          };
 
           const createdVariant = await tx.productVariant.create({
             data: {
@@ -294,19 +403,19 @@ export const productController = {
               price: Math.round(Number(v.price)) || Math.round(Number(basePrice)) || 0,
               stock: initStock,
               reservedStock: 0,
-              optionValues: v.optionValues || {},
+              optionValues: mergedOptionValues,
               isActive: v.isActive !== false
             }
           });
 
-          // Gom bản ghi kho để insert hàng loạt (batching)
+          // Gom bản ghi kho để insert hàng loạt: chỉ gán initStock vào kho mặc định, các kho khác = 0 (tránh nhân bản tồn kho)
           for (const wh of warehouses) {
             stockRecordsToInsert.push({
               warehouseId: wh.id,
               variantId: createdVariant.id,
-              physicalStock: initStock,
+              physicalStock: wh.id === defaultWarehouseId ? initStock : 0,
               reservedStock: 0,
-              safetyThreshold: 5
+              safetyThreshold: variantThreshold
             });
           }
         }
@@ -331,8 +440,7 @@ export const productController = {
         include: { category: true, variants: true }
       });
 
-      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
-      memoryCache.invalidate('admin_products_all');
+      invalidateAllProductCaches();
 
       res.status(201).json({
         message: 'Tạo sản phẩm thành công!',
@@ -355,6 +463,7 @@ export const productController = {
         basePrice,
         images,
         allowCustom,
+        warrantyMonths,
         configOptions,
         isBestSeller,
         isNew,
@@ -382,11 +491,41 @@ export const productController = {
         }
       }
 
+      const existingConfig = typeof existing.configOptions === 'object' && existing.configOptions ? (existing.configOptions as any) : {};
+      const incomingConfig = typeof configOptions === 'object' && configOptions ? configOptions : {};
+      const existingSpecs = typeof existingConfig.specs === 'object' && existingConfig.specs ? existingConfig.specs : {};
+      const incomingSpecs = typeof incomingConfig.specs === 'object' && incomingConfig.specs ? incomingConfig.specs : {};
+      const parsedWarranty = parseWarrantyMonths(
+        warrantyMonths ?? incomingSpecs.warrantyMonths ?? incomingConfig.warrantyMonths
+      );
+      const resolvedWarranty = parsedWarranty !== null
+        ? parsedWarranty
+        : extractProductWarrantyMonths(existingConfig);
+
       const mergedConfig = {
-        ...(typeof existing.configOptions === 'object' && existing.configOptions ? (existing.configOptions as any) : {}),
-        ...(typeof configOptions === 'object' ? configOptions : {}),
-        allowCustom: allowCustom !== undefined ? !!allowCustom : !!(existing.configOptions as any)?.allowCustom
+        ...existingConfig,
+        ...incomingConfig,
+        allowCustom: allowCustom !== undefined ? !!allowCustom : !!existingConfig.allowCustom,
+        warrantyMonths: resolvedWarranty,
+        specs: {
+          ...existingSpecs,
+          ...incomingSpecs,
+          warrantyMonths: resolvedWarranty
+        }
       };
+
+      const willBeActive = isActive !== undefined ? !!isActive : existing.isActive;
+      if (willBeActive && Array.isArray(variants) && variants.length > 0) {
+        const invalidVariant = variants.find((v: any) => {
+          const hasExplicitThresholdField = 'safetyThreshold' in v || (v.optionValues && 'safetyThreshold' in v.optionValues);
+          if (!hasExplicitThresholdField) return false;
+          return parseSafetyThreshold(v.safetyThreshold ?? v.optionValues?.safetyThreshold) === null;
+        });
+        if (invalidVariant) {
+          res.status(400).json({ message: 'Vui lòng nhập ngưỡng tồn kho hợp lệ (≥ 0) cho tất cả biến thể.' });
+          return;
+        }
+      }
 
       await prisma.$transaction(async (tx) => {
         // 1. Update Product
@@ -409,9 +548,16 @@ export const productController = {
         if (Array.isArray(variants)) {
           const warehouses = await tx.warehouse.findMany({
             where: { isActive: true },
-            select: { id: true }
+            select: { id: true, isDefault: true, type: true },
+            orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
           });
+          const defaultWarehouseId = (
+            warehouses.find(w => w.isDefault) ||
+            warehouses.find(w => w.type === 'CENTRAL_WAREHOUSE') ||
+            warehouses[0]
+          )?.id;
 
+          const existingVariantsMap = new Map(existing.variants.map(ev => [ev.id, ev]));
           const incomingIds = new Set(variants.map(v => v.id).filter(Boolean));
           const newStockRecords: any[] = [];
           const usedSkusInBatch = new Set<string>();
@@ -440,6 +586,14 @@ export const productController = {
             }
 
             const stockVal = v.stock !== undefined ? Math.max(0, Math.round(Number(v.stock))) : undefined;
+            const parsedThreshold = parseSafetyThreshold(v.safetyThreshold ?? v.optionValues?.safetyThreshold);
+            const incomingOptionValues = typeof v.optionValues === 'object' && v.optionValues ? v.optionValues : undefined;
+            const mergedOptionValues = incomingOptionValues !== undefined
+              ? {
+                  ...incomingOptionValues,
+                  ...(parsedThreshold !== null ? { safetyThreshold: parsedThreshold } : {})
+                }
+              : undefined;
 
             if (v.id) {
               // Cập nhật variant sẵn có
@@ -451,14 +605,55 @@ export const productController = {
                   price: Math.round(Number(v.price)) || 0,
                   stock: stockVal,
                   isActive: v.isActive !== false,
-                  optionValues: v.optionValues || undefined
+                  optionValues: mergedOptionValues
                 }
               });
 
-              if (stockVal !== undefined) {
+              if (parsedThreshold !== null) {
                 await tx.warehouseStock.updateMany({
                   where: { variantId: v.id },
-                  data: { physicalStock: stockVal }
+                  data: { safetyThreshold: parsedThreshold }
+                });
+              }
+
+              // Chỉ điều chỉnh tồn kho tại kho mặc định theo phần chênh lệch (tránh ghi đè nhân bản sang mọi kho)
+              const prevVariant = existingVariantsMap.get(v.id);
+              if (stockVal !== undefined && defaultWarehouseId && prevVariant && stockVal !== prevVariant.stock) {
+                const otherWhAgg = await tx.warehouseStock.aggregate({
+                  where: { variantId: v.id, warehouseId: { not: defaultWarehouseId } },
+                  _sum: { physicalStock: true }
+                });
+                const otherTotal = Number(otherWhAgg._sum.physicalStock || 0);
+                const targetDefaultPhy = Math.max(0, stockVal - otherTotal);
+                await tx.warehouseStock.upsert({
+                  where: {
+                    warehouseId_variantId: {
+                      warehouseId: defaultWarehouseId,
+                      variantId: v.id
+                    }
+                  },
+                  update: {
+                    physicalStock: targetDefaultPhy,
+                    ...(parsedThreshold !== null ? { safetyThreshold: parsedThreshold } : {})
+                  },
+                  create: {
+                    warehouseId: defaultWarehouseId,
+                    variantId: v.id,
+                    physicalStock: targetDefaultPhy,
+                    reservedStock: 0,
+                    safetyThreshold: parsedThreshold !== null ? parsedThreshold : 0
+                  }
+                });
+              }
+
+              // Đảm bảo các kho đang hoạt động đều có bản ghi WarehouseStock (kho mới = 0, không nhân bản tồn)
+              for (const wh of warehouses) {
+                newStockRecords.push({
+                  warehouseId: wh.id,
+                  variantId: v.id,
+                  physicalStock: wh.id === defaultWarehouseId ? (stockVal !== undefined ? stockVal : (prevVariant?.stock ?? 0)) : 0,
+                  reservedStock: 0,
+                  safetyThreshold: parsedThreshold !== null ? parsedThreshold : 0
                 });
               }
             } else {
@@ -474,6 +669,7 @@ export const productController = {
               }
               usedSkusInBatch.add(sku);
 
+              const newVariantThreshold = parsedThreshold !== null ? parsedThreshold : 0;
               const newV = await tx.productVariant.create({
                 data: {
                   productId: id,
@@ -482,7 +678,10 @@ export const productController = {
                   price: Math.round(Number(v.price)) || existing.basePrice,
                   stock: stockVal !== undefined ? stockVal : 0,
                   reservedStock: 0,
-                  optionValues: v.optionValues || {},
+                  optionValues: {
+                    ...(incomingOptionValues || {}),
+                    safetyThreshold: newVariantThreshold
+                  },
                   isActive: v.isActive !== false
                 }
               });
@@ -491,9 +690,9 @@ export const productController = {
                 newStockRecords.push({
                   warehouseId: wh.id,
                   variantId: newV.id,
-                  physicalStock: stockVal !== undefined ? stockVal : 0,
+                  physicalStock: wh.id === defaultWarehouseId ? (stockVal !== undefined ? stockVal : 0) : 0,
                   reservedStock: 0,
-                  safetyThreshold: 5
+                  safetyThreshold: newVariantThreshold
                 });
               }
             }
@@ -516,8 +715,7 @@ export const productController = {
         include: { category: true, variants: true }
       });
 
-      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
-      memoryCache.invalidate('admin_products_all');
+      invalidateAllProductCaches();
 
       res.json({ message: 'Cập nhật sản phẩm thành công!', product: updated });
     } catch (error: any) {
@@ -537,8 +735,7 @@ export const productController = {
           data: { deletedAt: new Date(), isActive: false }
         });
       }
-      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
-      memoryCache.invalidate('admin_products_all');
+      invalidateAllProductCaches();
       res.json({ message: 'Đã xóa sản phẩm thành công.' });
     } catch (error: any) {
       console.error('Lỗi xóa sản phẩm:', error);
@@ -558,12 +755,94 @@ export const productController = {
           data: { isActive: isActive !== undefined ? !!isActive : !existing.isActive }
         });
       }
-      memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
-      memoryCache.invalidate('admin_products_all');
+      invalidateAllProductCaches();
       res.json({ message: 'Cập nhật trạng thái sản phẩm thành công.' });
     } catch (error: any) {
       console.error('Lỗi cập nhật trạng thái sản phẩm:', error);
       res.status(500).json({ message: 'Lỗi cập nhật trạng thái.', error: error?.message });
+    }
+  },
+
+  // Bật / tắt mở bán từng biến thể
+  toggleVariantStatus: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const variantId = req.params.variantId as string;
+      const { isActive } = req.body;
+      const existing = await prisma.productVariant.findUnique({ where: { id: variantId } });
+      if (!existing) {
+        res.status(404).json({ message: 'Không tìm thấy biến thể.' });
+        return;
+      }
+      const nextActive = isActive !== undefined ? !!isActive : !existing.isActive;
+      const updated = await prisma.productVariant.update({
+        where: { id: variantId },
+        data: { isActive: nextActive }
+      });
+      invalidateAllProductCaches();
+      res.json({ message: 'Cập nhật trạng thái biến thể thành công.', variant: updated });
+    } catch (error: any) {
+      console.error('Lỗi cập nhật trạng thái biến thể:', error);
+      res.status(500).json({ message: 'Lỗi cập nhật trạng thái biến thể.', error: error?.message });
+    }
+  },
+
+  // Bật / tắt hiển thị hàng loạt sản phẩm
+  bulkStatus: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { productIds, isActive } = req.body;
+      if (!Array.isArray(productIds) || productIds.length === 0) {
+        res.status(400).json({ message: 'Vui lòng chọn ít nhất 1 sản phẩm.' });
+        return;
+      }
+      const result = await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { isActive: !!isActive }
+      });
+      invalidateAllProductCaches();
+      res.json({ message: 'Cập nhật trạng thái hàng loạt thành công.', count: result.count });
+    } catch (error: any) {
+      console.error('Lỗi cập nhật trạng thái hàng loạt:', error);
+      res.status(500).json({ message: 'Lỗi cập nhật trạng thái hàng loạt.', error: error?.message });
+    }
+  },
+
+  // Xóa mềm hàng loạt sản phẩm
+  bulkDelete: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { productIds } = req.body;
+      if (!Array.isArray(productIds) || productIds.length === 0) {
+        res.status(400).json({ message: 'Vui lòng chọn ít nhất 1 sản phẩm.' });
+        return;
+      }
+      const result = await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { deletedAt: new Date(), isActive: false }
+      });
+      invalidateAllProductCaches();
+      res.json({ message: 'Đã xóa hàng loạt sản phẩm thành công.', count: result.count });
+    } catch (error: any) {
+      console.error('Lỗi xóa hàng loạt sản phẩm:', error);
+      res.status(500).json({ message: 'Lỗi xóa hàng loạt sản phẩm.', error: error?.message });
+    }
+  },
+
+  // Khôi phục hàng loạt sản phẩm từ thùng rác
+  bulkRestore: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { productIds } = req.body;
+      if (!Array.isArray(productIds) || productIds.length === 0) {
+        res.status(400).json({ message: 'Vui lòng chọn ít nhất 1 sản phẩm.' });
+        return;
+      }
+      const result = await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { deletedAt: null }
+      });
+      invalidateAllProductCaches();
+      res.json({ message: 'Đã khôi phục sản phẩm thành công.', count: result.count });
+    } catch (error: any) {
+      console.error('Lỗi khôi phục sản phẩm:', error);
+      res.status(500).json({ message: 'Lỗi khôi phục sản phẩm.', error: error?.message });
     }
   }
 };

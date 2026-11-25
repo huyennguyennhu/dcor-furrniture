@@ -305,7 +305,7 @@ export class ChatBotService {
         newFallbackCount: 0,
         updatedBotState: botState,
         quickReplies: [
-          { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
+          { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'Tiếp tục chat với Trợ lý AI' },
         ],
       };
     }
@@ -316,22 +316,9 @@ export class ChatBotService {
       delete botState.step;
       delete botState.pendingOrderNumber;
       delete botState.pendingPhone;
+      delete botState.pendingHandoff;
 
-      // Khách vãng lai bấm "Gặp nhân viên"
-      if (!isCustomerLoggedIn) {
-        botState.pendingHandoff = true;
-        return {
-          reply:
-            'Để chuyên viên DCor có thể đồng hành, lưu lại bản phối và hỗ trợ tư vấn chi tiết nhất, bạn vui lòng đăng nhập tài khoản nhé!',
-          meta: { type: 'LOGIN_CTA' },
-          quickReplies: [{ label: '🔐 Đăng nhập tài khoản', payload: 'dang_nhap' }],
-          needsHandoff: false,
-          newFallbackCount: 0,
-          updatedBotState: botState,
-        };
-      }
-
-      // Khách đã đăng nhập bấm "Gặp nhân viên"
+      // Kiểm tra giờ trực CSKH (Áp dụng cho cả Khách vãng lai lẫn Khách thành viên)
       const business = this.isBusinessOpen(settings['workingHours']);
       if (business.isOpen) {
         const handoffText = this.replaceVariables(
@@ -342,11 +329,13 @@ export class ChatBotService {
         return {
           reply: handoffText,
           needsHandoff: true,
-          systemMessage: 'Khách hàng yêu cầu kết nối chuyên viên tư vấn trực tiếp.',
+          systemMessage: isCustomerLoggedIn
+            ? 'Khách hàng thành viên yêu cầu kết nối chuyên viên tư vấn trực tiếp.'
+            : 'Khách vãng lai yêu cầu kết nối chuyên viên tư vấn trực tiếp.',
           newFallbackCount: 0,
           updatedBotState: botState,
           quickReplies: [
-            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
+            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'Tiếp tục chat với Trợ lý AI' },
             { label: '📞 Hotline 1900 1234', payload: 'hotline' },
             { label: '📍 Đặt lịch Showroom', payload: 'đặt lịch showroom' },
           ],
@@ -360,12 +349,14 @@ export class ChatBotService {
         return {
           reply: offlineText,
           needsHandoff: false, // Ngoài giờ làm việc: mặc định không treo vào WAITING_STAFF trừ khi khách bấm xác nhận đợi
-          systemMessage: 'Khách hàng hỏi gặp nhân viên ngoài giờ trực CSKH.',
+          systemMessage: isCustomerLoggedIn
+            ? 'Khách hàng thành viên hỏi gặp nhân viên ngoài giờ trực CSKH.'
+            : 'Khách vãng lai hỏi gặp nhân viên ngoài giờ trực CSKH.',
           newFallbackCount: 0,
           updatedBotState: botState,
           quickReplies: [
-            { label: '🛎️ Để lại tin nhắn chờ nhân viên', payload: 'xac_nhan_cho_nhan_vien' },
-            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'tiep_tuc_chat_bot' },
+            { label: '🛎️ Để lại tin nhắn chờ nhân viên', payload: 'Để lại tin nhắn chờ nhân viên' },
+            { label: '🤖 Tiếp tục chat với Trợ lý AI', payload: 'Tiếp tục chat với Trợ lý AI' },
             { label: '🛋️ Xem mẫu Sofa hot', payload: 'xem mẫu sofa hot' },
           ],
         };
@@ -374,19 +365,6 @@ export class ChatBotService {
 
     // 3. Kiểm tra khiếu nại nghiêm trọng -> Handoff
     if (isComplaint(userContent)) {
-      if (!isCustomerLoggedIn) {
-        botState.pendingHandoff = true;
-        return {
-          reply:
-            'DCor rất tiếc về sự cố bạn gặp phải. Để chuyên viên DCor tra cứu hồ sơ và hỗ trợ xử lý triệt để, bạn vui lòng đăng nhập tài khoản nhé!',
-          meta: { type: 'LOGIN_CTA' },
-          quickReplies: [{ label: '🔐 Đăng nhập tài khoản', payload: 'dang_nhap' }],
-          needsHandoff: false,
-          newFallbackCount: fallbackCount,
-          updatedBotState: botState,
-        };
-      }
-
       const business = this.isBusinessOpen(settings['workingHours']);
       const complaintScript = scripts.find((s) => s.intent === 'COMPLAINT_FEEDBACK');
       const answer = complaintScript

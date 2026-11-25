@@ -35,6 +35,13 @@
               [attr.aria-label]="chatUnreadService.totalUnread() + ' tin nhắn chưa đọc'">
               {{ isCollapsed ? '' : (chatUnreadService.totalUnread() > 99 ? '99+' : chatUnreadService.totalUnread()) }}
             </span>
+            <span
+              *ngIf="item.href === '/admin/appointments/schedule' && adminConsultationService.pendingCount() > 0"
+              class="sidebar-chat-badge"
+              [class.collapsed-badge]="isCollapsed"
+              [attr.aria-label]="adminConsultationService.pendingCount() + ' yêu cầu tư vấn mới'">
+              {{ isCollapsed ? '' : (adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount()) }}
+            </span>
             <app-icon
               *ngIf="!isCollapsed"
               class="sidebar-chevron"
@@ -62,6 +69,13 @@
               [attr.aria-label]="chatUnreadService.totalUnread() + ' tin nhắn chưa đọc'">
               {{ isCollapsed ? '' : (chatUnreadService.totalUnread() > 99 ? '99+' : chatUnreadService.totalUnread()) }}
             </span>
+            <span
+              *ngIf="item.href === '/admin/appointments/schedule' && adminConsultationService.pendingCount() > 0"
+              class="sidebar-chat-badge"
+              [class.collapsed-badge]="isCollapsed"
+              [attr.aria-label]="adminConsultationService.pendingCount() + ' yêu cầu tư vấn mới'">
+              {{ isCollapsed ? '' : (adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount()) }}
+            </span>
           </a>
         </ng-template>
 
@@ -77,7 +91,13 @@
                 [class.active]="sub.href === activeHref"
                 [routerLink]="sub.href"
                 (click)="selectSubItem(item.href)">
-                {{ sub.title }}
+                <span class="sub-item-label">{{ sub.title }}</span>
+                <span
+                  *ngIf="sub.href === '/admin/appointments/requests' && adminConsultationService.pendingCount() > 0"
+                  class="sidebar-sub-badge"
+                  [attr.aria-label]="adminConsultationService.pendingCount() + ' yêu cầu tư vấn mới'">
+                  {{ adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount() }}
+                </span>
               </a>
             </div>
           </div>
@@ -99,7 +119,12 @@
             [class.active]="sub.href === activeHref"
             [routerLink]="sub.href"
             (click)="closeHoveredMenu(); selectSubItem(item.href)">
-            {{ sub.title }}
+            <span class="sub-item-label">{{ sub.title }}</span>
+            <span
+              *ngIf="sub.href === '/admin/appointments/requests' && adminConsultationService.pendingCount() > 0"
+              class="sidebar-sub-badge">
+              {{ adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount() }}
+            </span>
           </a>
         </div>
       </div>

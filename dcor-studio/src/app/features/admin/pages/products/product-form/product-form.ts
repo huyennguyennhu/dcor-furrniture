@@ -13,6 +13,7 @@ import {
 } from 'lucide-angular';
 
 import { environment } from '../../../../../../environments/environment';
+import { ProductService } from '../../../../../core/services/product.service';
 
 export type ProductFormTab = 'basic' | 'classification' | 'variants' | 'specs';
 
@@ -43,6 +44,7 @@ export interface ProductVariantFormItem {
   originalPrice: number;
   costPrice: number;
   stock: number;
+  safetyThreshold: number | null;
   barcode: string;
   images: string[];
   image?: string;
@@ -114,7 +116,7 @@ export class ProductFormComponent implements OnInit {
       width: null as any,
       height: null as any,
       weight: null as any,
-      warrantyMonths: null as any,
+      warrantyMonths: 24 as number | null,
       careInstructions: ''
     },
     publication: {
@@ -337,6 +339,7 @@ export class ProductFormComponent implements OnInit {
     price: null as number | null,
     costPrice: null as number | null,
     stock: null as number | null,
+    safetyThreshold: null as number | null,
     skuPrefix: ''
   };
 
@@ -363,10 +366,42 @@ export class ProductFormComponent implements OnInit {
   toastType: 'success' | 'warning' | 'info' | 'error' = 'success';
   private toastTimer: any = null;
 
+  readonly warrantyMonthPresets = [
+    { value: 0, label: 'Không BH' },
+    { value: 6, label: '6 tháng' },
+    { value: 12, label: '12 tháng' },
+    { value: 24, label: '24 tháng' },
+    { value: 36, label: '36 tháng' },
+    { value: 60, label: '60 tháng' }
+  ];
+
+  selectWarrantyMonths(months: number) {
+    this.formData.specs.warrantyMonths = months;
+  }
+
+  private normalizeWarrantyMonths(raw: any, fallback = 24): number {
+    if (raw === null || raw === undefined || raw === '') return fallback;
+    const parsed = Math.round(Number(raw));
+    if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+    return Math.min(120, parsed);
+  }
+
+  parseThreshold(raw: any): number | null {
+    if (raw === null || raw === undefined || raw === '') return null;
+    const parsed = Math.round(Number(raw));
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return Math.min(999999, parsed);
+  }
+
+  isValidThreshold(raw: any): boolean {
+    return this.parseThreshold(raw) !== null;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
+    private productService: ProductService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -477,6 +512,7 @@ export class ProductFormComponent implements OnInit {
     this.formData.basic.images = [];
     this.formData.variants = [];
     this.attributeGroups = [];
+    this.formData.specs.warrantyMonths = 24;
   }
 
   // Tải dữ liệu sản phẩm khi chỉnh sửa
@@ -557,7 +593,7 @@ export class ProductFormComponent implements OnInit {
         const attrs: Record<string, string> = {};
         if (opt && typeof opt === 'object') {
           for (const key of Object.keys(opt)) {
-            if (!['images', 'image', 'costPrice', 'barcode'].includes(key) && opt[key] !== undefined && opt[key] !== null) {
+            if (!['images', 'image', 'costPrice', 'barcode', 'safetyThreshold', 'threshold', 'stock', 'attributes'].includes(key) && opt[key] !== undefined && opt[key] !== null && typeof opt[key] !== 'object') {
               const strVal = String(opt[key]).trim();
               if (strVal) {
                 attrs[key] = strVal;
@@ -578,6 +614,9 @@ export class ProductFormComponent implements OnInit {
           extractedAttrs['Kích thước'].add(String(opt.size));
         }
 
+        const rawThreshold = v.safetyThreshold ?? v.threshold ?? opt.safetyThreshold ?? v.warehouseStocks?.[0]?.safetyThreshold;
+        const parsedThreshold = this.parseThreshold(rawThreshold);
+
         return {
           id: v.id || `var-${idx + 1}`,
           sku: v.sku || `SKU-${idx + 1}`,
@@ -589,6 +628,7 @@ export class ProductFormComponent implements OnInit {
           originalPrice: Math.round((v.price || item.basePrice || 0) * 1.15),
           costPrice: opt.costPrice || 0,
           stock: v.stock !== undefined ? v.stock : 0,
+          safetyThreshold: parsedThreshold,
           barcode: opt.barcode || '',
           images: variantImages,
           image: variantImages[0] || (Array.isArray(opt.images) && opt.images[0]) || this.formData.basic.images[0]?.url || '',
@@ -618,6 +658,10 @@ export class ProductFormComponent implements OnInit {
     if (item.configOptions?.specs) {
       this.formData.specs = { ...this.formData.specs, ...item.configOptions.specs };
     }
+    this.formData.specs.warrantyMonths = this.normalizeWarrantyMonths(
+      item.warrantyMonths ?? item.configOptions?.specs?.warrantyMonths ?? item.configOptions?.warrantyMonths,
+      24
+    );
 
     this.formData.publication.status = item.isActive ? 'Đang bán' : 'Nháp';
     this.formData.publication.isPublished = item.isActive;
@@ -634,7 +678,8 @@ export class ProductFormComponent implements OnInit {
   isStep3Valid(): boolean {
     return this.isStep2Valid() && 
       this.formData.variants.length > 0 && 
-      this.formData.variants.some(v => v.price > 0);
+      this.formData.variants.some(v => v.price > 0) &&
+      this.formData.variants.every(v => this.isValidThreshold(v.safetyThreshold));
   }
 
   isStepAvailable(tabId: ProductFormTab): boolean {
@@ -689,6 +734,12 @@ export class ProductFormComponent implements OnInit {
       if (!hasValidPrice) {
         this.validationErrors['variants'] = 'Ít nhất 1 biến thể phải có giá bán hợp lệ (> 0 ₫)';
         this.showToast('Vui lòng nhập giá bán (> 0 ₫) cho ít nhất 1 biến thể ở Bước 3!', 'warning');
+        return false;
+      }
+      const missingThreshold = this.formData.variants.some(v => !this.isValidThreshold(v.safetyThreshold));
+      if (missingThreshold) {
+        this.validationErrors['variants'] = 'Vui lòng nhập ngưỡng tồn kho hợp lệ (≥ 0) cho tất cả biến thể';
+        this.showToast('Vui lòng nhập ngưỡng tồn kho cho tất cả biến thể ở Bước 3!', 'warning');
         return false;
       }
       return true;
@@ -1071,6 +1122,7 @@ export class ProductFormComponent implements OnInit {
           originalPrice: this.bulkEdit.price ? Math.round(this.bulkEdit.price * 1.15) : 0,
           costPrice: this.bulkEdit.costPrice || 0,
           stock: 0,
+          safetyThreshold: this.parseThreshold(this.bulkEdit.safetyThreshold),
           barcode: '',
           images: coverImg ? [coverImg] : [],
           image: coverImg,
@@ -1103,6 +1155,7 @@ export class ProductFormComponent implements OnInit {
       originalPrice: 0,
       costPrice: this.bulkEdit.costPrice || 0,
       stock: 0,
+      safetyThreshold: this.parseThreshold(this.bulkEdit.safetyThreshold),
       barcode: '',
       images: coverImg ? [coverImg] : [],
       image: coverImg,
@@ -1117,7 +1170,64 @@ export class ProductFormComponent implements OnInit {
     this.formData.variants.splice(index, 1);
   }
 
-  // --- CÔNG CỤ BULK EDIT (CHỈNH SỬA HÀNG LOẠT) ---
+  // --- CÔNG CỤ BULK EDIT (CHỈNH SỬA HÀNG LOẠT - 1 NÚT ÁP DỤNG DUY NHẤT) ---
+  applyBulkEdit() {
+    if (this.formData.variants.length === 0) {
+      this.showToast('Chưa có biến thể nào để áp dụng hàng loạt', 'warning');
+      return;
+    }
+
+    const hasPrice = this.bulkEdit.price !== null && this.bulkEdit.price !== undefined && String(this.bulkEdit.price) !== '';
+    const hasCostPrice = this.bulkEdit.costPrice !== null && this.bulkEdit.costPrice !== undefined && String(this.bulkEdit.costPrice) !== '';
+    const hasThreshold = this.bulkEdit.safetyThreshold !== null && this.bulkEdit.safetyThreshold !== undefined && String(this.bulkEdit.safetyThreshold) !== '';
+
+    if (!hasPrice && !hasCostPrice && !hasThreshold) {
+      this.showToast('Vui lòng nhập ít nhất một giá trị (giá bán, giá vốn hoặc ngưỡng tồn kho) để áp dụng', 'warning');
+      return;
+    }
+
+    const appliedParts: string[] = [];
+
+    if (hasPrice) {
+      const p = Math.round(Number(this.bulkEdit.price));
+      if (!Number.isFinite(p) || p < 0) {
+        this.showToast('Vui lòng nhập giá bán chung hợp lệ (≥ 0)', 'warning');
+        return;
+      }
+      this.formData.variants.forEach(v => {
+        v.price = p;
+        v.originalPrice = Math.round(p * 1.15);
+      });
+      appliedParts.push(`giá bán ${this.formatVND(p)}`);
+    }
+
+    if (hasCostPrice) {
+      const cp = Math.round(Number(this.bulkEdit.costPrice));
+      if (!Number.isFinite(cp) || cp < 0) {
+        this.showToast('Vui lòng nhập giá vốn chung hợp lệ (≥ 0)', 'warning');
+        return;
+      }
+      this.formData.variants.forEach(v => {
+        v.costPrice = cp;
+      });
+      appliedParts.push(`giá vốn ${this.formatVND(cp)}`);
+    }
+
+    if (hasThreshold) {
+      const th = this.parseThreshold(this.bulkEdit.safetyThreshold);
+      if (th === null) {
+        this.showToast('Vui lòng nhập ngưỡng tồn kho chung hợp lệ (≥ 0)', 'warning');
+        return;
+      }
+      this.formData.variants.forEach(v => {
+        v.safetyThreshold = th;
+      });
+      appliedParts.push(`ngưỡng tồn kho ${th}`);
+    }
+
+    this.clearError('variants');
+    this.showToast(`Đã áp dụng ${appliedParts.join(', ')} cho tất cả ${this.formData.variants.length} biến thể!`, 'success');
+  }
   applyBulkPrice() {
     if (this.bulkEdit.price === null || this.bulkEdit.price < 0) {
       this.showToast('Vui lòng nhập giá bán hợp lệ để áp dụng hàng loạt', 'warning');
@@ -1288,6 +1398,8 @@ export class ProductFormComponent implements OnInit {
       const hasValidPrice = this.formData.variants.some(v => v.price > 0 && v.isActive);
       if (!hasValidPrice) {
         this.validationErrors['variants'] = 'Ít nhất 1 biến thể đang mở bán phải có giá bán hợp lệ (> 0 ₫)';
+      } else if (this.formData.variants.some(v => !this.isValidThreshold(v.safetyThreshold))) {
+        this.validationErrors['variants'] = 'Vui lòng nhập ngưỡng tồn kho hợp lệ (≥ 0) cho tất cả biến thể';
       }
     }
 
@@ -1340,6 +1452,12 @@ export class ProductFormComponent implements OnInit {
   private saveToDatabase() {
     this.isLoading = true;
 
+    const resolvedWarrantyMonths = this.normalizeWarrantyMonths(this.formData.specs.warrantyMonths, 24);
+    const normalizedSpecs = {
+      ...this.formData.specs,
+      warrantyMonths: resolvedWarrantyMonths
+    };
+
     const payload = {
       name: this.formData.basic.name.trim(),
       categoryId: this.formData.classification.primaryCategoryId,
@@ -1347,26 +1465,30 @@ export class ProductFormComponent implements OnInit {
       basePrice: this.formData.variants[0]?.price || 0,
       images: this.formData.basic.images.map(i => i.url),
       allowCustom: this.formData.allowCustom,
+      warrantyMonths: resolvedWarrantyMonths,
       configOptions: {
         allowCustom: this.formData.allowCustom,
+        warrantyMonths: resolvedWarrantyMonths,
         brand: this.formData.basic.brand,
         roomIds: this.formData.classification.roomIds,
         collectionId: this.formData.classification.collectionId,
         styleId: this.formData.classification.styleId,
         materialIds: this.formData.classification.materialIds,
-        specs: this.formData.specs
+        specs: normalizedSpecs
       },
       isActive: this.formData.publication.status === 'Đang bán',
       variants: this.formData.variants.map(v => {
         const variantImages = Array.isArray(v.images) && v.images.length > 0
           ? v.images
           : (v.image ? [v.image] : (this.formData.basic.images[0]?.url ? [this.formData.basic.images[0].url] : []));
+        const parsedThreshold = this.parseThreshold(v.safetyThreshold);
         return {
           id: v.id && !v.id.startsWith('var-') ? v.id : undefined,
           sku: v.sku,
           name: v.name,
           price: Number(v.price) || 0,
           stock: Number(v.stock) || 0,
+          safetyThreshold: parsedThreshold,
           isActive: v.isActive,
           optionValues: {
             ...((v as any).rawOptionValues || {}),
@@ -1375,6 +1497,7 @@ export class ProductFormComponent implements OnInit {
             size: v.size || (v.attributes ? v.attributes['Kích thước'] : ''),
             costPrice: Number(v.costPrice) || 0,
             stock: Number(v.stock) || 0,
+            ...(parsedThreshold !== null ? { safetyThreshold: parsedThreshold } : {}),
             barcode: v.barcode || '',
             images: variantImages,
             image: variantImages[0] || ''
@@ -1390,6 +1513,7 @@ export class ProductFormComponent implements OnInit {
     request$.subscribe({
         next: () => {
           this.isLoading = false; this.isSubmitting = false;
+          this.productService.clearCache();
           const successMsg = this.isEditMode 
             ? 'Cập nhật sản phẩm thành công!' 
             : 'Tạo và xuất bản sản phẩm mới thành công!';

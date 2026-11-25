@@ -42,8 +42,8 @@
 
         <!-- Nút Yêu thích chuẩn CSS .round-action-btn.wishlist-btn -->
         <button type="button" class="round-action-btn wishlist-btn" [class.active]="isWishlisted" 
-                (click)="toggleWishlist($event)" title="Yêu thích">
-          <app-icon name="Heart" size="16" [color]="isWishlisted ? '#b45309' : '#4b5563'" [filled]="isWishlisted"></app-icon>
+                (click)="toggleWishlist($event)" [title]="isWishlisted ? 'Bỏ yêu thích' : 'Yêu thích'">
+          <app-icon name="Heart" size="16" [color]="isWishlisted ? '#C42326' : '#4b5563'" [filled]="isWishlisted"></app-icon>
         </button>
         <img [src]="galleryImages[currentImageIdx] || activeProduct.images?.[0]" [alt]="activeProduct.name" class="main-img" />
       </div>

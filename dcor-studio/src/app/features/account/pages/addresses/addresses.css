@@ -857,3 +857,149 @@
   background-color: #FFF8F8;
 }
 
+/* ============================================================
+   Delete Address Confirmation Modal (DCor UI Style Guide)
+   ============================================================ */
+.delete-confirm-modal-box {
+  position: relative;
+  background: #FFFFFF;
+  border-radius: var(--radius-card, 16px);
+  max-width: 440px;
+  width: 92%;
+  padding: 30px 26px 24px;
+  text-align: center;
+  box-shadow: 0 24px 56px rgba(10, 10, 10, 0.22);
+  border: 1px solid rgba(196, 35, 38, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: modalIn 0.18s ease-out;
+}
+
+.delete-modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #757575;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.delete-modal-close-btn:hover:not(:disabled) {
+  background: #F5F5F5;
+  color: #0A0A0A;
+}
+
+.delete-icon-badge {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #FFE8E8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 14px rgba(196, 35, 38, 0.16);
+}
+
+.delete-modal-title {
+  font-family: var(--font-body, 'Poppins', sans-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text, #0A0A0A);
+  margin: 0 0 8px;
+}
+
+.delete-modal-desc {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary, #616161);
+  margin: 0 0 18px;
+}
+
+.delete-address-preview {
+  width: 100%;
+  background: var(--color-page, #FCF8F3);
+  border: 1px solid #EFE6DC;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.preview-receiver-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--color-text, #0A0A0A);
+  margin-bottom: 6px;
+}
+
+.preview-divider {
+  color: #D1D5DB;
+}
+
+.preview-default-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent, #BC5F13);
+  background: #FFF3E3;
+  border: 1px solid rgba(188, 95, 19, 0.2);
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.preview-address-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #525252);
+  line-height: 1.45;
+}
+
+.preview-address-line lucide-angular {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-primary, #765337);
+}
+
+.delete-modal-actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.delete-cancel-btn {
+  width: 100%;
+}
+
+.btn-danger-confirm {
+  width: 100%;
+  background-color: var(--color-danger, #C42326);
+  color: #FFFFFF;
+  border: 1px solid var(--color-danger, #C42326);
+  font-weight: 600;
+}
+
+.btn-danger-confirm:hover:not(:disabled) {
+  background-color: #A31B1E;
+  border-color: #A31B1E;
+}
+
+.btn-danger-confirm:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+

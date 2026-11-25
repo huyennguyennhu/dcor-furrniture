@@ -558,8 +558,8 @@
           <div class="bulk-toolbar-title">
             <lucide-angular [img]="icons.SlidersHorizontal" size="17" class="bulk-icon-main"></lucide-angular>
             <div>
-              <span class="bulk-title-main">Áp dụng giá hàng loạt cho biến thể (Bulk Price)</span>
-              <span class="bulk-title-sub">Nhấn Enter hoặc nút Áp dụng để cập nhật nhanh cho tất cả biến thể</span>
+              <span class="bulk-title-main">Áp dụng hàng loạt cho biến thể</span>
+              <span class="bulk-title-sub">Nhập giá bán, giá vốn hoặc ngưỡng tồn kho rồi nhấn Enter hoặc nút Áp dụng để cập nhật nhanh cho tất cả biến thể</span>
             </div>
           </div>
 
@@ -567,40 +567,49 @@
             <!-- Giá bán chung -->
             <div class="bulk-field-group">
               <span class="bulk-label">Giá bán chung:</span>
-              <div class="bulk-input-wrap">
-                <input 
-                  type="number" 
-                  class="form-control bulk-input" 
-                  [(ngModel)]="bulkEdit.price" 
-                  (keyup.enter)="applyBulkPrice()"
-                  placeholder="₫ Nhập giá bán" 
-                  step="100000"
-                  min="0"
-                />
-                <button type="button" class="admin-btn admin-btn-secondary bulk-btn" (click)="applyBulkPrice()" title="Áp dụng giá bán cho tất cả (hoặc nhấn Enter)">
-                  Áp dụng
-                </button>
-              </div>
+              <input 
+                type="number" 
+                class="form-control bulk-input" 
+                [(ngModel)]="bulkEdit.price" 
+                (keyup.enter)="applyBulkEdit()"
+                placeholder="₫ Nhập giá bán" 
+                step="100000"
+                min="0"
+              />
             </div>
 
             <!-- Giá vốn chung -->
             <div class="bulk-field-group">
               <span class="bulk-label">Giá vốn chung:</span>
-              <div class="bulk-input-wrap">
-                <input 
-                  type="number" 
-                  class="form-control bulk-input" 
-                  [(ngModel)]="bulkEdit.costPrice" 
-                  (keyup.enter)="applyBulkCostPrice()"
-                  placeholder="₫ Nhập giá vốn" 
-                  step="100000"
-                  min="0"
-                />
-                <button type="button" class="admin-btn admin-btn-secondary bulk-btn" (click)="applyBulkCostPrice()" title="Áp dụng giá vốn cho tất cả (hoặc nhấn Enter)">
-                  Áp dụng
-                </button>
-              </div>
+              <input 
+                type="number" 
+                class="form-control bulk-input" 
+                [(ngModel)]="bulkEdit.costPrice" 
+                (keyup.enter)="applyBulkEdit()"
+                placeholder="₫ Nhập giá vốn" 
+                step="100000"
+                min="0"
+              />
             </div>
+
+            <!-- Ngưỡng tồn kho chung -->
+            <div class="bulk-field-group">
+              <span class="bulk-label">Ngưỡng tồn kho chung:</span>
+              <input 
+                type="number" 
+                class="form-control bulk-input bulk-input-threshold" 
+                [(ngModel)]="bulkEdit.safetyThreshold" 
+                (keyup.enter)="applyBulkEdit()"
+                placeholder="Nhập ngưỡng" 
+                step="1"
+                min="0"
+                max="999999"
+              />
+            </div>
+
+            <button type="button" class="admin-btn admin-btn-secondary bulk-btn" (click)="applyBulkEdit()" title="Áp dụng các giá trị đã nhập cho tất cả biến thể (hoặc nhấn Enter)">
+              Áp dụng
+            </button>
           </div>
         </div>
 
@@ -636,17 +645,18 @@
               <tr>
                 <th style="width: 60px; text-align: center;">Ảnh</th>
                 <th>Tên quy cách biến thể</th>
-                <th style="width: 200px;">Mã SKU</th>
-                <th style="width: 190px;">Giá bán (₫) <span class="required-star">*</span></th>
-                <th style="width: 170px;">Giá vốn (₫)</th>
-                <th style="width: 110px; text-align: center;">Tồn kho</th>
-                <th style="width: 80px; text-align: center;">Mở bán</th>
-                <th style="width: 50px; text-align: center;"></th>
+                <th style="width: 185px;">Mã SKU</th>
+                <th style="width: 175px;">Giá bán (₫) <span class="required-star">*</span></th>
+                <th style="width: 160px;">Giá vốn (₫)</th>
+                <th style="width: 95px; text-align: center;">Tồn kho</th>
+                <th style="width: 115px; text-align: center;">Ngưỡng tồn <span class="required-star">*</span></th>
+                <th style="width: 75px; text-align: center;">Mở bán</th>
+                <th style="width: 46px; text-align: center;"></th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="formData.variants.length === 0">
-                <td colspan="8" class="text-center py-4 text-muted">
+                <td colspan="9" class="text-center py-4 text-muted">
                   Chưa có biến thể nào. Vui lòng thêm các nhóm thuộc tính ở trên để tự động tổ hợp ma trận.
                 </td>
               </tr>
@@ -713,6 +723,21 @@
                     [(ngModel)]="v.stock" 
                     min="0"
                     max="999999"
+                  />
+                </td>
+
+                <!-- Ngưỡng cảnh báo tồn kho -->
+                <td>
+                  <input 
+                    type="number" 
+                    class="form-control table-input text-center font-bold" 
+                    [class.is-invalid]="validationErrors['variants'] && !isValidThreshold(v.safetyThreshold)"
+                    [(ngModel)]="v.safetyThreshold" 
+                    (ngModelChange)="clearError('variants')"
+                    placeholder="Nhập..."
+                    min="0"
+                    max="999999"
+                    step="1"
                   />
                 </td>
 
@@ -797,13 +822,24 @@
               id="warranty-months"
               class="form-control" 
               [(ngModel)]="formData.specs.warrantyMonths"
+              placeholder="Mặc định 24"
               min="0"
               max="120"
-              step="12"
+              step="1"
             />
             <span class="unit">tháng</span>
           </div>
-          <span class="field-hint">DCor áp dụng bảo hành 36 - 60 tháng cho các dòng sofa và giường gỗ.</span>
+          <div class="warranty-preset-row">
+            <button
+              type="button"
+              class="warranty-preset-pill"
+              *ngFor="let preset of warrantyMonthPresets"
+              [class.active]="formData.specs.warrantyMonths === preset.value"
+              (click)="selectWarrantyMonths(preset.value)">
+              {{ preset.label }}
+            </button>
+          </div>
+          <span class="field-hint">Tự động đồng bộ sang trang chi tiết sản phẩm và trang tra cứu bảo hành của khách hàng (nhập 0 nếu không áp dụng bảo hành).</span>
         </div>
 
         <!-- Thiết lập trạng thái xuất bản -->

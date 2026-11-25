@@ -14,6 +14,9 @@ import * as XLSX from 'xlsx';
 
 import { environment } from '../../../../../environments/environment';
 import { AdminAuthService } from '../../../../core/services/admin-auth.service';
+import { ProductService } from '../../../../core/services/product.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 export interface ImportPrecheckRow {
   rowNumber: number;
@@ -625,13 +628,29 @@ export class ProductsComponent implements OnInit {
     }
   }
 
-  get pagesArray(): number[] {
-    const pages: number[] = [];
+  get pagesArray(): Array<number | '...'> {
     const total = this.totalPages;
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
     }
-    return pages;
+
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, '...', total];
+    }
+
+    if (current >= total - 3) {
+      return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    }
+
+    return [1, '...', current - 1, current, current + 1, '...', total];
+  }
+
+  onPageClick(p: number | '...') {
+    if (typeof p === 'number') {
+      this.goToPage(p);
+    }
   }
 
   // Tabs & Filters
@@ -711,7 +730,8 @@ export class ProductsComponent implements OnInit {
     private router: Router, 
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
-    private adminAuthService: AdminAuthService
+    private adminAuthService: AdminAuthService,
+    private productService: ProductService
   ) {}
 
   get canCreate(): boolean {
@@ -796,7 +816,14 @@ export class ProductsComponent implements OnInit {
             const mappedVariants: ProductVariantItem[] = rawVariants.map((v: any, vIdx: number) => {
               const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
               const varImg = (opt.images && opt.images[0]) || (p.images && p.images[0]) || '';
-              const baseStock = typeof v.stock === 'number' ? v.stock : 5;
+              const baseStock = typeof v.stock === 'number' ? v.stock : 0;
+              const whStocks = Array.isArray(v.warehouseStocks) && v.warehouseStocks.length > 0
+                ? v.warehouseStocks.map((ws: any) => ({
+                    branchId: ws.warehouseId || ws.warehouse?.id || 'wh-main',
+                    branchName: ws.warehouse?.name || 'Kho Tổng',
+                    stock: Math.max(0, Number(ws.physicalStock || 0) - Number(ws.reservedStock || 0))
+                  }))
+                : [{ branchId: 'wh-main', branchName: 'Kho Tổng', stock: Math.max(0, baseStock) }];
               return {
                 id: v.id || `var-${idx}-${vIdx}`,
                 sku: v.sku || `SKU-${idx}-${vIdx}`,
@@ -805,21 +832,14 @@ export class ProductsComponent implements OnInit {
                 originalPrice: undefined,
                 image: varImg || '/assets/img/furniture-placeholder.svg',
                 isActive: v.isActive !== false,
-                branchStocks: [
-                  { branchId: 'wh-main', branchName: 'Kho Tổng', stock: Math.max(0, Math.floor(baseStock * 0.6)) },
-                  { branchId: 'sr-q1', branchName: 'Showroom Q1', stock: Math.max(0, Math.floor(baseStock * 0.2)) },
-                  { branchId: 'sr-td', branchName: 'Showroom Thủ Đức', stock: Math.max(0, Math.floor(baseStock * 0.1)) },
-                  { branchId: 'sr-hn', branchName: 'Showroom Cầu Giấy HN', stock: Math.max(0, Math.floor(baseStock * 0.1)) }
-                ]
+                branchStocks: whStocks
               };
             });
 
             const prices = mappedVariants.map(v => v.price);
             const minPrice = prices.length > 0 ? Math.min(...prices) : (Number(p.basePrice) || 10000000);
             const maxPrice = prices.length > 0 ? Math.max(...prices) : (Number(p.basePrice) || 10000000);
-            const totalStock = mappedVariants.reduce((sum, v) => {
-              return sum + v.branchStocks.reduce((bSum, b) => bSum + b.stock, 0);
-            }, 0);
+            const totalStock = rawVariants.reduce((sum: number, v: any) => sum + (v.isActive !== false ? Math.max(0, Number(v.stock || 0)) : 0), 0);
 
             const cat = p.category;
             const catName = (cat && cat.name) ? cat.name : (typeof p.category === 'string' ? p.category : 'Khác');
@@ -1085,14 +1105,27 @@ export class ProductsComponent implements OnInit {
     this.filteredProducts.forEach(p => p.isExpanded = false);
   }
 
-  // --- TOGGLE VARIANT ACTIVE STATUS ---
+  // --- TOGGLE VARIANT ACTIVE STATUS (ĐỒNG BỘ DB) ---
   toggleVariantActive(product: ProductListItem, variant: ProductVariantItem, event: Event) {
     event.stopPropagation();
-    variant.isActive = !variant.isActive;
-    
-    // Tự động tính lại tổng tồn khả dụng của các biến thể đang active
+    const prevActive = variant.isActive;
+    const nextActive = !prevActive;
+    variant.isActive = nextActive;
     this.recalculateProductStats(product);
-    this.showToast(`Đã ${variant.isActive ? 'kích hoạt' : 'tạm dừng'} bán biến thể ${variant.sku}`, 'info');
+
+    this.http.patch(`${environment.apiUrl}/admin/products/${product.id}/variants/${variant.id}/status`, {
+      isActive: nextActive
+    }).subscribe({
+      next: () => {
+        this.productService.clearCache();
+        this.showToast(`Đã ${nextActive ? 'kích hoạt' : 'tạm dừng'} bán biến thể ${variant.sku}`, 'info');
+      },
+      error: (err) => {
+        variant.isActive = prevActive;
+        this.recalculateProductStats(product);
+        this.showToast(err?.error?.message || 'Không thể cập nhật trạng thái biến thể lên máy chủ.', 'warning');
+      }
+    });
   }
 
   private recalculateProductStats(product: ProductListItem) {
@@ -1160,6 +1193,7 @@ export class ProductsComponent implements OnInit {
     }).subscribe({
       next: () => {
         target.status = newStatus;
+        this.productService.clearCache();
         this.showToast(`Đã chuyển trạng thái sản phẩm "${target.name}" sang ${newStatus}`, 'success');
         this.isConfirmVisibilityModalOpen = false;
         this.productToToggle = null;
@@ -1213,6 +1247,7 @@ export class ProductsComponent implements OnInit {
       next: () => {
         this.allProducts = this.allProducts.filter(p => p.id !== target.id);
         this.selectedProductIds.delete(target.id);
+        this.productService.clearCache();
         this.showToast(`Đã xóa vĩnh viễn sản phẩm "${target.name}" khỏi hệ thống`, 'success');
         this.closeDeleteModal();
         this.applyFilters();
@@ -1242,58 +1277,106 @@ export class ProductsComponent implements OnInit {
     this.closeDeleteModal();
   }
 
-  // --- BULK ACTIONS ---
+  // --- BULK ACTIONS (ĐỒNG BỘ DB) ---
   bulkHide() {
-    let count = 0;
-    this.allProducts.forEach(p => {
-      if (this.selectedProductIds.has(p.id) && p.status !== 'Đã ẩn') {
-        p.status = 'Đã ẩn';
-        count++;
+    const targetIds = this.allProducts
+      .filter(p => this.selectedProductIds.has(p.id) && p.status !== 'Đã ẩn')
+      .map(p => p.id);
+    if (targetIds.length === 0) return;
+
+    this.http.patch(`${environment.apiUrl}/admin/products/bulk/status`, {
+      productIds: targetIds,
+      isActive: false
+    }).subscribe({
+      next: () => {
+        this.allProducts.forEach(p => {
+          if (targetIds.includes(p.id)) p.status = 'Đã ẩn';
+        });
+        this.productService.clearCache();
+        this.showToast(`Đã ẩn ${targetIds.length} sản phẩm và đồng bộ lên cửa hàng!`, 'info');
+        this.clearSelection();
+        this.applyFilters();
+      },
+      error: (err) => {
+        this.showToast(err?.error?.message || 'Không thể ẩn hàng loạt sản phẩm.', 'warning');
       }
     });
-    this.showToast(`Đã ẩn ${count} sản phẩm được chọn`, 'info');
-    this.clearSelection();
-    this.applyFilters();
   }
 
   bulkShow() {
-    let count = 0;
-    this.allProducts.forEach(p => {
-      if (this.selectedProductIds.has(p.id) && p.status !== 'Đang bán') {
-        p.status = 'Đang bán';
-        count++;
+    const targetIds = this.allProducts
+      .filter(p => this.selectedProductIds.has(p.id) && p.status !== 'Đang bán')
+      .map(p => p.id);
+    if (targetIds.length === 0) return;
+
+    this.http.patch(`${environment.apiUrl}/admin/products/bulk/status`, {
+      productIds: targetIds,
+      isActive: true
+    }).subscribe({
+      next: () => {
+        this.allProducts.forEach(p => {
+          if (targetIds.includes(p.id)) p.status = 'Đang bán';
+        });
+        this.productService.clearCache();
+        this.showToast(`Đã bật bán ${targetIds.length} sản phẩm và đồng bộ lên cửa hàng!`, 'success');
+        this.clearSelection();
+        this.applyFilters();
+      },
+      error: (err) => {
+        this.showToast(err?.error?.message || 'Không thể bật bán hàng loạt sản phẩm.', 'warning');
       }
     });
-    this.showToast(`Đã bật bán ${count} sản phẩm được chọn`, 'success');
-    this.clearSelection();
-    this.applyFilters();
   }
 
   bulkMoveToTrash() {
-    let count = 0;
-    this.allProducts.forEach(p => {
-      if (this.selectedProductIds.has(p.id)) {
-        p.isDeleted = true;
-        p.isExpanded = false;
-        count++;
+    const targetIds = this.allProducts
+      .filter(p => this.selectedProductIds.has(p.id))
+      .map(p => p.id);
+    if (targetIds.length === 0) return;
+
+    this.http.post(`${environment.apiUrl}/admin/products/bulk/delete`, {
+      productIds: targetIds
+    }).subscribe({
+      next: () => {
+        this.allProducts.forEach(p => {
+          if (targetIds.includes(p.id)) {
+            p.isDeleted = true;
+            p.isExpanded = false;
+          }
+        });
+        this.productService.clearCache();
+        this.showToast(`Đã xóa ${targetIds.length} sản phẩm khỏi hệ thống!`, 'warning');
+        this.clearSelection();
+        this.applyFilters();
+      },
+      error: (err) => {
+        this.showToast(err?.error?.message || 'Không thể xóa hàng loạt sản phẩm.', 'warning');
       }
     });
-    this.showToast(`Đã chuyển ${count} sản phẩm vào Thùng rác`, 'warning');
-    this.clearSelection();
-    this.applyFilters();
   }
 
   bulkRestore() {
-    let count = 0;
-    this.allProducts.forEach(p => {
-      if (this.selectedProductIds.has(p.id) && p.isDeleted) {
-        p.isDeleted = false;
-        count++;
+    const targetIds = this.allProducts
+      .filter(p => this.selectedProductIds.has(p.id) && p.isDeleted)
+      .map(p => p.id);
+    if (targetIds.length === 0) return;
+
+    this.http.post(`${environment.apiUrl}/admin/products/bulk/restore`, {
+      productIds: targetIds
+    }).subscribe({
+      next: () => {
+        this.allProducts.forEach(p => {
+          if (targetIds.includes(p.id)) p.isDeleted = false;
+        });
+        this.productService.clearCache();
+        this.showToast(`Đã khôi phục ${targetIds.length} sản phẩm!`, 'success');
+        this.clearSelection();
+        this.applyFilters();
+      },
+      error: (err) => {
+        this.showToast(err?.error?.message || 'Không thể khôi phục sản phẩm.', 'warning');
       }
     });
-    this.showToast(`Đã khôi phục ${count} sản phẩm`, 'success');
-    this.clearSelection();
-    this.applyFilters();
   }
 
   bulkPermanentDelete() {
@@ -1670,7 +1753,7 @@ export class ProductsComponent implements OnInit {
     fullReader.readAsArrayBuffer(file);
   }
 
-  // 7. XÁC NHẬN NHẬP DỮ LIỆU
+  // 7. XÁC NHẬN NHẬP DỮ LIỆU EXCEL VÀ LƯU THẬT VÀO POSTGRESQL
   confirmImport() {
     const rowsToImport = this.precheckRows.filter(r => r.isValid);
     if (rowsToImport.length === 0) {
@@ -1678,50 +1761,71 @@ export class ProductsComponent implements OnInit {
       return;
     }
 
-    const now = new Date();
-    const createdDate = now.toISOString().split('T')[0];
+    const fallbackCat = this.categories.find(c => c.id !== 'ALL');
+    const resolveCatId = (row: ImportPrecheckRow): string => {
+      if (row.categoryId && this.categories.some(c => c.id === row.categoryId)) {
+        return row.categoryId;
+      }
+      const targetName = (row.categoryName || '').trim().toLowerCase();
+      const matched = this.categories.find(c =>
+        c.id !== 'ALL' && (c.name.toLowerCase() === targetName || c.name.toLowerCase().includes(targetName) || targetName.includes(c.name.toLowerCase()))
+      );
+      return matched?.id || fallbackCat?.id || '';
+    };
 
-    const newProducts: ProductListItem[] = rowsToImport.map((row, idx) => {
-      const prodId = `prod-imp-${Date.now()}-${idx}`;
-      return {
-        id: prodId,
+    const isActive = this.importStatusOption === 'Đang bán';
+    const requests = rowsToImport.map((row) => {
+      const catId = resolveCatId(row);
+      const payload = {
         name: row.name,
-        baseSku: row.sku,
-        categoryName: row.categoryName,
-        categoryId: row.categoryId || 'cat-sofa',
-        priceRange: { min: row.price, max: row.price },
-        totalVariants: 1,
-        totalAvailableStock: row.stock || 0,
-        status: this.importStatusOption,
-        image: '/assets/img/furniture-placeholder.svg',
-        createdAt: createdDate,
-        hasOrders: false,
-        isExpanded: false,
-        isDeleted: false,
+        categoryId: catId,
+        description: row.description || '',
+        basePrice: Number(row.price) || 0,
+        images: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80'],
+        isActive,
         variants: [
           {
-            id: `var-imp-${Date.now()}-${idx}`,
             sku: `${row.sku}-STD`,
             name: 'Tiêu chuẩn',
-            price: row.price,
-            image: '/assets/img/furniture-placeholder.svg',
+            price: Number(row.price) || 0,
+            stock: Number(row.stock) || 0,
+            safetyThreshold: 5,
             isActive: true,
-            branchStocks: [
-              { branchId: 'wh-main', branchName: 'Kho Tổng', stock: row.stock || 0 },
-              { branchId: 'sr-q1', branchName: 'Showroom Q1', stock: 0 },
-              { branchId: 'sr-td', branchName: 'Showroom Thủ Đức', stock: 0 },
-              { branchId: 'sr-hn', branchName: 'Showroom Cầu Giấy HN', stock: 0 }
-            ]
+            optionValues: {
+              safetyThreshold: 5,
+              stock: Number(row.stock) || 0
+            }
           }
         ]
       };
+      return this.http.post<any>(`${environment.apiUrl}/admin/products`, payload).pipe(
+        map(() => ({ ok: true })),
+        catchError(() => of({ ok: false }))
+      );
     });
 
-    // Đưa sản phẩm mới lên đầu danh sách
-    this.allProducts = [...newProducts, ...this.allProducts];
-    this.applyFilters();
-    this.closeImportModal();
-    this.showToast(`Đã nhập thành công ${newProducts.length} sản phẩm mới vào hệ thống!`, 'success');
+    this.isAnalyzingFile = true;
+    forkJoin(requests).subscribe({
+      next: (results) => {
+        this.isAnalyzingFile = false;
+        const okCount = results.filter(r => r.ok).length;
+        const failCount = results.length - okCount;
+        this.productService.clearCache();
+        this.closeImportModal();
+        this.loadProducts();
+        if (okCount > 0 && failCount === 0) {
+          this.showToast(`Đã nhập và lưu thành công ${okCount} sản phẩm vào cơ sở dữ liệu!`, 'success');
+        } else if (okCount > 0) {
+          this.showToast(`Đã lưu ${okCount} sản phẩm vào DB (${failCount} dòng lỗi).`, 'warning');
+        } else {
+          this.showToast('Không thể nhập sản phẩm vào cơ sở dữ liệu. Vui lòng kiểm tra danh mục/quyền hạn.', 'error');
+        }
+      },
+      error: () => {
+        this.isAnalyzingFile = false;
+        this.showToast('Lỗi khi nhập dữ liệu Excel lên máy chủ.', 'error');
+      }
+    });
   }
 
   // Làm sạch các ký tự đặc biệt đầu chuỗi chống Formula / CSV Injection (CWE-1236)

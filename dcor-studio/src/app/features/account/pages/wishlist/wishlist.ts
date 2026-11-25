@@ -6,7 +6,7 @@ import { AccountSidebarComponent } from '../../components/account-sidebar/accoun
 import { ProductCardComponent } from '../../../../shared/components/product-card/product-card';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
-import { Subscription } from 'rxjs';
+import { Subscription, skip } from 'rxjs';
 
 @Component({
   selector: 'app-wishlist',
@@ -33,7 +33,7 @@ export class WishlistComponent implements OnInit, OnDestroy {
 
     // Tự động đồng bộ thời gian thực khi danh sách yêu thích thay đổi
     this.sub.add(
-      this.wishlistService.wishlist$.subscribe(() => {
+      this.wishlistService.wishlist$.pipe(skip(1)).subscribe(() => {
         this.loadWishlistProducts();
       })
     );
@@ -44,7 +44,7 @@ export class WishlistComponent implements OnInit, OnDestroy {
     if (rawList.length === 0) {
       this.wishlistProducts = [];
       this.isLoading = false;
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
       return;
     }
 
@@ -94,7 +94,7 @@ export class WishlistComponent implements OnInit, OnDestroy {
       }).filter(Boolean);
     } finally {
       this.isLoading = false;
-      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     }
   }
 

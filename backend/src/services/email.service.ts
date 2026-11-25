@@ -57,7 +57,7 @@ export const emailService = {
     roles,
     branchName,
     branchAddress = 'Trụ sở chính DCor',
-    branchPhone = '1900 8888',
+    branchPhone = '1900 1234',
     branchManager = 'Ban Giám Đốc DCor',
     inviteUrl,
     subject,

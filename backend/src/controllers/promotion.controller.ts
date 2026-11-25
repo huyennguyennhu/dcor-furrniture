@@ -1,5 +1,23 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
+import prisma from '../lib/prisma';
 import { memoryCache } from '../lib/cache';
+
+const CAMPAIGNS_DATA_PATH = path.resolve(__dirname, '../data/campaigns-store.json');
+
+let onCampaignsMutated: (() => void) | null = null;
+export function registerCampaignCacheInvalidator(fn: () => void) {
+  onCampaignsMutated = fn;
+}
+
+function getLocalTodayString(): string {
+  const vnNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const y = vnNow.getUTCFullYear();
+  const m = String(vnNow.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(vnNow.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 export interface PromotionRecord {
   code: string;
@@ -41,7 +59,7 @@ export interface BackendCampaignItem {
 }
 
 // Lưu trữ các chiến dịch / đợt giảm giá khuyến mãi thực tế của DCOR (khớp với sản phẩm thật trong DB)
-let campaignStore: BackendCampaignItem[] = [
+const DEFAULT_CAMPAIGN_STORE: BackendCampaignItem[] = [
   {
     id: 'CAMP-001',
     name: 'Đại Tiệc Mùa Hè',
@@ -206,6 +224,130 @@ let campaignStore: BackendCampaignItem[] = [
     ]
   }
 ];
+
+function loadCampaignStoreFromDisk(): BackendCampaignItem[] {
+  try {
+    if (fs.existsSync(CAMPAIGNS_DATA_PATH)) {
+      const raw = fs.readFileSync(CAMPAIGNS_DATA_PATH, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('[Promotion] Không thể đọc campaigns-store.json, dùng danh sách mặc định:', err);
+  }
+  return [...DEFAULT_CAMPAIGN_STORE];
+}
+
+function persistCampaignStoreToDisk(store: BackendCampaignItem[]): void {
+  try {
+    const dir = path.dirname(CAMPAIGNS_DATA_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(CAMPAIGNS_DATA_PATH, JSON.stringify(store, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Promotion] Không thể ghi campaigns-store.json:', err);
+  }
+}
+
+let campaignStore: BackendCampaignItem[] = loadCampaignStoreFromDisk();
+let campaignsTableInitialized = false;
+
+function mapCampaignRow(row: any): BackendCampaignItem {
+  const items = Array.isArray(row.items)
+    ? row.items
+    : (typeof row.items === 'string' ? (() => { try { return JSON.parse(row.items); } catch { return []; } })() : []);
+  const targets = Array.isArray(row.showroom_targets)
+    ? row.showroom_targets
+    : (typeof row.showroom_targets === 'string' ? (() => { try { return JSON.parse(row.showroom_targets); } catch { return []; } })() : []);
+  return {
+    id: String(row.id),
+    name: String(row.name || ''),
+    description: row.description || '',
+    channel: (row.channel || 'TOÀN HỆ THỐNG') as any,
+    showroomTargets: targets,
+    discountType: row.discount_type === 'FIXED' ? 'FIXED' : 'PERCENT',
+    discountValue: Number(row.discount_value || 0),
+    startDateTime: String(row.start_date_time || ''),
+    endDateTime: String(row.end_date_time || ''),
+    status: String(row.status || 'Ongoing'),
+    productsCount: Number(row.products_count ?? items.length),
+    totalRevenue: Number(row.total_revenue || 0),
+    items
+  };
+}
+
+export async function ensureCampaignsTable(): Promise<void> {
+  if (campaignsTableInitialized) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PromotionCampaigns" (
+        id VARCHAR(100) PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        channel VARCHAR(50) DEFAULT 'TOÀN HỆ THỐNG',
+        showroom_targets JSONB DEFAULT '[]'::jsonb,
+        discount_type VARCHAR(20) DEFAULT 'PERCENT',
+        discount_value INTEGER DEFAULT 0,
+        start_date_time VARCHAR(30),
+        end_date_time VARCHAR(30),
+        status VARCHAR(30) DEFAULT 'Ongoing',
+        products_count INTEGER DEFAULT 0,
+        total_revenue BIGINT DEFAULT 0,
+        items JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    const countRes = await prisma.$queryRawUnsafe<any[]>(`SELECT COUNT(*)::int AS cnt FROM "PromotionCampaigns"`);
+    const count = Number(countRes?.[0]?.cnt || 0);
+    if (count === 0) {
+      const seedSource = loadCampaignStoreFromDisk();
+      for (const c of seedSource) {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "PromotionCampaigns"
+            (id, name, description, channel, showroom_targets, discount_type, discount_value, start_date_time, end_date_time, status, products_count, total_revenue, items)
+           VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
+           ON CONFLICT (id) DO NOTHING`,
+          c.id,
+          c.name,
+          c.description || '',
+          c.channel || 'TOÀN HỆ THỐNG',
+          JSON.stringify(c.showroomTargets || []),
+          c.discountType === 'FIXED' ? 'FIXED' : 'PERCENT',
+          Math.round(Number(c.discountValue) || 0),
+          c.startDateTime || '',
+          c.endDateTime || '',
+          c.status || 'Ongoing',
+          Array.isArray(c.items) ? c.items.length : (c.productsCount || 0),
+          Math.round(Number(c.totalRevenue) || 0),
+          JSON.stringify(c.items || [])
+        );
+      }
+    }
+
+    await refreshCampaignStoreFromDb();
+    campaignsTableInitialized = true;
+  } catch (err) {
+    console.error('[Promotion] Không thể khởi tạo bảng PromotionCampaigns:', err);
+  }
+}
+
+async function refreshCampaignStoreFromDb(): Promise<BackendCampaignItem[]> {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT * FROM "PromotionCampaigns" ORDER BY created_at DESC, id ASC`
+    );
+    campaignStore = rows.map(mapCampaignRow);
+    return campaignStore;
+  } catch (err) {
+    console.warn('[Promotion] Lỗi đọc PromotionCampaigns từ DB:', err);
+    return campaignStore;
+  }
+}
 
 // Lưu trữ danh sách khuyến mãi / vouchers đồng bộ giữa Admin và Store
 // Khởi tạo sẵn các mã thực tế của DCOR
@@ -426,67 +568,149 @@ export const promotionController = {
     };
   },
 
-  // === DÀNH CHO CHIẾN DỊCH GIẢM GIÁ (CAMPAIGNS) ===
+  // === DÀNH CHO CHIẾN DỊCH GIẢM GIÁ (CAMPAIGNS - POSTGRESQL) ===
 
   // GET /api/store/campaigns - Lấy danh sách chiến dịch đang diễn ra cho Store khách hàng
-  getStoreCampaigns: (req: Request, res: Response) => {
-    const today = new Date().toISOString().split('T')[0];
-    const active = campaignStore.filter(c => {
-      const isStatusActive = c.status === 'Ongoing' || c.status === 'Active' || c.status === 'Đang diễn ra';
-      const isNotExpired = !c.endDateTime || c.endDateTime >= today;
-      const isStarted = !c.startDateTime || c.startDateTime <= today;
-      return isStatusActive && isNotExpired && isStarted;
-    });
-    res.json(active);
+  getStoreCampaigns: async (req: Request, res: Response) => {
+    try {
+      await ensureCampaignsTable();
+      const list = await refreshCampaignStoreFromDb();
+      const today = getLocalTodayString();
+      const active = list.filter(c => {
+        const isStatusActive = c.status === 'Ongoing' || c.status === 'Active' || c.status === 'Đang diễn ra' || c.status === 'Đang hoạt động';
+        const startDay = c.startDateTime ? String(c.startDateTime).slice(0, 10) : '';
+        const endDay = c.endDateTime ? String(c.endDateTime).slice(0, 10) : '';
+        const isNotExpired = !endDay || endDay >= today;
+        const isStarted = !startDay || startDay <= today;
+        return isStatusActive && isNotExpired && isStarted;
+      });
+      res.json(active);
+    } catch (error: any) {
+      console.error('[Promotion] Lỗi lấy danh sách chiến dịch Store:', error);
+      res.status(500).json({ message: 'Không thể tải danh sách chiến dịch khuyến mãi.' });
+    }
   },
 
   // GET /api/admin/promotions/campaigns - Lấy toàn bộ danh sách chiến dịch cho Admin
-  getAdminCampaigns: (req: Request, res: Response) => {
-    res.json(campaignStore);
-  },
-
-  // POST /api/admin/promotions/campaigns - Thêm mới hoặc cập nhật chiến dịch
-  upsertAdminCampaign: (req: Request, res: Response): void => {
-    const campaignData: BackendCampaignItem = req.body;
-    if (!campaignData || !campaignData.name) {
-      res.status(400).json({ message: 'Dữ liệu chiến dịch không hợp lệ.' });
-      return;
-    }
-
-    const id = campaignData.id || `CAMP-${Date.now().toString().slice(-4)}`;
-    const idx = campaignStore.findIndex(c => c.id === id);
-
-    if (idx >= 0) {
-      campaignStore[idx] = { ...campaignStore[idx], ...campaignData, id };
-      memoryCache.clear();
-      res.json({ message: 'Cập nhật chiến dịch thành công.', campaign: campaignStore[idx] });
-    } else {
-      campaignStore.unshift({ ...campaignData, id });
-      memoryCache.clear();
-      res.status(201).json({ message: 'Tạo chiến dịch mới thành công.', campaign: campaignStore[0] });
+  getAdminCampaigns: async (req: Request, res: Response) => {
+    try {
+      await ensureCampaignsTable();
+      const list = await refreshCampaignStoreFromDb();
+      res.json(list);
+    } catch (error: any) {
+      console.error('[Promotion] Lỗi lấy danh sách chiến dịch Admin:', error);
+      res.status(500).json({ message: 'Không thể tải danh sách chiến dịch từ cơ sở dữ liệu.' });
     }
   },
 
-  // DELETE /api/admin/promotions/campaigns/:id - Xóa chiến dịch
-  deleteAdminCampaign: (req: Request, res: Response): void => {
-    const { id } = req.params;
-    const initialLen = campaignStore.length;
-    campaignStore = campaignStore.filter(c => c.id !== id);
-    if (campaignStore.length === initialLen) {
-      res.status(404).json({ message: 'Không tìm thấy chiến dịch cần xóa.' });
-      return;
+  // POST /api/admin/promotions/campaigns - Thêm mới hoặc cập nhật chiến dịch trong PostgreSQL
+  upsertAdminCampaign: async (req: Request, res: Response): Promise<void> => {
+    try {
+      await ensureCampaignsTable();
+      const campaignData: BackendCampaignItem = req.body;
+      if (!campaignData || !campaignData.name || !String(campaignData.name).trim()) {
+        res.status(400).json({ message: 'Dữ liệu chiến dịch không hợp lệ.' });
+        return;
+      }
+
+      const id = campaignData.id ? String(campaignData.id).trim() : `CAMP-${Date.now().toString().slice(-6)}`;
+      const items = Array.isArray(campaignData.items) ? campaignData.items : [];
+      const showroomTargets = Array.isArray(campaignData.showroomTargets) ? campaignData.showroomTargets : [];
+      const discountType = campaignData.discountType === 'FIXED' ? 'FIXED' : 'PERCENT';
+      const discountValue = Math.round(Number(campaignData.discountValue) || 0);
+      const productsCount = items.length || Number(campaignData.productsCount) || 0;
+      const totalRevenue = Math.round(Number(campaignData.totalRevenue) || 0);
+
+      const existingRows = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT id FROM "PromotionCampaigns" WHERE id = $1`,
+        id
+      );
+      const isUpdate = existingRows.length > 0;
+
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "PromotionCampaigns"
+          (id, name, description, channel, showroom_targets, discount_type, discount_value, start_date_time, end_date_time, status, products_count, total_revenue, items, updated_at)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, NOW())
+         ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          channel = EXCLUDED.channel,
+          showroom_targets = EXCLUDED.showroom_targets,
+          discount_type = EXCLUDED.discount_type,
+          discount_value = EXCLUDED.discount_value,
+          start_date_time = EXCLUDED.start_date_time,
+          end_date_time = EXCLUDED.end_date_time,
+          status = EXCLUDED.status,
+          products_count = EXCLUDED.products_count,
+          total_revenue = EXCLUDED.total_revenue,
+          items = EXCLUDED.items,
+          updated_at = NOW()`,
+        id,
+        String(campaignData.name).trim(),
+        campaignData.description ? String(campaignData.description).trim() : '',
+        campaignData.channel || 'TOÀN HỆ THỐNG',
+        JSON.stringify(showroomTargets),
+        discountType,
+        discountValue,
+        campaignData.startDateTime || '',
+        campaignData.endDateTime || '',
+        campaignData.status || 'Ongoing',
+        productsCount,
+        totalRevenue,
+        JSON.stringify(items)
+      );
+
+      const updatedList = await refreshCampaignStoreFromDb();
+      persistCampaignStoreToDisk(updatedList);
+      memoryCache.clear();
+      onCampaignsMutated?.();
+
+      const saved = updatedList.find(c => c.id === id) || { ...campaignData, id };
+      res.status(isUpdate ? 200 : 201).json({
+        message: isUpdate ? 'Cập nhật chiến dịch thành công.' : 'Tạo chiến dịch mới thành công.',
+        campaign: saved
+      });
+    } catch (error: any) {
+      console.error('[Promotion] Lỗi lưu chiến dịch:', error);
+      res.status(500).json({ message: 'Không thể lưu chiến dịch vào cơ sở dữ liệu.', error: error?.message });
     }
-    memoryCache.clear();
-    res.json({ message: 'Đã xóa chiến dịch thành công.' });
+  },
+
+  // DELETE /api/admin/promotions/campaigns/:id - Xóa chiến dịch khỏi PostgreSQL
+  deleteAdminCampaign: async (req: Request, res: Response): Promise<void> => {
+    try {
+      await ensureCampaignsTable();
+      const id = String(req.params.id || '').trim();
+      const existingRows = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT id FROM "PromotionCampaigns" WHERE id = $1`,
+        id
+      );
+      if (existingRows.length === 0) {
+        res.status(404).json({ message: 'Không tìm thấy chiến dịch cần xóa.' });
+        return;
+      }
+
+      await prisma.$executeRawUnsafe(`DELETE FROM "PromotionCampaigns" WHERE id = $1`, id);
+      const updatedList = await refreshCampaignStoreFromDb();
+      persistCampaignStoreToDisk(updatedList);
+      memoryCache.clear();
+      onCampaignsMutated?.();
+      res.json({ success: true, message: 'Đã xóa chiến dịch thành công.' });
+    } catch (error: any) {
+      console.error('[Promotion] Lỗi xóa chiến dịch:', error);
+      res.status(500).json({ message: 'Không thể xóa chiến dịch khỏi cơ sở dữ liệu.', error: error?.message });
+    }
   },
 
   // Helper trả về danh sách chiến dịch đang hiệu lực cho backend (dùng ở server.ts)
   getActiveCampaignsHelper: (): BackendCampaignItem[] => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalTodayString();
     return campaignStore.filter(c => {
-      const isStatusActive = c.status === 'Ongoing' || c.status === 'Active' || c.status === 'Đang diễn ra';
-      const isNotExpired = !c.endDateTime || c.endDateTime >= today;
-      const isStarted = !c.startDateTime || c.startDateTime <= today;
+      const isStatusActive = c.status === 'Ongoing' || c.status === 'Active' || c.status === 'Đang diễn ra' || c.status === 'Đang hoạt động';
+      const startDay = c.startDateTime ? String(c.startDateTime).slice(0, 10) : '';
+      const endDay = c.endDateTime ? String(c.endDateTime).slice(0, 10) : '';
+      const isNotExpired = !endDay || endDay >= today;
+      const isStarted = !startDay || startDay <= today;
       return isStatusActive && isNotExpired && isStarted;
     });
   }

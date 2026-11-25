@@ -5,6 +5,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { AdminAuthService, AdminModule } from '../../../../core/services/admin-auth.service';
+import { AdminConsultationService } from '../../../../core/services/admin-consultation.service';
 import { ChatUnreadService } from '../../pages/chat/services/chat-unread.service';
 
 interface MenuItem {
@@ -179,7 +180,8 @@ export class AdminSidebar implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private adminAuthService: AdminAuthService,
-    public chatUnreadService: ChatUnreadService
+    public chatUnreadService: ChatUnreadService,
+    public adminConsultationService: AdminConsultationService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -196,6 +198,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
 
     this.filterMenuItemsByPermission();
     this.calculateActiveHref(this.router.url);
+    this.adminConsultationService.startBadgeSync();
   }
 
   ngOnDestroy(): void {

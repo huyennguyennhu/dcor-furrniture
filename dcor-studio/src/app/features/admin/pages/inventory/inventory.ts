@@ -895,6 +895,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.http.post<any>(`${environment.apiUrl}/admin/inventory/orders`, payload).subscribe({
       next: (created) => {
         this.closeModal();
+        this.stateService.invalidate();
         this.fetchOverview();
         if (isDraft) {
           this.triggerToast(

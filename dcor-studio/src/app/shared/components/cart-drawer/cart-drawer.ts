@@ -377,7 +377,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
       this.promotionService.removeAppliedPromotion();
     } else if (this.selectedVoucherCode) {
       this.showCustomInput = false;
-      this.promotionService.applyPromotion(this.selectedVoucherCode, this.subTotal).subscribe(res => {
+      this.promotionService.applyPromotion(this.selectedVoucherCode, this.subTotal, this.selectedItems).subscribe(res => {
         if (!res.success) {
           this.voucherError = res.message;
         } else {
@@ -399,7 +399,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     this.voucherError = '';
     this.manuallyRemovedProduct = false;
     this.manuallyRemovedFreeship = false;
-    this.promotionService.applyPromotion(code, this.subTotal).subscribe(res => {
+    this.promotionService.applyPromotion(code, this.subTotal, this.selectedItems).subscribe(res => {
       if (!res.success) {
         this.voucherError = res.message;
       } else {
@@ -437,6 +437,11 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
   isVoucherEligible(v: Promotion): boolean {
     if (v.isActive === false) return false;
     if (v.minOrderValue && this.subTotal < v.minOrderValue) return false;
+    if (v.scope === 'SPECIFIC_PRODUCTS' && Array.isArray(v.productIds) && v.productIds.length > 0) {
+      const idSet = new Set(v.productIds.map(x => String(x).trim()));
+      const hasMatch = this.selectedItems.some(it => idSet.has(String(it.productId || it.id || '').trim()));
+      if (!hasMatch) return false;
+    }
     return true;
   }
 
@@ -447,7 +452,11 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
 
   applyVoucherDirectly(v: Promotion) {
     if (!this.isVoucherEligible(v)) {
-      this.voucherError = `Đơn hàng cần tối thiểu ${this.formatCurrency(v.minOrderValue || 0)} để áp dụng mã "${v.code}".`;
+      if (v.scope === 'SPECIFIC_PRODUCTS' && v.productIds?.length) {
+        this.voucherError = `Mã "${v.code}" chỉ áp dụng cho các sản phẩm chọn lọc, chưa có trong giỏ hàng hiện tại.`;
+      } else {
+        this.voucherError = `Đơn hàng cần tối thiểu ${this.formatCurrency(v.minOrderValue || 0)} để áp dụng mã "${v.code}".`;
+      }
       return;
     }
     this.voucherError = '';
@@ -457,7 +466,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     } else {
       this.manuallyRemovedProduct = false;
     }
-    this.promotionService.applyPromotion(v.code, this.subTotal).subscribe(res => {
+    this.promotionService.applyPromotion(v.code, this.subTotal, this.selectedItems).subscribe(res => {
       if (res.success) {
         const desc = isFreeship ? 'miễn phí vận chuyển' : `giảm ${this.formatCurrency(res.applied?.calculatedDiscount || 0)}`;
         this.showToast(`Đã áp dụng mã "${v.code}" (${desc})!`, 'success');

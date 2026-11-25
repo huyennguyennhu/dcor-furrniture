@@ -19,7 +19,8 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
     try {
       const user: any = jwt.verify(token, JWT_SECRET);
 
-      // Nếu là tài khoản Admin/Staff, kiểm tra trạng thái hoạt động trong cơ sở dữ liệu
+      // Kiểm tra trạng thái hoạt động trong cơ sở dữ liệu cho Staff hoặc Customer
+      let isStaffUser = false;
       if (user && user.email) {
         const staff = await prisma.staffUser.findUnique({
           where: { email: user.email.toLowerCase() },
@@ -27,6 +28,7 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
         });
 
         if (staff) {
+          isStaffUser = true;
           if (staff.deletedAt !== null) {
             res.status(403).json({
               active: false,
@@ -50,6 +52,33 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
           if (metadata && Array.isArray(metadata.roles) && metadata.roles.length > 0) {
             user.roles = metadata.roles;
             user.role = metadata.role || metadata.roles[0];
+          }
+        }
+      }
+
+      if (!isStaffUser && user && user.userId) {
+        const customer = await prisma.customer.findUnique({
+          where: { id: String(user.userId) },
+          select: { id: true, lockedUntil: true, deletedAt: true }
+        });
+
+        if (customer) {
+          if (customer.deletedAt !== null) {
+            res.status(403).json({
+              active: false,
+              code: 'ACCOUNT_DELETED',
+              message: 'Tài khoản khách hàng đã bị xóa khỏi hệ thống.'
+            });
+            return;
+          }
+
+          if (customer.lockedUntil && customer.lockedUntil > new Date()) {
+            res.status(403).json({
+              active: false,
+              code: 'ACCOUNT_LOCKED',
+              message: 'Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ quản trị viên.'
+            });
+            return;
           }
         }
       }

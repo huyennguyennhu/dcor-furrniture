@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
-import { promotionController } from './promotion.controller';
+import { getVoucherEffectiveRange, isFreeshipVoucher, ensureDefaultFreeshipVouchers } from './voucher.controller';
 import { inMemoryReturns } from './customer.controller';
+import { extractProductWarrantyMonths } from './product.controller';
+import { syncCustomerLoyalty } from '../lib/member-tier';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 
@@ -93,7 +95,7 @@ export const autoCompleteExpiredDeliveredOrders = async (): Promise<void> => {
         status: 'DELIVERED',
         deliveredAt: { lt: fiveMinutesAgo }
       },
-      select: { id: true, orderNumber: true },
+      select: { id: true, orderNumber: true, customerId: true },
       take: 50 // Giới hạn batch size
     });
 
@@ -115,6 +117,11 @@ export const autoCompleteExpiredDeliveredOrders = async (): Promise<void> => {
           notes: 'Hệ thống tự động chuyển sang Hoàn tất sau 3 ngày kể từ khi giao hàng thành công.'
         }))
       }).catch(() => {});
+
+      const uniqueCustomerIds = Array.from(new Set(expiredDelivered.map(o => o.customerId).filter(Boolean))) as string[];
+      for (const cid of uniqueCustomerIds) {
+        await syncCustomerLoyalty(cid);
+      }
     }
   } catch (err) {
     console.warn('Lỗi khi kiểm tra autoCompleteExpiredDeliveredOrders:', err);
@@ -153,6 +160,7 @@ export const orderController = {
         shippingNotes,
         paymentMethod,
         voucherCode,
+        freeshipVoucherCode,
         isGift,
         hideInvoicePrice,
         items,
@@ -235,6 +243,13 @@ export const orderController = {
         const variantId = variant?.id || defaultProduct?.variants?.[0]?.id || null;
         const productName = variant?.product?.name || item.name || defaultProduct?.name || 'Sản phẩm DCor';
         const imageUrl = item.image || (variant?.product?.images ? (Array.isArray(variant.product.images) ? variant.product.images[0] : '') : '') || '';
+        const itemWarrantyMonths = extractProductWarrantyMonths(
+          variant?.product?.configOptions ?? defaultProduct?.configOptions
+        );
+        const mergedSelectedOptions = {
+          ...(item.selectedOptions && typeof item.selectedOptions === 'object' ? item.selectedOptions : {}),
+          warrantyMonths: itemWarrantyMonths
+        };
 
         if (productId) {
           orderItemsCreate.push({
@@ -246,57 +261,104 @@ export const orderController = {
             quantity: qty,
             price: price,
             lineTotal: lineTotal,
-            selectedOptions: item.selectedOptions || null
+            selectedOptions: mergedSelectedOptions
           });
         }
       }
 
-      // Tính toán khuyến mãi và phí vận chuyển thực tế
+      // Tính toán khuyến mãi và phí vận chuyển thực tế (đồng bộ 100% từ bảng Voucher PostgreSQL)
+      await ensureDefaultFreeshipVouchers();
       const subTotalNum = Number(subTotal);
       let discountAmountNum = 0;
-      let appliedVoucherCode: string | null = null;
+      let freeshipDiscountNum = 0;
+      const appliedVoucherCodes: string[] = [];
 
-      if (voucherCode && typeof voucherCode === 'string') {
-        const cleanCode = voucherCode.trim().toUpperCase().replace(/\s+/g, '');
+      const validateAndConsumeVoucher = async (rawCode: string, expectedFreeship: boolean) => {
+        const cleanCode = rawCode.trim().toUpperCase().replace(/\s+/g, '');
+        if (!cleanCode) return null;
+
         const voucher = await (prisma as any).voucher.findUnique({
           where: { code: cleanCode }
         }).catch(() => null);
 
-        if (voucher && voucher.isActive) {
-          const now = new Date();
-          const isDateValid = new Date(voucher.startDate) <= now && new Date(voucher.endDate) >= now;
-          const isQuotaValid = voucher.usageLimit <= 0 || voucher.usedCount < voucher.usageLimit;
-          const isMinOrderValid = Number(subTotal) >= voucher.minOrderValue;
+        if (!voucher || !voucher.isActive) return null;
 
-          if (isDateValid && isQuotaValid && isMinOrderValid) {
-            appliedVoucherCode = voucher.code;
-            if (voucher.discountType === 'PERCENT') {
-              discountAmountNum = Math.round((Number(subTotal) * voucher.discountValue) / 100);
-              if (voucher.maxDiscountCap && voucher.maxDiscountCap > 0) {
-                discountAmountNum = Math.min(discountAmountNum, voucher.maxDiscountCap);
-              }
-            } else {
-              discountAmountNum = Math.min(voucher.discountValue, Number(subTotal));
+        const now = new Date();
+        const { start, end } = getVoucherEffectiveRange(voucher.startDate, voucher.endDate);
+        const isDateValid = start <= now && now <= end;
+        const isQuotaValid = !voucher.usageLimit || voucher.usageLimit <= 0 || (voucher.usedCount || 0) < voucher.usageLimit;
+        const isMinOrderValid = subTotalNum >= (voucher.minOrderValue || 0);
+        if (!isDateValid || !isQuotaValid || !isMinOrderValid) return null;
+
+        // Kiểm tra giới hạn lượt dùng trên mỗi khách hàng
+        if (voucher.perCustomerLimit > 0 && (customerId || phone)) {
+          const customerUsedCount = await prisma.order.count({
+            where: {
+              status: { not: 'CANCELLED' },
+              promoCode: { contains: voucher.code },
+              ...(customerId ? { customerId } : { phone: phone.trim() })
             }
+          }).catch(() => 0);
+          if (customerUsedCount >= voucher.perCustomerLimit) return null;
+        }
 
-            // Tự động tăng usedCount của voucher lên 1
-            await (prisma as any).voucher.update({
-              where: { code: voucher.code },
-              data: { usedCount: { increment: 1 } }
-            }).catch((e: any) => console.warn('[WARN] Không thể tăng usedCount của voucher:', e));
+        const isFs = isFreeshipVoucher(voucher.code);
+        if (expectedFreeship !== isFs) return null;
+
+        let disc = 0;
+        if (voucher.discountType === 'PERCENT') {
+          disc = Math.round((subTotalNum * voucher.discountValue) / 100);
+          if (voucher.maxDiscountCap && voucher.maxDiscountCap > 0) {
+            disc = Math.min(disc, voucher.maxDiscountCap);
           }
         } else {
-          const promoInfo = promotionController.calculateVoucherDiscount(voucherCode, subTotalNum);
-          discountAmountNum = promoInfo.discount;
-          if (promoInfo.discount > 0) {
-            appliedVoucherCode = cleanCode;
+          disc = isFs ? voucher.discountValue : Math.min(voucher.discountValue, subTotalNum);
+        }
+
+        // Tăng usedCount trong DB
+        await (prisma as any).voucher.update({
+          where: { code: voucher.code },
+          data: { usedCount: { increment: 1 } }
+        }).catch((e: any) => console.warn('[WARN] Không thể tăng usedCount của voucher:', e));
+
+        return { code: voucher.code, discount: disc, isFreeShip: isFs };
+      };
+
+      // 1. Áp dụng mã giảm giá sản phẩm (hoặc nếu khách gửi mã FREESHIP qua voucherCode)
+      if (voucherCode && typeof voucherCode === 'string') {
+        const cleanPrimary = voucherCode.trim().toUpperCase().replace(/\s+/g, '');
+        if (isFreeshipVoucher(cleanPrimary)) {
+          const resFs = await validateAndConsumeVoucher(cleanPrimary, true);
+          if (resFs) {
+            freeshipDiscountNum = Math.max(freeshipDiscountNum, resFs.discount);
+            appliedVoucherCodes.push(resFs.code);
+          }
+        } else {
+          const resProd = await validateAndConsumeVoucher(cleanPrimary, false);
+          if (resProd) {
+            discountAmountNum = resProd.discount;
+            appliedVoucherCodes.push(resProd.code);
           }
         }
       }
 
+      // 2. Áp dụng mã miễn phí vận chuyển (hỗ trợ dùng song song cùng mã sản phẩm)
+      if (freeshipVoucherCode && typeof freeshipVoucherCode === 'string' && subTotalNum < 50000000) {
+        const cleanFs = freeshipVoucherCode.trim().toUpperCase().replace(/\s+/g, '');
+        if (cleanFs && !appliedVoucherCodes.includes(cleanFs)) {
+          const resFs = await validateAndConsumeVoucher(cleanFs, true);
+          if (resFs) {
+            freeshipDiscountNum = Math.max(freeshipDiscountNum, resFs.discount);
+            appliedVoucherCodes.push(resFs.code);
+          }
+        }
+      }
+
+      const appliedVoucherCode = appliedVoucherCodes.length > 0 ? appliedVoucherCodes.join(', ') : null;
       const discountAmount = BigInt(discountAmountNum);
-      const isFreeShip = subTotalNum >= 50000000 || (voucherCode && String(voucherCode).toUpperCase().includes('FREESHIP'));
-      const shippingFee = (subTotalNum === 0 || isFreeShip) ? BigInt(0) : BigInt(250000);
+      const baseShippingFee = (subTotalNum === 0 || subTotalNum >= 50000000) ? 0 : 250000;
+      const finalShippingFeeNum = Math.max(0, baseShippingFee - freeshipDiscountNum);
+      const shippingFee = BigInt(finalShippingFeeNum);
       
       const rawTotal = subTotal + shippingFee - discountAmount;
       const totalAmount = rawTotal > BigInt(0) ? rawTotal : BigInt(0);
@@ -332,7 +394,7 @@ export const orderController = {
           shippingFee,
           discountAmount,
           totalAmount,
-          promoCode: appliedVoucherCode || (voucherCode ? String(voucherCode).trim().toUpperCase() : null),
+          promoCode: appliedVoucherCode,
           status: 'PENDING',
           paymentMethod: paymentMethod === 'COD' ? 'COD' : (paymentMethod === 'VNPAY' ? 'VNPAY' : (paymentMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'BANK_TRANSFER')),
           paymentStatus: 'UNPAID',
@@ -349,7 +411,7 @@ export const orderController = {
                 actorType: 'CUSTOMER',
                 notes: isHighValue
                   ? 'Đơn hàng trên 50 triệu - Trạng thái: Chờ đặt cọc trong 24h'
-                  : (voucherCode ? `Khách hàng tạo đơn áp dụng mã ưu đãi ${voucherCode}` : 'Khách hàng tạo đơn thành công')
+                  : (appliedVoucherCode ? `Khách hàng tạo đơn áp dụng mã ưu đãi ${appliedVoucherCode}` : 'Khách hàng tạo đơn thành công')
               }
             ]
           }
@@ -366,17 +428,8 @@ export const orderController = {
         }).catch((err) => console.warn('Không thể xóa cartItem sau khi đặt hàng:', err));
       }
 
-      // Cập nhật thống kê chi tiêu & điểm tích lũy của khách hàng
-      if (customerId) {
-        const pointsToAdd = Math.floor(Number(totalAmount) / 100000);
-        await prisma.customer.update({
-          where: { id: customerId },
-          data: {
-            totalSpent: { increment: totalAmount },
-            rewardPoints: { increment: pointsToAdd }
-          }
-        }).catch(() => {});
-      }
+      // Không cộng totalSpent / rewardPoints lúc đơn mới tạo (PENDING).
+      // Điểm thưởng và hạng thành viên chỉ được đồng bộ khi đơn giao thành công (DELIVERED / COMPLETED).
 
       res.status(201).json(serializeBigInt({
         success: true,

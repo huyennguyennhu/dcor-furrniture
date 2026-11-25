@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { ProductService } from './product.service';
 
 export interface InventoryVariant {
   id: string;
@@ -77,6 +78,8 @@ export class InventoryStateService {
     status: true
   };
 
+  constructor(private productService: ProductService) {}
+
   saveState(state: Partial<InventoryStateService>) {
     Object.assign(this, state);
     this.hasLoaded = true;
@@ -84,5 +87,6 @@ export class InventoryStateService {
 
   invalidate() {
     this.hasLoaded = false;
+    this.productService.clearCache();
   }
 }

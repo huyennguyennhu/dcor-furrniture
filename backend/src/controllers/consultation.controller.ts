@@ -1,6 +1,20 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { memoryCache, CACHE_KEYS } from '../lib/cache';
+import { broadcastPendingConsultations } from '../services/chat.socket';
+
+export const notifyAdminPendingConsultations = async (): Promise<number> => {
+  try {
+    const res: any[] = await prisma.$queryRawUnsafe(`
+      SELECT COUNT(*)::int AS count FROM "ShowroomConsultations" WHERE status = 'PENDING';
+    `);
+    const count = Number(res?.[0]?.count || 0);
+    broadcastPendingConsultations(count);
+    return count;
+  } catch (_) {
+    return 0;
+  }
+};
 
 let isTableInitialized = process.env.INIT_DB !== 'true';
 let initPromise: Promise<void> | null = null;
@@ -685,6 +699,7 @@ export const consultationController = {
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
       memoryCache.invalidate(`showroom_slots_${showroomId}_${dateStr}`);
       memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
       res.status(201).json({
         success: true,
@@ -989,6 +1004,8 @@ export const consultationController = {
       );
 
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
       // Trả thông báo thành công kèm mô phỏng gửi Email / SMS Brandname
       const notification = {
@@ -1070,6 +1087,8 @@ export const consultationController = {
       );
 
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
       res.json({
         success: true,
@@ -1139,6 +1158,8 @@ export const consultationController = {
       );
 
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
       res.json({
         success: true,
@@ -1225,6 +1246,8 @@ export const consultationController = {
       );
 
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
       res.json({
         success: true,
@@ -1295,6 +1318,8 @@ export const consultationController = {
       );
 
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
       res.json({
         success: true,
@@ -1362,6 +1387,8 @@ export const consultationController = {
       );
 
       memoryCache.invalidatePrefix(CACHE_KEYS.CONSULTATIONS_ADMIN_PREFIX);
+      memoryCache.invalidatePrefix('showroom_slots_');
+      notifyAdminPendingConsultations().catch(() => {});
 
       res.json({
         success: true,
@@ -1373,10 +1400,26 @@ export const consultationController = {
     }
   },
 
+  // 12. Admin: Lấy số lượng yêu cầu tư vấn đang chờ duyệt (dùng cho badge thông báo realtime)
+  getPendingCount: async (_req: Request, res: Response): Promise<void> => {
+    try {
+      await ensureConsultationTable();
+      const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT COUNT(*)::int AS count FROM "ShowroomConsultations" WHERE status = 'PENDING';
+      `);
+      const pending = Number(rows?.[0]?.count || 0);
+      res.json({ success: true, pending });
+    } catch (error) {
+      console.error('[Consultation Admin] Lỗi đếm yêu cầu chờ duyệt:', error);
+      res.status(500).json({ error: 'Không thể tải số lượng yêu cầu tư vấn chờ duyệt.' });
+    }
+  },
+
   // 12. Admin: Lấy danh sách nhân sự thực tế từ bảng StaffUser để gán vào dropdown
   getStaffList: async (req: Request, res: Response): Promise<void> => {
     try {
-      const cached = memoryCache.get<any[]>(CACHE_KEYS.STAFF_LIST, 5 * 60 * 1000);
+      const CONSULTATION_STAFF_CACHE_KEY = 'consultation_active_staff_list';
+      const cached = memoryCache.get<any[]>(CONSULTATION_STAFF_CACHE_KEY, 5 * 60 * 1000);
       if (cached) {
         res.json(cached);
         return;
@@ -1404,7 +1447,7 @@ export const consultationController = {
         role: s.role
       }));
 
-      memoryCache.set(CACHE_KEYS.STAFF_LIST, list);
+      memoryCache.set(CONSULTATION_STAFF_CACHE_KEY, list);
       res.json(list);
     } catch (error) {
       console.error('[Consultation Admin] Lỗi lấy danh sách nhân sự:', error);
@@ -1482,6 +1525,7 @@ export const consultationController = {
       `, id, String(showroomId), slotsJson, datesJson);
 
       memoryCache.invalidate(`slot_config_${showroomId}`);
+      memoryCache.invalidatePrefix('showroom_slots_');
 
       res.json({
         success: true,

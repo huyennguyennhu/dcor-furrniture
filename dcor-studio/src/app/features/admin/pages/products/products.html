@@ -604,14 +604,17 @@
           <lucide-angular [img]="icons.ChevronLeft" size="16"></lucide-angular>
         </button>
 
-        <button 
-          type="button" 
-          class="page-btn" 
-          *ngFor="let p of pagesArray" 
-          [class.active]="currentPage === p" 
-          (click)="goToPage(p)">
-          {{ p }}
-        </button>
+        <ng-container *ngFor="let p of pagesArray">
+          <span *ngIf="p === '...'" class="page-ellipsis" aria-hidden="true">…</span>
+          <button 
+            *ngIf="p !== '...'"
+            type="button" 
+            class="page-btn" 
+            [class.active]="currentPage === p" 
+            (click)="onPageClick(p)">
+            {{ p }}
+          </button>
+        </ng-container>
 
         <!-- Nút Trang sau -->
         <button 

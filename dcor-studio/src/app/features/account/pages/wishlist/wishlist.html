@@ -8,15 +8,6 @@
 
       <!-- Main Content Column -->
       <main class="content-column">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb-nav">
-          <a routerLink="/" class="breadcrumb-item">Trang chủ</a>
-          <span class="breadcrumb-separator">/</span>
-          <a routerLink="/account/profile" class="breadcrumb-item">Tài khoản</a>
-          <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">Sản phẩm yêu thích</span>
-        </nav>
-
         <!-- Header -->
         <div class="page-header-row">
           <div>
@@ -52,7 +43,8 @@
             [showWishlist]="true"
             [showCompare]="true"
             [showQuickView]="true"
-            [showBuyButton]="true">
+            [showBuyButton]="true"
+            [confirmWishlistRemove]="true">
           </app-product-card>
         </div>
 

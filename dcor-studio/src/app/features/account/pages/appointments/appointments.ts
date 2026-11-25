@@ -1,81 +1,74 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { 
-  LucideAngularModule, 
-  Plus, 
-  CheckCircle2, 
-  Sparkles, 
-  Eye, 
-  CalendarDays, 
-  Home, 
-  Clock, 
-  MapPin, 
-  X, 
-  AlertTriangle, 
+import { RouterModule, ActivatedRoute } from '@angular/router';
+import {
+  LucideAngularModule,
+  Plus,
+  Check,
+  CheckCircle2,
+  Sparkles,
+  Calendar,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  X,
+  AlertTriangle,
   AlertCircle,
-  UserRound, 
-  Phone, 
-  Mail, 
-  Copy, 
-  Check, 
-  RotateCcw, 
-  ExternalLink, 
-  ShieldCheck, 
-  Building2, 
-  Calendar, 
-  ArrowRight, 
+  UserRound,
+  RotateCcw,
+  ShieldCheck,
   Info,
-  Layers,
-  CreditCard
+  Package
 } from 'lucide-angular';
 import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
+import {
+  ShowroomConsultationModalComponent,
+  SlotItem,
+  DayOption
+} from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
 import { CustomerService, CustomerAppointment } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { Subscription } from 'rxjs';
-
-export interface ShiftInfo {
-  name: string;
-  period: string;
-  slots: string[];
-}
+import { Subscription, skip } from 'rxjs';
 
 @Component({
   selector: 'app-account-appointments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent, GuestPhoneBannerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    LucideAngularModule,
+    AccountSidebarComponent,
+    GuestPhoneBannerComponent,
+    ShowroomConsultationModalComponent
+  ],
   templateUrl: './appointments.html',
   styleUrls: ['./appointments.css']
 })
 export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   readonly icons = {
     Plus,
+    Check,
     CheckCircle2,
     Sparkles,
-    Eye,
+    Calendar,
     CalendarDays,
-    Home,
+    ChevronLeft,
+    ChevronRight,
     Clock,
     MapPin,
     X,
     AlertTriangle,
     AlertCircle,
     UserRound,
-    Phone,
-    Mail,
-    Copy,
-    Check,
     RotateCcw,
-    ExternalLink,
     ShieldCheck,
-    Building2,
-    Calendar,
-    ArrowRight,
     Info,
-    Layers,
-    CreditCard
+    Package
   };
 
   appointments: CustomerAppointment[] = [];
@@ -85,13 +78,6 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
-  tabs = [
-    { key: 'ALL', label: 'Tất cả' },
-    { key: 'PENDING', label: 'Chờ xác nhận' },
-    { key: 'CONFIRMED', label: 'Lịch hẹn sắp tới' },
-    { key: 'CANCELLED', label: 'Đã hủy' }
-  ];
-
   isLoggedIn = false;
   isPhoneVerified = false;
 
@@ -99,97 +85,31 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     return this.isLoggedIn || this.isPhoneVerified;
   }
 
-  // Ca làm việc và Khung giờ tư vấn theo cấu hình
-  shifts: ShiftInfo[] = [
-    {
-      name: 'Ca Sáng',
-      period: '08:30 - 12:00',
-      slots: ['09:00 - 10:30', '10:30 - 12:00']
-    },
-    {
-      name: 'Ca Chiều',
-      period: '13:30 - 18:00',
-      slots: ['14:00 - 15:30', '16:00 - 17:30']
-    },
-    {
-      name: 'Ca Tối',
-      period: '18:30 - 21:00',
-      slots: ['19:00 - 20:30']
-    }
-  ];
-
-  masterTimeSlots = [
-    '09:00 - 10:30',
-    '10:30 - 12:00',
-    '14:00 - 15:30',
-    '16:00 - 17:30',
-    '19:00 - 20:30'
-  ];
-
-  lockedDates: string[] = ['2026-11-20', '2026-12-25', '2027-01-01', '2027-02-10', '2027-02-11', '2027-02-12'];
-
-  spaceTypes = [
-    'Phòng khách',
-    'Phòng ngủ Master',
-    'Bếp & Phòng ăn',
-    'Căn hộ chung cư trọn gói',
-    'Biệt thự / Nhà phố cao cấp',
-    'Văn phòng / Khác'
-  ];
-
-  budgetRanges = [
-    'Dưới 50 triệu',
-    '50 - 100 triệu',
-    '100 - 250 triệu',
-    '250 - 500 triệu',
-    'Trên 500 triệu',
-    'Linh hoạt theo thiết kế'
-  ];
-
-  // Booking Form State
+  // Modal đặt lịch tư vấn dùng chung toàn hệ thống (<app-showroom-consultation-modal>)
   isBookingModalOpen = false;
-  isSubmitting = false;
-  isLoadingSlots = false;
-  availableTimeSlots: string[] = [];
-  bookedSlots: string[] = [];
-  customerHasAppointmentOnDate = false;
-  existingAppointmentOnDate: CustomerAppointment | null = null;
-  isDateLockedSelected = false;
 
-  bookingForm = {
-    customerName: '',
-    phone: '',
-    email: '',
-    appointmentType: 'SHOWROOM' as 'SHOWROOM' | 'ONLINE_3D',
-    showroomAddress: 'Tại Showroom DCor',
-    date: '',
-    timeSlot: '09:00 - 10:30',
-    spaceType: 'Phòng khách',
-    budget: '100 - 250 triệu',
-    notes: ''
-  };
-
-  fieldErrors: { [key: string]: string } = {};
-
-  // Success Screen State
-  isSuccessScreenOpen = false;
-  createdAppointment: CustomerAppointment | null = null;
-  copiedCode = false;
-
-  // Reschedule Modal State (Đổi giờ hẹn trước khi admin duyệt)
+  // Reschedule Modal State (Đổi giờ hẹn trước khi admin duyệt - PENDING)
   isRescheduleModalOpen = false;
   reschedulingAppointment: CustomerAppointment | null = null;
+  rescheduleDayOptions: DayOption[] = [];
+  @ViewChild('rescheduleDateStripRef', { static: false }) rescheduleDateStripRef?: ElementRef<HTMLDivElement>;
+  isAtRescheduleDateStart = true;
+  isAtRescheduleDateEnd = false;
   rescheduleDate = '';
   rescheduleTimeSlot = '';
   rescheduleNotes = '';
-  rescheduleBookedSlots: string[] = [];
-  rescheduleAvailableSlots: string[] = [];
+  rescheduleSlots = signal<SlotItem[]>([]);
+  isLoadingRescheduleSlots = signal<boolean>(false);
+  isRescheduleClosedDay = signal<boolean>(false);
+  rescheduleClosureReason = signal<string>('');
   isRescheduling = false;
   rescheduleError = '';
-  rescheduleDateConflict = '';
-  existingRescheduleAppointmentOnDate: CustomerAppointment | null = null;
 
-  // Cancel Confirmation Modal (Hủy hẹn trước khi admin duyệt)
+  readonly availableRescheduleSlots = computed(() =>
+    this.rescheduleSlots().filter(s => this.isRescheduleSlotSelectable(s))
+  );
+
+  // Cancel Confirmation Modal (Hủy hẹn trước khi admin duyệt - PENDING)
   isCancelModalOpen = false;
   cancellingAppointment: CustomerAppointment | null = null;
   cancelReason = 'Thay đổi kế hoạch cá nhân';
@@ -200,12 +120,27 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   maxDate = '';
 
   private sub = new Subscription();
+  private appointmentsReqSub?: Subscription;
+  private rescheduleSlotsSub?: Subscription;
+  private isDestroyed = false;
+  private isViewReady = false;
+  private appointmentsUpdatedListener?: () => void;
+
+  private triggerRender(): void {
+    if (!this.isDestroyed) {
+      this.cdr.markForCheck();
+      if (this.isViewReady) {
+        try {
+          this.cdr.detectChanges();
+        } catch (_) {}
+      }
+    }
+  }
 
   constructor(
     private customerService: CustomerService,
     private authService: AuthService,
     private route: ActivatedRoute,
-    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -216,45 +151,9 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     return `${year}-${month}-${day}`;
   }
 
-  isSlotPast(slot: string, dateStr?: string): boolean {
-    const targetDate = dateStr || this.bookingForm.date;
-    if (!targetDate) return false;
-
-    const todayStr = this.getLocalDateString(new Date());
-    if (targetDate < todayStr) return true;
-    if (targetDate > todayStr) return false;
-
-    // targetDate === todayStr: So sánh với giờ phút thực tế hiện tại
-    const [startPart] = slot.split(' - ');
-    if (!startPart) return false;
-    const [h, m] = startPart.split(':').map(Number);
-    const now = new Date();
-    const currentH = now.getHours();
-    const currentM = now.getMinutes();
-
-    return h < currentH || (h === currentH && m <= currentM);
-  }
-
-  areAllSlotsPastForDate(dateStr: string): boolean {
-    return this.masterTimeSlots.every(slot => this.isSlotPast(slot, dateStr));
-  }
-
-  initBookingDates(): void {
+  initDateBounds(): void {
     const today = new Date();
-    const todayStr = this.getLocalDateString(today);
-
-    // Nếu hôm nay tất cả khung giờ đều đã trôi qua so với giờ thực tế (ví dụ đêm muộn sau 19h)
-    if (this.areAllSlotsPastForDate(todayStr)) {
-      const tomorrow = new Date();
-      tomorrow.setDate(today.getDate() + 1);
-      const tomorrowStr = this.getLocalDateString(tomorrow);
-      this.minDate = tomorrowStr;
-      this.bookingForm.date = tomorrowStr;
-    } else {
-      this.minDate = todayStr;
-      this.bookingForm.date = todayStr;
-    }
-
+    this.minDate = this.getLocalDateString(today);
     const max = new Date();
     max.setDate(today.getDate() + 30);
     this.maxDate = this.getLocalDateString(max);
@@ -265,24 +164,24 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
       localStorage.removeItem('dcor_cache_appointments');
     } catch (_) {}
 
-    this.initBookingDates();
+    this.initDateBounds();
 
     this.isLoggedIn = this.authService.isAuthenticated();
     this.isPhoneVerified = this.authService.isGuestVerified();
 
     this.sub.add(
-      this.authService.user$.subscribe(user => {
+      this.authService.user$.pipe(skip(1)).subscribe(user => {
         this.isLoggedIn = !!user;
         this.checkAndLoad();
-        this.cdr.markForCheck();
+        this.triggerRender();
       })
     );
 
     this.sub.add(
-      this.authService.guestPhone$.subscribe(phone => {
+      this.authService.guestPhone$.pipe(skip(1)).subscribe(phone => {
         this.isPhoneVerified = !!phone;
         this.checkAndLoad();
-        this.cdr.markForCheck();
+        this.triggerRender();
       })
     );
 
@@ -290,10 +189,10 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
       this.route.queryParams.subscribe(params => {
         if (params['tab']) {
           const tab = params['tab'].toUpperCase();
-          if (['ALL', 'PENDING', 'CONFIRMED', 'CANCELLED', 'UPCOMING'].includes(tab)) {
+          if (['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'UPCOMING'].includes(tab)) {
             this.activeFilter = tab === 'UPCOMING' ? 'CONFIRMED' : tab;
             this.applyFilter();
-            this.cdr.markForCheck();
+            this.triggerRender();
           }
         }
         if (params['action'] === 'book' || params['open'] === 'book') {
@@ -302,84 +201,73 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
       })
     );
 
-    this.checkAndLoad();
-  }
+    if (typeof window !== 'undefined') {
+      this.appointmentsUpdatedListener = () => {
+        if (this.canViewContent) {
+          this.loadAppointments();
+        }
+      };
+      window.addEventListener('dcor_appointments_updated', this.appointmentsUpdatedListener);
+    }
 
-  isDateLocked(dateStr: string): boolean {
-    return this.lockedDates.includes(dateStr);
+    this.checkAndLoad();
+    this.isViewReady = true;
   }
 
   private checkAndLoad(): void {
-    this.prefillUserInfo();
     if (this.canViewContent) {
       this.loadAppointments();
     } else {
+      this.appointmentsReqSub?.unsubscribe();
       this.appointments = [];
       this.filteredAppointments = [];
       this.isLoading = false;
-      this.cdr.markForCheck();
+      this.triggerRender();
     }
   }
 
-  prefillUserInfo(): void {
-    const user = this.authService.getCurrentUser();
-    if (user) {
-      this.bookingForm.customerName = user.fullName || '';
-      this.bookingForm.email = user.email || '';
-      this.bookingForm.phone = user.phone || '';
-    } else {
-      const guestPhone = this.authService.getGuestPhone();
-      if (guestPhone) {
-        this.bookingForm.phone = guestPhone;
-      }
-    }
-    this.cdr.markForCheck();
-  }
-
-  onGuestPhoneVerified(phone: string): void {
+  onGuestPhoneVerified(_phone: string): void {
     this.isPhoneVerified = true;
     this.appointments = [];
     this.filteredAppointments = [];
-    this.bookingForm.phone = phone;
     this.errorMessage = '';
     this.loadAppointments();
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
   onGuestPhoneReset(): void {
     this.isPhoneVerified = false;
+    this.appointmentsReqSub?.unsubscribe();
     this.appointments = [];
     this.filteredAppointments = [];
-    this.bookingForm.phone = '';
     this.isLoading = false;
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
   loadAppointments(): void {
     if (!this.canViewContent) {
       this.isLoading = false;
-      this.cdr.markForCheck();
+      this.triggerRender();
       return;
     }
+    this.appointmentsReqSub?.unsubscribe();
     this.isLoading = true;
-    this.cdr.markForCheck();
-    this.sub.add(
-      this.customerService.getAppointments().subscribe({
-        next: (data) => {
-          this.appointments = data || [];
-          this.applyFilter();
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.errorMessage = err.error?.message || 'Không thể tải lịch hẹn.';
-          this.appointments = [];
-          this.filteredAppointments = [];
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        }
-      })
-    );
+    this.triggerRender();
+    this.appointmentsReqSub = this.customerService.getAppointments().subscribe({
+      next: (data) => {
+        this.appointments = data || [];
+        this.applyFilter();
+        this.isLoading = false;
+        this.triggerRender();
+      },
+      error: (err) => {
+        this.errorMessage = err.error?.message || 'Không thể tải lịch hẹn.';
+        this.appointments = [];
+        this.filteredAppointments = [];
+        this.isLoading = false;
+        this.triggerRender();
+      }
+    });
   }
 
   setFilter(filter: string): void {
@@ -391,9 +279,11 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     if (this.activeFilter === 'PENDING') {
       this.filteredAppointments = this.appointments.filter(a => a.status === 'PENDING');
     } else if (this.activeFilter === 'CONFIRMED' || this.activeFilter === 'UPCOMING') {
-      this.filteredAppointments = this.appointments.filter(a => a.status === 'CONFIRMED');
+      this.filteredAppointments = this.appointments.filter(a => a.status === 'CONFIRMED' || a.status === 'IN_PROGRESS');
+    } else if (this.activeFilter === 'COMPLETED') {
+      this.filteredAppointments = this.appointments.filter(a => a.status === 'COMPLETED');
     } else if (this.activeFilter === 'CANCELLED') {
-      this.filteredAppointments = this.appointments.filter(a => a.status === 'CANCELLED');
+      this.filteredAppointments = this.appointments.filter(a => a.status === 'CANCELLED' || a.status === 'REJECTED');
     } else {
       this.filteredAppointments = [...this.appointments];
     }
@@ -402,12 +292,14 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   getCountByStatus(key: string): number {
     if (key === 'ALL') return this.appointments.length;
     if (key === 'CONFIRMED' || key === 'UPCOMING') {
-      return this.appointments.filter(a => a.status === 'CONFIRMED').length;
+      return this.appointments.filter(a => a.status === 'CONFIRMED' || a.status === 'IN_PROGRESS').length;
+    }
+    if (key === 'CANCELLED') {
+      return this.appointments.filter(a => a.status === 'CANCELLED' || a.status === 'REJECTED').length;
     }
     return this.appointments.filter(a => a.status === key).length;
   }
 
-  
   getAppointmentDay(dateStr: string | Date | undefined): string {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -428,343 +320,215 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     return days[d.getDay()] || '';
   }
 
-  triggerDatePicker(dateInput?: HTMLInputElement): void {
-    if (dateInput && typeof (dateInput as any).showPicker === 'function') {
-      try {
-        (dateInput as any).showPicker();
-      } catch (_) {
-        dateInput.focus();
-      }
-    }
-  }
-
+  // ==========================================
+  // ĐẶT LỊCH MỚI (Dùng chung <app-showroom-consultation-modal>)
+  // ==========================================
   openBookingModal(): void {
-    this.prefillUserInfo();
-    this.initBookingDates();
-    this.bookingForm.appointmentType = 'SHOWROOM';
-    this.bookingForm.showroomAddress = 'Tại Showroom DCor';
-    this.bookingForm.timeSlot = '';
-    this.bookingForm.spaceType = 'Phòng khách';
-    this.bookingForm.budget = '100 - 250 triệu';
-    this.bookingForm.notes = '';
-    this.errorMessage = '';
-    this.fieldErrors = {};
     this.isBookingModalOpen = true;
-    this.checkAvailability();
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
-  closeModal(): void {
+  closeBookingModal(): void {
     this.isBookingModalOpen = false;
-    this.errorMessage = '';
-    this.fieldErrors = {};
+    this.triggerRender();
   }
 
-  onTypeChange(type: 'SHOWROOM' | 'ONLINE_3D'): void {
-    this.bookingForm.appointmentType = type;
-    this.bookingForm.showroomAddress = type === 'SHOWROOM' ? 'Tại Showroom DCor' : 'Tư vấn trực tuyến qua Google Meet HD (KTS 1:1)';
-    this.checkAvailability();
-  }
-
-  onDateChange(): void {
-    this.checkAvailability();
-  }
-
-  selectTimeSlot(slot: string): void {
-    if (this.isSlotDisabled(slot)) return;
-    this.bookingForm.timeSlot = slot;
-    delete this.fieldErrors['timeSlot'];
-  }
-
-  isSlotBooked(slot: string): boolean {
-    if (this.bookedSlots && this.bookedSlots.includes(slot)) return true;
-    if (this.existingAppointmentOnDate && this.existingAppointmentOnDate.timeSlot === slot) return true;
-    if (this.appointments && this.appointments.some(a => a.status !== 'CANCELLED' && a.date === this.bookingForm.date && a.timeSlot === slot)) return true;
-    return false;
-  }
-
-  isSlotDisabled(slot: string): boolean {
-    return this.isSlotBooked(slot) || this.isSlotPast(slot) || this.customerHasAppointmentOnDate;
-  }
-
-  checkAvailability(): void {
-    if (!this.bookingForm.date) return;
-
-    this.isDateLockedSelected = this.isDateLocked(this.bookingForm.date);
-    if (this.isDateLockedSelected) {
-      this.availableTimeSlots = [];
-      this.bookingForm.timeSlot = '';
-      this.cdr.markForCheck();
-      return;
+  onConsultationBooked(created: any): void {
+    const bookedPhone = created?.customerPhone || created?.phone;
+    if (!this.isLoggedIn && bookedPhone) {
+      this.authService.setGuestPhone(String(bookedPhone).trim());
+      this.isPhoneVerified = true;
     }
+    this.activeFilter = 'ALL';
+    this.successMessage = `Đã gửi yêu cầu tư vấn #${created?.appointmentCode || ''} thành công!`;
+    this.loadAppointments();
+    setTimeout(() => {
+      this.successMessage = '';
+      this.triggerRender();
+    }, 5000);
+    this.triggerRender();
+  }
 
-    // 1. Ràng buộc: Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày
-    this.existingAppointmentOnDate = this.appointments.find(a => 
-      a.status !== 'CANCELLED' && a.date === this.bookingForm.date
-    ) || null;
-    this.customerHasAppointmentOnDate = !!this.existingAppointmentOnDate;
+  // ==========================================
+  // ĐỔI GIỜ HẸN (Chỉ trước khi admin duyệt - PENDING)
+  // ==========================================
+  private initRescheduleDayOptions(targetDate?: string): void {
+    const days: DayOption[] = [];
+    const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
 
-    // 2. Lấy danh sách khung giờ đã có người đặt
-    this.isLoadingSlots = true;
-    this.customerService.getBookedSlots({
-      date: this.bookingForm.date,
-      appointmentType: this.bookingForm.appointmentType
-    }).subscribe({
-      next: (res) => {
-        this.bookedSlots = res.bookedSlots || [];
-        // Nếu khách này đã có lịch hẹn ngày này, đảm bảo khung giờ đó nằm trong bookedSlots để khóa lại
-        if (this.existingAppointmentOnDate && !this.bookedSlots.includes(this.existingAppointmentOnDate.timeSlot)) {
-          this.bookedSlots.push(this.existingAppointmentOnDate.timeSlot);
+    let totalDays = 16;
+    if (targetDate) {
+      const target = new Date(`${targetDate}T00:00:00`);
+      if (!isNaN(target.getTime())) {
+        const diffDays = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= totalDays && diffDays <= 30) {
+          totalDays = diffDays + 1;
         }
-
-        this.availableTimeSlots = this.masterTimeSlots.filter(slot => !this.isSlotBooked(slot) && !this.isSlotPast(slot));
-
-        if (this.customerHasAppointmentOnDate) {
-          this.bookingForm.timeSlot = '';
-        } else if (this.availableTimeSlots.length > 0 && (!this.bookingForm.timeSlot || this.isSlotDisabled(this.bookingForm.timeSlot))) {
-          this.bookingForm.timeSlot = this.availableTimeSlots[0];
-        } else if (this.availableTimeSlots.length === 0) {
-          this.bookingForm.timeSlot = '';
-        }
-        this.isLoadingSlots = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.bookedSlots = [];
-        if (this.existingAppointmentOnDate) {
-          this.bookedSlots.push(this.existingAppointmentOnDate.timeSlot);
-        }
-        this.availableTimeSlots = this.masterTimeSlots.filter(slot => !this.isSlotBooked(slot) && !this.isSlotPast(slot));
-        if (this.customerHasAppointmentOnDate) {
-          this.bookingForm.timeSlot = '';
-        }
-        this.isLoadingSlots = false;
-        this.cdr.markForCheck();
       }
-    });
-  }
-
-  validateForm(): boolean {
-    this.fieldErrors = {};
-    let isValid = true;
-
-    if (!this.bookingForm.customerName.trim()) {
-      this.fieldErrors['customerName'] = 'Vui lòng nhập họ và tên của bạn.';
-      isValid = false;
     }
 
-    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
-    if (!this.bookingForm.phone.trim()) {
-      this.fieldErrors['phone'] = 'Vui lòng cung cấp số điện thoại liên hệ.';
-      isValid = false;
-    } else if (!phoneRegex.test(this.bookingForm.phone.trim().replace(/\s+/g, ''))) {
-      this.fieldErrors['phone'] = 'Số điện thoại không hợp lệ (cần đủ 10 chữ số).';
-      isValid = false;
-    }
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() + i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (this.bookingForm.email.trim() && !emailRegex.test(this.bookingForm.email.trim())) {
-      this.fieldErrors['email'] = 'Địa chỉ email không đúng định dạng.';
-      isValid = false;
-    }
+      let dayName = dayNames[d.getDay()];
+      if (i === 0) dayName = 'Hôm nay';
+      if (i === 1) dayName = 'Ngày mai';
 
-    if (!this.bookingForm.date) {
-      this.fieldErrors['date'] = 'Vui lòng chọn ngày hẹn.';
-      isValid = false;
-    } else if (this.bookingForm.date < this.getLocalDateString()) {
-      this.fieldErrors['date'] = 'Không thể chọn ngày trong quá khứ.';
-      isValid = false;
-    } else if (this.isDateLockedSelected) {
-      this.fieldErrors['date'] = 'Ngày này đang tạm nghỉ. Vui lòng chọn ngày khác.';
-      isValid = false;
-    }
-
-    if (!this.bookingForm.timeSlot) {
-      this.fieldErrors['timeSlot'] = 'Vui lòng chọn một khung giờ còn trống.';
-      isValid = false;
-    } else if (this.isSlotPast(this.bookingForm.timeSlot)) {
-      this.fieldErrors['timeSlot'] = 'Khung giờ này đã trôi qua so với thời gian hiện tại. Vui lòng chọn khung giờ khác.';
-      isValid = false;
-    }
-
-    return isValid;
-  }
-
-  submitBooking(): void {
-    if (!this.validateForm()) {
-      this.errorMessage = 'Vui lòng kiểm tra lại các trường thông tin bên dưới.';
-      return;
-    }
-
-    if (this.customerHasAppointmentOnDate) {
-      this.errorMessage = `Bạn đã có lịch hẹn vào ngày ${this.bookingForm.date}. Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày.`;
-      return;
-    }
-
-    if (this.isSlotBooked(this.bookingForm.timeSlot)) {
-      this.errorMessage = `Khung giờ ${this.bookingForm.timeSlot} đã có khách hàng đặt trước. Vui lòng chọn khung giờ khác.`;
-      return;
-    }
-
-    this.isSubmitting = true;
-    this.errorMessage = '';
-
-    const payload = {
-      customerName: this.bookingForm.customerName.trim(),
-      phone: this.bookingForm.phone.trim(),
-      email: this.bookingForm.email.trim(),
-      appointmentType: this.bookingForm.appointmentType,
-      showroomAddress: this.bookingForm.showroomAddress,
-      date: this.bookingForm.date,
-      timeSlot: this.bookingForm.timeSlot,
-      spaceType: this.bookingForm.spaceType,
-      budget: this.bookingForm.budget,
-      notes: this.bookingForm.notes.trim()
-    };
-
-    this.sub.add(
-      this.customerService.createAppointment(payload).subscribe({
-        next: (res) => {
-          this.isSubmitting = false;
-          this.createdAppointment = res.appointment;
-          this.isBookingModalOpen = false;
-          this.isSuccessScreenOpen = true;
-          this.copiedCode = false;
-
-          // Nếu khách vãng lai vừa đặt, tự động cập nhật số điện thoại
-          if (!this.isLoggedIn && payload.phone) {
-            this.authService.setGuestPhone(payload.phone);
-            this.isPhoneVerified = true;
-          }
-
-          this.loadAppointments();
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.isSubmitting = false;
-          this.errorMessage = err.error?.message || 'Có lỗi xảy ra khi tạo lịch hẹn.';
-          this.cdr.markForCheck();
-        }
-      })
-    );
-  }
-
-  closeSuccessScreen(): void {
-    this.isSuccessScreenOpen = false;
-    this.createdAppointment = null;
-    this.activeFilter = 'PENDING';
-    this.applyFilter();
-  }
-
-  copyAppointmentCode(code: string): void {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(code).then(() => {
-        this.copiedCode = true;
-        setTimeout(() => this.copiedCode = false, 2500);
+      days.push({
+        dateStr,
+        dayName,
+        dateDisplay: `${dd}/${mm}`,
+        isToday: i === 0,
+        isTomorrow: i === 1
       });
-    } else {
-      const input = document.createElement('input');
-      input.value = code;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      this.copiedCode = true;
-      setTimeout(() => this.copiedCode = false, 2500);
     }
+
+    this.rescheduleDayOptions = days;
   }
 
-  // ==========================================
-  // ĐỔI GIỜ HẸN (Chỉ trước khi admin duyệt)
-  // ==========================================
+  scrollRescheduleDateStrip(direction: 'prev' | 'next'): void {
+    const el = this.rescheduleDateStripRef?.nativeElement;
+    if (!el) return;
+    const scrollAmount = el.clientWidth;
+    el.scrollBy({
+      left: direction === 'prev' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+    setTimeout(() => this.updateRescheduleDateScrollStatus(), 350);
+  }
+
+  onRescheduleDateStripScroll(): void {
+    this.updateRescheduleDateScrollStatus();
+  }
+
+  private updateRescheduleDateScrollStatus(): void {
+    const el = this.rescheduleDateStripRef?.nativeElement;
+    if (!el) return;
+    this.isAtRescheduleDateStart = el.scrollLeft <= 8;
+    this.isAtRescheduleDateEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+    this.triggerRender();
+  }
+
+  selectRescheduleDate(dateStr: string): void {
+    if (this.rescheduleDate === dateStr) return;
+    this.rescheduleDate = dateStr;
+    this.rescheduleError = '';
+    this.rescheduleTimeSlot = '';
+    this.checkRescheduleAvailability();
+  }
+
   openRescheduleModal(apt: CustomerAppointment): void {
     if (apt.status !== 'PENDING') {
       alert('Chỉ có thể đổi giờ hẹn khi lịch hẹn đang ở trạng thái Chờ xác nhận.');
       return;
     }
     this.reschedulingAppointment = apt;
-    this.rescheduleDate = apt.date;
+    this.rescheduleDate = apt.date >= this.minDate ? apt.date : this.minDate;
+    this.initRescheduleDayOptions(this.rescheduleDate);
     this.rescheduleTimeSlot = apt.timeSlot;
     this.rescheduleNotes = apt.notes || '';
     this.rescheduleError = '';
-    this.rescheduleDateConflict = '';
-    this.existingRescheduleAppointmentOnDate = null;
+    this.rescheduleSlots.set([]);
+    this.isRescheduleClosedDay.set(false);
+    this.rescheduleClosureReason.set('');
+    this.isAtRescheduleDateStart = true;
+    this.isAtRescheduleDateEnd = false;
     this.isRescheduleModalOpen = true;
     this.checkRescheduleAvailability();
-    this.cdr.markForCheck();
+    this.triggerRender();
+
+    setTimeout(() => {
+      const strip = this.rescheduleDateStripRef?.nativeElement;
+      if (strip) {
+        const activeBtn = strip.querySelector('.date-pill-btn.active') as HTMLElement | null;
+        if (activeBtn) {
+          activeBtn.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+        } else {
+          strip.scrollLeft = 0;
+        }
+        this.updateRescheduleDateScrollStatus();
+      }
+    }, 80);
   }
 
   closeRescheduleModal(): void {
+    this.rescheduleSlotsSub?.unsubscribe();
     this.isRescheduleModalOpen = false;
     this.reschedulingAppointment = null;
     this.rescheduleError = '';
-    this.rescheduleDateConflict = '';
-    this.existingRescheduleAppointmentOnDate = null;
+    this.rescheduleSlots.set([]);
+    this.isLoadingRescheduleSlots.set(false);
+    this.isRescheduleClosedDay.set(false);
+    this.rescheduleClosureReason.set('');
   }
 
   onRescheduleDateChange(): void {
-    this.rescheduleDateConflict = '';
-    this.existingRescheduleAppointmentOnDate = null;
-    if (!this.rescheduleDate || !this.reschedulingAppointment) return;
-
-    // Kiểm tra khách đã có lịch hẹn KHÁC vào ngày mới chưa
-    const otherAppt = this.appointments.find(a => 
-      a.id !== this.reschedulingAppointment?.id &&
-      a.status !== 'CANCELLED' &&
-      a.date === this.rescheduleDate
-    );
-    if (otherAppt) {
-      this.existingRescheduleAppointmentOnDate = otherAppt;
-      this.rescheduleDateConflict = `Bạn đã có lịch hẹn vào ngày ${this.rescheduleDate} (${otherAppt.timeSlot}). Mỗi khách hàng chỉ được đặt tối đa 1 khung giờ trong 1 ngày.`;
-    }
-
+    this.rescheduleError = '';
+    this.rescheduleTimeSlot = '';
     this.checkRescheduleAvailability();
   }
 
-  selectRescheduleSlot(slot: string): void {
-    if (this.isRescheduleSlotDisabled(slot)) return;
-    this.rescheduleTimeSlot = slot;
+  isRescheduleSlotSelectable(slot: SlotItem): boolean {
+    if (slot.isPastSlot) return false;
+    if (slot.isAvailable) return true;
+    // Cho phép giữ lại đúng khung giờ hiện tại của chính lịch hẹn này
+    return (
+      this.rescheduleDate === this.reschedulingAppointment?.date &&
+      slot.time === this.reschedulingAppointment?.timeSlot
+    );
   }
 
-  isRescheduleSlotBooked(slot: string): boolean {
-    if (this.rescheduleDate === this.reschedulingAppointment?.date && slot === this.reschedulingAppointment?.timeSlot) {
-      return false;
-    }
-    if (this.rescheduleBookedSlots && this.rescheduleBookedSlots.includes(slot)) {
-      return true;
-    }
-    if (this.existingRescheduleAppointmentOnDate && this.existingRescheduleAppointmentOnDate.timeSlot === slot) {
-      return true;
-    }
-    return false;
-  }
-
-  isRescheduleSlotDisabled(slot: string): boolean {
-    return this.isRescheduleSlotBooked(slot) || this.isSlotPast(slot, this.rescheduleDate) || !!this.rescheduleDateConflict;
+  selectRescheduleSlot(slot: SlotItem): void {
+    if (!this.isRescheduleSlotSelectable(slot)) return;
+    this.rescheduleTimeSlot = slot.time;
+    this.rescheduleError = '';
+    this.triggerRender();
   }
 
   checkRescheduleAvailability(): void {
     if (!this.rescheduleDate || !this.reschedulingAppointment) return;
 
-    this.customerService.getBookedSlots({
+    this.rescheduleSlotsSub?.unsubscribe();
+    this.isLoadingRescheduleSlots.set(true);
+    this.isRescheduleClosedDay.set(false);
+    this.rescheduleClosureReason.set('');
+    this.triggerRender();
+
+    this.rescheduleSlotsSub = this.customerService.getBookedSlots({
       date: this.rescheduleDate,
-      appointmentType: this.reschedulingAppointment.appointmentType
+      showroomId: this.reschedulingAppointment.showroomId
     }).subscribe({
       next: (res) => {
-        const booked = res.bookedSlots || [];
-        this.rescheduleBookedSlots = booked.filter(s => {
-          if (this.rescheduleDate === this.reschedulingAppointment?.date && s === this.reschedulingAppointment?.timeSlot) {
-            return false;
-          }
-          return true;
-        });
+        const isClosed = !!res.isClosed;
+        const slots = Array.isArray(res.slots) ? res.slots : [];
+        this.isRescheduleClosedDay.set(isClosed);
+        this.rescheduleClosureReason.set(res.closureReason || '');
+        this.rescheduleSlots.set(slots);
 
-        this.rescheduleAvailableSlots = this.masterTimeSlots.filter(s => !this.rescheduleBookedSlots.includes(s) && !this.isSlotPast(s, this.rescheduleDate));
-        this.cdr.markForCheck();
+        if (isClosed) {
+          this.rescheduleTimeSlot = '';
+        } else if (
+          this.rescheduleTimeSlot &&
+          !slots.some(s => s.time === this.rescheduleTimeSlot && this.isRescheduleSlotSelectable(s))
+        ) {
+          this.rescheduleTimeSlot = '';
+        }
+
+        this.isLoadingRescheduleSlots.set(false);
+        this.triggerRender();
       },
       error: () => {
-        this.rescheduleAvailableSlots = [...this.masterTimeSlots];
-        this.cdr.markForCheck();
+        this.rescheduleSlots.set([]);
+        this.isLoadingRescheduleSlots.set(false);
+        this.rescheduleError = 'Không thể tải danh sách khung giờ trống của Showroom.';
+        this.triggerRender();
       }
     });
   }
@@ -772,11 +536,6 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   confirmReschedule(): void {
     if (!this.reschedulingAppointment || !this.rescheduleDate || !this.rescheduleTimeSlot) {
       this.rescheduleError = 'Vui lòng chọn ngày và khung giờ mới.';
-      return;
-    }
-
-    if (this.rescheduleBookedSlots.includes(this.rescheduleTimeSlot)) {
-      this.rescheduleError = `Khung giờ ${this.rescheduleTimeSlot} đã có khách hàng đặt. Vui lòng chọn khung giờ khác.`;
       return;
     }
 
@@ -794,31 +553,34 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
           this.closeRescheduleModal();
           this.successMessage = res.message || 'Đổi giờ hẹn thành công!';
           this.loadAppointments();
-          setTimeout(() => this.successMessage = '', 4500);
-          this.cdr.markForCheck();
+          setTimeout(() => {
+            this.successMessage = '';
+            this.triggerRender();
+          }, 4500);
+          this.triggerRender();
         },
         error: (err) => {
           this.isRescheduling = false;
           this.rescheduleError = err.error?.message || 'Có lỗi xảy ra khi đổi giờ hẹn.';
-          this.cdr.markForCheck();
+          this.triggerRender();
         }
       })
     );
   }
 
   // ==========================================
-  // HỦY LỊCH HẸN (Chỉ trước khi admin duyệt)
+  // HỦY LỊCH HẸN (Chỉ trước khi admin duyệt - PENDING)
   // ==========================================
   openCancelModal(apt: CustomerAppointment): void {
     if (apt.status !== 'PENDING') {
-      alert('Lịch hẹn đã được duyệt hoặc hoàn tất. Quý khách vui lòng liên hệ Hotline 1900 8888 để được hỗ trợ hủy.');
+      alert('Lịch hẹn đã được duyệt hoặc hoàn tất. Quý khách vui lòng liên hệ Hotline 1900 1234 để được hỗ trợ hủy.');
       return;
     }
     this.cancellingAppointment = apt;
     this.cancelReason = 'Thay đổi kế hoạch cá nhân';
     this.cancelError = '';
     this.isCancelModalOpen = true;
-    this.cdr.markForCheck();
+    this.triggerRender();
   }
 
   closeCancelModal(): void {
@@ -834,19 +596,22 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     this.cancelError = '';
 
     this.sub.add(
-      this.customerService.cancelAppointment(this.cancellingAppointment.id).subscribe({
+      this.customerService.cancelAppointment(this.cancellingAppointment.id, this.cancelReason).subscribe({
         next: () => {
           this.isCancelling = false;
           this.closeCancelModal();
           this.successMessage = 'Đã hủy lịch hẹn thành công.';
           this.loadAppointments();
-          setTimeout(() => this.successMessage = '', 4500);
-          this.cdr.markForCheck();
+          setTimeout(() => {
+            this.successMessage = '';
+            this.triggerRender();
+          }, 4500);
+          this.triggerRender();
         },
         error: (err) => {
           this.isCancelling = false;
           this.cancelError = err.error?.message || 'Không thể hủy lịch hẹn.';
-          this.cdr.markForCheck();
+          this.triggerRender();
         }
       })
     );
@@ -856,7 +621,9 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     switch (status) {
       case 'PENDING': return 'status-pending';
       case 'CONFIRMED': return 'status-confirmed';
+      case 'IN_PROGRESS': return 'status-in-progress';
       case 'COMPLETED': return 'status-completed';
+      case 'REJECTED': return 'status-cancelled';
       case 'CANCELLED': return 'status-cancelled';
       default: return 'status-default';
     }
@@ -866,13 +633,21 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
     switch (status) {
       case 'PENDING': return 'Chờ xác nhận';
       case 'CONFIRMED': return 'Đã xác nhận';
+      case 'IN_PROGRESS': return 'Đang tư vấn';
       case 'COMPLETED': return 'Hoàn tất';
+      case 'REJECTED': return 'Đã từ chối';
       case 'CANCELLED': return 'Đã hủy';
       default: return status;
     }
   }
 
   ngOnDestroy(): void {
+    this.isDestroyed = true;
+    this.appointmentsReqSub?.unsubscribe();
+    this.rescheduleSlotsSub?.unsubscribe();
     this.sub.unsubscribe();
+    if (typeof window !== 'undefined' && this.appointmentsUpdatedListener) {
+      window.removeEventListener('dcor_appointments_updated', this.appointmentsUpdatedListener);
+    }
   }
 }

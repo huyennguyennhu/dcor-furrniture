@@ -13,6 +13,7 @@ import {
 } from 'lucide-angular';
 import { TransactionModalComponent } from '../../../components/transaction-modal/transaction-modal';
 import { environment } from '../../../../../../environments/environment';
+import { InventoryStateService } from '../../../../../core/services/inventory-state.service';
 
 export interface StockOrderItem {
   sku: string;
@@ -73,6 +74,7 @@ export class InventoryTransactionsComponent implements OnInit {
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
+  private inventoryState = inject(InventoryStateService);
 
   // Toast Notification
   toastMessage = '';
@@ -719,6 +721,7 @@ export class InventoryTransactionsComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.closeModal();
+        this.inventoryState.invalidate();
         this.fetchOrders(true);
         const labels: Record<string, string> = {
           PLANNED: isImport ? 'Chờ nhập kho' : 'Lên kế hoạch xuất',
@@ -824,6 +827,7 @@ export class InventoryTransactionsComponent implements OnInit {
     this.http.post<any>(`${environment.apiUrl}/admin/inventory/orders`, payload).subscribe({
       next: (created) => {
         this.closeModal();
+        this.inventoryState.invalidate();
         this.fetchOrders(true);
         if (isDraft) {
           this.triggerToast(

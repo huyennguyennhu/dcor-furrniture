@@ -1,5 +1,26 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { memoryCache, CACHE_KEYS } from '../lib/cache';
+import { clearInventoryCaches } from './inventory.controller';
+
+let categoryCacheInvalidator: (() => void) | null = null;
+export function registerCategoryCacheInvalidator(fn: () => void) {
+  categoryCacheInvalidator = fn;
+}
+
+function invalidateAllCategoryCaches() {
+  memoryCache.invalidate(CACHE_KEYS.CATEGORIES_LIST);
+  memoryCache.invalidate(CACHE_KEYS.PRODUCTS_CATALOG);
+  memoryCache.invalidatePrefix('products_catalog');
+  memoryCache.invalidatePrefix('products_cat_');
+  memoryCache.invalidatePrefix('products_slug_');
+  memoryCache.invalidatePrefix('admin_products_');
+  memoryCache.invalidatePrefix('product_detail_');
+  clearInventoryCaches(true);
+  if (categoryCacheInvalidator) {
+    categoryCacheInvalidator();
+  }
+}
 
 function generateSlug(text: string): string {
   const base = text
@@ -80,6 +101,7 @@ export const categoryController = {
         }
       });
 
+      invalidateAllCategoryCaches();
       res.status(201).json({ message: 'Tạo danh mục thành công!', category: cat });
     } catch (error: any) {
       console.error('Lỗi tạo danh mục:', error);
@@ -109,6 +131,7 @@ export const categoryController = {
         }
       });
 
+      invalidateAllCategoryCaches();
       res.json({ message: 'Cập nhật danh mục thành công!', category: updated });
     } catch (error: any) {
       console.error('Lỗi cập nhật danh mục:', error);
@@ -139,6 +162,7 @@ export const categoryController = {
         data: { isActive: newStatus }
       });
 
+      invalidateAllCategoryCaches();
       res.json({
         message: `Đã ${newStatus ? 'hiển thị' : 'ẩn'} danh mục "${existing.name}" thành công!`,
         isActive: newStatus,
@@ -182,6 +206,7 @@ export const categoryController = {
       }
 
       await prisma.category.delete({ where: { id } });
+      invalidateAllCategoryCaches();
       res.json({ message: `Đã xóa danh mục "${existing.name}" thành công!` });
     } catch (error: any) {
       console.error('Lỗi xóa danh mục:', error);

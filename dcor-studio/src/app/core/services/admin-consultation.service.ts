@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal, inject, DestroyRef } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ChatUnreadService } from '../../features/admin/pages/chat/services/chat-unread.service';
 
 export type ConsultationStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 
@@ -89,8 +90,80 @@ export interface SlotConfigItem {
 })
 export class AdminConsultationService {
   private apiUrl = `${environment.apiUrl}/consultations`;
+  private destroyRef = inject(DestroyRef, { optional: true });
+  private chatUnreadService = inject(ChatUnreadService);
 
-  constructor(private http: HttpClient) {}
+  public readonly pendingCount = signal<number>(0);
+
+  private isBadgeSyncStarted = false;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private boundSocket: any = null;
+  private focusHandler = () => this.refreshPendingCount();
+
+  constructor(private http: HttpClient) {
+    if (this.destroyRef) {
+      this.destroyRef.onDestroy(() => {
+        if (this.pollTimer) {
+          clearInterval(this.pollTimer);
+          this.pollTimer = null;
+        }
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('focus', this.focusHandler);
+        }
+      });
+    }
+  }
+
+  startBadgeSync(): void {
+    this.attachSocketListener();
+    this.refreshPendingCount();
+
+    if (this.isBadgeSyncStarted) return;
+    this.isBadgeSyncStarted = true;
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', this.focusHandler);
+      this.pollTimer = setInterval(() => {
+        this.attachSocketListener();
+        this.refreshPendingCount();
+      }, 30000);
+    }
+  }
+
+  private attachSocketListener(): void {
+    const socket = this.chatUnreadService.getSocket();
+    if (!socket || this.boundSocket === socket) return;
+    this.boundSocket = socket;
+    socket.on('admin:consultations_pending', (data: { pending?: number }) => {
+      if (typeof data?.pending === 'number') {
+        this.pendingCount.set(Math.max(0, data.pending));
+      }
+    });
+  }
+
+  refreshPendingCount(): void {
+    if (typeof window === 'undefined') return;
+    this.http.get<{ success?: boolean; pending?: number }>(`${this.apiUrl}/admin/pending-count`).subscribe({
+      next: (res) => {
+        if (typeof res?.pending === 'number') {
+          this.pendingCount.set(Math.max(0, res.pending));
+        }
+      },
+      error: () => {
+        // Fallback nếu server chưa khởi động lại để nhận route /admin/pending-count
+        this.http.get<AdminConsultationResponse>(`${this.apiUrl}/admin/list`, {
+          params: new HttpParams().set('tab', 'requests')
+        }).subscribe({
+          next: (res) => {
+            if (typeof res?.stats?.pending === 'number') {
+              this.pendingCount.set(Math.max(0, res.stats.pending));
+            }
+          },
+          error: () => {}
+        });
+      }
+    });
+  }
 
   getAdminConsultations(filters: {
     tab?: 'requests' | 'calendar' | 'all';
@@ -108,7 +181,13 @@ export class AdminConsultationService {
         params = params.set(key, val);
       }
     });
-    return this.http.get<AdminConsultationResponse>(`${this.apiUrl}/admin/list`, { params });
+    return this.http.get<AdminConsultationResponse>(`${this.apiUrl}/admin/list`, { params }).pipe(
+      tap(res => {
+        if (typeof res?.stats?.pending === 'number') {
+          this.pendingCount.set(Math.max(0, res.stats.pending));
+        }
+      })
+    );
   }
 
   getStaffList(): Observable<StaffItem[]> {
@@ -127,21 +206,27 @@ export class AdminConsultationService {
     preferredTime?: string;
     adminNote?: string;
   }): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/admin/approve`, payload);
+    return this.http.post<any>(`${this.apiUrl}/admin/approve`, payload).pipe(
+      tap(() => this.refreshPendingCount())
+    );
   }
 
   rejectConsultation(payload: {
     id: string;
     rejectionReason: string;
   }): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/admin/reject`, payload);
+    return this.http.post<any>(`${this.apiUrl}/admin/reject`, payload).pipe(
+      tap(() => this.refreshPendingCount())
+    );
   }
 
   completeConsultation(payload: {
     id: string;
     consultationResult: string;
   }): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/admin/complete`, payload);
+    return this.http.post<any>(`${this.apiUrl}/admin/complete`, payload).pipe(
+      tap(() => this.refreshPendingCount())
+    );
   }
 
   rescheduleConsultation(payload: {
@@ -157,7 +242,9 @@ export class AdminConsultationService {
     id: string;
     cancellationReason: string;
   }): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/admin/cancel`, payload);
+    return this.http.post<any>(`${this.apiUrl}/admin/cancel`, payload).pipe(
+      tap(() => this.refreshPendingCount())
+    );
   }
 
   updateStatusConsultation(payload: {
@@ -165,7 +252,9 @@ export class AdminConsultationService {
     status: ConsultationStatus;
     note?: string;
   }): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/admin/update-status`, payload);
+    return this.http.post<any>(`${this.apiUrl}/admin/update-status`, payload).pipe(
+      tap(() => this.refreshPendingCount())
+    );
   }
 
   getSlotConfig(showroomId: string): Observable<{ showroomId: string; slots: SlotConfigItem[]; maintenanceDates: string[] }> {

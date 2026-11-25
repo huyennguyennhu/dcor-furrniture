@@ -4,10 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { IconComponent } from '../../../../../shared/components/icon/icon';
-import { 
-  AdminAuthService, 
-  RoleDefinition, 
-  Branch 
+import {
+  AdminAuthService,
+  RoleDefinition,
+  Branch
 } from '../../../../../core/services/admin-auth.service';
 import { environment } from '../../../../../../environments/environment';
 
@@ -252,7 +252,7 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     public adminAuthService: AdminAuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.sub.add(
@@ -303,8 +303,8 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         if (Array.isArray(data) && data.length > 0) {
           this.records = data.map((item, index) => {
-            const rawRoles = (Array.isArray(item.roles) && item.roles.length > 0 
-              ? item.roles 
+            const rawRoles = (Array.isArray(item.roles) && item.roles.length > 0
+              ? item.roles
               : [item.role || 'NV Kinh doanh']
             ).map((r: string) => this.adminAuthService.normalizeAdminRole(r));
 
@@ -321,8 +321,8 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
               branchId,
               branchName: item.branchName || this.adminAuthService.getBranchName(branchId),
               assignedBranches: item.assignedBranches || [branchId],
-              status: (item.status === 'ACTIVE' || item.status === 'Đã kích hoạt') ? 'Đã kích hoạt' : 
-                      (item.status === 'INACTIVE' || item.status === 'Tạm khóa') ? 'Tạm khóa' : 'Chờ kích hoạt',
+              status: (item.status === 'ACTIVE' || item.status === 'Đã kích hoạt') ? 'Đã kích hoạt' :
+                (item.status === 'INACTIVE' || item.status === 'Tạm khóa') ? 'Tạm khóa' : 'Chờ kích hoạt',
               lastLogin: item.lastLogin || 'Chưa từng',
               createdAt: item.createdAt || new Date().toISOString().split('T')[0],
               inviteLink: item.inviteLink
@@ -361,7 +361,7 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
           });
           return;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     this.records = JSON.parse(JSON.stringify(DEFAULT_SAMPLE_STAFF));
     this.saveStaffToCache();
@@ -388,19 +388,19 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
   get filteredRecords(): StaffAccount[] {
     const term = this.searchTerm.trim().toLowerCase();
     return this.records.filter(record => {
-      const matchSearch = !term || 
+      const matchSearch = !term ||
         record.name.toLowerCase().includes(term) ||
         record.email.toLowerCase().includes(term) ||
         record.phone.includes(term) ||
         record.role.toLowerCase().includes(term) ||
         record.branchName.toLowerCase().includes(term);
 
-      const matchRole = this.selectedRoleFilter === 'ALL' || 
-        record.roles?.includes(this.selectedRoleFilter) || 
+      const matchRole = this.selectedRoleFilter === 'ALL' ||
+        record.roles?.includes(this.selectedRoleFilter) ||
         record.role.includes(this.selectedRoleFilter);
 
-      const matchBranch = this.selectedBranchFilter === 'ALL' || 
-        record.branchId === this.selectedBranchFilter || 
+      const matchBranch = this.selectedBranchFilter === 'ALL' ||
+        record.branchId === this.selectedBranchFilter ||
         record.assignedBranches?.includes(this.selectedBranchFilter);
 
       const matchStatus = this.selectedStatusFilter === 'ALL' || record.status === this.selectedStatusFilter;
@@ -450,8 +450,8 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
       email: staff.email,
       phone: staff.phone,
       selectedRoles: staff.roles && staff.roles.length > 0 ? [...staff.roles] : [staff.role],
-      selectedBranches: staff.assignedBranches && staff.assignedBranches.length > 0 
-        ? [...staff.assignedBranches] 
+      selectedBranches: staff.assignedBranches && staff.assignedBranches.length > 0
+        ? [...staff.assignedBranches]
         : [staff.branchId || 'SR_Q1']
     };
     this.isStaffFormModalOpen = true;
@@ -640,7 +640,7 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
           next: () => {
             this.cdr.detectChanges();
           },
-          error: () => {}
+          error: () => { }
         });
 
         this.showToast(`Đã cập nhật phân quyền & chi nhánh phụ trách cho "${target.name}"!`, 'success');
@@ -761,8 +761,8 @@ export class StaffAccountsComponent implements OnInit, OnDestroy {
 
   copyCredentialsText(): void {
     const branch = this.dispatchBranch;
-    const text = 
-`==============================================
+    const text =
+      `==============================================
 THÔNG TIN TÀI KHOẢN QUẢN TRỊ DCOR STUDIO
 ==============================================
 Họ và tên: ${this.emailConfig.recipientName}
@@ -770,7 +770,7 @@ Email đăng nhập: ${this.emailConfig.recipientEmail}
 Vai trò bổ nhiệm: ${this.emailConfig.recipientRoles.join(', ')}
 Phạm vi phụ trách: ${this.emailConfig.recipientBranch}
 Địa chỉ công tác: ${branch?.address || 'Trụ sở chính DCor'}
-Hotline chi nhánh: ${branch?.phone || '1900 8888'}
+Hotline chi nhánh: ${branch?.phone || '1900 1234'}
 Người phụ trách: ${branch?.managerName || 'Ban Quản trị'}
 
 ĐƯỜNG DẪN KÍCH HOẠT & TỰ THIẾT LẬP MẬT KHẨU:
