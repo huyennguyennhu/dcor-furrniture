@@ -95,19 +95,7 @@
                     getTotalQuantityCount(order) }})</span>
                   <span class="meta-divider">|</span>
 
-                  <!-- Nút bảo hành đặt ở góc trên bên phải thay thế mã hàng khi đơn đã giao / hoàn tất -->
-                  <ng-container
-                    *ngIf="order.status === 'DELIVERED' || order.status === 'COMPLETED'; else defaultOrderId">
-                    <a [routerLink]="['/account/warranty']" [queryParams]="{ orderNumber: order.orderNumber }"
-                      class="topbar-warranty-btn" (click)="$event.stopPropagation()"
-                      title="Tra cứu thẻ bảo hành điện tử chính hãng của các sản phẩm trong đơn">
-                      <lucide-angular [img]="icons.ShieldCheck" size="13"></lucide-angular>
-                      <span>Bảo hành</span>
-                    </a>
-                  </ng-container>
-                  <ng-template #defaultOrderId>
-                    <span class="meta-order-id">{{ order.orderNumber }}</span>
-                  </ng-template>
+                  <span class="meta-order-id">{{ order.orderNumber }}</span>
                 </div>
               </div>
 
