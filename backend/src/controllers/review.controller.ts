@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma, { withDbRetry } from '../lib/prisma';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { extractCaller, isOrderAccessibleByCaller } from './order.controller';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 
@@ -20,25 +21,16 @@ export const reviewController = {
   // Lấy danh sách đánh giá của khách hàng: bao gồm cả đã đánh giá và chưa đánh giá
   getMyReviews: async (req: Request, res: Response): Promise<void> => {
     try {
-      let customerId: string | null = null;
-      let customerPhone: string | null = null;
+      const caller = extractCaller(req);
+      let customerId = caller.userId;
+      let customerPhone = caller.phone;
 
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1];
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET) as any;
-          customerId = decoded?.userId || null;
-          customerPhone = decoded?.phone || null;
-        } catch (_) {}
-      }
-
-      const queryPhone = req.query.phone as string;
-      const headerPhone = req.headers['x-guest-phone'] as string;
-      if (queryPhone && queryPhone.trim()) {
-        customerPhone = queryPhone.trim();
-      } else if (headerPhone && headerPhone.trim()) {
-        customerPhone = headerPhone.trim();
+      // Nếu đã đăng nhập: CHỈ dùng thông tin xác thực từ token (không nhận query.phone để chống xem trộm)
+      if (!customerId) {
+        const headerPhone = req.headers['x-guest-phone'] as string;
+        if (headerPhone && headerPhone.trim()) {
+          customerPhone = headerPhone.trim();
+        }
       }
 
       if (!customerId && !customerPhone) {
@@ -300,6 +292,12 @@ export const reviewController = {
 
       if (!order) {
         res.status(404).json({ message: 'Không tìm thấy thông tin đơn hàng.' });
+        return;
+      }
+
+      // KIỂM TRA QUYỀN SỞ HỮU (Chống đánh giá mạo danh đơn người khác)
+      if (!isOrderAccessibleByCaller(order, req)) {
+        res.status(403).json({ message: 'Bạn không có quyền gửi đánh giá cho đơn hàng của người khác.' });
         return;
       }
 

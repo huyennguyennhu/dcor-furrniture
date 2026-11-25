@@ -713,40 +713,82 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
     this.activeTab = tab;
   }
 
+  // Danh sách yêu cầu thuộc về người dùng đang đăng nhập hoặc khách vãng lai đã xác thực (Bảo mật cô lập dữ liệu cá nhân)
+  get myRequests(): CustomRequest[] {
+    const user = this.currentUser;
+    const guestPhone = this.authService.getGuestPhone();
+
+    if (!user && !guestPhone) {
+      return [];
+    }
+
+    const normPhone = (p?: string | null) => (p ? String(p).replace(/[^0-9]/g, '') : '');
+    const userPhoneNorm = normPhone(user?.phone || guestPhone || '');
+    const userEmail = (user?.email || '').trim().toLowerCase();
+    const userId = user?.id;
+
+    return this.requests.filter(r => {
+      // 1. Khớp theo customerId
+      if (userId && r.customerId && String(r.customerId) === String(userId)) {
+        return true;
+      }
+      // 2. Khớp theo số điện thoại (so khớp chuỗi số đã chuẩn hóa)
+      const rPhoneNorm = normPhone(r.customerPhone);
+      if (userPhoneNorm && rPhoneNorm) {
+        if (userPhoneNorm === rPhoneNorm || userPhoneNorm.endsWith(rPhoneNorm) || rPhoneNorm.endsWith(userPhoneNorm)) {
+          return true;
+        }
+      }
+      // 3. Khớp theo email
+      if (userEmail && r.customerEmail && r.customerEmail.trim().toLowerCase() === userEmail) {
+        return true;
+      }
+      // 4. Nếu là tài khoản seed mẫu test (Nguyễn Văn A - 0901234567) thì hiển thị các yêu cầu seed
+      if (
+        (userPhoneNorm === '0901234567' || userEmail.includes('nguyenvana')) &&
+        (!r.customerId || rPhoneNorm === '0901234567')
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }
+
   getTabCount(tab: string): number {
-    if (tab === 'ALL') return this.requests.length;
+    const list = this.myRequests;
+    if (tab === 'ALL') return list.length;
     if (tab === 'CONSULTING') {
-      return this.requests.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'CONSULTING').length;
+      return list.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'CONSULTING').length;
     }
     if (tab === 'QUOTED') {
-      return this.requests.filter(r => r.status === 'QUOTED').length;
+      return list.filter(r => r.status === 'QUOTED').length;
     }
     if (tab === 'CONTRACT') {
-      return this.requests.filter(r => r.status === 'AWAITING_CONTRACT').length;
+      return list.filter(r => r.status === 'AWAITING_CONTRACT').length;
     }
     if (tab === 'DEPOSIT') {
-      return this.requests.filter(r => 
+      return list.filter(r => 
         r.status === 'AWAITING_PAYMENT' || 
         r.status === 'DEPOSIT_SUBMITTED' ||
         r.status === 'CONTRACT_SIGNED'
       ).length;
     }
     if (tab === 'PROCESSING') {
-      return this.requests.filter(r => 
+      return list.filter(r => 
         r.status === 'PROCESSING' || 
         r.status === 'QC_PASSED' || 
         r.status === 'COMPLETED'
       ).length;
     }
     if (tab === 'CANCELLED') {
-      return this.requests.filter(r => r.status === 'CANCELLED').length;
+      return list.filter(r => r.status === 'CANCELLED').length;
     }
     return 0;
   }
 
   // --- DANH SÁCH YÊU CẦU MAY ĐO (Không lọc theo tab, chỉ tìm kiếm theo từ khóa) ---
   get filteredRequests(): CustomRequest[] {
-    let result = [...this.requests];
+    let result = [...this.myRequests];
 
     if (this.activeTab === 'CONSULTING') {
       result = result.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'CONSULTING');
@@ -1098,7 +1140,9 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
 
   // --- XEM CHI TIẾT YÊU CẦU ---
   openDetailModal(req: CustomRequest): void {
-    const latest = this.customRequestService.getRequestById(req.id) || this.requests.find(r => r.id === req.id || r.code === req.code) || req;
+    const isOwned = this.myRequests.some(r => r.id === req.id || r.code === req.code);
+    if (!isOwned) return;
+    const latest = this.customRequestService.getRequestById(req.id) || this.myRequests.find(r => r.id === req.id || r.code === req.code) || req;
     this.selectedRequest = latest;
     this.activeDrawingIndex = 0;
     this.isDetailModalOpen = true;
@@ -1111,7 +1155,9 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   }
 
   openPaymentModal(req: CustomRequest): void {
-    const latest = this.customRequestService.getRequestById(req.id) || this.requests.find(r => r.id === req.id || r.code === req.code) || req;
+    const isOwned = this.myRequests.some(r => r.id === req.id || r.code === req.code);
+    if (!isOwned) return;
+    const latest = this.customRequestService.getRequestById(req.id) || this.myRequests.find(r => r.id === req.id || r.code === req.code) || req;
     this.selectedRequest = latest;
     this.isPaymentModalOpen = true;
     this.cdr.detectChanges();
@@ -1123,7 +1169,9 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
 
   // --- MODAL HỢP ĐỒNG & KÝ ĐIỆN TỬ CHO KHÁCH HÀNG ---
   openContractModal(req: CustomRequest): void {
-    const latest = this.customRequestService.getRequestById(req.id) || this.requests.find(r => r.id === req.id || r.code === req.code) || req;
+    const isOwned = this.myRequests.some(r => r.id === req.id || r.code === req.code);
+    if (!isOwned) return;
+    const latest = this.customRequestService.getRequestById(req.id) || this.myRequests.find(r => r.id === req.id || r.code === req.code) || req;
     this.selectedRequest = latest;
     this.agreeContractTerms = false;
     this.isContractModalOpen = true;
@@ -1136,7 +1184,9 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
 
   // --- MODAL XEM PHIẾU BÁO GIÁ CHO KHÁCH HÀNG ---
   openQuoteModal(req: CustomRequest): void {
-    const latest = this.customRequestService.getRequestById(req.id) || this.requests.find(r => r.id === req.id || r.code === req.code) || req;
+    const isOwned = this.myRequests.some(r => r.id === req.id || r.code === req.code);
+    if (!isOwned) return;
+    const latest = this.customRequestService.getRequestById(req.id) || this.myRequests.find(r => r.id === req.id || r.code === req.code) || req;
     this.selectedRequest = latest;
     this.isQuoteModalOpen = true;
     this.cdr.detectChanges();

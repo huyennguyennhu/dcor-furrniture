@@ -17,6 +17,96 @@ const serializeBigInt = (obj: any): any => {
 };
 
 /**
+ * Trích xuất danh tính và quyền hạn của người gửi yêu cầu từ Token JWT hoặc Header Guest
+ */
+export const extractCaller = (req: Request): {
+  userId: string | null;
+  phone: string | null;
+  email: string | null;
+  role: string | null;
+} => {
+  const authReq = req as any;
+  if (authReq.user) {
+    return {
+      userId: authReq.user.userId || null,
+      phone: authReq.user.phone ? String(authReq.user.phone).trim() : null,
+      email: authReq.user.email ? String(authReq.user.email).trim().toLowerCase() : null,
+      role: authReq.user.role || null
+    };
+  }
+
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (decoded) {
+        return {
+          userId: decoded.userId || null,
+          phone: decoded.phone ? String(decoded.phone).trim() : null,
+          email: decoded.email ? String(decoded.email).trim().toLowerCase() : null,
+          role: decoded.role || null
+        };
+      }
+    } catch (_) {}
+  }
+
+  const guestPhone = req.headers['x-guest-phone'] as string;
+  if (guestPhone && guestPhone.trim()) {
+    return {
+      userId: null,
+      phone: guestPhone.trim(),
+      email: null,
+      role: null
+    };
+  }
+
+  return { userId: null, phone: null, email: null, role: null };
+};
+
+/**
+ * Kiểm tra xem người gửi yêu cầu có quyền truy cập / thao tác trên đơn hàng hay không (Chống IDOR / BOLA)
+ */
+export const isOrderAccessibleByCaller = (order: any, req: Request): boolean => {
+  if (!order) return false;
+  const caller = extractCaller(req);
+
+  // 1. Quản trị viên / Nhân sự nội bộ
+  if (caller.role && ['ADMIN', 'MANAGER', 'STAFF', 'SHIPPER', 'WAREHOUSE'].includes(caller.role)) {
+    return true;
+  }
+
+  // 2. Khách hàng đã đăng nhập khớp customerId
+  if (caller.userId && order.customerId && String(order.customerId) === String(caller.userId)) {
+    return true;
+  }
+
+  // 3. Khách hàng khớp số điện thoại (so sánh chuỗi số đã chuẩn hóa)
+  const cleanPhone = (p?: string | null) => (p ? String(p).replace(/[^0-9]/g, '') : '');
+  const callerPhoneClean = cleanPhone(caller.phone);
+  const orderPhoneClean = cleanPhone(order.phone);
+
+  if (callerPhoneClean && orderPhoneClean) {
+    if (
+      callerPhoneClean === orderPhoneClean ||
+      callerPhoneClean.endsWith(orderPhoneClean) ||
+      orderPhoneClean.endsWith(callerPhoneClean)
+    ) {
+      return true;
+    }
+  }
+
+  // 4. Khách hàng khớp email
+  const callerEmailClean = caller.email ? caller.email.trim().toLowerCase() : '';
+  const orderEmailClean = order.email ? String(order.email).trim().toLowerCase() : '';
+  if (callerEmailClean && orderEmailClean && callerEmailClean === orderEmailClean) {
+    return true;
+  }
+
+  return false;
+};
+
+/**
  * Ràng buộc hệ thống: Tự động hủy các đơn hàng quá hạn 24 giờ
  * mà chưa được đặt cọc (đơn giá trị lớn > 50tr) hoặc chưa thanh toán chuyển khoản ngân hàng.
  */
@@ -459,28 +549,17 @@ export const orderController = {
   // Lấy danh sách đơn hàng của khách (hỗ trợ lọc tab & tìm kiếm)
   getMyOrders: async (req: Request, res: Response): Promise<void> => {
     try {
-      // Đã chuyển dọn dẹp sang background worker 5 phút, không bắt request của khách hàng phải gánh
+      const caller = extractCaller(req);
+      const customerId = caller.userId;
+      let customerPhone = caller.phone;
 
-      let customerId: string | null = null;
-      let customerPhone: string | null = null;
-
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1];
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET) as any;
-          customerId = decoded?.userId || null;
-          customerPhone = decoded?.phone || null;
-        } catch (_) {}
-      }
-
-      // Khách vãng lai xác thực SĐT: cho phép truyền qua query phone hoặc header x-guest-phone
-      const queryPhone = req.query.phone as string;
-      const headerPhone = req.headers['x-guest-phone'] as string;
-      if (queryPhone && queryPhone.trim()) {
-        customerPhone = queryPhone.trim();
-      } else if (headerPhone && headerPhone.trim()) {
-        customerPhone = headerPhone.trim();
+      // Nếu đã đăng nhập: CHỈ dùng thông tin xác thực từ token (không nhận query.phone để chống xem trộm)
+      if (!customerId) {
+        // Khách vãng lai: chỉ lấy SĐT từ header x-guest-phone đã qua xác thực
+        const headerPhone = req.headers['x-guest-phone'] as string;
+        if (headerPhone && headerPhone.trim()) {
+          customerPhone = headerPhone.trim();
+        }
       }
 
       if (!customerId && !customerPhone) {
@@ -712,6 +791,12 @@ export const orderController = {
         return;
       }
 
+      // Kiểm tra quyền sở hữu đơn hàng (Chống IDOR / BOLA)
+      if (!isOrderAccessibleByCaller(order, req)) {
+        res.status(403).json({ message: 'Bạn không có quyền xem thông tin chi tiết đơn hàng này.' });
+        return;
+      }
+
       const isHighValue = order.totalAmount > BigInt(50000000);
       let displayStatus = 'Chờ xác nhận';
       if (isHighValue && order.paymentStatus !== 'PAID' && order.status !== 'CANCELLED') {
@@ -816,6 +901,12 @@ export const orderController = {
         return;
       }
 
+      // Kiểm tra quyền sở hữu (Chống IDOR hủy đơn)
+      if (!isOrderAccessibleByCaller(order, req)) {
+        res.status(403).json({ message: 'Bạn không có quyền hủy đơn hàng này.' });
+        return;
+      }
+
       if (order.status !== 'PENDING') {
         res.status(400).json({ message: 'Chỉ có thể hủy đơn hàng khi đơn đang ở trạng thái Chờ xác nhận hoặc Chờ đặt cọc.' });
         return;
@@ -858,6 +949,12 @@ export const orderController = {
 
       if (!order) {
         res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      // Kiểm tra quyền sở hữu (Chống IDOR xác nhận nhận hàng)
+      if (!isOrderAccessibleByCaller(order, req)) {
+        res.status(403).json({ message: 'Bạn không có quyền xác nhận nhận hàng cho đơn này.' });
         return;
       }
 
@@ -904,6 +1001,12 @@ export const orderController = {
 
       if (!order) {
         res.status(404).json({ message: 'Không tìm thấy đơn hàng.' });
+        return;
+      }
+
+      // Kiểm tra quyền sở hữu (Chống IDOR yêu cầu đổi trả)
+      if (!isOrderAccessibleByCaller(order, req)) {
+        res.status(403).json({ message: 'Bạn không có quyền yêu cầu đổi trả cho đơn hàng này.' });
         return;
       }
 
@@ -1156,6 +1259,12 @@ export const orderController = {
 
       if (!order) {
         res.status(404).json({ message: 'Không tìm thấy thông tin đơn hàng.' });
+        return;
+      }
+
+      // Kiểm tra quyền sở hữu đơn hàng (Chống IDOR / BOLA)
+      if (!isOrderAccessibleByCaller(order, req)) {
+        res.status(403).json({ message: 'Bạn không có quyền xem thông tin chi tiết đơn hàng này.' });
         return;
       }
 

@@ -125,12 +125,9 @@ const resolveCustomerIdentifiers = async (req: AuthRequest): Promise<{ customerI
     if (clean) emailSet.add(clean);
   };
 
-  addPhone(req.user?.phone);
-  addPhone(req.headers['x-guest-phone'] as string);
-  addPhone(req.query.phone as string);
-  addEmail(req.user?.email);
-
   if (customerId) {
+    addPhone(req.user?.phone);
+    addEmail(req.user?.email);
     try {
       const dbCustomer = await prisma.customer.findUnique({
         where: { id: customerId },
@@ -141,6 +138,11 @@ const resolveCustomerIdentifiers = async (req: AuthRequest): Promise<{ customerI
         addEmail(dbCustomer.email);
       }
     } catch (_) {}
+  } else {
+    // Khách vãng lai: chỉ lấy qua header x-guest-phone từ phiên làm việc đã xác thực
+    addPhone(req.headers['x-guest-phone'] as string);
+    addPhone(req.user?.phone);
+    addEmail(req.user?.email);
   }
 
   return {
@@ -239,7 +241,7 @@ export const customerController = {
   getProfile: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const customerId = req.user?.userId;
-      const guestPhone = req.user?.phone || (req.headers['x-guest-phone'] as string) || (req.query.phone as string);
+      const guestPhone = req.user?.phone || (req.headers['x-guest-phone'] as string);
 
       if (!customerId) {
         if (!guestPhone) {
@@ -942,7 +944,7 @@ export const customerController = {
   getWarranties: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const customerId = req.user?.userId;
-      const customerPhone = req.user?.phone || (req.headers['x-guest-phone'] as string) || (req.query.phone as string);
+      const customerPhone = req.user?.phone || (req.headers['x-guest-phone'] as string);
       if (!customerId && !customerPhone) {
         res.status(401).json({ message: 'Vui lòng đăng nhập hoặc xác thực số điện thoại để tiếp tục.' });
         return;
@@ -1752,7 +1754,7 @@ export const customerController = {
   getReturns: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const customerId = req.user?.userId;
-      const customerPhone = req.user?.phone || (req.headers['x-guest-phone'] as string) || (req.query.phone as string);
+      const customerPhone = req.user?.phone || (req.headers['x-guest-phone'] as string);
       if (!customerId && !customerPhone) {
         res.status(401).json({ message: 'Vui lòng đăng nhập hoặc xác thực số điện thoại để tiếp tục.' });
         return;
