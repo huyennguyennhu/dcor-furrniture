@@ -8,6 +8,8 @@ import { AdminAuthService, AdminModule } from '../../../../core/services/admin-a
 import { AdminConsultationService } from '../../../../core/services/admin-consultation.service';
 import { ChatUnreadService } from '../../pages/chat/services/chat-unread.service';
 import { OrdersService } from '../../pages/orders/services/orders.service';
+import { CustomRequestService } from '../../../../core/services/custom-request.service';
+import { OrdersReturnsMockService } from '../../pages/orders/orders-returns/services/orders-returns-mock.service';
 
 interface MenuItem {
   title: string;
@@ -39,7 +41,14 @@ export class AdminSidebar implements OnInit, OnDestroy {
   private hoverTimeout: any;
   private permSub?: Subscription;
   private ordersSub?: Subscription;
+  private customSub?: Subscription;
   pendingOrdersCount = 0;
+  pendingCustomCount = 0;
+  pendingReturnsCount = 0;
+
+  get totalOrdersBadgeCount(): number {
+    return this.pendingOrdersCount + this.pendingCustomCount + this.pendingReturnsCount;
+  }
 
   readonly ALL_MENU_ITEMS: MenuItem[] = [
     {
@@ -185,7 +194,9 @@ export class AdminSidebar implements OnInit, OnDestroy {
     private adminAuthService: AdminAuthService,
     public chatUnreadService: ChatUnreadService,
     public adminConsultationService: AdminConsultationService,
-    public ordersService: OrdersService
+    public ordersService: OrdersService,
+    public customRequestService: CustomRequestService,
+    public returnsService: OrdersReturnsMockService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -206,14 +217,23 @@ export class AdminSidebar implements OnInit, OnDestroy {
 
     // Lắng nghe và đồng bộ số lượng đơn hàng chờ xác nhận PENDING
     this.pendingOrdersCount = this.ordersService.getPendingOrdersCount();
+    this.pendingReturnsCount = this.returnsService.getAll().filter(r => r.status === 'PENDING' || r.status === 'REVIEWING').length;
     this.ordersSub = this.ordersService.orders$.subscribe(orders => {
       this.pendingOrdersCount = (orders || []).filter(o => o.status === 'PENDING').length;
+      this.pendingReturnsCount = this.returnsService.getAll().filter(r => r.status === 'PENDING' || r.status === 'REVIEWING').length;
+    });
+
+    // Lắng nghe số lượng yêu cầu Custom chờ xử lý PENDING_REVIEW
+    this.pendingCustomCount = this.customRequestService.getRequests().filter(r => r.status === 'PENDING_REVIEW').length;
+    this.customSub = this.customRequestService.requests$.subscribe(reqs => {
+      this.pendingCustomCount = (reqs || []).filter(r => r.status === 'PENDING_REVIEW').length;
     });
   }
 
   ngOnDestroy(): void {
     this.permSub?.unsubscribe();
     this.ordersSub?.unsubscribe();
+    this.customSub?.unsubscribe();
   }
 
   handleLogout(): void {
