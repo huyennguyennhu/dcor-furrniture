@@ -332,9 +332,9 @@
           </td>
 
           <!-- Khách hàng -->
-          <td (click)="onCustomerClick(req, $event)" style="cursor: pointer;" title="Xem hồ sơ chi tiết khách hàng">
+          <td>
             <div class="customer-cell">
-              <span class="customer-name" style="color: var(--accent-color, #a87d46); text-decoration: underline; text-underline-offset: 2px;">{{ req.customer.name }}</span>
+              <span class="customer-name" style="color: var(--text-primary); font-weight: 600;">{{ req.customer.name }}</span>
               <span class="customer-phone">{{ req.customer.phone }}</span>
             </div>
           </td>

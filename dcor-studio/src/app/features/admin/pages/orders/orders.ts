@@ -29,17 +29,6 @@ export type KpiTab = 'ALL' | 'CONFIRMATION' | 'PENDING' | 'CONFIRMED' | 'PROCESS
 })
 export class OrdersComponent implements OnInit, OnDestroy {
 
-  onCustomerClick(order: OrderV2, event: MouseEvent): void {
-    event.stopPropagation();
-    if (order.customerId) {
-      this.router.navigate(['/admin/customers', order.customerId]);
-    } else {
-      this.router.navigate(['/admin/customers'], {
-        queryParams: { q: order.phone || order.customerName }
-      });
-    }
-  }
-
   hasReturnOrder(order: OrderV2): boolean {
     return ['RETURN_REQUESTED', 'RETURNING', 'RETURNED'].includes(order.status) || !!order.returnInfo;
   }

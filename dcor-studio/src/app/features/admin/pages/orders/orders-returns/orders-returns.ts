@@ -26,17 +26,6 @@ import { OrdersService } from '../services/orders.service';
 })
 export class OrdersReturnsComponent implements OnInit {
 
-  onCustomerClick(req: ReturnRequest, event: MouseEvent): void {
-    event.stopPropagation();
-    if (req.customer?.phone) {
-      this.router.navigate(['/admin/customers'], { queryParams: { q: req.customer.phone } });
-    } else if (req.customer?.name) {
-      this.router.navigate(['/admin/customers'], { queryParams: { q: req.customer.name } });
-    } else {
-      this.router.navigate(['/admin/customers']);
-    }
-  }
-
   onOrderClick(req: ReturnRequest, event: MouseEvent): void {
     event.stopPropagation();
     const orderKey = (req.orderNumber || req.orderId || '').replace(/^#/g, '').trim();
