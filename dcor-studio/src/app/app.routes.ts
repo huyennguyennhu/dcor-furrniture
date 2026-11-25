@@ -110,6 +110,7 @@ export const routes: Routes = [
       // --- Account Area (inside Store Layout) ---
       {
         path: 'account',
+        loadComponent: () => import('./features/account/components/account-layout/account-layout').then(m => m.AccountLayoutComponent),
         children: [
           { path: '', redirectTo: 'profile', pathMatch: 'full' },
           { path: 'profile', loadComponent: () => import('./features/account/pages/profile/profile').then(m => m.ProfileComponent) },

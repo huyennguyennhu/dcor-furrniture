@@ -1,0 +1,15 @@
+<div class="account-page-container">
+  <div class="account-shell">
+    <div class="account-layout">
+      <!-- Sidebar Left Column (Cố định, không bị load lại khi chuyển tab) -->
+      <aside class="sidebar-column">
+        <app-account-sidebar></app-account-sidebar>
+      </aside>
+
+      <!-- Main Content Column (Chỉ load các trang con ở đây thông qua router-outlet) -->
+      <main class="content-column">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+</div>

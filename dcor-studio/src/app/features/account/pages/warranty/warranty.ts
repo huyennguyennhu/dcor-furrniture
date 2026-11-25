@@ -20,7 +20,6 @@ import {
   Sparkles,
   Search
 } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { CustomerService, WarrantyItem } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -29,7 +28,7 @@ import { Subscription, skip } from 'rxjs';
 @Component({
   selector: 'app-account-warranty',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent, GuestPhoneBannerComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, GuestPhoneBannerComponent],
   templateUrl: './warranty.html',
   styleUrls: ['./warranty.css']
 })

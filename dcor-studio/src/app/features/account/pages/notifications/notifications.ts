@@ -2,14 +2,13 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { LucideAngularModule, Package, ShieldCheck, CalendarDays, RefreshCw, Tag, Bell, Check, ChevronRight } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { CustomerService, CustomerNotification } from '../../../../core/services/customer.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-account-notifications',
   standalone: true,
-  imports: [CommonModule, RouterModule, LucideAngularModule, AccountSidebarComponent],
+  imports: [CommonModule, RouterModule, LucideAngularModule],
   templateUrl: './notifications.html',
   styleUrls: ['./notifications.css']
 })

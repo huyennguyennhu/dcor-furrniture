@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { LucideAngularModule, Package, CheckCircle2, AlertCircle, ShieldCheck, RefreshCw, FileText, Eye, Image as ImageIcon, X } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { CustomerService, CustomerReturnRequest } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -12,7 +11,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-account-returns',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent, GuestPhoneBannerComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, GuestPhoneBannerComponent],
   templateUrl: './returns.html',
   styleUrls: ['./returns.css']
 })

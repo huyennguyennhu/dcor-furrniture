@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule, Search, MapPin, CreditCard, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image as ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy } from 'lucide-angular';
 import { OrderReviewModalComponent, ReviewModalItem } from '../../../../shared/components/order-review-modal/order-review-modal';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { OrderService, OrderSummary, OrderDetail } from '../../../../core/services/order.service';
 import { CartService } from '../../../../core/services/cart.service';
@@ -14,7 +13,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-my-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent, GuestPhoneBannerComponent, OrderReviewModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, GuestPhoneBannerComponent, OrderReviewModalComponent],
   templateUrl: './my-orders.html',
   styleUrls: ['./my-orders.css']
 })

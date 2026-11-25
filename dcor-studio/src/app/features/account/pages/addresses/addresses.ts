@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { LucideAngularModule, Plus, CheckCircle2, AlertCircle, MapPin, Pencil, Trash2, Phone, Check, X, Smartphone } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { CustomerService, CustomerAddress } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ALL_VIETNAM_PROVINCE_NAMES, getWardsForProvince } from '../../../../shared/data/vietnam-administrative.data';
@@ -13,7 +12,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-account-addresses',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, AccountSidebarComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
   templateUrl: './addresses.html',
   styleUrls: ['./addresses.css']
 })

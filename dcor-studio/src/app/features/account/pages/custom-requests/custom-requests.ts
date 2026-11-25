@@ -44,7 +44,6 @@ import {
   ExternalLink,
   Truck
 } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { AuthService } from '../../../../core/services/auth.service';
 import { 
@@ -83,7 +82,6 @@ interface ColorSwatch {
     FormsModule, 
     RouterModule, 
     LucideAngularModule, 
-    AccountSidebarComponent, 
     GuestPhoneBannerComponent
   ],
   templateUrl: './custom-requests.html',

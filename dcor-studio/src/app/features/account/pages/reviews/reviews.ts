@@ -19,7 +19,6 @@ import {
   Image as ImageIcon,
   X
 } from 'lucide-angular';
-import { AccountSidebarComponent } from '../../components/account-sidebar/account-sidebar';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { ReviewService, ProductReviewItem, PendingReviewItem } from '../../../../core/services/review.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -33,7 +32,6 @@ import { OrderReviewModalComponent, ReviewModalItem } from '../../../../shared/c
     RouterModule, 
     FormsModule, 
     LucideAngularModule, 
-    AccountSidebarComponent, 
     GuestPhoneBannerComponent,
     OrderReviewModalComponent
   ],
