@@ -28,7 +28,7 @@
   <header class="v2-header">
     <div class="v2-header-left">
       <div class="v2-title-row">
-        <h1 class="v2-title">Đơn Custom</h1>
+        <h1 class="v2-title">Yêu cầu Custom</h1>
       </div>
       <p class="v2-subtitle">
         Tiếp nhận, xử lý và quản lý toàn bộ chu trình đơn may đo, khảo sát thiết kế và tiến độ sản xuất theo thời gian thực.
@@ -40,9 +40,9 @@
         type="button" 
         class="v2-btn-primary" 
         (click)="openCreateModal()"
-        title="Tạo đơn Custom mới">
+        title="Tạo yêu cầu Custom mới">
         <lucide-angular [img]="icons.Plus" size="15"></lucide-angular>
-        <span>Tạo đơn Custom</span>
+        <span>Tạo yêu cầu Custom</span>
       </button>
     </div>
   </header>
@@ -53,7 +53,7 @@
     <div 
       class="orders-kpi-card card-all" 
       [class.active]="selectedTab === 'ALL'" 
-      (click)="selectedTab = 'ALL'"
+      (click)="selectTab('ALL')"
       title="Xem tất cả hồ sơ may đo">
       <div class="card-header">
         <span class="card-label">Tất cả hồ sơ</span>
@@ -69,7 +69,7 @@
     <div 
       class="orders-kpi-card card-pending" 
       [class.active]="selectedTab === 'PENDING_REVIEW'" 
-      (click)="selectedTab = 'PENDING_REVIEW'"
+      (click)="selectTab('PENDING_REVIEW')"
       title="Hồ sơ mới gửi từ form website">
       <div class="card-header">
         <span class="card-label">Tiếp nhận mới</span>
@@ -85,7 +85,7 @@
     <div 
       class="orders-kpi-card card-processing" 
       [class.active]="selectedTab === 'CONSULTING'" 
-      (click)="selectedTab = 'CONSULTING'"
+      (click)="selectTab('CONSULTING')"
       title="KTS đang khảo sát và đo đạc thực tế">
       <div class="card-header">
         <span class="card-label">Khảo sát đo đạc</span>
@@ -101,7 +101,7 @@
     <div 
       class="orders-kpi-card card-ready" 
       [class.active]="selectedTab === 'QUOTED'" 
-      (click)="selectedTab = 'QUOTED'"
+      (click)="selectTab('QUOTED')"
       title="Đã có dự toán và phối cảnh 3D">
       <div class="card-header">
         <span class="card-label">Báo giá & 3D</span>
@@ -117,7 +117,7 @@
     <div 
       class="orders-kpi-card card-shipped" 
       [class.active]="selectedTab === 'AWAITING_CONTRACT' || selectedTab === 'CONTRACT_SIGNED'" 
-      (click)="selectedTab = 'AWAITING_CONTRACT'"
+      (click)="selectTab('AWAITING_CONTRACT')"
       title="Tiến trình ký kết và lưu trữ hợp đồng">
       <div class="card-header">
         <span class="card-label">Hợp đồng may đo</span>
@@ -133,7 +133,7 @@
     <div 
       class="orders-kpi-card card-confirmation" 
       [class.active]="selectedTab === 'AWAITING_PAYMENT'" 
-      (click)="selectedTab = 'AWAITING_PAYMENT'"
+      (click)="selectTab('AWAITING_PAYMENT')"
       title="Khách hàng chuyển khoản cọc qua VietQR">
       <div class="card-header">
         <span class="card-label">Chờ nhận cọc 30%</span>
@@ -149,7 +149,7 @@
     <div 
       class="orders-kpi-card card-delivered" 
       [class.active]="selectedTab === 'PROCESSING'" 
-      (click)="selectedTab = 'PROCESSING'"
+      (click)="selectTab('PROCESSING')"
       title="Tự động sinh đơn chính thức & bắn xưởng sản xuất">
       <div class="card-header">
         <span class="card-label">Sản xuất xưởng</span>
@@ -165,7 +165,7 @@
     <div 
       class="orders-kpi-card card-qc" 
       [class.active]="selectedTab === 'QC_PASSED'" 
-      (click)="selectedTab = 'QC_PASSED'"
+      (click)="selectTab('QC_PASSED')"
       title="Kiểm định chất lượng 4 tiêu chí khắt khe">
       <div class="card-header">
         <span class="card-label">Nghiệm thu QC</span>
@@ -181,7 +181,7 @@
     <div 
       class="orders-kpi-card card-completed" 
       [class.active]="selectedTab === 'COMPLETED'" 
-      (click)="selectedTab = 'COMPLETED'"
+      (click)="selectTab('COMPLETED')"
       title="Hoàn tất bàn giao, thu 70% còn lại & kích hoạt bảo hành">
       <div class="card-header">
         <span class="card-label">Đã giao hàng & BH</span>
@@ -217,6 +217,36 @@
 
     <!-- Dropdown Filters Group -->
     <div class="v2-filter-group">
+      <!-- 0. Dropdown Trạng thái hồ sơ -->
+      <div class="filter-dropdown-wrapper">
+        <button 
+          type="button" 
+          class="filter-trigger-btn" 
+          title="Lọc theo trạng thái hồ sơ"
+          [class.active]="selectedStatus !== 'ALL'"
+          (click)="toggleDropdown('status', $event)">
+          <div class="trigger-label">
+            <lucide-angular [img]="icons.CheckCircle2" size="15" class="trigger-icon"></lucide-angular>
+            <span class="truncate-label">{{ selectedStatusLabel }}</span>
+          </div>
+          <lucide-angular [img]="icons.ChevronDown" size="14" style="transition: transform 0.2s;" [style.transform]="activeDropdown === 'status' ? 'rotate(180deg)' : 'none'"></lucide-angular>
+        </button>
+
+        <div class="filter-menu-dropdown" *ngIf="activeDropdown === 'status'">
+          <div 
+            class="filter-menu-item" 
+            *ngFor="let opt of STATUS_FILTER_OPTIONS"
+            [class.selected]="selectedStatus === opt.value"
+            (click)="onSelectStatus(opt.value)">
+            <span class="status-opt-label">
+              <span class="status-filter-dot" *ngIf="opt.value !== 'ALL'" [style.background]="getStatusMeta(opt.value).color"></span>
+              {{ opt.label }}
+            </span>
+            <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedStatus === opt.value"></lucide-angular>
+          </div>
+        </div>
+      </div>
+
       <!-- 1. Dropdown KTS phụ trách -->
       <div class="filter-dropdown-wrapper">
         <button 
@@ -440,14 +470,8 @@
           </th>
 
           <!-- Cột 5: Trạng thái quy trình -->
-          <th style="width: 190px;">
-            <div class="th-sort-wrapper" (click)="toggleColumnSort('status')" title="Sắp xếp theo Trạng thái">
-              <span>Trạng thái</span>
-              <span class="sort-arrows-inline">
-                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'asc'" class="sort-triangle up" [class.active]="sortColumn === 'status' && sortDirection === 'asc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 5L4 19h16z"/></svg>
-                <svg *ngIf="sortColumn !== 'status' || sortDirection === 'desc'" class="sort-triangle down" [class.active]="sortColumn === 'status' && sortDirection === 'desc'" viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><path d="M12 19L4 5h16z"/></svg>
-              </span>
-            </div>
+          <th style="min-width: 190px;">
+            <span>Trạng thái</span>
           </th>
         </tr>
       </thead>
@@ -480,7 +504,7 @@
               <span class="customer-name">{{ req.customerName }}</span>
               <span class="customer-phone">{{ req.customerPhone }}</span>
               <span class="showroom-tag" *ngIf="req.assignedStaff">
-                {{ req.assignedStaff }}
+                {{ cleanStaffName(req.assignedStaff) }}
               </span>
             </div>
           </td>
@@ -499,10 +523,6 @@
               <div *ngIf="req.quotedPrice; else pendingQuoteTpl" class="quote-price-group">
                 <span class="price-quoted-bold">{{ req.quotedPrice | number }} đ</span>
                 <span class="deposit-amount-pill">Cọc 30%: <strong>{{ (req.quotedDeposit || (req.quotedPrice * 0.3)) | number }} đ</strong></span>
-                <a *ngIf="req.drawing3dUrl" [href]="req.drawing3dUrl" target="_blank" class="link-view-3d" (click)="$event.stopPropagation()">
-                  <lucide-angular [img]="icons.Eye" size="12"></lucide-angular>
-                  <span>Xem bản vẽ 3D</span>
-                </a>
               </div>
               <ng-template #pendingQuoteTpl>
                 <span class="quote-pending-text">Chưa lập báo giá</span>
@@ -523,15 +543,14 @@
                 <span>{{ getStatusMeta(req.status).adminLabel }}</span>
               </div>
 
-              <div class="linked-order-pill" *ngIf="req.generatedOrderNumber">
-                <lucide-angular [img]="icons.Package" size="11"></lucide-angular>
-                <span>Đơn: <strong>{{ req.generatedOrderNumber }}</strong></span>
-              </div>
-
-              <div class="linked-order-pill warranty-pill" *ngIf="req.warrantyCode">
-                <lucide-angular [img]="icons.ShieldCheck" size="11"></lucide-angular>
-                <span>BH: <strong>{{ req.warrantyCode }}</strong></span>
-              </div>
+              <a 
+                class="linked-order-link" 
+                *ngIf="req.generatedOrderNumber"
+                (click)="goToOrder(req.generatedOrderNumber); $event.stopPropagation()"
+                title="Bấm để mở đơn hàng {{ req.generatedOrderNumber }}">
+                <lucide-angular [img]="icons.ExternalLink" size="11"></lucide-angular>
+                <span>{{ req.generatedOrderNumber }}</span>
+              </a>
             </div>
           </td>
 
@@ -682,7 +701,7 @@
 
         <div class="preview-3d-box" *ngIf="quoteForm.drawing3dUrl">
           <span class="preview-label">Xem trước phối cảnh 3D:</span>
-          <img [src]="quoteForm.drawing3dUrl" class="preview-3d-img" alt="3D preview" />
+          <img [src]="quoteForm.drawing3dUrl" class="preview-3d-img" alt="3D preview" (error)="$any($event.target).src = '/assets/img/about_blueprint.jpg'" />
         </div>
 
         <div class="form-field">
@@ -782,7 +801,7 @@
 
       <div class="modal-body" *ngIf="activeRequest">
         <div class="vietqr-display-box">
-          <img [src]="vietQrUrl" class="vietqr-image" alt="VietQR Code" />
+          <img [src]="vietQrUrl" class="vietqr-image" alt="VietQR Code" (error)="$any($event.target).src = '/assets/img/qr-payment-sample.svg'" />
           <div class="qr-details-text">
             <div class="qr-amount-large">{{ vietQrAmount | number }} VNĐ</div>
             <div class="qr-msg-pill">Nội dung: <strong>{{ vietQrMessage }}</strong></div>
@@ -1215,7 +1234,7 @@
             <lucide-angular [img]="icons.Pencil" size="20"></lucide-angular>
           </div>
           <div>
-            <h2 class="modal-title">Tạo Đơn Custom</h2>
+            <h2 class="modal-title">Tạo Yêu Cầu Custom</h2>
             <p class="modal-subtitle">Tùy biến kích thước, chiều cao, màu sắc và chất liệu theo không gian thực tế của khách hàng.</p>
           </div>
         </div>
@@ -1273,7 +1292,7 @@
             <!-- Khối hiển thị sản phẩm mẫu đang được chọn -->
             <div class="selected-product-banner" *ngIf="selectedProduct">
               <div class="sel-prod-thumb">
-                <img [src]="selectedProduct.image" [alt]="selectedProduct.name" />
+                <img [src]="selectedProduct.image" [alt]="selectedProduct.name" (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'" />
               </div>
               <div class="sel-prod-meta">
                 <div class="sel-tag-line">
@@ -1301,7 +1320,7 @@
                   [class.selected]="selectedProduct?.id === p.id"
                   (click)="selectProduct(p)">
                   <div class="prod-thumb">
-                    <img [src]="p.image" [alt]="p.name" />
+                    <img [src]="p.image" [alt]="p.name" (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'" />
                   </div>
                   <div class="prod-details">
                     <div class="prod-sku">{{ p.sku }}</div>
@@ -1490,7 +1509,7 @@
         <button type="button" class="btn-cancel" (click)="closeModal()">Hủy bỏ</button>
         <button type="button" class="btn-submit-request" (click)="submitCreate()">
           <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
-          <span>Khởi Tạo Đơn Custom</span>
+          <span>Khởi Tạo Yêu Cầu Custom</span>
         </button>
       </div>
     </div>

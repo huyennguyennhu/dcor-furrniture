@@ -4,9 +4,13 @@
     <!-- MODAL HEADER -->
     <div class="drawer-header">
       <div class="header-main-info">
+        <div class="header-icon-badge">
+          <lucide-angular [img]="icons.Sparkles" size="22" color="#b45309"></lucide-angular>
+        </div>
         <div class="header-titles">
-          <h3>Tùy chỉnh theo yêu cầu</h3>
+          <h3>Đặt hàng theo yêu cầu</h3>
           <div class="header-product-snippet" *ngIf="product">
+            <img [src]="productThumbnail" [alt]="productName" class="product-mini-thumb" *ngIf="productThumbnail" />
             <div class="product-mini-info">
               <span class="product-mini-name">{{ productName }}</span>
               <span class="product-mini-sku">SKU: {{ productSku }}</span>
@@ -225,6 +229,9 @@
                   <input type="text" [(ngModel)]="attr.customNote" [name]="'customNote_' + attr.groupId"
                     [placeholder]="'Nhập yêu cầu riêng cho ' + attr.label " class="custom-input custom-spec-input"
                     autofocus />
+                  <span class="field-hint-text required-hint" *ngIf="!attr.customNote || !attr.customNote.trim()">
+                    * Vui lòng điền chi tiết yêu cầu {{ attr.label }} riêng để gửi yêu cầu.
+                  </span>
                 </div>
               </div>
             </ng-container>
@@ -411,11 +418,6 @@
 
     <!-- MODAL FOOTER ACTIONS (KHI Ở FORM STATE) -->
     <div class="drawer-footer-actions" *ngIf="!isSubmittedSuccess">
-      <div class="footer-hint-text">
-        <lucide-angular [img]="icons.ShieldCheck" size="16" color="#00A30B"></lucide-angular>
-        <span>Bảo mật thông tin & Cam kết tư vấn miễn phí 100%</span>
-      </div>
-
       <div class="footer-buttons-group">
         <button type="button" class="btn-cancel-custom" (click)="handleCloseClick()">
           Hủy

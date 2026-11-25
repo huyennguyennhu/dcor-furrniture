@@ -335,13 +335,17 @@
 
 .consultation-table th {
   padding: 12px 16px;
-  background: #f9fafb;
+  background: #EAE1D7;
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: #4b5563;
+  color: #4A3525;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #d8ccc0;
+}
+
+.consultation-table tbody tr {
+  background: #fffcf9;
 }
 
 .consultation-table td {
@@ -2039,12 +2043,16 @@
 
 .config-slots-table th {
   padding: 9px 10px;
-  background: #f3f4f6;
+  background: #EAE1D7;
   font-size: 0.76rem;
   font-weight: 700;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  color: #4A3525;
+  border-bottom: 1px solid #d8ccc0;
   text-align: left;
+}
+
+.config-slots-table tbody tr {
+  background: #fffcf9;
 }
 
 .config-slots-table td {

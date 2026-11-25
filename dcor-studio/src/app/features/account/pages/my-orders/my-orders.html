@@ -81,7 +81,10 @@
 
           <!-- Orders List -->
           <div *ngIf="!isLoading && orders.length > 0" class="orders-list">
-            <div *ngFor="let order of orders" class="order-card" (click)="openOrderDetail(order)">
+            <div *ngFor="let order of orders" 
+                 class="order-card" 
+                 [ngClass]="'status-' + getOrderStatusClass(order)" 
+                 (click)="openOrderDetail(order)">
 
               <!-- Order Header Topbar (Full màu trạng thái theo yêu cầu người dùng) -->
               <div class="order-card-topbar" [ngClass]="'status-' + getOrderStatusClass(order)">

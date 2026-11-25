@@ -268,8 +268,8 @@
 }
 
 .settings-data-table thead th {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  background: #EAE1D7;
+  color: #4A3525;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;

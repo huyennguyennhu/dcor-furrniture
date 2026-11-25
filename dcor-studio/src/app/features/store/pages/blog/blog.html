@@ -69,7 +69,7 @@
     <section class="blog-hero-banner" [routerLink]="['/blog', hero.slug]">
       <!-- Ảnh nền Hero -->
       <img
-        [src]="hero.coverImageUrl || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1600&auto=format&fit=crop&q=80'"
+        [src]="hero.coverImageUrl || '/assets/img/furniture-placeholder.svg'"
         [alt]="hero.title" class="hero-bg-img" />
 
       <!-- Lớp phủ Gradient đen mờ nghệ thuật -->
@@ -128,7 +128,7 @@
           <!-- Hình ảnh bài viết có bo góc -->
           <div class="card-media-box">
             <img
-              [src]="post.coverImageUrl || 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&auto=format&fit=crop&q=80'"
+              [src]="post.coverImageUrl || '/assets/img/furniture-placeholder.svg'"
               [alt]="post.title" class="card-img" />
           </div>
 

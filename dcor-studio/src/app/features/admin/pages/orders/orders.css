@@ -702,6 +702,7 @@
   border-bottom: 1px solid var(--border-color, #f1f3f5);
   cursor: pointer;
   transition: background 0.15s ease;
+  background: #fffcf9;
 }
 
 .v2-table tbody tr:hover {

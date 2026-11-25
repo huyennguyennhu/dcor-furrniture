@@ -12,12 +12,13 @@ import {
   CreditCard, AlertCircle, RotateCcw, MapPin, ChevronDown, ExternalLink, 
   Eye, Ruler, Layers, Palette, QrCode, ClipboardCheck, Sparkles, User, UserCheck,
   Mail, Phone, Download, Upload, Copy, Pencil, Image as ImageIcon,
-  Trash2, Paperclip, Printer
+  Trash2, Paperclip, Printer, FilePlus, RefreshCw, FileCheck, Plus
 } from 'lucide-angular';
 import { 
   CustomRequestService, 
   CustomRequest, 
   CustomRequestStatus, 
+  CustomAttributeItem,
   CUSTOM_STATUS_MAP, 
   StatusMeta 
 } from '../../../../../core/services/custom-request.service';
@@ -45,7 +46,7 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     CreditCard, AlertCircle, RotateCcw, MapPin, ChevronDown, ExternalLink,
     Eye, Ruler, Layers, Palette, QrCode, ClipboardCheck, Sparkles, User, UserCheck,
     Mail, Phone, Download, Upload, Copy, Pencil, Image: ImageIcon,
-    Trash2, Paperclip, Printer
+    Trash2, Paperclip, Printer, FilePlus, RefreshCw, FileCheck, Plus
   };
 
   /** Danh sách Kiến trúc sư nạp trực tiếp từ Supabase Database */
@@ -211,7 +212,94 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     type?: string;
   } | null = null;
   isSavedSurveyRecord: boolean = false;
+  isSurveySaved: boolean = false; // Bắt buộc KTS phải bấm 'Lưu kết quả đo đạc & thông số' trước khi được bấm Hoàn thiện khảo sát
   private savedTimer: any = null;
+
+  // Thông số kỹ thuật đo đạc chốt bởi KTS ở Bước 2
+  surveyLength: number = 0;
+  surveyWidth: number = 0;
+  surveyHeight: number = 0;
+  surveyColorName: string = '';
+  surveyColorHex: string = '#8B4513';
+  surveyColorImage: string = '';
+  surveyMaterial: string = '';
+  surveyLegMaterial: string = '';
+
+  // Danh mục gợi ý vật liệu cao cấp chuẩn DCor
+  readonly materialSuggestions: string[] = [
+    'Da bò Ý nguyên tấm (Full Grain)',
+    'Da bò Ý cao cấp (Top Grain)',
+    'Da bò Nubuck cao cấp nhập khẩu Florence Ý',
+    'Da Microfiber sinh học kháng nước',
+    'Vải nỉ dệt thô sợi Bỉ chống bám bụi',
+    'Vải nỉ nhung tuyết cao cấp',
+    'Gỗ óc chó Bắc Mỹ nguyên khối (Walnut)',
+    'Gỗ sồi trắng Nga (White Oak)',
+    'Đá cẩm thạch Calacatta / Thạch anh tự nhiên'
+  ];
+
+  // Danh mục gợi ý chân đế / khung
+  readonly legMaterialSuggestions: string[] = [
+    'Gỗ óc chó Bắc Mỹ nguyên khối (Walnut)',
+    'Kim loại sơn tĩnh điện đen mờ chống xước',
+    'Inox 304 mạ PVD vàng Champagne bóng gương',
+    'Gỗ sồi tự nhiên tiện tròn phong cách Bắc Âu',
+    'Khung chân ẩn giấu viền tạo hiệu ứng lơ lửng'
+  ];
+
+  // Swatch màu gợi ý nhanh cho KTS
+  readonly colorPresets = [
+    { name: 'Nâu Bò Cát Xước (Sand Brown)', hex: '#92400E' },
+    { name: 'Nâu Cognac Ý', hex: '#8B4513' },
+    { name: 'Nâu Espresso', hex: '#3B2819' },
+    { name: 'Kem Sand Luxury', hex: '#E8DFC8' },
+    { name: 'Xám Khói Modern', hex: '#71717A' },
+    { name: 'Xanh Navy Thượng Lưu', hex: '#1E293B' },
+    { name: 'Đen Noir Quyền Lực', hex: '#18181B' }
+  ];
+
+  selectColorPreset(preset: { name: string; hex: string }): void {
+    this.surveyColorName = preset.name;
+    this.surveyColorHex = preset.hex;
+    this.onSurveyChange();
+  }
+
+  onSurveyChange(): void {
+    this.isSurveySaved = false;
+  }
+
+  canCompleteSurvey(): boolean {
+    return this.hasSurveyRecord() && this.isSurveySaved;
+  }
+
+  getCompleteSurveyTitle(): string {
+    if (!this.hasSurveyRecord()) {
+      return 'Vui lòng nhập thông số đo đạc thực tế hoặc ghi chú trước khi hoàn tất';
+    }
+    if (!this.isSurveySaved) {
+      return 'Vui lòng nhấn "Lưu kết quả đo đạc & thông số" trước khi hoàn thiện khảo sát';
+    }
+    return 'Hoàn thiện khảo sát đo đạc & chuyển sang Bước 3: Báo giá & 3D';
+  }
+
+  onSurveyColorImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.surveyColorImage = e.target?.result as string;
+        this.onSurveyChange();
+        this.cdr.detectChanges();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removeSurveyColorImage(): void {
+    this.surveyColorImage = '';
+    this.onSurveyChange();
+  }
 
   setSurveyInputMode(mode: 'NOTE' | 'FILE'): void {
     this.surveyInputMode = mode;
@@ -233,6 +321,7 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
           url: e.target?.result as string,
           type: file.type
         };
+        this.onSurveyChange();
         this.cdr.detectChanges();
       };
       reader.readAsDataURL(file);
@@ -241,6 +330,7 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
 
   removeSurveyFile(): void {
     this.surveyUploadedFile = null;
+    this.onSurveyChange();
     if (this.request?.surveyAttachment) {
       delete this.request.surveyAttachment;
       this.customRequestService.updateSurveyRecord(this.request.id, {
@@ -251,10 +341,169 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  /** Kiểm tra thuộc tính có phải do khách chọn "Khác" và nhập yêu cầu riêng hay không */
+  isCustomOtherAttribute(attr: any): boolean {
+    if (!attr) return false;
+    if (attr.isOther === true) return true;
+    if (attr.selectedOptionId === 'custom_other' || attr.selectedOptionId === 'other') return true;
+    if (attr.selectedOptionName === 'Khác' || (typeof attr.selectedOptionName === 'string' && attr.selectedOptionName.startsWith('Khác'))) return true;
+    if (attr.customNote && typeof attr.customNote === 'string' && attr.customNote.trim().length > 0) return true;
+    return false;
+  }
+
+  /** Kiểm tra sản phẩm có thông số kích thước thật hay không (ẩn hoàn toàn phần đo đạc nếu không có kích thước) */
+  hasProductDimensions(): boolean {
+    if (!this.request) return false;
+    if (this.request.hasDimensions === false) return false;
+    if (this.request.hasDimensions === true) return true;
+
+    // Kiểm tra thông qua kích thước gốc hoặc kích thước yêu cầu
+    const orig = (this.request.originalDimensions || '').trim();
+    const reqDim = (this.request.requestedDimensions || '').trim();
+    const isValDim = (s: string) => {
+      if (!s) return false;
+      const lower = s.toLowerCase();
+      if (lower === 'tiêu chuẩn gốc' || lower === '—' || lower === 'chưa xác định') return false;
+      if (lower.startsWith('0 x 0') || lower.startsWith('0 • 0')) return false;
+      return /\d+/.test(s);
+    };
+
+    if (isValDim(orig) || isValDim(reqDim)) return true;
+
+    if (
+      (this.request.length !== undefined && this.request.length > 0) ||
+      (this.request.width !== undefined && this.request.width > 0) ||
+      (this.request.height !== undefined && this.request.height > 0)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Kiểm tra sản phẩm có thuộc tính màu sắc thực tế không */
+  hasColorAttribute(): boolean {
+    if (!this.request) return false;
+    if (this.request.customizedAttributes && this.request.customizedAttributes.length > 0) {
+      return this.request.customizedAttributes.some(a => 
+        (a.groupId && a.groupId.toLowerCase().includes('color')) ||
+        (a.label && a.label.toLowerCase().includes('màu')) ||
+        !!a.hexColor
+      );
+    }
+    return !!(this.request.colorName && this.request.colorName.trim());
+  }
+
+  /** Lấy nhãn hiển thị thực tế của thuộc tính màu sắc */
+  getColorAttributeLabel(): string {
+    const attr = this.request?.customizedAttributes?.find(a => 
+      (a.groupId && a.groupId.toLowerCase().includes('color')) ||
+      (a.label && a.label.toLowerCase().includes('màu')) ||
+      !!a.hexColor
+    );
+    return attr?.label || 'Màu sắc thực tế chốt';
+  }
+
+  /** Kiểm tra sản phẩm có thuộc tính chất liệu bề mặt không */
+  hasMaterialAttribute(): boolean {
+    if (!this.request) return false;
+    if (this.request.customizedAttributes && this.request.customizedAttributes.length > 0) {
+      return this.request.customizedAttributes.some(a => 
+        (a.groupId && (a.groupId.toLowerCase().includes('material') || a.groupId.toLowerCase().includes('upholstery') || a.groupId.toLowerCase().includes('fabric') || a.groupId.toLowerCase().includes('tabletop'))) ||
+        (a.label && (a.label.toLowerCase().includes('chất liệu') || a.label.toLowerCase().includes('vải') || a.label.toLowerCase().includes('da') || a.label.toLowerCase().includes('bọc') || a.label.toLowerCase().includes('mặt')))
+      );
+    }
+    return !!(this.request.material && this.request.material.trim());
+  }
+
+  /** Lấy nhãn hiển thị thực tế của thuộc tính chất liệu bề mặt */
+  getMaterialAttributeLabel(): string {
+    const attr = this.request?.customizedAttributes?.find(a => 
+      (a.groupId && (a.groupId.toLowerCase().includes('material') || a.groupId.toLowerCase().includes('upholstery') || a.groupId.toLowerCase().includes('fabric') || a.groupId.toLowerCase().includes('tabletop'))) ||
+      (a.label && (a.label.toLowerCase().includes('chất liệu') || a.label.toLowerCase().includes('vải') || a.label.toLowerCase().includes('da') || a.label.toLowerCase().includes('bọc') || a.label.toLowerCase().includes('mặt')))
+    );
+    return attr?.label || 'Chất liệu bề mặt chốt';
+  }
+
+  /** Kiểm tra sản phẩm có thuộc tính chân đế / khung kết cấu không */
+  hasLegAttribute(): boolean {
+    if (!this.request) return false;
+    if (this.request.customizedAttributes && this.request.customizedAttributes.length > 0) {
+      return this.request.customizedAttributes.some(a => 
+        (a.groupId && (a.groupId.toLowerCase().includes('leg') || a.groupId.toLowerCase().includes('frame') || a.groupId.toLowerCase().includes('base'))) ||
+        (a.label && (a.label.toLowerCase().includes('chân') || a.label.toLowerCase().includes('khung') || a.label.toLowerCase().includes('đế')))
+      );
+    }
+    return !!(this.request.legMaterial && this.request.legMaterial.trim());
+  }
+
+  /** Lấy nhãn hiển thị thực tế của thuộc tính chân/khung */
+  getLegAttributeLabel(): string {
+    const attr = this.request?.customizedAttributes?.find(a => 
+      (a.groupId && (a.groupId.toLowerCase().includes('leg') || a.groupId.toLowerCase().includes('frame') || a.groupId.toLowerCase().includes('base'))) ||
+      (a.label && (a.label.toLowerCase().includes('chân') || a.label.toLowerCase().includes('khung') || a.label.toLowerCase().includes('đế')))
+    );
+    return attr?.label || 'Chân đế / Khung kết cấu chốt';
+  }
+
+  /** Lấy các thuộc tính đặc thù khác của sản phẩm (nếu có) */
+  getOtherCustomAttributes(): CustomAttributeItem[] {
+    if (!this.request?.customizedAttributes) return [];
+    return this.request.customizedAttributes.filter(a => {
+      const g = (a.groupId || '').toLowerCase();
+      const l = (a.label || '').toLowerCase();
+      const isColor = g.includes('color') || l.includes('màu') || !!a.hexColor;
+      const isMat = g.includes('material') || g.includes('upholstery') || g.includes('fabric') || g.includes('tabletop') || l.includes('chất liệu') || l.includes('vải') || l.includes('da') || l.includes('bọc') || l.includes('mặt');
+      const isLeg = g.includes('leg') || g.includes('frame') || g.includes('base') || l.includes('chân') || l.includes('khung') || l.includes('đế');
+      const isSize = g.includes('size') || l.includes('kích thước');
+      return !isColor && !isMat && !isLeg && !isSize;
+    });
+  }
+
+  /** Lấy ghi chú yêu cầu riêng của khách hàng đối với chất liệu bọc (nếu có) */
+  getMaterialCustomNote(): string {
+    const attr = this.request?.customizedAttributes?.find(a => {
+      const g = (a.groupId || '').toLowerCase();
+      const l = (a.label || '').toLowerCase();
+      return (
+        g.includes('material') || g.includes('upholstery') || g.includes('fabric') || g.includes('tabletop') ||
+        l.includes('chất liệu') || l.includes('vải') || l.includes('da') || l.includes('bọc') || l.includes('mặt')
+      );
+    });
+    return attr?.customNote?.trim() || '';
+  }
+
+  /** Lấy ghi chú yêu cầu riêng của khách hàng đối với màu sắc (nếu có) */
+  getColorCustomNote(): string {
+    const attr = this.request?.customizedAttributes?.find(a => {
+      const g = (a.groupId || '').toLowerCase();
+      const l = (a.label || '').toLowerCase();
+      return g.includes('color') || l.includes('màu') || !!a.hexColor;
+    });
+    return attr?.customNote?.trim() || '';
+  }
+
+  /** Lấy ghi chú yêu cầu riêng của khách hàng đối với chân đế / khung (nếu có) */
+  getLegCustomNote(): string {
+    const attr = this.request?.customizedAttributes?.find(a => {
+      const g = (a.groupId || '').toLowerCase();
+      const l = (a.label || '').toLowerCase();
+      return (
+        g.includes('leg') || g.includes('frame') || g.includes('base') ||
+        l.includes('chân') || l.includes('khung') || l.includes('đế')
+      );
+    });
+    return attr?.customNote?.trim() || '';
+  }
+
   hasSurveyRecord(): boolean {
+    const hasDimensions = this.hasProductDimensions() ? !!(this.surveyLength > 0 || this.surveyWidth > 0 || this.surveyHeight > 0) : false;
+    const hasColor = this.hasColorAttribute() ? !!(this.surveyColorName && this.surveyColorName.trim()) : false;
+    const hasMaterial = this.hasMaterialAttribute() ? !!(this.surveyMaterial && this.surveyMaterial.trim()) : false;
+    const hasLeg = this.hasLegAttribute() ? !!(this.surveyLegMaterial && this.surveyLegMaterial.trim()) : false;
     const hasNote = !!(this.surveyNoteText && this.surveyNoteText.trim());
     const hasFile = !!this.surveyUploadedFile;
-    return hasNote || hasFile;
+    return hasDimensions || hasColor || hasMaterial || hasLeg || hasNote || hasFile;
   }
 
   /** Khối Tác nghiệp Khảo sát & Đo đạc chỉ hiển thị từ Bước 2 trở đi */
@@ -269,16 +518,54 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     return this.activeViewingStep >= 2 && this.getCurrentStepIndex() >= 2;
   }
 
-  /** Khối Tiến độ Sản xuất & QC chỉ hiển thị từ Bước 7 trở đi */
-  isProductionCardVisible(): boolean {
-    if (!this.request) return false;
-    return ['PROCESSING', 'QC_PASSED', 'COMPLETED'].includes(this.request.status) && this.activeViewingStep >= 6;
-  }
-
   saveSurveyRecord(): void {
     if (!this.request) return;
 
     this.request.surveyNotes = this.surveyNoteText;
+    if (this.hasProductDimensions()) {
+      if (this.surveyLength) this.request.length = Number(this.surveyLength);
+      if (this.surveyWidth) this.request.width = Number(this.surveyWidth);
+      if (this.surveyHeight) this.request.height = Number(this.surveyHeight);
+    } else {
+      delete this.request.length;
+      delete this.request.width;
+      delete this.request.height;
+    }
+    if (this.surveyColorName) this.request.colorName = this.surveyColorName;
+    if (this.surveyColorHex) this.request.colorHex = this.surveyColorHex;
+    this.request.colorImage = this.surveyColorImage || this.request.colorImage;
+    if (this.surveyMaterial) this.request.material = this.surveyMaterial;
+    if (this.hasLegAttribute() && this.surveyLegMaterial) {
+      this.request.legMaterial = this.surveyLegMaterial;
+    } else if (!this.hasLegAttribute()) {
+      delete this.request.legMaterial;
+    }
+
+    // Đồng bộ ngược lại các giá trị chốt vào customizedAttributes của request
+    if (this.request.customizedAttributes && this.request.customizedAttributes.length > 0) {
+      this.request.customizedAttributes.forEach(attr => {
+        const g = (attr.groupId || '').toLowerCase();
+        const l = (attr.label || '').toLowerCase();
+        if (g.includes('color') || l.includes('màu') || !!attr.hexColor) {
+          if (this.surveyColorName) {
+            attr.selectedOptionName = this.surveyColorName;
+            attr.hexColor = this.surveyColorHex;
+            attr.isChanged = true;
+          }
+        } else if (g.includes('material') || g.includes('upholstery') || g.includes('fabric') || g.includes('tabletop') || l.includes('chất liệu') || l.includes('vải') || l.includes('da') || l.includes('bọc') || l.includes('mặt')) {
+          if (this.surveyMaterial) {
+            attr.selectedOptionName = this.surveyMaterial;
+            attr.isChanged = true;
+          }
+        } else if (g.includes('leg') || g.includes('frame') || g.includes('base') || l.includes('chân') || l.includes('khung') || l.includes('đế')) {
+          if (this.surveyLegMaterial) {
+            attr.selectedOptionName = this.surveyLegMaterial;
+            attr.isChanged = true;
+          }
+        }
+      });
+    }
+
     if (this.surveyUploadedFile) {
       this.request.surveyAttachment = {
         name: this.surveyUploadedFile.name,
@@ -292,9 +579,18 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
 
     this.customRequestService.updateSurveyRecord(this.request.id, {
       surveyNotes: this.surveyNoteText,
-      surveyAttachment: this.request.surveyAttachment
+      surveyAttachment: this.request.surveyAttachment,
+      length: this.request.length,
+      width: this.request.width,
+      height: this.request.height,
+      colorName: this.request.colorName,
+      colorHex: this.request.colorHex,
+      colorImage: this.request.colorImage,
+      material: this.request.material,
+      legMaterial: this.request.legMaterial
     });
 
+    this.isSurveySaved = true;
     this.isSavedSurveyRecord = true;
     if (this.savedTimer) clearTimeout(this.savedTimer);
     this.savedTimer = setTimeout(() => {
@@ -303,8 +599,8 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     }, 1800);
 
     this.triggerToast(
-      'Đã lưu biên bản đo đạc',
-      'Biên bản kết quả đo đạc & khảo sát của KTS đã được lưu thành công.',
+      'Đã lưu kết quả đo đạc & thông số kỹ thuật',
+      'Thông số kích thước, màu sắc và vật liệu thực tế đã được cập nhật thành công vào hồ sơ đơn hàng.',
       'success'
     );
     this.cdr.detectChanges();
@@ -313,17 +609,69 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
   /** Hoàn thiện khảo sát đo đạc ở Bước 2 -> Lưu kết quả và chuyển thẳng sang Bước 3 (Báo giá & 3D), KHÔNG hiện popup */
   completeSurveyRecord(): void {
     if (!this.request) return;
-    if (!this.hasSurveyRecord()) {
-      this.triggerToast(
-        'Chưa có dữ liệu khảo sát',
-        'Vui lòng nhập ghi chú đo đạc thực tế hoặc tải lên tệp khảo sát trước khi hoàn tất.',
-        'error'
-      );
+    if (!this.canCompleteSurvey()) {
+      if (!this.isSurveySaved) {
+        this.triggerToast(
+          'Chưa lưu kết quả khảo sát',
+          'Vui lòng nhấn "Lưu kết quả đo đạc & thông số" trước khi hoàn thiện khảo sát.',
+          'error'
+        );
+      } else {
+        this.triggerToast(
+          'Chưa có dữ liệu khảo sát',
+          'Vui lòng nhập thông số kích thước, màu sắc hoặc ghi chú đo đạc trước khi hoàn tất.',
+          'error'
+        );
+      }
       return;
     }
 
-    // Tự động lưu thông số đo đạc / file nếu có
+    // Tự động lưu thông số đo đạc & quy cách kỹ thuật chốt
     this.request.surveyNotes = this.surveyNoteText.trim();
+    if (this.hasProductDimensions()) {
+      if (this.surveyLength) this.request.length = Number(this.surveyLength);
+      if (this.surveyWidth) this.request.width = Number(this.surveyWidth);
+      if (this.surveyHeight) this.request.height = Number(this.surveyHeight);
+    } else {
+      delete this.request.length;
+      delete this.request.width;
+      delete this.request.height;
+    }
+    if (this.surveyColorName) this.request.colorName = this.surveyColorName;
+    if (this.surveyColorHex) this.request.colorHex = this.surveyColorHex;
+    this.request.colorImage = this.surveyColorImage || this.request.colorImage;
+    if (this.surveyMaterial) this.request.material = this.surveyMaterial;
+    if (this.hasLegAttribute() && this.surveyLegMaterial) {
+      this.request.legMaterial = this.surveyLegMaterial;
+    } else if (!this.hasLegAttribute()) {
+      delete this.request.legMaterial;
+    }
+
+    // Đồng bộ ngược lại các giá trị chốt vào customizedAttributes của request
+    if (this.request.customizedAttributes && this.request.customizedAttributes.length > 0) {
+      this.request.customizedAttributes.forEach(attr => {
+        const g = (attr.groupId || '').toLowerCase();
+        const l = (attr.label || '').toLowerCase();
+        if (g.includes('color') || l.includes('màu') || !!attr.hexColor) {
+          if (this.surveyColorName) {
+            attr.selectedOptionName = this.surveyColorName;
+            attr.hexColor = this.surveyColorHex;
+            attr.isChanged = true;
+          }
+        } else if (g.includes('material') || g.includes('upholstery') || g.includes('fabric') || g.includes('tabletop') || l.includes('chất liệu') || l.includes('vải') || l.includes('da') || l.includes('bọc') || l.includes('mặt')) {
+          if (this.surveyMaterial) {
+            attr.selectedOptionName = this.surveyMaterial;
+            attr.isChanged = true;
+          }
+        } else if (g.includes('leg') || g.includes('frame') || g.includes('base') || l.includes('chân') || l.includes('khung') || l.includes('đế')) {
+          if (this.surveyLegMaterial) {
+            attr.selectedOptionName = this.surveyLegMaterial;
+            attr.isChanged = true;
+          }
+        }
+      });
+    }
+
     if (this.surveyUploadedFile) {
       this.request.surveyAttachment = {
         name: this.surveyUploadedFile.name,
@@ -334,7 +682,15 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     }
     this.customRequestService.updateSurveyRecord(this.request.id, {
       surveyNotes: this.surveyNoteText.trim(),
-      surveyAttachment: this.request.surveyAttachment
+      surveyAttachment: this.request.surveyAttachment,
+      length: this.request.length,
+      width: this.request.width,
+      height: this.request.height,
+      colorName: this.request.colorName,
+      colorHex: this.request.colorHex,
+      colorImage: this.request.colorImage,
+      material: this.request.material,
+      legMaterial: this.request.legMaterial
     });
 
     // Chuyển sang Bước 3: QUOTED (Báo giá & 3D)
@@ -365,21 +721,41 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
 
   // Forms data for modals
   surveyForm = {
-    staffName: 'KTS. Lê Nam (DCor Studio)',
+    staffName: 'KTS. Lê Nam',
     surveyDate: '',
     surveyNotes: 'Đã khảo sát đo đạc hiện trạng thực tế, mặt bằng phẳng, hướng đón ánh sáng tốt, sẵn sàng lên bản vẽ 3D.'
   };
 
   // Step 3: Tác nghiệp Báo giá & Phối cảnh 3D
   quote3dInputMode: 'FILE' | 'URL' = 'FILE';
-  quoteUploadedFile: {
+  quoteUploadedFiles: Array<{
     name: string;
     size: string;
     url: string;
     type?: string;
-  } | null = null;
+    isCover?: boolean;
+  }> = [];
+
+  get quoteUploadedFile(): { name: string; size: string; url: string; type?: string; isCover?: boolean } | null {
+    if (!this.quoteUploadedFiles || this.quoteUploadedFiles.length === 0) return null;
+    return this.quoteUploadedFiles.find(f => f.isCover) || this.quoteUploadedFiles[0];
+  }
+
+  set quoteUploadedFile(val: { name: string; size: string; url: string; type?: string; isCover?: boolean } | null) {
+    if (!val) {
+      this.quoteUploadedFiles = [];
+    } else {
+      this.quoteUploadedFiles = [{ ...val, isCover: true }];
+    }
+  }
+
   isSavedQuoteRecord: boolean = false;
   private savedQuoteTimer: any = null;
+
+  isQuoteFileCreated: boolean = false;
+  confirmedQuotePrice: number = 0;
+  confirmedDepositAmount: number = 0;
+  quoteCreatedAt: Date | null = null;
 
   quoteForm = {
     quotedPrice: 0,
@@ -387,7 +763,16 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     depositAmount: 0,
     drawing3dUrl: '',
     notes: '',
-    staffName: 'KTS. Lê Nam (DCor Studio)'
+    staffName: 'KTS. Lê Nam'
+  };
+
+  companyInfo = {
+    brandName: 'DCOR',
+    brandSub: 'LUXURY BESPOKE INTERIOR & LIVING',
+    address: 'Showroom & Atelier: 669 QL1A, P. Linh Trung, TP. Thủ Đức, TP. HCM',
+    hotline: '1900 8888',
+    email: 'dcorfurniture406@gmail.com',
+    website: 'www.dcor.vn'
   };
 
   setQuote3dMode(mode: 'FILE' | 'URL'): void {
@@ -397,27 +782,144 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
   onQuote3dFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      const sizeStr = file.size > 1024 * 1024 
-        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
-        : `${Math.round(file.size / 1024)} KB`;
+      const files = Array.from(input.files);
+      let loadedCount = 0;
+      files.forEach((file) => {
+        const sizeStr = file.size > 1024 * 1024 
+          ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+          : `${Math.round(file.size / 1024)} KB`;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.quoteUploadedFile = {
-          name: file.name,
-          size: sizeStr,
-          url: e.target?.result as string,
-          type: file.type
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const isFirst = this.quoteUploadedFiles.length === 0;
+          this.quoteUploadedFiles.push({
+            name: file.name,
+            size: sizeStr,
+            url: e.target?.result as string,
+            type: file.type,
+            isCover: isFirst
+          });
+          loadedCount++;
+          if (loadedCount === files.length) {
+            this.cdr.detectChanges();
+          }
         };
-        this.cdr.detectChanges();
-      };
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      });
+      input.value = '';
     }
   }
 
-  removeQuote3dFile(): void {
-    this.quoteUploadedFile = null;
+  removeQuote3dFile(index?: number): void {
+    if (index !== undefined && index >= 0 && index < this.quoteUploadedFiles.length) {
+      const removed = this.quoteUploadedFiles.splice(index, 1)[0];
+      if (removed.isCover && this.quoteUploadedFiles.length > 0) {
+        this.quoteUploadedFiles[0].isCover = true;
+      }
+    } else {
+      this.quoteUploadedFiles = [];
+    }
+    this.cdr.detectChanges();
+  }
+
+  setQuoteCoverImage(index: number): void {
+    if (index >= 0 && index < this.quoteUploadedFiles.length) {
+      this.quoteUploadedFiles.forEach((f, i) => {
+        f.isCover = i === index;
+      });
+      this.cdr.detectChanges();
+    }
+  }
+
+  formatNumberWithDots(val: number | string | null | undefined): string {
+    if (val === null || val === undefined || val === '' || val === 0) return '';
+    const digits = String(val).replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    if (!digits) return '';
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  onPriceBeforeInput(event: any): void {
+    const data = event.data;
+    if (data && !/^\d+$/.test(data)) {
+      event.preventDefault();
+    }
+  }
+
+  onPriceKeyDown(event: KeyboardEvent): void {
+    const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Delete', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (allowedKeys.includes(event.key) || event.ctrlKey || event.metaKey) {
+      if (event.key === 'Backspace') {
+        const target = event.target as HTMLInputElement;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        if (start !== null && start === end && start > 0 && target.value[start - 1] === '.') {
+          event.preventDefault();
+          const raw = target.value;
+          const newRaw = raw.slice(0, start - 2) + raw.slice(start);
+          const digits = newRaw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+          const formatted = this.formatNumberWithDots(digits);
+          target.value = formatted;
+          const newPos = Math.max(0, start - 2);
+          target.setSelectionRange(newPos, newPos);
+          this.quoteForm.quotedPrice = digits ? parseInt(digits, 10) : 0;
+          this.updateQuoteDeposit();
+        }
+      }
+      return;
+    }
+    // Chặn mọi ký tự không phải chữ số 0-9: chữ cái, dấu chấm, phẩy, âm, e/E...
+    if (!/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  onPricePaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const pastedText = event.clipboardData?.getData('text') || '';
+    const digitsOnly = pastedText.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    const target = event.target as HTMLInputElement;
+    const formatted = this.formatNumberWithDots(digitsOnly);
+    target.value = formatted;
+    this.quoteForm.quotedPrice = digitsOnly ? parseInt(digitsOnly, 10) : 0;
+    this.updateQuoteDeposit();
+  }
+
+  onPriceInput(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const rawVal = target.value || '';
+    const selectionStart = target.selectionStart || 0;
+    const digitsBeforeCursor = rawVal.slice(0, selectionStart).replace(/\D/g, '').length;
+    const digits = rawVal.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+
+    if (!digits) {
+      target.value = '';
+      this.quoteForm.quotedPrice = 0;
+      this.updateQuoteDeposit();
+      return;
+    }
+
+    const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    target.value = formatted;
+
+    // Giữ vị trí con trỏ thông minh khi tự động chèn dấu chấm
+    let newCursorPos = 0;
+    let countedDigits = 0;
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) {
+        countedDigits++;
+      }
+      if (countedDigits === digitsBeforeCursor) {
+        newCursorPos = i + 1;
+        break;
+      }
+    }
+    if (digitsBeforeCursor === 0) {
+      newCursorPos = 0;
+    }
+    target.setSelectionRange(newCursorPos, newCursorPos);
+
+    this.quoteForm.quotedPrice = parseInt(digits, 10);
+    this.updateQuoteDeposit();
   }
 
   updateQuoteDeposit(): void {
@@ -425,41 +927,134 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.quoteForm.depositAmount = Math.round(price * (this.quoteForm.depositPercent / 100));
   }
 
+  hasAnyQuoteSpecs(): boolean {
+    if (!this.request) return false;
+    const hasDim = this.hasProductDimensions() && !!(this.request.length || this.request.width || this.request.height);
+    const hasMat = this.hasMaterialAttribute() && !!this.request.material;
+    const hasColor = this.hasColorAttribute() && !!this.request.colorName;
+    const hasLeg = this.hasLegAttribute() && !!this.request.legMaterial;
+    const hasOther = this.getOtherCustomAttributes().length > 0;
+    const hasNotes = !!(this.quoteForm.notes && this.quoteForm.notes.trim().length > 0);
+    const hasSurvey = !!(this.request.surveyNotes && this.request.surveyNotes.trim().length > 0);
+    return hasDim || hasMat || hasColor || hasLeg || hasOther || hasNotes || hasSurvey;
+  }
+
+  formatLink(url: string | null | undefined): string {
+    if (!url) return '';
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    if (/^[a-zA-Z][a-zA-Z\d+\-.]*?:/.test(trimmed)) {
+      return trimmed;
+    }
+    return 'https://' + trimmed;
+  }
+
+  isPriceOutdated(): boolean {
+    if (!this.isQuoteFileCreated) return false;
+    const currentPrice = Number(this.quoteForm.quotedPrice) || 0;
+    return currentPrice !== this.confirmedQuotePrice;
+  }
+
+  createQuoteFile(): void {
+    const price = Number(this.quoteForm.quotedPrice);
+    if (!price || price <= 0) {
+      this.triggerToast('Chưa nhập giá', 'Vui lòng nhập đơn giá dự toán hợp lệ trước khi tạo file báo giá.', 'error');
+      return;
+    }
+    if (!this.quoteUploadedFile) {
+      this.triggerToast('Thiếu ảnh phối cảnh 3D', 'Bắt buộc tải lên tệp hình ảnh phối cảnh 3D trước khi tạo file báo giá.', 'error');
+      return;
+    }
+
+    this.isQuoteFileCreated = true;
+    this.confirmedQuotePrice = price;
+    this.confirmedDepositAmount = this.quoteForm.depositAmount || Math.round(price * 0.3);
+    this.quoteCreatedAt = new Date();
+
+    if (this.request) {
+      this.request.quotedPrice = price;
+      this.request.quotedDeposit = this.confirmedDepositAmount;
+      this.request.quotedAt = this.quoteCreatedAt.toISOString();
+
+      // Lưu vĩnh viễn dữ liệu báo giá vào hệ thống
+      this.customRequestService.saveQuoteDraft(this.request.id, {
+        quotedPrice: price,
+        quotedDeposit: this.confirmedDepositAmount,
+        notes: this.quoteForm.notes,
+        drawing3dUrl: this.quoteUploadedFile?.url || this.quoteForm.drawing3dUrl,
+        staffName: this.quoteForm.staffName
+      });
+    }
+
+    this.triggerToast(
+      'Tạo file Báo Giá thành công!',
+      `Phiếu báo giá BG-${this.request?.code || ''} trị giá ${this.formatVND(price)} đã được tạo và lưu vào hồ sơ đơn hàng.`,
+      'success'
+    );
+    this.cdr.detectChanges();
+  }
+
   hasQuoteRecord(): boolean {
     if (!this.request) return false;
-    const price = Number(this.quoteForm.quotedPrice);
-    const hasPrice = !isNaN(price) && price > 0;
-    const has3d = !!this.quoteUploadedFile || (!!this.quoteForm.drawing3dUrl && this.quoteForm.drawing3dUrl.trim().length > 0);
-    return hasPrice && has3d;
+    return Number(this.quoteForm.quotedPrice) > 0 && !!this.quoteUploadedFile;
   }
 
   saveQuoteRecord(): void {
     if (!this.request) return;
+    const price = Number(this.quoteForm.quotedPrice) || 0;
+    const deposit = Number(this.quoteForm.depositAmount) || Math.round(price * 0.3);
+    const drawingUrl = this.quoteUploadedFile?.url || this.quoteForm.drawing3dUrl || '';
+    const drawingUrls = this.quoteUploadedFiles.map(f => f.url).filter(Boolean);
+
+    this.customRequestService.saveQuoteDraft(this.request.id, {
+      quotedPrice: price,
+      quotedDeposit: deposit,
+      notes: this.quoteForm.notes,
+      drawing3dUrl: drawingUrl,
+      drawing3dUrls: drawingUrls.length > 0 ? drawingUrls : (drawingUrl ? [drawingUrl] : []),
+      staffName: this.quoteForm.staffName
+    });
+
     this.isSavedQuoteRecord = true;
     if (this.savedQuoteTimer) clearTimeout(this.savedQuoteTimer);
     this.savedQuoteTimer = setTimeout(() => {
       this.isSavedQuoteRecord = false;
       this.cdr.detectChanges();
     }, 3000);
-    this.triggerToast('Đã lưu kết quả dự toán', 'Thông số giá và tệp 3D đã được ghi nhận vào hồ sơ may đo.', 'success');
+    this.triggerToast('Đã lưu kết quả dự toán', 'Thông số giá và ghi chú đã được lưu vĩnh viễn vào hồ sơ may đo.', 'success');
   }
 
   completeQuoteStep(): void {
     if (!this.request) return;
-    if (!this.hasQuoteRecord()) {
+    if (!this.quoteForm.quotedPrice || Number(this.quoteForm.quotedPrice) <= 0) {
       this.triggerToast(
-        'Chưa đủ dữ liệu phát hành',
-        'Vui lòng hoàn thành đơn giá dự toán và tệp phối cảnh 3D trước khi gửi khách.',
+        'Chưa nhập đơn giá dự toán',
+        'Vui lòng nhập đơn giá dự toán trước khi gửi báo giá cho khách.',
         'error'
       );
       return;
     }
 
-    const drawingUrl = this.quoteUploadedFile?.url || this.quoteForm.drawing3dUrl;
+    if (!this.quoteUploadedFile) {
+      this.triggerToast(
+        'Thiếu ảnh phối cảnh 3D',
+        'Bắt buộc tải lên tệp hình ảnh phối cảnh 3D trước khi gửi báo giá cho khách.',
+        'error'
+      );
+      return;
+    }
+
+    if (!this.isQuoteFileCreated || this.isPriceOutdated()) {
+      this.createQuoteFile();
+    }
+
+    const drawingUrl = this.quoteUploadedFile?.url || this.quoteForm.drawing3dUrl || '';
+    const drawingUrls = this.quoteUploadedFiles.map(f => f.url).filter(Boolean);
     this.customRequestService.sendQuote(this.request.id, {
       quotedPrice: Number(this.quoteForm.quotedPrice),
-      quotedDeposit: Number(this.quoteForm.depositAmount),
+      quotedDeposit: Number(this.quoteForm.depositAmount) || Math.round(Number(this.quoteForm.quotedPrice) * 0.3),
       drawing3dUrl: drawingUrl,
+      drawing3dUrls: drawingUrls.length > 0 ? drawingUrls : (drawingUrl ? [drawingUrl] : []),
       notes: this.quoteForm.notes,
       staffName: this.quoteForm.staffName
     });
@@ -471,7 +1066,7 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.loadRequest();
     this.triggerToast(
       'Phát hành báo giá thành công',
-      `Dự toán ${new Intl.NumberFormat('vi-VN').format(this.quoteForm.quotedPrice)} đ & phối cảnh 3D đã được gửi cho khách. Hồ sơ đã chuyển sang Bước 4: Hợp đồng.`,
+      `Dự toán ${new Intl.NumberFormat('vi-VN').format(this.quoteForm.quotedPrice)} đ đã được gửi cho khách. Hồ sơ đã chuyển sang: Đang đợi khách hàng ký hợp đồng.`,
       'success'
     );
   }
@@ -480,13 +1075,16 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
 
   openQuotePreviewModal(): void {
     if (!this.request) return;
-    if (!this.hasQuoteRecord()) {
+    if (!this.quoteForm.quotedPrice || Number(this.quoteForm.quotedPrice) <= 0) {
       this.triggerToast(
-        'Chưa đủ dữ liệu báo giá',
-        'Vui lòng nhập đơn giá dự toán và tệp phối cảnh 3D trước khi xem trước.',
+        'Chưa nhập đơn giá dự toán',
+        'Vui lòng nhập đơn giá dự toán trước khi xem trước.',
         'error'
       );
       return;
+    }
+    if (!this.isQuoteFileCreated || this.isPriceOutdated()) {
+      this.createQuoteFile();
     }
     this.isQuotePreviewModalOpen = true;
   }
@@ -529,6 +1127,174 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     notes: 'Kích thước đúng 100% bản vẽ đo đạc. Đường chỉ may đôi sắc nét, độ đàn hồi mút D40 đạt chuẩn xuất xưởng.'
   };
 
+  // --- MODAL TẠO SẢN PHẨM / BIẾN THỂ MAY ĐO (BƯỚC 6) ---
+  isVariantModalOpen: boolean = false;
+  variantForm = {
+    variantName: '',
+    images: [] as string[],
+    price: 0,
+    stock: 1,
+    status: 'private' as 'private' | 'public',
+    sku: '',
+    attributes: [] as { label: string; value: string; hexColor?: string }[]
+  };
+
+  openCreateVariantModal(): void {
+    if (!this.request) return;
+
+    // Tự động thu thập hình ảnh từ phối cảnh 3D và vật liệu đã upload
+    const images: string[] = [];
+    if (this.request.drawing3dUrls && this.request.drawing3dUrls.length > 0) {
+      this.request.drawing3dUrls.forEach(u => {
+        if (u && !images.includes(u)) images.push(u);
+      });
+    } else if (this.request.drawing3dUrl) {
+      images.push(this.request.drawing3dUrl);
+    }
+    if (this.quoteUploadedFiles && this.quoteUploadedFiles.length > 0) {
+      this.quoteUploadedFiles.forEach(f => {
+        if (f.url && !images.includes(f.url)) images.push(f.url);
+      });
+    }
+    if (this.request.colorImage && !images.includes(this.request.colorImage)) {
+      images.push(this.request.colorImage);
+    }
+    if (this.surveyColorImage && !images.includes(this.surveyColorImage)) {
+      images.push(this.surveyColorImage);
+    }
+    if (this.request.surveyAttachment?.previewUrl && !images.includes(this.request.surveyAttachment.previewUrl)) {
+      images.push(this.request.surveyAttachment.previewUrl);
+    }
+    if (this.request.attachments && Array.isArray(this.request.attachments)) {
+      this.request.attachments.forEach(att => {
+        if (att.previewUrl && !images.includes(att.previewUrl)) images.push(att.previewUrl);
+      });
+    }
+    if (this.request.referenceImages && Array.isArray(this.request.referenceImages)) {
+      this.request.referenceImages.forEach(img => {
+        if (img && !images.includes(img)) images.push(img);
+      });
+    }
+    if (images.length === 0 && this.request.productImage) {
+      images.push(this.request.productImage);
+    }
+
+    // Thu thập thuộc tính chốt ở bước Khảo sát - Đo thực tế & tư vấn
+    const attributes: { label: string; value: string; hexColor?: string }[] = [];
+    const l = this.request.length || this.surveyLength;
+    const w = this.request.width || this.surveyWidth;
+    const h = this.request.height || this.surveyHeight;
+    if (l && w && h) {
+      attributes.push({ label: 'Kích thước', value: `${l} × ${w} × ${h} cm` });
+    }
+    const colorVal = this.request.colorName || this.surveyColorName;
+    if (colorVal) {
+      attributes.push({
+        label: 'Màu sắc',
+        value: colorVal,
+        hexColor: this.request.colorHex || this.surveyColorHex
+      });
+    }
+    const matVal = this.request.material || this.surveyMaterial;
+    if (matVal) {
+      attributes.push({ label: 'Chất liệu', value: matVal });
+    }
+    const legVal = this.request.legMaterial || this.surveyLegMaterial;
+    if (legVal) {
+      attributes.push({ label: 'Khung / Chân', value: legVal });
+    }
+    if (this.request.customizedAttributes && Array.isArray(this.request.customizedAttributes)) {
+      this.request.customizedAttributes.forEach(attr => {
+        const val = attr.selectedOptionName || attr.originalValue;
+        if (val && !attributes.some(a => a.label === attr.label)) {
+          attributes.push({ label: attr.label, value: val, hexColor: attr.hexColor });
+        }
+      });
+    }
+
+    const orderQty = (this.request as any).quantity || 1;
+
+    if (this.request.customVariant) {
+      this.variantForm = {
+        variantName: this.request.customVariant.name,
+        images: this.request.customVariant.images?.length > 0 ? [...this.request.customVariant.images] : images,
+        price: this.request.customVariant.price || this.request.quotedPrice || 0,
+        stock: this.request.customVariant.stock || orderQty,
+        status: 'private',
+        sku: this.request.customVariant.sku || `VAR-${this.request.code}`,
+        attributes: this.request.customVariant.attributes?.length > 0 ? [...this.request.customVariant.attributes] : attributes
+      };
+    } else {
+      this.variantForm = {
+        variantName: '',
+        images: images,
+        price: this.request.quotedPrice || 0,
+        stock: orderQty,
+        status: 'private',
+        sku: `VAR-${this.request.code}`,
+        attributes: attributes
+      };
+    }
+
+    this.isVariantModalOpen = true;
+  }
+
+  closeVariantModal(): void {
+    this.isVariantModalOpen = false;
+  }
+
+  removeVariantImage(index: number): void {
+    if (index >= 0 && index < this.variantForm.images.length) {
+      this.variantForm.images.splice(index, 1);
+    }
+  }
+
+  onVariantImageUpload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      Array.from(input.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            this.variantForm.images.push(e.target.result as string);
+            this.cdr.detectChanges();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  saveProductVariant(): void {
+    if (!this.request) return;
+    if (!this.variantForm.variantName || !this.variantForm.variantName.trim()) {
+      this.triggerToast('Chưa nhập tên biến thể', 'Vui lòng đặt tên cho biến thể may đo trước khi lưu.', 'error');
+      return;
+    }
+
+    const variantData = {
+      id: this.request.customVariant?.id || `var_${Date.now()}`,
+      name: this.variantForm.variantName.trim(),
+      sku: this.variantForm.sku,
+      price: this.variantForm.price,
+      stock: this.variantForm.stock,
+      status: 'private' as const,
+      isPrivate: true,
+      images: [...this.variantForm.images],
+      attributes: [...this.variantForm.attributes],
+      createdAt: this.request.customVariant?.createdAt || new Date().toISOString()
+    };
+
+    this.customRequestService.saveCustomVariant(this.request.id, variantData);
+    this.request.customVariant = variantData;
+    this.isVariantModalOpen = false;
+    this.triggerToast(
+      'Tạo sản phẩm (Biến thể) thành công',
+      `Đã tạo biến thể "${variantData.name}" (Private) gắn liền với hồ sơ may đo #${this.request.code}.`,
+      'success'
+    );
+  }
+
   deliveryForm = {
     staffName: 'Nguyễn Văn Giao (Điều Phối Viên DCor)',
     remainingAmount: 17150000,
@@ -552,13 +1318,12 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     'Lý do khác'
   ];
 
-  // 8 Chuỗi trạng thái chuẩn của quy trình may đo nội thất
+  // 7 Chuỗi trạng thái chuẩn của quy trình may đo nội thất (đã rút gọn Hợp đồng thành 1 bước)
   readonly WORKFLOW_STEPS: { key: CustomRequestStatus; name: string; sub: string }[] = [
     { key: 'PENDING_REVIEW', name: 'Tiếp nhận', sub: 'Chờ KTS nhận việc' },
     { key: 'CONSULTING', name: 'Khảo sát', sub: 'Đo thực tế & tư vấn' },
     { key: 'QUOTED', name: 'Báo giá & 3D', sub: 'Phối cảnh 3D & giá' },
-    { key: 'AWAITING_CONTRACT', name: 'Hợp đồng', sub: 'Chờ ký hợp đồng' },
-    { key: 'CONTRACT_SIGNED', name: 'Đã ký HĐ', sub: 'Lưu bản scan HĐ' },
+    { key: 'AWAITING_CONTRACT', name: 'Hợp đồng', sub: 'Chờ khách ký HĐ' },
     { key: 'AWAITING_PAYMENT', name: 'Cọc 30%', sub: 'Mã VietQR chờ duyệt' },
     { key: 'PROCESSING', name: 'Sản xuất', sub: 'Gia công xưởng' },
     { key: 'COMPLETED', name: 'Nghiệm thu', sub: 'Thu 70% & Bảo hành' }
@@ -600,6 +1365,10 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
   loadRequest(): void {
     this.request = this.customRequestService.getRequestById(this.requestId);
     if (this.request) {
+      this.isSurveySaved = false;
+      if (this.request.assignedStaff) {
+        this.request.assignedStaff = this.cleanStaffName(this.request.assignedStaff);
+      }
       this.syncStepIndex();
       this.syncFormDefaults();
       // Từ bước 2 trở đi (status != PENDING_REVIEW), mặc định thu gọn khối Phiếu Yêu Cầu Custom; bước 1 luôn mở
@@ -619,8 +1388,10 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     const idx = this.WORKFLOW_STEPS.findIndex(s => s.key === currentStatus);
     if (idx !== -1) {
       this.activeViewingStep = idx;
+    } else if (currentStatus === 'CONTRACT_SIGNED' || currentStatus === 'DEPOSIT_SUBMITTED') {
+      this.activeViewingStep = 4; // Bước 5: Cọc 30%
     } else if (currentStatus === 'QC_PASSED') {
-      this.activeViewingStep = 7;
+      this.activeViewingStep = 6; // Bước 7: Nghiệm thu & Bàn giao
     }
   }
 
@@ -633,15 +1404,75 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.quoteForm.quotedPrice = price;
     this.quoteForm.depositAmount = deposit;
     this.quoteForm.drawing3dUrl = req.drawing3dUrl || '';
-    if (req.drawing3dUrl) {
-      this.quote3dInputMode = 'URL';
+    if (req.drawing3dUrl && !this.quoteUploadedFile) {
+      this.quoteUploadedFile = {
+        name: 'ban-ve-phoi-canh-3d.png',
+        size: '2.5 MB',
+        url: req.drawing3dUrl,
+        type: 'image/png'
+      };
+    }
+
+    if (price > 0) {
+      this.isQuoteFileCreated = true;
+      this.confirmedQuotePrice = price;
+      this.confirmedDepositAmount = deposit;
+      this.quoteCreatedAt = req.quotedAt ? new Date(req.quotedAt) : new Date();
+    } else {
+      this.isQuoteFileCreated = false;
+      this.confirmedQuotePrice = 0;
+      this.confirmedDepositAmount = 0;
+      this.quoteCreatedAt = null;
     }
     this.contractForm.contractNumber = `HD-DCOR-2026/${req.code}`;
     this.deliveryForm.remainingAmount = price - deposit;
     this.deliveryForm.warrantyCode = req.warrantyCode || `BH-DCOR-${req.code.replace('CR-', '')}`;
 
+    // Khởi tạo checklist kiểm định QC
+    if (req.qcChecklist) {
+      this.qcForm.dimensionAccuracy = !!req.qcChecklist.dimensionAccuracy;
+      this.qcForm.surfaceFinish = !!req.qcChecklist.surfaceFinish;
+      this.qcForm.cushionStitching = !!req.qcChecklist.cushionStitching;
+      this.qcForm.packagingProtection = !!req.qcChecklist.packagingProtection;
+    } else if (req.status === 'PROCESSING') {
+      // Khi xưởng đang gia công chưa chốt bước: cho phép quản đốc/QC chủ động tick chọn từng tiêu chuẩn
+      this.qcForm.dimensionAccuracy = false;
+      this.qcForm.surfaceFinish = false;
+      this.qcForm.cushionStitching = false;
+      this.qcForm.packagingProtection = false;
+    } else if (['QC_PASSED', 'COMPLETED'].includes(req.status)) {
+      this.qcForm.dimensionAccuracy = true;
+      this.qcForm.surfaceFinish = true;
+      this.qcForm.cushionStitching = true;
+      this.qcForm.packagingProtection = true;
+    }
+
     // Khởi tạo ghi chú / file khảo sát đo đạc thực tế của KTS
     this.surveyNoteText = req.surveyNotes || '';
+    this.surveyLength = req.length || 0;
+    this.surveyWidth = req.width || 0;
+    this.surveyHeight = req.height || 0;
+
+    const colorAttr = req.customizedAttributes?.find(a => 
+      (a.groupId && a.groupId.toLowerCase().includes('color')) ||
+      (a.label && a.label.toLowerCase().includes('màu')) ||
+      !!a.hexColor
+    );
+    this.surveyColorName = req.colorName || colorAttr?.selectedOptionName || '';
+    this.surveyColorHex = req.colorHex || colorAttr?.hexColor || '#8B4513';
+    this.surveyColorImage = req.colorImage || '';
+
+    const matAttr = req.customizedAttributes?.find(a => 
+      (a.groupId && (a.groupId.toLowerCase().includes('material') || a.groupId.toLowerCase().includes('upholstery') || a.groupId.toLowerCase().includes('fabric') || a.groupId.toLowerCase().includes('tabletop'))) ||
+      (a.label && (a.label.toLowerCase().includes('chất liệu') || a.label.toLowerCase().includes('vải') || a.label.toLowerCase().includes('da') || a.label.toLowerCase().includes('bọc') || a.label.toLowerCase().includes('mặt')))
+    );
+    this.surveyMaterial = req.material || matAttr?.selectedOptionName || '';
+
+    const legAttr = req.customizedAttributes?.find(a => 
+      (a.groupId && (a.groupId.toLowerCase().includes('leg') || a.groupId.toLowerCase().includes('frame') || a.groupId.toLowerCase().includes('base'))) ||
+      (a.label && (a.label.toLowerCase().includes('chân') || a.label.toLowerCase().includes('khung') || a.label.toLowerCase().includes('đế')))
+    );
+    this.surveyLegMaterial = req.legMaterial || legAttr?.selectedOptionName || '';
     if (req.surveyAttachment) {
       this.surveyUploadedFile = {
         name: req.surveyAttachment.name,
@@ -674,7 +1505,8 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     if (!this.request) return 0;
     const status = this.request.status;
     if (status === 'CANCELLED') return -1;
-    if (status === 'QC_PASSED') return 7;
+    if (status === 'CONTRACT_SIGNED' || status === 'DEPOSIT_SUBMITTED') return 4;
+    if (status === 'QC_PASSED') return 6;
     const found = this.WORKFLOW_STEPS.findIndex(s => s.key === status);
     return found !== -1 ? found : 0;
   }
@@ -886,7 +1718,7 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.loadRequest();
   }
 
-  // Step 5: Xác nhận cọc 30% VietQR -> Bắn xưởng sản xuất
+  // Step 5: Xác nhận cọc 30% VietQR -> Bắn xưởng sản xuất (chưa lên đơn trong tab Đơn hàng)
   submitDepositPayment(): void {
     if (!this.request) return;
     this.customRequestService.confirmPaymentAndStartProduction(this.request.id, 'Kế Toán Trưởng DCOR');
@@ -894,12 +1726,17 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.loadRequest();
     this.triggerToast(
       'Xác nhận cọc 30% thành công!',
-      `Hệ thống đã tự động sinh Đơn hàng chính thức #${this.request.generatedOrderNumber} và phát Lệnh xưởng #${this.request.workOrderCode}.`,
+      `Đã phát Lệnh sản xuất xưởng #${this.request.workOrderCode}. Xưởng đã bắt đầu chế tác phôi theo bản vẽ.`,
       'success'
     );
   }
 
-  // Step 6: Nghiệm thu QC 4 tiêu chí
+  // Step 6: Nghiệm thu QC 4 tiêu chí & Lên đơn hàng chính thức
+  toggleQcItem(key: 'dimensionAccuracy' | 'surfaceFinish' | 'cushionStitching' | 'packagingProtection'): void {
+    if (this.request?.status !== 'PROCESSING') return;
+    this.qcForm[key] = !this.qcForm[key];
+  }
+
   allQcChecked(): boolean {
     return (
       this.qcForm.dimensionAccuracy &&
@@ -911,10 +1748,80 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
 
   submitQc(): void {
     if (!this.request) return;
+    if (!this.request.customVariant) {
+      this.triggerToast(
+        'Chưa tạo sản phẩm biến thể',
+        'Vui lòng nhấn "Tạo sản phẩm" để thiết lập biến thể may đo trước khi lên đơn hàng.',
+        'error'
+      );
+      return;
+    }
     this.customRequestService.passQcInspection(this.request.id, this.qcForm, this.qcForm.inspectorName, this.qcForm.notes);
-    this.closeModal();
-    this.loadRequest();
-    this.triggerToast('Nghiệm thu QC đạt chuẩn!', `Sản phẩm may đo đạt 4/4 tiêu chí khắt khe, đủ điều kiện đóng gói xuất xưởng.`, 'success');
+    this.submitCreateOrderFromProduction();
+  }
+
+  // Bước 6: Xưởng sản xuất xong -> Nhấn "Lên đơn hàng" -> MỚI CHÍNH THỨC TẠO ĐƠN HÀNG TRONG TAB ĐƠN HÀNG!
+  submitCreateOrderFromProduction(): void {
+    if (!this.request) return;
+    const currentStaff = this.adminAuthService.currentUser?.fullName 
+      ? `KTS. ${this.adminAuthService.currentUser.fullName}` 
+      : (this.request.assignedStaff || 'Quản đốc xưởng DCOR');
+
+    const result = this.customRequestService.createOfficialOrderFromProduction(this.request.id, currentStaff);
+    if (result) {
+      if (this.activeModal === 'QC') {
+        this.closeModal();
+      }
+      this.loadRequest();
+      this.triggerToast(
+        'Lên Đơn hàng thành công!',
+        `Hệ thống đã chính thức tạo Đơn hàng #${result.generatedOrderNumber} trong tab Đơn hàng để điều phối giao hàng & thu 70% còn lại.`,
+        'success',
+        5000
+      );
+    }
+  }
+
+  // Trạng thái modal xem chi tiết biên lai cọc của khách
+  isBillPreviewOpen: boolean = false;
+
+  openBillPreview(): void {
+    this.isBillPreviewOpen = true;
+  }
+
+  closeBillPreview(): void {
+    this.isBillPreviewOpen = false;
+  }
+
+  // Trạng thái modal xem hợp đồng đã ký của khách
+  isContractViewModalOpen: boolean = false;
+
+  openContractViewModal(): void {
+    this.isContractViewModalOpen = true;
+  }
+
+  closeContractViewModal(): void {
+    this.isContractViewModalOpen = false;
+  }
+
+  isContractCardVisible(): boolean {
+    if (!this.request) return false;
+    return this.activeViewingStep >= 3 && this.getCurrentStepIndex() >= 3;
+  }
+
+  isDepositCardVisible(): boolean {
+    if (!this.request) return false;
+    return this.activeViewingStep >= 4 && this.getCurrentStepIndex() >= 4;
+  }
+
+  isProductionCardVisible(): boolean {
+    if (!this.request) return false;
+    return this.activeViewingStep >= 5 && this.getCurrentStepIndex() >= 5;
+  }
+
+  isDeliveryCardVisible(): boolean {
+    if (!this.request) return false;
+    return this.activeViewingStep >= 6 && this.getCurrentStepIndex() >= 6;
   }
 
   // Step 7: Giao hàng, thu 70% & Kích hoạt bảo hành
@@ -976,6 +1883,11 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     actor = actor.replace(/\s*\(DCor Studio\)/gi, '').trim();
 
     return actor || 'Ban Quản Trị DCOR';
+  }
+
+  cleanStaffName(name?: string): string {
+    if (!name) return '';
+    return name.replace(/\s*\([^)]*\)/g, '').trim();
   }
 
   formatVND(value?: number): string {

@@ -740,7 +740,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     this.withSubmittingLock(() => {
       this.ordersService.requestReturn(this.order!.id, {
         reason: 'Khách hàng yêu cầu đổi sang mẫu mã / kích thước khác trong thời hạn 72h',
-        proofImages: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80'],
+        proofImages: ['/assets/img/furniture-placeholder.svg'],
         customerNote: 'Khách hàng có nguyện vọng đổi sang mẫu sofa / màu sắc phù hợp hơn với không gian phòng khách.',
         type: 'EXCHANGE'
       });
@@ -755,7 +755,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     this.withSubmittingLock(() => {
       this.ordersService.requestReturn(this.order!.id, {
         reason: 'Khách hàng yêu cầu trả hàng và hoàn tiền trong thời hạn 72h',
-        proofImages: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80'],
+        proofImages: ['/assets/img/furniture-placeholder.svg'],
         customerNote: 'Tài xế đã tiếp nhận lại sản phẩm và đưa về kho để hoàn tiền vào tài khoản.',
         type: 'REFUND'
       });

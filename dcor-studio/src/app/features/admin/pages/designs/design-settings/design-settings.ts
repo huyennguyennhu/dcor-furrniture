@@ -26,7 +26,7 @@ const PRESET_SAMPLE_TEMPLATES: RoomTemplateItem[] = [
     name: 'Phòng khách Bắc Âu Nordic Minimalist',
     roomType: 'Phòng khách',
     description: 'Không gian mở 25m2 đón sáng tự nhiên, tone màu be xám và gỗ sồi ấm áp.',
-    imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/img/furniture-placeholder.svg',
     length: 5.5,
     width: 4.5,
     height: 2.8,
@@ -38,7 +38,7 @@ const PRESET_SAMPLE_TEMPLATES: RoomTemplateItem[] = [
     name: 'Phòng ngủ Master Japandi Yên Bình',
     roomType: 'Phòng ngủ',
     description: 'Thiết kế tối giản phong cách Nhật Bản kết hợp Scandinavian, diện tích 20m2.',
-    imageUrl: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/img/furniture-placeholder.svg',
     length: 5.0,
     width: 4.0,
     height: 2.8,
@@ -50,7 +50,7 @@ const PRESET_SAMPLE_TEMPLATES: RoomTemplateItem[] = [
     name: 'Không gian Bếp & Bàn ăn Sang trọng',
     roomType: 'Phòng ăn',
     description: 'Phòng ăn ấm cúng cho gia đình 6-8 người với gỗ óc chó cao cấp và đèn thả đồng xước.',
-    imageUrl: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/img/furniture-placeholder.svg',
     length: 4.5,
     width: 3.8,
     height: 2.8,
@@ -60,10 +60,10 @@ const PRESET_SAMPLE_TEMPLATES: RoomTemplateItem[] = [
 ];
 
 export const PRESET_IMAGES = [
-  { label: 'Phòng khách Bắc Âu', url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Phòng ngủ Master', url: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Phòng ăn & Bếp', url: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Phòng làm việc Studio', url: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800&auto=format&fit=crop&q=80' }
+  { label: 'Phòng khách Bắc Âu', url: '/assets/img/furniture-placeholder.svg' },
+  { label: 'Phòng ngủ Master', url: '/assets/img/furniture-placeholder.svg' },
+  { label: 'Phòng ăn & Bếp', url: '/assets/img/furniture-placeholder.svg' },
+  { label: 'Phòng làm việc Studio', url: '/assets/img/furniture-placeholder.svg' }
 ];
 
 @Component({

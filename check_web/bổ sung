@@ -1,0 +1,8 @@
+1. Tạo sản phẩm:
+- Thêm cấu hình ngưỡng cảnh báo
+- Thời hạn bảo hành:
+  + Hiện trạng: Trong form tạo/chỉnh sửa sản phẩm tiêu chuẩn (Admin ➔ Quản lý sản phẩm: `src/app/features/admin/pages/products/product-form/product-form.html`, dòng 789-807) ĐÃ CÓ trường nhập "Thời hạn bảo hành chính hãng (Tháng)" (`formData.specs.warrantyMonths`).
+  + Cần bổ sung nâng cao: Chưa có phân tách chi tiết thời hạn bảo hành theo từng cấu phần (Khung xương chịu lực vs Đệm mút & Bề mặt da bọc). Đồng thời trong module Đơn May Đo Custom (`custom-requests`), cần bổ sung trường thiết lập thời hạn bảo hành riêng ở bước tác nghiệp của KTS để đồng bộ trực tiếp sang Hợp đồng may đo và Chứng thư bảo hành điện tử.
+
+2. Đơn hàng site user:
+- Trên card của các đơn hoàn tất, bỏ tag Bảo hành đổi thành Mã đơn hàng

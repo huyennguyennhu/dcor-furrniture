@@ -713,7 +713,7 @@ export class ShowroomConsultationModalComponent implements OnInit, OnChanges {
     const vImages = (this.matchedVariant?.optionValues as any)?.images;
     if (Array.isArray(vImages) && vImages.length > 0) return vImages[0];
     if (Array.isArray(this.product?.images) && this.product.images.length > 0) return this.product.images[0];
-    return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&auto=format&fit=crop';
+    return '/assets/img/furniture-placeholder.svg';
   }
 
   get productSku(): string {

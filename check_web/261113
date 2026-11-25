@@ -2,18 +2,38 @@ Rule chung:  Check xem hiện tại thế nào và điềnn câu trả lời nga
 
 1. check xem tại sao khi đăng nhập bằng GG thì ở tài khoản của tôi thì nó lại hiện số điện thoại là "0999999999", nó nên là gạch ngang cho đến khi người dùng thực hiện cập nhật được chứ "-".
 > Trả lời:
+- Nguyên nhân: Trong file seed dữ liệu khởi tạo của hệ thống (`backend/prisma/seed.ts`, dòng 157-159), tài khoản Google thử nghiệm `huyennn23406@st.uel.edu.vn` bị gán cứng sẵn số điện thoại: `phone: '0999999999'`.
+- Trong khi đó, luồng đăng nhập Google chuẩn của hệ thống (`backend/src/controllers/auth.controller.ts`, dòng 671) gán số điện thoại là `phone: 'GOOG_' + email`. Phía Frontend (Profile, Account Sidebar, Checkout) đã có sẵn logic nếu số điện thoại bắt đầu bằng `GOOG_` thì tự động để trống / hiển thị gạch ngang `-` cho đến khi khách cập nhật SĐT thật.
+- Khắc phục: Cập nhật lại cột `phone` của tài khoản này trong Supabase / PostgreSQL thành `null` (hoặc `GOOG_huyennn23406@st.uel.edu.vn`) và bỏ giá trị gán cứng `0999999999` trong `seed.ts`.
 
 2. DỮ liệu trong http://localhost:4200/account/custom-requests đang là mock đúng không? nếu vậy thì cần xóa dữ liệu đó đi và lấy dữ liệu từ supabase về dùng thật nhé
 > Trả lời:
+- Hiện trạng: ĐÚNG, toàn bộ dữ liệu đơn custom hiện tại đang được lưu trữ và mô phỏng cục bộ qua `localStorage` (khóa `dcor_admin_custom_requests`) trong `custom-request.service.ts`, khởi tạo từ hàm `getInitialSeedRequests()`.
+- Trong CSDL Supabase / Prisma (`backend/prisma/schema.prisma`) hiện TẠI CHƯA CÓ bảng `CustomRequest` và backend cũng chưa có Controller/Route REST API cho đơn custom.
+- Để chuyển sang dùng thật 100% từ Supabase: Cần tạo model `CustomRequest` trong `schema.prisma`, chạy `prisma db push / migrate` lên Supabase, viết API CRUD trong backend và kết nối `custom-request.service.ts` gọi HttpClient về backend thay vì đọc từ `localStorage`.
 
 3. Sau khi admin nhấn Gửi báo giá và bản vẻ cho khách hàng thì trong site khách hàng hiển thị trong tab Báo giá & Bản vẽ 3D
 > Trả lời:
+- Hiện trạng: ĐÃ VÀ ĐANG HOẠT ĐỘNG ĐÚNG THEO CÁCH NÀY.
+- Khi Admin hoàn tất Bước 3 và gửi báo giá, đơn hàng được cập nhật trạng thái `QUOTED`.
+- Phía trang khách hàng (`/account/custom-requests`), tab "Báo giá & Bản vẽ 3D" có bộ lọc `getTabCount('QUOTED')` và `filteredRequests` gom tất cả các đơn có trạng thái `QUOTED`, `AWAITING_CONTRACT`, `CONTRACT_SIGNED`, `AWAITING_PAYMENT`. Do đó hồ sơ sẽ tự động nhảy vào tab này kèm badge số lượng và hiển thị đầy đủ tệp 3D, mức giá dự toán.
 
 4. Sau khi gửi báo giá cho khách hàng, trong khi đợi khách hàng chốt thì bước 3 "Báo giá & 3D Phối cảnh 3D & giá" sẽ bị lock lại và hiển thị là Đang đợi khách hàng chốt, sau khi khách hàng chốt thì nó mới chuyển bảng 3 này sang hoàn thành và đi sang bước 4
 > Trả lời:
+- Hiện trạng: Hiện tại sau khi Admin nhấn "Xác nhận & Gửi báo giá", hệ thống đang tự động nhảy thẳng luôn sang Bước 4 (`AWAITING_CONTRACT`), chưa có bước dừng trung gian để chờ khách hàng chốt.
+- Để làm đúng theo yêu cầu:
+  1. Sau khi Admin gửi báo giá, đơn sẽ giữ ở trạng thái `QUOTED` với cờ "Chờ khách duyệt". Bước 3 phía Admin sẽ bị khóa (disable form và nút chuyển bước), hiển thị banner: "Đang đợi khách hàng chốt báo giá & duyệt 3D".
+  2. Phía trang Khách hàng (`/account/custom-requests`), trong Drawer chi tiết hồ sơ sẽ hiển thị nút "Duyệt báo giá & Chốt thiết kế 3D".
+  3. Khi khách hàng bấm Chốt, hệ thống mới chuyển trạng thái hồ sơ sang Bước 4 (Hợp đồng) và mở khóa cho Admin tác nghiệp tiếp.
 
 5. Khi admin gửi hợp đồng cho khách hàng xem và ký thì hiển thị ở trang nào? ở đâu rồi làm cách nào để khách hàng ký vậy?
 > Trả lời:
+- Hiện trạng: Hiện tại hệ thống CHƯA CÓ màn hình ký online cho khách hàng trên website.
+- Quy trình hiện tại được thiết kế theo phương thức ký offline/bản scan:
+  + Khi ở Bước 4 (`AWAITING_CONTRACT`), KTS/Admin sẽ liên hệ và ký hợp đồng kinh tế bản cứng với khách hàng.
+  + Sau đó, Admin chụp/scan hợp đồng và tải link/ảnh scan lên hệ thống thông qua nút "Lưu bản scan hợp đồng" (`contractScanUrl`). Khi Admin bấm lưu, hệ thống chuyển sang `CONTRACT_SIGNED` (Đã ký HĐ).
+  + Khách hàng hiện tại chỉ thấy badge trạng thái "Chờ ký hợp đồng" / "Đã ký hợp đồng" trong Drawer chi tiết chứ chưa có chỗ xem nội dung hợp đồng hay nút bấm để ký.
+- Giải pháp nếu muốn khách hàng xem và ký trực tiếp trên web: Cần bổ sung ở trang khách hàng (`/account/custom-requests`) popup xem hợp đồng điện tử (với các điều khoản may đo) và nút "Xác nhận ký điện tử" (bằng OTP hoặc chữ ký tay Canvas).
 
 
 > Trả lời:

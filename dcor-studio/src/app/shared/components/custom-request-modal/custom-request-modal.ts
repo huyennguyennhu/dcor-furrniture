@@ -287,6 +287,20 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       if (parts.length > 0) foundDimensions = parts.join(' • ');
     }
 
+    if (!foundDimensions && (prod?.configOptions?.specs || prod?.specs)) {
+      const s = prod?.configOptions?.specs || prod?.specs;
+      let len = s.length ? (Number(s.length) > 500 ? Math.round(Number(s.length) / 10) : Number(s.length)) : null;
+      let wid = s.width ? (Number(s.width) > 500 ? Math.round(Number(s.width) / 10) : Number(s.width)) : null;
+      let hgt = s.height ? (Number(s.height) > 500 ? Math.round(Number(s.height) / 10) : Number(s.height)) : null;
+      if (len && wid && len < wid) {
+        const temp = len;
+        len = wid;
+        wid = temp;
+      }
+      if (len && wid && hgt) foundDimensions = `${len} x ${wid} x ${hgt} cm`;
+      else if (len && wid) foundDimensions = `${len} x ${wid} cm`;
+    }
+
     if (!foundDimensions && prod?.dimensions) {
       const d = prod.dimensions;
       if (typeof d === 'string') foundDimensions = d;
@@ -476,7 +490,7 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
     if (Array.isArray(vImages) && vImages.length > 0) return vImages[0];
     if (typeof vImages === 'string' && vImages.startsWith('http')) return vImages.split(/\s+/)[0];
     if (Array.isArray(this.product?.images) && this.product.images.length > 0) return this.product.images[0];
-    return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&auto=format&fit=crop';
+    return '/assets/img/furniture-placeholder.svg';
   }
 
   get productSku(): string {
@@ -882,6 +896,12 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       this.formErrors['budget'] = 'Vui lòng nhập số tiền ngân sách dự kiến chính xác.';
     }
 
+    for (const attr of this.activeCustomAttributes) {
+      if (attr.selectedOptionId === 'custom_other' && (!attr.customNote || !attr.customNote.trim())) {
+        this.formErrors['attr_' + attr.groupId] = `Vui lòng nhập chi tiết yêu cầu cho ${attr.label}.`;
+      }
+    }
+
     return Object.keys(this.formErrors).length === 0;
   }
 
@@ -898,6 +918,12 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
       return true;
     }
     if (this.selectedBudgetRange === 'other' && !this.estimatedBudget.trim()) {
+      return true;
+    }
+    const hasEmptyOtherAttr = this.activeCustomAttributes.some(
+      a => a.selectedOptionId === 'custom_other' && (!a.customNote || !a.customNote.trim())
+    );
+    if (hasEmptyOtherAttr) {
       return true;
     }
     if (!this.isPhoneVerified) {

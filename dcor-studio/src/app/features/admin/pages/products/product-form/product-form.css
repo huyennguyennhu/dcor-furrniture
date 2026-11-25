@@ -1011,11 +1011,11 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  background-color: #FFFFFF;
+  background-color: #fffcf9;
 }
 
 .variants-form-table thead {
-  background-color: #FAF7F2;
+  background-color: #EAE1D7;
   border-bottom: 1px solid #E8E2DA;
   position: sticky;
   top: 0;
@@ -1026,9 +1026,14 @@
   padding: 6px 8px;
   font-size: 11px;
   font-weight: 600;
-  color: #6E655F;
+  color: #4A3525;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+  background-color: #EAE1D7;
+}
+
+.variants-form-table tbody tr {
+  background-color: #fffcf9;
 }
 
 .variants-form-table td {

@@ -554,6 +554,49 @@
   transform: translateY(-1px);
 }
 
+/* Hover đồng bộ màu viền theo trạng thái của đơn hàng */
+.order-card.status-pending:hover,
+.order-card:has(.status-pending):hover {
+  border-color: #2563EB;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.12);
+}
+
+.order-card.status-confirmed:hover,
+.order-card:has(.status-confirmed):hover {
+  border-color: #059669;
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.12);
+}
+
+.order-card.status-processing:hover,
+.order-card:has(.status-processing):hover {
+  border-color: #D97706;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.12);
+}
+
+.order-card.status-shipped:hover,
+.order-card:has(.status-shipped):hover {
+  border-color: #7C3AED;
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.12);
+}
+
+.order-card.status-delivered:hover,
+.order-card:has(.status-delivered):hover {
+  border-color: #16A34A;
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.12);
+}
+
+.order-card.status-cancelled:hover,
+.order-card:has(.status-cancelled):hover {
+  border-color: #DC2626;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.12);
+}
+
+.order-card.status-returned:hover,
+.order-card:has(.status-returned):hover {
+  border-color: #6B7280;
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.12);
+}
+
 /* 1. Header Topbar (Full màu trạng thái theo yêu cầu người dùng) */
 .order-card-topbar {
   background: #F3EFEA;

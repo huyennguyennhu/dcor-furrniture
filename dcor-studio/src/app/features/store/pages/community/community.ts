@@ -892,7 +892,7 @@ export class CommunityComponent implements OnInit {
 
   getProductThumbnail(prod: TaggedProduct): string {
     if (prod.imageUrl) return prod.imageUrl;
-    return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80';
+    return '/assets/img/furniture-placeholder.svg';
   }
 
   getAuthorAvatar(post?: DesignPost | null): string | null {

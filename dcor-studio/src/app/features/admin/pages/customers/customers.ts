@@ -110,6 +110,9 @@ export class CustomersComponent implements OnInit {
       if (params['sortBy'] === 'totalSpent' || params['sort'] === 'totalSpent' || params['sortBy'] === 'spending-desc') {
         this.sortColumn = 'totalSpent';
         this.sortDirection = 'desc';
+      } else if (params['sortBy'] === 'name' || params['sort'] === 'name') {
+        this.sortColumn = 'name';
+        this.sortDirection = params['sortDir'] === 'desc' || params['dir'] === 'desc' ? 'desc' : 'asc';
       }
       if (params['filter']) {
         const f = params['filter'].toUpperCase();
@@ -339,6 +342,7 @@ export class CustomersComponent implements OnInit {
       this.statusFilter !== 'Tất cả trạng thái' ||
       this.membershipFilter !== 'Tất cả hạng thành viên' ||
       this.spendingFilter !== 'Tổng chi tiêu' ||
+      this.labelFilter !== 'Nhãn nội bộ' ||
       this.activeCardFilter !== 'ALL' ||
       this.sortColumn !== 'createdAt' ||
       this.sortDirection !== 'desc'

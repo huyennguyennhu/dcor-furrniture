@@ -231,14 +231,32 @@
   </div>
 
   <!-- Data Table (Đồng bộ chuẩn 100% từ Tổng quan kho) -->
-  <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; position: relative;">
+  <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; position: relative;">
     <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
       <table style="width: 100%; min-width: 1100px; border-collapse: collapse; text-align: left;">
         <thead>
-          <tr style="border-bottom: 1px solid var(--border-color); background: #ffffff;">
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; border-top-left-radius: 11px; white-space: nowrap;">Khách hàng</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Liên hệ</th>
-            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
+          <tr style="border-bottom: 1px solid var(--border-color); background: #EAE1D7;">
+            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #374151; border-top-left-radius: 11px; white-space: nowrap; user-select: none;">
+              <div class="th-sort-wrapper" (click)="toggleColumnSort('name')" title="Sắp xếp theo Tên khách hàng (A - Z / Z - A)">
+                <span>Khách hàng</span>
+                <span class="sort-arrows-inline">
+                  <svg *ngIf="sortColumn !== 'name' || sortDirection === 'asc'" 
+                       class="sort-triangle up" 
+                       [class.active]="sortColumn === 'name' && sortDirection === 'asc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 5L4 19h16z"/>
+                  </svg>
+                  <svg *ngIf="sortColumn !== 'name' || sortDirection === 'desc'" 
+                       class="sort-triangle down" 
+                       [class.active]="sortColumn === 'name' && sortDirection === 'desc'" 
+                       viewBox="0 0 24 24" width="8" height="8" fill="currentColor">
+                    <path d="M12 19L4 5h16z"/>
+                  </svg>
+                </span>
+              </div>
+            </th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Liên hệ</th>
+            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; user-select: none;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('createdAt')" title="Sắp xếp theo Ngày đăng ký (Mới / Cũ)">
                 <span>Ngày đăng ký</span>
                 <span class="sort-arrows-inline">
@@ -257,8 +275,8 @@
                 </span>
               </div>
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Hạng thành viên</th>
-            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap; user-select: none;">
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Hạng thành viên</th>
+            <th style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; user-select: none;">
               <div class="th-sort-wrapper" (click)="toggleColumnSort('totalSpent')" title="Sắp xếp theo Tổng chi tiêu (Nhỏ - Lớn / Lớn - Nhỏ)">
                 <span>Tổng chi tiêu</span>
                 <span class="sort-arrows-inline">
@@ -277,15 +295,15 @@
                 </span>
               </div>
             </th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; white-space: nowrap;">Mua gần đây</th>
-            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #5c402a; text-align: center; white-space: nowrap;">Trạng thái</th>
-            <th style="padding: 16px 8px; font-size: 13px; font-weight: 600; color: #5c402a; width: 48px; text-align: center; border-top-right-radius: 11px;"></th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Mua gần đây</th>
+            <th style="padding: 16px; font-size: 13px; font-weight: 600; color: #374151; text-align: center; white-space: nowrap;">Trạng thái</th>
+            <th style="padding: 16px 8px; font-size: 13px; font-weight: 600; color: #374151; width: 48px; text-align: center; border-top-right-radius: 11px;"></th>
           </tr>
         </thead>
         <tbody>
           <!-- Loading State -->
           <tr *ngIf="isLoading">
-            <td colspan="8" style="padding: 48px 20px; text-align: center; color: var(--text-muted);">
+            <td colspan="8" style="padding: 48px 20px; text-align: center; color: var(--text-muted); background: var(--bg-primary);">
               <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <lucide-angular [img]="icons.Loader2" size="20" class="spinner-icon"></lucide-angular>
                 <span>Đang tải danh sách khách hàng từ hệ thống...</span>
@@ -297,9 +315,9 @@
           <ng-container *ngIf="!isLoading">
           <tr *ngFor="let item of paginatedCustomers" 
               (click)="goToDetail(item.id)"
-              style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s ease;"
-              onmouseover="this.style.background='#F9FAFB'" 
-              onmouseout="this.style.background='transparent'">
+              style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s ease; background: #fffcf9;"
+              onmouseover="this.style.background='#F3E5D3'" 
+              onmouseout="this.style.background='#fffcf9'">
             
             <!-- Col 1: Khách hàng -->
             <td style="padding: 16px;">

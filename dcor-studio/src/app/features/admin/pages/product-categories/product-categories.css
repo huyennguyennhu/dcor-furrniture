@@ -444,10 +444,15 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #616161;
-  background-color: #FAF7F2;
+  color: #4A3525;
+  background-color: #EAE1D7;
   border-bottom: 1px solid #E6DED6;
   white-space: nowrap;
+}
+
+.categories-table tbody tr,
+.data-table tbody tr {
+  background-color: #fffcf9;
 }
 
 .categories-table td,

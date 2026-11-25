@@ -500,18 +500,23 @@
 }
 
 .products-master-table thead {
-  background-color: #FAF7F2;
+  background-color: #EAE1D7;
   border-bottom: 1px solid #E8E2DA;
 }
 
 .products-master-table th {
+  background-color: #EAE1D7;
   padding: 10px 8px;
   font-size: 11px;
   font-weight: 600;
-  color: #6E655F;
+  color: #4A3525;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
+}
+
+.products-master-table tbody tr {
+  background-color: #fffcf9;
 }
 
 .products-master-table td {
@@ -904,20 +909,24 @@
 }
 
 .variant-subtable th {
-  background-color: #FAF8F5;
+  background-color: #EAE1D7;
   padding: 8px 12px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #6E655F;
+  color: #4A3525;
   border-bottom: 1px solid #E8E2DA;
   text-transform: none;
+}
+
+.variant-subtable tbody tr {
+  background-color: #fffcf9;
 }
 
 .variant-subtable td {
   padding: 10px 12px;
   border-bottom: 1px solid #F0EAE1;
   vertical-align: middle;
-  background-color: #FFFFFF;
+  background-color: #fffcf9;
 }
 
 .variant-subtable tr:last-child td {
@@ -1669,18 +1678,22 @@
 }
 
 .precheck-table th {
-  background-color: #F8F5F0;
+  background-color: #EAE1D7;
   padding: 10px 12px;
   font-weight: 700;
   font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #616161;
+  color: #4A3525;
   border-bottom: 1px solid #E0D7CD;
   position: sticky;
   top: 0;
   z-index: 2;
   white-space: nowrap;
+}
+
+.precheck-table tbody tr {
+  background-color: #fffcf9;
 }
 
 .precheck-table td {
@@ -1690,7 +1703,7 @@
 }
 
 .precheck-table .row-valid {
-  background-color: #FFFFFF;
+  background-color: #fffcf9;
 }
 
 .precheck-table .row-valid:hover {

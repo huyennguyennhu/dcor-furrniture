@@ -25,9 +25,9 @@ export class VariantEditModalComponent {
   ];
 
   availableUpholsteries = [
-    { id: 'fab-1', name: 'Vải Frisco màu xám nhạt', img: 'https://images.unsplash.com/photo-1590408543794-fb5e6f3b06c0?auto=format&fit=crop&q=80&w=100' },
-    { id: 'fab-2', name: 'Vải nỉ nhung xanh navy', img: 'https://images.unsplash.com/photo-1629831514798-e3661ebaf1bb?auto=format&fit=crop&q=80&w=100' },
-    { id: 'fab-3', name: 'Da bò thật nâu hạt dẻ', img: 'https://images.unsplash.com/photo-1580252495346-6085a6ba88ca?auto=format&fit=crop&q=80&w=100' }
+    { id: 'fab-1', name: 'Vải Frisco màu xám nhạt', img: '/assets/img/furniture-placeholder.svg' },
+    { id: 'fab-2', name: 'Vải nỉ nhung xanh navy', img: '/assets/img/furniture-placeholder.svg' },
+    { id: 'fab-3', name: 'Da bò thật nâu hạt dẻ', img: '/assets/img/furniture-placeholder.svg' }
   ];
 
   selectedLegId: string | null = null;

@@ -98,10 +98,25 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
 
   // Dropdown filter states
-  activeDropdown: 'NONE' | 'architect' | 'category' | 'price' = 'NONE';
+  activeDropdown: 'NONE' | 'status' | 'architect' | 'category' | 'price' = 'NONE';
+  selectedStatus: 'ALL' | CustomRequestStatus = 'ALL';
   selectedArchitect: string = 'ALL';
   selectedCategory: string = 'ALL';
   selectedPriceRange: string = 'ALL';
+
+  readonly STATUS_FILTER_OPTIONS: { value: 'ALL' | CustomRequestStatus; label: string }[] = [
+    { value: 'ALL', label: 'Tất cả trạng thái' },
+    { value: 'PENDING_REVIEW', label: 'Tiếp nhận mới' },
+    { value: 'CONSULTING', label: 'Khảo sát đo đạc' },
+    { value: 'QUOTED', label: 'Báo giá & 3D' },
+    { value: 'AWAITING_CONTRACT', label: 'Chờ ký hợp đồng' },
+    { value: 'CONTRACT_SIGNED', label: 'Đã ký hợp đồng' },
+    { value: 'AWAITING_PAYMENT', label: 'Chờ nhận cọc 30%' },
+    { value: 'PROCESSING', label: 'Sản xuất xưởng' },
+    { value: 'QC_PASSED', label: 'Nghiệm thu QC' },
+    { value: 'COMPLETED', label: 'Đã giao hàng & BH' },
+    { value: 'CANCELLED', label: 'Đã hủy' }
+  ];
 
   // Checkbox selection state
   selectedRequestIds = new Set<string>();
@@ -146,7 +161,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       sku: 'DCOR-SOFA-01',
       name: 'Sofa Roma Da Bò Ý Nguyên Tấm Luxury',
       categoryName: 'Sofa Da Thật',
-      image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+      image: '/assets/img/furniture-placeholder.svg',
       price: 45000000,
       length: 280,
       width: 100,
@@ -157,7 +172,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       sku: 'DCOR-SOFA-02',
       name: 'Sofa Góc Chữ L Milano Tối Giản Hiện Đại',
       categoryName: 'Sofa May Đo',
-      image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80',
+      image: '/assets/img/furniture-placeholder.svg',
       price: 52000000,
       length: 300,
       width: 175,
@@ -168,7 +183,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       sku: 'DCOR-SOFA-03',
       name: 'Sofa Văng 3 Chỗ Vải Nỉ Bỉ Cao Cấp Nordic',
       categoryName: 'Sofa Nỉ Bỉ',
-      image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=600&q=80',
+      image: '/assets/img/furniture-placeholder.svg',
       price: 26000000,
       length: 220,
       width: 90,
@@ -179,7 +194,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       sku: 'DCOR-TAB-01',
       name: 'Bàn Trà Mặt Đá Cẩm Thạch Calacatta Chân PVD',
       categoryName: 'Bàn Trà Custom',
-      image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80',
+      image: '/assets/img/furniture-placeholder.svg',
       price: 18500000,
       length: 130,
       width: 70,
@@ -190,7 +205,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       sku: 'DCOR-ARM-01',
       name: 'Ghế Bành Thư Giãn Ergonomic Khung Kim Loại',
       categoryName: 'Ghế Thư Giãn',
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=600&q=80',
+      image: '/assets/img/furniture-placeholder.svg',
       price: 14000000,
       length: 90,
       width: 85,
@@ -201,7 +216,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       sku: 'DCOR-DIN-01',
       name: 'Bàn Ăn Gỗ Óc Chó Bắc Mỹ Tự Nhiên Nguyên Khối',
       categoryName: 'Bàn Ăn',
-      image: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=600&q=80',
+      image: '/assets/img/furniture-placeholder.svg',
       price: 32000000,
       length: 200,
       width: 90,
@@ -256,7 +271,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   // Form states cho từng bước quy trình
   // Bước 1: Khảo sát đo đạc mặt bằng
   surveyForm = {
-    staffName: 'KTS. Lê Nam (DCor Studio)',
+    staffName: 'KTS. Lê Nam',
     surveyDate: new Date().toISOString().slice(0, 10),
     elevatorClearance: 'Thang máy hàng 2.4m x 1.6m - Đạt tiêu chuẩn',
     measuredDimensions: '',
@@ -267,15 +282,15 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   quoteForm = {
     price: 35000000,
     deposit: 10500000,
-    drawing3dUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
+    drawing3dUrl: '/assets/img/about_blueprint.jpg',
     notes: 'Khung gỗ sồi tự nhiên sấy tiêu chuẩn Châu Âu. Đệm mút D40 êm ái chống xẹp lún. May chỉ kép nổi bật.',
-    staffName: 'KTS. Lê Nam (DCor Studio)'
+    staffName: 'KTS. Lê Nam'
   };
 
   // Bước 3: Hợp đồng may đo
   contractForm = {
     contractNumber: 'HĐ-2026/DCOR-',
-    scanUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
+    scanUrl: '/assets/img/furniture-placeholder.svg',
     staffName: 'Phòng Pháp Chế & Hợp Đồng DCor'
   };
 
@@ -364,7 +379,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleDropdown(name: 'architect' | 'category' | 'price', event: MouseEvent): void {
+  toggleDropdown(name: 'status' | 'architect' | 'category' | 'price', event: MouseEvent): void {
     event.stopPropagation();
     this.activeDropdown = this.activeDropdown === name ? 'NONE' : name;
   }
@@ -393,6 +408,23 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   }
 
   // Filter labels
+  get selectedStatusLabel(): string {
+    if (this.selectedStatus === 'ALL') return 'Tất cả trạng thái';
+    const opt = this.STATUS_FILTER_OPTIONS.find(o => o.value === this.selectedStatus);
+    return opt?.label || 'Tất cả trạng thái';
+  }
+
+  onSelectStatus(status: 'ALL' | CustomRequestStatus): void {
+    this.selectedStatus = status;
+    this.selectedTab = status;
+    this.activeDropdown = 'NONE';
+  }
+
+  selectTab(tab: 'ALL' | CustomRequestStatus): void {
+    this.selectedTab = tab;
+    this.selectedStatus = tab;
+  }
+
   get selectedArchitectLabel(): string {
     if (this.selectedArchitect === 'ALL') return 'Tất cả KTS phụ trách';
     return this.selectedArchitect;
@@ -412,13 +444,17 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   }
 
   get hasActiveFilters(): boolean {
-    return this.selectedArchitect !== 'ALL' || 
+    return this.selectedStatus !== 'ALL' ||
+           this.selectedTab !== 'ALL' ||
+           this.selectedArchitect !== 'ALL' || 
            this.selectedCategory !== 'ALL' || 
            this.selectedPriceRange !== 'ALL' || 
            !!this.searchQuery.trim();
   }
 
   resetAllFilters(): void {
+    this.selectedStatus = 'ALL';
+    this.selectedTab = 'ALL';
     this.selectedArchitect = 'ALL';
     this.selectedCategory = 'ALL';
     this.selectedPriceRange = 'ALL';
@@ -438,9 +474,16 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
 
   get filteredRequests(): CustomRequest[] {
     const list = this.requests.filter(req => {
-      // Tab filter
-      if (this.selectedTab !== 'ALL' && req.status !== this.selectedTab) {
-        return false;
+      // Status / Tab filter
+      const effectiveStatus = this.selectedStatus !== 'ALL' ? this.selectedStatus : this.selectedTab;
+      if (effectiveStatus !== 'ALL') {
+        if (effectiveStatus === 'AWAITING_CONTRACT') {
+          if (req.status !== 'AWAITING_CONTRACT' && req.status !== 'CONTRACT_SIGNED') {
+            return false;
+          }
+        } else if (req.status !== effectiveStatus) {
+          return false;
+        }
       }
       // Dropdown Architect
       if (this.selectedArchitect !== 'ALL') {
@@ -584,7 +627,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
 
     const finalImage = this.formProductType === 'template' && this.selectedProduct?.image
       ? this.selectedProduct.image
-      : (this.formReferenceImageUrl.trim() || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80');
+      : (this.formReferenceImageUrl.trim() || '/assets/img/furniture-placeholder.svg');
 
     const finalSku = this.formProductType === 'template' && this.selectedProduct?.sku
       ? this.selectedProduct.sku
@@ -621,7 +664,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
     });
 
     this.showToast(
-      'Tạo đơn Custom thành công',
+      'Tạo yêu cầu Custom thành công',
       `Đã khởi tạo hồ sơ Custom ${newReq.code} cho khách hàng ${newReq.customerName}.`,
       'success',
       `/admin/custom-requests/${newReq.id}`
@@ -632,7 +675,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   /** Bước 1: Mở modal tiếp nhận khảo sát đo đạc */
   openSurveyModal(req: CustomRequest): void {
     this.activeRequest = req;
-    this.surveyForm.staffName = req.assignedStaff || 'KTS. Lê Nam (DCor Studio)';
+    this.surveyForm.staffName = this.cleanStaffName(req.assignedStaff) || 'KTS. Lê Nam';
     this.surveyForm.measuredDimensions = `Dài ${req.length || 0} x Rộng ${req.width || 0} x Cao ${req.height || 0} cm`;
     this.surveyForm.notes = req.notes || 'Đã liên hệ xác nhận kích thước và hẹn khảo sát thực tế tại nhà khách.';
     this.activeModal = 'SURVEY';
@@ -659,9 +702,9 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
     const baseP = req.quotedPrice || 35000000;
     this.quoteForm.price = baseP;
     this.quoteForm.deposit = req.quotedDeposit || Math.round(baseP * 0.3);
-    this.quoteForm.drawing3dUrl = req.drawing3dUrl || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80';
+    this.quoteForm.drawing3dUrl = (req.drawing3dUrl && !req.drawing3dUrl.includes('unsplash.com')) ? req.drawing3dUrl : '/assets/img/about_blueprint.jpg';
     this.quoteForm.notes = req.adminNotes || 'Khung sườn gỗ sồi tự nhiên sấy tiêu chuẩn Châu Âu. Đệm mút D40 êm ái chống xẹp lún. May chỉ kép nổi bật.';
-    this.quoteForm.staffName = req.assignedStaff || 'KTS. Lê Nam (DCor Studio)';
+    this.quoteForm.staffName = this.cleanStaffName(req.assignedStaff) || 'KTS. Lê Nam';
     this.activeModal = 'QUOTE';
   }
 
@@ -690,7 +733,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   openContractModal(req: CustomRequest): void {
     this.activeRequest = req;
     this.contractForm.contractNumber = `HĐ-2026/DCOR-${req.code.replace('CR-', '')}`;
-    this.contractForm.scanUrl = req.contractScanUrl || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80';
+    this.contractForm.scanUrl = (req.contractScanUrl && !req.contractScanUrl.includes('unsplash.com')) ? req.contractScanUrl : '/assets/img/furniture-placeholder.svg';
     this.contractForm.staffName = 'Phòng Hợp Đồng DCor';
     this.activeModal = 'CONTRACT';
   }
@@ -941,6 +984,11 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
 
   goToInventoryTx(reqCode: string): void {
     this.router.navigate(['/admin/inventory/transactions'], { queryParams: { q: reqCode } });
+  }
+
+  cleanStaffName(name?: string): string {
+    if (!name) return '';
+    return name.replace(/\s*\([^)]*\)/g, '').trim();
   }
 
   getActorDisplay(item: any): string {

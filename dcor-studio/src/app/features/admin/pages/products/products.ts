@@ -82,7 +82,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 4,
     totalAvailableStock: 22,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-15',
     hasOrders: true,
     isExpanded: false,
@@ -94,7 +94,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         name: 'Vải nỉ Copenhagen Xám ghi / 2m4',
         price: 28500000,
         originalPrice: 32000000,
-        image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 8 },
@@ -109,7 +109,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         name: 'Vải nỉ Copenhagen Be sáng / 2m8',
         price: 34000000,
         originalPrice: 38000000,
-        image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 4 },
@@ -123,7 +123,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'SF-BER-NV-28',
         name: 'Vải nhung Sapphire Xanh Navy / 2m8',
         price: 35500000,
-        image: 'https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 0 },
@@ -138,7 +138,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         name: 'Da bò Aniline Nâu Cognac / 3m2',
         price: 48000000,
         originalPrice: 52000000,
-        image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 2 },
@@ -159,7 +159,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 2,
     totalAvailableStock: 29,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-14',
     hasOrders: true,
     isExpanded: false,
@@ -170,7 +170,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'TB-COM-GL-BL',
         name: 'Mặt kính khói đen / Chân thép sơn tĩnh điện',
         price: 9200000,
-        image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 12 },
@@ -185,7 +185,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         name: 'Mặt đá Ceramic trắng vân mây / Chân đồng xước',
         price: 14500000,
         originalPrice: 16000000,
-        image: 'https://images.unsplash.com/photo-1532372320572-cda25653a26d?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 5 },
@@ -206,7 +206,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 3,
     totalAvailableStock: 6,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-12',
     hasOrders: true,
     isExpanded: false,
@@ -217,7 +217,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'BD-LUG-OAK-16',
         name: 'Gỗ sồi tự nhiên / 1m6 × 2m0',
         price: 22000000,
-        image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 2 },
@@ -231,7 +231,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'BD-LUG-OAK-18',
         name: 'Gỗ sồi tự nhiên / 1m8 × 2m0',
         price: 25500000,
-        image: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef4?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 1 },
@@ -246,7 +246,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         name: 'Gỗ óc chó thượng hạng (Có ngăn kéo) / 1m8 × 2m0',
         price: 31000000,
         originalPrice: 35000000,
-        image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: false,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 0 },
@@ -267,7 +267,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 2,
     totalAvailableStock: 27,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-10',
     hasOrders: true,
     isExpanded: false,
@@ -278,7 +278,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'DT-SAN-W-OAK',
         name: 'Mặt gốm Ceramic trắng / Chân gỗ sồi sẫm (1m35 - 1m81)',
         price: 131900000,
-        image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 10 },
@@ -292,7 +292,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'DT-SAN-G-NAT',
         name: 'Mặt gốm Ceramic xám / Chân gỗ sồi tự nhiên (1m35 - 1m81)',
         price: 131900000,
-        image: 'https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 8 },
@@ -313,7 +313,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 2,
     totalAvailableStock: 13,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1580481077195-c9b83b3e6c0c?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-08',
     hasOrders: false,
     isExpanded: false,
@@ -325,7 +325,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         name: 'Vải lông cừu Boucle trắng kem / Chân xoay 360°',
         price: 18500000,
         originalPrice: 21000000,
-        image: 'https://images.unsplash.com/photo-1580481077195-c9b83b3e6c0c?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 6 },
@@ -339,7 +339,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'AC-CEN-LEA-BR',
         name: 'Da Nappa Ý màu Nâu Caramel / Chân xoay đen',
         price: 26000000,
-        image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 1 },
@@ -360,7 +360,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 2,
     totalAvailableStock: 0,
     status: 'Đã ẩn',
-    image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-05',
     hasOrders: true,
     isExpanded: false,
@@ -371,7 +371,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'CB-CUP-WH-18',
         name: 'Sơn mài trắng mờ Scandinavian / 1m8',
         price: 15000000,
-        image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: false,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 0 },
@@ -385,7 +385,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'CB-CUP-WAL-22',
         name: 'Gỗ óc chó kết hợp kính đen / 2m2',
         price: 21500000,
-        image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: false,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 0 },
@@ -406,7 +406,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 2,
     totalAvailableStock: 15,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-04',
     hasOrders: false,
     isExpanded: false,
@@ -417,7 +417,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'LP-KUT-COP',
         name: 'Đồng xước nghệ thuật (Brushed Copper)',
         price: 6800000,
-        image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 5 },
@@ -431,7 +431,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'LP-KUT-BLK',
         name: 'Đen mờ tĩnh điện (Matte Black)',
         price: 5900000,
-        image: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 4 },
@@ -452,7 +452,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 1,
     totalAvailableStock: 1,
     status: 'Nháp',
-    image: 'https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-10-02',
     hasOrders: false,
     isExpanded: false,
@@ -463,7 +463,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'DT-OTT-OAK-CH',
         name: 'Mặt gỗ sồi trắng Bắc Âu / Chân cánh lá Chrome',
         price: 45000000,
-        image: 'https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 1 },
@@ -484,7 +484,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 2,
     totalAvailableStock: 8,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-09-28',
     hasOrders: false,
     isExpanded: false,
@@ -495,7 +495,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'RG-SCA-1724',
         name: 'Họa tiết Diamond Grey / 1m7 × 2m4',
         price: 11200000,
-        image: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 3 },
@@ -509,7 +509,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'RG-SCA-2030',
         name: 'Họa tiết Diamond Grey / 2m0 × 3m0',
         price: 16800000,
-        image: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 2 },
@@ -530,7 +530,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
     totalVariants: 2,
     totalAvailableStock: 45,
     status: 'Đang bán',
-    image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80',
+    image: '/assets/img/furniture-placeholder.svg',
     createdAt: '2026-09-20',
     hasOrders: true, // Đã từng có đơn hàng -> KHÔNG được phép xóa vĩnh viễn (khóa nút)
     isExpanded: false,
@@ -541,7 +541,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'PL-VEL-GR-45',
         name: 'Vải nhung Xanh rêu / 45×45cm',
         price: 650000,
-        image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 15 },
@@ -555,7 +555,7 @@ export const INITIAL_PRODUCTS: ProductListItem[] = [
         sku: 'PL-VEL-PK-45',
         name: 'Vải nhung Hồng phấn / 45×45cm',
         price: 650000,
-        image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=300&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         isActive: true,
         branchStocks: [
           { branchId: 'wh-main', branchName: 'Kho Tổng', stock: 8 },
@@ -803,7 +803,7 @@ export class ProductsComponent implements OnInit {
                 name: v.name || `Biến thể ${vIdx + 1}`,
                 price: Number(v.price) || Number(p.basePrice) || 10000000,
                 originalPrice: undefined,
-                image: varImg || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80',
+                image: varImg || '/assets/img/furniture-placeholder.svg',
                 isActive: v.isActive !== false,
                 branchStocks: [
                   { branchId: 'wh-main', branchName: 'Kho Tổng', stock: Math.max(0, Math.floor(baseStock * 0.6)) },
@@ -839,7 +839,7 @@ export class ProductsComponent implements OnInit {
 
             const baseSku = (p.variants && p.variants[0]?.sku) ? p.variants[0].sku : `DCOR-${String(p.slug || idx).toUpperCase().substring(0, 10)}`;
 
-            let coverImg = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
+            let coverImg = '/assets/img/furniture-placeholder.svg';
             if (Array.isArray(p.images) && p.images.length > 0 && typeof p.images[0] === 'string') {
               coverImg = p.images[0];
             } else if (mappedVariants[0]?.image) {
@@ -1693,7 +1693,7 @@ export class ProductsComponent implements OnInit {
         totalVariants: 1,
         totalAvailableStock: row.stock || 0,
         status: this.importStatusOption,
-        image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+        image: '/assets/img/furniture-placeholder.svg',
         createdAt: createdDate,
         hasOrders: false,
         isExpanded: false,
@@ -1704,7 +1704,7 @@ export class ProductsComponent implements OnInit {
             sku: `${row.sku}-STD`,
             name: 'Tiêu chuẩn',
             price: row.price,
-            image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80',
+            image: '/assets/img/furniture-placeholder.svg',
             isActive: true,
             branchStocks: [
               { branchId: 'wh-main', branchName: 'Kho Tổng', stock: row.stock || 0 },

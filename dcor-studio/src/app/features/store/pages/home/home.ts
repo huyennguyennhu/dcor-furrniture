@@ -347,35 +347,35 @@ const STATIC_REVIEWS: CustomerReviewItem[] = [
     role: 'Homeowner',
     rating: 5,
     text: 'Premium craftsmanship, timeless designs, and outstanding customer service made this one of the best furniture purchases we\'ve ever made for our home interiors.',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=80'
+    avatar: '/assets/favicon/logo.png'
   },
   {
     name: 'Nguyễn Minh Tuấn',
     role: 'Kiến trúc sư nội thất',
     rating: 5,
     text: 'Đường nét thiết kế của DCor mang đậm tinh thần Bắc Âu tối giản và sang trọng. Chất liệu gỗ sồi tự nhiên cùng đệm bọc da cao cấp đem lại sự êm ái hoàn hảo cho cả gia đình.',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80'
+    avatar: '/assets/favicon/logo.png'
   },
   {
     name: 'Sophia Henderson',
     role: 'Interior Stylist',
     rating: 5,
     text: 'The aesthetic balance and ergonomic comfort are world-class. It seamlessly transformed our open-plan penthouse into an inspiring, peaceful and stylish living space.',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80'
+    avatar: '/assets/favicon/logo.png'
   },
   {
     name: 'Trần Thị Lan Anh',
     role: 'Chủ nhân Villa, Đà Nẵng',
     rating: 5,
     text: 'Dịch vụ tư vấn không gian và giao lắp đặt cực kỳ chuyên nghiệp. Từng chi tiết nhỏ như chân bàn, kệ sách và đệm ghế sofa đều chuẩn xác, tinh xảo vượt xa mong đợi.',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=160&q=80'
+    avatar: '/assets/favicon/logo.png'
   },
   {
     name: 'Alexander Wright',
     role: 'Creative Consultant',
     rating: 5,
     text: 'Exceptional attention to detail and sustainable materials. Every single piece feels intentionally crafted, durable, and effortlessly elegant for contemporary living.',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80'
+    avatar: '/assets/favicon/logo.png'
   }
 ];
 

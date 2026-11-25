@@ -542,6 +542,7 @@
   border-bottom: 1px solid var(--border-color, #e5e7eb);
   transition: background-color 0.15s ease;
   cursor: pointer;
+  background: #fffcf9;
 }
 
 .warranty-table tbody tr:hover {

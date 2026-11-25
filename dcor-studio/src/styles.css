@@ -488,18 +488,131 @@ body.admin-body {
   padding: 12px 16px;
   font-size: 13px !important;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: #4A3525;
   white-space: nowrap;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-subtle);
+  border-bottom: 1px solid #d8ccc0;
+  background: #EAE1D7;
 }
 .admin-table td, table:not(.custom-table) td {
   padding: 12px 16px !important;
   font-size: 13px !important;
   border-bottom: 1px solid var(--color-border-subtle);
 }
+.admin-table tbody tr {
+  background: #fffcf9;
+}
 .admin-table tbody tr:hover, table:not(.custom-table) tbody tr:hover {
-  background: var(--color-surface-subtle);
+  background: #F3E5D3;
+}
+
+/* ========================================================
+   GLOBAL ADMIN SITE TABLES (ONLY SITE ADMIN)
+   background thead: #EAE1D7
+   background tbody: #fffcf9
+   Scoped strictly inside .admin-layout-shell
+   ======================================================== */
+.admin-layout-shell table thead,
+.admin-layout-shell table thead tr,
+.admin-layout-shell table thead th,
+.admin-layout-shell table th,
+.admin-layout-shell thead,
+.admin-layout-shell thead tr,
+.admin-layout-shell thead th,
+.admin-layout-shell .admin-table thead,
+.admin-layout-shell .admin-table thead tr,
+.admin-layout-shell .admin-table th,
+.admin-layout-shell .v2-table thead,
+.admin-layout-shell .v2-table thead tr,
+.admin-layout-shell .v2-table thead th,
+.admin-layout-shell .admin-data-table thead,
+.admin-layout-shell .admin-data-table thead tr,
+.admin-layout-shell .admin-data-table thead th,
+.admin-layout-shell .products-master-table thead,
+.admin-layout-shell .products-master-table thead tr,
+.admin-layout-shell .products-master-table th,
+.admin-layout-shell .consultation-table thead,
+.admin-layout-shell .consultation-table thead tr,
+.admin-layout-shell .consultation-table th,
+.admin-layout-shell .audit-table thead,
+.admin-layout-shell .audit-table thead tr,
+.admin-layout-shell .audit-table th,
+.admin-layout-shell .report-data-table thead,
+.admin-layout-shell .report-data-table thead tr,
+.admin-layout-shell .report-data-table th,
+.admin-layout-shell .settings-data-table thead,
+.admin-layout-shell .settings-data-table thead tr,
+.admin-layout-shell .settings-data-table th,
+.admin-layout-shell .matrix-table thead,
+.admin-layout-shell .matrix-table thead tr,
+.admin-layout-shell .matrix-table thead th {
+  background-color: #EAE1D7 !important;
+}
+
+.admin-layout-shell table tbody,
+.admin-layout-shell table tbody tr,
+.admin-layout-shell tbody,
+.admin-layout-shell tbody tr,
+.admin-layout-shell .admin-table tbody,
+.admin-layout-shell .admin-table tbody tr,
+.admin-layout-shell .v2-table tbody,
+.admin-layout-shell .v2-table tbody tr,
+.admin-layout-shell .admin-data-table tbody,
+.admin-layout-shell .admin-data-table tbody tr,
+.admin-layout-shell .products-master-table tbody,
+.admin-layout-shell .products-master-table tbody tr,
+.admin-layout-shell .consultation-table tbody,
+.admin-layout-shell .consultation-table tbody tr,
+.admin-layout-shell .audit-table tbody,
+.admin-layout-shell .audit-table tbody tr,
+.admin-layout-shell .report-data-table tbody,
+.admin-layout-shell .report-data-table tbody tr,
+.admin-layout-shell .settings-data-table tbody,
+.admin-layout-shell .settings-data-table tbody tr,
+.admin-layout-shell .matrix-table tbody,
+.admin-layout-shell .matrix-table tbody tr {
+  background-color: #fffcf9 !important;
+}
+
+/* Ensure individual td elements inside admin tables stay transparent so row #fffcf9 shows cleanly */
+.admin-layout-shell table tbody tr:not(.detail-accordion-row):not(.row-has-conflict) td,
+.admin-layout-shell tbody tr:not(.detail-accordion-row):not(.row-has-conflict) td {
+  background-color: transparent !important;
+}
+
+/* Table wrapper / cards in admin match #fffcf9 */
+.admin-layout-shell .v2-table-wrapper,
+.admin-layout-shell .v2-table-container,
+.admin-layout-shell .admin-page-table-card {
+  background-color: #fffcf9 !important;
+}
+
+/* Admin table row hover effect */
+.admin-layout-shell table tbody tr:hover,
+.admin-layout-shell table tbody tr:hover > td,
+.admin-layout-shell tbody tr:hover,
+.admin-layout-shell tbody tr:hover > td,
+.admin-layout-shell .v2-table tbody tr:hover,
+.admin-layout-shell .admin-table tbody tr:hover,
+.admin-layout-shell .admin-data-table tbody tr:hover,
+.admin-layout-shell .products-master-table tbody tr:hover,
+.admin-layout-shell .consultation-table tbody tr:hover,
+.admin-layout-shell .audit-table tbody tr:hover,
+.admin-layout-shell .report-data-table tbody tr:hover,
+.admin-layout-shell .settings-data-table tbody tr:hover {
+  background-color: #F3E5D3 !important;
+}
+
+/* Selected or active row highlight */
+.admin-layout-shell table tbody tr.row-selected,
+.admin-layout-shell table tbody tr.row-selected > td,
+.admin-layout-shell table tbody tr.selected,
+.admin-layout-shell table tbody tr.selected > td,
+.admin-layout-shell table tbody tr.active,
+.admin-layout-shell table tbody tr.active > td,
+.admin-layout-shell tbody tr.row-selected,
+.admin-layout-shell tbody tr.selected,
+.admin-layout-shell tbody tr.active {
+  background-color: #EFE4D6 !important;
 }
 
 .admin-page {
@@ -863,3 +976,50 @@ body.admin-body {
   width: 8px;
   height: 8px;
 }
+
+/* Triệt tiêu hoàn toàn nút xổ xuống mặc định của browser (datalist picker arrow) trên các ô input text */
+input[type="text"]::-webkit-calendar-picker-indicator,
+input[type="text"]::-webkit-list-button,
+input[type="text"]::-webkit-inner-spin-button,
+input[type="text"]::-webkit-outer-spin-button,
+input[type="text"]::-webkit-clear-button,
+.field-input::-webkit-calendar-picker-indicator,
+.field-input::-webkit-list-button,
+.field-input::-webkit-inner-spin-button,
+.field-input::-webkit-outer-spin-button,
+.field-input::-webkit-clear-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Đảm bảo toàn bộ bảng hợp đồng & báo giá may đo hiển thị trọn vẹn thông tin, không bao giờ bị cắt 3 chấm (...) */
+.quote-specs-table {
+  table-layout: auto !important;
+}
+
+.quote-specs-table td,
+.quote-specs-table th,
+.quote-specs-table .quote-item-name,
+.quote-specs-table .item-name,
+.quote-specs-table .item-sku,
+.quote-specs-table .spec-line {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.quote-specs-table .col-price,
+.quote-specs-table th[style*="text-align: right"],
+.quote-specs-table th[style*="text-align:right"] {
+  white-space: nowrap !important;
+  width: 1% !important;
+}
+

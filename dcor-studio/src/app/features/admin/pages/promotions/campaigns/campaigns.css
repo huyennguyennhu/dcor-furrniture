@@ -411,8 +411,8 @@
 }
 
 .campaigns-table thead tr {
-  background: #FAF7F2;
-  border-bottom: 1px solid #E0E0E0;
+  background: #EAE1D7;
+  border-bottom: 1px solid #d8ccc0;
 }
 
 .campaigns-table th {
@@ -1012,8 +1012,8 @@
 }
 
 .modal-items-table thead tr {
-  background: #FAF7F2;
-  border-bottom: 1px solid #E0E0E0;
+  background: #EAE1D7;
+  border-bottom: 1px solid #d8ccc0;
 }
 
 .modal-items-table th {
@@ -1206,8 +1206,8 @@
 }
 
 .detail-table thead tr {
-  background: #FAF7F2;
-  border-bottom: 1px solid #E0E0E0;
+  background: #EAE1D7;
+  border-bottom: 1px solid #d8ccc0;
 }
 
 .detail-table th {

@@ -495,7 +495,7 @@ export class ProductCompareModalComponent implements OnInit, OnChanges {
     if (prod.images && prod.images.length > 0) {
       return prod.images[0];
     }
-    return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
+    return '/assets/img/furniture-placeholder.svg';
   }
 
   // 2. Giá sản phẩm (sau khi đổi biến thể)

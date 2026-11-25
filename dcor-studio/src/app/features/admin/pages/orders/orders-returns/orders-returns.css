@@ -615,24 +615,26 @@
 }
 
 .v2-table thead {
-  background: var(--bg-secondary, #f9fafb);
+  background: #EAE1D7;
   border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
 .v2-table th {
   padding: 12px 14px;
   font-weight: 600;
-  color: var(--text-secondary, #4b5563);
+  color: #4A3525;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
+  background: #EAE1D7;
 }
 
 .v2-table tbody tr.v2-table-row {
   border-bottom: 1px solid var(--border-color, #f3f4f6);
   transition: background 0.12s ease;
   cursor: pointer;
+  background: #fffcf9;
 }
 
 .v2-table tbody tr.v2-table-row:hover {

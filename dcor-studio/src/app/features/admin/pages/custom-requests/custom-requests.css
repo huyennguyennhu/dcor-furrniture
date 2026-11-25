@@ -702,6 +702,20 @@
   color: #ffffff;
 }
 
+.status-opt-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-filter-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
 /* Bulk Actions Bar */
 .bulk-actions-bar {
   display: flex;
@@ -814,7 +828,7 @@
   border-bottom: 1px solid var(--border-color, #f1f3f5);
   cursor: pointer;
   transition: background 0.15s ease;
-  background: var(--bg-primary, #ffffff);
+  background: #fffcf9;
 }
 
 .v2-table tbody tr:hover {
@@ -1099,7 +1113,8 @@
 .status-cell-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 5px;
 }
 
 .status-chip {
@@ -1112,6 +1127,8 @@
   font-weight: 600;
   border: 1px solid transparent;
   width: fit-content;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chip-dot {
@@ -1131,6 +1148,32 @@
   border-radius: 4px;
   width: fit-content;
   border: 1px solid rgba(21, 128, 61, 0.2);
+}
+
+.linked-order-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #765337;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #FAF7F2;
+  border: 1px solid #EAD8C7;
+  width: fit-content;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.linked-order-link:hover {
+  color: #5C402A;
+  background: #F3ECE2;
+  border-color: #765337;
+  text-decoration: underline;
 }
 
 /* Action Buttons */
@@ -1693,17 +1736,17 @@
   padding: 9px 24px;
   border-radius: 8px;
   border: none;
-  background: var(--accent, #765337);
+  background: #5E412A;
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(118, 83, 55, 0.25);
+  box-shadow: 0 2px 6px rgba(94, 65, 42, 0.25);
   transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-confirm-primary:hover {
-  background: #5d412b;
-  box-shadow: 0 4px 12px rgba(118, 83, 55, 0.35);
+  background: #3F2918;
+  box-shadow: 0 4px 12px rgba(94, 65, 42, 0.4);
   transform: translateY(-1px);
 }
 .btn-confirm-primary:active {
@@ -1929,11 +1972,12 @@
 }
 
 .v2-stepper-card {
-  background: var(--bg-primary, #ffffff);
+  background: transparent;
   border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 12px;
   padding: 20px 24px;
   position: relative;
+  box-shadow: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   margin-bottom: 18px;
 }

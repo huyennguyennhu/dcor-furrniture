@@ -131,11 +131,11 @@ export class ContentComponent implements OnInit, OnDestroy {
 
   // Preset cover images for quick selection
   presetCovers = [
-    'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1540518614846-7ede433c4ef7?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=80'
+    '/assets/img/furniture-placeholder.svg',
+    '/assets/img/furniture-placeholder.svg',
+    '/assets/img/furniture-placeholder.svg',
+    '/assets/img/furniture-placeholder.svg',
+    '/assets/img/furniture-placeholder.svg'
   ];
 
   constructor(public blogService: BlogService) {}
@@ -342,7 +342,7 @@ export class ContentComponent implements OnInit, OnDestroy {
       categoryId: this.articleForm.categoryId,
       categoryName: catName,
       author: this.articleForm.author.trim() || 'DCor Studio',
-      authorAvatar: this.articleForm.authorAvatar.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      authorAvatar: this.articleForm.authorAvatar.trim() || '/assets/favicon/logo.png',
       status: this.articleForm.status,
       publishedAt: this.articleForm.status === 'PUBLISHED' ? (this.articleForm.publishedAt || new Date().toISOString()) : undefined,
       excerpt: this.articleForm.excerpt.trim(),
@@ -917,7 +917,7 @@ export class ContentComponent implements OnInit, OnDestroy {
       this.bannerForm = {
         title: '',
         position: 'HOME_HERO',
-        imageUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
+        imageUrl: '/assets/img/furniture-placeholder.svg',
         linkUrl: '/explore',
         status: 'ACTIVE'
       };
@@ -995,11 +995,11 @@ export class ContentComponent implements OnInit, OnDestroy {
     return {
       title: '',
       slug: '',
-      coverImage: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=80',
+      coverImage: '/assets/img/furniture-placeholder.svg',
       categoryId: '',
       categoryName: '',
       author: 'Ban biên tập DCor',
-      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      authorAvatar: '/assets/favicon/logo.png',
       status: 'DRAFT' as const,
       scheduledAt: '',
       excerpt: '',

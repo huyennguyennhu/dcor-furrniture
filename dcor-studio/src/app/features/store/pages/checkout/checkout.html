@@ -293,7 +293,7 @@
               <div *ngFor="let item of checkoutItems" class="summary-item-row">
                 <div class="summary-item-thumb">
                   <img
-                    [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop'"
+                    [src]="item.image || '/assets/img/furniture-placeholder.svg'"
                     [alt]="item.name" />
                   <span class="item-qty-badge">{{ item.quantity }}</span>
                 </div>
@@ -507,7 +507,7 @@
             <div class="purchased-items-list">
               <div *ngFor="let item of createdOrder.items" class="purchased-item-row">
                 <img
-                  [src]="item.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&auto=format&fit=crop'"
+                  [src]="item.image || '/assets/img/furniture-placeholder.svg'"
                   [alt]="item.name" />
                 <div class="item-name-block">
                   <div class="item-name">{{ item.name }}</div>

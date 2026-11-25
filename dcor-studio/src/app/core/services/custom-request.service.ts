@@ -8,6 +8,7 @@ export type CustomRequestStatus =
   | 'AWAITING_CONTRACT'
   | 'CONTRACT_SIGNED'
   | 'AWAITING_PAYMENT'
+  | 'DEPOSIT_SUBMITTED'
   | 'PROCESSING'
   | 'QC_PASSED'
   | 'COMPLETED'
@@ -28,6 +29,8 @@ export interface CustomAttributeItem {
   selectedOptionName: string;
   hexColor?: string;
   isChanged?: boolean;
+  isOther?: boolean;
+  selectedOptionId?: string;
   customNote?: string;
 }
 
@@ -59,6 +62,7 @@ export interface CustomRequest {
   basePrice?: number;
 
   // Kích thước từ form yêu cầu
+  hasDimensions?: boolean; // Sản phẩm gốc có kích thước may đo 3 chiều hay không
   originalDimensions?: string;
   requestedDimensions?: string;
   customDimensionNote?: string;
@@ -70,6 +74,7 @@ export interface CustomRequest {
   customizedAttributes?: CustomAttributeItem[];
   colorName?: string;  // Tên màu (ví dụ: Nâu Cognac Ý, Kem Sand Luxury...)
   colorHex?: string;   // Mã màu hiển thị
+  colorImage?: string; // Ảnh mẫu màu / tấm da / mẫu vải thực tế do KTS chụp
   material?: string;   // Chất liệu bề mặt (Da bò Ý Full Grain, Da Microfiber, Gỗ óc chó...)
   legMaterial?: string;// Chất liệu chân/khung
 
@@ -98,11 +103,15 @@ export interface CustomRequest {
   surveyAttachment?: CustomAttachmentItem; // Tệp ghi chú / hồ sơ đo đạc đính kèm của KTS
   surveyDate?: string;       // Ngày giờ khảo sát
   drawing3dUrl?: string;     // Link bản vẽ 3D
+  drawing3dUrls?: string[];    // Danh sách ảnh bản vẽ / phối cảnh 3D
   quotedPrice?: number;      // Giá báo giá
   quotedDeposit?: number;    // Tiền đặt cọc cần thanh toán (30%)
   quotedAt?: string;
+  estimatedProductionDays?: number; // Số ngày sản xuất dự kiến
   contractScanUrl?: string;  // Ảnh scan hợp đồng ký
   contractSignedAt?: string;
+  depositProofImage?: string; // Ảnh biên lai / bill chuyển khoản cọc của khách hàng
+  depositProofNote?: string;  // Ghi chú chuyển khoản của khách hàng
   cancelReason?: string;
   cancelledAt?: string;
 
@@ -116,12 +125,28 @@ export interface CustomRequest {
     packagingProtection: boolean;
   };
   warrantyCode?: string;
+  warrantyMonths?: number;
+  warrantyFrameYears?: number;
+  warrantySurfaceYears?: number;
+  warrantyPolicy?: string;
   deliveredAt?: string;
   finalPaymentReceived?: boolean;
 
   // Liên kết hệ thống
   generatedOrderNumber?: string;
   workOrderCode?: string;
+  customVariant?: {
+    id: string;
+    name: string;
+    sku: string;
+    price: number;
+    stock: number;
+    status: 'private' | 'public';
+    isPrivate: boolean;
+    images: string[];
+    attributes: { label: string; value: string; hexColor?: string }[];
+    createdAt: string;
+  };
 
   createdAt: string;
   updatedAt: string;
@@ -158,8 +183,8 @@ export const CUSTOM_STATUS_MAP: Record<CustomRequestStatus, StatusMeta> = {
     stepIndex: 2
   },
   QUOTED: {
-    adminLabel: 'Đã báo giá & bản vẽ 3D',
-    customerLabel: 'Đã gửi báo giá 3D',
+    adminLabel: 'Đã gửi báo giá & bản vẽ',
+    customerLabel: 'Đã nhận báo giá và bản vẽ',
     color: '#7c3aed',
     bgColor: '#f3e8ff',
     borderColor: '#ddd6fe',
@@ -168,57 +193,66 @@ export const CUSTOM_STATUS_MAP: Record<CustomRequestStatus, StatusMeta> = {
   },
   AWAITING_CONTRACT: {
     adminLabel: 'Chờ ký hợp đồng',
-    customerLabel: 'Chờ ký hợp đồng',
+    customerLabel: 'Chờ ký HĐ',
     color: '#ea580c',
     bgColor: '#ffedd5',
     borderColor: '#fed7aa',
-    description: 'Khách duyệt phương án 3D & dự toán, chuyển sang bước ký kết hợp đồng kinh tế.',
+    description: 'Khách duyệt phương án 3D & dự toán, hợp đồng may đo kinh tế đã gửi tới tài khoản khách hàng để ký điện tử.',
     stepIndex: 4
   },
   CONTRACT_SIGNED: {
-    adminLabel: 'Đã ký hợp đồng',
-    customerLabel: 'Đã ký HĐ - Chờ cọc',
-    color: '#059669',
-    bgColor: '#d1fae5',
-    borderColor: '#a7f3d0',
-    description: 'Hợp đồng may đo đã có chữ ký 2 bên và lưu kho bản scan.',
+    adminLabel: 'Chờ đặt cọc (Đã ký HĐ)',
+    customerLabel: 'Chờ đặt cọc',
+    color: '#0284c7',
+    bgColor: '#e0f2fe',
+    borderColor: '#bae6fd',
+    description: 'Hợp đồng may đo đã được ký kết điện tử thành công. Đơn hàng chuyển sang bước Đặt cọc 30%.',
     stepIndex: 5
   },
   AWAITING_PAYMENT: {
     adminLabel: 'Chờ nhận cọc 30%',
-    customerLabel: 'Chờ thanh toán cọc',
+    customerLabel: 'Chờ đặt cọc',
     color: '#0284c7',
     bgColor: '#e0f2fe',
     borderColor: '#bae6fd',
-    description: 'Hệ thống đã phát hành mã VietQR cọc 30%. Chờ kế toán xác nhận nhận tiền.',
-    stepIndex: 6
+    description: 'Hệ thống đã phát hành mã VietQR cọc 30%. Chờ khách quét mã thanh toán & nộp bill.',
+    stepIndex: 5
+  },
+  DEPOSIT_SUBMITTED: {
+    adminLabel: 'Chờ đối soát bill cọc',
+    customerLabel: 'Chờ đối soát cọc',
+    color: '#8b5cf6',
+    bgColor: '#f3e8ff',
+    borderColor: '#ddd6fe',
+    description: 'Khách hàng đã chuyển khoản cọc và gửi bill thanh toán. Đang chờ kế toán đối soát sao kê ngân hàng.',
+    stepIndex: 5
   },
   PROCESSING: {
-    adminLabel: 'Đang sản xuất tại xưởng',
+    adminLabel: 'Đang gia công xưởng',
     customerLabel: 'Đang sản xuất tại xưởng',
     color: '#d97706',
     bgColor: '#fef3c7',
     borderColor: '#fde68a',
-    description: 'Đã nhận cọc 30%. Đã sinh Đơn hàng chính thức và phát Lệnh sản xuất xuống xưởng.',
-    stepIndex: 7
+    description: 'Đã nhận cọc 30%. Xưởng mộc đang gia công chế tác theo bản vẽ và lệnh sản xuất.',
+    stepIndex: 6
   },
   QC_PASSED: {
-    adminLabel: 'Đã nghiệm thu QC 4 tiêu chí',
-    customerLabel: 'Hoàn thiện & Đạt chuẩn QC',
+    adminLabel: 'Đã lên đơn & Đạt chuẩn QC',
+    customerLabel: 'Đã lên đơn & Sẵn sàng giao',
     color: '#0891b2',
     bgColor: '#ecfeff',
     borderColor: '#a5f3fc',
-    description: 'Đã nghiệm thu QC may đo 4 tiêu chí khắt khe: Kích thước sai số < 5mm, bề mặt da láng mịn, mút & chỉ kép, bọc góc đóng gói.',
-    stepIndex: 8
+    description: 'Xưởng đã gia công xong và lên đơn hàng chính thức. Đã nghiệm thu QC đạt chuẩn 100%, sẵn sàng bàn giao.',
+    stepIndex: 7
   },
   COMPLETED: {
-    adminLabel: 'Đã giao hàng & Kích hoạt BH',
-    customerLabel: 'Hoàn tất bàn giao & Bảo hành',
+    adminLabel: 'Hoàn tất sản xuất & Chuyển vận chuyển',
+    customerLabel: 'Hoàn tất sản xuất chuyển cho Vận chuyển',
     color: '#15803d',
     bgColor: '#dcfce7',
     borderColor: '#86efac',
-    description: 'Bàn giao lắp đặt tại nhà, thu đủ 70% còn lại và kích hoạt chứng thư bảo hành điện tử chính hãng 5 năm.',
-    stepIndex: 9
+    description: 'Xưởng đã sản xuất nghiệm thu hoàn tất và bàn giao sang đơn vị vận chuyển giao tới nhà khách hàng.',
+    stepIndex: 7
   },
   CANCELLED: {
     adminLabel: 'Đã hủy',
@@ -241,6 +275,23 @@ export class CustomRequestService {
 
   constructor() {
     this.initData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e: StorageEvent) => {
+        if (e.key === this.STORAGE_KEY && e.newValue) {
+          try {
+            const list = JSON.parse(e.newValue);
+            if (Array.isArray(list)) {
+              this.requestsSubject.next(list);
+            }
+          } catch (_) {}
+        }
+      });
+      window.addEventListener('dcor_custom_requests_updated', (e: any) => {
+        if (e.detail && Array.isArray(e.detail)) {
+          this.requestsSubject.next(e.detail);
+        }
+      });
+    }
   }
 
   private initData(): void {
@@ -263,16 +314,17 @@ export class CustomRequestService {
                 ...seed,
                 ...item,
                 referenceImages: item.referenceImages?.length ? item.referenceImages : seed.referenceImages, 
-                productImage: item.productImage || seed.productImage,
+                productImage: item.code === 'CR-0004' ? '' : (item.productImage || seed.productImage),
                 budgetRange: item.budgetRange || seed.budgetRange,
                 estimatedBudget: item.estimatedBudget || seed.estimatedBudget,
                 preferredSurveyTime: item.preferredSurveyTime || seed.preferredSurveyTime,
                 expectedDeliveryDate: item.expectedDeliveryDate || seed.expectedDeliveryDate,
                 roomSpace: item.roomSpace || seed.roomSpace,
+                hasDimensions: seed.hasDimensions !== undefined ? seed.hasDimensions : item.hasDimensions,
                 originalDimensions: item.originalDimensions || seed.originalDimensions,
                 requestedDimensions: item.requestedDimensions || seed.requestedDimensions,
                 customDimensionNote: item.customDimensionNote || seed.customDimensionNote,
-                customizedAttributes: item.customizedAttributes || seed.customizedAttributes,
+                customizedAttributes: seed.customizedAttributes !== undefined ? seed.customizedAttributes : item.customizedAttributes,
                 attachments: item.attachments || seed.attachments,
                 basePrice: item.basePrice || seed.basePrice,
                 requirementDetails: item.requirementDetails || seed.requirementDetails,
@@ -280,6 +332,13 @@ export class CustomRequestService {
               };
             }
             return item;
+          });
+
+          // Bổ sung các hạt giống mới nếu chưa có trong bộ nhớ lưu trữ
+          seeds.forEach(seed => {
+            if (!merged.some(m => m.code === seed.code || m.id === seed.id)) {
+              merged.push(seed);
+            }
           });
 
           // Đồng bộ tự động các đơn mới mà khách gửi qua website (dcor_custom_requests)
@@ -294,6 +353,44 @@ export class CustomRequestService {
               });
             }
           } catch (_) {}
+
+          // Tự động chuẩn hóa, loại bỏ hoàn toàn các link unsplash cũ trong localStorage để chạy offline mượt mà
+          merged.forEach((item: any) => {
+            if (item.productImage && item.productImage.includes('unsplash.com')) {
+              item.productImage = '/assets/img/furniture-placeholder.svg';
+            }
+            if (item.drawing3dUrl && item.drawing3dUrl.includes('unsplash.com')) {
+              item.drawing3dUrl = '/assets/img/about_blueprint.jpg';
+            }
+            if (item.contractScanUrl && item.contractScanUrl.includes('unsplash.com')) {
+              item.contractScanUrl = '/assets/img/furniture-placeholder.svg';
+            }
+            if (item.referenceImages && Array.isArray(item.referenceImages)) {
+              item.referenceImages = item.referenceImages.filter((img: string) => 
+                img && !img.includes('furniture-placeholder.svg') && !img.includes('unsplash.com')
+              );
+            }
+            if (item.attachments && Array.isArray(item.attachments)) {
+              item.attachments = item.attachments.filter((att: any) => 
+                att.previewUrl && !att.previewUrl.includes('furniture-placeholder.svg') && !att.previewUrl.includes('unsplash.com')
+              );
+            }
+            if (item.status === 'PENDING_REVIEW') {
+              if (item.drawing3dUrl && item.drawing3dUrl.includes('about_blueprint.jpg')) {
+                delete item.drawing3dUrl;
+              }
+              if (item.attachments && Array.isArray(item.attachments)) {
+                item.attachments = item.attachments.filter((att: any) => 
+                  att.previewUrl && !att.previewUrl.includes('about_blueprint.jpg')
+                );
+              }
+              if (item.referenceImages && Array.isArray(item.referenceImages)) {
+                item.referenceImages = item.referenceImages.filter((img: string) => 
+                  img && !img.includes('about_blueprint.jpg')
+                );
+              }
+            }
+          });
 
           this.saveToStorage(merged);
           this.requestsSubject.next(merged);
@@ -316,7 +413,11 @@ export class CustomRequestService {
   }
 
   public getRequestById(id: string): CustomRequest | undefined {
-    return this.requestsSubject.value.find(r => r.id === id || r.code === id);
+    const req = this.requestsSubject.value.find(r => r.id === id || r.code === id);
+    if (req && req.assignedStaff) {
+      req.assignedStaff = req.assignedStaff.replace(/\s*\([^)]*\)/g, '').trim();
+    }
+    return req;
   }
 
   public getById(id: string): CustomRequest | undefined {
@@ -327,6 +428,7 @@ export class CustomRequestService {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
+        window.dispatchEvent(new CustomEvent('dcor_custom_requests_updated', { detail: list }));
       } catch (_) {}
     }
   }
@@ -376,7 +478,7 @@ export class CustomRequestService {
       productId: data.productId,
       productName: data.productName,
       productSku: data.productSku,
-      productImage: data.productImage || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+      productImage: data.productImage || '/assets/img/furniture-placeholder.svg',
       categoryName: data.categoryName || 'Sofa May Đo',
       length: data.length,
       width: data.width,
@@ -417,7 +519,7 @@ export class CustomRequestService {
   assignArchitect(id: string, staffName: string): CustomRequest | undefined {
     const target = this.getById(id);
     if (!target) return undefined;
-    target.assignedStaff = staffName;
+    target.assignedStaff = (staffName || '').replace(/\s*\([^)]*\)/g, '').trim();
     const current = [...this.requestsSubject.value];
     const idx = current.findIndex(r => r.id === id);
     if (idx >= 0) {
@@ -438,18 +540,70 @@ export class CustomRequestService {
     });
   }
 
-  /** Cập nhật biên bản đo đạc & ghi chú/file khảo sát thực tế của KTS */
+  /** Cập nhật biên bản đo đạc & thông số kỹ thuật khảo sát thực tế của KTS */
   updateSurveyRecord(
     id: string,
     data: {
       surveyNotes?: string;
       surveyAttachment?: CustomAttachmentItem;
+      length?: number;
+      width?: number;
+      height?: number;
+      colorName?: string;
+      colorHex?: string;
+      colorImage?: string;
+      material?: string;
+      legMaterial?: string;
     }
   ): CustomRequest | undefined {
     const target = this.getById(id);
     if (!target) return undefined;
-    target.surveyNotes = data.surveyNotes;
-    target.surveyAttachment = data.surveyAttachment;
+    if (data.surveyNotes !== undefined) target.surveyNotes = data.surveyNotes;
+    if (data.surveyAttachment !== undefined) target.surveyAttachment = data.surveyAttachment;
+    if (data.length !== undefined) target.length = Number(data.length);
+    if (data.width !== undefined) target.width = Number(data.width);
+    if (data.height !== undefined) target.height = Number(data.height);
+    if (data.colorName !== undefined) target.colorName = data.colorName;
+    if (data.colorHex !== undefined) target.colorHex = data.colorHex;
+    if (data.colorImage !== undefined) target.colorImage = data.colorImage;
+    if (data.material !== undefined) target.material = data.material;
+    if (data.legMaterial !== undefined) target.legMaterial = data.legMaterial;
+    target.updatedAt = new Date().toISOString();
+
+    const current = [...this.requestsSubject.value];
+    const idx = current.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      current[idx] = { ...target };
+      this.saveToStorage(current);
+      this.requestsSubject.next(current);
+    }
+    return target;
+  }
+
+  /** Lưu dự toán báo giá (ghi nhận đơn giá, cọc và ghi chú của đơn custom, lưu vào storage) */
+  saveQuoteDraft(
+    id: string,
+    data: {
+      quotedPrice: number;
+      quotedDeposit?: number;
+      notes?: string;
+      drawing3dUrl?: string;
+      drawing3dUrls?: string[];
+      staffName?: string;
+    }
+  ): CustomRequest | undefined {
+    const target = this.getById(id);
+    if (!target) return undefined;
+    const price = Number(data.quotedPrice) || 0;
+    const deposit = data.quotedDeposit !== undefined ? Number(data.quotedDeposit) : Math.round(price * 0.3);
+
+    target.quotedPrice = price;
+    target.quotedDeposit = deposit;
+    target.quotedAt = new Date().toISOString();
+    if (data.notes !== undefined) target.adminNotes = data.notes;
+    if (data.drawing3dUrl) target.drawing3dUrl = data.drawing3dUrl;
+    if (data.drawing3dUrls && data.drawing3dUrls.length > 0) target.drawing3dUrls = data.drawing3dUrls;
+    if (data.staffName) target.assignedStaff = data.staffName.replace(/\s*\([^)]*\)/g, '').trim();
     target.updatedAt = new Date().toISOString();
 
     const current = [...this.requestsSubject.value];
@@ -478,17 +632,21 @@ export class CustomRequestService {
       quotedPrice: number;
       quotedDeposit?: number;
       drawing3dUrl?: string;
+      drawing3dUrls?: string[];
       notes?: string;
       staffName?: string;
     }
   ): CustomRequest | undefined {
     const deposit = quoteData.quotedDeposit || Math.round(quoteData.quotedPrice * 0.3);
-    const target = this.requestsSubject.value.find(r => r.id === id);
-    const nextStatus: CustomRequestStatus = target?.status === 'QUOTED' ? 'AWAITING_CONTRACT' : 'QUOTED';
-    return this.updateStatus(id, nextStatus, {
-      title: 'Đã hoàn thiện báo giá dự toán & bản vẽ 3D',
-      description: `Báo giá chính thức: ${new Intl.NumberFormat('vi-VN').format(quoteData.quotedPrice)} đ (Cọc 30%: ${new Intl.NumberFormat('vi-VN').format(deposit)} đ). Đã phát hành bản vẽ 3D phối cảnh.`,
+    const target = this.getById(id);
+    if (target && quoteData.drawing3dUrls && quoteData.drawing3dUrls.length > 0) {
+      target.drawing3dUrls = quoteData.drawing3dUrls;
+    }
+    return this.updateStatus(id, 'AWAITING_CONTRACT', {
+      title: 'Đã hoàn thiện báo giá dự toán & phát hành hợp đồng',
+      description: `Báo giá chính thức: ${new Intl.NumberFormat('vi-VN').format(quoteData.quotedPrice)} đ (Cọc 30%: ${new Intl.NumberFormat('vi-VN').format(deposit)} đ). Đã chuyển sang trạng thái chờ khách hàng ký hợp đồng may đo.`,
       performedBy: quoteData.staffName || 'Ban Báo Giá DCor',
+      assignedStaff: quoteData.staffName,
       quotedPrice: quoteData.quotedPrice,
       quotedDeposit: deposit,
       drawing3dUrl: quoteData.drawing3dUrl,
@@ -506,48 +664,123 @@ export class CustomRequestService {
     });
   }
 
-  /** Bước 3b: Xác nhận đã ký hợp đồng, chuyển sang CONTRACT_SIGNED */
-  confirmContractSigned(id: string, contractScanUrl?: string, staffName: string = 'KTS. DCor'): CustomRequest | undefined {
-    return this.updateStatus(id, 'CONTRACT_SIGNED', {
-      title: 'Hợp đồng may đo đã được ký kết',
-      description: 'Hai bên đã ký kết hợp đồng may đo sản xuất. Đã lưu trữ bản scan hợp đồng có chữ ký vào hệ thống.',
+  /** Bước 4: Xác nhận đã ký hợp đồng -> Tự động lưu bản HĐ và chuyển thẳng sang Cọc 30% (AWAITING_PAYMENT) */
+  confirmContractSigned(id: string, contractScanUrl?: string, staffName: string = 'Khách hàng'): CustomRequest | undefined {
+    return this.updateStatus(id, 'AWAITING_PAYMENT', {
+      title: 'Hợp đồng may đo đã được ký kết & Phát hành mã cọc 30%',
+      description: 'Hợp đồng may đo đã được xác nhận ký kết điện tử thành công và lưu trữ hồ sơ. Quy trình tự động chuyển sang bước Đặt cọc 30%.',
       performedBy: staffName,
-      contractScanUrl: contractScanUrl || 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
+      contractScanUrl: contractScanUrl || '/assets/img/furniture-placeholder.svg',
       contractSignedAt: new Date().toISOString()
     });
   }
 
-  /** Bước 4: Phát hành mã VietQR cọc 30%, chuyển sang AWAITING_PAYMENT */
+  /** Bước 5: Phát hành mã VietQR cọc 30%, chuyển sang AWAITING_PAYMENT */
   requestPayment(id: string, staffName: string = 'Kế toán DCor'): CustomRequest | undefined {
     return this.updateStatus(id, 'AWAITING_PAYMENT', {
       title: 'Phát hành mã VietQR thanh toán cọc 30%',
-      description: 'Hệ thống đã khởi tạo mã QR chuyển khoản đặt cọc 30% gửi qua SMS/Zalo cho khách.',
+      description: 'Hệ thống đã khởi tạo mã QR chuyển khoản đặt cọc 30% gửi cho khách.',
       performedBy: staffName
     });
   }
 
-  /** Bước 5: Kế toán xác nhận nhận cọc 30% -> TỰ ĐỘNG SINH ĐƠN HÀNG & BẮN XƯỞNG -> Chuyển PROCESSING */
+  /** Alias cho requestPayment */
+  requestDeposit(id: string, staffName: string = 'Kế toán DCor'): CustomRequest | undefined {
+    return this.requestPayment(id, staffName);
+  }
+
+  /** Bước 5b: Khách hàng xác nhận đã chuyển khoản cọc 30% kèm ảnh bill thanh toán */
+  submitDepositConfirmation(id: string, notes?: string, billImage?: string): CustomRequest | undefined {
+    const target = this.getById(id);
+    if (target) {
+      if (billImage) target.depositProofImage = billImage;
+      if (notes) target.depositProofNote = notes;
+    }
+    return this.updateStatus(id, 'DEPOSIT_SUBMITTED', {
+      title: 'Đã gửi xác nhận chuyển khoản cọc 30% & Biên lai thanh toán',
+      description: 'Khách hàng đã chuyển khoản thành công và tải lên biên lai thanh toán. Kế toán đang đối soát sao kê.',
+      performedBy: 'Khách hàng',
+      adminNotes: notes || 'Khách hàng đã chuyển khoản cọc 30% qua VietQR, chờ đối soát'
+    });
+  }
+
+  /** Bước 5: Kế toán xác nhận nhận cọc 30% -> Cấp mã Lệnh xưởng & BẮN XƯỞNG SẢN XUẤT (PROCESSING). Chưa sinh Đơn hàng chính thức */
   confirmPaymentAndStartProduction(
     id: string, 
-    staffName: string = 'Quản đốc xưởng DCor'
-  ): { updatedRequest: CustomRequest; generatedOrderNumber: string; workOrderCode: string } | undefined {
+    staffName: string = 'Kế toán DCOR'
+  ): { updatedRequest: CustomRequest; workOrderCode: string; generatedOrderNumber?: string } | undefined {
     const target = this.getById(id);
     if (!target) return undefined;
 
-    const generatedOrderNumber = `DCOR-ORD-${target.code.replace('CR-', 'CUST-')}`;
     const workOrderCode = `WO-${target.code.replace('CR-', 'MK-')}`;
 
     const updated = this.updateStatus(id, 'PROCESSING', {
-      title: 'Xác nhận cọc 30% - Sinh Đơn hàng & Bắn xưởng sản xuất',
-      description: `Kế toán xác nhận nhận cọc thành công. Hệ thống tự động sinh Đơn hàng chính thức ${generatedOrderNumber} và phát lệnh sản xuất xưởng ${workOrderCode}.`,
+      title: 'Xác nhận cọc 30% thành công - Phát lệnh sản xuất xưởng',
+      description: `Kế toán xác nhận nhận cọc 30% thành công. Phát lệnh sản xuất xưởng ${workOrderCode} để xưởng bắt đầu gia công chế tác theo bản vẽ 3D.`,
       performedBy: staffName
     });
 
     if (!updated) return undefined;
 
-    // Gắn mã liên kết vào request
-    updated.generatedOrderNumber = generatedOrderNumber;
+    // Gắn mã lệnh xưởng vào request
     updated.workOrderCode = workOrderCode;
+    const current = [...this.requestsSubject.value];
+    const idx = current.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      current[idx] = updated;
+      this.saveToStorage(current);
+      this.requestsSubject.next(current);
+    }
+
+    return { updatedRequest: updated, workOrderCode, generatedOrderNumber: updated.generatedOrderNumber || `DCOR-ORD-${target.code.replace('CR-', 'CUST-')}` };
+  }
+
+  /** Bước 6: Quản đốc xưởng / KTS Tạo sản phẩm (Tạo biến thể Private) cho yêu cầu custom */
+  saveCustomVariant(id: string, variant: any): CustomRequest | undefined {
+    const target = this.getById(id);
+    if (!target) return undefined;
+
+    target.customVariant = variant;
+    target.updatedAt = new Date().toISOString();
+
+    // Thêm vào timeline tác nghiệp
+    target.timeline.unshift({
+      status: target.status,
+      title: 'Tạo sản phẩm biến thể may đo (Private)',
+      description: `Đã tạo biến thể sản phẩm riêng cho khách hàng: "${variant.name}" (SKU: ${variant.sku || 'N/A'}, Giá: ${new Intl.NumberFormat('vi-VN').format(variant.price || 0)} đ, Tồn kho: ${variant.stock || 1}, Trạng thái: Private).`,
+      timestamp: new Date().toISOString(),
+      performedBy: 'Quản đốc xưởng DCOR'
+    });
+
+    const current = [...this.requestsSubject.value];
+    const idx = current.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      current[idx] = target;
+      this.saveToStorage(current);
+      this.requestsSubject.next(current);
+    }
+    return target;
+  }
+
+  /** Bước 6: Xưởng sản xuất xong -> Nhấn "Lên đơn hàng" -> MỚI CHÍNH THỨC TẠO ĐƠN TRONG TAB ĐƠN HÀNG */
+  createOfficialOrderFromProduction(
+    id: string,
+    staffName: string = 'Quản đốc xưởng DCOR'
+  ): { updatedRequest: CustomRequest; generatedOrderNumber: string } | undefined {
+    const target = this.getById(id);
+    if (!target) return undefined;
+
+    const generatedOrderNumber = `DCOR-ORD-${target.code.replace('CR-', 'CUST-')}`;
+
+    const updated = this.updateStatus(id, 'QC_PASSED', {
+      title: 'Hoàn tất sản xuất xưởng - Lên Đơn hàng chính thức',
+      description: `Xưởng đã hoàn tất gia công sản xuất sản phẩm custom. Hệ thống chính thức tạo Đơn hàng #${generatedOrderNumber} trong tab Đơn hàng để bàn giao, nghiệm thu và thu 70% còn lại.`,
+      performedBy: staffName
+    });
+
+    if (!updated) return undefined;
+
+    updated.generatedOrderNumber = generatedOrderNumber;
     const current = [...this.requestsSubject.value];
     const idx = current.findIndex(r => r.id === id);
     if (idx >= 0) {
@@ -574,20 +807,21 @@ export class CustomRequestService {
           totalAmount: updated.quotedPrice || 35000000,
           depositAmount: updated.quotedDeposit || Math.round((updated.quotedPrice || 35000000) * 0.3),
           source: 'CUSTOM_ORDER',
-          workOrderCode: workOrderCode,
+          workOrderCode: updated.workOrderCode || `WO-${updated.code.replace('CR-', 'MK-')}`,
           customRequestId: updated.code,
           note: `[Đơn May Đo Riêng - Hồ sơ ${updated.code}] Kích thước: ${updated.length}x${updated.width}x${updated.height} cm. Chất liệu: ${updated.material}. Màu sắc: ${updated.colorName}. Ghi chú: ${updated.notes || 'Không có'}`,
           products: [
             {
               id: updated.productId || 'prod-custom',
-              name: `[May đo] ${updated.productName}`,
-              sku: `${updated.productSku || 'DCOR-CUSTOM'}-CUSTOM`,
-              variant: `${updated.length}x${updated.width}x${updated.height} cm | ${updated.material || 'Da bò Ý'} | ${updated.colorName || 'Màu đặt riêng'}`,
-              imageUrl: updated.productImage || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
-              price: updated.quotedPrice || 35000000,
-              quantity: 1,
-              lineTotal: updated.quotedPrice || 35000000,
-              stockAvailable: 1
+              name: updated.customVariant?.name || `[May đo] ${updated.productName}`,
+              sku: updated.customVariant?.sku || `${updated.productSku || 'DCOR-CUSTOM'}-CUSTOM`,
+              variant: updated.customVariant?.name || `${updated.length}x${updated.width}x${updated.height} cm | ${updated.material || 'Da bò Ý'} | ${updated.colorName || 'Màu đặt riêng'}`,
+              imageUrl: (updated.customVariant?.images && updated.customVariant.images[0]) || updated.productImage || '/assets/img/furniture-placeholder.svg',
+              price: updated.customVariant?.price || updated.quotedPrice || 35000000,
+              quantity: updated.customVariant?.stock || 1,
+              lineTotal: (updated.customVariant?.price || updated.quotedPrice || 35000000) * (updated.customVariant?.stock || 1),
+              stockAvailable: updated.customVariant?.stock || 1,
+              isPrivate: true
             }
           ]
         };
@@ -619,11 +853,11 @@ export class CustomRequestService {
 
         window.dispatchEvent(new CustomEvent('dcor_orders_updated'));
       } catch (e) {
-        console.warn('Lỗi ghi localStorage đơn hàng custom:', e);
+        console.warn('Lỗi đồng bộ vào kho đơn hàng / localStorage:', e);
       }
     }
 
-    return { updatedRequest: updated, generatedOrderNumber, workOrderCode };
+    return { updatedRequest: updated, generatedOrderNumber };
   }
 
   /** Nghiệm thu QC May đo 4 tiêu chí khắt khe -> Chuyển QC_PASSED */
@@ -766,18 +1000,18 @@ export class CustomRequestService {
     if (meta.quotedAt) item.quotedAt = meta.quotedAt;
     if (meta.contractScanUrl) item.contractScanUrl = meta.contractScanUrl;
     if (meta.contractSignedAt) item.contractSignedAt = meta.contractSignedAt;
-    if (meta.assignedStaff) item.assignedStaff = meta.assignedStaff;
+    if (meta.assignedStaff) item.assignedStaff = meta.assignedStaff.replace(/\s*\([^)]*\)/g, '').trim();
     if (meta.cancelReason) item.cancelReason = meta.cancelReason;
     if (meta.cancelledAt) item.cancelledAt = meta.cancelledAt;
 
     item.timeline = [
-      ...item.timeline,
+      ...(Array.isArray(item.timeline) ? item.timeline : []),
       {
         status: newStatus,
         title: meta.title,
         description: meta.description,
         timestamp: now,
-        performedBy: (meta.performedBy || '').replace(/\s*\(DCor Studio\)/gi, '').trim()
+        performedBy: (meta.performedBy || '').replace(/\s*\([^)]*\)/g, '').trim()
       }
     ];
 
@@ -806,13 +1040,19 @@ export class CustomRequestService {
       productImage: cr.productThumbnail || cr.productImage,
       categoryName: cr.categoryName || 'Sản phẩm May Đo',
       basePrice: cr.basePrice || 35000000,
-      originalDimensions: customiz.originalDimensions || specs.originalDimensions || 'Tiêu chuẩn gốc',
-      requestedDimensions: customiz.requestedDimensions || specs.requestedDimensions || '',
+      hasDimensions: customiz.hasDimensions !== undefined 
+        ? customiz.hasDimensions 
+        : (!!customiz.originalDimensions && customiz.originalDimensions !== 'Tiêu chuẩn gốc' && !customiz.originalDimensions.startsWith('0 x 0')),
+      originalDimensions: customiz.hasDimensions === false ? '' : (customiz.originalDimensions || specs.originalDimensions || ''),
+      requestedDimensions: customiz.hasDimensions === false ? '' : (customiz.requestedDimensions || specs.requestedDimensions || ''),
       customDimensionNote: customiz.customDimensionNote || '',
-      length: cr.length,
-      width: cr.width,
-      height: cr.height,
-      customizedAttributes: customiz.attributes || [],
+      length: customiz.hasDimensions === false ? undefined : cr.length,
+      width: customiz.hasDimensions === false ? undefined : cr.width,
+      height: customiz.hasDimensions === false ? undefined : cr.height,
+      customizedAttributes: (customiz.attributes || []).map((a: any) => ({
+        ...a,
+        isOther: a.isOther !== undefined ? a.isOther : (a.selectedOptionId === 'custom_other' || a.selectedOptionName === 'Khác' || !!(a.customNote && a.customNote.trim()))
+      })),
       colorName: cr.colorName || specs.selectedColor,
       colorHex: cr.colorHex,
       material: cr.material || specs.selectedMaterial,
@@ -859,8 +1099,9 @@ export class CustomRequestService {
         productId: 'prod-sofa-l',
         productName: 'Sofa Góc Chữ L Bọc Da Bò Mastrotto Ý',
         productSku: 'SF-CORNER-L',
-        productImage: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Sofa May Đo',
+        hasDimensions: true,
         basePrice: 42000000,
         originalDimensions: '280 x 175 x 85 cm',
         requestedDimensions: '290 x 175 x 85 cm',
@@ -877,7 +1118,9 @@ export class CustomRequestService {
             groupId: 'attr-material',
             label: 'Chất liệu bọc & Đệm mút',
             originalValue: 'Da bò Ý Top Grain',
-            selectedOptionName: 'Da bò Ý Mastrotto Full Grain 1.6mm',
+            selectedOptionId: 'custom_other',
+            selectedOptionName: 'Khác (Theo yêu cầu riêng)',
+            isOther: true,
             isChanged: true,
             customNote: 'Da bò tự nhiên nguyên tấm dày 1.6mm, xử lý chống bám bẩn & chống cào xước do nhà nuôi mèo'
           },
@@ -885,18 +1128,22 @@ export class CustomRequestService {
             groupId: 'attr-color',
             label: 'Màu sắc chỉ định',
             originalValue: 'Nâu Cognac Ý (#8B4513)',
+            selectedOptionId: 'color-smoky-grey',
             selectedOptionName: 'Xám Khói Mờ (Smoky Grey)',
             hexColor: '#64748B',
-            isChanged: true,
-            customNote: 'Gam màu xám khói trung tính sang trọng, hài hòa tone gạch ốp tường'
+            isOther: false,
+            isChanged: false,
+            customNote: ''
           },
           {
             groupId: 'attr-legs',
             label: 'Khung xương & Chân đế',
             originalValue: 'Khung gỗ sồi chân tiện tròn',
+            selectedOptionId: 'leg-titanium-grey',
             selectedOptionName: 'Chân Inox 304 xước mạ Titan xám nòng súng',
-            isChanged: true,
-            customNote: 'Chân cao 12cm để robot hút bụi tự động dễ dàng vệ sinh gầm ghế'
+            isOther: false,
+            isChanged: false,
+            customNote: ''
           }
         ],
         notes: 'Góc chữ L xoay bên phải nhìn ra ban công, thêm đệm bông lông vũ lớp trên để tựa lưng thật êm. Cửa thang máy cao 2.4m rộng 1.1m (cần tháo lắp module khi chuyển lên tầng 24).',
@@ -906,34 +1153,8 @@ export class CustomRequestService {
         preferredSurveyTime: 'Thứ 7 tuần này (09:00 - 11:30 sáng)',
         expectedDeliveryDate: 'Trước 25/11/2026 (khoảng 20 ngày)',
         roomSpace: 'Phòng khách căn hộ chung cư Vinhomes Golden River (85m²)',
-        attachments: [
-          {
-            id: 'att-1',
-            name: 'hien-trang-phong-khach-can-ho.jpg',
-            size: '2.4 MB',
-            type: 'image/jpeg',
-            previewUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'
-          },
-          {
-            id: 'att-2',
-            name: 'phoi-canh-goc-sofa-mong-muon.jpg',
-            size: '1.8 MB',
-            type: 'image/jpeg',
-            previewUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80'
-          },
-          {
-            id: 'att-3',
-            name: 'ban-ve-so-bo-kich-thuoc-tuong.png',
-            size: '850 KB',
-            type: 'image/png',
-            previewUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=800&q=80'
-          }
-        ],
-        referenceImages: [
-          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=800&q=80'
-        ],
+        attachments: [],
+        referenceImages: [],
         status: 'PENDING_REVIEW',
         createdAt: dHoursAgo(2),
         updatedAt: dHoursAgo(2),
@@ -959,8 +1180,9 @@ export class CustomRequestService {
         productId: 'cc96ae87-5ef3-4318-a963-2941fa0583f7',
         productName: 'Sofa Da Bò Ý Carmo 3 Chỗ Phong Cách Bắc Âu',
         productSku: 'SF-CARMO-01',
-        productImage: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Sofa May Đo',
+        hasDimensions: true,
         length: 240,
         width: 95,
         height: 85,
@@ -974,8 +1196,8 @@ export class CustomRequestService {
         expectedDeliveryDate: 'Trong vòng 30 ngày',
         roomSpace: 'Phòng khách chung cư Times City',
         referenceImages: [
-          'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1550581190-9c1c48d21d6c?auto=format&fit=crop&w=800&q=80'
+          '/assets/img/furniture-placeholder.svg',
+          '/assets/img/furniture-placeholder.svg'
         ],
         status: 'CONSULTING',
         assignedStaff: 'KTS. Lê Hoàng',
@@ -1010,8 +1232,9 @@ export class CustomRequestService {
         productId: 'prod-table-1',
         productName: 'Bàn Trà Mặt Đá Cẩm Thạch Calacatta',
         productSku: 'BT-CALA-02',
-        productImage: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Bàn Trà Custom',
+        hasDimensions: true,
         length: 140,
         width: 80,
         height: 45,
@@ -1025,14 +1248,14 @@ export class CustomRequestService {
         expectedDeliveryDate: 'Càng sớm càng tốt (15 ngày)',
         roomSpace: 'Phòng khách Biệt thự Vinhomes Riverside',
         referenceImages: [
-          'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1549488344-cbb6c34cf08b?auto=format&fit=crop&w=800&q=80'
+          '/assets/img/furniture-placeholder.svg',
+          '/assets/img/furniture-placeholder.svg'
         ],
         status: 'QUOTED',
         assignedStaff: 'KTS. Lê Nam',
         quotedPrice: 24500000,
         quotedDeposit: 7350000,
-        drawing3dUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
+        drawing3dUrl: '/assets/img/about_blueprint.jpg',
         adminNotes: 'Đã gửi bản vẽ 3D chi tiết bo cạnh và bảng mẫu đá mẫu qua Zalo/Email cho chị Phương.',
         quotedAt: dDaysAgo(1),
         createdAt: dDaysAgo(4),
@@ -1073,7 +1296,7 @@ export class CustomRequestService {
         productId: 'prod-bed-king',
         productName: 'Giường Ngủ Master Bọc Da Bò Nubuck Ý',
         productSku: 'BED-NUBUCK-01',
-        productImage: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80',
+        productImage: '',
         categoryName: 'Giường & Tủ Áo',
         length: 220,
         width: 200,
@@ -1087,7 +1310,7 @@ export class CustomRequestService {
         assignedStaff: 'KTS. Trần Minh',
         quotedPrice: 52000000,
         quotedDeposit: 15600000,
-        drawing3dUrl: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef8?auto=format&fit=crop&w=1200&q=80',
+        drawing3dUrl: '/assets/img/about_blueprint.jpg',
         adminNotes: 'Anh Bảo đã duyệt phương án 3D, đang gửi hợp đồng giấy qua chuyển phát nhanh để ký.',
         quotedAt: dDaysAgo(2),
         createdAt: dDaysAgo(5),
@@ -1110,7 +1333,7 @@ export class CustomRequestService {
         ]
       },
 
-      // 5. CONTRACT_SIGNED: Đã ký hợp đồng
+      // 5. CR-0005: Đã ký hợp đồng -> Chờ đặt cọc 30% (AWAITING_PAYMENT)
       {
         id: 'cr-105',
         code: 'CR-0005',
@@ -1121,7 +1344,7 @@ export class CustomRequestService {
         productId: 'prod-dining-table',
         productName: 'Bàn Ăn 8 Ghế Mặt Gỗ Óc Chó Ghép Tự Nhiên Live Edge',
         productSku: 'BA-WALNUT-08',
-        productImage: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Bàn Ăn Custom',
         length: 260,
         width: 100,
@@ -1131,20 +1354,20 @@ export class CustomRequestService {
         material: 'Gỗ óc chó Bắc Mỹ tuyển chọn vân chun sụn',
         legMaterial: 'Chân sắt uốn nghệ thuật sơn tĩnh điện cát sần',
         notes: 'Giữ lại mép gỗ tự nhiên (live-edge) 2 bên thân bàn, phủ bảo vệ chống thấm nước sốt vang.',
-        status: 'CONTRACT_SIGNED',
+        status: 'AWAITING_PAYMENT',
         assignedStaff: 'KTS. Lê Nam',
         quotedPrice: 48000000,
         quotedDeposit: 14400000,
-        contractScanUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
+        contractScanUrl: '/assets/img/furniture-placeholder.svg',
         contractSignedAt: dDaysAgo(1),
         adminNotes: 'Đã ký hợp đồng tại văn phòng DCOR Villa Q.7. Đang xuất mã VietQR cọc 30%.',
         createdAt: dDaysAgo(6),
         updatedAt: dHoursAgo(10),
         timeline: [
           {
-            status: 'CONTRACT_SIGNED',
-            title: 'Ký kết hợp đồng HĐ-2026/DCOR-05',
-            description: 'Chị Trang đã ký trực tiếp tại showroom DCOR.',
+            status: 'AWAITING_PAYMENT',
+            title: 'Ký kết hợp đồng HĐ-2026/DCOR-05 & Chờ đặt cọc 30%',
+            description: 'Chị Trang đã ký trực tiếp tại showroom DCOR. Hệ thống đã phát hành thông tin đặt cọc 30%.',
             timestamp: dDaysAgo(1),
             performedBy: 'KTS. Lê Nam'
           }
@@ -1162,7 +1385,7 @@ export class CustomRequestService {
         productId: 'prod-sofa-curved',
         productName: 'Sofa Cong Bo Tròn Nghệ Thuật Kèm Đôn Đôi',
         productSku: 'SF-CURVED-01',
-        productImage: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Sofa May Đo',
         length: 320,
         width: 110,
@@ -1173,15 +1396,15 @@ export class CustomRequestService {
         legMaterial: 'Đế gỗ âm sàn tạo hiệu ứng bay floating',
         notes: 'Cần bo cong bán kính R2400mm theo vách tường kính cong của phòng khách.',
         referenceImages: [
-          'https://images.unsplash.com/photo-1616046229478-9901c5536a45?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80'
+          '/assets/img/furniture-placeholder.svg',
+          '/assets/img/furniture-placeholder.svg'
         ],
         status: 'AWAITING_PAYMENT',
         assignedStaff: 'KTS. Lê Hoàng',
         quotedPrice: 38000000,
         quotedDeposit: 11400000,
-        drawing3dUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
-        contractScanUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
+        drawing3dUrl: '/assets/img/about_blueprint.jpg',
+        contractScanUrl: '/assets/img/furniture-placeholder.svg',
         contractSignedAt: dDaysAgo(2),
         adminNotes: 'Đã bắn mã VietQR cọc 11.400.000 đ vào Zalo của anh Thịnh, chờ kế toán kiểm tra giao dịch vào tài khoản.',
         createdAt: dDaysAgo(7),
@@ -1204,6 +1427,62 @@ export class CustomRequestService {
         ]
       },
 
+      // 6b. DEPOSIT_SUBMITTED: Chờ xét duyệt cọc 30%
+      {
+        id: 'cr-110',
+        code: 'CR-0010',
+        customerName: 'Nguyễn Văn Hoàng',
+        customerPhone: '0912334455',
+        customerEmail: 'hoang.nguyen@vinfast.vn',
+        customerAddress: 'Villa 12 Khu Đô Thị Sala, TP. Thủ Đức, TP.HCM',
+        productId: 'prod-lounge-chair',
+        productName: 'Ghế Thư Giãn Lounge Chair Da Bò Ý Chân Xoay PVD',
+        productSku: 'DCOR-ARM-01',
+        productImage: '/assets/img/furniture-placeholder.svg',
+        categoryName: 'Ghế Thư Giãn Custom',
+        length: 95,
+        width: 85,
+        height: 105,
+        colorName: 'Nâu Cognac Da Bò Ý',
+        colorHex: '#8B4513',
+        material: 'Da bò Ý Full Grain tự nhiên',
+        legMaterial: 'Chân xoay hợp kim mạ PVD vàng Champagne',
+        notes: 'Chân xoay 360 độ êm ái, bọc da nguyên tấm mặt ngồi và tựa lưng.',
+        status: 'DEPOSIT_SUBMITTED',
+        assignedStaff: 'KTS. Lê Hoàng',
+        quotedPrice: 22000000,
+        quotedDeposit: 6600000,
+        drawing3dUrl: '/assets/img/about_blueprint.jpg',
+        contractScanUrl: '/assets/img/furniture-placeholder.svg',
+        contractSignedAt: dDaysAgo(1),
+        adminNotes: 'Khách hàng đã bấm xác nhận chuyển khoản cọc 6.600.000 đ qua VietQR. Kế toán đang kiểm tra sao kê ngân hàng.',
+        createdAt: dDaysAgo(5),
+        updatedAt: dHoursAgo(1),
+        timeline: [
+          {
+            status: 'CONTRACT_SIGNED',
+            title: 'Hợp đồng may đo đã ký',
+            description: 'Khách ký HĐ điện tử thành công.',
+            timestamp: dDaysAgo(1),
+            performedBy: 'Nguyễn Văn Hoàng'
+          },
+          {
+            status: 'AWAITING_PAYMENT',
+            title: 'Phát hành mã VietQR cọc 6.600.000 đ',
+            description: 'Khách nhận thông tin tài khoản và quét mã chuyển khoản.',
+            timestamp: dHoursAgo(2),
+            performedBy: 'Hệ thống DCor'
+          },
+          {
+            status: 'DEPOSIT_SUBMITTED',
+            title: 'Khách báo đã chuyển khoản',
+            description: 'Chờ kế toán đối soát sao kê ngân hàng.',
+            timestamp: dHoursAgo(1),
+            performedBy: 'Nguyễn Văn Hoàng'
+          }
+        ]
+      },
+
       // 7. PROCESSING: Đang sản xuất tại xưởng (Đã sinh đơn hàng chính thức)
       {
         id: 'cr-107',
@@ -1215,7 +1494,7 @@ export class CustomRequestService {
         productId: 'prod-sofa-vip',
         productName: 'Bộ Sofa Hoàng Gia Bọc Da Bò Nappa Thượng Hạng',
         productSku: 'SF-NAPPA-VIP',
-        productImage: 'https://images.unsplash.com/photo-1550254478-ead40cc54513?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Sofa May Đo',
         length: 360,
         width: 120,
@@ -1229,8 +1508,8 @@ export class CustomRequestService {
         assignedStaff: 'KTS. Trần Minh',
         quotedPrice: 95000000,
         quotedDeposit: 28500000,
-        drawing3dUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
-        contractScanUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
+        drawing3dUrl: '/assets/img/about_blueprint.jpg',
+        contractScanUrl: '/assets/img/furniture-placeholder.svg',
         contractSignedAt: dDaysAgo(5),
         generatedOrderNumber: 'DCOR-ORD-CUST-0007',
         workOrderCode: 'WO-MK-0007',
@@ -1266,7 +1545,7 @@ export class CustomRequestService {
         productId: 'prod-sofa-corner-prestige',
         productName: 'Sofa Băng Cong May Đo Bọc Da Mastrotto Florence',
         productSku: 'SF-FLORENCE-CUSTOM',
-        productImage: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Sofa May Đo',
         length: 340,
         width: 110,
@@ -1279,8 +1558,8 @@ export class CustomRequestService {
         assignedStaff: 'KTS. Lê Nam',
         quotedPrice: 65000000,
         quotedDeposit: 19500000,
-        drawing3dUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
-        contractScanUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
+        drawing3dUrl: '/assets/img/about_blueprint.jpg',
+        contractScanUrl: '/assets/img/furniture-placeholder.svg',
         contractSignedAt: dDaysAgo(15),
         generatedOrderNumber: 'DCOR-ORD-CUST-0008',
         workOrderCode: 'WO-MK-0008',
@@ -1334,7 +1613,7 @@ export class CustomRequestService {
         productId: 'prod-bookshelf',
         productName: 'Kệ Sách Kịch Trần Bọc Gỗ Óc Chó Uốn Cong',
         productSku: 'KS-WALNUT-CEIL',
-        productImage: 'https://images.unsplash.com/photo-1594026112284-02bb6f3352fe?auto=format&fit=crop&w=600&q=80',
+        productImage: '/assets/img/furniture-placeholder.svg',
         categoryName: 'Tủ Kệ May Đo',
         length: 420,
         width: 40,
@@ -1362,6 +1641,49 @@ export class CustomRequestService {
             description: 'Khách hàng đồng ý dừng triển khai theo tư vấn an toàn của KTS.',
             timestamp: dDaysAgo(6),
             performedBy: 'Admin'
+          }
+        ]
+      },
+
+      // 10. CR-0011: Đang khảo sát (CONSULTING) - Sản phẩm phụ kiện KHÔNG có kích thước may đo
+      {
+        id: 'cr-111',
+        code: 'CR-0011',
+        customerName: 'Bùi Thanh Hương',
+        customerPhone: '0918776655',
+        customerEmail: 'thanhhuong.bui@gmail.com',
+        customerAddress: 'Căn 12A Tòa Landmark 3 Vinhomes Central Park, Bình Thạnh, TP.HCM',
+        productId: '00c5f2a7-b233-41ef-a57c-011d2df92f58',
+        productName: 'Đệm Ngồi & Tựa Lưng Ghế Thư Giãn Cancún',
+        productSku: 'ACC-CUSHION-CANCUN',
+        productImage: '/assets/img/furniture-placeholder.svg',
+        categoryName: 'Phụ Kiện Cao Cấp',
+        hasDimensions: false,
+        basePrice: 5800000,
+        originalDimensions: '',
+        requestedDimensions: '',
+        colorName: 'Xanh Mint Pastel',
+        colorHex: '#A7F3D0',
+        material: 'Vải nỉ chống thấm nước cao cấp Sunbrella',
+        status: 'CONSULTING',
+        assignedStaff: 'KTS. Lê Nam',
+        notes: 'Khách muốn đặt may thêm 2 bộ đệm ngồi và tựa lưng rời màu xanh pastel chất vải chống bám bẩn.',
+        createdAt: dDaysAgo(1),
+        updatedAt: dHoursAgo(3),
+        timeline: [
+          {
+            status: 'PENDING_REVIEW',
+            title: 'Tiếp nhận yêu cầu may đệm Cancún',
+            description: 'Khách gửi yêu cầu đặt may riêng đệm bọc vải ngoại thất.',
+            timestamp: dDaysAgo(1),
+            performedBy: 'Bùi Thanh Hương'
+          },
+          {
+            status: 'CONSULTING',
+            title: 'Phân công KTS khảo sát chất liệu',
+            description: 'KTS. Lê Nam nhận liên hệ tư vấn chọn vải Sunbrella.',
+            timestamp: dHoursAgo(3),
+            performedBy: 'KTS. Lê Nam'
           }
         ]
       }

@@ -622,7 +622,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     if (this.editingCartItem?.image) {
       return [this.editingCartItem.image];
     }
-    return ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop'];
+    return ['/assets/img/furniture-placeholder.svg'];
   }
 
   prevVariantImage(e?: Event) {

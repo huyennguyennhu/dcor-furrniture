@@ -250,7 +250,7 @@ export class OrdersService {
             name: 'Salamanca 3 seater lounge sofa',
             sku: 'sofa-salamanca-01',
             variant: 'Vải Nỉ Nhung Màu Be (Beige) • 3 Chỗ',
-            imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 32500000,
             quantity: 1,
             lineTotal: 32500000,
@@ -320,7 +320,7 @@ export class OrdersService {
             name: 'Ghế xoay thư giãn Imola da Cognac',
             sku: 'imola-chair-cognac',
             variant: 'Da bò Ý Semi-Aniline Cognac • Chân thép Crom xoay 360°',
-            imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 18900000,
             quantity: 1,
             lineTotal: 18900000,
@@ -386,7 +386,7 @@ export class OrdersService {
             name: 'Đèn sàn Kizu đá cẩm thạch trắng tự nhiên',
             sku: 'kizu-lamp-white',
             variant: 'Đá Marble Trắng Carrara • Chao Acrylic khuyếch tán sáng',
-            imageUrl: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 8500000,
             quantity: 1,
             lineTotal: 8500000,
@@ -485,7 +485,7 @@ export class OrdersService {
           name: 'Sản phẩm nội thất chính hãng DCOR',
           sku: `SKU-${cleanNum.slice(-6) || 'PROD'}`,
           variant: 'Tiêu chuẩn cao cấp xuất xưởng',
-          imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80',
+          imageUrl: '/assets/img/furniture-placeholder.svg',
           price: 25000000,
           quantity: 1,
           lineTotal: 25000000,
@@ -679,6 +679,16 @@ export class OrdersService {
           for (const wo of warrantyOrders) {
             if (!combined.some(o => o.orderNumber === wo.orderNumber || o.id === wo.id)) {
               combined.push(wo);
+            }
+          }
+          // Tự động dọn dẹp các URL ảnh unsplash cũ trong localStorage
+          for (const ord of combined) {
+            if (ord.items) {
+              for (const it of ord.items) {
+                if (it.imageUrl && it.imageUrl.includes('unsplash.com')) {
+                  it.imageUrl = '/assets/img/furniture-placeholder.svg';
+                }
+              }
             }
           }
           this.ordersSubject.next(combined);
@@ -1340,7 +1350,7 @@ export class OrdersService {
             name: 'Ghế Armchair Scandinavia Mini',
             sku: 'AC-SCAN-01',
             variant: 'Vải bố xám tiêu, Chân tiện gỗ tần bì',
-            imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 6500000,
             quantity: 1,
             lineTotal: 6500000,
@@ -1396,7 +1406,7 @@ export class OrdersService {
             name: 'Bàn trà Mặt đá Marble Ý',
             sku: 'TB-MAR-02',
             variant: 'Mặt đá trắng vân mây, Khung inox mạ PVD vàng',
-            imageUrl: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 14800000,
             quantity: 1,
             lineTotal: 14800000,
@@ -1452,7 +1462,7 @@ export class OrdersService {
             name: 'Sofa Indivi 2.5 chỗ',
             sku: 'SF-IND-01',
             variant: 'Chân gỗ sồi, Vải nỉ Copenhagen Nâu',
-            imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 51290000,
             quantity: 1,
             lineTotal: 51290000,
@@ -1508,7 +1518,7 @@ export class OrdersService {
             name: 'Bàn ăn 6 ghế Gỗ Sồi Bắc Âu',
             sku: 'TB-OAK-06',
             variant: '1m8 - Gỗ tự nhiên, Ghế đệm nỉ xám',
-            imageUrl: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 25000000,
             quantity: 1,
             lineTotal: 25000000,
@@ -1564,7 +1574,7 @@ export class OrdersService {
             name: 'Giường ngủ thông minh 1m8',
             sku: 'BD-SMART-18',
             variant: 'Bọc da bò Ý cao cấp, tích hợp cổng sạc & massage',
-            imageUrl: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 125000000,
             quantity: 1,
             lineTotal: 125000000,
@@ -1619,7 +1629,7 @@ export class OrdersService {
             name: 'Kệ tivi Como gỗ óc chó tự nhiên',
             sku: 'TV-COMO-02',
             variant: '2m2 - Chân thép mạ vàng PVD',
-            imageUrl: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 22000000,
             quantity: 1,
             lineTotal: 22000000,
@@ -1676,7 +1686,7 @@ export class OrdersService {
             name: 'Sofa Indivi 3 chỗ (Chân thép, Da Napoli đen)',
             sku: 'SF-IND-02',
             variant: 'Da Napoli đen, Dài 2m6',
-            imageUrl: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 80000000,
             quantity: 1,
             lineTotal: 80000000,
@@ -1687,7 +1697,7 @@ export class OrdersService {
             name: 'Bàn trà Coda mặt kính khói',
             sku: 'TB-CODA-01',
             variant: 'Đường kính 90cm - Thép sơn tĩnh điện',
-            imageUrl: 'https://images.unsplash.com/photo-1533090161767-e6ffed986b88?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 10000000,
             quantity: 1,
             lineTotal: 10000000,
@@ -1745,7 +1755,7 @@ export class OrdersService {
             name: 'Bàn làm việc Minimalist Gỗ Óc Chó',
             sku: 'DK-MINI-01',
             variant: '1m4 x 70cm - Ngăn kéo ray giảm chấn',
-            imageUrl: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 18500000,
             quantity: 1,
             lineTotal: 18500000,
@@ -1802,7 +1812,7 @@ export class OrdersService {
             name: 'Ghế bành thư giãn Armchair Como',
             sku: 'AC-COMO-01',
             variant: 'Vải nỉ lông cừu Bouclé Trắng kem',
-            imageUrl: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 16000000,
             quantity: 1,
             lineTotal: 16000000,
@@ -1858,7 +1868,7 @@ export class OrdersService {
             name: 'Tủ quần áo 4 cánh Gỗ Sồi tự nhiên',
             sku: 'WR-OAK-04',
             variant: '2m x 2m2 - Bản lề Blum giảm chấn',
-            imageUrl: 'https://images.unsplash.com/photo-1558997519-83ea9252def8?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 38000000,
             quantity: 1,
             lineTotal: 38000000,
@@ -1914,7 +1924,7 @@ export class OrdersService {
             name: 'Sofa băng văng da bò Cognac',
             sku: 'SF-VANG-01',
             variant: '2m - Da Microfiber cao cấp',
-            imageUrl: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef3?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 42000000,
             quantity: 1,
             lineTotal: 42000000,
@@ -1966,7 +1976,7 @@ export class OrdersService {
             name: 'Bàn trà Coda mặt đá Ceramic bóng',
             sku: 'TB-CODA-03',
             variant: 'Mặt đá vân mây trắng, viền vàng kim',
-            imageUrl: 'https://images.unsplash.com/photo-1532372320572-cda25653a26d?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 10000000,
             quantity: 1,
             lineTotal: 10000000,
@@ -1998,8 +2008,8 @@ export class OrdersService {
           type: 'REFUND',
           customerNote: 'Lúc nhận hàng vội đi làm chưa bóc bọc xốp, sáng nay bóc ra thấy mặt đá bị nứt góc 5cm. Đề nghị đổi mặt mới hoặc hoàn tiền.',
           proofImages: [
-            'https://images.unsplash.com/photo-1581404481488-cb9e68b377b2?auto=format&fit=crop&w=600&q=80',
-            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80'
+            '/assets/img/furniture-placeholder.svg',
+            '/assets/img/furniture-placeholder.svg'
           ]
         },
         qcChecklist: { surfaceChecked: true, structureChecked: true, cushionLeatherChecked: true, protectiveWrapDone: true },
@@ -2030,7 +2040,7 @@ export class OrdersService {
             name: 'Đèn thả trần Scandinavia Art',
             sku: 'LP-SCAN-02',
             variant: 'Khung đồng thau nguyên khối',
-            imageUrl: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=400&q=80',
+            imageUrl: '/assets/img/furniture-placeholder.svg',
             price: 8000000,
             quantity: 1,
             lineTotal: 8000000,
@@ -2062,7 +2072,7 @@ export class OrdersService {
           type: 'REFUND',
           customerNote: 'Phòng khách nhà trần thấp quá không treo đèn thả dài được, xin phép hoàn lại.',
           proofImages: [
-            'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=600&q=80'
+            '/assets/img/furniture-placeholder.svg'
           ],
           qcReport: {
             inspector: 'Kỹ thuật viên Quang Huy',

@@ -319,11 +319,16 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
       const productIds = products.map(p => p.id);
 
       // 2. Tối ưu hóa: Chỉ lấy biến thể thuộc các sản phẩm trên (tận dụng Composite Index [productId, isActive])
-      // Ngăn chặn hoàn toàn việc tải hàng chục nghìn biến thể của toàn bộ database vào RAM
-      const variants = productIds.length > 0
-        ? await withDbRetry(() => prisma.productVariant.findMany({
+      // Ngăn chặn hoàn toàn việc tải hàng chục nghìn biến thể của toàn bộ database vào RAM.
+      // Chia theo batch (40 sản phẩm/lần) để tránh dồn 7.5MB JSON gây lỗi 'idle-in-transaction timeout' (SqlState E25P03) trên PgBouncer Supabase.
+      const variants: any[] = [];
+      if (productIds.length > 0) {
+        const BATCH_SIZE = 40;
+        for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
+          const chunk = productIds.slice(i, i + BATCH_SIZE);
+          const chunkVariants = await withDbRetry(() => prisma.productVariant.findMany({
             where: {
-              productId: { in: productIds },
+              productId: { in: chunk },
               isActive: true
             },
             select: {
@@ -334,8 +339,10 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
               stock: true,
               optionValues: true
             }
-          }))
-        : [];
+          }));
+          variants.push(...chunkVariants);
+        }
+      }
 
       console.timeEnd('[API] products query');
 
@@ -435,8 +442,12 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
           }
         }
 
+        const config = (p.configOptions as any) || {};
+        const allowCustom = !!((p as any).allowCustom ?? config.allowCustom);
+
         return {
           ...p,
+          allowCustom,
           isNew: newestIds.has(p.id),
           discountValue: discountValue > 0 ? discountValue : p.discountValue,
           discountType: discountValue > 0 ? discountType : p.discountType,

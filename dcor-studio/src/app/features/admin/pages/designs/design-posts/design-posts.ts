@@ -47,7 +47,7 @@ const PRESET_SAMPLE_POSTS: DesignPostItem[] = [
     authorName: 'Hoàng Minh Khôi',
     authorEmail: 'khoi.hm@gmail.com',
     description: 'Phối cảnh phòng khách tone màu be ấm áp kết hợp bộ sofa góc DCor Nordic và bàn trà đá ceramic. Rất ưng ý với chất lượng hoàn thiện của DCor!',
-    imageUrl: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/img/furniture-placeholder.svg',
     taggedProducts: [
       { x: 42, y: 58, name: 'Sofa Góc Chữ L DCor Nordic', price: 18500000 },
       { x: 55, y: 72, name: 'Bàn Trà Mặt Đá Ceramic DCor Elegance', price: 6200000 }
@@ -82,7 +82,7 @@ const PRESET_SAMPLE_POSTS: DesignPostItem[] = [
     authorName: 'Trần Phương Thảo',
     authorEmail: 'thao.tp@gmail.com',
     description: 'Góc nghỉ ngơi thảnh thơi sau ngày làm việc mệt mỏi. Giường bọc nệm êm ái cùng hệ ánh sáng vàng ấm 3000K.',
-    imageUrl: 'https://images.unsplash.com/photo-1540518614846-7ede433c4550?w=800&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/img/furniture-placeholder.svg',
     taggedProducts: [
       { x: 50, y: 65, name: 'Giường Ngủ Bọc Nệm DCor King Bed', price: 21000000 }
     ],
@@ -99,7 +99,7 @@ const PRESET_SAMPLE_POSTS: DesignPostItem[] = [
     authorName: 'Lê Văn Nam',
     authorEmail: 'nam.le@yahoo.com',
     description: 'Bài viết chia sẻ thiết kế phòng ăn kết hợp quầy bar nhỏ.',
-    imageUrl: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?w=800&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/img/furniture-placeholder.svg',
     taggedProducts: [
       { x: 48, y: 60, name: 'Bộ Bàn Ghế Ăn DCor Walnut 6 Ghế', price: 28000000 }
     ],

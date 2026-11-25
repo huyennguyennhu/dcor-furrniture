@@ -392,7 +392,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
 
           // Fallback nếu hoàn toàn không có ảnh
           if (finalImages.length === 0) {
-            finalImages.push('https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80');
+            finalImages.push('/assets/img/furniture-placeholder.svg');
           }
 
           // Helper phân tích màu sắc từ tên biến thể trong DB (xử lý chính xác cả biến thể ghép dạng "/")

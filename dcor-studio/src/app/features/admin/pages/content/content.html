@@ -990,7 +990,7 @@
       <div class="editor-modal-body" style="grid-template-columns: 1fr; padding: 24px 32px;">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
           <img
-            [src]="previewArticle.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'"
+            [src]="previewArticle.authorAvatar || '/assets/favicon/logo.png'"
             class="author-avatar" style="width: 40px; height: 40px;" />
           <div>
             <div style="font-weight: 600; font-size: 14px;">{{ previewArticle.author }}</div>
@@ -1225,7 +1225,7 @@
         <!-- Mode URL -->
         <div *ngIf="imageInsertForm.mode === 'url'" class="form-group">
           <label class="form-label">Đường dẫn URL ảnh <span class="req">*</span></label>
-          <input type="text" class="form-input" placeholder="https://images.unsplash.com/photo-..."
+          <input type="text" class="form-input" placeholder="/assets/img/furniture-placeholder.svg"
             [(ngModel)]="imageInsertForm.url" />
           <div *ngIf="imageInsertForm.url" style="margin-top: 10px; text-align: center;">
             <img [src]="imageInsertForm.url" alt="URL Preview"

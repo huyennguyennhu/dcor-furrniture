@@ -270,7 +270,7 @@ export class ProductPanelComponent implements OnInit, AfterViewInit, OnDestroy {
         pMain ||
         v0CleanImgs[0] ||
         (Array.isArray(p.images) && p.images[0]) ||
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80';
+        '/assets/img/furniture-placeholder.svg';
 
       // Trích xuất tất cả các ảnh góc nhìn / chiều khác nhau của sản phẩm (hoàn toàn lấy từ dữ liệu có sẵn, 0 request database)
       const angleImages: ProductAngleImage[] = [];

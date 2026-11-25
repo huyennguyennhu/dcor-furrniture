@@ -403,7 +403,7 @@ export class RoomPlannerService {
       productSlug: product.slug,
       name: product.name || 'Sản phẩm nội thất',
       category: product.category || 'Nội thất',
-      imageUrl: product.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80',
+      imageUrl: product.images?.[0] || '/assets/img/furniture-placeholder.svg',
       unitPrice,
       x: Math.round(posX),
       y: Math.round(posY),

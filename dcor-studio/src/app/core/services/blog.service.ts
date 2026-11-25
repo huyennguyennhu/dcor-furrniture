@@ -159,7 +159,7 @@ export class BlogService {
           categoryId: p.categoryId,
           categoryName: p.category?.name || p.categoryName || '',
           author: p.authorName || p.author || 'Ban biên tập DCor',
-          authorAvatar: p.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+          authorAvatar: p.authorAvatar || '/assets/favicon/logo.png',
           status: p.status,
           publishedAt: p.publishedAt,
           scheduledAt: p.scheduledAt,
@@ -349,7 +349,7 @@ export class BlogService {
       categoryId: article.categoryId || '',
       categoryName: article.categoryName || '',
       author: article.author || 'Ban biên tập DCor',
-      authorAvatar: article.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      authorAvatar: article.authorAvatar || '/assets/favicon/logo.png',
       status: article.status || 'DRAFT',
       publishedAt: article.status === 'PUBLISHED' ? (article.publishedAt || now) : undefined,
       scheduledAt: undefined,
@@ -889,7 +889,7 @@ export class BlogService {
         name: 'Sofa Thư Giãn DCor Luxury Milano',
         price: 15000000,
         originalPrice: 19500000,
-        imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/assets/img/furniture-placeholder.svg',
         sku: 'SF-MILANO-03',
         categoryName: 'Sofa Thư Giãn'
       },
@@ -898,7 +898,7 @@ export class BlogService {
         name: 'Ghế Bành Thư Giãn Imola Da Bò Thủ Công',
         price: 15000000,
         originalPrice: 17500000,
-        imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/assets/img/furniture-placeholder.svg',
         sku: 'CH-IMOLA-04',
         categoryName: 'Ghế Thư Giãn'
       }
