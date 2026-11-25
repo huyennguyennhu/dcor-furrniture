@@ -1006,10 +1006,6 @@
               <lucide-angular [img]="icons.FileCheck" size="15"></lucide-angular>
               <span>{{ request.contractSignedAt ? 'Xem Hợp đồng đã ký' : 'Xem dự thảo Hợp đồng' }}</span>
             </button>
-            <a *ngIf="request.contractScanUrl" [href]="request.contractScanUrl" target="_blank" class="btn-scan-link">
-              <lucide-angular [img]="icons.Download" size="14"></lucide-angular>
-              <span>Tải bản scan / file PDF</span>
-            </a>
           </div>
         </div>
       </section>
