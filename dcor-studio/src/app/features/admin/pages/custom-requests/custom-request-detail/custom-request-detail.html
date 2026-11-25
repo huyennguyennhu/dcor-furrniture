@@ -1571,15 +1571,16 @@
           </div>
         </div>
 
-        <!-- Bước 5: Chờ nhận cọc 30% -> Kế toán xác nhận nhận cọc để bắn xưởng -->
-        <button 
-          type="button" 
-          class="btn-primary-action btn-success-action" 
-          *ngIf="request.status === 'AWAITING_PAYMENT' || request.status === 'DEPOSIT_SUBMITTED'" 
-          (click)="submitDepositPayment()">
-          <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
-          <span>Xác nhận đã nhận cọc 30% (Bắn xưởng)</span>
-        </button>
+        <!-- Bước 5: Chờ nhận cọc 30% -> Trạng thái chờ khách thanh toán qua VietQR -->
+        <div class="waiting-client-sign-box" *ngIf="request.status === 'AWAITING_PAYMENT' || request.status === 'CONTRACT_SIGNED' || request.status === 'DEPOSIT_SUBMITTED'">
+          <div class="wcs-icon-pulse">
+            <lucide-angular [img]="icons.Clock" size="16"></lucide-angular>
+          </div>
+          <div class="wcs-info">
+            <span class="wcs-title">Đang đợi khách hàng đặt cọc</span>
+            <span class="wcs-desc">Hệ thống đang chờ khách hàng chuyển khoản cọc 30% qua mã VietQR và xác nhận thành công</span>
+          </div>
+        </div>
 
         <!-- Bước 6: Đang sản xuất gia công -> Hoàn tất sản xuất & Lên đơn hàng chính thức -->
         <button 
