@@ -425,6 +425,53 @@
   cursor: pointer;
 }
 
+.hidden-file-input,
+.visually-hidden-file-input {
+  display: none !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* UPLOADING SPINNER INDICATOR TRÊN 1 HÀNG DUY NHẤT (RULE 4) */
+.uploading-indicator {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: var(--color-sub-bg, #FFF3E3);
+  border: 1px solid rgba(188, 95, 19, 0.25);
+  border-radius: var(--radius-control, 8px);
+  padding: 6px 14px;
+  width: fit-content;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.loading-spinner-circle {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(188, 95, 19, 0.25);
+  border-top-color: var(--color-accent, #BC5F13);
+  border-radius: 50%;
+  animation: spinLoading 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spinLoading {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.uploading-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-accent, #BC5F13);
+  font-family: var(--font-body, "Poppins", sans-serif);
+  white-space: nowrap;
+}
+
 /* UPLOADING SPINNER */
 .uploading-bar {
   display: flex;

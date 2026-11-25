@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { 
@@ -90,7 +90,10 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
     5: 'Rất tuyệt vời'
   };
 
-  constructor(private reviewService: ReviewService) {}
+  constructor(
+    private reviewService: ReviewService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.initForms();
@@ -101,12 +104,14 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
       this.initForms();
       this.errorMessage = '';
       this.isSubmitting = false;
+      this.cdr.markForCheck();
     }
   }
 
   initForms(): void {
     if (!this.items || this.items.length === 0) {
       this.forms = [];
+      this.cdr.markForCheck();
       return;
     }
 
@@ -122,17 +127,20 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
       images: [],
       uploadingImages: false
     }));
+    this.cdr.markForCheck();
   }
 
   setRating(index: number, rating: number): void {
     if (this.forms[index]) {
       this.forms[index].rating = rating;
+      this.cdr.markForCheck();
     }
   }
 
   setHoverRating(index: number, rating: number): void {
     if (this.forms[index]) {
       this.forms[index].hoverRating = rating;
+      this.cdr.markForCheck();
     }
   }
 
@@ -152,74 +160,96 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
 
   
   /**
-   * Nén ảnh client-side qua Canvas: scale tối đa 1200px, nén webp/jpeg 0.8
-   * Giảm dung lượng file từ 5-10MB xuống ~100-200KB giúp upload siêu tốc
+   * Kích hoạt chụp ảnh từ camera:
+   * Nếu trên di động hoặc fallback thì trigger input native capture=environment
+   * Nếu trên desktop hoặc hỗ trợ getUserMedia thì mở modal stream camera
+   */
+  triggerCamera(itemIndex: number, cameraInput?: HTMLInputElement): void {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && cameraInput) {
+      cameraInput.click();
+    } else {
+      this.openCamera(itemIndex, cameraInput);
+    }
+  }
+
+  /**
+   * Nén ảnh client-side qua Canvas siêu tốc bằng URL.createObjectURL:
+   * Giới hạn kích thước tối đa 1200px, JPEG chất lượng 0.8.
+   * Nếu file ban đầu đã nhỏ (<= 150KB), hoàn tất ngay lập tức (0ms).
    */
   private compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<Blob> {
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          let width = img.width;
-          let height = img.height;
+      if (file.size <= 150 * 1024) {
+        resolve(file);
+        return;
+      }
 
-          if (width > maxWidth || height > maxHeight) {
-            if (width / height > maxWidth / maxHeight) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            } else {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
-            }
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
           }
+        }
 
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(file);
-            return;
-          }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
 
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                resolve(file);
-              }
-            },
-            'image/webp',
-            quality
-          );
-        };
-        img.onerror = () => resolve(file);
-        img.src = e.target?.result as string;
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            resolve(blob || file);
+          },
+          'image/jpeg',
+          quality
+        );
       };
-      reader.onerror = () => resolve(file);
-      reader.readAsDataURL(file);
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+
+      img.src = objectUrl;
     });
   }
 
-  // Upload danh sách file với nén siêu tốc
+  // Upload danh sách file với nén siêu tốc và markForCheck() tức thời
   private async uploadFiles(files: File[], itemIndex: number): Promise<void> {
     const form = this.forms[itemIndex];
     if (!form) return;
 
     if (form.images.length + files.length > 5) {
       this.errorMessage = 'Mỗi sản phẩm chỉ được tải lên tối đa 5 hình ảnh.';
+      this.cdr.markForCheck();
       return;
     }
 
     form.uploadingImages = true;
     this.errorMessage = '';
+    this.cdr.markForCheck();
 
     const validFiles = files.filter(f => f.type.startsWith('image/'));
     if (validFiles.length === 0) {
       form.uploadingImages = false;
+      this.cdr.markForCheck();
       return;
     }
 
@@ -227,7 +257,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
 
     for (const file of validFiles) {
       try {
-        // Nén ảnh client-side
+        // Nén ảnh client-side siêu tốc
         const compressedBlob = await this.compressImage(file);
         
         this.reviewService.uploadImage(compressedBlob).subscribe({
@@ -239,6 +269,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
             if (completedCount === validFiles.length) {
               form.uploadingImages = false;
             }
+            this.cdr.markForCheck();
           },
           error: (err: any) => {
             console.error('Lỗi tải ảnh lên:', err);
@@ -247,6 +278,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
               form.uploadingImages = false;
             }
             this.errorMessage = 'Không thể tải lên một số ảnh. Vui lòng thử lại.';
+            this.cdr.markForCheck();
           }
         });
       } catch (e) {
@@ -254,6 +286,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
         if (completedCount === validFiles.length) {
           form.uploadingImages = false;
         }
+        this.cdr.markForCheck();
       }
     }
   }
@@ -262,37 +295,51 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
     const form = this.forms[itemIndex];
     if (form && form.images) {
       form.images.splice(imageIndex, 1);
+      this.cdr.markForCheck();
     }
   }
 
   // ============================================
   // CAMERA LIVE CAPTURE STREAM
   // ============================================
-  openCamera(itemIndex: number): void {
+  openCamera(itemIndex: number, fallbackInput?: HTMLInputElement): void {
     this.activeCameraItemIndex = itemIndex;
     this.isCameraActive = true;
     this.errorMessage = '';
+    this.cdr.markForCheck();
 
-    navigator.mediaDevices?.getUserMedia({
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.closeCamera();
+      if (fallbackInput) {
+        fallbackInput.click();
+      } else {
+        this.errorMessage = 'Thiết bị không hỗ trợ camera trực tiếp. Vui lòng chọn tải ảnh lên.';
+        this.cdr.markForCheck();
+      }
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
     })
     .then(stream => {
       this.mediaStream = stream;
+      this.cdr.markForCheck();
       setTimeout(() => {
         if (this.cameraVideo?.nativeElement) {
           this.cameraVideo.nativeElement.srcObject = stream;
-          this.cameraVideo.nativeElement.play();
+          this.cameraVideo.nativeElement.play().catch(e => console.warn(e));
         }
       }, 100);
     })
     .catch(err => {
       console.warn('Không thể truy cập camera trực tiếp qua getUserMedia:', err);
       this.closeCamera();
-      const fallbackInput = document.getElementById(`camera-fallback-${itemIndex}`) as HTMLInputElement;
       if (fallbackInput) {
         fallbackInput.click();
       } else {
-        this.errorMessage = 'Không thể mở camera thiết bị. Vui lòng cấp quyền camera trong cài đặt trình duyệt hoặc chọn tải ảnh lên.';
+        this.errorMessage = 'Không thể mở camera thiết bị. Vui lòng cấp quyền trong cài đặt trình duyệt hoặc chọn tải ảnh lên.';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -317,21 +364,26 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
         if (targetForm.images.length >= 5) {
           this.errorMessage = 'Mỗi sản phẩm chỉ được tải lên tối đa 5 hình ảnh.';
           this.closeCamera();
+          this.cdr.markForCheck();
           return;
         }
 
         targetForm.uploadingImages = true;
+        this.cdr.markForCheck();
+
         this.reviewService.uploadBase64Image(dataUrl).subscribe({
           next: (res: any) => {
             targetForm.uploadingImages = false;
             if (res?.url) {
               targetForm.images.push(res.url);
             }
+            this.cdr.markForCheck();
           },
           error: (err: any) => {
             targetForm.uploadingImages = false;
             console.error('Lỗi upload ảnh chụp:', err);
             targetForm.images.push(dataUrl);
+            this.cdr.markForCheck();
           }
         });
       }
@@ -347,6 +399,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
     }
     this.isCameraActive = false;
     this.activeCameraItemIndex = null;
+    this.cdr.markForCheck();
   }
 
   // ============================================
@@ -358,11 +411,13 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
     const isUploading = this.forms.some(f => f.uploadingImages);
     if (isUploading) {
       this.errorMessage = 'Ảnh đang được tải lên máy chủ. Vui lòng đợi trong giây lát...';
+      this.cdr.markForCheck();
       return;
     }
 
     this.isSubmitting = true;
     this.errorMessage = '';
+    this.cdr.markForCheck();
 
     const payloadReviews: ProductReviewInput[] = this.forms.map(f => ({
       orderItemId: f.orderItemId,
@@ -379,6 +434,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
       next: (res: any) => {
         this.isSubmitting = false;
         this.successToast = res.message || 'Cảm ơn bạn đã gửi đánh giá cho sản phẩm!';
+        this.cdr.markForCheck();
         setTimeout(() => {
           this.successToast = '';
           this.submitted.emit();
@@ -389,6 +445,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
         this.isSubmitting = false;
         console.error('Lỗi khi gửi đánh giá:', err);
         this.errorMessage = err?.error?.message || 'Có lỗi xảy ra khi lưu đánh giá. Vui lòng thử lại sau.';
+        this.cdr.markForCheck();
       }
     });
   }
