@@ -31,6 +31,10 @@ router.patch('/:id/status', requirePermission('products', 'edit'), productContro
 // Bật / tắt trạng thái mở bán của từng biến thể
 router.patch('/:id/variants/:variantId/status', requirePermission('products', 'edit'), productController.toggleVariantStatus);
 
+// Thêm biến thể mới vào sản phẩm (kèm biến thể may đo từ custom request)
+router.post('/:id/variants', productController.addVariantToProduct);
+router.post('/variants/add-custom', productController.addVariantToProduct);
+
 // Xóa sản phẩm
 router.delete('/:id', requirePermission('products', 'delete'), productController.deleteProduct);
 

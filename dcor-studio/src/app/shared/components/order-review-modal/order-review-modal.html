@@ -102,7 +102,9 @@
             class="hidden-file-input" 
             accept="image/*" 
             multiple
-            style="display: none !important;"
+            tabindex="-1"
+            aria-hidden="true"
+            style="display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;"
             (change)="onFilesSelected($event, i)" />
 
           <input 
@@ -111,7 +113,9 @@
             class="hidden-file-input" 
             accept="image/*" 
             capture="environment"
-            style="display: none !important;"
+            tabindex="-1"
+            aria-hidden="true"
+            style="display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;"
             (change)="onFilesSelected($event, i)" />
 
           <!-- HÌNH ẢNH TẢI LÊN TRÊN 1 HÀNG CHUẨN FORM ADMIN (VARIANT-IMG-GRID, KHÔNG CÓ SAO ĐẠI DIỆN) -->
@@ -149,7 +153,7 @@
             <!-- UPLOADING SPINNER INDICATOR CÙNG HÀNG (RULE 4) -->
             <div *ngIf="form.uploadingImages" class="variant-img-loading">
               <div class="loading-spinner-circle"></div>
-              <span class="uploading-text">Đang load...</span>
+              <span class="uploading-text">Đang load</span>
             </div>
           </div>
         </div>

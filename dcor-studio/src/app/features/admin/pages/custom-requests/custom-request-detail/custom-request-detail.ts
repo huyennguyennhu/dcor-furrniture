@@ -23,6 +23,7 @@ import {
   StatusMeta 
 } from '../../../../../core/services/custom-request.service';
 import { AdminAuthService } from '../../../../../core/services/admin-auth.service';
+import { ProductService } from '../../../../../core/services/product.service';
 
 export interface ArchitectStaff {
   id: string;
@@ -1136,7 +1137,7 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     stock: 1,
     status: 'private' as 'private' | 'public',
     sku: '',
-    attributes: [] as { label: string; value: string; hexColor?: string }[]
+    attributes: [] as { label: string; value: string; hexColor?: string; image?: string }[]
   };
 
   openCreateVariantModal(): void {
@@ -1180,13 +1181,19 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     }
 
     // Thu thập thuộc tính chốt ở bước Khảo sát - Đo thực tế & tư vấn
-    const attributes: { label: string; value: string; hexColor?: string }[] = [];
+    // Bám sát nghiêm ngặt danh mục thuộc tính được cho phép của sản phẩm
+    const attributes: { label: string; value: string; hexColor?: string; image?: string }[] = [];
+    const matImg = this.surveyColorImage || this.request.colorImage || '/assets/img/about_material_core.jpg';
+
+    // 1. Kích thước (nếu sản phẩm có cấu hình kích thước)
     const l = this.request.length || this.surveyLength;
     const w = this.request.width || this.surveyWidth;
     const h = this.request.height || this.surveyHeight;
-    if (l && w && h) {
+    if (this.request.hasDimensions !== false && l && w && h) {
       attributes.push({ label: 'Kích thước', value: `${l} × ${w} × ${h} cm` });
     }
+
+    // 2. Màu sắc (kèm màu hex swatch)
     const colorVal = this.request.colorName || this.surveyColorName;
     if (colorVal) {
       attributes.push({
@@ -1195,19 +1202,36 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
         hexColor: this.request.colorHex || this.surveyColorHex
       });
     }
+
+    // 3. Chất liệu (kèm ảnh mẫu tròn theo yêu cầu)
     const matVal = this.request.material || this.surveyMaterial;
-    if (matVal) {
-      attributes.push({ label: 'Chất liệu', value: matVal });
+    if (matVal && this.hasMaterialAttribute()) {
+      attributes.push({ 
+        label: 'Chất liệu', 
+        value: matVal, 
+        image: matImg 
+      });
     }
+
+    // 4. Khung / Chân
     const legVal = this.request.legMaterial || this.surveyLegMaterial;
-    if (legVal) {
+    if (legVal && this.hasLegAttribute()) {
       attributes.push({ label: 'Khung / Chân', value: legVal });
     }
+
+    // 5. Các thuộc tính tùy biến được định nghĩa sẵn của sản phẩm (tuyệt đối không tạo thuộc tính lạ khác)
     if (this.request.customizedAttributes && Array.isArray(this.request.customizedAttributes)) {
       this.request.customizedAttributes.forEach(attr => {
         const val = attr.selectedOptionName || attr.originalValue;
-        if (val && !attributes.some(a => a.label === attr.label)) {
-          attributes.push({ label: attr.label, value: val, hexColor: attr.hexColor });
+        if (val && !attributes.some(a => a.label.toLowerCase() === attr.label.toLowerCase())) {
+          const isMat = (attr.groupId && (attr.groupId.toLowerCase().includes('material') || attr.groupId.toLowerCase().includes('upholstery') || attr.groupId.toLowerCase().includes('fabric'))) ||
+                        (attr.label && (attr.label.toLowerCase().includes('chất liệu') || attr.label.toLowerCase().includes('vải') || attr.label.toLowerCase().includes('da')));
+          attributes.push({ 
+            label: attr.label, 
+            value: val, 
+            hexColor: attr.hexColor,
+            image: isMat ? matImg : undefined 
+          });
         }
       });
     }
@@ -1215,6 +1239,13 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     const orderQty = (this.request as any).quantity || 1;
 
     if (this.request.customVariant) {
+      const savedAttrs = (this.request.customVariant.attributes || []).map((a: any) => {
+        const isMat = a.label && (a.label.toLowerCase().includes('chất liệu') || a.label.toLowerCase().includes('vải') || a.label.toLowerCase().includes('da'));
+        return {
+          ...a,
+          image: a.image || (isMat ? matImg : undefined)
+        };
+      });
       this.variantForm = {
         variantName: this.request.customVariant.name,
         images: this.request.customVariant.images?.length > 0 ? [...this.request.customVariant.images] : images,
@@ -1222,7 +1253,7 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
         stock: this.request.customVariant.stock || orderQty,
         status: 'private',
         sku: this.request.customVariant.sku || `VAR-${this.request.code}`,
-        attributes: this.request.customVariant.attributes?.length > 0 ? [...this.request.customVariant.attributes] : attributes
+        attributes: savedAttrs.length > 0 ? savedAttrs : attributes
       };
     } else {
       this.variantForm = {
@@ -1285,14 +1316,51 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
       createdAt: this.request.customVariant?.createdAt || new Date().toISOString()
     };
 
+    // 1. Lưu vào CustomRequestService
     this.customRequestService.saveCustomVariant(this.request.id, variantData);
     this.request.customVariant = variantData;
+
+    // 2. Gửi API lưu trực tiếp vào danh sách Biến thể của Sản phẩm trong Database
+    const targetProductId = this.request.productId || 'default';
+    const payload = {
+      productId: this.request.productId,
+      productName: this.request.productName,
+      productSku: this.request.productSku,
+      name: variantData.name,
+      sku: variantData.sku,
+      price: variantData.price,
+      stock: variantData.stock,
+      images: variantData.images,
+      attributes: variantData.attributes,
+      isPrivate: true,
+      customRequestId: this.request.code
+    };
+
+    this.http.post<any>(`${environment.apiUrl}/admin/products/${targetProductId}/variants`, payload).subscribe({
+      next: (res) => {
+        console.log('[saveProductVariant] Đã đồng bộ biến thể vào sản phẩm DB:', res);
+        if (res.product && res.product.id && res.product.id !== this.request!.productId) {
+          this.request!.productId = res.product.id;
+          this.customRequestService.saveCustomVariant(this.request!.id, { ...variantData, productId: res.product.id });
+        }
+        this.productService.clearCache();
+        this.triggerToast(
+          'Tạo sản phẩm (Biến thể) thành công',
+          `Đã tạo biến thể "${variantData.name}" (Private) và thêm vào sản phẩm "${res.product?.name || this.request!.productName}" trong danh mục sản phẩm.`,
+          'success'
+        );
+      },
+      error: (err) => {
+        console.warn('[saveProductVariant] Không thể đồng bộ qua API DB:', err);
+        this.triggerToast(
+          'Lưu biến thể thành công',
+          `Đã lưu biến thể "${variantData.name}" vào hồ sơ may đo #${this.request!.code}.`,
+          'success'
+        );
+      }
+    });
+
     this.isVariantModalOpen = false;
-    this.triggerToast(
-      'Tạo sản phẩm (Biến thể) thành công',
-      `Đã tạo biến thể "${variantData.name}" (Private) gắn liền với hồ sơ may đo #${this.request.code}.`,
-      'success'
-    );
   }
 
   deliveryForm = {
@@ -1335,7 +1403,8 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     private customRequestService: CustomRequestService,
     private adminAuthService: AdminAuthService,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private productService: ProductService
   ) {}
 
   ngOnInit(): void {

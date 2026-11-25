@@ -5556,38 +5556,59 @@ input[type="text"].field-input::-webkit-list-button {
 
 .variant-attrs-chips {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  width: 100%;
 }
 
 .attr-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  background: #FDFBF9;
+  border: 1px solid #EAE3DC;
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.attr-chip-left {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 9px;
-  background: #F5F0EB;
-  border: 1px solid #E6D7C8;
-  border-radius: 6px;
-  font-size: 12px;
+  gap: 8px;
 }
 
 .chip-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.12);
   flex-shrink: 0;
+  display: inline-block;
+}
+
+.chip-dot.chip-img-dot {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid #C8B9A6;
 }
 
 .chip-lbl {
   color: #765337;
   font-weight: 500;
+  font-size: 12.5px;
 }
 
 .chip-val {
-  color: #372A20;
+  color: #1A1A1A;
   font-weight: 600;
+  font-size: 13px;
+  text-align: right;
+  word-break: break-word;
 }
 
 .variant-specs-row {

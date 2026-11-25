@@ -50,7 +50,11 @@ export const reviewController = {
             status: { in: ['COMPLETED', 'DELIVERED'] }
           },
           include: {
-            items: true
+            items: {
+              include: {
+                variant: true
+              }
+            }
           },
           orderBy: {
             createdAt: 'desc'
@@ -239,7 +243,7 @@ export const reviewController = {
               productId: item.productId,
               productName: item.productName,
               productImage: resolveCleanImage(item.imageUrl, item.productId, item.productName),
-              variantDescription: item.variantDescription,
+              variantDescription: item.variantDescription || (item as any).variant?.name || null,
               price: item.price,
               quantity: item.quantity,
               lineTotal: Number(item.lineTotal)
@@ -286,7 +290,7 @@ export const reviewController = {
       const order = await withDbRetry(() =>
         prisma.order.findUnique({
           where: { orderNumber },
-          include: { items: true, customer: true }
+          include: { items: { include: { variant: true } }, customer: true }
         })
       );
 
@@ -345,7 +349,7 @@ export const reviewController = {
         const prodId = rev.productId || matchingItem?.productId;
         const prodName = rev.productName || matchingItem?.productName || 'Sản phẩm Dcor';
         const prodImg = rev.productImage || matchingItem?.imageUrl || '';
-        const variantDesc = rev.variantDescription || matchingItem?.variantDescription || null;
+        const variantDesc = rev.variantDescription || matchingItem?.variantDescription || (matchingItem as any)?.variant?.name || null;
         const rating = Math.min(5, Math.max(1, Math.round(Number(rev.rating) || 5)));
         const comment = (rev.comment || '').trim();
         const imagesJson = JSON.stringify(Array.isArray(rev.images) ? rev.images : []);

@@ -341,6 +341,8 @@ export const orderController = {
           warrantyMonths: itemWarrantyMonths
         };
 
+        const variantDesc = variant?.name || (item.variantDescription || null);
+
         if (productId) {
           orderItemsCreate.push({
             productId,
@@ -348,6 +350,7 @@ export const orderController = {
             productName,
             sku: variant?.sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
             imageUrl: typeof imageUrl === 'string' ? imageUrl : '',
+            variantDescription: variantDesc,
             quantity: qty,
             price: price,
             lineTotal: lineTotal,
@@ -607,7 +610,11 @@ export const orderController = {
       const orders = await prisma.order.findMany({
         where: whereClause,
         include: {
-          items: true
+          items: {
+            include: {
+              variant: true
+            }
+          }
         },
         orderBy: {
           createdAt: 'desc'
@@ -731,10 +738,10 @@ export const orderController = {
             imageUrl: firstItem.imageUrl,
             price: firstItem.price,
             quantity: firstItem.quantity,
-            variantDescription: firstItem.variantDescription,
+            variantDescription: firstItem.variantDescription || (firstItem as any).variant?.name || null,
             selectedOptions: firstItem.selectedOptions
           } : null,
-          allItems: o.items.map(it => ({
+          allItems: o.items.map((it: any) => ({
             id: it.id,
             productId: it.productId,
             variantId: it.variantId,
@@ -744,7 +751,7 @@ export const orderController = {
             price: it.price,
             quantity: it.quantity,
             lineTotal: Number(it.lineTotal),
-            variantDescription: it.variantDescription,
+            variantDescription: it.variantDescription || it.variant?.name || null,
             selectedOptions: it.selectedOptions
           })),
           shippingInfo: {
@@ -778,7 +785,11 @@ export const orderController = {
       const order: any = await prisma.order.findUnique({
         where: { orderNumber },
         include: {
-          items: true,
+          items: {
+            include: {
+              variant: true
+            }
+          },
           statusHistory: {
             orderBy: { createdAt: 'desc' }
           },
@@ -861,7 +872,7 @@ export const orderController = {
           price: it.price,
           quantity: it.quantity,
           lineTotal: Number(it.lineTotal),
-          variantDescription: it.variantDescription,
+          variantDescription: it.variantDescription || it.variant?.name || null,
           selectedOptions: it.selectedOptions
         })),
         statusHistory: (order.statusHistory || []).map((sh: any) => ({

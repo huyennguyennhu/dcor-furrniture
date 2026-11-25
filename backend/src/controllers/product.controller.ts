@@ -844,5 +844,137 @@ export const productController = {
       console.error('Lỗi khôi phục sản phẩm:', error);
       res.status(500).json({ message: 'Lỗi khôi phục sản phẩm.', error: error?.message });
     }
+  },
+
+  // Thêm biến thể mới vào sản phẩm (dành cho biến thể may đo / custom variant hoặc biến thể thông thường)
+  addVariantToProduct: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const { 
+        name, 
+        sku, 
+        price, 
+        stock = 1, 
+        images = [], 
+        attributes = [], 
+        isPrivate = true, 
+        customRequestId,
+        productName,
+        productSku
+      } = req.body;
+
+      if (!name || !name.trim()) {
+        res.status(400).json({ message: 'Vui lòng cung cấp tên biến thể.' });
+        return;
+      }
+
+      // Tìm sản phẩm theo id (nếu là UUID hợp lệ), hoặc theo slug, tên, sku
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      let product = null;
+
+      if (isUuid) {
+        product = await prisma.product.findUnique({
+          where: { id },
+          include: { variants: true }
+        });
+      }
+
+      if (!product) {
+        // Tìm theo slug hoặc tên sản phẩm
+        product = await prisma.product.findFirst({
+          where: {
+            OR: [
+              { slug: id },
+              ...(productName ? [{ name: { contains: productName.trim(), mode: 'insensitive' as const } }] : []),
+              { name: { contains: id.trim(), mode: 'insensitive' as const } },
+              ...(productSku ? [{ variants: { some: { sku: productSku.trim() } } }] : [])
+            ]
+          },
+          include: { variants: true }
+        });
+      }
+
+      // Nếu vẫn chưa tìm thấy và có productName, tìm theo từng từ khóa
+      if (!product && productName) {
+        const words = productName.split(/\s+/).filter((w: string) => w.length > 3);
+        for (const w of words) {
+          product = await prisma.product.findFirst({
+            where: { name: { contains: w, mode: 'insensitive' as const }, deletedAt: null },
+            include: { variants: true }
+          });
+          if (product) break;
+        }
+      }
+
+      // Nếu vẫn không tìm thấy, lấy sản phẩm đang hoạt động đầu tiên
+      if (!product) {
+        product = await prisma.product.findFirst({
+          where: { isActive: true, deletedAt: null },
+          include: { variants: true }
+        });
+      }
+
+      if (!product) {
+        res.status(404).json({ message: 'Không tìm thấy sản phẩm tương ứng trong hệ thống.' });
+        return;
+      }
+
+      // Sinh mã SKU duy nhất
+      let baseSku = (sku || `VAR-${product.slug.slice(0, 10).toUpperCase()}-${Date.now().toString().slice(-4)}`).trim();
+      let finalSku = baseSku;
+      const existingSku = await prisma.productVariant.findUnique({ where: { sku: finalSku } });
+      if (existingSku) {
+        finalSku = `${baseSku}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      }
+
+      // Tạo biến thể mới trong cơ sở dữ liệu
+      const newVariant = await prisma.productVariant.create({
+        data: {
+          productId: product.id,
+          sku: finalSku,
+          name: name.trim(),
+          price: Math.round(Number(price)) || product.basePrice,
+          stock: Number(stock) || 1,
+          reservedStock: 0,
+          optionValues: {
+            attributes,
+            images,
+            isPrivate: isPrivate !== false,
+            customRequestId: customRequestId || null
+          },
+          isActive: true
+        }
+      });
+
+      // Tự động phân bổ tồn kho vào kho mặc định
+      const defaultWh = await prisma.warehouse.findFirst({ where: { isActive: true } });
+      if (defaultWh) {
+        await prisma.warehouseStock.create({
+          data: {
+            warehouseId: defaultWh.id,
+            variantId: newVariant.id,
+            physicalStock: Number(stock) || 1,
+            reservedStock: 0,
+            safetyThreshold: 0
+          }
+        });
+      }
+
+      invalidateAllProductCaches();
+
+      res.json({
+        success: true,
+        message: `Đã tạo và thêm biến thể "${newVariant.name}" vào sản phẩm "${product.name}" thành công!`,
+        variant: newVariant,
+        product: {
+          id: product.id,
+          name: product.name,
+          slug: product.slug
+        }
+      });
+    } catch (error: any) {
+      console.error('Lỗi addVariantToProduct:', error);
+      res.status(500).json({ message: 'Không thể thêm biến thể vào sản phẩm.', error: error?.message });
+    }
   }
 };

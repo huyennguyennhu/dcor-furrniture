@@ -883,19 +883,6 @@
   color: var(--color-text, #0A0A0A);
 }
 
-.anonymous-privacy-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--color-sub-bg, #FFF3E3);
-  color: var(--color-primary, #765337);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(118, 83, 55, 0.2);
-}
-
 .anonymous-desc {
   font-size: 12.5px;
   color: var(--color-text-secondary, #616161);

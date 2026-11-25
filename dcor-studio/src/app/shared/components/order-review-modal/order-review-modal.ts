@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { 
   LucideAngularModule, 
   Star, 
@@ -233,7 +234,7 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
     });
   }
 
-  // Upload danh sách file với nén siêu tốc và markForCheck() tức thời
+  // Upload danh sách file với nén siêu tốc song song và markForCheck() tức thời
   private async uploadFiles(files: File[], itemIndex: number): Promise<void> {
     const form = this.forms[itemIndex];
     if (!form) return;
@@ -255,41 +256,38 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
       return;
     }
 
-    let completedCount = 0;
+    try {
+      // 1. Nén tất cả ảnh song song bằng Canvas
+      const compressedBlobs = await Promise.all(
+        validFiles.map(file => this.compressImage(file))
+      );
 
-    for (const file of validFiles) {
-      try {
-        // Nén ảnh client-side siêu tốc
-        const compressedBlob = await this.compressImage(file);
-        
-        this.reviewService.uploadImage(compressedBlob).subscribe({
-          next: (res: any) => {
-            if (res?.url) {
-              form.images.push(res.url);
-            }
-            completedCount++;
-            if (completedCount === validFiles.length) {
-              form.uploadingImages = false;
-            }
-            this.cdr.markForCheck();
-          },
-          error: (err: any) => {
-            console.error('Lỗi tải ảnh lên:', err);
-            completedCount++;
-            if (completedCount === validFiles.length) {
-              form.uploadingImages = false;
-            }
-            this.errorMessage = 'Không thể tải lên một số ảnh. Vui lòng thử lại.';
-            this.cdr.markForCheck();
-          }
-        });
-      } catch (e) {
-        completedCount++;
-        if (completedCount === validFiles.length) {
-          form.uploadingImages = false;
+      // 2. Upload đồng thời các ảnh lên Cloudinary
+      const uploadPromises = compressedBlobs.map(blob =>
+        firstValueFrom(this.reviewService.uploadImage(blob)).catch(err => {
+          console.error('Lỗi tải ảnh lên Cloudinary:', err);
+          return null;
+        })
+      );
+
+      const results = await Promise.all(uploadPromises);
+
+      for (const res of results) {
+        if (res && res.url) {
+          form.images.push(res.url);
         }
-        this.cdr.markForCheck();
       }
+
+      const failedCount = results.filter(r => !r || !r.url).length;
+      if (failedCount > 0) {
+        this.errorMessage = `Đã tải ${results.length - failedCount}/${results.length} ảnh. Một số ảnh tải lên thất bại.`;
+      }
+    } catch (err) {
+      console.error('Lỗi quá trình nén và tải ảnh:', err);
+      this.errorMessage = 'Có lỗi xảy ra khi nén và tải ảnh. Vui lòng thử lại.';
+    } finally {
+      form.uploadingImages = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -359,7 +357,6 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
       const targetForm = this.forms[this.activeCameraItemIndex];
       if (targetForm) {
@@ -372,22 +369,32 @@ export class OrderReviewModalComponent implements OnInit, OnChanges {
 
         targetForm.uploadingImages = true;
         this.cdr.markForCheck();
+        this.closeCamera();
 
-        this.reviewService.uploadBase64Image(dataUrl).subscribe({
-          next: (res: any) => {
+        canvas.toBlob((blob) => {
+          if (!blob) {
             targetForm.uploadingImages = false;
-            if (res?.url) {
-              targetForm.images.push(res.url);
-            }
             this.cdr.markForCheck();
-          },
-          error: (err: any) => {
-            targetForm.uploadingImages = false;
-            console.error('Lỗi upload ảnh chụp:', err);
-            targetForm.images.push(dataUrl);
-            this.cdr.markForCheck();
+            return;
           }
-        });
+
+          this.reviewService.uploadImage(blob).subscribe({
+            next: (res: any) => {
+              targetForm.uploadingImages = false;
+              if (res?.url) {
+                targetForm.images.push(res.url);
+              }
+              this.cdr.markForCheck();
+            },
+            error: (err: any) => {
+              targetForm.uploadingImages = false;
+              console.error('Lỗi upload ảnh chụp:', err);
+              this.errorMessage = 'Không thể tải ảnh chụp lên. Vui lòng thử lại.';
+              this.cdr.markForCheck();
+            }
+          });
+        }, 'image/jpeg', 0.82);
+        return;
       }
     }
 

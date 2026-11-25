@@ -1757,8 +1757,11 @@
           <label class="field-label">Thuộc tính kỹ thuật</label>
           <div class="variant-attrs-chips">
             <div class="attr-chip" *ngFor="let attr of variantForm.attributes">
-              <span class="chip-dot" *ngIf="attr.hexColor" [style.background]="attr.hexColor"></span>
-              <span class="chip-lbl">{{ attr.label }}:</span>
+              <div class="attr-chip-left">
+                <span class="chip-dot" *ngIf="attr.hexColor" [style.background]="attr.hexColor"></span>
+                <span class="chip-dot chip-img-dot" *ngIf="attr.image" [style.background-image]="'url(' + attr.image + ')'" [title]="attr.value"></span>
+                <span class="chip-lbl">{{ attr.label }}:</span>
+              </div>
               <strong class="chip-val">{{ attr.value }}</strong>
             </div>
           </div>

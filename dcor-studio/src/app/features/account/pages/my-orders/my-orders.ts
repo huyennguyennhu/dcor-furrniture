@@ -1313,7 +1313,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
         productId: it.productId,
         productName: it.productName,
         productImage: it.imageUrl || it.productImage,
-        variantDescription: it.variantDescription,
+        variantDescription: it.variantDescription || it.variantName || it.variant?.name || (it.selectedOptions ? (it.selectedOptions.name || it.selectedOptions.variantName) : null) || '',
         price: it.price,
         quantity: it.quantity
       }));
@@ -1327,7 +1327,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
             productId: it.productId,
             productName: it.productName,
             productImage: it.imageUrl,
-            variantDescription: it.variantDescription,
+            variantDescription: it.variantDescription || it.variantName || it.variant?.name || (it.selectedOptions ? (it.selectedOptions.name || it.selectedOptions.variantName) : null) || '',
             price: it.price,
             quantity: it.quantity
           }));
@@ -1342,7 +1342,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
               productId: '',
               productName: first.productName,
               productImage: first.imageUrl,
-              variantDescription: first.variantDescription,
+              variantDescription: first.variantDescription || first.variantName || first.variant?.name || '',
               price: first.price,
               quantity: first.quantity
             }];
