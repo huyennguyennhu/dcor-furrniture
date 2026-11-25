@@ -251,7 +251,7 @@
     <div class="stepper-branch-pill branch-cancelled" *ngIf="order.status === 'CANCELLED'">
       <lucide-angular [img]="icons.XCircle" size="16"></lucide-angular>
       <span>Trạng thái kết thúc: <strong>CANCELLED (Đã hủy đơn)</strong> — {{ order.cancelReason || 'Đã hủy đơn hàng' }} (Bởi: {{ order.cancelledBy || 'Admin' }})</span>
-      <span *ngIf="order.delivery?.inboundOrderCode" class="inbound-order-pill" style="margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; background: #DCFCE7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">
+      <span *ngIf="order.delivery.inboundOrderCode" class="inbound-order-pill" style="margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; background: #DCFCE7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">
         <lucide-angular [img]="icons.Package" size="13"></lucide-angular>
         Phiếu hoàn kho: <a [routerLink]="['/admin/inventory/orders']" style="color: #166534; text-decoration: underline;">#{{ order.delivery.inboundOrderCode }}</a>
       </span>
