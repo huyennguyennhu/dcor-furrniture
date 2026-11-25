@@ -7,6 +7,7 @@ import { ensureConsultationTable, notifyAdminPendingConsultations } from './cons
 import { memoryCache, CACHE_KEYS } from '../lib/cache';
 import { DEFAULT_WARRANTY_MONTHS, parseWarrantyMonths } from './product.controller';
 import { calculateMemberTier, calculateRewardPoints } from '../lib/member-tier';
+export { calculateMemberTier, calculateRewardPoints };
 
 const normalizePhone = (phone: string): string => {
   let cleaned = phone.replace(/\D/g, '');

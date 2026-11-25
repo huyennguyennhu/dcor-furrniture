@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { otpService, normalizePhone, isValidPassword, OtpPurpose } from '../services/otp.service';
 import { getStaffMetadata, setStaffMetadata } from '../lib/staff-metadata';
 import { iamService } from '../lib/iam.service';
-import { calculateMemberTier } from './customer.controller';
+import { calculateMemberTier } from '../lib/member-tier';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dcor_super_secret_key_2026';
 const LOCK_DURATION_SECONDS = Number(process.env.LOGIN_LOCK_SECONDS) || 900;
