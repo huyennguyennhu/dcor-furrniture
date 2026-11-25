@@ -1966,8 +1966,17 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
 
   getExtractedBudgetRange(): string {
     if (!this.request) return '';
-    if (this.request.budgetRange) return this.request.budgetRange;
-    if (this.request.estimatedBudget) return this.formatVND(+this.request.estimatedBudget);
+    if (this.request.budgetRange && this.request.budgetRange.trim()) {
+      return this.request.budgetRange.trim();
+    }
+    if (this.request.estimatedBudget && String(this.request.estimatedBudget).trim()) {
+      const raw = String(this.request.estimatedBudget).trim();
+      const num = Number(raw.replace(/[^\d]/g, ''));
+      if (!isNaN(num) && num > 0) {
+        return this.formatVND(num);
+      }
+      return raw;
+    }
     const notes = this.request.requirementDetails || this.request.notes || '';
     const match = notes.match(/Ngân sách dự kiến:\s*([^\n]+)/i);
     return match ? match[1].trim() : '';

@@ -1334,8 +1334,15 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
 
   getExtractedBudgetRange(req: CustomRequest): string {
     if (!req) return '';
-    if (req.budgetRange) return req.budgetRange;
-    if (req.estimatedBudget) return `${req.estimatedBudget} đ`;
+    if (req.budgetRange && req.budgetRange.trim()) return req.budgetRange.trim();
+    if (req.estimatedBudget && String(req.estimatedBudget).trim()) {
+      const raw = String(req.estimatedBudget).trim();
+      const num = Number(raw.replace(/[^\d]/g, ''));
+      if (!isNaN(num) && num > 0) {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+      }
+      return raw;
+    }
     const notes = req.notes || req.requirementDetails || '';
     const match = notes.match(/Ngân sách dự kiến:\s*([^\n]+)/i);
     return match ? match[1].trim() : '';

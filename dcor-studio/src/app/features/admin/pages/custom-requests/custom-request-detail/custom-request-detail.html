@@ -704,7 +704,7 @@
                   </div>
                 </div>
                 <div class="q-budget-body">
-                  <strong class="q-budget-val">{{ request.budgetRange || (request.estimatedBudget ? formatVND(+request.estimatedBudget) : '22.000.000 đ - 26.000.000 đ') }}</strong>
+                  <strong class="q-budget-val">{{ getExtractedBudgetRange() || 'Khách không yêu cầu cụ thể' }}</strong>
                 </div>
               </div>
             </div>
