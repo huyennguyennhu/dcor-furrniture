@@ -221,10 +221,7 @@
                 <div class="spec-item" *ngIf="request.colorName && request.colorName.trim() !== '' && request.colorName !== '—'">
                   <div class="spec-details">
                     <span class="spec-lbl">Màu sắc chỉ định</span>
-                    <div class="color-val-wrapper">
-                      <span class="color-dot-swatch" [style.background]="request.colorHex || '#8B4513'"></span>
-                      <strong class="spec-val">{{ request.colorName }}</strong>
-                    </div>
+                    <strong class="spec-val">{{ request.colorName }}</strong>
                   </div>
                 </div>
 
