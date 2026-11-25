@@ -269,7 +269,7 @@ export const CUSTOM_STATUS_MAP: Record<CustomRequestStatus, StatusMeta> = {
   providedIn: 'root'
 })
 export class CustomRequestService {
-  private readonly STORAGE_KEY = 'dcor_admin_custom_requests';
+  private readonly STORAGE_KEY = 'dcor_admin_custom_requests_v6';
   private requestsSubject = new BehaviorSubject<CustomRequest[]>([]);
   public requests$: Observable<CustomRequest[]> = this.requestsSubject.asObservable();
 
@@ -301,6 +301,10 @@ export class CustomRequestService {
     }
 
     try {
+      ['dcor_admin_custom_requests', 'dcor_admin_custom_requests_v2', 'dcor_admin_custom_requests_v3', 'dcor_admin_custom_requests_v4', 'dcor_admin_custom_requests_v5'].forEach(k => {
+        try { localStorage.removeItem(k); } catch (_) {}
+      });
+
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -313,6 +317,13 @@ export class CustomRequestService {
               return { 
                 ...seed,
                 ...item,
+                status: seed.status,
+                workOrderCode: seed.workOrderCode,
+                generatedOrderNumber: seed.generatedOrderNumber,
+                contractSignedAt: seed.contractSignedAt,
+                contractScanUrl: seed.contractScanUrl,
+                qcChecklist: seed.qcChecklist,
+                customVariant: seed.customVariant,
                 referenceImages: item.referenceImages?.length ? item.referenceImages : seed.referenceImages, 
                 productImage: item.code === 'CR-0004' ? '' : (item.productImage || seed.productImage),
                 budgetRange: item.budgetRange || seed.budgetRange,
@@ -1374,7 +1385,7 @@ export class CustomRequestService {
         ]
       },
 
-      // 6. AWAITING_PAYMENT: Chờ thanh toán cọc 30%
+      // 6. AWAITING_CONTRACT: Chờ ký hợp đồng may đo (Bước 4: Hợp đồng - Chờ khách ký HĐ)
       {
         id: 'cr-106',
         code: 'CR-0006',
@@ -1399,35 +1410,33 @@ export class CustomRequestService {
           '/assets/img/furniture-placeholder.svg',
           '/assets/img/furniture-placeholder.svg'
         ],
-        status: 'AWAITING_PAYMENT',
+        status: 'AWAITING_CONTRACT',
         assignedStaff: 'KTS. Lê Hoàng',
         quotedPrice: 38000000,
         quotedDeposit: 11400000,
         drawing3dUrl: '/assets/img/about_blueprint.jpg',
-        contractScanUrl: '/assets/img/furniture-placeholder.svg',
-        contractSignedAt: dDaysAgo(2),
-        adminNotes: 'Đã bắn mã VietQR cọc 11.400.000 đ vào Zalo của anh Thịnh, chờ kế toán kiểm tra giao dịch vào tài khoản.',
+        adminNotes: 'Anh Thịnh đã duyệt bản vẽ 3D và báo giá 38.000.000 đ. Đang gửi hợp đồng may đo điện tử để anh Thịnh ký xác nhận.',
         createdAt: dDaysAgo(7),
         updatedAt: dHoursAgo(3),
         timeline: [
           {
-            status: 'CONTRACT_SIGNED',
-            title: 'Hợp đồng may đo đã ký',
-            description: 'Khách ký HĐ điện tử qua SMS OTP.',
+            status: 'QUOTED',
+            title: 'Chốt báo giá & thiết kế 3D',
+            description: 'Đã gửi báo giá 38.000.000 đ (cọc 30%: 11.400.000 đ) và bản vẽ 3D.',
             timestamp: dDaysAgo(2),
-            performedBy: 'Vũ Đức Thịnh'
+            performedBy: 'KTS. Lê Hoàng'
           },
           {
-            status: 'AWAITING_PAYMENT',
-            title: 'Phát hành mã VietQR cọc 11.400.000 đ',
-            description: 'Chờ kế toán đối soát giao dịch chuyển khoản ngân hàng.',
+            status: 'AWAITING_CONTRACT',
+            title: 'Phát hành Hợp đồng may đo HD-DCOR-2026/CR-0006',
+            description: 'Hợp đồng may đo đã soạn thảo, chờ khách ký xác nhận điện tử.',
             timestamp: dHoursAgo(3),
-            performedBy: 'Kế toán DCor'
+            performedBy: 'Phòng Pháp Chế DCor'
           }
         ]
       },
 
-      // 6b. DEPOSIT_SUBMITTED: Chờ xét duyệt cọc 30%
+      // 6b. QC_PASSED: Nghiệm thu xưởng đạt 100%, đã tạo biến thể & lên đơn hàng -> Sẵn sàng bàn giao thu 70%
       {
         id: 'cr-110',
         code: 'CR-0010',
@@ -1448,14 +1457,40 @@ export class CustomRequestService {
         material: 'Da bò Ý Full Grain tự nhiên',
         legMaterial: 'Chân xoay hợp kim mạ PVD vàng Champagne',
         notes: 'Chân xoay 360 độ êm ái, bọc da nguyên tấm mặt ngồi và tựa lưng.',
-        status: 'DEPOSIT_SUBMITTED',
+        status: 'QC_PASSED',
         assignedStaff: 'KTS. Lê Hoàng',
         quotedPrice: 22000000,
         quotedDeposit: 6600000,
         drawing3dUrl: '/assets/img/about_blueprint.jpg',
         contractScanUrl: '/assets/img/furniture-placeholder.svg',
-        contractSignedAt: dDaysAgo(1),
-        adminNotes: 'Khách hàng đã bấm xác nhận chuyển khoản cọc 6.600.000 đ qua VietQR. Kế toán đang kiểm tra sao kê ngân hàng.',
+        contractSignedAt: dDaysAgo(3),
+        generatedOrderNumber: 'DCOR-ORD-CUST-0010',
+        workOrderCode: 'WO-MK-0010',
+        qcPassedAt: dDaysAgo(1),
+        qcInspector: 'KTS. Lê Hoàng (Trưởng bộ phận QC)',
+        qcChecklist: {
+          dimensionAccuracy: true,
+          surfaceFinish: true,
+          cushionStitching: true,
+          packagingProtection: true
+        },
+        customVariant: {
+          id: 'var-cr-110',
+          name: 'Ghế Lounge Chair Da Ý - Nâu Cognac May Đo Sala',
+          sku: 'DCOR-ARM-01-CUST-110',
+          price: 22000000,
+          stock: 1,
+          status: 'private',
+          isPrivate: true,
+          images: ['/assets/img/furniture-placeholder.svg'],
+          attributes: [
+            { label: 'Kích thước', value: '95 x 85 x 105 cm' },
+            { label: 'Chất liệu', value: 'Da bò Ý Full Grain tự nhiên' },
+            { label: 'Chân đế', value: 'Chân xoay hợp kim mạ PVD vàng Champagne' }
+          ],
+          createdAt: dDaysAgo(1)
+        },
+        adminNotes: 'Đã hoàn thành sản xuất tại xưởng, kiểm tra QC 4/4 đạt chuẩn. Đã tạo biến thể riêng và sinh đơn hàng DCOR-ORD-CUST-0010.',
         createdAt: dDaysAgo(5),
         updatedAt: dHoursAgo(1),
         timeline: [
@@ -1463,27 +1498,34 @@ export class CustomRequestService {
             status: 'CONTRACT_SIGNED',
             title: 'Hợp đồng may đo đã ký',
             description: 'Khách ký HĐ điện tử thành công.',
-            timestamp: dDaysAgo(1),
+            timestamp: dDaysAgo(3),
             performedBy: 'Nguyễn Văn Hoàng'
           },
           {
             status: 'AWAITING_PAYMENT',
-            title: 'Phát hành mã VietQR cọc 6.600.000 đ',
-            description: 'Khách nhận thông tin tài khoản và quét mã chuyển khoản.',
-            timestamp: dHoursAgo(2),
+            title: 'Thanh toán cọc 6.600.000 đ',
+            description: 'Khách đã quét VietQR chuyển cọc 30%.',
+            timestamp: dDaysAgo(2),
             performedBy: 'Hệ thống DCor'
           },
           {
-            status: 'DEPOSIT_SUBMITTED',
-            title: 'Khách báo đã chuyển khoản',
-            description: 'Chờ kế toán đối soát sao kê ngân hàng.',
-            timestamp: dHoursAgo(1),
-            performedBy: 'Nguyễn Văn Hoàng'
+            status: 'PROCESSING',
+            title: 'Gia công sản xuất theo lệnh WO-MK-0010',
+            description: 'Đã gia công hoàn tất khung ghế và bọc da bò Mastrotto tại xưởng.',
+            timestamp: dDaysAgo(2),
+            performedBy: 'Xưởng may đo DCOR'
+          },
+          {
+            status: 'QC_PASSED',
+            title: 'Kiểm định QC 4 tiêu chí ĐẠT & Sinh đơn hàng',
+            description: 'QC 4/4 tiêu chuẩn đạt xuất sắc. Đã tạo biến thể riêng và sinh đơn hàng DCOR-ORD-CUST-0010.',
+            timestamp: dDaysAgo(1),
+            performedBy: 'KTS. Lê Hoàng'
           }
         ]
       },
 
-      // 7. PROCESSING: Đang sản xuất tại xưởng (Đã sinh đơn hàng chính thức)
+      // 7. PROCESSING: Đang sản xuất tại xưởng (Chưa lên đơn hàng hệ thống)
       {
         id: 'cr-107',
         code: 'CR-0007',
@@ -1511,9 +1553,14 @@ export class CustomRequestService {
         drawing3dUrl: '/assets/img/about_blueprint.jpg',
         contractScanUrl: '/assets/img/furniture-placeholder.svg',
         contractSignedAt: dDaysAgo(5),
-        generatedOrderNumber: 'DCOR-ORD-CUST-0007',
         workOrderCode: 'WO-MK-0007',
-        adminNotes: 'Đã nhận cọc 28.500.000 đ vào tài khoản VietinBank. Đã bắn đơn sang phân hệ Đơn hàng DCOR-ORD-CUST-0007 và xuất kho gỗ teak, 42m da Nappa.',
+        qcChecklist: {
+          dimensionAccuracy: false,
+          surfaceFinish: false,
+          cushionStitching: false,
+          packagingProtection: false
+        },
+        adminNotes: 'Đã nhận cọc 28.500.000 đ vào tài khoản VietinBank. Đang trong giai đoạn gia công tại xưởng theo lệnh WO-MK-0007.',
         createdAt: dDaysAgo(10),
         updatedAt: dDaysAgo(3),
         timeline: [
@@ -1526,8 +1573,8 @@ export class CustomRequestService {
           },
           {
             status: 'PROCESSING',
-            title: 'Xác nhận cọc 30% - Đã sinh Đơn hàng & Bắn xưởng',
-            description: 'Kế toán đã duyệt cọc. Tự động sinh đơn DCOR-ORD-CUST-0007 và lệnh sản xuất WO-MK-0007.',
+            title: 'Xác nhận cọc 30% - Bắn lệnh sản xuất xưởng',
+            description: 'Kế toán đã duyệt cọc. Lệnh sản xuất WO-MK-0007 đã được chuyển tới xưởng may đo.',
             timestamp: dDaysAgo(3),
             performedBy: 'Quản đốc xưởng DCor'
           }
@@ -1570,6 +1617,22 @@ export class CustomRequestService {
           surfaceFinish: true,
           cushionStitching: true,
           packagingProtection: true
+        },
+        customVariant: {
+          id: 'var-cr-108',
+          name: 'Sofa Băng Cong May Đo Bọc Da Mastrotto Florence',
+          sku: 'SF-FLORENCE-CUST-108',
+          price: 65000000,
+          stock: 1,
+          status: 'private',
+          isPrivate: true,
+          images: ['/assets/img/furniture-placeholder.svg'],
+          attributes: [
+            { label: 'Kích thước', value: '340 x 110 x 85 cm' },
+            { label: 'Chất liệu', value: 'Da Mastrotto Full Grain 1.6mm Ý' },
+            { label: 'Chân đế', value: 'Chân gỗ tự nhiên sơn bóng mờ' }
+          ],
+          createdAt: dDaysAgo(3)
         },
         warrantyCode: 'BH-DCOR-0008',
         deliveredAt: dDaysAgo(1),
