@@ -446,6 +446,14 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     const prod = this.product;
     if (!prod) return;
 
+    // Lọc bỏ các biến thể may đo riêng tư (isPrivate) để khách hàng khác không nhìn thấy trên Storefront
+    if (prod.variants && Array.isArray(prod.variants)) {
+      prod.variants = prod.variants.filter((v: any) => {
+        const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+        return !(opt?.isPrivate === true || opt?.isPrivate === 'true' || v?.isPrivate === true);
+      });
+    }
+
     const rawVariants: any[] = Array.isArray(prod.variants) ? prod.variants : [];
     const configAttrs: any[] = prod.configOptions?.attributes || [];
 

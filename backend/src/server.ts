@@ -370,10 +370,15 @@ app.get('/api/products', publicApiRateLimiter, async (req, res) => {
       // Gom biến thể theo productId bằng Map O(1)
       const varMap = new Map<string, any[]>();
       for (const v of variants) {
+        const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+        // Không hiển thị biến thể may đo độc quyền (Private) trên Store công cộng của khách hàng khác
+        if (opt?.isPrivate === true || opt?.isPrivate === 'true') {
+          continue;
+        }
+
         if (!varMap.has(v.productId)) {
           varMap.set(v.productId, []);
         }
-        const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
         const whThresholds = ((v as any).warehouseStocks || [])
           .map((ws: any) => ws.safetyThreshold)
           .filter((t: any) => typeof t === 'number' && Number.isFinite(t) && t >= 0);
@@ -572,7 +577,13 @@ app.get('/api/products/:id', publicApiRateLimiter, async (req, res) => {
 
       if (!product) return null;
 
-      const variantsWithDimensions = product.variants.map((v: any) => {
+      const variantsWithDimensions = (product.variants || [])
+        .filter((v: any) => {
+          const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
+          // Lọc bỏ biến thể may đo độc quyền (Private) để không hiển thị cho khách hàng khác trên Store
+          return !(opt?.isPrivate === true || opt?.isPrivate === 'true' || v?.isPrivate === true);
+        })
+        .map((v: any) => {
         const opt = typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : (v.optionValues || {});
         const attrs = opt.attributes || {};
         const parseNum = (val: any) => {
