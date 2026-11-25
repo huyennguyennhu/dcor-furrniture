@@ -27,3 +27,7 @@ calc*
 temp*
 *cache*.json
 *filtered*.json
+
+# Test automation & local check files
+check_web/
+Automation-test/
