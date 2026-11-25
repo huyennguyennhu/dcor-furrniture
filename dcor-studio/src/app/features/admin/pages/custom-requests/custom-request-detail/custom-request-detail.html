@@ -1546,26 +1546,15 @@
         </button>
 
         <!-- Bước 3: Đã gửi báo giá -> Đang đợi khách hàng duyệt báo giá & 3D -->
-        <ng-container *ngIf="request.status === 'QUOTED' && request.quotedAt">
-          <div class="waiting-client-sign-box">
-            <div class="wcs-icon-pulse">
-              <lucide-angular [img]="icons.Clock" size="16"></lucide-angular>
-            </div>
-            <div class="wcs-info">
-              <span class="wcs-title">Đang đợi khách hàng duyệt báo giá &amp; 3D</span>
-              <span class="wcs-desc">Hồ sơ báo giá {{ formatVND(request.quotedPrice) }} đã gửi tới khách. Đang chờ khách xem và phê duyệt trên web trước khi lập Hợp đồng.</span>
-            </div>
+        <div class="waiting-client-sign-box" *ngIf="request.status === 'QUOTED' && request.quotedAt">
+          <div class="wcs-icon-pulse">
+            <lucide-angular [img]="icons.Clock" size="16"></lucide-angular>
           </div>
-
-          <button 
-            type="button" 
-            class="btn-primary-action"
-            (click)="adminApproveQuoteOnBehalf()"
-            title="Bấm nếu khách hàng đã chốt đồng ý báo giá qua điện thoại / tư vấn trực tiếp">
-            <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
-            <span>Khách đã đồng ý báo giá ➔ Lập Hợp đồng</span>
-          </button>
-        </ng-container>
+          <div class="wcs-info">
+            <span class="wcs-title">Đang đợi khách hàng duyệt báo giá &amp; 3D</span>
+            <span class="wcs-desc">Hồ sơ báo giá {{ formatVND(request.quotedPrice) }} đã gửi tới khách. Đang chờ khách xem và phê duyệt trên web trước khi lập Hợp đồng.</span>
+          </div>
+        </div>
 
         <!-- Bước 4: Chờ khách hàng ký HĐ -> Trạng thái chờ khách ký hợp đồng điện tử -->
         <div class="waiting-client-sign-box" *ngIf="request.status === 'AWAITING_CONTRACT'">

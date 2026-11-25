@@ -208,22 +208,30 @@
                 </div>
 
                 <div class="actions-wrap">
-                  <!-- 0. Khi ở QUOTED (Đã nhận báo giá và bản vẽ): Nút Hủy yêu cầu và Xem báo giá -->
+                  <!-- 0. Khi ở QUOTED (Đã nhận báo giá và bản vẽ): Nút Hủy, Xem báo giá và Duyệt Báo giá -->
                   <button 
                     type="button" 
                     class="btn-outline btn-cancel-card" 
                     *ngIf="req.status === 'QUOTED'"
                     (click)="openCancelModal(req)">
                     <lucide-angular [img]="icons.XCircle" size="14"></lucide-angular>
-                    <span>Hủy yêu cầu</span>
+                    <span>Hủy</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-outline btn-view-quote-outline" 
+                    *ngIf="req.status === 'QUOTED'"
+                    (click)="openQuoteModal(req)">
+                    <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
+                    <span>Xem báo giá</span>
                   </button>
                   <button 
                     type="button" 
                     class="btn-primary-action" 
                     *ngIf="req.status === 'QUOTED'"
-                    (click)="openQuoteModal(req)">
-                    <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
-                    <span>Xem báo giá</span>
+                    (click)="approveQuoteAndProceed(req)">
+                    <lucide-angular [img]="icons.CheckCircle2" size="14"></lucide-angular>
+                    <span>Duyệt Báo giá</span>
                   </button>
 
                   <!-- Nút xem phiếu báo giá khi đã có dự toán (các bước sau QUOTED) -->
@@ -1315,7 +1323,7 @@
           </button>
           <button type="button" class="btn-primary-action btn-contract-highlight" (click)="approveQuoteAndProceed(selectedRequest)">
             <lucide-angular [img]="icons.CheckCircle2" size="15"></lucide-angular>
-            <span>Đồng ý báo giá ➔ Ký HĐ</span>
+            <span>Duyệt Báo giá</span>
           </button>
         </ng-container>
 
@@ -1778,7 +1786,7 @@
           </button>
           <button type="button" class="btn-primary-action" (click)="approveQuoteAndProceed(selectedRequest)">
             <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
-            <span>Đồng ý báo giá ➔ Ký hợp đồng</span>
+            <span>Duyệt Báo giá</span>
           </button>
         </div>
       </div>
