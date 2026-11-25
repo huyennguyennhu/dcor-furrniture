@@ -257,15 +257,11 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     if (!this.orderId) return;
     this.order = this.ordersService.getOrderById(this.orderId);
     if (this.order) {
-      const isNewlyInProcessing = this.order.status === 'PROCESSING' && 
-        !this.order.auditLogs?.some(l => l.action.includes('Hoàn tất đóng gói')) &&
-        (this.order.qcChecklist?.surfaceChecked && this.order.qcChecklist?.structureChecked && this.order.qcChecklist?.cushionLeatherChecked && this.order.qcChecklist?.protectiveWrapDone);
-      
       this.checklist = {
-        surfaceChecked: isNewlyInProcessing ? false : !!this.order.qcChecklist?.surfaceChecked,
-        structureChecked: isNewlyInProcessing ? false : !!this.order.qcChecklist?.structureChecked,
-        cushionLeatherChecked: isNewlyInProcessing ? false : !!this.order.qcChecklist?.cushionLeatherChecked,
-        protectiveWrapDone: isNewlyInProcessing ? false : !!this.order.qcChecklist?.protectiveWrapDone
+        surfaceChecked: !!this.order.qcChecklist?.surfaceChecked,
+        structureChecked: !!this.order.qcChecklist?.structureChecked,
+        cushionLeatherChecked: !!this.order.qcChecklist?.cushionLeatherChecked,
+        protectiveWrapDone: !!this.order.qcChecklist?.protectiveWrapDone
       };
       this.newTrackingCode = this.order.delivery.trackingCode || 'DCOR-SHIP-88992';
       this.viewingStepIndex = null;
