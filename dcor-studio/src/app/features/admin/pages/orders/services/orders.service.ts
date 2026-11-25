@@ -215,6 +215,94 @@ export class OrdersService {
         changed = true;
       }
 
+      // Seed 2: DCOR-ORD-CUST-0008 (từ yêu cầu custom CR-0008)
+      if (!current.some(o => o.orderNumber === 'DCOR-ORD-CUST-0008')) {
+        current.push({
+          id: 'DCOR-ORD-CUST-0008',
+          orderNumber: 'DCOR-ORD-CUST-0008',
+          createdAt: '10/11/2026 14:30',
+          status: 'COMPLETED',
+          paymentStatus: 'PAID',
+          paymentMethod: 'BANK_TRANSFER',
+          customerName: 'Hoàng Minh Châu',
+          phone: '0912345678',
+          email: 'minhchau.hoang@gmail.com',
+          address: 'Biệt thự B12 Khu Chateau, Phú Mỹ Hưng, Q.7',
+          province: 'Thành phố Hồ Chí Minh',
+          district: 'Quận 7',
+          ward: 'Phường Tân Phú',
+          showroom: 'Showroom Quận 7 (Flagship)',
+          items: [
+            {
+              id: 'it-cust-08',
+              name: 'Sofa Băng Cong May Đo Bọc Da Mastrotto Florence',
+              sku: 'SF-FLORENCE-CUST-108',
+              variant: '340x110x85 cm / Da Mastrotto Full Grain 1.6mm Ý / Chân gỗ tự nhiên',
+              imageUrl: '/assets/img/furniture-placeholder.svg',
+              price: 65000000,
+              quantity: 1,
+              lineTotal: 65000000,
+              stockAvailable: 1
+            }
+          ],
+          subTotal: 65000000,
+          shippingFee: 0,
+          discountAmount: 0,
+          vatRate: 0.1,
+          totalAmount: 65000000,
+          depositRequired: 19500000,
+          depositPaid: 65000000,
+          remainingAmount: 0,
+          isDepositRequired: false,
+          paymentHoldReason: 'NONE',
+          isHighValue: true,
+          isCustomDesign: true,
+          isGift: false,
+          warrantyCode: 'BH-DCOR-0008',
+          customerNote: 'Đơn hàng sản xuất may đo từ Yêu cầu thiết kế riêng #CR-0008',
+          internalNotes: 'Đơn hàng custom hoàn tất sản xuất & bàn giao lắp đặt cho khách hàng Hoàng Minh Châu.',
+          delivery: {
+            provider: 'Xe tải DCOR Express',
+            trackingCode: 'DCOR-SHIP-CUST0008',
+            driverName: 'Nguyễn Văn Tài',
+            driverPhone: '0988112233',
+            vehiclePlate: '51D-998.24',
+            estimatedDate: 'Đã hoàn tất',
+            failedAttempts: 0,
+            trackingHistory: [
+              {
+                time: '10/11/2026 14:30',
+                status: 'Đã tạo đơn hàng may đo',
+                description: 'Kế toán xác nhận cọc 30% từ Yêu cầu Custom #CR-0008',
+                location: 'Xưởng May Đo DCOR Studio'
+              },
+              {
+                time: '24/11/2026 16:00',
+                status: 'Giao hàng và lắp đặt thành công',
+                description: 'Khách hàng ký biên bản bàn giao, thu 70% còn lại',
+                location: 'Khu Chateau, Phú Mỹ Hưng, Q.7'
+              }
+            ]
+          },
+          qcChecklist: {
+            surfaceChecked: true,
+            structureChecked: true,
+            cushionLeatherChecked: true,
+            protectiveWrapDone: true
+          },
+          auditLogs: [
+            {
+              id: 'log-cust-08',
+              timestamp: '10/11/2026 14:30',
+              actor: 'Hệ thống DCOR',
+              action: 'Kích hoạt đơn hàng may đo',
+              detail: 'Tạo đơn #DCOR-ORD-CUST-0008 từ Yêu cầu Custom #CR-0008'
+            }
+          ]
+        });
+        changed = true;
+      }
+
       if (changed) {
         localStorage.setItem(REPLACEMENT_ORDERS_KEY, JSON.stringify(current));
       }

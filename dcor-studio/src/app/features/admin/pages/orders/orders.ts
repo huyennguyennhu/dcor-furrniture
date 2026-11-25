@@ -8,7 +8,8 @@ import {
   Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck, 
   Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, 
   ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-  Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink
+  Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink,
+  Layers
 } from 'lucide-angular';
 import { IconComponent } from '../../../../shared/components/icon/icon';
 import { OrdersService } from './services/orders.service';
@@ -53,7 +54,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     Search, Filter, RefreshCw, Eye, CheckCircle2, XCircle, Clock, Truck,
     Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft,
     ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
-    Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink
+    Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink,
+    Layers
   };
 
   orders: OrderV2[] = [];
@@ -63,6 +65,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
   activeTab: KpiTab = 'ALL';
   searchQuery = '';
   selectedShowroom = 'ALL';
+  selectedOrderType: 'ALL' | 'STANDARD' | 'CUSTOM' = 'ALL';
   selectedPayment = 'ALL';
   selectedStatus = 'ALL';
   sortBy: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc' = 'date-desc';
@@ -71,8 +74,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   // Dropdowns UI State
   showShowroomDropdown = false;
+  showOrderTypeDropdown = false;
   showPaymentDropdown = false;
   showSortDropdown = false;
+
+  readonly ORDER_TYPES: { id: 'ALL' | 'STANDARD' | 'CUSTOM'; name: string }[] = [
+    { id: 'ALL', name: 'Tất cả loại đơn' },
+    { id: 'STANDARD', name: 'Đơn thường' },
+    { id: 'CUSTOM', name: 'Đơn Custom' }
+  ];
 
   readonly SORT_OPTIONS: { value: 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc'; label: string }[] = [
     { value: 'date-desc', label: 'Mới nhất trước' },
@@ -86,6 +96,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return found ? found.name : 'Tất cả chi nhánh';
   }
 
+  get selectedOrderTypeLabel(): string {
+    const found = this.ORDER_TYPES.find(t => t.id === this.selectedOrderType);
+    return found ? found.name : 'Tất cả loại đơn';
+  }
+
   get selectedPaymentLabel(): string {
     const found = this.PAYMENT_STATUSES.find(p => p.id === this.selectedPayment);
     return found ? found.name : 'Tất cả thanh toán';
@@ -96,19 +111,27 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return found ? found.label : 'Mới nhất trước';
   }
 
-  toggleDropdown(type: 'showroom' | 'payment' | 'sort', event: MouseEvent) {
+  toggleDropdown(type: 'showroom' | 'payment' | 'orderType' | 'sort', event: MouseEvent) {
     event.stopPropagation();
     if (type === 'showroom') {
       this.showShowroomDropdown = !this.showShowroomDropdown;
+      this.showOrderTypeDropdown = false;
+      this.showPaymentDropdown = false;
+      this.showSortDropdown = false;
+    } else if (type === 'orderType') {
+      this.showOrderTypeDropdown = !this.showOrderTypeDropdown;
+      this.showShowroomDropdown = false;
       this.showPaymentDropdown = false;
       this.showSortDropdown = false;
     } else if (type === 'payment') {
       this.showPaymentDropdown = !this.showPaymentDropdown;
       this.showShowroomDropdown = false;
+      this.showOrderTypeDropdown = false;
       this.showSortDropdown = false;
     } else if (type === 'sort') {
       this.showSortDropdown = !this.showSortDropdown;
       this.showShowroomDropdown = false;
+      this.showOrderTypeDropdown = false;
       this.showPaymentDropdown = false;
     }
   }
@@ -117,6 +140,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.selectedShowroom = name;
     this.currentPage = 1;
     this.showShowroomDropdown = false;
+  }
+
+  setOrderType(id: 'ALL' | 'STANDARD' | 'CUSTOM') {
+    this.selectedOrderType = id;
+    this.currentPage = 1;
+    this.showOrderTypeDropdown = false;
   }
 
   setPayment(id: string) {
@@ -153,6 +182,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
   @HostListener('document:click')
   onDocumentClick() {
     this.showShowroomDropdown = false;
+    this.showOrderTypeDropdown = false;
     this.showPaymentDropdown = false;
     this.showSortDropdown = false;
   }
@@ -219,6 +249,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
       }
       if (params['showroom']) {
         this.selectedShowroom = params['showroom'];
+      }
+      if (params['orderType'] && ['ALL', 'STANDARD', 'CUSTOM'].includes(params['orderType'])) {
+        this.selectedOrderType = params['orderType'];
       }
       if (params['payment']) {
         this.selectedPayment = params['payment'];
@@ -299,6 +332,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
     // Filter by Specific Status Dropdown
     if (this.selectedStatus !== 'ALL') {
       list = list.filter(o => o.status === this.selectedStatus);
+    }
+
+    // Filter by Order Type
+    if (this.selectedOrderType !== 'ALL') {
+      if (this.selectedOrderType === 'CUSTOM') {
+        list = list.filter(o => this.isCustomOrder(o));
+      } else if (this.selectedOrderType === 'STANDARD') {
+        list = list.filter(o => !this.isCustomOrder(o));
+      }
     }
 
     // Filter by Showroom
@@ -404,6 +446,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.activeTab !== 'ALL' ||
       this.searchQuery.trim() ||
       this.selectedShowroom !== 'ALL' ||
+      this.selectedOrderType !== 'ALL' ||
       this.selectedPayment !== 'ALL' ||
       this.selectedStatus !== 'ALL' ||
       this.sortBy !== 'date-desc'
@@ -414,10 +457,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.activeTab = 'ALL';
     this.searchQuery = '';
     this.selectedShowroom = 'ALL';
+    this.selectedOrderType = 'ALL';
     this.selectedPayment = 'ALL';
     this.selectedStatus = 'ALL';
     this.sortBy = 'date-desc';
     this.currentPage = 1;
+  }
+
+  isCustomOrder(order: OrderV2): boolean {
+    return !!(order.isCustomDesign || order.orderNumber?.includes('CUST') || (order as any).isCustom);
   }
 
   // --- ACTIONS ---
