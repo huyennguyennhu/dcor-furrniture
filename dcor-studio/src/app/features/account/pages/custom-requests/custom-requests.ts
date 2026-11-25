@@ -1556,7 +1556,7 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   signContract(): void {
     if (!this.selectedRequest) return;
     if (!this.agreeContractTerms) {
-      alert('Quý khách vui lòng đánh dấu xác nhận đồng ý với các điều khoản hợp đồng trước khi ký.');
+      alert('Quý khách vui lòng tích chọn ô "Tôi đã đọc kỹ và đồng ý với tất cả điều khoản hợp đồng" trước khi xác nhận ký.');
       return;
     }
     this.isSigningContract = true;
@@ -1568,11 +1568,12 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
       );
       this.isSigningContract = false;
       this.closeContractModal();
-      this.showToast('Ký hợp đồng thành công! Hợp đồng đã có hiệu lực, quý khách có thể tiến hành đặt cọc 30% để xưởng sản xuất.', 'success', 5000);
+      this.showToast('Ký hợp đồng thành công! Đã kích hoạt bước Đặt cọc 30%.', 'success', 5000);
 
-      const updated = this.requests.find(r => r.id === this.selectedRequest?.id);
+      const updated = this.requests.find(r => r.id === this.selectedRequest?.id) || this.selectedRequest;
       if (updated) {
         this.selectedRequest = updated;
+        this.openPaymentModal(updated);
       }
       this.cdr.detectChanges();
     } catch (err) {

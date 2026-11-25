@@ -1978,29 +1978,46 @@
       </div>
 
       <!-- Footer Modal -->
-      <div class="modal-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 16px 24px; background: #fff; border-top: 1px solid #E5E7EB;">
-        <button type="button" class="btn-cancel" (click)="closeContractModal()">
-          <span>Đóng</span>
-        </button>
-        <button 
-          type="button" 
-          class="btn-confirm-primary" 
-          style="background: #16A34A; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
-          *ngIf="selectedRequest.status === 'AWAITING_CONTRACT'"
-          [disabled]="!agreeContractTerms || isSigningContract"
-          (click)="signContract()">
-          <lucide-angular [img]="icons.FileCheck" size="16"></lucide-angular>
-          <span>{{ isSigningContract ? 'Đang xác thực chữ ký...' : 'Xác Nhận Ký Hợp Đồng Điện Tử' }}</span>
-        </button>
-        <button 
-          type="button" 
-          class="btn-confirm-primary" 
-          style="background: #5C402A; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
-          *ngIf="['CONTRACT_SIGNED', 'AWAITING_PAYMENT'].includes(selectedRequest.status)"
-          (click)="closeContractModal(); openPaymentModal(selectedRequest)">
-          <lucide-angular [img]="icons.DollarSign" size="16"></lucide-angular>
-          <span>Tiến Hành Đặt Cọc {{ getDepositPercent(selectedRequest) }}% ➔</span>
-        </button>
+      <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 24px; background: #fff; border-top: 1px solid #E5E7EB; flex-wrap: wrap;">
+        <!-- Checkbox xác nhận điều khoản hợp đồng ngay trong footer để khách hàng thấy ngay lập tức -->
+        <div *ngIf="selectedRequest.status === 'AWAITING_CONTRACT'" style="display: flex; align-items: center; gap: 8px;">
+          <input 
+            type="checkbox" 
+            id="agreeTermsFooter"
+            [(ngModel)]="agreeContractTerms" 
+            style="width: 18px; height: 18px; accent-color: #16A34A; cursor: pointer;" />
+          <label for="agreeTermsFooter" style="font-size: 13px; color: #1F2937; cursor: pointer; user-select: none;">
+            Tôi đã đọc kỹ và đồng ý với tất cả điều khoản hợp đồng
+          </label>
+        </div>
+        <div *ngIf="selectedRequest.status !== 'AWAITING_CONTRACT'"></div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" class="btn-cancel" (click)="closeContractModal()">
+            <span>Đóng</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn-confirm-primary" 
+            [style.background]="agreeContractTerms ? '#16A34A' : '#9CA3AF'"
+            style="color: #fff; border: none; padding: 9px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;"
+            *ngIf="selectedRequest.status === 'AWAITING_CONTRACT'"
+            [disabled]="isSigningContract"
+            (click)="signContract()"
+            [title]="agreeContractTerms ? 'Bấm để xác nhận ký kết điện tử' : 'Vui lòng tích chọn đồng ý điều khoản trước khi ký'">
+            <lucide-angular [img]="icons.FileCheck" size="16"></lucide-angular>
+            <span>{{ isSigningContract ? 'Đang xác thực chữ ký...' : 'Xác Nhận Ký Hợp Đồng Điện Tử' }}</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn-confirm-primary" 
+            style="background: #5C402A; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+            *ngIf="['CONTRACT_SIGNED', 'AWAITING_PAYMENT'].includes(selectedRequest.status)"
+            (click)="closeContractModal(); openPaymentModal(selectedRequest)">
+            <lucide-angular [img]="icons.DollarSign" size="16"></lucide-angular>
+            <span>Tiến Hành Đặt Cọc {{ getDepositPercent(selectedRequest) }}% ➔</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
