@@ -474,6 +474,24 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Kiểm tra xem đơn hàng có phải là đơn may đo / custom hay không
+   */
+  isCustomOrder(order: OrderSummary | OrderDetail | null | undefined): boolean {
+    if (!order) return false;
+    if (order.isCustomDesign) return true;
+    const num = (order.orderNumber || '').toUpperCase();
+    if (num.includes('CUST') || num.startsWith('CR-')) return true;
+    const notes = ((order as any).notes || '').toLowerCase();
+    if (notes.includes('may đo') || notes.includes('custom') || notes.includes('tùy chỉnh')) return true;
+    const items = (order as any).allItems || ((order as any).firstItem ? [(order as any).firstItem] : []);
+    return items.some((it: any) => 
+      it.isCustomDesign || 
+      (it.sku && it.sku.toUpperCase().includes('CUST')) ||
+      (it.selectedOptions && Object.keys(it.selectedOptions).length > 0)
+    );
+  }
+
+  /**
    * Lấy nhãn trạng thái hiển thị chuẩn UX/UI:
    * - Đơn chuyển khoản: "Chờ thanh toán"
    * - Đơn chờ đặt cọc: "Chờ đặt cọc"

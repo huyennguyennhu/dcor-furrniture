@@ -74,6 +74,7 @@
                   <span class="topbar-status-text">
                     {{ getOrderDisplayStatus(order) }}
                   </span>
+                  <span *ngIf="isCustomOrder(order)" class="topbar-custom-tag">Custom</span>
                   <span *ngIf="isAwaitingPaymentOrDeposit(order)" class="topbar-payment-prompt">
                     - Vui lòng chuyển khoản thanh toán để DCor xác nhận đơn và điều phối giao hàng.
                   </span>
@@ -196,6 +197,7 @@
             <span class="status-dot"></span>
             {{ getOrderDisplayStatus(selectedOrder) }}
           </span>
+          <span *ngIf="isCustomOrder(selectedOrder)" class="topbar-custom-tag" style="margin-left: 6px;">Custom</span>
         </div>
         <p class="modal-subtitle">
           Thời gian đặt: <strong>{{ selectedOrder?.createdAt | date:'HH:mm - dd/MM/yyyy' }}</strong>

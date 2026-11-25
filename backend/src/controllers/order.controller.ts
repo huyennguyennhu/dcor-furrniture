@@ -730,6 +730,7 @@ export const orderController = {
             return o.paymentStatus;
           })(),
           isHighValue,
+          isCustomDesign: !!(o.isCustomDesign || (o.orderNumber && (o.orderNumber.includes('CUST') || o.orderNumber.startsWith('CR-'))) || (o.notes && (o.notes.toLowerCase().includes('may đo') || o.notes.toLowerCase().includes('custom')))),
           depositAmount: isHighValue ? Math.round(Number(o.totalAmount) * 0.3) : 0,
           items: o.items.length || 1,
           firstItem: firstItem ? {
@@ -844,6 +845,7 @@ export const orderController = {
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
         isHighValue,
+        isCustomDesign: !!(order.isCustomDesign || (order.orderNumber && (order.orderNumber.includes('CUST') || order.orderNumber.startsWith('CR-'))) || (order.notes && (order.notes.toLowerCase().includes('may đo') || order.notes.toLowerCase().includes('custom')))),
         depositAmount: isHighValue ? Math.round(Number(order.totalAmount) * 0.3) : 0,
         paidAmount: order.paymentStatus === 'PAID' 
           ? Number(order.totalAmount) 

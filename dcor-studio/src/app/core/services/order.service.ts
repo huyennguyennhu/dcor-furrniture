@@ -50,6 +50,7 @@ export interface OrderDetail {
   paymentMethod: string;
   paymentStatus: string;
   isHighValue: boolean;
+  isCustomDesign?: boolean;
   depositAmount: number;
   paidAmount?: number;
   remainingAmount?: number;
@@ -102,6 +103,7 @@ export interface OrderSummary {
   paymentMethod: string;
   paymentStatus: string;
   isHighValue: boolean;
+  isCustomDesign?: boolean;
   depositAmount: number;
   items: number;
   firstItem?: {
