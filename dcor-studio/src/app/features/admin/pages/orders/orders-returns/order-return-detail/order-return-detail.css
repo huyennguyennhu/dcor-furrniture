@@ -1253,37 +1253,43 @@
 .restock-dropdown-wrapper .filter-trigger-btn {
   width: 100%;
   height: 38px;
-  background: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--border-color, #E5E7EB) !important;
   border-radius: 8px;
-  padding: 0 4px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
 .qc-restock-trigger:hover:not(:disabled),
 .restock-dropdown-wrapper .filter-trigger-btn:hover:not(:disabled) {
-  border: none !important;
-  background: transparent !important;
-  background-color: transparent !important;
+  border-color: var(--accent, #765337) !important;
+  background: #FAFAF9 !important;
+  background-color: #FAFAF9 !important;
+}
+
+.restock-dropdown-wrapper.is-open .qc-restock-trigger,
+.restock-dropdown-wrapper.is-open .filter-trigger-btn {
+  border-color: var(--accent, #765337) !important;
+  box-shadow: 0 0 0 2px rgba(118, 83, 55, 0.12) !important;
 }
 
 .qc-restock-trigger:disabled,
 .qc-restock-trigger.disabled-trigger,
 .restock-dropdown-wrapper .filter-trigger-btn:disabled,
 .restock-dropdown-wrapper .filter-trigger-btn.disabled-trigger {
-  background-color: transparent !important;
-  background: transparent !important;
-  border: none !important;
-  border-color: transparent !important;
+  background-color: #F9FAFB !important;
+  background: #F9FAFB !important;
+  border: 1px solid #E5E7EB !important;
+  border-color: #E5E7EB !important;
   box-shadow: none !important;
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .qc-placeholder-text {
