@@ -826,7 +826,7 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
     }
   }
 
-  private processFiles(files: FileList) {
+  private async processFiles(files: FileList) {
     const maxFiles = 8;
     const remainingSlots = maxFiles - this.uploadedFiles.length;
     if (remainingSlots <= 0) {
@@ -842,20 +842,81 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
         continue;
       }
 
-      const reader = new FileReader();
-      reader.onload = (event: any) => {
-        const item: UploadedFileItem = {
-          id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-          name: file.name,
-          size: this.formatFileSize(file.size),
-          type: file.type,
-          previewUrl: event.target.result
-        };
-        this.uploadedFiles.push(item);
-        this.cdr.detectChanges();
+      const isImg = file.type.startsWith('image/');
+      const item: UploadedFileItem = {
+        id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        name: isImg ? `${file.name} (Đang load...)` : file.name,
+        size: this.formatFileSize(file.size),
+        type: file.type,
+        previewUrl: isImg ? URL.createObjectURL(file) : ''
       };
-      reader.readAsDataURL(file);
+      this.uploadedFiles.push(item);
+      this.cdr.detectChanges();
+
+      if (isImg) {
+        try {
+          const compressedBlob = await this.compressImageToBlob(file, 1280, 0.82);
+          const formData = new FormData();
+          formData.append('file', compressedBlob, file.name.replace(/\.[^.]+$/, '.jpg'));
+          const res = await fetch(`${environment.apiUrl}/upload/image`, {
+            method: 'POST',
+            body: formData
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.url) {
+              item.previewUrl = data.url;
+              item.name = file.name;
+              item.size = this.formatFileSize(compressedBlob.size);
+            }
+          } else {
+            item.name = file.name;
+            item.previewUrl = '';
+          }
+        } catch (err) {
+          console.warn('Lỗi nén/upload ảnh custom modal:', err);
+          item.name = file.name;
+          item.previewUrl = '';
+        } finally {
+          this.cdr.detectChanges();
+        }
+      }
     }
+  }
+
+  private compressImageToBlob(file: File, maxDim = 1280, quality = 0.82): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.onerror = (err) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      };
+      img.src = objectUrl;
+    });
   }
 
   removeFile(id: string, e: Event) {
@@ -1001,13 +1062,15 @@ export class CustomRequestModalComponent implements OnInit, OnChanges {
           ? this.estimatedBudget.trim()
           : (this.estimatedBudget.trim() || this.selectedBudgetRange)
       },
-      attachments: this.uploadedFiles.map(f => ({
-        id: f.id,
-        name: f.name,
-        size: f.size,
-        type: f.type,
-        previewUrl: f.previewUrl
-      })),
+      attachments: this.uploadedFiles
+        .filter(f => f.previewUrl && !f.previewUrl.startsWith('blob:') && !f.previewUrl.startsWith('data:'))
+        .map(f => ({
+          id: f.id,
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          previewUrl: f.previewUrl
+        })),
       status: 'draft' // Chờ duyệt yêu cầu bóc tách 3D
     };
 

@@ -295,7 +295,7 @@
             </div>
           </div>
         </div>
-        <button type="button" class="btn-drawer-close" (click)="closeCreateModal()" aria-label="Đóng">
+        <button type="button" class="btn-drawer-close" (click)="requestCloseCreateModal()" aria-label="Đóng">
           <lucide-angular [img]="icons.X" size="20"></lucide-angular>
         </button>
       </div>
@@ -810,8 +810,11 @@
             </div>
           </div>
 
-          <div class="success-actions-row">
-            <button type="button" class="btn-close-success" (click)="closeCreateModal()">
+          <div class="success-actions-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+            <button type="button" class="btn-back-edit" (click)="formSubmittedSuccess = false" style="padding: 10px 18px; border-radius: 8px; border: 1px solid #765337; background: #fff; color: #765337; font-weight: 600; cursor: pointer;">
+              <span>Quay lại chỉnh sửa</span>
+            </button>
+            <button type="button" class="btn-close-success" (click)="confirmAndFinalizeCreateCustom()">
               <span>Hoàn tất &amp; Đóng</span>
             </button>
           </div>
@@ -822,12 +825,33 @@
       <div class="drawer-footer-actions" *ngIf="!formSubmittedSuccess">
         <div class="footer-buttons-group">
           <button type="button" class="btn-submit-custom" [disabled]="isCreateCustomSubmitDisabled" (click)="submitCustomRequest()">
-            <lucide-angular [img]="icons.Send" size="16"></lucide-angular>
-            <span>Gửi Yêu Cầu Custom</span>
+            <lucide-angular [img]="icons.Send" size="16" *ngIf="!isUploadingImages"></lucide-angular>
+            <span *ngIf="isUploadingImages">Đang load...</span>
+            <span *ngIf="!isUploadingImages">Gửi Yêu Cầu Custom</span>
           </button>
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- POPUP XÁC NHẬN HỦY TIẾN TRÌNH TẠO / CHỈNH SỬA YÊU CẦU CUSTOM -->
+  <div class="modal-backdrop" *ngIf="isConfirmCancelCreateOpen" style="z-index: 10050;" (click)="isConfirmCancelCreateOpen = false">
+    <div class="modal-card" (click)="$event.stopPropagation()" style="max-width: 440px; padding: 24px; border-radius: 14px; background: #fff; text-align: center;">
+      <h3 style="margin: 0 0 10px; font-size: 18px; font-weight: 700; color: #111827;">Hủy tiến trình tạo yêu cầu?</h3>
+      <p style="margin: 0 0 20px; font-size: 14px; color: #4B5563; line-height: 1.5;">
+        Thông tin bạn vừa nhập chưa được lưu. Nếu hủy lúc này, yêu cầu Custom mới sẽ <strong>không được tạo</strong>.
+      </p>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <button type="button" (click)="isConfirmCancelCreateOpen = false"
+                style="padding: 9px 18px; border-radius: 8px; border: 1px solid #D1D5DB; background: #fff; color: #374151; font-weight: 600; cursor: pointer;">
+          Tiếp tục chỉnh sửa
+        </button>
+        <button type="button" (click)="confirmCancelCreateProcess()"
+                style="padding: 9px 18px; border-radius: 8px; border: none; background: #DC2626; color: #fff; font-weight: 600; cursor: pointer;">
+          Xác nhận Hủy
+        </button>
+      </div>
     </div>
   </div>
 
@@ -931,7 +955,7 @@
         <!-- PHÂN HỆ 1: TRẠNG THÁI "ĐÃ GỬI YÊU CẦU" (PENDING_REVIEW)                   -->
         <!-- HIỂN THỊ PHIẾU ĐƠN CUSTOM THEO ĐÚNG DỮ LIỆU ĐĂNG KÝ BAN ĐẦU               -->
         <!-- ========================================================================= -->
-        <ng-container *ngIf="selectedRequest.status === 'PENDING_REVIEW'; else defaultWorkflowDrawerBody">
+        <ng-container *ngIf="activeCustomViewingStep === 0; else defaultWorkflowDrawerBody">
           <!-- 2. Thông tin khách hàng (Đồng bộ với các trạng thái khác) -->
           <section class="drawer-section">
             <div class="info-block">
@@ -958,8 +982,8 @@
 
               <!-- Lưới ô thuộc tính: Kích thước + các thuộc tính tùy biến động -->
               <div class="custom-specs-grid">
-                <!-- 1. Kích thước -->
-                <div class="spec-cell">
+                <!-- 1. Kích thước (chỉ hiện nếu sản phẩm có thông số kích thước) -->
+                <div class="spec-cell" *ngIf="(selectedRequest.length && selectedRequest.width && selectedRequest.height) || selectedRequest.requestedDimensions || selectedRequest.originalDimensions">
                   <span class="spec-cell-label">Kích thước (D x R x C)</span>
                   <span class="spec-cell-value">
                     <span *ngIf="selectedRequest.length && selectedRequest.width && selectedRequest.height">
@@ -981,8 +1005,7 @@
                 <ng-container *ngIf="selectedRequest.customizedAttributes && selectedRequest.customizedAttributes.length > 0">
                   <div class="spec-cell" *ngFor="let attr of selectedRequest.customizedAttributes">
                     <span class="spec-cell-label">{{ attr.label }}</span>
-                    <span class="spec-cell-value" [class.color-spec]="attr.hexColor">
-                      <span class="swatch-circle" *ngIf="attr.hexColor" [style.background-color]="attr.hexColor"></span>
+                    <span class="spec-cell-value">
                       <span class="truncate-val" [title]="attr.selectedOptionName">{{ attr.selectedOptionName }}</span>
                     </span>
                     <span class="spec-cell-note" *ngIf="attr.customNote" [title]="attr.customNote">
@@ -991,16 +1014,12 @@
                   </div>
                 </ng-container>
 
-                <!-- Trường hợp 2: Khi không có customizedAttributes -> hiển thị theo các trường tiêu chuẩn -->
+                <!-- Trường hợp 2: Khi không có customizedAttributes -> chỉ hiển thị các trường thực sự có dữ liệu của sản phẩm -->
                 <ng-container *ngIf="!selectedRequest.customizedAttributes || selectedRequest.customizedAttributes.length === 0">
                   <!-- 2. Màu sắc -->
-                  <div class="spec-cell">
+                  <div class="spec-cell" *ngIf="selectedRequest.colorName || selectedRequest.colorHex || selectedRequest.colorImage">
                     <span class="spec-cell-label">Màu sắc chủ đạo</span>
-                    <span class="spec-cell-value color-spec">
-                      <span class="swatch-circle" 
-                            [style.background-color]="selectedRequest.colorHex || 'transparent'"
-                            [style.background-image]="selectedRequest.colorImage ? 'url(' + selectedRequest.colorImage + ')' : 'none'"
-                            style="background-size: cover; background-position: center;"></span>
+                    <span class="spec-cell-value">
                       <span>{{ selectedRequest.colorName || '—' }}</span>
                     </span>
                     <a *ngIf="selectedRequest.colorImage" [href]="selectedRequest.colorImage" target="_blank" class="color-sample-link">
@@ -1009,18 +1028,18 @@
                   </div>
 
                   <!-- 3. Chất liệu -->
-                  <div class="spec-cell">
+                  <div class="spec-cell" *ngIf="selectedRequest.material && selectedRequest.material.trim() !== '' && selectedRequest.material !== '—'">
                     <span class="spec-cell-label">Chất liệu bề mặt</span>
                     <span class="spec-cell-value truncate-val" [title]="selectedRequest.material || ''">
-                      {{ selectedRequest.material || '—' }}
+                      {{ selectedRequest.material }}
                     </span>
                   </div>
 
                   <!-- 4. Chân đế -->
-                  <div class="spec-cell">
+                  <div class="spec-cell" *ngIf="selectedRequest.legMaterial && selectedRequest.legMaterial.trim() !== '' && selectedRequest.legMaterial !== '—'">
                     <span class="spec-cell-label">Chân đế / Khung đỡ</span>
                     <span class="spec-cell-value truncate-val" [title]="selectedRequest.legMaterial || ''">
-                      {{ selectedRequest.legMaterial || '—' }}
+                      {{ selectedRequest.legMaterial }}
                     </span>
                   </div>
                 </ng-container>
@@ -1029,15 +1048,15 @@
           </section>
 
           <!-- 4. Kế hoạch & Dự kiến từ khách hàng (Nếu có thông tin) -->
-          <section class="drawer-section" *ngIf="selectedRequest.budgetRange || selectedRequest.estimatedBudget || selectedRequest.preferredSurveyTime || selectedRequest.expectedDeliveryDate || selectedRequest.roomSpace">
+          <section class="drawer-section" *ngIf="getExtractedBudgetRange(selectedRequest) || selectedRequest.preferredSurveyTime || selectedRequest.expectedDeliveryDate || selectedRequest.roomSpace">
             <h3 class="section-heading">Kế hoạch &amp; Dự kiến từ khách hàng</h3>
             <div class="drawer-info-grid">
-              <div class="info-pair" *ngIf="selectedRequest.budgetRange || selectedRequest.estimatedBudget">
+              <div class="info-pair" *ngIf="getExtractedBudgetRange(selectedRequest)">
                 <span class="pair-label">
                   <lucide-angular [img]="icons.Coins" size="13" color="#765337"></lucide-angular>
                   <span>Ngân sách dự kiến</span>
                 </span>
-                <strong class="pair-value text-accent">{{ selectedRequest.budgetRange || (selectedRequest.estimatedBudget ? (selectedRequest.estimatedBudget + ' đ') : '—') }}</strong>
+                <strong class="pair-value text-accent">{{ getExtractedBudgetRange(selectedRequest) }}</strong>
               </div>
               <div class="info-pair" *ngIf="selectedRequest.preferredSurveyTime">
                 <span class="pair-label">
@@ -1064,10 +1083,10 @@
           </section>
 
           <!-- 5. Ghi chú & Nhu cầu đặc biệt của khách hàng -->
-          <section class="drawer-section" *ngIf="selectedRequest.notes || selectedRequest.requirementDetails">
+          <section class="drawer-section" *ngIf="getCleanedCustomerNotes(selectedRequest)">
             <h3 class="section-heading">Ghi chú &amp; Nhu cầu riêng của khách hàng</h3>
             <div class="customer-notes-quote-box">
-              <p class="quote-text">"{{ selectedRequest.notes || selectedRequest.requirementDetails }}"</p>
+              <p class="quote-text">"{{ getCleanedCustomerNotes(selectedRequest) }}"</p>
             </div>
           </section>
 
@@ -1179,8 +1198,8 @@
 
               <!-- 4 ô thuộc tính sắp xếp lưới 2x2 đẹp mắt, màu nhẹ nhàng chuẩn DCor -->
               <div class="custom-specs-grid">
-                <!-- 1. Kích thước -->
-                <div class="spec-cell">
+                <!-- 1. Kích thước (chỉ hiện nếu sản phẩm có thông số kích thước) -->
+                <div class="spec-cell" *ngIf="(selectedRequest.length && selectedRequest.width && selectedRequest.height) || selectedRequest.requestedDimensions || selectedRequest.originalDimensions">
                   <span class="spec-cell-label">Kích thước (D x R x C)</span>
                   <span class="spec-cell-value">
                     <span *ngIf="selectedRequest.length && selectedRequest.width && selectedRequest.height">

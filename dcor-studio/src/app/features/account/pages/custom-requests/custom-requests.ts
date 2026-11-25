@@ -347,8 +347,18 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   formLegNote = '';
 
   // Tệp tư liệu & Mẫu thiết kế tham khảo
-  uploadedFiles: { id: string; name: string; size: string; type: string; previewUrl: string }[] = [];
+  uploadedFiles: {
+    id: string;
+    name: string;
+    size: string;
+    type: string;
+    previewUrl: string;
+    isUploading?: boolean;
+    uploadError?: string;
+  }[] = [];
   isDraggingFile = false;
+  isUploadingImages = false;
+  pendingUploadCount = 0;
 
   // Modal Hủy Yêu Cầu Đàng Hoàng
   isCancelModalOpen = false;
@@ -517,6 +527,7 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   }
 
   get isCreateCustomSubmitDisabled(): boolean {
+    if (this.isUploadingImages) return true;
     if (!this.selectedProduct) return true;
     if (!this.formCustomerName || !this.formCustomerName.trim()) return true;
     if (!this.formCustomerPhone || !this.formCustomerPhone.trim()) return true;
@@ -1023,7 +1034,7 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
     }
   }
 
-  handleFiles(files: File[]): void {
+  async handleFiles(files: File[]): Promise<void> {
     for (const file of files) {
       if (this.uploadedFiles.length >= 8) break;
       const sizeStr = file.size > 1024 * 1024 
@@ -1031,20 +1042,109 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
         : `${Math.round(file.size / 1024)} KB`;
       const id = 'f_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
       const isImg = file.type.startsWith('image/');
-      let previewUrl = '';
+      let tempPreviewUrl = '';
       if (isImg && typeof window !== 'undefined' && window.URL) {
         try {
-          previewUrl = URL.createObjectURL(file);
+          tempPreviewUrl = URL.createObjectURL(file);
         } catch (_) {}
       }
-      this.uploadedFiles.push({
+
+      const fileItem = {
         id,
-        name: file.name,
+        name: isImg ? `${file.name} (Đang load...)` : file.name,
         size: sizeStr,
         type: file.type,
-        previewUrl
-      });
+        previewUrl: tempPreviewUrl,
+        isUploading: isImg,
+        uploadError: undefined as string | undefined
+      };
+      this.uploadedFiles.push(fileItem);
+      if (isImg) {
+        this.pendingUploadCount++;
+        this.isUploadingImages = true;
+      }
+      this.cdr.markForCheck();
+
+      if (isImg) {
+        try {
+          const compressedBlob = await this.compressImageToBlob(file, 1280, 0.82);
+          const formData = new FormData();
+          formData.append('file', compressedBlob, file.name.replace(/\.[^.]+$/, '.jpg'));
+          const res = await fetch(`${environment.apiUrl}/upload/image`, {
+            method: 'POST',
+            body: formData
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.url) {
+              fileItem.previewUrl = data.url;
+              fileItem.name = file.name;
+              fileItem.size = `${Math.round(compressedBlob.size / 1024)} KB`;
+              fileItem.isUploading = false;
+            } else {
+              throw new Error('Máy chủ không trả về URL ảnh');
+            }
+          } else {
+            const errRes = await res.json().catch(() => null);
+            throw new Error(errRes?.message || `Lỗi tải ảnh (${res.status})`);
+          }
+        } catch (err: any) {
+          console.warn('Lỗi nén/upload ảnh custom:', err);
+          fileItem.name = file.name;
+          fileItem.isUploading = false;
+          fileItem.uploadError = err?.message || 'Lỗi tải ảnh lên Cloudinary';
+          // Quan trọng: xóa bỏ previewUrl blob tạm thời để không bao giờ bị lưu blob: vào database
+          fileItem.previewUrl = '';
+          alert(`Không thể tải ảnh "${file.name}" lên Cloudinary: ${err?.message || 'Lỗi kết nối'}. Vui lòng thử lại.`);
+        } finally {
+          this.pendingUploadCount = Math.max(0, this.pendingUploadCount - 1);
+          this.isUploadingImages = this.pendingUploadCount > 0;
+          this.cdr.markForCheck();
+        }
+      }
     }
+  }
+
+  private compressImageToBlob(file: File, maxDim = 1280, initialQuality = 0.82): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else resolve(file);
+          },
+          'image/jpeg',
+          initialQuality
+        );
+      };
+      img.onerror = (err) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      };
+      img.src = objectUrl;
+    });
   }
 
   removeFile(id: string, event?: Event): void {
@@ -1053,6 +1153,10 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   }
 
   submitCustomRequest(): void {
+    if (this.isUploadingImages) {
+      alert('Hệ thống đang nén và tải ảnh lên Cloudinary. Vui lòng đợi vài giây để hoàn tất...');
+      return;
+    }
     if (!this.selectedProduct) {
       alert('Vui lòng chọn Danh mục và Sản phẩm mẫu trước khi gửi yêu cầu may đo.');
       return;
@@ -1086,10 +1190,15 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
 
     const referenceImgs: string[] = [];
     if (this.formReferenceImageUrl.trim()) {
-      referenceImgs.push(this.formReferenceImageUrl.trim());
+      const url = this.formReferenceImageUrl.trim();
+      if (!url.startsWith('blob:') && !url.startsWith('data:')) {
+        referenceImgs.push(url);
+      }
     }
     this.uploadedFiles.forEach(f => {
-      if (f.previewUrl) referenceImgs.push(f.previewUrl);
+      if (f.previewUrl && !f.previewUrl.startsWith('blob:') && !f.previewUrl.startsWith('data:')) {
+        referenceImgs.push(f.previewUrl.trim());
+      }
     });
 
     const chosenColor = this.selectedCustomColorOther
@@ -1120,7 +1229,7 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
       fullNotesParts.push(`Ngân sách dự kiến: ${this.formBudgetRange}`);
     }
 
-    const created = this.customRequestService.createRequest({
+    this.pendingCreatePayload = {
       customerName: this.formCustomerName.trim(),
       customerPhone: this.formCustomerPhone.trim(),
       customerEmail: this.formCustomerEmail.trim(),
@@ -1137,12 +1246,54 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
       colorHex: this.selectedCustomColorOther ? '#8B5A2B' : this.formSelectedColorHex,
       material: chosenMaterial,
       legMaterial: chosenLeg,
+      budgetRange: (this.formBudgetRange && this.formBudgetRange !== 'other') ? this.formBudgetRange : (this.formEstimatedBudget ? `${this.formEstimatedBudget} VNĐ` : undefined),
+      estimatedBudget: this.formBudgetRange === 'other' && this.formEstimatedBudget ? this.formEstimatedBudget : undefined,
       notes: fullNotesParts.join('\n'),
       referenceImages: referenceImgs
-    });
-
-    this.createdRequestCode = created ? created.code : 'CR-SUCCESS';
+    };
+    this.createdRequestCode = 'Chờ xác nhận hoàn tất';
     this.formSubmittedSuccess = true;
+    this.cdr.markForCheck();
+  }
+
+  pendingCreatePayload: any = null;
+  isConfirmCancelCreateOpen = false;
+
+  confirmAndFinalizeCreateCustom(): void {
+    if (this.pendingCreatePayload) {
+      const created = this.customRequestService.createRequest(this.pendingCreatePayload);
+      this.createdRequestCode = created.code;
+      this.pendingCreatePayload = null;
+    }
+    this.closeCreateModal();
+  }
+
+  requestCloseCreateModal(): void {
+    const hasAnyFormInput = !!(
+      this.pendingCreatePayload ||
+      this.selectedProduct ||
+      this.formNotes.trim() ||
+      this.uploadedFiles.length > 0 ||
+      this.formDimensionNote.trim() ||
+      this.formColorNote.trim() ||
+      this.formMaterialNote.trim() ||
+      this.formLegNote.trim() ||
+      this.formBudgetRange ||
+      this.formEstimatedBudget.trim() ||
+      this.formReferenceImageUrl.trim()
+    );
+    if (hasAnyFormInput) {
+      this.isConfirmCancelCreateOpen = true;
+      this.cdr.markForCheck();
+      return;
+    }
+    this.closeCreateModal();
+  }
+
+  confirmCancelCreateProcess(): void {
+    this.isConfirmCancelCreateOpen = false;
+    this.pendingCreatePayload = null;
+    this.closeCreateModal();
   }
 
   // --- XEM CHI TIẾT YÊU CẦU ---
@@ -1179,6 +1330,25 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
   returnToCurrentCustomStep(): void {
     this.viewingCustomStepIndex = null;
     this.cdr.detectChanges();
+  }
+
+  getExtractedBudgetRange(req: CustomRequest): string {
+    if (!req) return '';
+    if (req.budgetRange) return req.budgetRange;
+    if (req.estimatedBudget) return `${req.estimatedBudget} đ`;
+    const notes = req.notes || req.requirementDetails || '';
+    const match = notes.match(/Ngân sách dự kiến:\s*([^\n]+)/i);
+    return match ? match[1].trim() : '';
+  }
+
+  getCleanedCustomerNotes(req: CustomRequest): string {
+    if (!req) return '';
+    const notes = req.notes || req.requirementDetails || '';
+    return notes
+      .split('\n')
+      .filter((line: string) => !line.trim().toLowerCase().startsWith('ngân sách dự kiến:'))
+      .join('\n')
+      .trim();
   }
 
   openDetailModal(req: CustomRequest): void {
@@ -1492,21 +1662,31 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
    */
   getRequestDisplayImage(req: CustomRequest | null | undefined): string {
     if (!req) return this.DEFAULT_CUSTOM_IMAGE;
-    const isUnsplash = (url?: string | null) => !url || url.includes('unsplash.com');
+    const isValidUrl = (url?: string | null) => {
+      if (!url) return false;
+      const trimmed = url.trim();
+      return (
+        trimmed.length > 0 &&
+        !trimmed.startsWith('blob:') &&
+        !trimmed.startsWith('data:') &&
+        !trimmed.includes('furniture-placeholder.svg') &&
+        !trimmed.includes('unsplash.com')
+      );
+    };
 
-    if (req.drawing3dUrl && !isUnsplash(req.drawing3dUrl)) {
-      return req.drawing3dUrl.trim();
+    if (isValidUrl(req.drawing3dUrl)) {
+      return req.drawing3dUrl!.trim();
     }
     if (req.referenceImages && req.referenceImages.length > 0) {
-      const validImg = req.referenceImages.find(img => !isUnsplash(img));
+      const validImg = req.referenceImages.find(img => isValidUrl(img));
       if (validImg) return validImg.trim();
     }
     if (req.attachments && req.attachments.length > 0) {
-      const imgAtt = req.attachments.find(a => !isUnsplash(a.previewUrl));
+      const imgAtt = req.attachments.find(a => isValidUrl(a.previewUrl));
       if (imgAtt?.previewUrl) return imgAtt.previewUrl.trim();
     }
-    if (req.productImage && !isUnsplash(req.productImage)) {
-      return req.productImage.trim();
+    if (isValidUrl(req.productImage)) {
+      return req.productImage!.trim();
     }
     return this.DEFAULT_CUSTOM_IMAGE;
   }
@@ -1522,6 +1702,7 @@ export class CustomRequestsComponent implements OnInit, OnDestroy {
       if (!url) return true;
       const trimmed = url.trim().toLowerCase();
       if (!trimmed || trimmed === this.DEFAULT_CUSTOM_IMAGE.toLowerCase()) return true;
+      if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) return true;
       if (trimmed.includes('furniture-placeholder.svg') || trimmed.includes('unsplash.com')) return true;
       // Ở trạng thái PENDING_REVIEW (vừa gửi yêu cầu, chưa khảo sát/thiết kế), không dùng about_blueprint
       if (req.status === 'PENDING_REVIEW' && trimmed.includes('about_blueprint.jpg')) return true;

@@ -190,105 +190,113 @@
           <!-- Fallback: Grid thông số nếu không có customizedAttributes -->
           <ng-template #fallbackSpecsGrid>
             <div class="specs-grid">
-              <!-- Kích thước -->
-              <div class="spec-item" *ngIf="hasProductDimensions()">
-                <div class="spec-icon-box"><lucide-angular [img]="icons.Ruler" size="16"></lucide-angular></div>
+              <!-- Kích thước (chỉ hiện nếu có thông số thực tế) -->
+              <div class="spec-item" *ngIf="hasProductDimensions() && (request.length || request.width || request.height)">
                 <div class="spec-details">
                   <span class="spec-lbl">Kích thước đo đạc (Dài x Rộng x Cao)</span>
                   <strong class="spec-val">{{ request.length || '—' }} x {{ request.width || '—' }} x {{ request.height || '—' }} cm</strong>
                 </div>
               </div>
 
-              <!-- Chất liệu bề mặt -->
-              <div class="spec-item">
-                <div class="spec-icon-box"><lucide-angular [img]="icons.Layers" size="16"></lucide-angular></div>
-                <div class="spec-details">
-                  <span class="spec-lbl">Chất liệu bề mặt & đệm mút</span>
-                  <strong class="spec-val">{{ request.material || 'Theo tiêu chuẩn Studio' }}</strong>
-                </div>
-              </div>
-
-              <!-- Màu sắc chỉ định -->
-              <div class="spec-item">
-                <div class="spec-icon-box"><lucide-angular [img]="icons.Palette" size="16"></lucide-angular></div>
-                <div class="spec-details">
-                  <span class="spec-lbl">Màu sắc chỉ định</span>
-                  <div class="color-val-wrapper">
-                    <span class="color-dot-swatch" [style.background]="request.colorHex || '#8B4513'"></span>
-                    <strong class="spec-val">{{ request.colorName || 'Màu theo catalogue' }}</strong>
+              <!-- Trường hợp có customizedAttributes động -->
+              <ng-container *ngIf="request.customizedAttributes && request.customizedAttributes.length > 0; else standardAdminSpecs">
+                <div class="spec-item" *ngFor="let attr of request.customizedAttributes">
+                  <div class="spec-details">
+                    <span class="spec-lbl">{{ attr.label }}</span>
+                    <strong class="spec-val">{{ attr.selectedOptionName }}</strong>
                   </div>
                 </div>
-              </div>
+              </ng-container>
 
-              <!-- Khung chân -->
-              <div class="spec-item">
-                <div class="spec-icon-box"><lucide-angular [img]="icons.Building2" size="16"></lucide-angular></div>
-                <div class="spec-details">
-                  <span class="spec-lbl">Khung xương & Chân đế</span>
-                  <strong class="spec-val">{{ request.legMaterial || 'Gỗ tự nhiên tẩm sấy / Inox mạ Titan' }}</strong>
+              <ng-template #standardAdminSpecs>
+                <!-- Chất liệu bề mặt -->
+                <div class="spec-item" *ngIf="request.material && request.material.trim() !== '' && request.material !== '—'">
+                  <div class="spec-details">
+                    <span class="spec-lbl">Chất liệu bề mặt & đệm mút</span>
+                    <strong class="spec-val">{{ request.material }}</strong>
+                  </div>
                 </div>
-              </div>
+
+                <!-- Màu sắc chỉ định -->
+                <div class="spec-item" *ngIf="request.colorName && request.colorName.trim() !== '' && request.colorName !== '—'">
+                  <div class="spec-details">
+                    <span class="spec-lbl">Màu sắc chỉ định</span>
+                    <div class="color-val-wrapper">
+                      <span class="color-dot-swatch" [style.background]="request.colorHex || '#8B4513'"></span>
+                      <strong class="spec-val">{{ request.colorName }}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Khung chân -->
+                <div class="spec-item" *ngIf="request.legMaterial && request.legMaterial.trim() !== '' && request.legMaterial !== '—'">
+                  <div class="spec-details">
+                    <span class="spec-lbl">Khung xương & Chân đế</span>
+                    <strong class="spec-val">{{ request.legMaterial }}</strong>
+                  </div>
+                </div>
+              </ng-template>
             </div>
           </ng-template>
 
-          <!-- 4. KHOẢNG GIÁ CHẤP NHẬN TRẢ & KẾ HOẠCH MONG MUỐN TỪ KHÁCH HÀNG -->
-          <div class="customer-plan-grid">
+          <!-- 4. KHOẢNG GIÁ CHẤP NHẬN TRẢ & KẾ HOẠCH MONG MUỐN TỪ KHÁCH HÀNG (Chỉ hiện card có dữ liệu thực tế) -->
+          <div class="customer-plan-grid" *ngIf="getExtractedBudgetRange() || request.preferredSurveyTime || request.expectedDeliveryDate || request.roomSpace">
             <!-- Khoảng giá chấp nhận trả -->
-            <div class="plan-card plan-budget">
+            <div class="plan-card plan-budget" *ngIf="getExtractedBudgetRange()">
               <div class="plan-icon-badge badge-budget">
                 <lucide-angular [img]="icons.DollarSign" size="18"></lucide-angular>
               </div>
               <div class="plan-info">
                 <span class="plan-label">Khoảng giá chấp nhận trả (Ngân sách dự kiến)</span>
-                <strong class="plan-val val-budget">{{ request.budgetRange || (request.estimatedBudget ? (formatVND(+request.estimatedBudget)) : '22.000.000 đ - 26.000.000 đ') }}</strong>
+                <strong class="plan-val val-budget">{{ getExtractedBudgetRange() }}</strong>
                 <span class="plan-sub">Mức chi trả dự kiến từ form khách gửi</span>
               </div>
             </div>
 
             <!-- Lịch hẹn khảo sát mong muốn -->
-            <div class="plan-card plan-survey">
+            <div class="plan-card plan-survey" *ngIf="request.preferredSurveyTime">
               <div class="plan-icon-badge badge-survey">
                 <lucide-angular [img]="icons.Clock" size="18"></lucide-angular>
               </div>
               <div class="plan-info">
                 <span class="plan-label">Lịch hẹn khảo sát mong muốn</span>
-                <strong class="plan-val val-survey">{{ request.preferredSurveyTime || 'Thứ 7 tuần này (09:00 - 11:30 sáng)' }}</strong>
+                <strong class="plan-val val-survey">{{ request.preferredSurveyTime }}</strong>
                 <span class="plan-sub">KTS liên hệ xác nhận trước khi đến</span>
               </div>
             </div>
 
             <!-- Tiến độ mong muốn nhận hàng -->
-            <div class="plan-card plan-delivery">
+            <div class="plan-card plan-delivery" *ngIf="request.expectedDeliveryDate">
               <div class="plan-icon-badge badge-delivery">
                 <lucide-angular [img]="icons.Truck" size="18"></lucide-angular>
               </div>
               <div class="plan-info">
                 <span class="plan-label">Tiến độ mong muốn nhận hàng</span>
-                <strong class="plan-val val-delivery">{{ request.expectedDeliveryDate || 'Trước 25/11/2026 (khoảng 20 ngày)' }}</strong>
+                <strong class="plan-val val-delivery">{{ request.expectedDeliveryDate }}</strong>
                 <span class="plan-sub">Thời hạn bàn giao & lắp đặt</span>
               </div>
             </div>
 
             <!-- Không gian bố trí -->
-            <div class="plan-card plan-space">
+            <div class="plan-card plan-space" *ngIf="request.roomSpace">
               <div class="plan-icon-badge badge-space">
                 <lucide-angular [img]="icons.Building2" size="18"></lucide-angular>
               </div>
               <div class="plan-info">
                 <span class="plan-label">Khu vực / Không gian bố trí</span>
-                <strong class="plan-val val-space">{{ request.roomSpace || 'Phòng khách căn hộ chung cư' }}</strong>
+                <strong class="plan-val val-space">{{ request.roomSpace }}</strong>
                 <span class="plan-sub">Vị trí lắp đặt mặt bằng thực tế</span>
               </div>
             </div>
           </div>
 
           <!-- 5. GHI CHÚ VỀ KHÔNG GIAN & YÊU CẦU ĐẶC BIỆT TỪ KHÁCH HÀNG -->
-          <div class="spec-notes-box" *ngIf="request.requirementDetails || request.notes">
+          <div class="spec-notes-box" *ngIf="getCleanedCustomerNotes()">
             <span class="note-title">
               <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
               Ghi chú thêm về không gian & yêu cầu đặc biệt từ khách hàng:
             </span>
-            <p class="note-body">"{{ request.requirementDetails || request.notes }}"</p>
+            <p class="note-body">"{{ getCleanedCustomerNotes() }}"</p>
           </div>
 
           <!-- 6. MẪU THIẾT KẾ THAM KHẢO TỪ KHÁCH HÀNG -->

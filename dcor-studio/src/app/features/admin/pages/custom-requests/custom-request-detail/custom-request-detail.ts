@@ -1964,6 +1964,25 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   }
 
+  getExtractedBudgetRange(): string {
+    if (!this.request) return '';
+    if (this.request.budgetRange) return this.request.budgetRange;
+    if (this.request.estimatedBudget) return this.formatVND(+this.request.estimatedBudget);
+    const notes = this.request.requirementDetails || this.request.notes || '';
+    const match = notes.match(/Ngân sách dự kiến:\s*([^\n]+)/i);
+    return match ? match[1].trim() : '';
+  }
+
+  getCleanedCustomerNotes(): string {
+    if (!this.request) return '';
+    const notes = this.request.requirementDetails || this.request.notes || '';
+    return notes
+      .split('\n')
+      .filter((line: string) => !line.trim().toLowerCase().startsWith('ngân sách dự kiến:'))
+      .join('\n')
+      .trim();
+  }
+
   copyToClipboard(text: string): void {
     if (navigator?.clipboard) {
       navigator.clipboard.writeText(text);

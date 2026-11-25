@@ -380,6 +380,18 @@ export const customRequestController = {
       const width = payload.width ? Number(payload.width) : null;
       const height = payload.height ? Number(payload.height) : null;
 
+      // Làm sạch danh sách ảnh: loại bỏ triệt để các URL tạm blob: hoặc data:
+      const cleanRefImages = Array.isArray(payload.referenceImages)
+        ? payload.referenceImages.filter((u: any) => typeof u === 'string' && !u.startsWith('blob:') && !u.startsWith('data:'))
+        : [];
+      const cleanAttachments = Array.isArray(payload.attachments)
+        ? payload.attachments.filter((a: any) => a && (!a.previewUrl || (!a.previewUrl.startsWith('blob:') && !a.previewUrl.startsWith('data:'))))
+        : [];
+      let cleanProdImage = payload.productImage || null;
+      if (cleanProdImage && (cleanProdImage.startsWith('blob:') || cleanProdImage.startsWith('data:'))) {
+        cleanProdImage = null;
+      }
+
       await withDbRetry(async () => {
         await prisma.$executeRawUnsafe(`
           INSERT INTO "CustomRequest" (
@@ -401,12 +413,12 @@ export const customRequestController = {
           )
         `,
           id, code, customerId, customerName, customerPhone, customerEmail, payload.customerAddress || null, Boolean(payload.isPhoneVerified),
-          payload.productId || null, payload.productName || 'Sản phẩm may đo riêng', payload.productSku || null, payload.productImage || null, payload.categoryName || null, basePrice,
+          payload.productId || null, payload.productName || 'Sản phẩm may đo riêng', payload.productSku || null, cleanProdImage, payload.categoryName || null, basePrice,
           payload.hasDimensions ?? true, payload.originalDimensions || null, payload.requestedDimensions || null, payload.customDimensionNote || null,
           length, width, height, JSON.stringify(payload.customizedAttributes || []),
           payload.colorName || null, payload.colorHex || null, payload.colorImage || null, payload.material || null, payload.legMaterial || null,
           payload.notes || null, payload.requirementDetails || null, payload.budgetRange || null, payload.estimatedBudget || null, payload.preferredSurveyTime || null, payload.expectedDeliveryDate || null, payload.roomSpace || null,
-          JSON.stringify(payload.attachments || []), JSON.stringify(payload.referenceImages || [])
+          JSON.stringify(cleanAttachments), JSON.stringify(cleanRefImages)
         );
 
         // Tạo mốc timeline đầu tiên

@@ -694,8 +694,28 @@ export class ProfileComponent implements OnInit, OnDestroy {
             const startY = (img.height - minDim) / 2;
 
             ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, targetWidth, targetHeight);
-            const dataUrl = canvas.toDataURL('image/jpeg', quality);
-            resolve(dataUrl);
+            canvas.toBlob(async (blob) => {
+              if (blob) {
+                try {
+                  const formData = new FormData();
+                  formData.append('file', blob, `avatar-${Date.now()}.jpg`);
+                  const res = await fetch(`${environment.apiUrl}/upload/image`, {
+                    method: 'POST',
+                    body: formData
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data?.url) {
+                      resolve(data.url);
+                      return;
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Lỗi upload avatar lên Cloudinary:', err);
+                }
+              }
+              resolve(canvas.toDataURL('image/jpeg', quality));
+            }, 'image/jpeg', quality);
           } catch (canvasErr) {
             resolve(e.target.result);
           }

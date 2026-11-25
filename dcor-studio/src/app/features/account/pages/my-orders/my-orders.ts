@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { environment } from '../../../../../environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
@@ -1467,16 +1468,40 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  onReturnImagePicked(event: Event): void {
+  async onReturnImagePicked(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
     const files = Array.from(input.files);
-    files.forEach(file => {
+    input.value = '';
+
+    for (const file of files) {
+      if (this.returnUploadedImages.length >= 5) break;
       if (file.size > 10 * 1024 * 1024) {
         alert(`Ảnh ${file.name} vượt quá dung lượng cho phép 10MB.`);
-        return;
+        continue;
       }
+      try {
+        const compressedBlob = await this.compressReturnImageToBlob(file, 1280, 0.82);
+        const formData = new FormData();
+        formData.append('file', compressedBlob, file.name.replace(/\.[^.]+$/, '.jpg'));
+        const res = await fetch(`${environment.apiUrl}/upload/image`, {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.url && this.returnUploadedImages.length < 5) {
+            this.returnUploadedImages.push(data.url);
+            this.cdr.markForCheck();
+            continue;
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi nén/upload ảnh đổi trả:', err);
+      }
+
+      // Fallback nếu mất kết nối
       const reader = new FileReader();
       reader.onload = (e: any) => {
         if (e.target?.result && this.returnUploadedImages.length < 5) {
@@ -1485,8 +1510,42 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
         }
       };
       reader.readAsDataURL(file);
+    }
+  }
+
+  private compressReturnImageToBlob(file: File, maxDim = 1280, quality = 0.82): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.onerror = (err) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      };
+      img.src = objectUrl;
     });
-    input.value = '';
   }
 
   removeReturnImage(index: number): void {

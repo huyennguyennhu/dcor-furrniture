@@ -382,12 +382,12 @@ export class CustomRequestService {
             }
             if (item.referenceImages && Array.isArray(item.referenceImages)) {
               item.referenceImages = item.referenceImages.filter((img: string) => 
-                img && !img.includes('furniture-placeholder.svg') && !img.includes('unsplash.com')
+                img && !img.includes('furniture-placeholder.svg') && !img.includes('unsplash.com') && !img.startsWith('blob:') && !img.startsWith('data:')
               );
             }
             if (item.attachments && Array.isArray(item.attachments)) {
               item.attachments = item.attachments.filter((att: any) => 
-                att.previewUrl && !att.previewUrl.includes('furniture-placeholder.svg') && !att.previewUrl.includes('unsplash.com')
+                att.previewUrl && !att.previewUrl.includes('furniture-placeholder.svg') && !att.previewUrl.includes('unsplash.com') && !att.previewUrl.startsWith('blob:') && !att.previewUrl.startsWith('data:')
               );
             }
             if (item.status === 'PENDING_REVIEW') {
@@ -458,7 +458,11 @@ export class CustomRequestService {
     this.http.get<any>(`${this.apiUrl}/admin/custom-requests?limit=200`).subscribe({
       next: (res) => {
         if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
-          const backendList: CustomRequest[] = res.data;
+          const backendList: CustomRequest[] = res.data.map((item: any) => ({
+            ...item,
+            referenceImages: (item.referenceImages || []).filter((img: string) => typeof img === 'string' && !img.startsWith('blob:') && !img.startsWith('data:')),
+            attachments: (item.attachments || []).filter((att: any) => att && (!att.previewUrl || (!att.previewUrl.startsWith('blob:') && !att.previewUrl.startsWith('data:'))))
+          }));
           const currentLocal = this.requestsSubject.value;
 
           // Merge an toàn: Lấy bản mới nhất từ backend, bổ sung các đơn mới tạo ở client nếu backend chưa có
@@ -579,7 +583,7 @@ export class CustomRequestService {
       material: data.material || 'Da bò Ý Full Grain',
       legMaterial: data.legMaterial || 'Kim loại sơn tĩnh điện đen mờ',
       notes: data.notes,
-      referenceImages: data.referenceImages || [],
+      referenceImages: (data.referenceImages || []).filter(img => typeof img === 'string' && !img.startsWith('blob:') && !img.startsWith('data:')),
       preferredSurveyTime: data.preferredSurveyTime,
       roomSpace: data.roomSpace,
       expectedDeliveryDate: data.expectedDeliveryDate,
